@@ -34,6 +34,10 @@ public final class IrisSeedPurposes {
     public static final ResourceId ENTITY = purpose("entity");
     public static final ResourceId LOOT = purpose("loot");
     public static final ResourceId MANTLE = purpose("mantle");
+    /** The random each chunk's objects are placed with, before the chunk's coordinates are mixed in. */
+    public static final ResourceId OBJECT_CHUNK = purpose("object-chunk");
+    /** The noise that picks the count of a placement with a density style. */
+    public static final ResourceId OBJECT_DENSITY = purpose("object-density");
     /** The noise that warps the columns of object placements with a surface warp. */
     public static final ResourceId OBJECT_WARP = purpose("object-warp");
     /** The candidate spots, ranks and chance noise of separated object placements. */

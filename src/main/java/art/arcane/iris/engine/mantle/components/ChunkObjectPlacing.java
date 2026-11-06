@@ -302,7 +302,7 @@ final class ChunkObjectPlacing {
     private void placeObject(Tally tally, ObjectPlacement placement, String scope) {
         int blockX = context.originX();
         int blockZ = context.originZ();
-        int density = objects.density(placement, rng, blockX, blockZ);
+        int density = objects.density(placement, blockX, blockZ);
         for (int i = 0; i < density; i++) {
             tally.attempts++;
             Optional<PlaceableObject> picked = objects.pickScaled(placement, rng);
@@ -347,7 +347,7 @@ final class ChunkObjectPlacing {
                                  ResourceId expectedCaveBiome, CaveAnchors anchors) {
         int minX = context.originX();
         int minZ = context.originZ();
-        int density = objects.density(placement, rng, minX, minZ);
+        int density = objects.density(placement, minX, minZ);
         CaveAnchors.Search search = caves.searchFor(placement, profile);
         for (int i = 0; i < density; i++) {
             tally.attempts++;
@@ -439,7 +439,7 @@ final class ChunkObjectPlacing {
     private void placeUpperObject(ObjectPlacement placement, boolean forcePlace, String scope) {
         int minX = context.originX();
         int minZ = context.originZ();
-        int density = objects.density(placement, rng, minX, minZ);
+        int density = objects.density(placement, minX, minZ);
         for (int i = 0; i < density; i++) {
             Optional<PlaceableObject> picked = objects.pickScaled(placement, rng);
             if (picked.isEmpty()) {

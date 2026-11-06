@@ -105,7 +105,7 @@ public final class ObjectPlacing {
 
     private Set<String> guessPlacedKeys(RNG rng, int x, int z, ObjectPlacement placement) {
         Set<String> keys = new HashSet<>();
-        for (int i = 0; i < objects.density(placement, rng, x, z); i++) {
+        for (int i = 0; i < objects.density(placement, x, z); i++) {
             Optional<PlaceableObject> picked = objects.pickScaled(placement, rng);
             picked.ifPresent(object -> keys.add(object.name()));
         }

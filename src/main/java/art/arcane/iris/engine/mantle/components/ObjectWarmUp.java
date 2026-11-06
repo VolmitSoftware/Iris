@@ -18,12 +18,10 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.modules.objects.Declaration;
 import art.arcane.iris.modules.objects.ObjectPool;
-import art.arcane.volmlib.util.math.RNG;
 import com.volmit.config.Level;
 import com.volmit.world.PackWorld;
 
@@ -32,22 +30,18 @@ import java.util.List;
 
 /**
  * Builds what object placing would build on first use, for every object placement and procedural object the world's
- * biomes and regions declare: the placement's density noise, and a procedural object's variants. None of it depends on
- * the random it is warmed with; the density noise is cached per seed and the variants are baked whatever picks one.
+ * biomes and regions declare: the placement's density noise, and a procedural object's variants. The density noise is
+ * cached per seed and the variants are baked whatever picks one.
  */
 final class ObjectWarmUp {
-    private static final long ROOT_SEED_SALT = 7777L;
     private static final Level[] WARMED_LEVELS = {Level.BIOME, Level.REGION};
 
     private final PackWorld world;
     private final ObjectPool objects;
-    private final RNG root;
-    private int warmed;
 
     ObjectWarmUp(PackWorld world) {
         this.world = world;
         this.objects = ObjectPool.of(world);
-        this.root = new RNG(world.seed(IrisSeedPurposes.COMPONENT) + ROOT_SEED_SALT);
     }
 
     void warm() {
@@ -68,7 +62,7 @@ final class ObjectWarmUp {
     private void warmPlacements(List<ObjectPlacement> placements) {
         for (ObjectPlacement placement : placements) {
             if (placement != null) {
-                objects.warm(placement, root.nextParallelRNG(warmed++));
+                objects.warm(placement);
             }
         }
     }

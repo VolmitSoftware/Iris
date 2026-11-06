@@ -190,7 +190,6 @@ public final class ObjectPlacement {
     private boolean forcePlace = false;
 
     private transient volatile String json;
-    private transient volatile Object hostForm;
 
     public ObjectPlacement() {
     }
@@ -240,7 +239,6 @@ public final class ObjectPlacement {
         forbiddenCollisions = source.forbiddenCollisions;
         forcePlace = source.forcePlace;
         json = source.json;
-        hostForm = source.hostForm;
     }
 
     /** A builder of a placement made in code, starting from the defaults a pack's placement starts from. */
@@ -478,18 +476,6 @@ public final class ObjectPlacement {
         return names;
     }
 
-    /**
-     * What Iris made of this placement the last time it asked, kept here so it asks once. Only Iris sets or reads it,
-     * and it is its own type.
-     */
-    public Object hostForm() {
-        return hostForm;
-    }
-
-    public void hostForm(Object form) {
-        this.hostForm = form;
-    }
-
     private static <T> List<T> listOf(List<T> values) {
         return values == null ? List.of() : Collections.unmodifiableList(values);
     }
@@ -544,7 +530,6 @@ public final class ObjectPlacement {
 
         public Builder densityStyle(StyledRange densityStyle) {
             placement.densityStyle = densityStyle;
-            placement.hostForm = null;
             return this;
         }
 
@@ -605,7 +590,6 @@ public final class ObjectPlacement {
 
         public Builder heightmap(HeightmapNoise heightmap) {
             placement.heightmap = heightmap;
-            placement.hostForm = null;
             return this;
         }
 
@@ -646,7 +630,6 @@ public final class ObjectPlacement {
 
         public Builder warp(NoiseStyle warp) {
             placement.warp = warp;
-            placement.hostForm = null;
             return this;
         }
 

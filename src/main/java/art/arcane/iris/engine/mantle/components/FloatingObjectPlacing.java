@@ -200,7 +200,7 @@ public final class FloatingObjectPlacing {
 
     private void placeFloating(Chunk chunk, ObjectPlacement placement, KList<Integer> columns, ResolvedFloatingChild entry) {
         RNG rng = chunk.rng;
-        int density = objects.density(placement, rng, chunk.minX, chunk.minZ);
+        int density = objects.density(placement, chunk.minX, chunk.minZ);
         for (int i = 0; i < density; i++) {
             Optional<PlaceableObject> picked = pick(placement, entry, rng);
             if (picked.isEmpty()) {
@@ -214,7 +214,7 @@ public final class FloatingObjectPlacing {
     private void placeAnchored(Chunk chunk, ObjectPlacement placement, KList<Integer> columns, KList<Integer> interior,
                                ResolvedFloatingChild entry) {
         RNG rng = chunk.rng;
-        int density = objects.density(placement, rng, chunk.minX, chunk.minZ);
+        int density = objects.density(placement, chunk.minX, chunk.minZ);
         for (int i = 0; i < density; i++) {
             Optional<PlaceableObject> picked = pick(placement, entry, rng);
             if (picked.isEmpty()) {
@@ -249,7 +249,7 @@ public final class FloatingObjectPlacing {
     private void placeInverted(Chunk chunk, ObjectPlacement placement, KList<Integer> columns, KList<Integer> interior,
                                ResolvedFloatingChild entry) {
         RNG rng = chunk.rng;
-        int density = objects.density(placement, rng, chunk.minX, chunk.minZ);
+        int density = objects.density(placement, chunk.minX, chunk.minZ);
         for (int i = 0; i < density; i++) {
             Optional<PlaceableObject> picked = pick(placement, entry, rng);
             if (picked.isEmpty()) {

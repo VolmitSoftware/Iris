@@ -18,15 +18,18 @@
 
 package art.arcane.iris.modules.objects;
 
-import art.arcane.iris.builtin.LegacyStreams;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectScale;
 import art.arcane.iris.builtin.objects.ScaleInterpolation;
 import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.noise.StyledRange;
 import com.volmit.object.PackObjects;
 import com.volmit.object.PlaceableObject;
 import com.volmit.object.ScaleMethod;
+import com.volmit.random.WorldRandom;
 import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 
@@ -35,30 +38,33 @@ import java.util.Optional;
 
 /**
  * The pack's objects as object placements pick them: by key, scaled the way a placement scales them, and as many at a
- * column as its density says, drawn from Iris's own streams so existing worlds keep their objects.
+ * column as its density says, drawn from random streams and noise seeded by the world.
  */
 public final class ObjectPool {
     private static final double NO_SCALE = 1D;
     private static final int MAX_SCALE_VARIANTS = 32;
 
     private final PackResources resources;
-    private final LegacyStreams streams;
+    private final long chunkSeed;
+    private final long densitySeed;
     private final ProceduralObjectCatalog procedural;
 
-    private ObjectPool(PackResources resources, LegacyStreams streams, ProceduralObjectCatalog procedural) {
+    private ObjectPool(PackResources resources, long chunkSeed, long densitySeed, ProceduralObjectCatalog procedural) {
         this.resources = resources;
-        this.streams = streams;
+        this.chunkSeed = chunkSeed;
+        this.densitySeed = densitySeed;
         this.procedural = procedural;
     }
 
     /** The objects of {@code world}'s pack, its procedural objects among them. */
     public static ObjectPool of(PackWorld world) {
-        return new ObjectPool(world.resources(), world.extension(LegacyStreams.class).orElseThrow(), ProceduralObjectCatalog.of(world));
+        return new ObjectPool(world.resources(), world.seed(IrisSeedPurposes.OBJECT_CHUNK),
+                world.seed(IrisSeedPurposes.OBJECT_DENSITY), ProceduralObjectCatalog.of(world));
     }
 
-    /** The random a chunk's objects are placed with. */
+    /** The random a chunk's objects are placed with: the same for the same chunk of the same world. */
     public RNG chunkRandom(int chunkX, int chunkZ) {
-        return streams.objectChunkRandom(chunkX, chunkZ);
+        return new RNG(new WorldRandom(chunkSeed + CacheKey.key(chunkX, chunkZ)).nextLong());
     }
 
     /** The pack object {@code key} names; for a procedural pool, the variant {@code rng} picks. */
@@ -83,14 +89,18 @@ public final class ObjectPool {
         return factor == NO_SCALE ? origin : objects().scaled(origin, factor, ScaleMethod.NONE);
     }
 
-    /** How many objects the placement places at the column, when its chance check passes. */
-    public int density(ObjectPlacement placement, RNG rng, double x, double z) {
-        return streams.density(placement, rng, x, z);
+    /** How many objects the placement places at the column, when its chance check passes: its fixed density, or what its density style gives there. */
+    public int density(ObjectPlacement placement, double x, double z) {
+        Optional<StyledRange> densityStyle = placement.densityStyle();
+        if (densityStyle.isEmpty()) {
+            return placement.density();
+        }
+        return (int) Math.round(densityStyle.get().at(resources.noise(), densitySeed, x, z));
     }
 
     /** Builds the noise the placement draws its density from and bakes its procedural objects, so the first chunk to place it does not wait. */
-    public void warm(ObjectPlacement placement, RNG rng) {
-        streams.density(placement, rng, 0, 0);
+    public void warm(ObjectPlacement placement) {
+        density(placement, 0, 0);
         placement.place().stream().filter(ProceduralObjectCatalog::isProceduralKey).forEach(procedural::placeable);
     }
 

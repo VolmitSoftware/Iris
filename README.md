@@ -97,9 +97,8 @@ An object placement is `iris:objects` settings (`objects.ObjectPlacement`, under
 settings inside it, such as its clamp, stilt, vacuum and edit settings, its slope condition or a procedural coral, are
 module-owned classes too (`art.arcane.iris.builtin.validate`, `.stilt`, `.vacuum`, `.blocks`, `.prepare`, `.carve`,
 `.floating`, `.objects.*`), so studio describes them from the module's own annotations. Iris reads a placement's module
-settings (the keys pack modules add at `Level.PLACEMENT`) from the JSON the placement was written as (`json()`), and keeps
-what it makes of the placement in `hostForm()`; a placement made in code uses `ObjectPlacement.builder()` or
-`toBuilder()`. Packs write the same JSON as before. Behaviour
+settings (the keys pack modules add at `Level.PLACEMENT`) from the JSON the placement was written as (`json()`); a
+placement made in code uses `ObjectPlacement.builder()` or `toBuilder()`. Packs write the same JSON as before. Behaviour
 that needs Iris (noise built from the styles, blocks resolved through the pack, baked object variants) lives in `Resolved*` classes beside the
 worker (`ResolvedReplace`, `ResolvedCaveProfile`, `ResolvedFloatingChild`, `ResolvedProceduralPlacement`).
 
@@ -202,14 +201,14 @@ none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, which a test keeps e
 
 `art.arcane.iris.builtin` also holds what the compiled-in built-ins and the jar must share, because each sees its own copy of
 every other class. The facades among them are interfaces Iris implements and offers through IrisApi's extension point, never
-through the thread or a cast: a module asks `world.extension(X.class)` for what belongs to a world (`LegacyStreams`,
-`StructureHost`, `spawn.SpawnCooldowns`), `context.extension(X.class)` for what belongs to one invocation (`MatterMantle`
+through the thread or a cast: a module asks `world.extension(X.class)` for what belongs to a world (`StructureHost`),
+`context.extension(X.class)` for what belongs to one invocation (`MatterMantle`
 in a chunk or mantle stage) and `settings.extension(X.class)` for a reach worked out
 before any world exists, each with `.orElseThrow()`, since a built-in runs only where Iris offers them. Iris's per-feature world seeds are
-IrisApi purpose seeds: `world.seed(IrisSeedPurposes.CARVE)` (`iris:seed/carve`), by the API's rule like any module's;
-`spawn.SpawnCooldowns` (the spawner cooldowns
-Iris saves with the world's data, so they survive a restart),
-`loot.LootResolver` (the random streams loot is drawn from, shared with the hosts that fill containers) and the loot and
+IrisApi purpose seeds: `world.seed(IrisSeedPurposes.CARVE)` (`iris:seed/carve`), by the API's rule like any module's. What the
+built-ins keep with a world across restarts, such as the spawner cooldowns (`SpawnCooldownBook`), they save through
+`RunningWorld.saved`; object placing seeds its chunk random, density noise and virtual heightmaps from purpose seeds and IrisApi noise.
+The package also holds `loot.LootResolver` (the random streams loot is drawn from, shared with the hosts that fill containers) and the loot and
 marker lists of an object placement (`loot.ObjectLoot`, `loot.ObjectVanillaLoot`, `spawn.PlacementMarker`). The placement stages need more of the object being
 placed than IrisApi describes, so `placement.ObjectPlacement` is the facade Iris implements for each placement and offers with
 its invocation (`context.extension(ObjectPlacement.class)`): the object's size (`ObjectShape`), the placement's settings (`PlacementSettings`, read from

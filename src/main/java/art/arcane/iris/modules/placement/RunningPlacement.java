@@ -19,7 +19,7 @@
 package art.arcane.iris.modules.placement;
 
 import art.arcane.iris.builtin.IrisSeedPurposes;
-import art.arcane.iris.builtin.LegacyStreams;
+import art.arcane.iris.builtin.objects.HeightmapNoise;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectRun;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
@@ -103,13 +103,13 @@ public final class RunningPlacement {
      * terrain with its heights from the heightmap's noise, seeded from {@code rng}.
      */
     public StageTerrain terrainFor(RNG rng) {
-        ObjectPlacement config = run.settings();
-        if (config.heightmap().isEmpty()) {
+        Optional<HeightmapNoise> heightmapSettings = run.settings().heightmap();
+        if (heightmapSettings.isEmpty()) {
             return terrain;
         }
         long heightmapSeed = rng.nextLong() + run.requestedY() + run.z() - run.x();
-        LegacyStreams streams = world().extension(LegacyStreams.class).orElseThrow();
-        return terrain.withHeights((x, z) -> streams.heightmapSurface(config, heightmapSeed, x, z));
+        VirtualHeightmap heightmap = VirtualHeightmap.of(heightmapSettings.get(), world().resources().noise(), heightmapSeed);
+        return terrain.withHeights(heightmap::surface);
     }
 
     /**

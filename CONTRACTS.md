@@ -25,6 +25,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Reference execution | host `PlacementRunner` (returns the API `PlacementOutcome`), `ChunkRunner`, `MantleRunner`, each timed through host `StageTimings` |
 | Work across chunks and mantle writes | `Stage.mantle`, `MantleStage`, `MantleStageContext`, `MantleGenerationContext`; chunk stages write registered layers in their own chunk only and read the neighbors |
 | Annotated settings | `IrisFeature`, `@Feature` (id, short JSON `key`, optional `root`), config annotations, host `OptionsMetadata`, `LinkedBiomes` (`treeBiomes`, `usedBiomes`: pack biomes the settings bring into the layout) |
+| Module state that survives a restart | `RunningWorld.saved(SavedKey)`, `SavedKey` (id, type, `Codec`, `initial`), `com.volmit.data.Codec` (also the codec of mantle layers) |
 | Host facades for the host's own modules | `PackWorld.extension(type)`, `InvocationContext.extension(type)`, `PackSettings.extension(type)` (each an `Optional`, empty by default) |
 | Area a stage writes | `reach(blocks)`, `reach(PackReach)`, `writesMantle(...)` on stage definitions, `PackSettings` (with `resources()`, for a reach that depends on the size of the pack's objects), host `StageReach`, `ResolvedStage.reachBlocks`, `PipelineReach` |
 | Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`/`Reference`, `@ResourceRef`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
@@ -99,7 +100,9 @@ and what it mounts, is the adapter's. `ModuleJarCheck --platform=<name>:<platfor
 
 Stage bodies and service providers keep no state; what a module keeps for a world lives in that world's state store,
 created once per type and world. A world's state lives while the world runs with one pack snapshot: a hotload or a
-reload of the pack's resources starts the world again with empty state. A service names how its providers combine
+reload of the pack's resources starts the world again with empty state; what must outlive that is a
+`RunningWorld.saved` value, which the host reads on first use, writes when it saves the world and when the world stops,
+and replaces by its `initial` when the codec rejects the stored payload. A service names how its providers combine
 (`ALL`, `FIRST`, `ONE`); a second provider of a `ONE` service fails the pack load, naming both modules. Services
 return values and never act on the platform.
 

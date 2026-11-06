@@ -42,6 +42,23 @@ public interface RunningWorld {
      */
     Optional<PlacementRecord> placementAt(int worldX, int y, int worldZ);
 
+    /**
+     * The value the module keeps with this world across restarts under {@code key}: the host's one instance of it for
+     * the world, read from the world's storage the first time anyone asks (or {@code key.initial()} when none was
+     * stored), and written back when the host saves the world and when it stops. Keep what a spawner last did or a
+     * counter that must outlive the server here, not what can be rebuilt from the pack; per-world caches belong in
+     * {@link PackWorld#state}.
+     *
+     * <p>The module changes the value in place and owns its thread safety. The host writes it while module threads may
+     * still change it, so {@link com.volmit.data.Codec#write} must read the value safely. A stored payload the codec
+     * rejects is logged and replaced by {@code key.initial()}; the next save overwrites it. A pack reload or hotload
+     * stops the world and starts another over the same storage, so the new world reads what the old one wrote when it
+     * stopped.
+     *
+     * @throws IllegalArgumentException if another key with the same id but another type was used for this world
+     */
+    <T> T saved(SavedKey<T> key);
+
     /** The time and weather of the world; empty while the platform has not loaded the world. */
     Optional<Sky> sky();
 

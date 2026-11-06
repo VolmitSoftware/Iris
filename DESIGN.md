@@ -1145,6 +1145,15 @@ each world a state store and tells modules when worlds start and stop.
   on its own thread, since creation holds one re-entrant lock, and asking for the type being created fails naming the
   chain instead of recursing or deadlocking. A factory that throws keeps nothing. Reads of existing state take no lock.
   `WorldStates` is the reference store hosts use.
+- **Saved state.** The store is memory, so what must survive a restart goes through `RunningWorld.saved(SavedKey)`
+  instead (the running world, because only it has a folder). A `SavedKey` is a namespaced id, the value class, a
+  `com.volmit.data.Codec` (the one mantle layers use) and an `initial` supplier. The host keeps one instance per key,
+  reads it on the first ask, and writes it when it saves the world and when the world stops, so the world a hotload
+  starts reads what the stopped one wrote. The module mutates the value in place and owns its thread safety, so the
+  codec's `write` must tolerate concurrent changes. A payload the codec rejects is logged and replaced by `initial`: a
+  module's saved state is a convenience, so a bad file never keeps a world from starting. The id names the stored
+  file, so it is checked against path tricks when the key is made. It replaced Iris's spawner-cooldown facade, which
+  existed only because API state was memory only.
 - **Hooks.** `ModuleLifecycle` has `packLoaded(pack)`, `worldStarted(world)`, `warmUp(world)` and
   `worldStopped(world)`,
   each a no-op by default, registered with `FeatureRegistry.registerLifecycle` like validators, so the host knows the
@@ -1291,16 +1300,15 @@ A module jar sees three things besides the JDK and its own pack's jars, and noth
    built-in modules read stays in their jar, unexposed. Its snippets live under its module's id in a pack's snippet
    folders (`snippet/iris/objects/...`), as every built-in's do.
 3. **Narrow facades for the host's own built-ins**, in that same exposed package, for what only the host's own
-   features need from its internals, such as the legacy random streams Iris's object placement draws from, which
-   existing worlds depend on. A pack module never needs one. Every such type is a promise the host keeps, so there are few, each answers one
+   features need from its internals, such as the structure placer. A pack module never needs one. Every such type is a promise the host keeps, so there are few, each answers one
    question, and none hands out an engine.
 
 **The extension point.** A built-in reaches its facade through one door: `PackWorld.extension(type)` for what belongs to
-a world (Iris's legacy random streams, spawner cooldowns Iris persists), `InvocationContext.extension(type)` for what belongs to one invocation (the
+a world (Iris's structure host), `InvocationContext.extension(type)` for what belongs to one invocation (the
 platform chunk Iris generates), and `PackSettings.extension(type)` for what is worked out
 from a pack's settings before any world exists (how far a feature reaches). Each returns an `Optional`, empty by default,
 so a host offers what it has and a module states what it requires:
-`world.extension(LegacyStreams.class).orElseThrow()`. Why one door:
+`world.extension(StructureHost.class).orElseThrow()`. Why one door:
 
 - **No thread-locals.** Facades used to be bound to the current thread (`IrisChunk.current()`, `ObjectPlacement.current()`),
   which only worked while the host's own code had bound them and broke silently on another thread. The context a stage
@@ -1331,9 +1339,6 @@ API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSet
 - **`MatterMantle`** (invocation). Carve plans its caves as VolmLib matter slices (`MatterCavern`, markers) that Iris and the
   platform read back as slices. The API mantle has typed layers but no cavern layer; it goes when carve writes a layer the
   API defines and Iris reads that instead.
-- **`LegacyStreams`** (world). Iris's object chunk random, and the noise of a placement's density style and virtual
-  heightmap, which decide where existing worlds have their objects and which no API noise reproduces value for value. It
-  goes when a world format change lets object placing draw from stage streams and API noise.
 - **`objects.ObjectRun`** (the input of a placement run, `PlacementRun.input`). The object and the module's own
   `objects.ObjectPlacement` settings that Iris's built-in placement stages read, and what they report back (the anchor
   height, which written blocks are the object's). The placement-level module settings no longer need it: the run carries
@@ -1344,8 +1349,6 @@ API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSet
   loot of its pieces. The structure model (structures, pools, pieces) is `iris:structure`'s own resource kinds, which Iris
   registers with its own modules because its jigsaw studio reads them. Its surface is already API vocabulary; it goes when
   the placer can write through the API.
-- **`spawn.SpawnCooldowns`** (world). Spawner cooldowns Iris saves with a world's engine data, so they survive a restart; API
-  per-world state is in memory only. It goes when the API can persist per-world state.
 - **Random parameters (`RNG`) in these facades and `loot.LootResolver`**. They are the legacy streams existing worlds were
   generated from. They go when a world format change lets them be stage streams.
 

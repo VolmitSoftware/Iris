@@ -353,6 +353,23 @@ static PlantedChunks planted(PackWorld world) {
   keeps nothing. Use a class of the module as the type.
 - A state that is `AutoCloseable` is closed after the world stops, once nothing generates with it.
 
+The state store is in memory and ends with the world. What must outlive a restart, such as when a spawner last fired,
+a module keeps with `RunningWorld.saved`. Only a running world has a folder to save in, so a tool's world has none:
+
+```java
+private static final SavedKey<LastWaves> WAVES = new SavedKey<>("example:waves/last", LastWaves.class, new LastWavesCodec(), LastWaves::new);
+
+LastWaves waves = world.running().orElseThrow().saved(WAVES);   // the world's one instance, read on first ask
+waves.record(now);                                              // changed in place; the module owns its thread safety
+```
+
+- The host reads the value when it is first asked for (`initial` when none is stored), writes it when it saves the world
+  and when the world stops, and hands a world started over the same storage, such as after a hotload, what the old
+  one wrote.
+- `Codec.write` may run while module threads change the value, so it must read it safely. A stored payload the codec
+  rejects is logged and replaced with `initial`.
+- The id names the stored file, so its path has no empty, `.` or `..` segment.
+
 A module that wants to act when the host loads a pack or starts or stops a world registers a `ModuleLifecycle`. Every
 hook does nothing by default, and a module class may implement it and register itself:
 
@@ -1099,7 +1116,8 @@ Optional<Clock> clock = pack.catalog().service(Clock.class);            // a Pro
   a block with a block entity goes through `access.set(PlacedBlock)`. `BlockState.withProperty` copies the properties once.
 - Invocation views (`ctx.mantle()`, its layers and blocks, a placement's `access().mantle()`) are made once per
   invocation, so asking again returns the same view.
-- The `mantle` package keeps namespaced typed layers, codecs, lifetimes and buffered edits.
+- The `mantle` package keeps namespaced typed layers, lifetimes and buffered edits; `com.volmit.data.Codec` stores
+  their values, and the values of `RunningWorld.saved`.
 - `IrisFeature`, `@Feature`, the config annotations (`@Desc`, `@Required`, `@MinNumber`,
   `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`) describe settings; the host reads them with `OptionsMetadata`
   (`com.volmit.host`).

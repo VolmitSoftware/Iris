@@ -18,8 +18,6 @@
 
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.localization.ModdedCommandMessages;
@@ -31,7 +29,6 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 
-import java.awt.Desktop;
 import java.io.File;
 
 final class ModdedEditCommands {
@@ -109,8 +106,9 @@ final class ModdedEditCommands {
     }
 
     private static int openJson(CommandSourceStack source, IrisRegistrant registrant) {
-        if (!GuiHost.isAvailable() || !Desktop.isDesktopSupported()) {
-            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_CANNOT_OPEN_FILES_HERE, MessageArgument.untrusted("value", ModdedGuiHost.guiUnavailableReason())));
+        String unavailable = ModdedGuiHost.editorUnavailableReason();
+        if (unavailable != null) {
+            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_CANNOT_OPEN_FILES_HERE, MessageArgument.untrusted("value", unavailable)));
             return 0;
         }
         if (registrant == null || registrant.getLoadFile() == null || !registrant.getLoadFile().isFile()) {
@@ -118,11 +116,8 @@ final class ModdedEditCommands {
             return 0;
         }
         File file = registrant.getLoadFile();
-        try {
-            Desktop.getDesktop().open(file);
-        } catch (Throwable e) {
-            ModdedIrisLog.error("Iris edit failed to open {}", file, e);
-            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_COULD_NOT_OPEN, MessageArgument.untrusted("value", file.getName()), MessageArgument.untrusted("value2", e.getClass().getSimpleName())));
+        if (registrant.openInEditor() == null) {
+            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_COULD_NOT_OPEN, MessageArgument.untrusted("value", file.getName()), MessageArgument.untrusted("value2", ModdedGuiHost.EDITOR_FAILED_REASON)));
             return 0;
         }
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_OPENING_YOUR_EDITOR, MessageArgument.untrusted("value", registrant.getTypeName()), MessageArgument.untrusted("value2", file.getName())));

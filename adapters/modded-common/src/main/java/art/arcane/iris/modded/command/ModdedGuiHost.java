@@ -21,6 +21,8 @@ package art.arcane.iris.modded.command;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.gui.GuiOverlay;
+import art.arcane.iris.core.project.StudioEditor;
+import art.arcane.iris.core.project.StudioEditorLauncher;
 import art.arcane.iris.engine.framework.Engine;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -80,6 +82,20 @@ public final class ModdedGuiHost implements GuiHost.Provider {
 
     public static boolean isGuiLaunchable() {
         return GuiHost.isAvailable() && IrisSettings.get().getGui().isUseServerLaunchedGuis();
+    }
+
+    public static final String EDITOR_FAILED_REASON = "see the server log";
+
+    /** Why the configured studio editor cannot be opened from here, or null when it can. */
+    public static String editorUnavailableReason() {
+        StudioEditor editor = StudioEditorLauncher.configuredEditor();
+        if (editor == StudioEditor.NONE) {
+            return "studio.editor is none in Iris settings";
+        }
+        if (!StudioEditorLauncher.canLaunch(editor)) {
+            return guiUnavailableReason();
+        }
+        return null;
     }
 
     public static String guiUnavailableReason() {

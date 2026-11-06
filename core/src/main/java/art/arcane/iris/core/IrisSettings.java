@@ -19,6 +19,7 @@
 package art.arcane.iris.core;
 
 import com.google.gson.Gson;
+import art.arcane.iris.core.project.StudioEditor;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.io.IO;
@@ -363,10 +364,14 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsStudio {
-        public boolean openVSCode = true;
+        public StudioEditor editor = StudioEditor.VSCODE;
         public boolean disableTimeAndWeather = true;
         public boolean entitySpawning = true;
         public boolean autoStartDefaultStudio = false;
+
+        public StudioEditor getEditor() {
+            return editor == null ? StudioEditor.VSCODE : editor;
+        }
     }
 
     @Data

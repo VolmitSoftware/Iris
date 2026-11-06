@@ -25,15 +25,14 @@ public final class BukkitCommandMessagesExtended {
     public static final TextKey COMMAND_EDIT_NO_STUDIO_WORLD_IS_OPEN = text("iris.bukkit.commandedit.no_studio_world_is_open");
     public static final TextKey COMMAND_EDIT_YOU_MUST_BE_STUDIO_WORLD = text("iris.bukkit.commandedit.you_must_be_studio_world");
     public static final TextKey COMMAND_EDIT_CANNOT_OPEN_FILES_HEADLESS_ENVIRONMENTS = text("iris.bukkit.commandedit.cannot_open_files_headless_environments");
-    public static final TextKey COMMAND_EDIT_DESKTOP_IS_NOT_SUPPORTED_BY_THIS_ENVIRONMENT = text("iris.bukkit.commandedit.desktop_is_not_supported_by_this_environment");
+    public static final TextKey COMMAND_EDIT_NO_EDITOR_SET = text("iris.bukkit.commandedit.no_editor_set");
+    public static final TextKey COMMAND_EDIT_COULD_NOT_OPEN_EDITOR = text("iris.bukkit.commandedit.could_not_open_editor");
     public static final TextKey COMMAND_EDIT_CANNOT_FIND_FILE_PERHAPS_IT_WAS_NOT_LOADED_DIRECTLY_FROM = text("iris.bukkit.commandedit.cannot_find_file_perhaps_it_was_not_loaded_directly_from");
-    public static final TextKey COMMAND_EDIT_OPENING_VSCODE = text("iris.bukkit.commandedit.opening_vscode");
+    public static final TextKey COMMAND_EDIT_OPENING_IN_EDITOR = text("iris.bukkit.commandedit.opening_in_editor");
     public static final TextKey COMMAND_EDIT_CANT_FIND_FILE_REGISTRANT_DOES_NOT_EXIST = text("iris.bukkit.commandedit.cant_find_file_registrant_does_not_exist");
     public static final TextKey COMMAND_EDIT_CANNOT_FIND_FILE_PERHAPS_IT_WAS_NOT_LOADED_DIRECTLY_FROM_2 = text("iris.bukkit.commandedit.cannot_find_file_perhaps_it_was_not_loaded_directly_from_2");
-    public static final TextKey COMMAND_EDIT_OPENING_VSCODE_2 = text("iris.bukkit.commandedit.opening_vscode_2");
     public static final TextKey COMMAND_EDIT_CANT_FIND_FILE_REGISTRANT_DOES_NOT_EXIST_2 = text("iris.bukkit.commandedit.cant_find_file_registrant_does_not_exist_2");
     public static final TextKey COMMAND_EDIT_CANNOT_FIND_FILE_PERHAPS_IT_WAS_NOT_LOADED_DIRECTLY_FROM_3 = text("iris.bukkit.commandedit.cannot_find_file_perhaps_it_was_not_loaded_directly_from_3");
-    public static final TextKey COMMAND_EDIT_OPENING_VSCODE_3 = text("iris.bukkit.commandedit.opening_vscode_3");
     public static final TextKey COMMAND_EDIT_CANT_FIND_FILE_REGISTRANT_DOES_NOT_EXIST_3 = text("iris.bukkit.commandedit.cant_find_file_registrant_does_not_exist_3");
     public static final TextKey COMMAND_FIND_NOT_IRIS_WORLD = text("iris.bukkit.commandfind.not_iris_world_5");
     public static final TextKey COMMAND_FIND_NOT_IRIS_WORLD_2 = text("iris.bukkit.commandfind.not_iris_world_2");
@@ -152,7 +151,7 @@ public final class BukkitCommandMessagesExtended {
     public static final TextKey COMMAND_STUDIO_OPENING_STUDIO_PACK_SEED = text("iris.bukkit.commandstudio.opening_studio_pack_seed");
     public static final TextKey COMMAND_STUDIO_PROVIDE_DIMENSION_PACK_IRIS_STD_IMPORTVANILLA_PACK_DIMENSION = text("iris.bukkit.commandstudio.provide_dimension_pack_iris_std_importvanilla_pack_dimension");
     public static final TextKey COMMAND_STUDIO_COULD_NOT_RESOLVE_PACK_DIMENSION = text("iris.bukkit.commandstudio.could_not_resolve_pack_dimension");
-    public static final TextKey COMMAND_STUDIO_OPENING_VSCODE_PACK = text("iris.bukkit.commandstudio.opening_vscode_pack");
+    public static final TextKey COMMAND_STUDIO_OPENING_EDITOR_PACK = text("iris.bukkit.commandstudio.opening_editor_pack");
     public static final TextKey COMMAND_STUDIO_PACK_HAS_VERSION = text("iris.bukkit.commandstudio.pack_has_version");
     public static final TextKey COMMAND_STUDIO_OPENING_IMAGE_MAP_STUDIO = text("iris.bukkit.commandstudio.opening_image_map_studio");
     public static final TextKey COMMAND_STUDIO_CANNOT_ADD_ITEMS_VIRTUAL_INVENTORY_BECAUSE = text("iris.bukkit.commandstudio.cannot_add_items_virtual_inventory_because");

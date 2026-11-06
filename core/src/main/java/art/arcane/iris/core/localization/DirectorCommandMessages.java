@@ -180,8 +180,8 @@ public final class DirectorCommandMessages {
     public static final TextKey COMMAND_STUDIO_PARAM_DIMENSION_PACK_IMPORT_VANILLA_CONTENT_INTO = text("iris.director.commandstudio.param.dimension_pack_import_vanilla_content_into");
     public static final TextKey COMMAND_STUDIO_PARAM_HOW_MANY_VARIANTS_CAPTURE_PER_TREE_OBJECT_FEATURE = text("iris.director.commandstudio.param.how_many_variants_capture_per_tree_object_feature");
     public static final TextKey COMMAND_STUDIO_PARAM_ALSO_IMPORT_VANILLA_DATAPACK_STRUCTURES_JIGSAW_INTO_PACK = text("iris.director.commandstudio.param.also_import_vanilla_datapack_structures_jigsaw_into_pack");
-    public static final TextKey COMMAND_STUDIO_DIRECTOR_OPEN_VSCODE_DIMENSION = text("iris.director.commandstudio.director.open_vscode_dimension");
-    public static final TextKey COMMAND_STUDIO_PARAM_DIMENSION_OPEN_VSCODE = text("iris.director.commandstudio.param.dimension_open_vscode");
+    public static final TextKey COMMAND_STUDIO_DIRECTOR_OPEN_EDITOR_DIMENSION = text("iris.director.commandstudio.director.open_editor_dimension");
+    public static final TextKey COMMAND_STUDIO_PARAM_DIMENSION_OPEN_EDITOR = text("iris.director.commandstudio.param.dimension_open_editor");
     public static final TextKey COMMAND_STUDIO_DIRECTOR_CLOSE_OPEN_STUDIO_PROJECT = text("iris.director.commandstudio.director.close_open_studio_project");
     public static final TextKey COMMAND_STUDIO_DIRECTOR_TOGGLE_YOUR_STUDIO_DEBUG_SCOREBOARD = text("iris.director.commandstudio.director.toggle_your_studio_debug_scoreboard");
     public static final TextKey COMMAND_STUDIO_DIRECTOR_CREATE_NEW_STUDIO_PROJECT = text("iris.director.commandstudio.director.create_new_studio_project");

@@ -22,6 +22,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.project.ModuleResourceSchemas;
 import art.arcane.iris.core.project.SchemaBuilder;
+import art.arcane.iris.core.project.ZedProjectSettings;
 import art.arcane.iris.engine.object.annotations.Snippet;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.scheduling.J;
@@ -46,6 +47,7 @@ public final class ModdedWorkspaceGenerator {
         JSONObject workspaceConfig = buildWorkspace(data, immediateSchemas);
         File workspace = new File(folder, folder.getName() + ".code-workspace");
         IO.writeAll(workspace, workspaceConfig.toString(4));
+        new ZedProjectSettings(folder).writeIrisSettings(workspaceConfig.getJSONObject("settings").getJSONArray("json.schemas"));
         return workspace;
     }
 

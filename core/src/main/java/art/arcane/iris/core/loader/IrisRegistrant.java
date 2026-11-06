@@ -21,11 +21,10 @@ package art.arcane.iris.core.loader;
 import com.google.gson.GsonBuilder;
 import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.engine.object.KeyedResource;
-import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.core.project.StudioEditorLauncher;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.awt.Desktop;
 import java.io.File;
 
 @Data
@@ -41,13 +40,12 @@ public abstract class IrisRegistrant extends KeyedResource {
 
     }
 
-    public File openInVSCode() {
-        try {
-            Desktop.getDesktop().open(getLoadFile());
-        } catch (Throwable e) {
-            IrisLogging.reportError(e);
+    /** Opens this resource's file in the configured studio editor; null when nothing was opened. */
+    public File openInEditor() {
+        File file = getLoadFile();
+        if (file == null || loader == null) {
+            return null;
         }
-
-        return getLoadFile();
+        return StudioEditorLauncher.openFile(loader.getDataFolder(), file) ? file : null;
     }
 }

@@ -26,6 +26,7 @@ import art.arcane.iris.core.localization.IrisMessages;
 import art.arcane.iris.core.studio.bridge.StudioBridge;
 import art.arcane.iris.core.studio.bridge.StudioBridges;
 import art.arcane.iris.core.project.IrisProjectCopier;
+import art.arcane.iris.core.project.StudioEditorLauncher;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -49,7 +50,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -254,15 +254,13 @@ public final class ModdedStudioCommands {
         if (!open) {
             return 1;
         }
-        if (!GuiHost.isAvailable() || !Desktop.isDesktopSupported()) {
-            IrisModdedCommands.fail(source, guiUnavailableMessage());
+        String unavailable = ModdedGuiHost.editorUnavailableReason();
+        if (unavailable != null) {
+            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_CANNOT_OPEN_FILES_HERE, MessageArgument.untrusted("value", unavailable)));
             return 0;
         }
-        try {
-            Desktop.getDesktop().open(workspace);
-        } catch (Throwable e) {
-            ModdedIrisLog.error("Iris workspace open failed for {}", workspace, e);
-            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_COULD_NOT_OPEN, MessageArgument.untrusted("value", workspace.getName()), MessageArgument.untrusted("value2", e.getClass().getSimpleName())));
+        if (!StudioEditorLauncher.openProject(folder, workspace)) {
+            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_COULD_NOT_OPEN, MessageArgument.untrusted("value", workspace.getName()), MessageArgument.untrusted("value2", ModdedGuiHost.EDITOR_FAILED_REASON)));
             return 0;
         }
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_YOUR_EDITOR, MessageArgument.untrusted("value", workspace.getName())));

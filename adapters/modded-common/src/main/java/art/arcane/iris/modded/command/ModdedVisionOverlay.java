@@ -18,7 +18,6 @@
 
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.gui.GuiMarker;
 import art.arcane.iris.core.gui.GuiOverlay;
 import art.arcane.iris.engine.IrisComplex;
@@ -33,7 +32,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -121,17 +119,14 @@ public final class ModdedVisionOverlay implements GuiOverlay {
 
     @Override
     public String openInEditor(double worldX, double worldZ, RenderType type) {
-        if (!GuiHost.isAvailable() || !Desktop.isDesktopSupported()) {
-            return null;
-        }
         IrisComplex complex = engine.getComplex();
         File file = switch (type) {
             case BIOME, HEIGHT ->
-                    complex.getTrueBiomeStream().get(worldX, worldZ).openInVSCode();
-            case BIOME_LAND -> complex.getLandBiomeStream().get(worldX, worldZ).openInVSCode();
-            case BIOME_SEA -> complex.getSeaBiomeStream().get(worldX, worldZ).openInVSCode();
-            case REGION -> complex.getRegionStream().get(worldX, worldZ).openInVSCode();
-            case CAVE_LAND -> complex.getCaveBiomeStream().get(worldX, worldZ).openInVSCode();
+                    complex.getTrueBiomeStream().get(worldX, worldZ).openInEditor();
+            case BIOME_LAND -> complex.getLandBiomeStream().get(worldX, worldZ).openInEditor();
+            case BIOME_SEA -> complex.getSeaBiomeStream().get(worldX, worldZ).openInEditor();
+            case REGION -> complex.getRegionStream().get(worldX, worldZ).openInEditor();
+            case CAVE_LAND -> complex.getCaveBiomeStream().get(worldX, worldZ).openInEditor();
             default -> null;
         };
         return file == null ? null : file.getName();

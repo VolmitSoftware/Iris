@@ -238,7 +238,7 @@ public final class StudioOpenCoordinator {
                 request.project().setActiveProvider(provider);
             }
             if (request.openKind().openWorkspace() && request.project() != null) {
-                new IrisCodeWorkspace(request.project()).openVSCode(request.sender());
+                new IrisCodeWorkspace(request.project()).openEditor(request.sender());
             }
             runOpenFinalizer(request.onDone(), world);
             t = logStudioPhase(request, "finalize_open", t, openStart);

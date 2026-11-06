@@ -20,6 +20,8 @@ package art.arcane.iris.core.studio.bridge;
 
 import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.gui.GuiMarker;
+import art.arcane.iris.core.project.StudioEditor;
+import art.arcane.iris.core.project.StudioEditorLauncher;
 import art.arcane.iris.core.studio.map.MapHover;
 import art.arcane.iris.core.studio.map.MapLabel;
 import art.arcane.iris.core.studio.map.MapLayer;
@@ -570,7 +572,23 @@ public final class StudioBridge implements AutoCloseable {
         requireOverlay(session);
         MapView view = MapView.byId(query.text("view")).orElse(MapView.BIOMES);
         RenderType type = view == MapView.REGIONS ? RenderType.REGION : RenderType.BIOME;
-        sendJson(exchange, STATUS_OK, new MessageBody(session.overlay().openInEditor(query.number("x"), query.number("z"), type)));
+        StudioEditor editor = requireLaunchableEditor();
+        String opened = session.overlay().openInEditor(query.number("x"), query.number("z"), type);
+        if (opened == null) {
+            throw new RequestError(STATUS_UNAVAILABLE, "Could not open " + editor.displayName() + "; see the server console");
+        }
+        sendJson(exchange, STATUS_OK, new MessageBody("Opened " + opened + " in " + editor.displayName()));
+    }
+
+    private static StudioEditor requireLaunchableEditor() {
+        StudioEditor editor = StudioEditorLauncher.configuredEditor();
+        if (editor == StudioEditor.NONE) {
+            throw new RequestError(STATUS_UNAVAILABLE, "No studio editor is set; set studio.editor in Iris settings");
+        }
+        if (!StudioEditorLauncher.canLaunch(editor)) {
+            throw new RequestError(STATUS_UNAVAILABLE, "The server cannot open " + editor.displayName() + " (no desktop)");
+        }
+        return editor;
     }
 
     private static void requireOverlay(StudioWorld.Session session) {

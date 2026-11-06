@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.project;
 
-import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.IrisValues;
@@ -37,8 +36,6 @@ import com.volmit.host.schema.ObjectType;
 import org.dom4j.Document;
 import org.dom4j.Element;
 
-import java.awt.Desktop;
-import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -60,11 +57,11 @@ public class IrisCodeWorkspace {
         this.project = project;
     }
 
-    public void openVSCode(VolmitSender sender) {
-        J.attemptAsync(this::prepareAndOpenVSCode);
+    public void openEditor(VolmitSender sender) {
+        J.attemptAsync(this::prepareAndOpenEditor);
     }
 
-    void prepareAndOpenVSCode() {
+    void prepareAndOpenEditor() {
         boolean updated = updateWorkspace(true);
         File workspace = getCodeWorkspaceFile();
         if (!workspace.isFile()) {
@@ -75,21 +72,7 @@ public class IrisCodeWorkspace {
             IrisLogging.warn("Could not refresh every schema for " + workspace.getAbsolutePath() + "; the editor will not be opened with stale autocomplete data.");
             return;
         }
-        if (!IrisSettings.get().getStudio().isOpenVSCode() || GraphicsEnvironment.isHeadless()) {
-            return;
-        }
-
-        IrisLogging.msg("Opening VSCode. You may see the output from VSCode.");
-        IrisLogging.msg("VSCode output always starts with: '(node:#####) electron'");
-        Thread launcherThread = new Thread(() -> {
-            try {
-                Desktop.getDesktop().open(workspace);
-            } catch (Throwable e) {
-                IrisLogging.reportError(e);
-            }
-        }, "Iris-VSCode-Launcher");
-        launcherThread.setDaemon(true);
-        launcherThread.start();
+        StudioEditorLauncher.openProject(project.getPath(), workspace);
     }
 
     public File getCodeWorkspaceFile() {
@@ -251,6 +234,12 @@ public class IrisCodeWorkspace {
         } catch (Throwable e) {
             IrisLogging.reportError(e);
             IrisLogging.warn("Could not update IntelliJ schema mappings for " + project.getPath().getAbsolutePath() + "; VSCode workspace generation will continue.");
+        }
+        try {
+            new ZedProjectSettings(project.getPath()).writeIrisSettings(schemas);
+        } catch (Throwable e) {
+            IrisLogging.reportError(e);
+            IrisLogging.warn("Could not update Zed schema mappings for " + project.getPath().getAbsolutePath() + "; VSCode workspace generation will continue.");
         }
 
         return ws;

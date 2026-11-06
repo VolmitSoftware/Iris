@@ -319,11 +319,11 @@ public final class BukkitVisionOverlay implements GuiOverlay {
         IrisComplex complex = engine.getComplex();
         File file = switch (type) {
             case BIOME, HEIGHT ->
-                    complex.getTrueBiomeStream().get(worldX, worldZ).openInVSCode();
-            case BIOME_LAND -> complex.getLandBiomeStream().get(worldX, worldZ).openInVSCode();
-            case BIOME_SEA -> complex.getSeaBiomeStream().get(worldX, worldZ).openInVSCode();
-            case REGION -> complex.getRegionStream().get(worldX, worldZ).openInVSCode();
-            case CAVE_LAND -> complex.getCaveBiomeStream().get(worldX, worldZ).openInVSCode();
+                    complex.getTrueBiomeStream().get(worldX, worldZ).openInEditor();
+            case BIOME_LAND -> complex.getLandBiomeStream().get(worldX, worldZ).openInEditor();
+            case BIOME_SEA -> complex.getSeaBiomeStream().get(worldX, worldZ).openInEditor();
+            case REGION -> complex.getRegionStream().get(worldX, worldZ).openInEditor();
+            case CAVE_LAND -> complex.getCaveBiomeStream().get(worldX, worldZ).openInEditor();
             default -> null;
         };
         return file == null ? null : file.getName();

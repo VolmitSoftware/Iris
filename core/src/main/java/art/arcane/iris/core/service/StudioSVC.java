@@ -772,8 +772,8 @@ public class StudioSVC implements IrisService {
         });
     }
 
-    public void openVSCode(VolmitSender sender, String dim) {
-        new IrisCodeWorkspace(new IrisProject(new File(getWorkspaceFolder(), dim))).openVSCode(sender);
+    public void openEditor(VolmitSender sender, String dim) {
+        new IrisCodeWorkspace(new IrisProject(new File(getWorkspaceFolder(), dim))).openEditor(sender);
     }
 
     public File getWorkspaceFolder(String... sub) {

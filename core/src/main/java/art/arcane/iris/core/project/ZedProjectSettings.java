@@ -1,0 +1,132 @@
+package art.arcane.iris.core.project;
+
+import art.arcane.iris.spi.IrisLogging;
+import art.arcane.volmlib.util.json.JSONArray;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.Strictness;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+/**
+ * Keeps the JSON schema mappings in a pack's Zed project settings in sync with the VSCode workspace.
+ * The file belongs to the user, so Iris only replaces {@code lsp.json-language-server.settings.json.schemas}
+ * and makes sure {@code file_types.JSONC} contains {@code json}.
+ */
+public final class ZedProjectSettings {
+    private static final List<String> SCHEMAS_PARENT_PATH = List.of("lsp", "json-language-server", "settings", "json");
+    private static final String SCHEMAS_KEY = "schemas";
+    private static final List<String> FILE_TYPES_PATH = List.of("file_types");
+    // Pack files may contain comments; Zed's JSONC language keeps schema support but stops flagging them.
+    private static final String JSONC_LANGUAGE = "JSONC";
+    private static final String JSON_EXTENSION = "json";
+    // Strict parsing rejects JSONC comments and trailing commas instead of silently dropping them on rewrite.
+    private static final Gson STRICT_GSON = new GsonBuilder()
+            .setStrictness(Strictness.STRICT)
+            .disableHtmlEscaping()
+            .setPrettyPrinting()
+            .create();
+
+    private final Path settingsFile;
+
+    public ZedProjectSettings(File projectRoot) {
+        this.settingsFile = projectRoot.toPath().resolve(".zed").resolve("settings.json");
+    }
+
+    Path settingsFile() {
+        return settingsFile;
+    }
+
+    public void writeIrisSettings(JSONArray schemas) throws IOException {
+        String existing = Files.isRegularFile(settingsFile) ? Files.readString(settingsFile, StandardCharsets.UTF_8) : null;
+        JsonObject settings = parseOrNull(existing);
+        if (settings == null) {
+            IrisLogging.warn("Could not parse " + settingsFile + " as strict JSON (comments or trailing commas?); leaving it untouched.");
+            return;
+        }
+
+        if (!mergeSchemas(settings, schemas) || !mergeJsoncFileType(settings)) {
+            IrisLogging.warn("Could not merge Iris settings into " + settingsFile + ": " + String.join(".", SCHEMAS_PARENT_PATH)
+                    + " must be an object and " + String.join(".", FILE_TYPES_PATH) + "." + JSONC_LANGUAGE + " a list; leaving it untouched.");
+            return;
+        }
+
+        writeIfChanged(STRICT_GSON.toJson(settings) + "\n", existing);
+    }
+
+    private static JsonObject parseOrNull(String existing) {
+        if (existing == null || existing.isBlank()) {
+            return new JsonObject();
+        }
+        try {
+            JsonElement parsed = STRICT_GSON.fromJson(existing, JsonElement.class);
+            return parsed != null && parsed.isJsonObject() ? parsed.getAsJsonObject() : null;
+        } catch (JsonParseException e) {
+            return null;
+        }
+    }
+
+    private static boolean mergeSchemas(JsonObject settings, JSONArray schemas) {
+        JsonObject schemasParent = findOrCreateObject(settings, SCHEMAS_PARENT_PATH);
+        if (schemasParent == null) {
+            return false;
+        }
+        schemasParent.add(SCHEMAS_KEY, JsonParser.parseString(schemas.toString()));
+        return true;
+    }
+
+    private static boolean mergeJsoncFileType(JsonObject settings) {
+        JsonObject fileTypes = findOrCreateObject(settings, FILE_TYPES_PATH);
+        if (fileTypes == null) {
+            return false;
+        }
+        JsonElement jsoncGlobs = fileTypes.get(JSONC_LANGUAGE);
+        if (jsoncGlobs == null || jsoncGlobs.isJsonNull()) {
+            jsoncGlobs = new JsonArray();
+            fileTypes.add(JSONC_LANGUAGE, jsoncGlobs);
+        }
+        if (!jsoncGlobs.isJsonArray()) {
+            return false;
+        }
+        JsonPrimitive jsonExtension = new JsonPrimitive(JSON_EXTENSION);
+        if (!jsoncGlobs.getAsJsonArray().contains(jsonExtension)) {
+            jsoncGlobs.getAsJsonArray().add(jsonExtension);
+        }
+        return true;
+    }
+
+    private static JsonObject findOrCreateObject(JsonObject settings, List<String> path) {
+        JsonObject current = settings;
+        for (String key : path) {
+            JsonElement child = current.get(key);
+            if (child == null || child.isJsonNull()) {
+                child = new JsonObject();
+                current.add(key, child);
+            }
+            if (!child.isJsonObject()) {
+                return null;
+            }
+            current = child.getAsJsonObject();
+        }
+        return current;
+    }
+
+    private void writeIfChanged(String rendered, String existing) throws IOException {
+        if (rendered.equals(existing)) {
+            return;
+        }
+        Files.createDirectories(settingsFile.getParent());
+        Files.writeString(settingsFile, rendered, StandardCharsets.UTF_8);
+    }
+}

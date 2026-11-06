@@ -92,7 +92,7 @@ public final class ProceduralObjectScenes implements EditableSceneView {
     private static SceneEntry entryOf(ProceduralVariants variants) {
         String path = variants.path();
         int lastSeparator = path.lastIndexOf(FOLDER_SEPARATOR);
-        String folder = lastSeparator < 0 ? "" : path.substring(0, lastSeparator);
+        Optional<String> folder = lastSeparator < 0 ? Optional.empty() : Optional.of(path.substring(0, lastSeparator));
         return new SceneEntry(path, path.substring(lastSeparator + 1), folder, variants.variantCount());
     }
 }

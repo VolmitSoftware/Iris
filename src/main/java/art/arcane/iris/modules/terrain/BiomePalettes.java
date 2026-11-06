@@ -133,7 +133,8 @@ public final class BiomePalettes implements PatternView {
     private static PatternEntry entryOf(PackBiome biome, LayeredBiome layered, Kind kind, int index, PaletteLayer palette, String group) {
         String key = biome.id() + String.valueOf(KIND_SEPARATOR) + kind.keyName + INDEX_SEPARATOR + index;
         String name = kind.numbered ? kind.label + " " + (index + 1) : kind.label;
-        return new PatternEntry(key, name, group, kind.depthsOf(palette), kind.factsOf(palette, layered));
+        return new PatternEntry(key, name, Optional.of(group).filter(shown -> !shown.isBlank()), kind.depthsOf(palette),
+                kind.factsOf(palette, layered));
     }
 
     private static String blocksOf(PaletteLayer palette) {

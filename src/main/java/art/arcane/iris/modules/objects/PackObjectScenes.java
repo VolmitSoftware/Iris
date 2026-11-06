@@ -67,7 +67,7 @@ public final class PackObjectScenes implements SceneView {
 
     private static SceneEntry entryOf(String key) {
         int lastSeparator = key.lastIndexOf(FOLDER_SEPARATOR);
-        String folder = lastSeparator < 0 ? "" : key.substring(0, lastSeparator);
+        Optional<String> folder = lastSeparator < 0 ? Optional.empty() : Optional.of(key.substring(0, lastSeparator));
         return new SceneEntry(key, key.substring(lastSeparator + 1), folder, 1);
     }
 }

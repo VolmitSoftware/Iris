@@ -29,6 +29,7 @@ import art.arcane.iris.engine.procedural.part.ProceduralObject;
 import art.arcane.iris.engine.procedural.part.ProceduralPart;
 import com.volmit.tooling.GraphNode;
 import com.volmit.tooling.GraphNode.Addition;
+import com.volmit.tooling.GraphNode.Edits;
 import com.volmit.tooling.GraphNode.Link;
 import com.volmit.tooling.GraphNode.NodeSettings;
 import com.volmit.tooling.JsonPath;
@@ -38,6 +39,7 @@ import com.volmit.tooling.NodeGraph;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -82,10 +84,11 @@ final class ProceduralObjectGraph {
     }
 
     private NodeGraph graph(String name, JsonText.Obj root, ProceduralObject read) {
-        JsonPath parts = JsonPath.of(PARTS);
-        GraphNode object = new GraphNode("Object", name, JsonPath.ROOT, GraphNode.NO_PART, List.of(),
+        JsonPath parts = JsonPath.ROOT.member(PARTS);
+        GraphNode object = new GraphNode("Object", name, JsonPath.ROOT, OptionalInt.empty(), List.of(),
                 List.of(new NodeSettings("Object", JsonPath.ROOT, ProceduralObject.class, OBJECT_NODES)),
-                parts(parts, root.get(PARTS), read.parts(), read.defaultRole()), Optional.of(parts), false, objectAdditions(parts));
+                parts(parts, root.get(PARTS), read.parts(), read.defaultRole()),
+                new Edits(Optional.of(parts), false, objectAdditions(parts)));
         List<GraphNode> roots = new ArrayList<>();
         roots.add(object);
         roots.addAll(listed(MATERIALS, root.get(MATERIALS), NodeKind.MATERIAL, ProceduralMaterial.class));
@@ -107,9 +110,9 @@ final class ProceduralObjectGraph {
     }
 
     private GraphNode part(JsonPath path, JsonText.Value json, ProceduralPart read, String parentRole, boolean movable) {
-        int partId = read == null ? GraphNode.NO_PART : outline.idOf(read);
+        OptionalInt drawnPart = drawnPartOf(read);
         if (!(json instanceof JsonText.Obj object)) {
-            return sharedPart(path, json, partId, parentRole, movable);
+            return sharedPart(path, json, drawnPart, parentRole, movable);
         }
         String role = stringAt(object, ROLE).filter(written -> !written.isBlank()).orElse(parentRole);
         List<NodeSettings> settings = new ArrayList<>();
@@ -130,15 +133,23 @@ final class ProceduralObjectGraph {
         }
         JsonPath childList = path.member(CHILDREN);
         children.addAll(parts(childList, object.get(CHILDREN), read == null ? List.of() : read.children(), role));
-        return new GraphNode(kind.label, kind.label, path, partId, List.of(role), settings, children, Optional.of(childList), movable,
-                partAdditions(childList));
+        return new GraphNode(kind.label, kind.label, path, drawnPart, List.of(role), settings, children,
+                new Edits(Optional.of(childList), movable, partAdditions(childList)));
     }
 
     // A part written as the name of a snippet file, which is edited there.
-    private GraphNode sharedPart(JsonPath path, JsonText.Value json, int partId, String parentRole, boolean movable) {
+    private GraphNode sharedPart(JsonPath path, JsonText.Value json, OptionalInt drawnPart, String parentRole, boolean movable) {
         String title = json instanceof JsonText.Literal literal && literal.string().isPresent() ? literal.string().get() : source.textOf(json);
-        return new GraphNode(NodeKind.SHARED_PART.label, title, path, partId, List.of(parentRole), List.of(), List.of(), Optional.empty(),
-                movable, List.of());
+        return new GraphNode(NodeKind.SHARED_PART.label, title, path, drawnPart, List.of(parentRole), List.of(), List.of(),
+                new Edits(Optional.empty(), movable, List.of()));
+    }
+
+    private OptionalInt drawnPartOf(ProceduralPart read) {
+        if (read == null) {
+            return OptionalInt.empty();
+        }
+        int id = outline.idOf(read);
+        return id == PartOutline.NO_PART ? OptionalInt.empty() : OptionalInt.of(id);
     }
 
     private static ProceduralPart copiedPartOf(ProceduralPart part, Shape shape) {
@@ -160,9 +171,9 @@ final class ProceduralObjectGraph {
             if (!(elements.elements().get(index) instanceof JsonText.Obj element)) {
                 continue;
             }
-            JsonPath path = JsonPath.of(key, index);
-            nodes.add(new GraphNode(kind.label, kind.label, path, GraphNode.NO_PART, rolesOf(kind, element),
-                    List.of(new NodeSettings(kind.label, path, settings, NO_NODES)), List.of(), Optional.empty(), false, List.of()));
+            JsonPath path = JsonPath.ROOT.member(key).element(index);
+            nodes.add(new GraphNode(kind.label, kind.label, path, OptionalInt.empty(), rolesOf(kind, element),
+                    List.of(new NodeSettings(kind.label, path, settings, NO_NODES)), List.of(), Edits.NONE));
         }
         return nodes;
     }
@@ -195,8 +206,8 @@ final class ProceduralObjectGraph {
 
     private static List<Addition> objectAdditions(JsonPath parts) {
         List<Addition> additions = new ArrayList<>(partAdditions(parts));
-        additions.add(new Addition("Material", JsonPath.of(MATERIALS), "{\"role\": \"main\", \"block\": \"minecraft:stone\"}"));
-        additions.add(new Addition("Decoration", JsonPath.of(DECORATIONS), "{\"block\": \"minecraft:vine\"}"));
+        additions.add(new Addition("Material", JsonPath.ROOT.member(MATERIALS), "{\"role\": \"main\", \"block\": \"minecraft:stone\"}"));
+        additions.add(new Addition("Decoration", JsonPath.ROOT.member(DECORATIONS), "{\"block\": \"minecraft:vine\"}"));
         return additions;
     }
 

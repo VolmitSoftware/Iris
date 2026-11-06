@@ -20,11 +20,6 @@ package art.arcane.iris.modded.command;
 
 import art.arcane.iris.core.modules.StructureAssemblies;
 import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
-import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.core.modules.ModuleObjectPlacement;
-import art.arcane.iris.engine.mantle.components.StructurePlacing;
-import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.structure.StructureIndexService;
 import art.arcane.iris.engine.framework.Engine;
@@ -43,12 +38,9 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 
 import java.io.File;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
@@ -77,13 +69,6 @@ public final class ModdedStructureCommands {
         root.then(Commands.literal("info")
                 .then(Commands.argument("key", StringArgumentType.greedyString()).suggests(IRIS_STRUCTURE_KEYS)
                         .executes((CommandContext<CommandSourceStack> context) -> info(context.getSource(), StringArgumentType.getString(context, "key")))));
-
-        root.then(Commands.literal("place")
-                .then(Commands.argument("key", StringArgumentType.greedyString()).suggests(IRIS_STRUCTURE_KEYS)
-                        .executes((CommandContext<CommandSourceStack> context) -> place(context.getSource(), StringArgumentType.getString(context, "key")))));
-        root.then(Commands.literal("p")
-                .then(Commands.argument("key", StringArgumentType.greedyString()).suggests(IRIS_STRUCTURE_KEYS)
-                        .executes((CommandContext<CommandSourceStack> context) -> place(context.getSource(), StringArgumentType.getString(context, "key")))));
 
         root.then(message("import", "Structure import rebuilds vanilla & datapack structures as editable Iris resources through Bukkit/NMS template managers; run /iris structure import on a Bukkit server against this pack, then copy the pack folder over."));
         root.then(message("import-all", "Structure import rebuilds vanilla & datapack structures as editable Iris resources through Bukkit/NMS template managers; run /iris structure import on a Bukkit server against this pack, then copy the pack folder over."));
@@ -168,60 +153,6 @@ public final class ModdedStructureCommands {
             maxZ = Math.max(maxZ, piece.getMaxZ());
         }
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_STRUCTURE_PIECES_FOOTPRINT_X_BLOCKS_SAMPLE_SEED_1234, MessageArgument.untrusted("key", key), MessageArgument.untrusted("value", pieces.size()), MessageArgument.untrusted("value2", (maxX - minX + 1)), MessageArgument.untrusted("value3", (maxZ - minZ + 1))));
-        return 1;
-    }
-
-    private static int place(CommandSourceStack source, String keyRaw) {
-        ServerPlayer player = source.getPlayer();
-        if (player == null) {
-            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_STRUCTURE_IS));
-            return 0;
-        }
-        ServerLevel level = source.getLevel();
-        Engine engine = IrisModdedCommands.engineFor(level);
-        IrisData data = dataFor(source);
-        if (data == null) {
-            return 0;
-        }
-        String key = keyRaw.trim();
-        IrisStructure structure = StructureResources.structure(data.getPackResources(), key);
-        if (structure == null) {
-            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_NO_IRIS_STRUCTURE_THIS_PACK_2, MessageArgument.untrusted("key", key)));
-            return 0;
-        }
-        int originX = player.blockPosition().getX();
-        int originY = player.blockPosition().getY();
-        int originZ = player.blockPosition().getZ();
-        StructureAssembler assembler = StructureAssemblies.forData(
-                data, structure, new IrisPosition(originX, originY, originZ));
-        RNG rng = new RNG((long) originX * 341873128712L + originZ);
-        StructureAssemblyResult assembly = assembler.assemble(rng);
-        List<PlacedStructurePiece> pieces = assembly.pieces();
-        if (!assembly.hasOutput()) {
-            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_STRUCTURE_ASSEMBLED_0_PIECES, MessageArgument.untrusted("key", key)));
-            return 0;
-        }
-        ModdedObjectPlacer placer = new ModdedObjectPlacer(level, engine);
-        UUID owner = player.getUUID();
-        try {
-            for (PlacedStructurePiece piece : pieces) {
-                ObjectPlacement config = ObjectPlacement.builder()
-                        .mode(ObjectPlaceMode.STRUCTURE_PIECE)
-                        .rotation(StructurePlacing.moduleRotation(piece.getRotation()))
-                        .place(List.of(piece.getObject().getLoadKey()))
-                        .edit(structure.getEdit())
-                        .build();
-                ModuleObjectPlacement.place(piece.getObject(), piece.getX(), piece.getY(), piece.getZ(), placer, config, rng, null, null, data);
-            }
-        } catch (Throwable e) {
-            ModdedIrisLog.error("Iris structure place failed for {}", key, e);
-            ModdedObjectUndo.record(owner, level, placer.undoSnapshot());
-            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_PLACE_FAILED_PARTIAL_CHANGES_RECORDED_UNDO, MessageArgument.untrusted("value", e.getClass().getSimpleName())));
-            return 0;
-        }
-        ModdedObjectUndo.record(owner, level, placer.undoSnapshot());
-        String tileNote = ModdedObjectCommands.tileNote(placer);
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_PLACED_PIECES_WRITE_S_AT_YOUR_LOCATION_IRIS_OBJECT_UNDO, MessageArgument.untrusted("key", key), MessageArgument.untrusted("value", pieces.size()), MessageArgument.untrusted("value2", placer.writes()), MessageArgument.untrusted("tileNote", tileNote)));
         return 1;
     }
 

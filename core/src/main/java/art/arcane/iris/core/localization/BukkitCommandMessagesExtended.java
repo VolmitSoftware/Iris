@@ -143,11 +143,6 @@ public final class BukkitCommandMessagesExtended {
     public static final TextKey COMMAND_STRUCTURE_NO_IRIS_STRUCTURE_THIS_PACK = text("iris.bukkit.commandstructure.no_iris_structure_this_pack");
     public static final TextKey COMMAND_STRUCTURE_STRUCTURE_ASSEMBLED_0_PIECES_CHECK_STARTPOOL = text("iris.bukkit.commandstructure.structure_assembled_0_pieces_check_startpool");
     public static final TextKey COMMAND_STRUCTURE_STRUCTURE_PIECES_FOOTPRINT_X_BLOCKS_SAMPLE_SEED_1234 = text("iris.bukkit.commandstructure.structure_pieces_footprint_x_blocks_sample_seed_1234");
-    public static final TextKey COMMAND_STRUCTURE_COULD_NOT_RESOLVE_PACK_DIMENSION_5 = text("iris.bukkit.commandstructure.could_not_resolve_pack_dimension_5");
-    public static final TextKey COMMAND_STRUCTURE_NO_IRIS_STRUCTURE_THIS_PACK_2 = text("iris.bukkit.commandstructure.no_iris_structure_this_pack_2");
-    public static final TextKey COMMAND_STRUCTURE_STRUCTURE_ASSEMBLED_0_PIECES = text("iris.bukkit.commandstructure.structure_assembled_0_pieces");
-    public static final TextKey COMMAND_STRUCTURE_PLACED_PIECES_AT_YOUR_LOCATION = text("iris.bukkit.commandstructure.placed_pieces_at_your_location");
-    public static final TextKey COMMAND_STRUCTURE_PLACEMENT_CHANGED_NO_BLOCKS = text("iris.bukkit.commandstructure.placement_changed_no_blocks");
     public static final TextKey COMMAND_STUDIO_OPENING_STUDIO_PACK_SEED = text("iris.bukkit.commandstudio.opening_studio_pack_seed");
     public static final TextKey COMMAND_STUDIO_PROVIDE_DIMENSION_PACK_IRIS_STD_IMPORTVANILLA_PACK_DIMENSION = text("iris.bukkit.commandstudio.provide_dimension_pack_iris_std_importvanilla_pack_dimension");
     public static final TextKey COMMAND_STUDIO_COULD_NOT_RESOLVE_PACK_DIMENSION = text("iris.bukkit.commandstudio.could_not_resolve_pack_dimension");

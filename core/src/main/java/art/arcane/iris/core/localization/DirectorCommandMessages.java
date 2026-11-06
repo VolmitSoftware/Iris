@@ -169,9 +169,6 @@ public final class DirectorCommandMessages {
     public static final TextKey COMMAND_STRUCTURE_DIRECTOR_RESOLVE_IRIS_STRUCTURE_S_JIGSAW_GRAPH_REPORT_PIECE_COUNT_BOUNDS = text("iris.director.commandstructure.director.resolve_iris_structure_s_jigsaw_graph_report_piece_count_bounds");
     public static final TextKey COMMAND_STRUCTURE_PARAM_DIMENSION_WHOSE_PACK_HOLDS_STRUCTURE = text("iris.director.commandstructure.param.dimension_whose_pack_holds_structure");
     public static final TextKey COMMAND_STRUCTURE_PARAM_IRIS_STRUCTURE_KEY_INSPECT = text("iris.director.commandstructure.param.iris_structure_key_inspect");
-    public static final TextKey COMMAND_STRUCTURE_DIRECTOR_ASSEMBLE_PLACE_IRIS_STRUCTURE_AT_YOUR_LOCATION_STUDIO_TESTING = text("iris.director.commandstructure.director.assemble_place_iris_structure_at_your_location_studio_testing");
-    public static final TextKey COMMAND_STRUCTURE_PARAM_DIMENSION_WHOSE_PACK_HOLDS_STRUCTURE_2 = text("iris.director.commandstructure.param.dimension_whose_pack_holds_structure_2");
-    public static final TextKey COMMAND_STRUCTURE_PARAM_IRIS_STRUCTURE_KEY_PLACE = text("iris.director.commandstructure.param.iris_structure_key_place");
     public static final TextKey COMMAND_STUDIO_DIRECTOR_STUDIO_COMMANDS = text("iris.director.commandstudio.director.studio_commands");
     public static final TextKey COMMAND_STUDIO_DIRECTOR_OPEN_NEW_STUDIO_WORLD = text("iris.director.commandstudio.director.open_new_studio_world");
     public static final TextKey COMMAND_STUDIO_PARAM_DIMENSION_PACK_OPEN_STUDIO = text("iris.director.commandstudio.param.dimension_pack_open_studio");
@@ -179,7 +176,6 @@ public final class DirectorCommandMessages {
     public static final TextKey COMMAND_STUDIO_DIRECTOR_IMPORT_VANILLA_TREES_MUSHROOMS_OBJECTS_STRUCTURES_JIGSAW_FROM_SERVER_INTO_PACK_S = text("iris.director.commandstudio.director.import_vanilla_trees_mushrooms_objects_structures_jigsaw_from_server_into_pack_s");
     public static final TextKey COMMAND_STUDIO_PARAM_DIMENSION_PACK_IMPORT_VANILLA_CONTENT_INTO = text("iris.director.commandstudio.param.dimension_pack_import_vanilla_content_into");
     public static final TextKey COMMAND_STUDIO_PARAM_HOW_MANY_VARIANTS_CAPTURE_PER_TREE_OBJECT_FEATURE = text("iris.director.commandstudio.param.how_many_variants_capture_per_tree_object_feature");
-    public static final TextKey COMMAND_STUDIO_PARAM_ALSO_IMPORT_VANILLA_DATAPACK_STRUCTURES_JIGSAW_INTO_PACK = text("iris.director.commandstudio.param.also_import_vanilla_datapack_structures_jigsaw_into_pack");
     public static final TextKey COMMAND_STUDIO_DIRECTOR_OPEN_EDITOR_DIMENSION = text("iris.director.commandstudio.director.open_editor_dimension");
     public static final TextKey COMMAND_STUDIO_PARAM_DIMENSION_OPEN_EDITOR = text("iris.director.commandstudio.param.dimension_open_editor");
     public static final TextKey COMMAND_STUDIO_DIRECTOR_CLOSE_OPEN_STUDIO_PROJECT = text("iris.director.commandstudio.director.close_open_studio_project");

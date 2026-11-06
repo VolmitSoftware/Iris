@@ -217,11 +217,6 @@ public final class ModdedCommandMessages {
     public static final TextKey MODDED_STRUCTURE_COMMANDS_NO_IRIS_STRUCTURE_THIS_PACK = text("iris.modded.moddedstructurecommands.no_iris_structure_this_pack");
     public static final TextKey MODDED_STRUCTURE_COMMANDS_STRUCTURE_ASSEMBLED_0_PIECES_CHECK_STARTPOOL = text("iris.modded.moddedstructurecommands.structure_assembled_0_pieces_check_startpool");
     public static final TextKey MODDED_STRUCTURE_COMMANDS_STRUCTURE_PIECES_FOOTPRINT_X_BLOCKS_SAMPLE_SEED_1234 = text("iris.modded.moddedstructurecommands.structure_pieces_footprint_x_blocks_sample_seed_1234");
-    public static final TextKey MODDED_STRUCTURE_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_STRUCTURE_IS = text("iris.modded.moddedstructurecommands.this_command_can_only_be_used_by_players_structure_is");
-    public static final TextKey MODDED_STRUCTURE_COMMANDS_NO_IRIS_STRUCTURE_THIS_PACK_2 = text("iris.modded.moddedstructurecommands.no_iris_structure_this_pack_2");
-    public static final TextKey MODDED_STRUCTURE_COMMANDS_STRUCTURE_ASSEMBLED_0_PIECES = text("iris.modded.moddedstructurecommands.structure_assembled_0_pieces");
-    public static final TextKey MODDED_STRUCTURE_COMMANDS_PLACE_FAILED_PARTIAL_CHANGES_RECORDED_UNDO = text("iris.modded.moddedstructurecommands.place_failed_partial_changes_recorded_undo");
-    public static final TextKey MODDED_STRUCTURE_COMMANDS_PLACED_PIECES_WRITE_S_AT_YOUR_LOCATION_IRIS_OBJECT_UNDO = text("iris.modded.moddedstructurecommands.placed_pieces_write_s_at_your_location_iris_object_undo");
     public static final TextKey MODDED_STUDIO_COMMANDS_PROVIDE_DIMENSION_PACK_IRIS_STUDIO_OPEN_PACK_SEED = text("iris.modded.moddedstudiocommands.provide_dimension_pack_iris_studio_open_pack_seed");
     public static final TextKey MODDED_STUDIO_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_STAND_IRIS_STUDIO = text("iris.modded.moddedstudiocommands.this_dimension_is_not_generated_by_iris_stand_iris_studio");
     public static final TextKey MODDED_STUDIO_COMMANDS_OPENING_VISION_MAP_ON_SERVER_DISPLAY = text("iris.modded.moddedstudiocommands.opening_vision_map_on_server_display");

@@ -31,7 +31,8 @@ final class PackObjectSurfaceValidator {
     private PackObjectSurfaceValidator() {
     }
 
-    static List<String> validateUnsupportedStructureTransforms(File packFolder) {
+    /** The dimension, region and biome files that are not JSON objects, one blocking error each. */
+    static List<String> validateHostFilesParse(File packFolder) {
         List<String> blockingErrors = new ArrayList<>();
         if (packFolder == null || !packFolder.isDirectory()) {
             return blockingErrors;
@@ -47,29 +48,7 @@ final class PackObjectSurfaceValidator {
             String resourceType = PackStructurePlacementValidator.structureHostType(folderName);
             for (File resourceFile : resourceFiles) {
                 String resourceKey = PackValidationIo.deriveKey(resourceFolder, resourceFile);
-                JSONObject resource = PackStructurePlacementValidator.readGraphJson(
-                        resourceFile, resourceType, resourceKey, blockingErrors);
-                if (resource == null) {
-                    continue;
-                }
-
-                JSONArray placements = resource.optJSONArray("structures");
-                if (placements == null) {
-                    continue;
-                }
-                for (int placementIndex = 0; placementIndex < placements.length(); placementIndex++) {
-                    JSONObject placement = placements.optJSONObject(placementIndex);
-                    if (placement == null) {
-                        continue;
-                    }
-                    for (String field : PackValidator.UNSUPPORTED_STRUCTURE_TRANSFORM_FIELDS) {
-                        if (placement.has(field)) {
-                            blockingErrors.add(resourceType + " '" + resourceKey + "' structures[" + placementIndex
-                                    + "] declares unsupported field '" + field
-                                    + "'. Structure placement transforms are not supported; remove the field.");
-                        }
-                    }
-                }
+                PackStructurePlacementValidator.readGraphJson(resourceFile, resourceType, resourceKey, blockingErrors);
             }
         }
         return blockingErrors;

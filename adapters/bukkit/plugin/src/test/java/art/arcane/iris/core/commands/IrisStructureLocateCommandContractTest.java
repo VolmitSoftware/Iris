@@ -258,23 +258,6 @@ public class IrisStructureLocateCommandContractTest {
     }
 
     @Test
-    public void structurePlaceSeparatesPackContentFromTargetWorldEngine() throws IOException {
-        String source = Files.readString(Path.of(System.getProperty("iris.commandStructureSource")));
-        int methodStart = source.indexOf("public void place(");
-        assertTrue(methodStart >= 0);
-        String method = source.substring(methodStart);
-        assertTrue(method.contains("IrisData data = dimension.getLoader()"));
-        assertTrue(method.contains("PlatformChunkGenerator targetGenerator = IrisToolbelt.access(targetWorld)"));
-        assertTrue(method.contains("CommandObject.createPlacer(targetWorld, future, targetEngine)"));
-        assertTrue(method.contains("if (blockChanges == 0)"));
-        assertTrue(method.contains("COMMAND_STRUCTURE_PLACEMENT_CHANGED_NO_BLOCKS"));
-        Path structureSource = Path.of(System.getProperty("iris.commandStructureSource"));
-        String objectSource = Files.readString(structureSource.resolveSibling("CommandObject.java"));
-        assertTrue(objectSource.contains("futureBlockChanges.putIfAbsent(block, block.getBlockData())"));
-        assertFalse(method.contains("data.getEngine()"));
-    }
-
-    @Test
     public void structureVerifyPartitionsPolicyBeforeNativeReachability() throws IOException {
         String source = Files.readString(Path.of(System.getProperty("iris.commandStructureSource")));
         int methodStart = source.indexOf("private void runVerification(");

@@ -41,7 +41,7 @@ public final class PackValidationIo {
             return new JSONObject(Files.readString(file.toPath(), StandardCharsets.UTF_8));
         } catch (IOException | RuntimeException parseFailure) {
             // Every folder scanned through readJson is also scanned by a readGraphJson pass
-            // (validateUnsupportedStructureTransforms / validateStructureStartPools), which records the
+            // (validateHostFilesParse / validateStructureStartPools), which records the
             // parse failure as a blocking error. Reporting here too would duplicate it per scan.
             return null;
         }

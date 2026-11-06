@@ -41,7 +41,6 @@ public final class PackValidator {
     static final String JIGSAW_POOLS_FOLDER = "jigsaw-pools";
     static final String JIGSAW_PIECES_FOLDER = "jigsaw-pieces";
     static final List<String> STRUCTURE_HOST_FOLDERS = List.of(DIMENSIONS_FOLDER, "regions", "biomes");
-    static final List<String> UNSUPPORTED_STRUCTURE_TRANSFORM_FIELDS = List.of("rotation", "translate", "scale");
     static final Pattern RESOURCE_KEY_PATTERN = Pattern.compile("[a-z0-9_.-]+:[a-z0-9/._-]+");
 
     private PackValidator() {
@@ -88,7 +87,7 @@ public final class PackValidator {
         addDistinct(blockingErrors, imageMaps.errors());
         addDistinct(warnings, imageMaps.warnings());
         blockingErrors.addAll(PackObjectSurfaceValidator.validateObjectSurfaceSupport(packFolder));
-        blockingErrors.addAll(PackObjectSurfaceValidator.validateUnsupportedStructureTransforms(packFolder));
+        blockingErrors.addAll(PackObjectSurfaceValidator.validateHostFilesParse(packFolder));
         blockingErrors.addAll(PackObjectSurfaceValidator.validateStructureGraph(
                 packFolder, validateLiveRegistries));
         blockingErrors.addAll(PackSpawnValidator.validateSpawnerEntityReferences(

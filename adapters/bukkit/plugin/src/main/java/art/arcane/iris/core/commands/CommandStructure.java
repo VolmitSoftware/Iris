@@ -20,10 +20,6 @@ package art.arcane.iris.core.commands;
 
 import art.arcane.iris.core.modules.StructureAssemblies;
 import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
-import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.core.modules.ModuleObjectPlacement;
-import art.arcane.iris.engine.mantle.components.StructurePlacing;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.structure.BulkStructureImporter;
@@ -37,7 +33,6 @@ import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.framework.StructureAssembler;
 import art.arcane.iris.engine.framework.StructureReachability;
 import art.arcane.iris.engine.framework.structure.StructureAssemblyResult;
-import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
@@ -58,8 +53,6 @@ import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.structure.Structure;
 
@@ -328,67 +321,6 @@ public class CommandStructure implements DirectorExecutor {
             maxZ = Math.max(maxZ, p.getMaxZ());
         }
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_STRUCTURE_PIECES_FOOTPRINT_X_BLOCKS_SAMPLE_SEED_1234, MessageArgument.untrusted("structure", structure), MessageArgument.untrusted("value", pieces.size()), MessageArgument.untrusted("value2", (maxX - minX + 1)), MessageArgument.untrusted("value3", (maxZ - minZ + 1))));
-    }
-
-    @Director(description = "Assemble and place an iris structure at your location (studio testing)", descriptionKey = "iris.director.commandstructure.director.assemble_place_iris_structure_at_your_location_studio_testing", aliases = {"p"}, origin = DirectorOrigin.PLAYER, sync = true)
-    public void place(
-            @Param(description = "The dimension whose pack holds the structure", descriptionKey = "iris.director.commandstructure.param.dimension_whose_pack_holds_structure_2", aliases = "dim")
-            IrisDimension dimension,
-            @Param(description = "The iris structure key to place", descriptionKey = "iris.director.commandstructure.param.iris_structure_key_place")
-            String structure
-    ) {
-        IrisData data = dimension.getLoader();
-        if (data == null) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_COULD_NOT_RESOLVE_PACK_DIMENSION_5, MessageArgument.untrusted("value", dimension.getLoadKey())));
-            return;
-        }
-        IrisStructure s = StructureResources.structure(data.getPackResources(), structure);
-        if (s == null) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_NO_IRIS_STRUCTURE_THIS_PACK_2, MessageArgument.untrusted("structure", structure)));
-            return;
-        }
-        Location loc = player().getLocation();
-        StructureAssembler assembler = StructureAssemblies.forData(
-                data, s, new IrisPosition(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
-        RNG rng = new RNG((long) loc.getBlockX() * 341873128712L + loc.getBlockZ());
-        StructureAssemblyResult assembly = assembler.assemble(rng);
-        List<PlacedStructurePiece> pieces = assembly.pieces();
-        if (!assembly.hasOutput()) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_STRUCTURE_ASSEMBLED_0_PIECES, MessageArgument.untrusted("structure", structure)));
-            return;
-        }
-        Map<Block, BlockData> future = new HashMap<>();
-        World targetWorld = player().getWorld();
-        PlatformChunkGenerator targetGenerator = IrisToolbelt.access(targetWorld);
-        Engine targetEngine = targetGenerator == null ? null : targetGenerator.getEngine();
-        IObjectPlacer placer = CommandObject.createPlacer(targetWorld, future, targetEngine);
-        for (PlacedStructurePiece p : pieces) {
-            ObjectPlacement config = ObjectPlacement.builder()
-                    .mode(ObjectPlaceMode.STRUCTURE_PIECE)
-                    .rotation(StructurePlacing.moduleRotation(p.getRotation()))
-                    .place(List.of(p.getObject().getLoadKey()))
-                    .edit(s.getEdit())
-                    .build();
-            ModuleObjectPlacement.place(p.getObject(), p.getX(), p.getY(), p.getZ(), placer, config, rng, null, null, data);
-        }
-        int blockChanges = 0;
-        for (Map.Entry<Block, BlockData> entry : future.entrySet()) {
-            if (!entry.getKey().getBlockData().equals(entry.getValue())) {
-                blockChanges++;
-            }
-        }
-        if (blockChanges == 0) {
-            sender().sendMessage(IrisLanguage.text(
-                    BukkitCommandMessagesExtended.COMMAND_STRUCTURE_PLACEMENT_CHANGED_NO_BLOCKS,
-                    MessageArgument.untrusted("structure", structure),
-                    MessageArgument.untrusted("value", pieces.size())));
-            return;
-        }
-        sender().sendMessage(IrisLanguage.text(
-                BukkitCommandMessagesExtended.COMMAND_STRUCTURE_PLACED_PIECES_AT_YOUR_LOCATION,
-                MessageArgument.untrusted("structure", structure),
-                MessageArgument.untrusted("value", pieces.size()),
-                MessageArgument.untrusted("value2", blockChanges)));
     }
 
 }

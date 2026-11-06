@@ -33,9 +33,7 @@ import art.arcane.iris.core.project.StudioEditorLauncher;
 import art.arcane.iris.core.localization.RuntimeUiMessages;
 import art.arcane.iris.core.service.BoardSVC;
 import art.arcane.iris.core.service.StudioSVC;
-import art.arcane.iris.core.structure.BulkStructureImporter;
 import art.arcane.iris.core.structure.FeatureImporter;
-import art.arcane.iris.core.structure.StructureImporter;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -125,14 +123,12 @@ public class CommandStudio implements DirectorExecutor {
         Iris.service(StudioSVC.class).open(sender(), seed, dimension.getLoadKey(), force);
     }
 
-    @Director(description = "Import vanilla trees, mushrooms & objects (and structures/jigsaw) from the server into a pack's objects/vanilla folder", descriptionKey = "iris.director.commandstudio.director.import_vanilla_trees_mushrooms_objects_structures_jigsaw_from_server_into_pack_s", aliases = {"importv", "iv"}, origin = DirectorOrigin.BOTH)
+    @Director(description = "Import vanilla trees, mushrooms & objects from the server into a pack's objects/vanilla folder", descriptionKey = "iris.director.commandstudio.director.import_vanilla_trees_mushrooms_objects_structures_jigsaw_from_server_into_pack_s", aliases = {"importv", "iv"}, origin = DirectorOrigin.BOTH)
     public void importvanilla(
             @Param(description = "The dimension pack to import vanilla content into", descriptionKey = "iris.director.commandstudio.param.dimension_pack_import_vanilla_content_into", aliases = {"pack", "dim"}, customHandler = DimensionHandler.class)
             IrisDimension dimension,
             @Param(description = "How many variants to capture per tree/object feature", descriptionKey = "iris.director.commandstudio.param.how_many_variants_capture_per_tree_object_feature", defaultValue = "3")
-            int variants,
-            @Param(description = "Also import vanilla & datapack structures/jigsaw into the pack", descriptionKey = "iris.director.commandstudio.param.also_import_vanilla_datapack_structures_jigsaw_into_pack", defaultValue = "true")
-            boolean structures
+            int variants
     ) {
         if (dimension == null) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_PROVIDE_DIMENSION_PACK_IRIS_STD_IMPORTVANILLA_PACK_DIMENSION));
@@ -148,18 +144,8 @@ public class CommandStudio implements DirectorExecutor {
         sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_IMPORTING_VANILLA_CONTENT_INTO, MessageArgument.untrusted("value", dimension.getLoadKey())));
 
         FeatureImporter.Report features = FeatureImporter.importAllObjectFeatures(data, variants, sender);
-        int imported = features.imported();
-        int failed = features.failed();
 
-        if (structures) {
-            BulkStructureImporter.Report jigsaws = BulkStructureImporter.importAllVanilla(data, StructureImporter.Mode.OVERWRITE, true, sender);
-            BulkStructureImporter.Report templates = BulkStructureImporter.importAllTemplates(data, StructureImporter.Mode.OVERWRITE, sender);
-            BulkStructureImporter.Report groups = BulkStructureImporter.importTemplateGroups(data, StructureImporter.Mode.OVERWRITE, sender);
-            imported += jigsaws.imported() + templates.imported() + groups.imported();
-            failed += jigsaws.failed() + templates.failed() + groups.failed();
-        }
-
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_IMPORTVANILLA_COMPLETE_OBJECTS_STRUCTURES_WRITTEN_FAILED, MessageArgument.untrusted("imported", imported), MessageArgument.untrusted("failed", failed)));
+        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_IMPORTVANILLA_COMPLETE_OBJECTS_STRUCTURES_WRITTEN_FAILED, MessageArgument.untrusted("imported", features.imported()), MessageArgument.untrusted("failed", features.failed())));
         sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_TREES_OBJECTS_ARE_UNDER_OBJECTS_VANILLA_REFERENCE_THEM_FROM_BIOME));
     }
 

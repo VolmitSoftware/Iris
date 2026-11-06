@@ -651,7 +651,7 @@ public final class FloraSettings implements IrisFeature {
   use them. Both are deprecated for removal: transitional, until the cut-over.
 - Settings named in `when(...)` and object generator settings are described automatically. Settings
   that no stage names, such as ones read only through `FeatureSettings.at(...)`, are registered with
-  `setup.registry().registerSettings(WindSettings.class, GustSettings.class)` in `setup`. Their feature id follows the module
+  `setup.registry().registerSettings(WindSettings.class)` in `setup`, one call per type. Their feature id follows the module
   id like any other, and once registered, other modules may name them in `when(...)`.
 
 A load error names the field, the settings and the module:

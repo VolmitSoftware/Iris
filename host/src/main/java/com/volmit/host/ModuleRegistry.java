@@ -94,14 +94,9 @@ public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
     }
 
     @Override
-    public void registerSettings(Class<? extends IrisFeature>... settingsTypes) {
+    public void registerSettings(Class<? extends IrisFeature> settingsType) {
         checkOpen();
-        for (var settingsType : settingsTypes) {
-            registerOneSettings(settingsType);
-        }
-    }
-
-    private void registerOneSettings(Class<? extends IrisFeature> settingsType) {
+        Objects.requireNonNull(settingsType, "settingsType");
         var descriptor = FeatureDescriptor.of(settingsType);
         requireOwnedId("Settings " + settingsType.getName() + " with feature id", descriptor.id());
         catalogSettings(descriptor, registering);

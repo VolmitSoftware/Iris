@@ -23,14 +23,14 @@ public interface FeatureRegistry {
      */
     <T> void registerMantle(MantleKey<T> key, MantleLifetime lifetime, MantleCodec<T> codec);
 
-    /** Catalogs settings types that no stage names in {@code when(...)}, such as ones read only
-     * through {@link com.volmit.config.FeatureSettings#at}, so the host decodes them and studio
-     * describes them: {@code registerSettings(WindSettings.class, GustSettings.class)}. Settings that a
-     * stage names are catalogued without this; registering them as well changes nothing. Each type's
-     * feature id must be this module's id or start with it and {@code /}. Once registered, other
-     * modules may name the types in {@code when(...)} (see {@link StageGraph}).
+    /** Catalogs a settings type that no stage names in {@code when(...)}, such as one read only
+     * through {@link com.volmit.config.FeatureSettings#at}, so the host decodes it and studio
+     * describes it: {@code registerSettings(WindSettings.class)}. Settings that a stage names are
+     * catalogued without this; registering them as well changes nothing. The type's feature id must
+     * be this module's id or start with it and {@code /}. Once registered, other modules may name
+     * the type in {@code when(...)} (see {@link StageGraph}).
      */
-    void registerSettings(Class<? extends IrisFeature>... settingsTypes);
+    void registerSettings(Class<? extends IrisFeature> settingsType);
 
     /** Declares a kind of pack resource this module reads: the JSON files under the kind's folder, served through
      * {@link com.volmit.resource.PackResources} by the kind's type and described for studio from its class like

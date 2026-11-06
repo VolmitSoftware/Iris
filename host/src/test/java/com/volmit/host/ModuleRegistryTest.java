@@ -353,15 +353,6 @@ class ModuleRegistryTest {
     }
 
     @Test
-    void oneCallRegistersSeveralSettingsTypes() {
-        var registry = new ModuleRegistry();
-        registerAs(registry, "test:core", settings -> settings.registerSettings(One.class, Two.class));
-
-        assertEquals(List.of("test:core/one", "test:core/two"),
-                registry.freeze().settings().stream().map(value -> value.id().toString()).sorted().toList());
-    }
-
-    @Test
     void explicitSettingsFollowTheRegisteringModulesIdAndStillCollide() {
         var registry = new ModuleRegistry();
         var foreign = assertThrows(IllegalArgumentException.class,

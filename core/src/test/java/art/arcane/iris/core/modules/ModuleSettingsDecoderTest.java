@@ -175,6 +175,19 @@ public class ModuleSettingsDecoderTest {
     }
 
     @Test
+    public void aReferenceIsReadBelowTheSnippetFolderAndAMissingFileSaysSo() throws IOException {
+        Path oldLayout = Files.createDirectories(packFolder.resolve("snippet/patches"));
+        Files.writeString(oldLayout.resolve("wide.json"), "{\"size\": 9}");
+
+        IllegalArgumentException missing = assertThrows(IllegalArgumentException.class,
+                () -> moss("{\"moss\": {\"patch\": \"snippet/patches/wide\"}}"));
+
+        assertTrue(missing.getMessage(), missing.getMessage().contains(
+                "Snippet snippet/patches/wide has no file snippet/moss-patch/patches/wide.json; "
+                        + "a snippet reference names a file below snippet/moss-patch/"));
+    }
+
+    @Test
     public void snippetReferencesMayNameTheSnippetFolderAsIrisSnippetsDo() throws IOException {
         Path snippets = Files.createDirectories(packFolder.resolve("snippet/moss-patch"));
         Files.writeString(snippets.resolve("wide.json"), "{\"size\": 9}");

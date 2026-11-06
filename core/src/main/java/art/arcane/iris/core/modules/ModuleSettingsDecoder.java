@@ -377,7 +377,8 @@ public final class ModuleSettingsDecoder {
         Path folder = packFolder.resolve(SNIPPET_FOLDER).resolve(snippetFolder).normalize();
         Path file = folder.resolve(snippetName(snippetFolder, reference) + JSON_EXTENSION).normalize();
         if (!file.startsWith(folder) || !Files.isRegularFile(file)) {
-            throw new JsonParseException("Snippet " + reference + " has no file " + packFolder.relativize(file));
+            throw new JsonParseException("Snippet " + reference + " has no file " + packFolder.relativize(file)
+                    + "; a snippet reference names a file below " + SNIPPET_FOLDER + "/" + snippetFolder + "/");
         }
         try {
             return Files.readString(file);

@@ -187,15 +187,11 @@ final class PlacerTerrain implements PlacementTerrain {
         int x = position.x();
         int y = position.y();
         int z = position.z();
-        if (marker.type().equals(MantleMarkerTypes.TREE_MATERIAL)) {
-            placer.setData(x, y, z, TreeBlockMaterial.of(placer.get(x, y, z)));
-            return;
+        switch (marker) {
+            case PlacedMarker.TreeMaterial ignored -> placer.setData(x, y, z, TreeBlockMaterial.of(placer.get(x, y, z)));
+            case PlacedMarker.BuriedTreasure ignored -> placer.setData(x, y, z, MatterStructurePOI.BURIED_TREASURE);
+            case PlacedMarker.PackMarker pack -> placer.setData(x, y, z, new MatterMarker(pack.key()));
         }
-        if (marker.type().equals(MantleMarkerTypes.BURIED_TREASURE)) {
-            placer.setData(x, y, z, MatterStructurePOI.BURIED_TREASURE);
-            return;
-        }
-        placer.setData(x, y, z, new MatterMarker(MantleMarkerTypes.packMarkerName(marker)));
     }
 
     /** Resolved by the platform bound now, so a rebound platform never answers with another's states. */

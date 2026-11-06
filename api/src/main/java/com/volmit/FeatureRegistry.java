@@ -1,6 +1,6 @@
 package com.volmit;
 
-import com.volmit.mantle.MantleCodec;
+import com.volmit.data.Codec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.resource.ResourceKind;
@@ -21,7 +21,7 @@ public interface FeatureRegistry {
      * preserve unknown persisted layers or fail explicitly, never silently discard them.
      * GENERATION layers also require codecs.
      */
-    <T> void registerMantle(MantleKey<T> key, MantleLifetime lifetime, MantleCodec<T> codec);
+    <T> void registerMantle(MantleKey<T> key, MantleLifetime lifetime, Codec<T> codec);
 
     /** Catalogs a settings type that no stage names in {@code when(...)}, such as one read only
      * through {@link com.volmit.config.FeatureSettings#at}, so the host decodes it and studio

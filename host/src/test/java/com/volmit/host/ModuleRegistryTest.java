@@ -3,6 +3,7 @@ package com.volmit.host;
 import com.volmit.*;
 import com.volmit.config.Feature;
 import com.volmit.config.Level;
+import com.volmit.data.Codec;
 import com.volmit.mantle.*;
 import com.volmit.resource.ResourceKind;
 import com.volmit.service.Providers;
@@ -591,8 +592,8 @@ class ModuleRegistryTest {
         assertEquals("test:alpha", registrations.getFirst().module().info().id().toString());
     }
 
-    private static MantleCodec<String> codec(int version) {
-        return new MantleCodec<>() {
+    private static Codec<String> codec(int version) {
+        return new Codec<>() {
             public int version() { return version; }
             public void write(DataOutput output, String value) {}
             public String read(DataInput input, int storedVersion) { return ""; }

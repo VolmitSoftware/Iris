@@ -11,7 +11,7 @@ import com.volmit.config.Feature;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.geometry.BlockBox;
 import com.volmit.geometry.BlockPosition;
-import com.volmit.mantle.MantleCodec;
+import com.volmit.data.Codec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.object.GeneratedObject;
@@ -694,8 +694,8 @@ class StageGraphTest {
         registry.registerMantle(layer, MantleLifetime.GENERATION, codec(layer));
     }
 
-    private static <T> MantleCodec<T> codec(MantleKey<T> layer) {
-        return new MantleCodec<>() {
+    private static <T> Codec<T> codec(MantleKey<T> layer) {
+        return new Codec<>() {
             public int version() { return 0; }
             public void write(java.io.DataOutput output, T value) {}
             public T read(java.io.DataInput input, int storedVersion) { throw new UnsupportedOperationException(); }

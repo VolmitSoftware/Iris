@@ -4,7 +4,7 @@ import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLifecycle;
 import com.volmit.config.Level;
-import com.volmit.mantle.MantleCodec;
+import com.volmit.data.Codec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.resource.ResourceId;
@@ -84,7 +84,7 @@ public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
     }
 
     @Override
-    public <T> void registerMantle(MantleKey<T> key, MantleLifetime lifetime, MantleCodec<T> codec) {
+    public <T> void registerMantle(MantleKey<T> key, MantleLifetime lifetime, Codec<T> codec) {
         checkOpen();
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(codec, "codec");

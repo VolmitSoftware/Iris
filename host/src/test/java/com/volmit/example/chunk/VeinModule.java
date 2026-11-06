@@ -7,7 +7,7 @@ import com.volmit.block.BlockState;
 import com.volmit.config.PackSettings;
 import com.volmit.generation.ChunkContext;
 import com.volmit.geometry.BlockBox;
-import com.volmit.mantle.MantleCodec;
+import com.volmit.data.Codec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.stage.ChunkStage;
@@ -69,7 +69,7 @@ public final class VeinModule implements IrisModule {
                 blocks.set(x - context.originX(), y, z - context.originZ(), ORE_BLOCK));
     }
 
-    private static final class IntegerCodec implements MantleCodec<Integer> {
+    private static final class IntegerCodec implements Codec<Integer> {
         public int version() { return 0; }
         public void write(DataOutput output, Integer value) throws IOException { output.writeInt(value); }
         public Integer read(DataInput input, int storedVersion) throws IOException { return input.readInt(); }

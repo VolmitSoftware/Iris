@@ -199,7 +199,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
       }
       client
         .openInEditor(spot.x, spot.z, viewId)
-        .then((message) => tell(message ?? 'Opened on the server'))
+        .then((message) => tell(message ?? 'Opened'))
         .catch((failure: Error) => tell(failure.message))
     },
     [client, viewId, tell]

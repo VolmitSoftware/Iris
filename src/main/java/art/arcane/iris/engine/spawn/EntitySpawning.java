@@ -22,7 +22,6 @@ import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.spawn.EntitySpawn;
-import art.arcane.iris.builtin.spawn.SpawnCooldowns;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.builtin.spawn.SpawnSurface;
 import art.arcane.iris.builtin.spawn.Spawner;
@@ -116,14 +115,14 @@ public final class EntitySpawning implements EntitySpawns {
         return Optional.of(new MarkerRule(spawners, marker.emptyAbove(), marker.removeOnChange()));
     }
 
-    /** Drops the cooldowns that ran out, now and then: the world's data keeps them across restarts. */
+    /** Drops the cooldowns that ran out, now and then: the world saves them across restarts. */
     private static void forgetExpiredCooldowns(PackWorld world) {
         CooldownCleanup cleanup = world.state(CooldownCleanup.class, ignored -> new CooldownCleanup());
         if (!cleanup.due()) {
             return;
         }
         PackResources resources = world.resources();
-        world.extension(SpawnCooldowns.class).orElseThrow().forgetExpired(key -> {
+        SpawnCooldownBook.of(world).forgetExpired(key -> {
             Spawner spawner = SpawnResources.spawner(resources, key);
             return spawner == null ? -1L : spawner.maximumRate().interval();
         });

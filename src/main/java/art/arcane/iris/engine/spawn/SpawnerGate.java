@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.spawn;
 
-import art.arcane.iris.builtin.spawn.SpawnCooldowns;
 import art.arcane.iris.builtin.spawn.SpawnRate;
 import art.arcane.iris.builtin.spawn.Spawner;
 import com.volmit.world.BiomeKind;
@@ -29,15 +28,16 @@ import java.util.Optional;
 
 /**
  * Whether a spawner may fire: in a biome of the kind its group wants, in the time and weather it asks for, and not
- * more often than its rates allow. The rates count in the world's data, by the key the pack names the spawner by.
+ * more often than its rates allow. The rates count in the world's saved cooldowns, by the key the pack names the
+ * spawner by.
  *
  * @param sky       the world's time and weather when the gate was made; empty while the platform has not loaded the world
  * @param cooldowns when the world's spawners last fired
  */
-record SpawnerGate(Optional<Sky> sky, SpawnCooldowns cooldowns) {
+record SpawnerGate(Optional<Sky> sky, SpawnCooldownBook cooldowns) {
     /** The gate of the running world, with its time and weather now. */
     static SpawnerGate of(PackWorld world) {
-        return new SpawnerGate(world.running().orElseThrow().sky(), world.extension(SpawnCooldowns.class).orElseThrow());
+        return new SpawnerGate(world.running().orElseThrow().sky(), SpawnCooldownBook.of(world));
     }
 
     /** Whether a spawner of this group fires in a biome of {@code kind}. */

@@ -43,7 +43,7 @@ final class ModdedCommandTree {
                             List.of("pack=overworld", "pack=underworld", "link="),
                             builder
                     );
-    private static final Predicate<CommandSourceStack> GATE = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
+    static final Predicate<CommandSourceStack> GATE = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
     /**
      * SP-4: read-only inspection must work for an unopped player in a no-cheats singleplayer world, where the
      * what/height overlays are the only way to see what Iris generated. Everything that mutates a world,
@@ -151,6 +151,7 @@ final class ModdedCommandTree {
         root.then(ModdedStructureCommands.tree("str"));
         root.then(ModdedDeveloperCommands.tree("developer"));
         root.then(ModdedDeveloperCommands.tree("dev"));
+        root.then(ModdedToolingTail.after());
 
         return root;
     }

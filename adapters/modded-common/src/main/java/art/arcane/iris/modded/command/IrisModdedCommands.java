@@ -40,10 +40,7 @@ import art.arcane.iris.modded.ModdedWorldgenIds;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KMap;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import com.mojang.brigadier.suggestion.Suggestions;
-import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -506,14 +503,6 @@ public final class IrisModdedCommands {
             ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_MS, MessageArgument.untrusted("value", entry.getKey()), MessageArgument.untrusted("value2", String.format("%.2f", entry.getValue()))));
         }
         return 1;
-    }
-
-    static int verifyStructures(CommandSourceStack source, String keyRaw) {
-        return ModdedLocateCommands.verifyStructures(source, keyRaw);
-    }
-
-    static CompletableFuture<Suggestions> suggestStructureKeys(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
-        return ModdedCommandSuggestions.suggestStructureKeys(context, builder);
     }
 
     static void warnTabFailure(String suggestion, CommandSourceStack source, Throwable error) {

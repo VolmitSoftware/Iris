@@ -324,66 +324,6 @@ final class ModdedLocateCommands {
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORTED_AT, MessageArgument.untrusted("label", label), MessageArgument.untrusted("targetX", targetX), MessageArgument.untrusted("clampedY", clampedY), MessageArgument.untrusted("targetZ", targetZ)));
     }
 
-    static int verifyStructures(CommandSourceStack source, String keyRaw) {
-        ServerLevel level = source.getLevel();
-        Engine engine = IrisModdedCommands.engineFor(level);
-        if (engine == null) {
-            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_12));
-            return 0;
-        }
-        String key = keyRaw == null ? "" : keyRaw.trim();
-        if (!key.isEmpty()) {
-            return verifyStructure(source, level, engine, key);
-        }
-        Registry<Structure> registry = source.getServer().registryAccess().lookupOrThrow(Registries.STRUCTURE);
-        int available = 0;
-        int disabled = 0;
-        int suppressed = 0;
-        int unreachableBiomes = 0;
-        int unsupported = 0;
-        for (Identifier identifier : registry.keySet()) {
-            Optional<Holder.Reference<Structure>> holder = registry.get(identifier);
-            if (holder.isEmpty()) {
-                continue;
-            }
-            NativeStructureAvailability availability = nativeAvailability(source, level, engine,
-                    identifier.toString(), holder.get());
-            switch (availability) {
-                case AVAILABLE -> available++;
-                case WORLD_DISABLED, FILTERED -> disabled++;
-                case IRIS_SUPPRESSED -> suppressed++;
-                case EMPTY_BIOME_FILTER, BIOME_UNREACHABLE -> unreachableBiomes++;
-                case NO_PLACEMENT -> unsupported++;
-            }
-        }
-        int irisPlaced = ModuleServices.placedStructures(engine).size();
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_STRUCTURE_REACHABILITY_NATIVE_GENERATION_ELIGIBLE_IRIS_PLACED_NATIVE_DISABLED_NATIVE, MessageArgument.untrusted("available", available), MessageArgument.untrusted("irisPlaced", irisPlaced), MessageArgument.untrusted("disabled", disabled), MessageArgument.untrusted("suppressed", suppressed), MessageArgument.untrusted("unreachableBiomes", unreachableBiomes), MessageArgument.untrusted("unsupported", unsupported)));
-        return 1;
-    }
-
-    private static int verifyStructure(CommandSourceStack source, ServerLevel level, Engine engine, String key) {
-        Optional<NativeStructureTarget> target = resolveNativeStructure(source, level, engine, key);
-        if (target.isEmpty()) {
-            if (ModuleServices.placesStructure(engine, key)) {
-                IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_STRUCTURE_IS_IRIS_PLACED_LOCATABLE_WITH_IRIS_GOTO_STRUCTURE, MessageArgument.untrusted("key", key), MessageArgument.untrusted("key2", key)));
-                return 1;
-            }
-            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_UNKNOWN_STRUCTURE_IT_IS_NEITHER_IRIS_PLACED_NOR_REGISTERED_BY, MessageArgument.untrusted("key", key)));
-            return 0;
-        }
-        NativeStructureTarget resolved = target.get();
-        if (resolved.availability() == NativeStructureAvailability.IRIS_SUPPRESSED) {
-            IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_STRUCTURE_IS_EXPLICITLY_REPLACED_BY_IRIS_PLACEMENT_LOCATABLE_WITH_IRIS, MessageArgument.untrusted("value", resolved.key()), MessageArgument.untrusted("value2", resolved.key())));
-            return 1;
-        }
-        if (resolved.availability() != NativeStructureAvailability.AVAILABLE) {
-            IrisModdedCommands.fail(source, nativeUnavailableMessage(resolved.key(), resolved.availability()));
-            return 0;
-        }
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_NATIVE_STRUCTURE_IS_ENABLED_SUPPORTED_BY_THIS_DIMENSION_S_GENERATOR, MessageArgument.untrusted("value", resolved.key()), MessageArgument.untrusted("value2", resolved.key())));
-        return 1;
-    }
-
     private static Optional<NativeStructureTarget> resolveNativeStructure(CommandSourceStack source,
                                                                            ServerLevel level,
                                                                            Engine engine,

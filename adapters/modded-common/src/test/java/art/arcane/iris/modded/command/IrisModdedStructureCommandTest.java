@@ -280,28 +280,14 @@ public class IrisModdedStructureCommandTest {
     }
 
     @Test
-    public void verifyResolvesRegisteredNativeBeforeGenericIrisAliases() throws IOException {
-        String source = source("ModdedLocateCommands.java");
-        int methodStart = source.indexOf("private static int verifyStructure(");
-        int methodEnd = source.indexOf("private static Optional<NativeStructureTarget> resolveNativeStructure(",
-                methodStart);
-        String method = source.substring(methodStart, methodEnd);
-        int nativeResolution = method.indexOf("resolveNativeStructure(source, level, engine, key)");
-        int genericIrisLookup = method.indexOf("ModuleServices.placesStructure(engine, key)", nativeResolution);
-
-        assertTrue(nativeResolution >= 0);
-        assertTrue(genericIrisLookup > nativeResolution);
-        assertTrue(method.contains("NativeStructureAvailability.IRIS_SUPPRESSED"));
-    }
-
-    @Test
-    public void structureVerificationNoLongerClaimsNativeGenerationIsMissing() throws IOException {
+    public void structureListInfoAndVerifyBelongToTheStructureModule() throws IOException {
         String source = source("ModdedStructureCommands.java");
+        String tree = source("ModdedCommandTree.java");
 
-        assertTrue(source.contains("verifyTree(\"verify\")"));
-        assertTrue(source.contains("verifyTree(\"locateall\")"));
-        assertTrue(source.contains("IrisModdedCommands.verifyStructures("));
-        assertFalse(source.contains("Vanilla structure locate is meaningless here"));
+        assertTrue(source.contains("ModdedToolingTail.after(name)"));
+        assertFalse(source.contains("Commands.literal(\"list\")"));
+        assertFalse(source.contains("verifyTree("));
+        assertTrue(tree.contains("root.then(ModdedToolingTail.after())"));
     }
 
     private String source(String fileName) throws IOException {

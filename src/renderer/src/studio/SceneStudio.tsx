@@ -1,4 +1,6 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
@@ -29,9 +31,15 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
   const images = useMemo(() => new BridgeAssets(client, setWaiting), [client])
   const models = useMemo(() => new BlockModels(images), [images])
   const entries = useSceneEntries(client, view.id, packRevision, tell)
-  const [chosen, setChosen] = useState<string | null>(null)
-  const entry = entries.find((candidate) => candidate.key === chosen) ?? entries[0] ?? null
-  const { scene, mesh, building } = useSceneMesh(client, view.id, entry, packRevision, models, images, tell)
+  const [chosen, setChosen] = useState<{ key: string; variant: number } | null>(null)
+  const entry = entries.find((candidate) => candidate.key === chosen?.key) ?? entries[0] ?? null
+  const variant = entry !== null && chosen?.key === entry.key ? Math.min(chosen.variant, entry.variants - 1) : 0
+  const { scene, mesh, building } = useSceneMesh(client, view.id, entry, variant, packRevision, models, images, tell)
+  const chooseVariant = (next: number): void => {
+    if (entry !== null) {
+      setChosen({ key: entry.key, variant: (next + entry.variants) % entry.variants })
+    }
+  }
 
   useEffect(() => onSummary(entry === null || scene === null ? null : summaryOf(entry, scene)), [entry, scene, onSummary])
   useEffect(() => () => onSummary(null), [onSummary])
@@ -40,6 +48,19 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
     <>
       <div className="relative min-w-0 flex-1">
         <SceneViewport mesh={mesh} />
+        {entry !== null && entry.variants > 1 && (
+          <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card/90 p-1 text-[12px] tabular-nums">
+            <Button variant="ghost" size="icon-sm" title="Previous variant" onClick={() => chooseVariant(variant - 1)}>
+              <ChevronLeft />
+            </Button>
+            <span className="px-1">
+              Variant {variant + 1} of {entry.variants}
+            </span>
+            <Button variant="ghost" size="icon-sm" title="Next variant" onClick={() => chooseVariant(variant + 1)}>
+              <ChevronRight />
+            </Button>
+          </div>
+        )}
         {building && entry !== null && (
           <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card/90 px-3 py-1.5 text-[12px] text-secondary-text">
             {waiting ?? `Building ${entry.name}`}
@@ -47,7 +68,7 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
         )}
       </div>
       <aside className="flex w-[250px] shrink-0 flex-col border-l bg-card">
-        <EntryBrowser title={view.label} entries={entries} current={entry?.key ?? null} onSelect={setChosen} />
+        <EntryBrowser title={view.label} entries={entries} current={entry?.key ?? null} onSelect={(key) => setChosen({ key, variant: 0 })} />
         <BlockList scene={scene} />
       </aside>
     </>
@@ -80,6 +101,7 @@ function useSceneMesh(
   client: BridgeClient,
   viewId: string,
   entry: SceneEntry | null,
+  variant: number,
   packRevision: number,
   models: BlockModels,
   images: BridgeAssets,
@@ -97,7 +119,7 @@ function useSceneMesh(
     const stop = new AbortController()
     setBuilding(true)
     client
-      .scene(viewId, key, 0, stop.signal)
+      .scene(viewId, key, variant, stop.signal)
       .then(async (found) => {
         const built = await buildSceneMesh(found, models, images)
         if (stop.signal.aborted) {
@@ -113,7 +135,7 @@ function useSceneMesh(
       .catch((failure: Error) => !stop.signal.aborted && tell(failure.message))
       .finally(() => !stop.signal.aborted && setBuilding(false))
     return () => stop.abort()
-  }, [client, viewId, key, packRevision, models, images, tell])
+  }, [client, viewId, key, variant, packRevision, models, images, tell])
 
   useEffect(() => () => disposeMesh(mesh), [mesh])
 

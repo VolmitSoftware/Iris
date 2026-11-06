@@ -1,4 +1,4 @@
-import { Box, Gem, Map as MapIcon, Mountain, Sprout, Trees, Waves, type LucideIcon } from 'lucide-react'
+import { Box, Gem, Map as MapIcon, Mountain, Shapes, Sprout, Trees, Waves, type LucideIcon } from 'lucide-react'
 import { Kbd } from '@/components/ui/kbd'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
@@ -12,7 +12,8 @@ const VIEW_ICONS: Record<string, LucideIcon> = {
   landBiomes: Sprout,
   seaBiomes: Waves,
   caveBiomes: Gem,
-  'iris:objects': Box
+  'iris:objects': Box,
+  'iris:objects/procedural': Shapes
 }
 
 interface ViewListProps {

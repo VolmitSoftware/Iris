@@ -32,7 +32,6 @@ public final class BukkitCommandMessages {
     public static final TextKey COMMAND_PACK_PACK_NOT_FOUND_UNDER_PACKS = text("iris.bukkit.commandpack.pack_not_found_under_packs");
     public static final TextKey COMMAND_PACK_MESSAGE = text("iris.bukkit.commandpack.message");
     public static final TextKey COMMAND_PACK_MORE = text("iris.bukkit.commandpack.more");
-    public static final TextKey COMMAND_STRUCTURE_VERIFYING_STRUCTURES_FROM_WITHIN_CHUNKS = text("iris.bukkit.commandstructure.verifying_structures_from_within_chunks");
     public static final TextKey COMMAND_STUDIO_IMPORTING_VANILLA_CONTENT_INTO = text("iris.bukkit.commandstudio.importing_vanilla_content_into");
     public static final TextKey COMMAND_STUDIO_IMPORTVANILLA_COMPLETE_OBJECTS_STRUCTURES_WRITTEN_FAILED = text("iris.bukkit.commandstudio.importvanilla_complete_objects_structures_written_failed");
     public static final TextKey COMMAND_STUDIO_TREES_OBJECTS_ARE_UNDER_OBJECTS_VANILLA_REFERENCE_THEM_FROM_BIOME = text("iris.bukkit.commandstudio.trees_objects_are_under_objects_vanilla_reference_them_from_biome");

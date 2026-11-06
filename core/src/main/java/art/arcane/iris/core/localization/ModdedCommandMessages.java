@@ -87,12 +87,6 @@ public final class ModdedCommandMessages {
     public static final TextKey IRIS_MODDED_COMMANDS_YOU_CHANGED_DIMENSIONS_BEFORE_STRUCTURE_SEARCH_COMPLETED_RUN_COMMAND_AGAIN = text("iris.modded.irismoddedcommands.you_changed_dimensions_before_structure_search_completed_run_command_again");
     public static final TextKey IRIS_MODDED_COMMANDS_FOUND_AT_BUT_TELEPORTATION_FAILED = text("iris.modded.irismoddedcommands.found_at_but_teleportation_failed");
     public static final TextKey IRIS_MODDED_COMMANDS_TELEPORTED_AT = text("iris.modded.irismoddedcommands.teleported_at");
-    public static final TextKey IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_12 = text("iris.modded.irismoddedcommands.this_dimension_is_not_generated_by_iris_12");
-    public static final TextKey IRIS_MODDED_COMMANDS_STRUCTURE_REACHABILITY_NATIVE_GENERATION_ELIGIBLE_IRIS_PLACED_NATIVE_DISABLED_NATIVE = text("iris.modded.irismoddedcommands.structure_reachability_native_generation_eligible_iris_placed_native_disabled_native");
-    public static final TextKey IRIS_MODDED_COMMANDS_STRUCTURE_IS_IRIS_PLACED_LOCATABLE_WITH_IRIS_GOTO_STRUCTURE = text("iris.modded.irismoddedcommands.structure_is_iris_placed_locatable_with_iris_goto_structure");
-    public static final TextKey IRIS_MODDED_COMMANDS_UNKNOWN_STRUCTURE_IT_IS_NEITHER_IRIS_PLACED_NOR_REGISTERED_BY = text("iris.modded.irismoddedcommands.unknown_structure_it_is_neither_iris_placed_nor_registered_by");
-    public static final TextKey IRIS_MODDED_COMMANDS_STRUCTURE_IS_EXPLICITLY_REPLACED_BY_IRIS_PLACEMENT_LOCATABLE_WITH_IRIS = text("iris.modded.irismoddedcommands.structure_is_explicitly_replaced_by_iris_placement_locatable_with_iris");
-    public static final TextKey IRIS_MODDED_COMMANDS_NATIVE_STRUCTURE_IS_ENABLED_SUPPORTED_BY_THIS_DIMENSION_S_GENERATOR = text("iris.modded.irismoddedcommands.native_structure_is_enabled_supported_by_this_dimension_s_generator");
     public static final TextKey IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_13 = text("iris.modded.irismoddedcommands.this_dimension_is_not_generated_by_iris_13");
     public static final TextKey IRIS_MODDED_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_POI_TYPE = text("iris.modded.irismoddedcommands.this_command_can_only_be_used_by_players_poi_type");
     public static final TextKey IRIS_MODDED_COMMANDS_SEARCHING = text("iris.modded.irismoddedcommands.searching");
@@ -212,11 +206,6 @@ public final class ModdedCommandMessages {
     public static final TextKey MODDED_PACK_COMMANDS_MESSAGE_3 = text("iris.modded.moddedpackcommands.message_3");
     public static final TextKey MODDED_PACK_COMMANDS_MORE = text("iris.modded.moddedpackcommands.more");
     public static final TextKey MODDED_REGEN_REGEN_IS_ALREADY_RUNNING = text("iris.modded.moddedregen.regen_is_already_running");
-    public static final TextKey MODDED_STRUCTURE_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_RUN_THIS_FROM = text("iris.modded.moddedstructurecommands.this_dimension_is_not_generated_by_iris_run_this_from");
-    public static final TextKey MODDED_STRUCTURE_COMMANDS_WROTE_STRUCTURE_INDEX = text("iris.modded.moddedstructurecommands.wrote_structure_index");
-    public static final TextKey MODDED_STRUCTURE_COMMANDS_NO_IRIS_STRUCTURE_THIS_PACK = text("iris.modded.moddedstructurecommands.no_iris_structure_this_pack");
-    public static final TextKey MODDED_STRUCTURE_COMMANDS_STRUCTURE_ASSEMBLED_0_PIECES_CHECK_STARTPOOL = text("iris.modded.moddedstructurecommands.structure_assembled_0_pieces_check_startpool");
-    public static final TextKey MODDED_STRUCTURE_COMMANDS_STRUCTURE_PIECES_FOOTPRINT_X_BLOCKS_SAMPLE_SEED_1234 = text("iris.modded.moddedstructurecommands.structure_pieces_footprint_x_blocks_sample_seed_1234");
     public static final TextKey MODDED_STUDIO_COMMANDS_PROVIDE_DIMENSION_PACK_IRIS_STUDIO_OPEN_PACK_SEED = text("iris.modded.moddedstudiocommands.provide_dimension_pack_iris_studio_open_pack_seed");
     public static final TextKey MODDED_STUDIO_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_STAND_IRIS_STUDIO = text("iris.modded.moddedstudiocommands.this_dimension_is_not_generated_by_iris_stand_iris_studio");
     public static final TextKey MODDED_STUDIO_COMMANDS_OPENING_VISION_MAP_ON_SERVER_DISPLAY = text("iris.modded.moddedstudiocommands.opening_vision_map_on_server_display");

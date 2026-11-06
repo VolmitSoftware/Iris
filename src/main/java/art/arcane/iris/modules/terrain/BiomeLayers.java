@@ -193,6 +193,57 @@ public final class BiomeLayers {
         return blocks;
     }
 
+    /** The biome's surface layers, the one default layer when it declares none. */
+    public List<PaletteLayer> surfaceLayers(LayeredBiome biome) {
+        return surfaceSettings(biome).layers();
+    }
+
+    public List<PaletteLayer> seaLayers(LayeredBiome biome) {
+        return biome.seaLayers() == null ? List.of() : biome.seaLayers().layers();
+    }
+
+    /** The biome's cave ceiling layers that place blocks: those with a surface layer at their place to borrow its thickness from. */
+    public List<PaletteLayer> ceilingLayers(LayeredBiome biome) {
+        List<PaletteLayer> declared = biome.ceilingLayers() == null ? List.of() : biome.ceilingLayers().layers();
+        return declared.subList(0, Math.min(declared.size(), surfaceLayers(biome).size()));
+    }
+
+    /**
+     * Surface layer {@code index}'s block {@code depth} blocks below its top at the column, as {@link #generateLayers} picks
+     * it, leaving its slope condition aside; null where the layer is thinner there.
+     */
+    public BlockState surfaceLayerBlock(LayeredBiome biome, int index, int depth, double wx, double wz, RNG random) {
+        LayersSettings settings = surfaceSettings(biome);
+        ResolvedLayer layer = resolve(settings.layers().get(index));
+        double thickness = layerThickness(layer, surfaceHeightNoises(settings, random).get(index), wx, wz);
+        return blockAtDepth(layer, index, depth, thickness, wx, wz, random);
+    }
+
+    /** Sea layer {@code index}'s block {@code depth} blocks below the water surface, as {@link #generateSeaLayers} picks it. */
+    public BlockState seaLayerBlock(LayeredBiome biome, int index, int depth, double wx, double wz, RNG random) {
+        ResolvedLayer layer = resolve(seaLayers(biome).get(index));
+        LayerNoise heightNoise = seaHeightNoises(biome.seaLayers(), random).get(index);
+        int thickness = heightNoise.fit(layer.minHeight(), layer.maxHeight(), wx / layer.zoom(), wz / layer.zoom());
+        return blockAtDepth(layer, index, depth, thickness, wx, wz, random);
+    }
+
+    /** Cave ceiling layer {@code index}'s block {@code depth} blocks below the ceiling, as {@link #generateCeilingLayers} picks it. */
+    public BlockState ceilingLayerBlock(LayeredBiome biome, int index, int depth, double wx, double wz, RNG random) {
+        ResolvedLayer layer = resolve(ceilingLayers(biome).get(index));
+        double thickness = layerThickness(layer, surfaceHeightNoises(surfaceSettings(biome), random).get(index), wx, wz);
+        return blockAtDepth(layer, index, depth, thickness, wx, wz, random);
+    }
+
+    // The layer's blocks are stacked from its top, as generation stacks them, so the first pick seeds its noise as the world's did.
+    private BlockState blockAtDepth(ResolvedLayer layer, int index, int depth, double thickness, double wx, double wz, RNG random) {
+        if (depth >= thickness) {
+            return null;
+        }
+        KList<BlockState> stacked = new KList<>();
+        stackLayer(stacked, layer, index, depth + 1, wx, wz, random, depth + 1);
+        return stacked.size() > depth ? stacked.get(depth) : null;
+    }
+
     private KList<BlockState> generateLockedLayers(LayeredBiome biome, double wx, double wz, RNG random, int maxDepthLimit, int height, ColumnSlope slope) {
         KList<BlockState> stacked = new KList<>();
         KList<BlockState> locked = new KList<>();

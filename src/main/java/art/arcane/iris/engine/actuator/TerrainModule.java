@@ -19,6 +19,7 @@ package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.terrain.BedrockSettings;
+import art.arcane.iris.modules.terrain.BiomePalettes;
 import art.arcane.iris.modules.terrain.CaveCeilingLayersSettings;
 import art.arcane.iris.modules.terrain.ExplodeBiomePaletteSizeSettings;
 import art.arcane.iris.modules.terrain.ExplodeBiomePalettesSettings;
@@ -66,6 +67,7 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
                 ExplodeBiomePaletteSizeSettings.class);
         registry.registerService(ProtectedFloor.class, TerrainModule::protectsFloor);
         registry.registerLifecycle(this);
+        setup.tooling().registerView(new BiomePalettes());
     }
 
     /** The bedrock row belongs to the terrain while the dimension has bedrock, as it does unless the pack says otherwise. */

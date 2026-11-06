@@ -72,8 +72,8 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
         registry.registerResourceKind(ProceduralObjectCatalog.DEFINITIONS);
         registry.registerPlacementType(ObjectPlacement.class, ObjectPlacement.jsonFields());
         registry.registerLifecycle(this);
-        setup.tooling().registerSceneView(new PackObjectScenes());
-        setup.tooling().registerSceneView(new ProceduralObjectScenes());
+        setup.tooling().registerView(new PackObjectScenes());
+        setup.tooling().registerView(new ProceduralObjectScenes());
     }
 
     @Override

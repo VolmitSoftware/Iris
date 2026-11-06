@@ -22,7 +22,6 @@ import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectRun;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
@@ -78,7 +77,7 @@ public final class ModuleObjectPlacement {
         }
         long worldSeed = rng.nextLong();
         try (ToolWorld toolWorld = new ToolWorld(worldSeed, data.getPackResources(), new PackDeclaredSettings(data),
-                world -> new IrisPlacements(data, null, () -> world), new IrisLegacyStreams(data, new SeedManager(worldSeed)))) {
+                world -> new IrisPlacements(data, null, () -> world))) {
             return run.placeIn(toolWorld, terrain);
         }
     }

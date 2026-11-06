@@ -23,7 +23,6 @@ import art.arcane.iris.modules.placement.PlacementStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.engine.object.placement.IrisPlacementForm;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -133,13 +132,6 @@ public class ObjectPlacementModuleSettingsTest {
     }
 
     @Test
-    public void copiesOfAPlacementKeepItsSettings() {
-        ObjectPlacement placement = decode("{\"place\": [\"tree\"], \"glow\": {}}");
-
-        assertSame(moduleSettings(placement), moduleSettings(placement.toBuilder().place(List.of("rock")).build()));
-    }
-
-    @Test
     public void aPlacementsSettingsActivateItsStages() {
         IObjectPlacer declaring = placer();
         IObjectPlacer silent = placer();
@@ -156,7 +148,7 @@ public class ObjectPlacementModuleSettingsTest {
     }
 
     private ModuleSettings moduleSettings(ObjectPlacement placement) {
-        return IrisPlacementForm.of(placement, data).moduleSettings();
+        return data.getModules().settings().decodePlacement(placement.json());
     }
 
     private void place(ObjectPlacement declared, IObjectPlacer placer) {

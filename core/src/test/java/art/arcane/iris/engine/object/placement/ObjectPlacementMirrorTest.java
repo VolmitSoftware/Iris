@@ -20,7 +20,6 @@ public class ObjectPlacementMirrorTest {
 
         assertEquals(GSON.fromJson(json, JsonObject.class), GSON.fromJson(placement.json(), JsonObject.class));
         assertEquals(0.5, placement.chance(), 0);
-        assertNull(placement.hostForm());
     }
 
     @Test

@@ -23,6 +23,5 @@ public class PlacementTypeFieldsTest {
     @Test
     public void whatIrisKeepsBesideThePlacementIsNoField() {
         assertTrue(!ObjectPlacement.jsonFields().contains("json"));
-        assertTrue(!ObjectPlacement.jsonFields().contains("hostForm"));
     }
 }

@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.LegacyStreams;
 import art.arcane.iris.engine.framework.SeedManager;
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
@@ -43,12 +42,9 @@ final class ToolWorld implements PackWorld, AutoCloseable {
     private final WorldStates states;
     private final ModuleLog log;
     private final Placements placements;
-    private final LegacyStreams legacyStreams;
 
-    /** {@code placements} makes the placements of the new world; {@code legacyStreams} are offered as its extension. */
-    ToolWorld(long seed, PackResources resources, PackSettings settings, Function<PackWorld, Placements> placements,
-              LegacyStreams legacyStreams) {
-        this.legacyStreams = legacyStreams;
+    /** {@code placements} makes the placements of the new world. */
+    ToolWorld(long seed, PackResources resources, PackSettings settings, Function<PackWorld, Placements> placements) {
         this.seeds = new SeedManager(seed);
         this.resources = resources;
         this.settings = settings;
@@ -88,11 +84,6 @@ final class ToolWorld implements PackWorld, AutoCloseable {
     @Override
     public Placements placements() {
         return placements;
-    }
-
-    @Override
-    public <T> Optional<T> extension(Class<T> type) {
-        return type == LegacyStreams.class ? HostExtensions.as(type, legacyStreams) : Optional.empty();
     }
 
     @Override

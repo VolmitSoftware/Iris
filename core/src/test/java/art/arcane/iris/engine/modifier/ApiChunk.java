@@ -24,7 +24,6 @@ import art.arcane.volmlib.util.matter.Matter;
 import com.volmit.noise.NoiseSampler;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.IrisSeedPurposes;
-import art.arcane.iris.builtin.LegacyStreams;
 import com.volmit.block.BlockTurn;
 import com.volmit.object.PackObjects;
 import com.volmit.placement.Placements;
@@ -607,7 +606,6 @@ public final class ApiChunk implements GenerationContext {
     private final class World implements PackWorld {
         private final Resources resources = new Resources();
         private final Map<Class<?>, Object> states = new HashMap<>();
-        private final LegacyStreams streams = mock(LegacyStreams.class);
         private final Placements placements = mock(Placements.class);
         private final RunningWorld running = mock(RunningWorld.class);
 
@@ -616,12 +614,6 @@ public final class ApiChunk implements GenerationContext {
             FeatureSettings nothingDeclared = mock(FeatureSettings.class);
             when(running.layout()).thenReturn(noSurfaceBiomes);
             when(running.settings()).thenReturn(nothingDeclared);
-        }
-
-        @Override
-        public <T> Optional<T> extension(Class<T> type) {
-            Object offered = type == LegacyStreams.class ? streams : null;
-            return Optional.ofNullable(offered).map(type::cast);
         }
 
         @Override

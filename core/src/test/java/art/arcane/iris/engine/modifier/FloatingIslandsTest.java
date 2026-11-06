@@ -1,6 +1,5 @@
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.LegacyStreams;
 import art.arcane.iris.engine.decorator.BiomeDecorators;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
@@ -68,7 +67,6 @@ public class FloatingIslandsTest {
         when(running.settings()).thenReturn(nothingDeclaredByBiomes);
         PackWorld world = mock(PackWorld.class);
         when(world.running()).thenReturn(Optional.of(running));
-        when(world.extension(LegacyStreams.class)).thenReturn(Optional.of(mock(LegacyStreams.class)));
         when(world.resources()).thenReturn(mock(PackResources.class));
         PackSettings nothingDeclared = mock(PackSettings.class);
         when(nothingDeclared.declared(any())).thenAnswer(invocation -> SettingsStack.empty());

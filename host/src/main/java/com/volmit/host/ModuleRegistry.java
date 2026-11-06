@@ -11,7 +11,7 @@ import com.volmit.object.ObjectGeneratorFactory;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 import com.volmit.service.Providers;
-import com.volmit.tooling.SceneView;
+import com.volmit.tooling.StudioView;
 import com.volmit.tooling.ToolingRegistry;
 import com.volmit.validation.Validator;
 import java.util.ArrayList;
@@ -31,7 +31,7 @@ import java.util.Set;
  * settings ids must be the registering module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}).
  * Resource kinds have unique ids, types and folders, and no kind may read a folder the host reserves for its own
  * files. Lifecycle hooks and service providers are registered by the module that owns them; a service whose providers
- * are {@link Providers#ONE} has at most one. Studio scene views have unique ids the registering module owns. A failed
+ * are {@link Providers#ONE} has at most one. Studio views have ids unique across their kinds that the registering module owns. A failed
  * registration leaves the registry unchanged. A failed module callback invalidates the host's whole build. This does
  * not decode JSON, discover modules or instantiate settings.
  */
@@ -47,7 +47,7 @@ public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
     private final List<ValidatorRegistration> validators = new ArrayList<>();
     private final List<LifecycleRegistration> lifecycles = new ArrayList<>();
     private final List<ServiceRegistration> services = new ArrayList<>();
-    private final Map<ResourceId, SceneViewRegistration> sceneViews = new HashMap<>();
+    private final Map<ResourceId, StudioViewRegistration> studioViews = new HashMap<>();
     private final Set<String> reservedFolders;
     private final List<DiscoveredModule> registered = new ArrayList<>();
     private PlacementTypeRegistration placementType;
@@ -199,18 +199,18 @@ public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
     }
 
     @Override
-    public void registerSceneView(SceneView view) {
+    public void registerView(StudioView view) {
         checkOpen();
         Objects.requireNonNull(view, "view");
         ResourceId id = Objects.requireNonNull(view.id(), "view id");
-        requireOwnedId("Scene view", id);
-        var added = new SceneViewRegistration(view, registering);
-        var existing = sceneViews.get(id);
+        requireOwnedId("Studio view", id);
+        var added = new StudioViewRegistration(view, registering);
+        var existing = studioViews.get(id);
         if (existing != null) {
-            throw new IllegalArgumentException("Scene view " + id + " is registered by module " + existing.module()
+            throw new IllegalArgumentException("Studio view " + id + " is registered by module " + existing.module()
                     + " already, and module " + added.module() + " registers it too; give one of them another id");
         }
-        sceneViews.put(id, added);
+        studioViews.put(id, added);
     }
 
     /** Catalogs a settings type named by a stage's when(...), whose owner {@link StageGraphBuilder}
@@ -234,7 +234,7 @@ public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
     public FeatureCatalog freeze() {
         if (catalog == null) {
             catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), validators, lifecycles, services,
-                    placementType, sceneViews.values());
+                    placementType, studioViews.values());
         }
         return catalog;
     }

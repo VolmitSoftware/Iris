@@ -452,7 +452,6 @@ public class SchemaBuilder {
             }
             case ITEM -> putRegistryEnumRef(property, "enum-item-type", this::itemTypes);
             case ENTITY -> putRegistryEnumRef(property, "enum-entity-type", this::entityTypes);
-            case BIOME -> putRegistryEnumRef(property, "enum-biome-type", this::biomeTypes);
             case STRUCTURE -> putRegistryEnumRef(property, "enum-vanilla-structure", this::vanillaStructures);
             case STRUCTURE_PREFIX -> putRegistryEnumOrPrefixRef(property, "enum-vanilla-structure-or-prefix",
                     "enum-vanilla-structure", this::vanillaStructures, VANILLA_STRUCTURE_PREFIX_PATTERN);

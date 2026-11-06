@@ -70,7 +70,7 @@ final class IrisPlacements implements Placements {
         TerrainEdit edit = new TerrainEdit(run.terrain(), area, () -> mantle(area, pack));
         IrisPlacementInputs inputs = new IrisPlacementInputs(terrain(ids, area),
                 new PlacementModuleSettings(worldSettings(ids), placementSettings, source),
-                new TerrainBlockView(run.terrain(), area), world, run.terrain(), run.input());
+                world, run.terrain(), run.input());
         StageMetrics metrics = new StageMetrics(engine != null ? engine.getMetrics() : null);
         return new PlacementRunner(graph).place(run.request(), edit, inputs, run.seed(), placementSettings.placement(source), metrics);
     }

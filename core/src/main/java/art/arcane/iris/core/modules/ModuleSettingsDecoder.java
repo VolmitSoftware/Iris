@@ -37,7 +37,6 @@ import com.volmit.block.BlockState;
 import com.volmit.config.Snippet;
 import com.volmit.host.FeatureCatalog;
 import com.volmit.host.FeatureDescriptor;
-import com.volmit.host.ObjectRegistration;
 import com.volmit.host.OptionsMetadata;
 import com.volmit.resource.ResourceId;
 
@@ -55,7 +54,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 /**
  * Reads the module settings a dimension, region or biome declares: each settings feature of the pack at
@@ -239,9 +237,8 @@ public final class ModuleSettingsDecoder {
     }
 
     private static Set<String> keysAt(FeatureCatalog catalog, Level target) {
-        Stream<FeatureDescriptor<?>> objects = catalog.objects().stream().map(ObjectRegistration::descriptor);
         Set<String> found = new TreeSet<>();
-        Stream.concat(catalog.settings().stream(), objects)
+        catalog.settings().stream()
                 .filter(feature -> feature.targets().contains(target))
                 .forEach(feature -> found.add(feature.key()));
         return Set.copyOf(found);

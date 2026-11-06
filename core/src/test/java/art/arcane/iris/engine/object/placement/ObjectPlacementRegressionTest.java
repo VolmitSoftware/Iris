@@ -40,15 +40,11 @@ import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
-import com.volmit.geometry.BlockBox;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.mantle.Mantle;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
-import com.volmit.object.GeneratedObject;
-import com.volmit.object.ObjectBlock;
-import com.volmit.object.ObjectTransform;
 import com.volmit.host.LoadedPack;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
@@ -523,42 +519,6 @@ public class ObjectPlacementRegressionTest {
         assertFalse(result.isPlaced());
         assertNull(storage.value(MARKS, TEXT, 0, ANCHOR_Y, 0));
         assertNull(storage.value(MARKS, TEXT, 1, ANCHOR_Y, 0));
-    }
-
-    /** Lays the pack's oak on its side, a quarter turn about X, through the placement's object transformer. */
-    private static final class TurnModule implements IrisModule {
-        private static final PlacementStage<Void> TURN = Stage.placement("test:turn/oak");
-        private final List<GeneratedObject> turned;
-
-        private TurnModule(List<GeneratedObject> turned) {
-            this.turned = turned;
-        }
-
-        @Override
-        public ModuleInfo info() {
-            return ModuleInfo.of("test:turn", "Turn", "1");
-        }
-
-        @Override
-        public void setup(ModuleSetup setup) {
-            setup.stages().define(TURN).requires(PlacementStages.Blocks.COMPLETE).run(context -> turned.add(context.objects().transform(
-                    PackResourceFixture.oak(context.world().resources()),
-                    new ObjectTransform(90, 0, 0, 1, 1, 1, false, false, false))));
-        }
-    }
-
-    @Test
-    public void aPlacementStageTurnsAnObjectThroughTheObjectTransformer() throws IOException {
-        List<GeneratedObject> turned = new ArrayList<>();
-        usePack(List.of(new TurnModule(turned)));
-        PackResourceFixture.serve(data);
-
-        ObjectPlacementResult result = place(placement(), ANCHOR_Y, new RecordingPlacer(null), null);
-
-        assertTrue(result.isPlaced());
-        assertEquals(List.of(new BlockPosition(0, 0, 0), new BlockPosition(0, 0, 1)),
-                turned.getFirst().blocks().stream().map(ObjectBlock::position).toList());
-        assertEquals("the oak's leaves moved with the turn", new BlockBox(0, 0, 0, 1, 1, 2), turned.getFirst().bounds());
     }
 
     @Test

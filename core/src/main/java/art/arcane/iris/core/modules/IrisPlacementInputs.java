@@ -23,12 +23,10 @@ import com.volmit.placement.PlacementTerrain;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.geometry.BlockBox;
-import com.volmit.object.ObjectTransformer;
 import com.volmit.placement.PlacementContext;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.BiomeSample;
-import com.volmit.world.BlockView;
 import com.volmit.world.TerrainSample;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
@@ -40,10 +38,8 @@ import java.util.function.Supplier;
 
 /** The read-only IrisApi inputs of one Iris object placement. */
 final class IrisPlacementInputs implements PlacementContext {
-    private final ObjectTransformer objects = new IrisObjectTransformer();
     private final TerrainSampler terrain;
     private final FeatureSettings settings;
-    private final BlockView blocks;
     private final Supplier<PackWorld> worldSource;
     private final PlacementTerrain placementTerrain;
     private final Object input;
@@ -53,11 +49,10 @@ final class IrisPlacementInputs implements PlacementContext {
      * @param worldSource the world the placement generates in, asked for the first time a stage needs it
      * @param input       what the placing module passed for its stages to read
      */
-    IrisPlacementInputs(TerrainSampler terrain, FeatureSettings settings, BlockView blocks, Supplier<PackWorld> worldSource,
+    IrisPlacementInputs(TerrainSampler terrain, FeatureSettings settings, Supplier<PackWorld> worldSource,
                         PlacementTerrain placementTerrain, Object input) {
         this.terrain = terrain;
         this.settings = settings;
-        this.blocks = blocks;
         this.worldSource = worldSource;
         this.placementTerrain = placementTerrain;
         this.input = input;
@@ -155,16 +150,6 @@ final class IrisPlacementInputs implements PlacementContext {
     @Override
     public FeatureSettings settings() {
         return settings;
-    }
-
-    @Override
-    public ObjectTransformer objects() {
-        return objects;
-    }
-
-    @Override
-    public BlockView blocks() {
-        return blocks;
     }
 
     /** The world this placement first asked for; it keeps it if the world restarts meanwhile. */

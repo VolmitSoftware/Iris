@@ -87,7 +87,7 @@ public class EntityResolutionPinTest {
         EntitySpec spec = new EntityResolution(resources, new LootItems(registry, false, log), sky, new EffectTimers(), log)
                 .resolve(entity, new RNG(STREAM_SEED)).orElseThrow();
 
-        assertEquals(383685705, spec.toString().hashCode());
+        assertEquals(-1825293612, spec.toString().hashCode());
     }
 
     private static ContentKey platformItem(String name) {

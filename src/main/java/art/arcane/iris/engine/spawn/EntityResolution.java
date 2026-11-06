@@ -87,7 +87,7 @@ final class EntityResolution {
 
         return typeOf(entity).map(type -> new EntitySpec(type, appearanceOf(entity), behaviourOf(entity), equipment, attributes,
                 new EntitySpec.Company(passengers, leashHolder), new EntitySpec.Drops(lootTables, lootShuffleSeed),
-                arrivalOf(entity), entity.applySettingsToCustomMobAnyways(), List.of()));
+                arrivalOf(entity), entity.applySettingsToCustomMobAnyways()));
     }
 
     /** The provider's mob when the pack names one, otherwise the entity type. */

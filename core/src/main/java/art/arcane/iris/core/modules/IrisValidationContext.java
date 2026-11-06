@@ -21,12 +21,14 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import com.volmit.config.PackSettings;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.PlatformRegistries;
 import com.volmit.validation.Problem;
 import com.volmit.validation.ValidationContext;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * What one module validator sees of a pack Iris validates: the pack's resources and its settings as Iris loads them
@@ -36,16 +38,28 @@ import java.util.Objects;
 public final class IrisValidationContext implements ValidationContext {
     private final IrisData data;
     private final PackSettings settings;
+    private final Optional<PlatformRegistries> platform;
     private final List<Problem> problems = new ArrayList<>();
 
-    private IrisValidationContext(IrisData data) {
+    private IrisValidationContext(IrisData data, Optional<PlatformRegistries> platform) {
         this.data = data;
         this.settings = new PackDeclaredSettings(data);
+        this.platform = platform;
     }
 
-    /** A context for one validator run over the pack {@code data} holds. */
+    /** A context for one validator run over the pack {@code data} holds, without the platform's registries. */
     public static IrisValidationContext forPack(IrisData data) {
-        return new IrisValidationContext(Objects.requireNonNull(data, "data"));
+        return forPack(data, Optional.empty());
+    }
+
+    /** A context for one validator run over the pack {@code data} holds, seeing {@code platform}'s registries. */
+    public static IrisValidationContext forPack(IrisData data, Optional<PlatformRegistries> platform) {
+        return new IrisValidationContext(Objects.requireNonNull(data, "data"), Objects.requireNonNull(platform, "platform"));
+    }
+
+    /** The registries of the platform Iris is bound to, read on first use; empty when none is bound, such as in a build. */
+    public static Optional<PlatformRegistries> boundPlatformRegistries() {
+        return IrisPlatformRegistryIds.ofBoundPlatform();
     }
 
     /** Iris's own view of {@code context}, which Iris hands to every validator it runs. */
@@ -69,6 +83,11 @@ public final class IrisValidationContext implements ValidationContext {
     @Override
     public PackSettings settings() {
         return settings;
+    }
+
+    @Override
+    public Optional<PlatformRegistries> platform() {
+        return platform;
     }
 
     @Override

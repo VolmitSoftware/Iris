@@ -22,10 +22,12 @@ import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 
 final class PackObjectSurfaceValidator {
     private PackObjectSurfaceValidator() {
@@ -45,40 +47,33 @@ final class PackObjectSurfaceValidator {
             }
             List<File> resourceFiles = PackValidationIo.listJsonRecursive(resourceFolder);
             resourceFiles.sort(Comparator.comparing(File::getPath));
-            String resourceType = PackStructurePlacementValidator.structureHostType(folderName);
+            String resourceType = structureHostType(folderName);
             for (File resourceFile : resourceFiles) {
                 String resourceKey = PackValidationIo.deriveKey(resourceFolder, resourceFile);
-                PackStructurePlacementValidator.readGraphJson(resourceFile, resourceType, resourceKey, blockingErrors);
+                requireJsonObject(resourceFile, resourceType, resourceKey, blockingErrors);
             }
         }
         return blockingErrors;
     }
 
-    static List<String> validateStructureGraph(File packFolder) {
-        return validateStructureGraph(packFolder, true);
+    private static void requireJsonObject(File file, String resourceType, String resourceKey, List<String> blockingErrors) {
+        try {
+            new JSONObject(Files.readString(file.toPath(), StandardCharsets.UTF_8));
+        } catch (IOException | RuntimeException unreadable) {
+            String reason = unreadable.getMessage() == null || unreadable.getMessage().isBlank()
+                    ? unreadable.getClass().getSimpleName()
+                    : unreadable.getMessage();
+            blockingErrors.add(resourceType + " '" + resourceKey + "' has invalid JSON: " + reason);
+        }
     }
 
-    static List<String> validateStructureGraph(File packFolder, boolean validateLiveRegistries) {
-        List<String> blockingErrors = new ArrayList<>();
-        if (packFolder == null || !packFolder.isDirectory()) {
-            return blockingErrors;
-        }
-
-        File structuresFolder = new File(packFolder, PackValidator.STRUCTURES_FOLDER);
-        File poolsFolder = new File(packFolder, PackValidator.JIGSAW_POOLS_FOLDER);
-        File piecesFolder = new File(packFolder, PackValidator.JIGSAW_PIECES_FOLDER);
-        File objectsFolder = new File(packFolder, PackValidator.OBJECTS_FOLDER);
-        Set<String> structureKeys = ContentKeyValidator.deriveRegistrantKeysExact(structuresFolder);
-        Set<String> poolKeys = ContentKeyValidator.deriveRegistrantKeysExact(poolsFolder);
-        Set<String> pieceKeys = ContentKeyValidator.deriveRegistrantKeysExact(piecesFolder);
-        Set<String> objectKeys = ContentKeyValidator.deriveObjectKeysExact(objectsFolder);
-
-        PackStructurePlacementValidator.validateStructurePlacements(
-                packFolder, structureKeys, validateLiveRegistries, blockingErrors);
-        PackStructurePlacementValidator.validateStructureStartPools(structuresFolder, poolKeys, blockingErrors);
-        PackStructurePlacementValidator.validateJigsawPools(poolsFolder, poolKeys, pieceKeys, blockingErrors);
-        PackStructurePlacementValidator.validateJigsawPieces(piecesFolder, poolKeys, objectKeys, blockingErrors);
-        return blockingErrors;
+    private static String structureHostType(String folderName) {
+        return switch (folderName) {
+            case "dimensions" -> "Dimension";
+            case "regions" -> "Region";
+            case "biomes" -> "Biome";
+            default -> "Resource";
+        };
     }
 
     static List<String> validateObjectSurfaceSupport(File packFolder) {
@@ -94,7 +89,7 @@ final class PackObjectSurfaceValidator {
             }
             List<File> resourceFiles = PackValidationIo.listJsonRecursive(resourceFolder);
             resourceFiles.sort(Comparator.comparing(File::getPath));
-            String resourceType = PackStructurePlacementValidator.structureHostType(folderName);
+            String resourceType = structureHostType(folderName);
             for (File resourceFile : resourceFiles) {
                 JSONObject resource = PackValidationIo.readJson(resourceFile);
                 if (resource == null) {

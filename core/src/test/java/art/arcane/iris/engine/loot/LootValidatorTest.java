@@ -13,6 +13,7 @@ import com.volmit.config.MaxNumber;
 import com.volmit.config.PackSettings;
 import com.volmit.config.SettingsStack;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.PlatformRegistries;
 import com.volmit.resource.ResourceId;
 import com.volmit.validation.Problem;
 import com.volmit.validation.Severity;
@@ -23,6 +24,7 @@ import org.junit.Test;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -217,6 +219,11 @@ public class LootValidatorTest {
                         return resources;
                     }
                 };
+            }
+
+            @Override
+            public Optional<PlatformRegistries> platform() {
+                return Optional.empty();
             }
 
             @Override

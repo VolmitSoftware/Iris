@@ -1,5 +1,6 @@
 package art.arcane.iris.core.service;
 
+import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.pack.PackValidationResult;
 import art.arcane.iris.core.pack.PackValidator;
 import org.junit.Assume;
@@ -21,8 +22,13 @@ public class StudioSVCProjectSafetyTest {
     @Test
     public void createsLocalStarterWithoutARepositoryDownload() throws IOException {
         File workspace = temporaryFolder.newFolder("starter-workspace");
-
-        StudioSVC.createStarterProject(workspace, "new_pack");
+        IrisSettings previous = IrisSettings.settings;
+        IrisSettings.settings = new IrisSettings();
+        try {
+            StudioSVC.createStarterProject(workspace, "new_pack");
+        } finally {
+            IrisSettings.settings = previous;
+        }
 
         Path project = workspace.toPath().resolve("new_pack");
         assertTrue(Files.isRegularFile(project.resolve("dimensions/new_pack.json")));

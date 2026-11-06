@@ -23,6 +23,7 @@ import art.arcane.iris.core.modules.IrisValidationContext;
 import art.arcane.iris.core.pack.PackValidationIo;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
+import com.volmit.validation.Problem;
 import com.volmit.validation.ValidationContext;
 import com.volmit.validation.Validator;
 
@@ -30,12 +31,15 @@ import java.io.File;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Module {@code iris:structure}'s check of a pack: every structure a dimension, region or biome places must assemble
  * ({@link StructureGraphValidation}), and a dimension that replaces a vanilla structure with an Iris one may only use
- * structures that always assemble and fit ({@link NativeReplacementValidation}), and its {@code importedStructures}
- * name real keys ({@link ImportedStructuresValidation}). Graph diagnostics keep their
+ * structures that always assemble and fit ({@link NativeReplacementValidation}), every structure, pool and piece names
+ * resources that exist ({@link StructureReferenceValidation}), every structure placement can generate
+ * ({@link StructurePlacementValidation}), and its {@code importedStructures} name real keys
+ * ({@link ImportedStructuresValidation}). Graph diagnostics keep their
  * severity; everything else is an error, as when Iris's own pack validator ran these checks.
  */
 public final class StructureValidator implements Validator {
@@ -47,9 +51,17 @@ public final class StructureValidator implements Validator {
         IrisData data = IrisValidationContext.of(pack).data();
         StructureGraphValidation.Validation graphs = StructureGraphValidation.validate(data, placedStructureKeys(data.getDataFolder()));
         graphs.problems().forEach(pack::report);
+        reportUnlessAssemblyReported(pack, StructureReferenceValidation.validate(pack.resources()), graphs.problems());
         NativeReplacementValidation.validate(data.getDataFolder(), graphs.replacementOutputStructures(), graphs.sampledVerticalEnvelopes())
                 .forEach(pack::report);
+        StructurePlacementValidation.validate(pack);
         ImportedStructuresValidation.validate(pack);
+    }
+
+    /** Reports {@code references} whose message assembling a placed structure did not already report. */
+    private static void reportUnlessAssemblyReported(ValidationContext pack, List<Problem> references, List<Problem> assembly) {
+        Set<String> reported = assembly.stream().map(Problem::message).collect(Collectors.toSet());
+        references.stream().filter(problem -> !reported.contains(problem.message())).forEach(pack::report);
     }
 
     /**

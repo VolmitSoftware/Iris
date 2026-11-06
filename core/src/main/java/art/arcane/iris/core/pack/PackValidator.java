@@ -37,9 +37,6 @@ public final class PackValidator {
     static final String CACHE_FOLDER = "cache";
     static final String OBJECTS_FOLDER = "objects";
     static final String DIMENSIONS_FOLDER = "dimensions";
-    static final String STRUCTURES_FOLDER = "structures";
-    static final String JIGSAW_POOLS_FOLDER = "jigsaw-pools";
-    static final String JIGSAW_PIECES_FOLDER = "jigsaw-pieces";
     static final List<String> STRUCTURE_HOST_FOLDERS = List.of(DIMENSIONS_FOLDER, "regions", "biomes");
     static final Pattern RESOURCE_KEY_PATTERN = Pattern.compile("[a-z0-9_.-]+:[a-z0-9/._-]+");
 
@@ -88,8 +85,6 @@ public final class PackValidator {
         addDistinct(warnings, imageMaps.warnings());
         blockingErrors.addAll(PackObjectSurfaceValidator.validateObjectSurfaceSupport(packFolder));
         blockingErrors.addAll(PackObjectSurfaceValidator.validateHostFilesParse(packFolder));
-        blockingErrors.addAll(PackObjectSurfaceValidator.validateStructureGraph(
-                packFolder, validateLiveRegistries));
         blockingErrors.addAll(PackSpawnValidator.validateSpawnerEntityReferences(
                 new File(packFolder, "spawners"), new File(packFolder, "entities")));
         blockingErrors.addAll(PackSpawnValidator.validateCustomBiomeSpawns(
@@ -108,7 +103,7 @@ public final class PackValidator {
         addDistinct(ContentKeyValidator.strictContent() ? blockingErrors : warnings, contentKeys.strict());
         addDistinct(warnings, contentKeys.advisory());
 
-        ModulePackValidation.Findings modules = ModulePackValidation.validate(packFolder);
+        ModulePackValidation.Findings modules = ModulePackValidation.validate(packFolder, validateLiveRegistries);
         addDistinct(blockingErrors, modules.errors());
         addDistinct(warnings, modules.warnings());
 

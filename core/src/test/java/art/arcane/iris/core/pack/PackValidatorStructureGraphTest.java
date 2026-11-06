@@ -6,8 +6,7 @@ import art.arcane.iris.engine.framework.structure.StructureValidator;
 import com.volmit.validation.Problem;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformStructureHooks;
-import art.arcane.iris.spi.PlatformStructureHooks.JigsawSourceMetadata;
+import art.arcane.iris.spi.PlatformRegistries;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -25,9 +24,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class PackValidatorStructureGraphTest {
@@ -36,15 +32,15 @@ public class PackValidatorStructureGraphTest {
 
     @Test
     public void acceptsCompleteStructureGraph() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "dimensions/main.json", "{\"structures\":[{\"structures\":[\"castle\"]}]}");
+        File pack = pack("\"structures\":[{\"structures\":[\"castle\"]}]");
         write(pack, "structures/castle.json", "{\"startPool\":\"castle/start\"}");
-        write(pack, "jigsaw-pools/castle/start.json", "{\"pieces\":[{\"piece\":\"castle/start\"}],\"fallback\":\"castle/end\"}");
-        write(pack, "jigsaw-pools/castle/end.json", "{\"pieces\":[]}");
-        write(pack, "jigsaw-pieces/castle/start.json", "{\"object\":\"castle/start\",\"connectors\":[{\"pool\":\"castle/end\"}]}");
-        write(pack, "objects/castle/start.iob", "object");
+        write(pack, "jigsaw-pools/castle/start.json", "{\"pieces\":[{\"piece\":\"castle/start\"}]}");
+        write(pack, "jigsaw-pieces/castle/start.json", "{\"object\":\"castle/start\",\"connectors\":[]}");
+        writeObjectHeader(pack, "objects/castle/start.iob", 3, 9, 3);
 
-        assertTrue(PackObjectSurfaceValidator.validateStructureGraph(pack).isEmpty());
+        List<String> errors = blockingErrors(pack);
+
+        assertTrue(errors.toString(), errors.isEmpty());
     }
 
     @Test
@@ -62,35 +58,29 @@ public class PackValidatorStructureGraphTest {
 
     @Test
     public void acceptsNativeStructureBackendWithoutConvertedIrisResources() throws Exception {
-        File pack = temporaryFolder.newFolder("native-structure");
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
+        File pack = pack("\"structures\":[{"
                 + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\",\"weight\":2,"
                 + "\"jigsaw\":{\"maxDepth\":7,\"maxDistanceHorizontal\":96,"
                 + "\"maxDistanceVertical\":64,\"liquidSettings\":\"IGNORE_WATERLOGGING\"}}],"
                 + "\"underground\":true,\"minHeight\":-48,\"maxHeight\":-20,"
                 + "\"terrain\":{\"mode\":\"FORCE_CARVE\",\"horizontalPadding\":24,"
                 + "\"ceilingPadding\":12,\"floorPadding\":2,"
-                + "\"lobeFrequency\":0.02,\"lobeStrength\":0.85}}]}");
+                + "\"lobeFrequency\":0.02,\"lobeStrength\":0.85}}]");
 
-        assertTrue(PackObjectSurfaceValidator.validateStructureGraph(pack).isEmpty());
-        assertTrue(nativeReplacementErrors(
-                pack, Set.of(), Map.of()).isEmpty());
+        List<String> errors = blockingErrors(pack);
+
+        assertTrue(errors.toString(), errors.isEmpty());
+        assertTrue(nativeReplacementErrors(pack, Set.of(), Map.of()).isEmpty());
     }
 
     @Test
     public void datapackBootstrapDefersOnlyLiveRegistryValidation() throws Exception {
-        File pack = temporaryFolder.newFolder("bootstrap-native-structure");
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
-                + "\"nativeStructures\":[{\"structure\":\"test:structure\"}]}],"
-                + "\"regions\":[\"main\"]}");
-        write(pack, "regions/main.json", "{\"landBiomes\":[\"main\"]}");
-        write(pack, "biomes/main.json", "{\"name\":\"Main\"}");
+        File pack = pack("\"structures\":[{\"nativeStructures\":[{\"structure\":\"test:structure\"}]}]");
         IrisPlatform previous = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
         IrisPlatform platform = mock(IrisPlatform.class);
-        PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
-        when(platform.structureHooks()).thenReturn(hooks);
-        when(hooks.structureKeys()).thenThrow(
-                new IllegalStateException("server unavailable"));
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(platform.registries()).thenReturn(registries);
+        when(registries.structureKeys()).thenThrow(new IllegalStateException("server unavailable"));
         IrisPlatforms.unbind();
         IrisPlatforms.bind(platform);
         try {
@@ -110,475 +100,189 @@ public class PackValidatorStructureGraphTest {
     }
 
     @Test
+    public void liveValidationRejectsAnUnregisteredNativeStructure() throws Exception {
+        File pack = pack("\"structures\":[{\"nativeStructures\":[{\"structure\":\"test:missing\"}]}]");
+        IrisPlatform previous = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
+        IrisPlatform platform = mock(IrisPlatform.class);
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(platform.registries()).thenReturn(registries);
+        when(registries.structureKeys()).thenReturn(List.of("test:structure"));
+        IrisPlatforms.unbind();
+        IrisPlatforms.bind(platform);
+        try {
+            assertEquals(List.of("pack:dimension/main: structures[0].nativeStructures[0].structure 'test:missing'"
+                    + " is not a registered structure"), PackValidator.validate(pack).getBlockingErrors());
+            assertTrue(PackValidator.validateForDatapackBootstrap(pack).isLoadable());
+        } finally {
+            IrisPlatforms.unbind();
+            if (previous != null) {
+                IrisPlatforms.bind(previous);
+            }
+        }
+    }
+
+    @Test
     public void datapackBootstrapStillRejectsMalformedPlacementConfiguration() throws Exception {
-        File pack = temporaryFolder.newFolder("bootstrap-invalid-placement");
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
-                + "\"nativeStructures\":[{\"structure\":\"test:structure\"}],"
-                + "\"spacing\":0}]}");
+        File pack = pack("\"structures\":[{\"nativeStructures\":[{\"structure\":\"test:structure\"}],\"spacing\":0}]");
 
         PackValidationResult result = PackValidator.validateForDatapackBootstrap(pack);
 
         assertFalse(result.isLoadable());
         assertTrue(result.getBlockingErrors().toString(), result.getBlockingErrors().stream().anyMatch(
-                error -> error.contains("spacing must be at least 1")));
+                error -> error.contains("structures[0].spacing is 0; it must be at least 1")));
     }
 
     @Test
-    public void rejectsNativeTerrainLobeSettingsOutsideTheirRange() throws Exception {
-        File pack = temporaryFolder.newFolder("invalid-lobe");
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
-                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}],"
-                + "\"terrain\":{\"mode\":\"FORCE_CARVE\",\"lobeFrequency\":1.5,"
-                + "\"lobeStrength\":-0.2}}]}");
-
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
-
-        assertTrue(errors.toString(), errors.stream().anyMatch(
-                message -> message.contains("terrain.lobeFrequency must be at most 1")));
-        assertTrue(errors.toString(), errors.stream().anyMatch(
-                message -> message.contains("terrain.lobeStrength must be at least 0")));
+    public void rejectsANativeTerrainLobeFrequencyAboveItsRange() throws Exception {
+        assertBlockedNaming("structures[0].terrain.lobeFrequency is 1.5; it must be at most 1",
+                nativePlacement("\"terrain\":{\"mode\":\"FORCE_CARVE\",\"lobeFrequency\":1.5}"));
     }
 
     @Test
-    public void rejectsNativeTerrainErosionSettingsOutsideTheirRange() throws Exception {
-        File pack = temporaryFolder.newFolder("invalid-erosion");
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
-                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}],"
-                + "\"terrain\":{\"mode\":\"FORCE_CARVE\",\"erosionStrength\":1.4,"
-                + "\"erosionFrequency\":0}}]}");
+    public void rejectsANativeTerrainLobeStrengthBelowItsRange() throws Exception {
+        assertBlockedNaming("structures[0].terrain.lobeStrength is -0.2; it must be at least 0",
+                nativePlacement("\"terrain\":{\"mode\":\"FORCE_CARVE\",\"lobeStrength\":-0.2}"));
+    }
 
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
+    @Test
+    public void rejectsANativeTerrainErosionStrengthAboveItsRange() throws Exception {
+        assertBlockedNaming("structures[0].terrain.erosionStrength is 1.4; it must be at most 1",
+                nativePlacement("\"terrain\":{\"mode\":\"FORCE_CARVE\",\"erosionStrength\":1.4}"));
+    }
 
-        assertTrue(errors.toString(), errors.stream().anyMatch(
-                message -> message.contains("terrain.erosionStrength must be at most 1")));
-        assertTrue(errors.toString(), errors.stream().anyMatch(
-                message -> message.contains("terrain.erosionFrequency must be at least 0.001")));
+    @Test
+    public void rejectsANativeTerrainErosionFrequencyBelowItsRange() throws Exception {
+        assertBlockedNaming("structures[0].terrain.erosionFrequency is 0",
+                nativePlacement("\"terrain\":{\"mode\":\"FORCE_CARVE\",\"erosionFrequency\":0}"));
     }
 
     @Test
     public void rejectsNonNumericNativeTerrainLobeSettings() throws Exception {
-        File pack = temporaryFolder.newFolder("non-numeric-lobe");
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
-                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}],"
-                + "\"terrain\":{\"mode\":\"FORCE_CARVE\",\"lobeStrength\":\"strong\"}}]}");
-
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
-
-        assertTrue(errors.toString(), errors.stream().anyMatch(
-                message -> message.contains("terrain.lobeStrength must be a number")));
+        assertBlockedNaming("in Dimension main: structures[0].terrain.lobeStrength must be a number",
+                nativePlacement("\"terrain\":{\"mode\":\"FORCE_CARVE\",\"lobeStrength\":\"strong\"}"));
     }
 
     @Test
     public void rejectsMixedStructureBackends() throws Exception {
-        File pack = temporaryFolder.newFolder("mixed-native");
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
-                + "\"structures\":[\"city\"],"
-                + "\"nativeStructures\":[{\"structure\":\"ancient_city\",\"weight\":0,"
-                + "\"jigsaw\":{\"maxDepth\":21}}]}]}");
+        File pack = pack("\"structures\":[{\"structures\":[\"city\"],"
+                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}]}]");
         write(pack, "structures/city.json", "{}");
 
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
-
-        assertTrue(errors.toString(), errors.stream().anyMatch(
-                message -> message.contains("exactly one non-empty backend")));
+        assertTrue(blockingErrors(pack).contains("pack:dimension/main: structures[0] must declare exactly one non-empty"
+                + " backend: structures or nativeStructures"));
     }
 
     @Test
-    public void rejectsInvalidNativeStructureSourceAndOverrides() throws Exception {
-        File pack = temporaryFolder.newFolder("invalid-native");
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
-                + "\"nativeStructures\":[{\"structure\":\"ancient_city\",\"weight\":0,"
-                + "\"jigsaw\":{\"maxDepth\":21}}]}]}");
-
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
-
-        assertTrue(errors.toString(), errors.stream().anyMatch(
-                message -> message.contains(".structure must be a namespaced registry key")));
-        assertTrue(errors.toString(), errors.stream().anyMatch(
-                message -> message.contains(".weight must be at least 1")));
-        assertTrue(errors.toString(), errors.stream().anyMatch(
-                message -> message.contains(".maxDepth must be at most 20")));
+    public void rejectsANativeStructureWithoutNamespace() throws Exception {
+        assertEquals(List.of("pack:dimension/main: structures[0].nativeStructures[0].structure must be a namespaced registry key"),
+                blockingErrors(pack("\"structures\":[{\"nativeStructures\":[{\"structure\":\"ancient_city\"}]}]")));
     }
 
     @Test
-    public void rejectsMalformedPlacementGridAndPolicyFields() throws Exception {
-        File pack = temporaryFolder.newFolder("invalid-placement-grid");
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
-                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}],"
-                + "\"placementId\":42,\"distribution\":\"UNKNOWN\",\"spacing\":0,"
-                + "\"separation\":32,\"density\":\"often\",\"ringCount\":0,"
-                + "\"minHeight\":90,\"maxHeight\":20,\"underwater\":\"yes\","
-                + "\"nativeSuppression\":\"SOMETIMES\","
-                + "\"terrain\":{\"mode\":\"SURFACE_FIT\",\"shape\":\"CUBE\"}}]}");
+    public void rejectsANativeSourceWeightBelowItsRange() throws Exception {
+        assertBlockedNaming("structures[0].nativeStructures[0].weight is 0; it must be at least 1",
+                pack("\"structures\":[{\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\",\"weight\":0}]}]"));
+    }
 
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
+    @Test
+    public void rejectsANativeJigsawDepthAboveItsRange() throws Exception {
+        assertBlockedNaming("structures[0].nativeStructures[0].jigsaw.maxDepth is 21; it must be at most 20",
+                pack("\"structures\":[{\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\","
+                        + "\"jigsaw\":{\"maxDepth\":21}}]}]"));
+    }
 
-        assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("placementId must be a string")));
-        assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("distribution must be one of")));
-        assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("spacing must be at least 1")));
-        assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("density must be a number")));
-        assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("inverted height band")));
-        assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("underwater must be a boolean")));
-        assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("terrain.mode must be one of")));
-        assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("terrain.shape must be one of")));
+    @Test
+    public void rejectsAnUnknownDistribution() throws Exception {
+        assertBlockedNaming("\"UNKNOWN\" is not one of", nativePlacement("\"distribution\":\"UNKNOWN\""));
+    }
+
+    @Test
+    public void rejectsAnInvertedHeightBandAndSeparationNotBelowSpacing() throws Exception {
+        List<String> errors = blockingErrors(nativePlacement("\"spacing\":16,\"separation\":16,\"minHeight\":90,\"maxHeight\":20"));
+
+        assertEquals(List.of(
+                "pack:dimension/main: structures[0].separation must be smaller than spacing",
+                "pack:dimension/main: structures[0] has an inverted height band: minHeight must not exceed maxHeight"), errors);
     }
 
     @Test
     public void rejectsDuplicatePlacementIdsAcrossResources() throws Exception {
-        File pack = temporaryFolder.newFolder("duplicate-placement-id");
-        write(pack, "dimensions/main.json", "{\"structures\":[{\"placementId\":\"shared\","
-                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}]}]}");
-        write(pack, "regions/forest.json", "{\"structures\":[{\"placementId\":\"shared\","
+        File pack = pack("\"structures\":[{\"placementId\":\"shared\","
+                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}]}]");
+        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"],\"structures\":[{\"placementId\":\"shared\","
                 + "\"nativeStructures\":[{\"structure\":\"minecraft:village_plains\"}]}]}");
 
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
+        List<String> errors = blockingErrors(pack);
 
         assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("placementId duplicates 'shared'")));
     }
 
     @Test
     public void rejectsCanonicalAnonymousGridDuplicatesAcrossResources() throws Exception {
-        File pack = temporaryFolder.newFolder("duplicate-anonymous-grid");
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
-                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}]}]}");
-        write(pack, "regions/forest.json", "{\"structures\":[{"
+        File pack = pack("\"structures\":[{\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}]}]");
+        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"],\"structures\":[{"
                 + "\"spacing\":32,\"separation\":8,\"density\":0.02,"
                 + "\"nativeStructures\":[{\"weight\":1,\"structure\":\"minecraft:ancient_city\"}]}]}");
 
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
+        List<String> errors = blockingErrors(pack);
 
         assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("duplicates an anonymous placement grid")));
     }
 
     @Test
     public void rejectsDuplicateEditableStructureKeysIgnoringCase() throws Exception {
-        File pack = temporaryFolder.newFolder("duplicate-editable-key");
-        write(pack, "dimensions/main.json", "{\"structures\":[{\"structures\":["
-                + "\"castle\",\"CASTLE\"]}]}");
+        File pack = pack("\"structures\":[{\"structures\":[\"castle\",\"CASTLE\"]}]");
         write(pack, "structures/castle.json", "{}");
 
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
+        List<String> errors = blockingErrors(pack);
 
-        assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("duplicates Iris structure")));
+        assertTrue(errors.toString(), errors.contains(
+                "pack:dimension/main: structures[0].structures[1] duplicates Iris structure 'CASTLE'"));
     }
 
     @Test
-    public void optionalJigsawTerrainEnvelopeOverflowDoesNotBlockThePack() throws Exception {
-        File pack = temporaryFolder.newFolder("oversized-envelope");
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
-                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\","
-                + "\"jigsaw\":{\"maxDistanceHorizontal\":96}}],"
-                + "\"terrain\":{\"mode\":\"FORCE_CARVE\",\"horizontalPadding\":40}}]}");
-
-        assertTrue(PackObjectSurfaceValidator.validateStructureGraph(pack).isEmpty());
-    }
-
-    @Test
-    public void sharedOverworldAncientCityTerrainEnvelopeDoesNotBlockThePack() throws Exception {
-        File pack = nativeSourceEnvelopePack(
-                "shared-overworld-ancient-city", "minecraft:ancient_city", "FORCE_CARVE", 24);
-
-        assertTrue(validateWithJigsawMetadata(
-                pack, "minecraft:ancient_city", 116, 12, 0, 0).isEmpty());
-    }
-
-    @Test
-    public void sourceAndPreserveIgnoreConfiguredEnvelopePadding() throws Exception {
-        File source = nativeEnvelopePack("source-padding", "SOURCE", 128, 128);
-        File preserve = nativeEnvelopePack("preserve-padding", "PRESERVE", 128, 128);
-
-        assertTrue(validateWithReferenceExpansion(source, 0).isEmpty());
-        assertTrue(validateWithReferenceExpansion(preserve, 12).isEmpty());
-    }
-
-    @Test
-    public void sourceTerrainAdjustmentOverflowDoesNotBlockThePack() throws Exception {
-        File boundary = nativeEnvelopePack("source-adjustment-boundary", "SOURCE", 116, 64);
-        File oversized = nativeEnvelopePack("source-adjustment-oversized", "SOURCE", 117, 0);
-
-        assertTrue(validateWithReferenceExpansion(boundary, 12).isEmpty());
-        assertTrue(validateWithReferenceExpansion(oversized, 12).isEmpty());
-    }
-
-    @Test
-    public void customTerrainEnvelopeOverflowDoesNotBlockThePack() throws Exception {
-        File boundary = nativeEnvelopePack("custom-envelope-boundary", "ENCASE", 96, 32);
-        File oversized = nativeEnvelopePack("custom-envelope-oversized", "ENCASE", 96, 33);
-
-        assertTrue(validateWithReferenceExpansion(boundary, 12).isEmpty());
-        assertTrue(validateWithReferenceExpansion(oversized, 12).isEmpty());
-    }
-
-    @Test
-    public void registeredJigsawOptionalPaddingDoesNotExpandItsBlockingSpan() throws Exception {
-        File boundary = nativeSourceEnvelopePack("dnt-source-boundary", "ENCASE", 48);
-        File oversized = nativeSourceEnvelopePack("dnt-source-oversized", "ENCASE", 49);
-
-        assertTrue(validateWithJigsawMetadata(boundary, 80, 12).isEmpty());
-        assertTrue(validateWithJigsawMetadata(oversized, 80, 12).isEmpty());
-    }
-
-    @Test
-    public void jigsawOverrideReplacesLiveSourceDistance() throws Exception {
-        File pack = nativeEnvelopePack("source-distance-override", "ENCASE", 80, 36);
-
-        assertTrue(validateWithJigsawMetadata(pack, 120, 12).isEmpty());
-    }
-
-    @Test
-    public void oversizedLiveStartElementCannotBypassAssemblyDistance() throws Exception {
-        File pack = nativeSourceEnvelopePack("oversized-live-start", "SOURCE", 0);
-
-        List<String> errors = validateWithJigsawMetadata(pack, 80, 0, 129, 0);
-
-        assertTrue(errors.toString(), errors.stream().anyMatch(message ->
-                message.contains("129-block maximum start element")
-                        && message.contains("128-block (8-chunk)")));
-    }
-
-    @Test
-    public void liveStartElementSpanUsesInclusiveReferenceBoundary() throws Exception {
-        File pack = nativeSourceEnvelopePack("live-start-boundary", "SOURCE", 0);
-
-        assertTrue(validateWithJigsawMetadata(pack, 80, 12, 116, 0).isEmpty());
-    }
-
-    @Test
-    public void overriddenStartPoolUsesItsLiveSpan() throws Exception {
-        File pack = nativePoolOverrideEnvelopePack("oversized-pool-override");
-
-        List<String> errors = validateWithJigsawMetadata(pack, 80, 0, 20, 129);
-
-        assertTrue(errors.toString(), errors.stream().anyMatch(message ->
-                message.contains("129-block maximum start element")
-                        && message.contains("128-block (8-chunk)")));
-    }
-
-    @Test
-    public void smallerOverriddenStartPoolReplacesTheSourcePoolSpan() throws Exception {
-        File pack = nativePoolOverrideEnvelopePack("smaller-pool-override");
-
-        assertTrue(validateWithJigsawMetadata(pack, 80, 0, 129, 20).isEmpty());
-    }
-
-    @Test
-    public void unresolvedOverriddenStartPoolSpanFailsClosed() throws Exception {
-        File pack = nativePoolOverrideEnvelopePack("unresolved-pool-override");
-        IrisPlatform previous = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
-        IrisPlatform platform = mock(IrisPlatform.class);
-        PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
-        when(platform.structureHooks()).thenReturn(hooks);
-        when(hooks.structureKeys()).thenReturn(List.of("test:structure"));
-        when(hooks.jigsawStructureKeys()).thenReturn(List.of("test:structure"));
-        when(hooks.templatePoolKeys()).thenReturn(List.of("test:start", "test:override"));
-        when(hooks.jigsawSourceMetadata("test:structure"))
-                .thenReturn(new JigsawSourceMetadata(80, 0, 20));
-        when(hooks.jigsawStartPoolHorizontalSpan("test:structure", "test:override"))
-                .thenThrow(new IllegalStateException("missing template"));
-        IrisPlatforms.unbind();
-        IrisPlatforms.bind(platform);
-        try {
-            List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
-
-            assertTrue(errors.toString(), errors.stream().anyMatch(message ->
-                    message.contains("could not resolve a bounded live horizontal span")
-                            && message.contains("missing template")));
-        } finally {
-            IrisPlatforms.unbind();
-            if (previous != null) {
-                IrisPlatforms.bind(previous);
-            }
-        }
-    }
-
-    @Test
-    public void registeredJigsawSourceAdjustmentOverflowDoesNotBlockThePack() throws Exception {
-        File pack = nativeSourceEnvelopePack("source-adjustment-no-override", "SOURCE", 0);
-
-        assertTrue(validateWithJigsawMetadata(pack, 117, 12).isEmpty());
-    }
-
-    @Test
-    public void registeredJigsawAssemblyBeyondReferenceRangeStillBlocksThePack() throws Exception {
-        File pack = nativeEnvelopePack("oversized-live-assembly", "ENCASE", 129, 0);
-
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
-
-        assertTrue(errors.toString(), errors.stream().anyMatch(message ->
-                message.contains(".jigsaw.maxDistanceHorizontal")
-                        && message.contains("129-block maximum assembly distance")
-                        && message.contains("128-block (8-chunk)")));
-    }
-
-    @Test
-    public void liveJigsawMetadataFailureBlocksValidation() throws Exception {
-        File pack = nativeSourceEnvelopePack("missing-source-metadata", "SOURCE", 0);
-
-        List<String> errors = validateWithUnavailableJigsawMetadata(pack);
-
-        assertTrue(errors.toString(), errors.stream().anyMatch(message ->
-                message.contains("returned null jigsaw metadata for 'test:structure'")));
-    }
-
-    @Test
-    public void validationResolvesOnlyReferencedJigsawMetadataAndCachesDuplicates() throws Exception {
-        File pack = temporaryFolder.newFolder("lazy-jigsaw-metadata");
-        write(pack, "dimensions/main.json", "{\"structures\":["
-                + "{\"placementId\":\"first\",\"nativeStructures\":["
-                + "{\"structure\":\"test:used\"}]},"
-                + "{\"placementId\":\"second\",\"nativeStructures\":["
-                + "{\"structure\":\"test:used\"}]}]}");
-        IrisPlatform previous = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
-        IrisPlatform platform = mock(IrisPlatform.class);
-        PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
-        when(platform.structureHooks()).thenReturn(hooks);
-        when(hooks.structureKeys()).thenReturn(List.of("test:used", "test:unused"));
-        when(hooks.jigsawStructureKeys()).thenReturn(List.of("test:used", "test:unused"));
-        when(hooks.templatePoolKeys()).thenReturn(List.of("test:start"));
-        when(hooks.jigsawSourceMetadata("test:used"))
-                .thenReturn(new JigsawSourceMetadata(80, 0, 20));
-        IrisPlatforms.unbind();
-        IrisPlatforms.bind(platform);
-        try {
-            List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
-
-            assertTrue(errors.toString(), errors.isEmpty());
-            verify(hooks, times(1)).jigsawSourceMetadata("test:used");
-            verify(hooks, never()).jigsawSourceMetadata("test:unused");
-        } finally {
-            IrisPlatforms.unbind();
-            if (previous != null) {
-                IrisPlatforms.bind(previous);
-            }
-        }
-    }
-
-    @Test
-    public void optionalTerrainPaddingForNonJigsawSourceDoesNotBlockThePack() throws Exception {
-        File pack = nativeSourceEnvelopePack("non-jigsaw-envelope", "ENCASE", 1);
-
-        assertTrue(validateWithNonJigsawSource(pack).isEmpty());
-    }
-
-    @Test
-    public void acceptsZeroReferencePaddingForRegisteredNonJigsawSource() throws Exception {
-        File pack = nativeSourceEnvelopePack("non-jigsaw-zero-envelope", "ENCASE", 0);
-
-        assertTrue(validateWithNonJigsawSource(pack).isEmpty());
-    }
-
-    @Test
-    public void optionalTerrainPaddingForNaturalNonJigsawAdjustmentDoesNotBlockThePack() throws Exception {
-        File pack = nativeAdjustmentEnvelopePack(
-                "natural-non-jigsaw-envelope", "test:structure", "ENCASE", 1);
-
-        assertTrue(validateWithNonJigsawSource(pack).isEmpty());
-    }
-
-    @Test
-    public void optionalTerrainPaddingForNaturalJigsawAdjustmentDoesNotBlockThePack() throws Exception {
-        File boundary = nativeAdjustmentEnvelopePack(
-                "natural-jigsaw-envelope-boundary", "test:structure", "ENCASE", 48);
-        File oversized = nativeAdjustmentEnvelopePack(
-                "natural-jigsaw-envelope-oversized", "test:structure", "ENCASE", 49);
-
-        assertTrue(validateWithJigsawMetadata(boundary, 80, 12).isEmpty());
-        assertTrue(validateWithJigsawMetadata(oversized, 80, 12).isEmpty());
-    }
-
-    @Test
-    public void actualNaturalJigsawContentBeyondReferenceRangeStillBlocksThePack() throws Exception {
-        File pack = nativeAdjustmentEnvelopePack(
-                "natural-jigsaw-oversized-content", "test:structure", "ENCASE", 1);
-
-        List<String> errors = validateWithJigsawMetadata(pack, 80, 0, 129, 0);
-
-        assertTrue(errors.toString(), errors.stream().anyMatch(message ->
-                message.contains("importedStructures.adjustments[0]")
-                        && message.contains("129-block maximum start element")
-                        && message.contains("128-block (8-chunk)")));
-    }
-
-    @Test
-    public void lastMatchingNaturalTerrainAdjustmentControlsEnvelopeValidation() throws Exception {
-        File pack = temporaryFolder.newFolder("natural-adjustment-precedence");
-        write(pack, "dimensions/main.json", "{\"importedStructures\":{\"adjustments\":["
-                + "{\"match\":[\"test:structure\"],\"terrain\":{\"mode\":\"ENCASE\","
-                + "\"horizontalPadding\":128}},"
-                + "{\"match\":[\"test:structure\"],\"terrain\":{\"mode\":\"PRESERVE\"}}]}}}");
-
-        assertTrue(validateWithNonJigsawSource(pack).isEmpty());
-    }
-
-    @Test
-    public void reportsMissingReferencesInDeterministicGraphOrder() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "dimensions/main.json", "{\"structures\":[{\"structures\":[\"missing-structure\"]}]}");
+    public void reportsMissingReferencesOfPlacedAndUnplacedResources() throws Exception {
+        File pack = pack("\"structures\":[{\"structures\":[\"missing-structure\"]}]");
         write(pack, "structures/castle.json", "{\"startPool\":\"missing-start\"}");
         write(pack, "jigsaw-pools/castle/start.json", "{\"pieces\":[{\"piece\":\"missing-piece\"}],\"fallback\":\"missing-fallback\"}");
         write(pack, "jigsaw-pieces/castle/start.json", "{\"object\":\"castle/start\",\"connectors\":[{\"pool\":\"missing-connector-pool\"}]}");
-        write(pack, "objects/castle/start.iob", "object");
-
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
+        writeObjectHeader(pack, "objects/castle/start.iob", 3, 9, 3);
 
         assertEquals(List.of(
-                "Dimension 'main' structures[0].structures[0] references missing structure 'missing-structure'.",
-                "Structure 'castle' references missing start pool 'missing-start'.",
-                "Jigsaw pool 'castle/start' pieces[0] references missing piece 'missing-piece'.",
-                "Jigsaw pool 'castle/start' references missing fallback pool 'missing-fallback'.",
-                "Jigsaw piece 'castle/start' connectors[0] references missing pool 'missing-connector-pool'."
-        ), errors);
-    }
-
-    @Test
-    public void ignoresLegacyGeneratedStructureIndex() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "structures/structure-index.json", "{\"counts\":{},\"structureSets\":{},\"iris\":[]}");
-
-        assertTrue(PackObjectSurfaceValidator.validateStructureGraph(pack).isEmpty());
+                "structures/castle.json: Structure 'castle' references missing start pool 'missing-start'.",
+                "jigsaw-pools/castle/start.json: Jigsaw pool 'castle/start' pieces[0] references missing piece 'missing-piece'.",
+                "jigsaw-pools/castle/start.json: Jigsaw pool 'castle/start' references missing fallback pool 'missing-fallback'.",
+                "jigsaw-pieces/castle/start.json: Jigsaw piece 'castle/start' connectors[0] references missing pool"
+                        + " 'missing-connector-pool'.",
+                "pack:dimension/main: structures[0].structures[0] references missing structure 'missing-structure'"
+        ), blockingErrors(pack));
     }
 
     @Test
     public void reportsMalformedStructureJson() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "structures/castle.json", "{");
-
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
-
-        assertEquals(1, errors.size());
-        assertTrue(errors.get(0).startsWith("Structure 'castle' has invalid JSON:"));
+        assertSingleErrorStartsWith("structures/castle.json: Structure 'castle' cannot be loaded: ", "structures/castle.json");
     }
 
     @Test
     public void reportsMalformedJigsawPoolJson() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "jigsaw-pools/castle/start.json", "{");
-
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
-
-        assertEquals(1, errors.size());
-        assertTrue(errors.get(0).startsWith("Jigsaw pool 'castle/start' has invalid JSON:"));
+        assertSingleErrorStartsWith("jigsaw-pools/castle/start.json: Jigsaw pool 'castle/start' cannot be loaded: ",
+                "jigsaw-pools/castle/start.json");
     }
 
     @Test
     public void reportsMalformedJigsawPieceJson() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "jigsaw-pieces/castle/start.json", "{");
-
-        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
-
-        assertEquals(1, errors.size());
-        assertTrue(errors.get(0).startsWith("Jigsaw piece 'castle/start' has invalid JSON:"));
+        assertSingleErrorStartsWith("jigsaw-pieces/castle/start.json: Jigsaw piece 'castle/start' cannot be loaded: ",
+                "jigsaw-pieces/castle/start.json");
     }
 
     @Test
     public void reportsMissingJigsawPieceObject() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
+        File pack = pack("");
         write(pack, "jigsaw-pieces/castle/start.json", "{\"object\":\"castle/missing\"}");
 
         assertEquals(List.of(
-                "Jigsaw piece 'castle/start' references missing object 'castle/missing'."
-        ), PackObjectSurfaceValidator.validateStructureGraph(pack));
+                "jigsaw-pieces/castle/start.json: Jigsaw piece 'castle/start' references missing object 'castle/missing'."
+        ), blockingErrors(pack));
     }
 
     @Test
@@ -767,6 +471,44 @@ public class PackValidatorStructureGraphTest {
                 message -> message.contains("references missing object 'castle/start'")));
     }
 
+    /**
+     * A loadable pack named {@code pack}: one dimension declaring {@code dimensionMembers} besides its region, the
+     * region and its biome.
+     */
+    private File pack(String dimensionMembers) throws Exception {
+        File pack = temporaryFolder.newFolder("pack");
+        String members = dimensionMembers.isEmpty() ? "" : ", " + dimensionMembers;
+        write(pack, "dimensions/main.json", "{\"regions\": [\"region\"]" + members + "}");
+        write(pack, "regions/region.json", "{\"landBiomes\": [\"biome\"]}");
+        write(pack, "biomes/biome.json", "{\"name\": \"Biome\"}");
+        return pack;
+    }
+
+    /** A pack whose dimension places a native ancient city with {@code placementMembers} added to the placement. */
+    private File nativePlacement(String placementMembers) throws Exception {
+        return pack("\"structures\":[{\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}], "
+                + placementMembers + "}]");
+    }
+
+    private static List<String> blockingErrors(File pack) {
+        return PackValidator.validate(pack).getBlockingErrors();
+    }
+
+    private static void assertBlockedNaming(String fragment, File pack) {
+        List<String> errors = blockingErrors(pack);
+        assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains(fragment)));
+    }
+
+    private void assertSingleErrorStartsWith(String prefix, String malformedFile) throws Exception {
+        File pack = pack("");
+        write(pack, malformedFile, "{");
+
+        List<String> errors = blockingErrors(pack);
+
+        assertEquals(errors.toString(), 1, errors.size());
+        assertTrue(errors.get(0), errors.get(0).startsWith(prefix));
+    }
+
     private File replacementPack(
             String name,
             String placeMode,
@@ -782,156 +524,6 @@ public class PackValidatorStructureGraphTest {
         write(pack, "structures/city.json", "{\"vanillaSource\":\"minecraft:ancient_city\","
                 + "\"placeMode\":\"" + placeMode + "\"}");
         return pack;
-    }
-
-    private File nativeEnvelopePack(String name, String mode, int maximumDistance,
-                                    int horizontalPadding) throws Exception {
-        File pack = temporaryFolder.newFolder(name);
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
-                + "\"nativeStructures\":[{\"structure\":\"test:structure\","
-                + "\"jigsaw\":{\"maxDistanceHorizontal\":" + maximumDistance + "}}],"
-                + "\"terrain\":{\"mode\":\"" + mode + "\",\"horizontalPadding\":"
-                + horizontalPadding + "}}]}");
-        return pack;
-    }
-
-    private File nativeSourceEnvelopePack(String name, String mode,
-                                          int horizontalPadding) throws Exception {
-        return nativeSourceEnvelopePack(name, "test:structure", mode, horizontalPadding);
-    }
-
-    private File nativeSourceEnvelopePack(String name, String structureKey, String mode,
-                                          int horizontalPadding) throws Exception {
-        File pack = temporaryFolder.newFolder(name);
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
-                + "\"nativeStructures\":[{\"structure\":\"" + structureKey + "\"}],"
-                + "\"terrain\":{\"mode\":\"" + mode + "\",\"horizontalPadding\":"
-                + horizontalPadding + "}}]}");
-        return pack;
-    }
-
-    private File nativePoolOverrideEnvelopePack(String name) throws Exception {
-        File pack = temporaryFolder.newFolder(name);
-        write(pack, "dimensions/main.json", "{\"structures\":[{"
-                + "\"nativeStructures\":[{\"structure\":\"test:structure\","
-                + "\"jigsaw\":{\"startPool\":\"test:override\","
-                + "\"maxDistanceHorizontal\":80}}],"
-                + "\"terrain\":{\"mode\":\"SOURCE\"}}]}");
-        return pack;
-    }
-
-    private File nativeAdjustmentEnvelopePack(String name, String match, String mode,
-                                              int horizontalPadding) throws Exception {
-        File pack = temporaryFolder.newFolder(name);
-        write(pack, "dimensions/main.json", "{\"importedStructures\":{\"adjustments\":[{"
-                + "\"match\":[\"" + match + "\"],\"terrain\":{\"mode\":\"" + mode
-                + "\",\"horizontalPadding\":" + horizontalPadding + "}}]}}}");
-        return pack;
-    }
-
-    private List<String> validateWithReferenceExpansion(File pack, int expansion) {
-        IrisPlatform previous = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
-        IrisPlatform platform = mock(IrisPlatform.class);
-        PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
-        when(platform.structureHooks()).thenReturn(hooks);
-        when(hooks.structureKeys()).thenReturn(List.of("test:structure"));
-        when(hooks.jigsawStructureKeys()).thenReturn(List.of("test:structure"));
-        when(hooks.templatePoolKeys()).thenReturn(List.of("test:start"));
-        when(hooks.jigsawSourceMetadata("test:structure"))
-                .thenReturn(new JigsawSourceMetadata(80, expansion));
-        IrisPlatforms.unbind();
-        IrisPlatforms.bind(platform);
-        try {
-            return PackObjectSurfaceValidator.validateStructureGraph(pack);
-        } finally {
-            IrisPlatforms.unbind();
-            if (previous != null) {
-                IrisPlatforms.bind(previous);
-            }
-        }
-    }
-
-    private List<String> validateWithJigsawMetadata(File pack, int maximumDistance, int expansion) {
-        return validateWithJigsawMetadata(pack, maximumDistance, expansion, 0, 0);
-    }
-
-    private List<String> validateWithJigsawMetadata(File pack, int maximumDistance, int expansion,
-                                                    int sourceSpan, int overrideSpan) {
-        return validateWithJigsawMetadata(
-                pack, "test:structure", maximumDistance, expansion, sourceSpan, overrideSpan);
-    }
-
-    private List<String> validateWithJigsawMetadata(
-            File pack,
-            String structureKey,
-            int maximumDistance,
-            int expansion,
-            int sourceSpan,
-            int overrideSpan
-    ) {
-        IrisPlatform previous = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
-        IrisPlatform platform = mock(IrisPlatform.class);
-        PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
-        when(platform.structureHooks()).thenReturn(hooks);
-        when(hooks.structureKeys()).thenReturn(List.of(structureKey));
-        when(hooks.jigsawStructureKeys()).thenReturn(List.of(structureKey));
-        when(hooks.templatePoolKeys()).thenReturn(List.of("test:start", "test:override"));
-        when(hooks.jigsawSourceMetadata(structureKey))
-                .thenReturn(new JigsawSourceMetadata(maximumDistance, expansion, sourceSpan));
-        when(hooks.jigsawStartPoolHorizontalSpan(
-                structureKey, "test:override")).thenReturn(overrideSpan);
-        IrisPlatforms.unbind();
-        IrisPlatforms.bind(platform);
-        try {
-            return PackObjectSurfaceValidator.validateStructureGraph(pack);
-        } finally {
-            IrisPlatforms.unbind();
-            if (previous != null) {
-                IrisPlatforms.bind(previous);
-            }
-        }
-    }
-
-    private List<String> validateWithUnavailableJigsawMetadata(File pack) {
-        IrisPlatform previous = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
-        IrisPlatform platform = mock(IrisPlatform.class);
-        PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
-        when(platform.structureHooks()).thenReturn(hooks);
-        when(hooks.structureKeys()).thenReturn(List.of("test:structure"));
-        when(hooks.jigsawStructureKeys()).thenReturn(List.of("test:structure"));
-        when(hooks.templatePoolKeys()).thenReturn(List.of("test:start"));
-        IrisPlatforms.unbind();
-        IrisPlatforms.bind(platform);
-        try {
-            return PackObjectSurfaceValidator.validateStructureGraph(pack);
-        } finally {
-            IrisPlatforms.unbind();
-            if (previous != null) {
-                IrisPlatforms.bind(previous);
-            }
-        }
-    }
-
-    private List<String> validateWithNonJigsawSource(File pack) {
-        IrisPlatform previous = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
-        IrisPlatform platform = mock(IrisPlatform.class);
-        PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
-        when(platform.structureHooks()).thenReturn(hooks);
-        when(hooks.structureKeys()).thenReturn(List.of("test:structure", "test:jigsaw"));
-        when(hooks.jigsawStructureKeys()).thenReturn(List.of("test:jigsaw"));
-        when(hooks.templatePoolKeys()).thenReturn(List.of("test:start"));
-        when(hooks.jigsawSourceMetadata("test:jigsaw"))
-                .thenReturn(new JigsawSourceMetadata(80, 0));
-        IrisPlatforms.unbind();
-        IrisPlatforms.bind(platform);
-        try {
-            return PackObjectSurfaceValidator.validateStructureGraph(pack);
-        } finally {
-            IrisPlatforms.unbind();
-            if (previous != null) {
-                IrisPlatforms.bind(previous);
-            }
-        }
     }
 
     private static List<String> nativeReplacementErrors(

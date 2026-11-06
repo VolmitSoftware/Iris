@@ -23,12 +23,14 @@ import art.arcane.iris.core.modules.IrisValidationContext;
 import art.arcane.iris.core.modules.PackModulesException;
 import art.arcane.iris.spi.IrisLogging;
 import com.volmit.host.ValidatorRegistration;
+import com.volmit.resource.PlatformRegistries;
 import com.volmit.validation.Problem;
 import com.volmit.validation.Severity;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Runs the validators of a pack's modules, built-in ones included, on the pack as Iris loads it, opened just for
@@ -50,16 +52,17 @@ final class ModulePackValidation {
         }
     }
 
-    static Findings validate(File packFolder) {
+    /** @param withPlatformRegistries whether validators see the bound platform's registries ({@link IrisValidationContext#platform()}) */
+    static Findings validate(File packFolder, boolean withPlatformRegistries) {
         IrisData data = IrisData.openValidation(packFolder);
         try {
-            return validate(data);
+            return validate(data, withPlatformRegistries);
         } finally {
             data.close();
         }
     }
 
-    private static Findings validate(IrisData data) {
+    private static Findings validate(IrisData data, boolean withPlatformRegistries) {
         List<ValidatorRegistration> validators;
         try {
             validators = data.getModules().pack().catalog().validators();
@@ -67,23 +70,30 @@ final class ModulePackValidation {
             return new Findings(List.of(failure.getMessage()), List.of());
         }
         List<String> errors = new ArrayList<>(PackLoadFailures.of(data));
-        Findings modules = validate(data, validators);
+        Findings modules = validate(data, validators, withPlatformRegistries);
         errors.addAll(modules.errors());
         return new Findings(errors, modules.warnings());
     }
 
-    /** Runs {@code validators} on the pack {@code data} holds, in order. */
+    /** Runs {@code validators} on the pack {@code data} holds, in order, without the platform's registries. */
     static Findings validate(IrisData data, List<ValidatorRegistration> validators) {
+        return validate(data, validators, false);
+    }
+
+    private static Findings validate(IrisData data, List<ValidatorRegistration> validators, boolean withPlatformRegistries) {
         List<String> errors = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
+        Optional<PlatformRegistries> platform = withPlatformRegistries
+                ? IrisValidationContext.boundPlatformRegistries()
+                : Optional.empty();
         for (ValidatorRegistration validator : validators) {
-            run(validator, data, errors, warnings);
+            run(validator, IrisValidationContext.forPack(data, platform), errors, warnings);
         }
         return new Findings(errors, warnings);
     }
 
-    private static void run(ValidatorRegistration registration, IrisData data, List<String> errors, List<String> warnings) {
-        IrisValidationContext context = IrisValidationContext.forPack(data);
+    private static void run(ValidatorRegistration registration, IrisValidationContext context, List<String> errors,
+                            List<String> warnings) {
         try {
             registration.validator().validate(context);
         } catch (RuntimeException failure) {

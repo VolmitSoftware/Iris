@@ -27,6 +27,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
@@ -56,6 +57,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 /**
  * Reads the module settings a dimension, region or biome declares: each settings feature of the pack at
@@ -146,7 +148,7 @@ public final class ModuleSettingsDecoder {
      * @throws RuntimeException when the JSON does not decode into {@code type}
      */
     public <T> T decodeResource(Class<T> type, String json) {
-        T decoded = gson.fromJson(json, type);
+        T decoded = fromJsonNamingWrongKinds(json, type, path -> path);
         if (decoded == null) {
             throw new JsonParseException("the file holds null");
         }
@@ -179,7 +181,7 @@ public final class ModuleSettingsDecoder {
         try {
             requireShape(feature, value);
             String json = settingsJson(feature, value);
-            IrisFeature decoded = gson.fromJson(json, feature.type());
+            IrisFeature decoded = fromJsonNamingWrongKinds(json, feature.type(), path -> writtenPath(feature, path));
             if (decoded == null) {
                 throw new JsonParseException("the value is null");
             }
@@ -189,6 +191,39 @@ public final class ModuleSettingsDecoder {
             throw new IllegalArgumentException("Cannot read settings " + feature.id() + " under \"" + feature.key() + "\" in "
                     + resource + ": " + failure.getMessage(), failure);
         }
+    }
+
+    /**
+     * Reads {@code json} into {@code type}; a number option written as something else fails naming its path, which
+     * {@code writtenPath} turns from the path inside {@code json} into the path the pack wrote.
+     */
+    private <T> T fromJsonNamingWrongKinds(String json, Class<T> type, UnaryOperator<String> writtenPath) {
+        try {
+            return gson.fromJson(json, type);
+        } catch (NumberFormatException notANumber) {
+            throw namingTheOption(json, type, writtenPath, notANumber);
+        } catch (JsonSyntaxException malformed) {
+            if (malformed.getCause() instanceof NumberFormatException notANumber) {
+                throw namingTheOption(json, type, writtenPath, notANumber);
+            }
+            throw malformed;
+        }
+    }
+
+    private static RuntimeException namingTheOption(String json, Class<?> type, UnaryOperator<String> writtenPath,
+                                                    NumberFormatException failure) {
+        return NonNumericOptions.first(type, JsonParser.parseString(json))
+                .<RuntimeException>map(path -> new JsonParseException(writtenPath.apply(path) + " must be a number", failure))
+                .orElse(failure);
+    }
+
+    /** The path the pack wrote for {@code insideSettings}, a path inside the settings JSON the decoder reads. */
+    private static String writtenPath(FeatureDescriptor<?> feature, String insideSettings) {
+        if (feature.root().isEmpty()) {
+            return feature.key() + "." + insideSettings;
+        }
+        String root = feature.root().get();
+        return insideSettings.startsWith(root) ? feature.key() + insideSettings.substring(root.length()) : insideSettings;
     }
 
     /** Checks the bounds of the options the pack wrote; a snippet reference's file is not checked. */

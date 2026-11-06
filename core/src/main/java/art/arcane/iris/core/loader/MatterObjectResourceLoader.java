@@ -33,7 +33,10 @@ import java.util.HashSet;
 public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject> {
     public MatterObjectResourceLoader(File root, IrisData idm, String folderName, String resourceTypeName, Options options) {
         super(root, idm, folderName, resourceTypeName, IrisMatterObject.class, options);
-        loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getObjectLoaderCacheSize());
+        int cacheSize = options.registerPreservation()
+                ? IrisSettings.get().getPerformance().getObjectLoaderCacheSize()
+                : options.cacheSize();
+        loadCache = new KCache<>(this::loadRaw, cacheSize);
     }
 
     public boolean supportsSchemas() {

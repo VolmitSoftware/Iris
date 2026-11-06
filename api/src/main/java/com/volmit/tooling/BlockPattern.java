@@ -6,14 +6,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 
 /**
  * What a {@link PatternView} places over a square of columns: the distinct blocks, and which of them each column holds,
  * row by row from the north west.
  */
 public final class BlockPattern {
-    /** What {@link #pickAt} gives for a column the pattern places nothing at. */
-    public static final int NO_BLOCK = -1;
+    private static final int NOTHING_PLACED = -1;
 
     private final int columns;
     private final List<BlockState> blocks;
@@ -39,7 +39,7 @@ public final class BlockPattern {
         int[] picks = new int[columnBlocks.length];
         for (int column = 0; column < columnBlocks.length; column++) {
             BlockState block = columnBlocks[column];
-            picks[column] = block == null ? NO_BLOCK : indexByBlock.computeIfAbsent(block, added -> {
+            picks[column] = block == null ? NOTHING_PLACED :indexByBlock.computeIfAbsent(block, added -> {
                 blocks.add(added);
                 return blocks.size() - 1;
             });
@@ -56,8 +56,9 @@ public final class BlockPattern {
         return blocks;
     }
 
-    /** Which of {@link #blocks()} the column holds, or {@link #NO_BLOCK}. */
-    public int pickAt(int column, int row) {
-        return picks[row * columns + column];
+    /** Which of {@link #blocks()} the column holds; empty where the pattern places nothing. */
+    public OptionalInt pickAt(int column, int row) {
+        int pick = picks[row * columns + column];
+        return pick == NOTHING_PLACED ? OptionalInt.empty() : OptionalInt.of(pick);
     }
 }

@@ -4,6 +4,8 @@ import com.volmit.block.BlockState;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,10 +17,10 @@ class BlockPatternTest {
     void keepsEachBlockOnceAndWhichColumnHoldsIt() {
         BlockPattern pattern = BlockPattern.of(2, new BlockState[]{GRASS, DIRT, null, BlockState.parse("minecraft:grass_block")});
         assertEquals(List.of(GRASS, DIRT), pattern.blocks());
-        assertEquals(0, pattern.pickAt(0, 0));
-        assertEquals(1, pattern.pickAt(1, 0));
-        assertEquals(BlockPattern.NO_BLOCK, pattern.pickAt(0, 1));
-        assertEquals(0, pattern.pickAt(1, 1));
+        assertEquals(OptionalInt.of(0), pattern.pickAt(0, 0));
+        assertEquals(OptionalInt.of(1), pattern.pickAt(1, 0));
+        assertEquals(OptionalInt.empty(), pattern.pickAt(0, 1));
+        assertEquals(OptionalInt.of(0), pattern.pickAt(1, 1));
     }
 
     @Test
@@ -37,6 +39,13 @@ class BlockPatternTest {
 
     @Test
     void anEntryReachesAtLeastOneBlockDeep() {
-        assertThrows(IllegalArgumentException.class, () -> new PatternEntry("plains#layer/0", "Layer 1", "Plains", 0, List.of()));
+        assertThrows(IllegalArgumentException.class, () -> new PatternEntry("plains#layer/0", "Layer 1", Optional.of("Plains"), 0, List.of()));
+    }
+
+    @Test
+    void anEntryWithoutAGroupLeavesItEmptyRatherThanBlank() {
+        assertThrows(IllegalArgumentException.class, () -> new PatternEntry("plains#layer/0", "Layer 1", Optional.of(" "), 1, List.of()));
+        assertThrows(IllegalArgumentException.class, () -> new SceneEntry("oak", "oak", Optional.of(""), 1));
+        assertTrue(new SceneEntry("oak", "oak", Optional.empty(), 1).group().isEmpty());
     }
 }

@@ -15,7 +15,7 @@ public interface EditableSceneView extends SceneView {
 
     /**
      * {@code text}, the file of entry {@code key}, as nodes. The pack may not have read this text yet, so a node whose
-     * part the scene does not show yet has {@link GraphNode#NO_PART}.
+     * part the scene does not show yet has no {@link GraphNode#part()}.
      *
      * @throws IllegalArgumentException when {@code text} does not hold what this view edits
      */

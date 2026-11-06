@@ -462,6 +462,47 @@ final class RuinsObjects implements ObjectsAt {
 Service example.Clock is provided by module example:alpha from modules/alpha.jar already, and module example:beta from modules/beta.jar provides it too; a pack has one provider of it (Providers.ONE), so remove one of them
 ```
 
+## Studio tools
+
+A module shows what it builds in the studio through views in `com.volmit.tooling`, registered with
+`setup.tooling()` while `setup` runs. The studio draws them; the module only answers what they show.
+
+```java
+public void setup(ModuleSetup setup) {
+    setup.tooling().registerView(new RuinScenes());
+}
+
+final class RuinScenes implements SceneView {
+    public ResourceId id() { return ResourceId.parse("example:ruins"); }
+    public String label() { return "Ruins"; }
+    public String description() { return "Each ruin the pack writes, as it is placed"; }
+
+    public List<SceneEntry> entries(PackWorld world) {
+        return List.of(new SceneEntry("arch", "Arch", Optional.empty(), 1));
+    }
+
+    public Optional<GeneratedObject> scene(PackWorld world, String key, int variant) {
+        return world.resources().objects().object(world.resources().idOf("ruins/" + key)).map(PlaceableObject::geometry);
+    }
+}
+```
+
+- A `SceneView` lists entries (`SceneEntry`) and gives each variant's blocks as a `GeneratedObject`, drawn in 3D. A
+  `PatternView` lists entries (`PatternEntry`) and gives the blocks one lays over a `PatternArea` at a depth as a
+  `BlockPattern`, drawn from above. `StudioView` is sealed to these two kinds: the studio draws nothing else.
+- A view's id is the module's id or starts with it and `/`. A second view with an id already registered fails the
+  pack load, naming both modules.
+- The studio asks from its own threads, several at once, for a world of the pack it shows. A view keeps what it
+  needs between calls in the world's state, like a service.
+- An `EditableSceneView` also names the file an entry is written in (`SceneFile`) and reads that file's text
+  (`JsonText`, which keeps where each value is written) as a `NodeGraph`: a `GraphNode` per JSON object, with its
+  settings (`NodeSettings`, shown as the pack's schema describes their type), the nodes it holds and the `Edits` the
+  studio may make (a child list to move nodes into, whether it moves, the `Addition`s it offers). Places in the file
+  are `JsonPath`s of `Key` and `Index` steps. The studio writes the file itself, rewriting only what changes; the
+  view never writes.
+- Absent values are empty, never blank or `-1`: an entry without a group, a node that draws no part of the scene
+  (`GraphNode.part()`), a column a pattern places nothing at (`BlockPattern.pickAt`).
+
 ## Module jars
 
 A pack loads its modules from `<pack>/modules/*.jar`. A jar holds one or more modules. Each module's
@@ -573,7 +614,7 @@ public final class FloraSettings implements IrisFeature {
   interfaces and abstract classes, inner (non-static) classes, collections without type arguments,
   concrete collections such as `ArrayList`, and maps with other keys.
 - `@Ref(Reference.X)` says what a `String` or `ResourceId` names, also on lists, sets and arrays of
-  them, so studio offers the right list: `BLOCK`, `ITEM`, `ENTITY`, `BIOME`, `STRUCTURE`, `STRUCTURE_PREFIX`
+  them, so studio offers the right list: `BLOCK`, `ITEM`, `ENTITY`, `STRUCTURE`, `STRUCTURE_PREFIX`
   (a structure or a family prefix such as `minecraft:village`), `STRUCTURE_SET`, `TEMPLATE_POOL` (a jigsaw template pool),
   `POTION_EFFECT`, `ENCHANTMENT`, `LOOT_TABLE` or `SPECIAL_ENTITY` (a mob of another plugin) from the server's registries, or `NOISE_STYLE` from the host's noise
   styles. `BlockState` fields name blocks without it. `@Ref` on any other field fails the load.
@@ -693,7 +734,7 @@ own default says otherwise). They keep the snippet folders packs already use (`s
 Studio describes them like settings; Iris may render its own description of the same JSON.
 
 Directions, object rotation and scale and placement modes are not API types: a module that reads them declares its
-own enum or settings class with the same JSON, and applies a rotation through `ObjectTransformer`.
+own enum or settings class with the same JSON, and turns its blocks itself (`BlockRegistry.rotate` turns a state).
 
 ## Vanilla structures
 
@@ -911,8 +952,7 @@ no JSON. The host renders it and merges it with its own fields:
   `MapKind(value)`, `ObjectKind(type)`, which names an entry of `types()`, `HostKind(type)`,
   `ResourceReferenceKind(kind)` and `AnyKind` for any JSON value. `TextFormat` is `PLAIN`,
   `RESOURCE_ID` or `BLOCK_STATE`.
-- `snippets()` and `objectGenerators()` pick the types with a snippet name and the object generator
-  features.
+- `snippets()` picks the types with a snippet name.
 - `resources()`: every resource kind, by id. A `ResourceKindSchema` has the kind's id, module, folder and the
   files' type: an `ObjectKind` naming an entry of `types()`, or a `HostKind` for a built-in kind whose class the
   host describes itself. `ResourceReferenceKind(kind)` is an option naming a resource of a kind by its key.
@@ -968,7 +1008,7 @@ Optional<Clock> clock = pack.catalog().service(Clock.class);            // a Pro
 - `BlockState` has value equality and sorted properties; `BlockRegistry` checks it against the
   platform and resolves `BlockSpec`s. It answers a state's traits (`AIR`, `SOLID`, `FLUID`, `FOLIAGE`, `DECORATION`,
   `VINE`, ...), tags, whether it attaches to a face (`canAttach`) and whether it can stand on a block (`canPlaceOn`, the
-  rule decorations need), as the platform does. `BlockPalette` and `NoiseSampler` are typed resources (`PaletteSampler` is the noise-picked palette of settings);
+  rule decorations need), as the platform does. `NoiseSampler` is a typed resource and `PaletteSampler` the noise-picked palette of settings;
   `PackResources.noise()` builds noise samplers from `NoiseStyle`s.
 - `GeneratedObject` is sparse, immutable local geometry. `PlacementRequest` aligns its anchor
   with a world position using checked arithmetic.

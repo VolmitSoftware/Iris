@@ -10,8 +10,8 @@ public interface IrisModule {
     ModuleInfo info();
 
     /** Defines this module's stages and registers its other contributions (geometry generators, mantle layers,
-     * settings no stage names, pack resource kinds, validators, lifecycle hooks and services), before settings are
-     * decoded or generation starts. Called once per pack load, in any order relative to other modules; stage bodies
+     * settings no stage names, pack resource kinds, validators, lifecycle hooks and services) and its studio views
+     * ({@link ModuleSetup#tooling()}), before settings are decoded or generation starts. Called once per pack load, in any order relative to other modules; stage bodies
      * must not capture per-invocation state.
      */
     void setup(ModuleSetup setup);

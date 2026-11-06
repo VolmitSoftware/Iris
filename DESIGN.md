@@ -537,15 +537,12 @@ A block stage gets one stream per placement and draws from it across the blocks 
 order. Fused block stages interleave per block, but each still draws only from its own stream. A
 stage that never draws never creates its stream.
 
-Object generators are not stages. `ObjectGenerationContext.random()` stays, a `WorldRandom` seeded
-from the variant seed the host chooses.
-
 ## Coordinates
 
 X and Z are world coordinates. Y is the height above the dimension's bottom: 0 is always the dimension's
 bottom block, whatever its minimum height is in the platform, so Y is never negative. That applies to
 every value that carries a height: `TerrainSample` heights, `TerrainSampler` and `BlockView` positions and
-bounds, `BlockPalette` and `NoiseSampler` sample positions, `PlacedBlock` and `PlacedMarker` positions,
+bounds, `PaletteSampler` and `NoiseSampler` sample positions, `PlacedBlock` and `PlacedMarker` positions,
 placement anchors, `Mantle` positions and bounds, and a chunk `Hunk`'s local y. `BlockBox` carries
 whichever coordinates its owner defines; an object's bounds are local to the object, and a placed
 footprint can extend below height 0 where the object overhangs the bottom. The host converts to and from
@@ -701,8 +698,8 @@ key, the JSON field packs write the settings under; add key = "floraWildPatch" (
 rebuild the jar`.
 
 `GeneratedObject` is sparse, immutable local geometry with bounds, an anchor, sorted blocks,
-optional block entity payloads and markers. `ObjectGenerator` produces it from settings and a
-`WorldRandom`. `ObjectTransformer` is host-owned.
+optional block entity payloads and markers. A module builds it (`PackObjects.build`, or from the blocks it
+chose) and turns it itself; the API has no generator or transformer type, as no module needed one.
 
 The mantle contracts are unchanged: namespaced typed keys, versioned codecs, generation and
 persistent lifetimes, ordered sparse visits and buffered edits. Only owners register a layer.
@@ -726,9 +723,8 @@ core engine is modules as well. The host's own JSON fields are not in it; no key
 
 ### Shape
 
-- A `FeatureSchema` per catalogued type: feature id and name, role (`SETTINGS` for types named in
-  `when(...)` or registered with `registerSettings`, `OBJECT_GENERATOR` for `registerObject`), the
-  owning module's `ModuleInfo`, the JSON key the feature declares, its `root` option when the key holds one
+- A `FeatureSchema` per catalogued type (named in `when(...)` or registered with `registerSettings`): feature id
+  and name, the owning module's `ModuleInfo`, the JSON key the feature declares, its `root` option when the key holds one
   option's value (`rootOption()`), its targets and the settings `ObjectType`. `fields(target)` lists a target's features; a feature attached to several targets appears under
   each. The owner is the one module whose id owns the feature id; module ids are unique and contain
   no `/`, so there is never more than one.
@@ -897,7 +893,7 @@ a host bug.
 | `IrisRange` | `com.volmit.config.Range` | none: `contains`, `pick(WorldRandom)` |
 | `IrisPosition` | `com.volmit.geometry.BlockPosition` (existing record, now with a private no-argument constructor) | none |
 | `IrisDirection` | none: a module declares its own enum with the same constant names, and maps to `BlockFace` | |
-| `IrisObjectRotation`, `IrisObjectScale` | none: settings of the module that picks a rotation or scale | `ObjectTransform`, `ObjectTransformer` (existing) |
+| `IrisObjectRotation`, `IrisObjectScale` | none: settings of the module that picks a rotation or scale | none: the module turns the blocks (`BlockRegistry.rotate`) |
 | `ObjectPlaceMode` | none: an enum of the placement modules | |
 
 Why these lines:
@@ -946,9 +942,8 @@ Why these lines:
 - **`isFlat()` is stricter than Iris's**: a flat base style with an expression or image map is not flat.
 - **Block properties are text.** `{"waterlogged": true}` decodes to `"true"`, which is what the platform's state
   key holds; the host's studio description may accept the JSON types it accepted before.
-- **A palette is a value plus a picker, not a new `BlockPalette`.** `BlockPalette.select` takes a random stream
-  and a block per call, which is how a module picks by chance; `IrisMaterialPalette` picks by noise at the
-  position, so `PaletteSampler.at(x, y, z)` has no stream. The picker takes doubles because Iris's does (zoom
+- **A palette is a value plus a picker.** `IrisMaterialPalette` picks by noise at the position, so
+  `PaletteSampler.at(x, y, z)` has no stream; a module that picks by chance draws from its own stream. The picker takes doubles because Iris's does (zoom
   divides them), and the seed is the one the old code gave its `RNG`, so a module can keep the layout of old worlds.
   A palette without a pickable block throws when the sampler is asked for, where Iris returned `null`: the API has
   no absent block, and `@MinItems(1)` already says a palette needs one.
@@ -960,8 +955,8 @@ Why these lines:
   answering them was work for nothing. `BlockAccess.is` answers every trait the registry answers instead of throwing
   for the ones outside the structure fit's set.
 - **Directions, rotations, scales and place modes stay module types.** They are small enums or settings whose
-  meaning is a feature's (which axes may turn, by which steps; which anchor sampling a mode uses), and applying
-  a rotation is already the host's `ObjectTransformer`. An API type would freeze a feature's choices.
+  meaning is a feature's (which axes may turn, by which steps; which anchor sampling a mode uses), and the module
+  turns its own blocks. An API type would freeze a feature's choices.
 
 ## Vanilla structures
 
@@ -1201,9 +1196,8 @@ from a sapling, which drops a block has. A module answers such questions through
   (`Look`, `Wear`, `PlatformExtras`; `Appearance`, `Behaviour`, `Company`, `Drops`, `Arrival`), each with a named
   default, so a reader sees a dozen meaningful parts instead of seventeen positional ones. What platforms commonly have
   (a spawn reason by the platform's name, a panda's genes, rising out of the ground, whether the spec applies to a
-  provider's mob) is a field of the spec, optional where a platform may lack it. What only one host can apply is not: the
-  module puts a value of the host's own type in `EntitySpec.extensions()`, the host finds it with `extension(type)`, and
-  other hosts ignore it.
+  provider's mob) is a field of the spec, optional where a platform may lack it. The spec has no slot for what only one
+  host could apply: nothing needed one once those fields moved in.
   `AmbientEffects` follows the same rule: the module decides which effects are due (interval and chance, kept in the world's
   state) and every random value they carry, the host only plays them.
 - **Services now.** `ObjectsAt` (`ALL`): the ids of pack objects a module would place in a chunk, predicted without
@@ -1308,6 +1302,24 @@ API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSet
 - **Random parameters (`RNG`) in these facades and `loot.LootResolver`**. They are the legacy streams existing worlds were
   generated from. They go when a world format change lets them be stage streams.
 
+## Studio tooling
+
+`com.volmit.tooling` is how a module shows its work in the studio. It is a second registry beside the feature one
+(`ModuleSetup.tooling()`), so nothing in generation depends on it and a host without a studio ignores it.
+
+- **Views, not widgets.** A module answers what to show (`SceneView`: blocks per entry and variant;
+  `PatternView`: blocks per column at a depth) and the studio decides how to draw it. `StudioView` is sealed to the
+  kinds the studio can draw, so a module cannot register a view nothing renders; a new kind is an API change.
+- **Views hold no state**, for the same reason as services: the studio calls from several threads, for any world of
+  the pack. A view keeps what it needs in the world's state.
+- **Editing is the host's.** An `EditableSceneView` only reads: which file an entry is (`SceneFile`) and how its text
+  reads as nodes (`NodeGraph`). The studio makes every write, so one implementation keeps the author's layout,
+  checks the result is still JSON, refuses edits outside a studio world and moves the file in atomically for the pack
+  watcher. `JsonText` is in the API because a view reads positions from it; splicing text is not.
+- **Paths are typed.** A `JsonPath` step is a `Key` or an `Index`, so a view cannot write a step the file cannot hold.
+- **The wire is the host's.** The studio protocol may encode an absent part or block as it likes (Iris sends `-1`);
+  the API types say absent with `Optional`/`OptionalInt`.
+
 ## Not implemented
 
 - Host wiring, which lives in Iris: JSON decoding and validation, rendering `PackSchema` into Iris's schema and
@@ -1331,7 +1343,7 @@ This is an inventory of where each existing family should land, not a claim that
 | Stilt, erosion, ceiling hang, vacuum, paint, floating | Placement modules with block and invocation stages |
 | Slope, support, limits, collision, protection, bore, meld, snow | Placement stages that reject or write |
 | Markers, tile data, tree and loot metadata | Object metadata + placement edit + typed storage |
-| Procedural trees, crystals, fungi, coral, ruins | Object generators returning sparse geometry |
+| Procedural trees, crystals, fungi, coral, ruins | Module placements building sparse geometry |
 | Cave profiles, carving, cave fluids and decoration | Chunk stages + typed carve layers |
 | Floating islands and child biomes | Terrain/biome sampling + chunk and placement stages |
 | Structures, jigsaw pools and foundations | Structure assembly producing placement requests |

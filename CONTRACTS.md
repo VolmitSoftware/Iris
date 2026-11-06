@@ -28,7 +28,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Area a stage writes | `reach(blocks)`, `reach(PackReach)`, `writesMantle(...)` on stage definitions, `PackSettings` (with `resources()`, for a reach that depends on the size of the pack's objects), host `StageReach`, `ResolvedStage.reachBlocks`, `PipelineReach` |
 | Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
-| Block states and palettes | `BlockState`, `BlockRegistry` (`resolve(BlockSpec)`, `find(key)`, `blockEntity`, `hasTrait`, `oreFor`, `rotate(state, BlockTurn)`, `merge`, `withProperty`, `matches`), `BlockTurn`, `BlockTrait` (with `STORAGE`), `BlockPalette`, `BlockSpec`, `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
+| Block states and palettes | `BlockState`, `BlockRegistry` (`resolve(BlockSpec)`, `find(key)`, `blockEntity`, `hasTrait`, `oreFor`, `rotate(state, BlockTurn)`, `merge`, `withProperty`, `matches`), `BlockTurn`, `BlockTrait` (with `STORAGE`), `BlockSpec`, `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
 | A pack's objects | `PlaceableObject` (`name`, size, `center`, `geometry`), `PackObjects` (`object`, `sizeOf`, `scaled` with `ScaleMethod`, `smartBored`, `build`), `PackResources.objects()` |
 | Placing through the pack's placement graph | `Placements.place(PlacementRun)` (`PackWorld.placements()`), `PlacementRun` (request, name, settings JSON, area, terrain, input, seed), `PlacementTerrain` (`recordPlacement` / `placementAt` with a `PlacementRecord`), `StructureVolumes`, `PlacedMarker`, `PlacementOutcome`; stages read `PlacementContext.placementTerrain()` and `input(type)`; mantle stages get a terrain from `MantleGenerationContext.placementTerrain()`; `RunningWorld.placementAt` reads what a placement recorded; `FeatureRegistry.registerPlacementType` names the type packs write placements as (host `FeatureCatalog.placementType()`, `PackSchema.placementType()`) |
 | Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
@@ -43,7 +43,8 @@ types that carry them and lists what the Iris adapter still owes.
 | Terrain and settings sampling | `TerrainSampler`, `BiomeSample`, `TerrainSample`, `FeatureSettings` |
 | Dense chunk output | `Hunk<T>`, `GenerationContext.blocks`, reference `ArrayHunk<T>` |
 | Positions, boxes and faces | `com.volmit.geometry`: `BlockPosition`, `BlockBox`, `BlockFace` |
-| Sparse geometry and transforms | `ObjectGenerator`, `GeneratedObject`, `ObjectTransform`, `ObjectTransformer` |
+| Sparse geometry | `GeneratedObject` |
+| Studio views of what a module builds | `com.volmit.tooling`: `ModuleSetup.tooling()` (`ToolingRegistry.registerView`), sealed `StudioView` (`SceneView` with `SceneEntry`, `PatternView` with `PatternEntry`, `PatternArea`, `BlockPattern`), `EditableSceneView` (`SceneFile`, `NodeGraph`, `GraphNode` with `Link`, `NodeSettings`, `Edits`, `Addition`), `JsonText`, `JsonPath` (`Key`, `Index`), host `StudioViewRegistration` |
 | Buffered placement writes | `PlacementRequest`, `PlacementAccess`, host-owned `PlacementEdit` |
 | Typed generation and persistent storage | `mantle` package |
 
@@ -236,7 +237,7 @@ running Iris is the pack publisher's responsibility.
   `EntitySpawns` and `SaplingGrowth`.
 - Create what `ItemDrop` and `EntitySpec` describe on the platform, skip what the platform lacks (an unknown enchantment,
   attribute or item flag) with a warning, route a `ContentKey.Provided` (and a `Registered` id of a namespace another
-  plugin owns) to that plugin, apply the `EntitySpec.extensions()` of the host's own types and ignore the rest, and run the checks that come with an `EntitySpawns.Attempt` (light, surface,
+  plugin owns) to that plugin, and run the checks that come with an `EntitySpawns.Attempt` (light, surface,
   free space) before spawning. Report how many entities appeared with `EntitySpawns.spawned`. Apply `Arrival.reason`
   (the platform's own name for the spawn reason, natural when it is empty or unknown), `Arrival.risesFromGround`, a
   panda's `Appearance` genes, and `adjustsProvidedMob` (a `ContentKey.Provided` mob is otherwise left as its provider set it up).

@@ -21,12 +21,17 @@ package art.arcane.iris.core.studio.bridge;
 import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.gui.GuiMarker;
 import art.arcane.iris.core.studio.map.MapHover;
+import art.arcane.iris.core.studio.map.MapLabel;
+import art.arcane.iris.core.studio.map.MapLayer;
+import art.arcane.iris.core.studio.map.MapPickInspection;
 import art.arcane.iris.core.studio.map.MapTile;
 import art.arcane.iris.core.studio.map.MapView;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.RenderType;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.IrisLogging;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -41,10 +46,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -81,7 +88,8 @@ public final class StudioBridge implements AutoCloseable {
 
     private final StudioWorld world;
     private final String token;
-    private final Gson gson = new Gson();
+    // The studio tells "none" from "not sent", so a null field is written as null rather than left out.
+    private final Gson gson = new GsonBuilder().serializeNulls().create();
     private final HttpServer server;
     private final int port;
     private final ExecutorService workers;
@@ -179,7 +187,9 @@ public final class StudioBridge implements AutoCloseable {
         switch (endpoint) {
             case "world" -> sendJson(exchange, STATUS_OK, worldInfo(get(exchange)));
             case "tile" -> sendBytes(exchange, "application/octet-stream", tile(get(exchange), query));
-            case "hover" -> sendJson(exchange, STATUS_OK, MapHover.sample(get(exchange).engine(), view(query), query.number("x"), query.number("z")));
+            case "hover" -> sendJson(exchange, STATUS_OK, hover(get(exchange).engine(), query));
+            case "picks" -> sendJson(exchange, STATUS_OK, picks(get(exchange).engine(), query));
+            case "regions" -> sendJson(exchange, STATUS_OK, regions(get(exchange).engine()));
             case "entities" -> sendJson(exchange, STATUS_OK, entities(get(exchange)));
             case "events" -> streamEvents(exchange);
             case "teleport" -> teleport(exchange, query);
@@ -236,8 +246,47 @@ public final class StudioBridge implements AutoCloseable {
                 .orElseThrow(() -> new RequestError(STATUS_BAD_REQUEST, "Unknown view: " + query.text("view")));
     }
 
-    private byte[] tile(StudioWorld.Session session, Query query) {
+    /** The view, and the region the region view previews when the query names one in {@code preview}. */
+    private static MapLayer layer(Engine engine, Query query) {
         MapView view = view(query);
+        if (!query.has("preview")) {
+            return MapLayer.of(view);
+        }
+        if (view != MapView.REGIONS) {
+            throw new RequestError(STATUS_BAD_REQUEST, "Only the region view previews a region");
+        }
+        IrisRegion region = engine.getComplex().preparedRegion(query.text("preview"));
+        if (region == null) {
+            throw new RequestError(STATUS_BAD_REQUEST, "This world has no region " + query.text("preview"));
+        }
+        return MapLayer.preview(region);
+    }
+
+    private static MapHover hover(Engine engine, Query query) {
+        return MapHover.sample(engine, layer(engine, query), query.number("x"), query.number("z"));
+    }
+
+    private static MapPickInspection.Inspection picks(Engine engine, Query query) {
+        MapLayer layer = layer(engine, query);
+        if (!layer.hasPickNoise()) {
+            throw new RequestError(STATUS_BAD_REQUEST, "The " + layer.view().label() + " view has no picks to inspect");
+        }
+        try {
+            MapPickInspection.Area area = new MapPickInspection.Area(
+                    query.number("minX"), query.number("minZ"), query.number("maxX"), query.number("maxZ"));
+            return MapPickInspection.measure(engine, layer, area);
+        } catch (IllegalArgumentException badArea) {
+            throw new RequestError(STATUS_BAD_REQUEST, badArea.getMessage());
+        }
+    }
+
+    private static List<MapLabel> regions(Engine engine) {
+        return engine.getComplex().preparedRegions().stream().map(region -> MapLabel.of(engine, region)).toList();
+    }
+
+    private byte[] tile(StudioWorld.Session session, Query query) {
+        Engine engine = session.engine();
+        MapLayer layer = layer(engine, query);
         int size = query.whole("size", DEFAULT_TILE_SIZE);
         double blocksPerPixel = query.number("scale");
         if (size < 1 || size > LARGEST_TILE_SIZE) {
@@ -247,10 +296,20 @@ public final class StudioBridge implements AutoCloseable {
             throw new RequestError(STATUS_BAD_REQUEST, "The scale is " + SMALLEST_BLOCKS_PER_PIXEL + " to " + LARGEST_BLOCKS_PER_PIXEL + " blocks per pixel");
         }
         double tileBlocks = size * blocksPerPixel;
-        Engine engine = session.engine();
-        MapTile tile = session.renderer().render(view, query.whole("x", 0) * tileBlocks, query.whole("z", 0) * tileBlocks,
-                blocksPerPixel, size, query.flag("heights"), () -> closed || engine.isClosing() || engine.isClosed());
+        MapTile tile = session.renderer().render(layer, query.whole("x", 0) * tileBlocks, query.whole("z", 0) * tileBlocks,
+                blocksPerPixel, size, tileExtras(query), () -> closed || engine.isClosing() || engine.isClosed());
         return MapTileEncoding.encode(tile, gson);
+    }
+
+    private static Set<MapTile.Extra> tileExtras(Query query) {
+        Set<MapTile.Extra> extras = EnumSet.noneOf(MapTile.Extra.class);
+        if (query.flag("heights")) {
+            extras.add(MapTile.Extra.HEIGHTS);
+        }
+        if (query.flag("noise")) {
+            extras.add(MapTile.Extra.PICK_NOISE);
+        }
+        return extras;
     }
 
     private List<GuiMarker> entities(StudioWorld.Session session) {
@@ -410,6 +469,10 @@ public final class StudioBridge implements AutoCloseable {
             } catch (NumberFormatException malformed) {
                 throw new RequestError(STATUS_BAD_REQUEST, name + " must be a whole number");
             }
+        }
+
+        boolean has(String name) {
+            return values.containsKey(name);
         }
 
         boolean flag(String name) {

@@ -36,7 +36,7 @@ public record MapLabel(Kind kind, String key, String name, int color) {
         return new MapLabel(Kind.BIOME, biome.getLoadKey(), biome.getName(), biome.getColor(engine, colorType).getRGB() & RGB);
     }
 
-    static MapLabel of(Engine engine, IrisRegion region) {
+    public static MapLabel of(Engine engine, IrisRegion region) {
         return new MapLabel(Kind.REGION, region.getLoadKey(), region.getName(),
                 region.getColor(engine.getComplex(), RenderType.REGION).getRGB() & RGB);
     }

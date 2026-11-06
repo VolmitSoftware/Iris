@@ -3,6 +3,8 @@ package art.arcane.iris.core.studio.map;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.RenderType;
+import art.arcane.iris.engine.image.IrisImageMapRuntime;
+import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -14,6 +16,7 @@ import org.junit.Test;
 import java.awt.Color;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.function.DoubleBinaryOperator;
 
@@ -121,7 +124,7 @@ public class MapTileRendererTest {
         Engine untouched = mock(Engine.class);
 
         assertThrows(CancellationException.class,
-                () -> new MapTileRenderer(untouched).render(MapView.BIOMES, 0D, 0D, 1D, SIZE, false, () -> true));
+                () -> new MapTileRenderer(untouched).render(MapLayer.of(MapView.BIOMES), 0D, 0D, 1D, SIZE, Set.of(), () -> true));
         verifyNoInteractions(untouched);
     }
 
@@ -144,7 +147,7 @@ public class MapTileRendererTest {
         when(complex.getFocusBiome()).thenReturn(desert);
         when(desert.getChildren()).thenReturn(new art.arcane.volmlib.util.collection.KList<>());
 
-        MapHover hover = MapHover.sample(engine, MapView.BIOMES, 10D, 0D);
+        MapHover hover = MapHover.sample(engine, MapLayer.of(MapView.BIOMES), 10D, 0D);
 
         assertEquals("desert", hover.biome().key());
         assertEquals("cavern", hover.caveBiome().key());
@@ -168,8 +171,45 @@ public class MapTileRendererTest {
         assertEquals(Optional.empty(), MapView.byId("nothing"));
     }
 
+    @Test
+    public void aRegionPreviewLabelsTheBiomesThatRegionWouldPlaceAndOwnsEverySpot() {
+        heights((x, z) -> 70D);
+        when(complex.surfacePickAsIfIn(org.mockito.ArgumentMatchers.eq(dry), anyDouble(), anyDouble(), anyDouble()))
+                .thenAnswer(call -> new IrisComplex.BiomePick((double) call.getArgument(1) < 0 ? cavern : desert, InferredType.LAND));
+
+        MapTile tile = new MapTileRenderer(engine).render(MapLayer.preview(dry), -4D, 0D, 1D, SIZE, Set.of(), () -> false);
+
+        assertEquals(MapLabel.Kind.BIOME, tile.subjectKind());
+        assertEquals("cavern", tile.subjectAt(0, 0).key());
+        assertEquals("desert", tile.subjectAt(4, 0).key());
+        assertEquals("dry", tile.regionAt(0, 0).key());
+        assertEquals("dry", tile.regionAt(7, 7).key());
+        assertNull("heights only when asked", tile.heights());
+        org.mockito.Mockito.verify(complex, org.mockito.Mockito.atLeastOnce())
+                .surfacePickAsIfIn(org.mockito.ArgumentMatchers.eq(dry), anyDouble(), anyDouble(), org.mockito.AdditionalMatchers.eq(70D, 1e-4D));
+    }
+
+    @Test
+    public void theRegionViewCarriesTheRegionNoiseOnlyWhenAsked() {
+        IrisImageMapRuntime imageMaps = mock(IrisImageMapRuntime.class);
+        when(complex.getImageMapRuntime()).thenReturn(imageMaps);
+        ProceduralStream<Double> regionNoise = stream((x, z) -> (x + 10D) / 100D);
+        when(complex.getRegionStyleStream()).thenReturn(regionNoise);
+
+        MapTile plain = render(MapView.REGIONS, 0D, 0D, 1D, false);
+        MapTile withNoise = new MapTileRenderer(engine).render(MapLayer.of(MapView.REGIONS), 0D, 0D, 1D, SIZE,
+                Set.of(MapTile.Extra.PICK_NOISE), () -> false);
+        MapTile caves = new MapTileRenderer(engine).render(MapLayer.of(MapView.CAVE_BIOMES), 0D, 0D, 1D, SIZE,
+                Set.of(MapTile.Extra.PICK_NOISE), () -> false);
+
+        assertNull(plain.pickNoise());
+        assertEquals(0.13F, withNoise.pickNoise()[withNoise.gridIndex(3, 5)], 1e-6F);
+        assertNull("no noise picks the cave biome layer here", caves.pickNoise());
+    }
+
     private MapTile render(MapView view, double startX, double startZ, double blocksPerPixel, boolean withHeights) {
-        return new MapTileRenderer(engine).render(view, startX, startZ, blocksPerPixel, SIZE, withHeights, () -> false);
+        Set<MapTile.Extra> extras = withHeights ? Set.of(MapTile.Extra.HEIGHTS) : Set.of();
+        return new MapTileRenderer(engine).render(MapLayer.of(view), startX, startZ, blocksPerPixel, SIZE, extras, () -> false);
     }
 
     private void heights(DoubleBinaryOperator height) {

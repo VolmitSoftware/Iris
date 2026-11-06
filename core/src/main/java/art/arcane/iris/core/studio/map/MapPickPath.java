@@ -29,7 +29,6 @@ import art.arcane.iris.engine.object.world.region.IrisRegion;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -40,7 +39,10 @@ public final class MapPickPath {
     private MapPickPath() {
     }
 
-    public static List<PickStep> explain(Engine engine, MapView view, double x, double z) {
+    public static List<PickStep> explain(Engine engine, MapLayer layer, double x, double z) {
+        if (layer.previews()) {
+            return explainPreview(engine, layer.previewRegion(), x, z);
+        }
         IrisComplex complex = engine.getComplex();
         IrisRegion region = complex.getRegionStream().get(x, z);
         List<PickStep> path = new ArrayList<>();
@@ -48,11 +50,31 @@ public final class MapPickPath {
             return path;
         }
         path.add(regionStep(engine, region, x, z));
+        MapView view = layer.view();
         switch (view) {
             case LAND_BIOMES -> addListStep(path, engine, view, region, InferredType.LAND, x, z);
             case SEA_BIOMES -> addListStep(path, engine, view, region, InferredType.SEA, x, z);
             case CAVE_BIOMES -> addListStep(path, engine, view, region, InferredType.CAVE, x, z);
             case BIOMES, REGIONS, HEIGHT -> addBaseBiomeSteps(path, engine, view, region, x, z);
+        }
+        return path;
+    }
+
+    // The previewed region owns every spot; its list is the one the spot's surface needs, then children replace it.
+    private static List<PickStep> explainPreview(Engine engine, IrisRegion region, double x, double z) {
+        IrisComplex complex = engine.getComplex();
+        List<PickStep> path = new ArrayList<>();
+        path.add(PickStep.chosen(Kind.PREVIEW, MapLabel.of(engine, region)));
+        IrisBiome focus = complex.getFocusBiome();
+        if (focus != null) {
+            path.add(PickStep.chosen(Kind.FOCUS, biomeLabel(engine, MapView.REGIONS, focus)));
+            addChildSteps(path, engine, MapView.REGIONS, focus, x, z);
+            return path;
+        }
+        InferredType list = complex.surfacePickAsIfIn(region, x, z).list();
+        IrisBiome picked = addListStep(path, engine, MapView.REGIONS, region, list, x, z);
+        if (picked != null) {
+            addChildSteps(path, engine, MapView.REGIONS, picked, x, z);
         }
         return path;
     }
@@ -65,10 +87,19 @@ public final class MapPickPath {
         if (complex.getImageMapRuntime().sampleRegion(x, z) != null) {
             return PickStep.chosen(Kind.IMAGE_MAP, MapLabel.of(engine, region));
         }
-        List<IrisRegion> regions = engine.getData().getRegionLoader().loadAll(engine.getDimension().getRegions());
         double noise = complex.getRegionStyleStream().get(x, z);
-        return new PickStep(Kind.REGION, MapLabel.of(engine, region), null, null, noise,
-                rarityBands(regions, candidate -> MapLabel.of(engine, candidate)));
+        return new PickStep(Kind.REGION, MapLabel.of(engine, region), null, null, noise, regionBands(engine));
+    }
+
+    /** Each of the dimension's regions' share of the region noise. */
+    static List<PickBand> regionBands(Engine engine) {
+        List<IrisRegion> regions = engine.getData().getRegionLoader().loadAll(engine.getDimension().getRegions());
+        return rarityBands(regions, region -> MapLabel.of(engine, region));
+    }
+
+    /** Each biome of the region's list of this type's share of the list's noise; empty when the list is. */
+    static List<PickBand> biomeBands(Engine engine, MapView view, IrisRegion region, InferredType type) {
+        return rarityBands(engine.getComplex().pickableBiomes(region, type), biome -> biomeLabel(engine, view, biome));
     }
 
     // The base biome: the noise picks from the land or sea list the continent noise chose, then children replace it.
@@ -101,39 +132,17 @@ public final class MapPickPath {
         }
         double noise = complex.biomePickNoise(region, type).get(x, z);
         IrisBiome picked = IRare.pick(options, noise);
-        path.add(new PickStep(Kind.BIOME, biomeLabel(engine, view, picked), type.name().toLowerCase(Locale.ROOT), null,
+        path.add(new PickStep(Kind.BIOME, biomeLabel(engine, view, picked), listName(type), null,
                 noise, rarityBands(options, option -> biomeLabel(engine, view, option))));
         return picked;
     }
 
-    // A parent that keeps the spot ends the walk: every level below would read the same noise and keep it again.
     private static void addChildSteps(List<PickStep> path, Engine engine, MapView view, IrisBiome biome, double x, double z) {
-        IrisComplex complex = engine.getComplex();
-        IrisBiome parent = biome;
-        for (int level = 0; level < IrisComplex.CHILD_PICK_LEVELS && !parent.getChildren().isEmpty(); level++) {
-            List<IrisBiome> slots = complex.childSlots(parent);
-            if (slots.isEmpty()) {
-                return;
-            }
-            double noise = complex.childNoise(parent).noiseFast2D(x, z);
-            IrisBiome picked = slots.get(slotIndex(noise, slots.size())).withInferredType(parent.getInferredType());
-            boolean kept = sameBiome(picked, parent);
-            path.add(new PickStep(Kind.CHILD, biomeLabel(engine, view, picked), null, kept ? null : parent.getName(),
-                    noise, slotBands(slots, option -> biomeLabel(engine, view, option))));
-            if (kept) {
-                return;
-            }
-            parent = picked;
+        for (ChildPicks.ChildPick pick : ChildPicks.from(engine.getComplex(), biome, x, z)) {
+            path.add(new PickStep(Kind.CHILD, biomeLabel(engine, view, pick.picked()), null,
+                    pick.kept() ? null : pick.parent().getName(), pick.noise(),
+                    slotBands(pick.slots(), option -> biomeLabel(engine, view, option))));
         }
-    }
-
-    /** The slot the child noise picks, rounded the way {@code CNG.fit2D} rounds. */
-    static int slotIndex(double noise, int slotCount) {
-        if (slotCount == 1) {
-            return 0;
-        }
-        long rounded = Math.round(noise * (slotCount - 1));
-        return (int) Math.clamp(rounded, 0, slotCount - 1);
     }
 
     /** Each option's share of the noise, 1 / rarity wide, in the order {@link IRare#pick} walks them. */
@@ -168,11 +177,12 @@ public final class MapPickPath {
         return bands;
     }
 
-    private static boolean sameBiome(IrisBiome first, IrisBiome second) {
-        return Objects.equals(first.getLoadKey(), second.getLoadKey());
+    /** A biome list's name as the studio shows it, such as {@code land}. */
+    static String listName(InferredType type) {
+        return type.name().toLowerCase(Locale.ROOT);
     }
 
-    private static MapLabel biomeLabel(Engine engine, MapView view, IrisBiome biome) {
+    static MapLabel biomeLabel(Engine engine, MapView view, IrisBiome biome) {
         return MapLabel.of(engine, biome, view == MapView.REGIONS ? RenderType.BIOME : view.colorType());
     }
 
@@ -186,7 +196,9 @@ public final class MapPickPath {
         /** The pack's image map set it. */
         IMAGE_MAP,
         /** The studio focuses on one region or biome, so nothing was picked. */
-        FOCUS
+        FOCUS,
+        /** The studio previews one region everywhere, so nothing picked the region. */
+        PREVIEW
     }
 
     /**

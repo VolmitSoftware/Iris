@@ -65,8 +65,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 
 @Data
-@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "inferredPickNoiseStreams", "imageMapRuntime"})
-@ToString(exclude = {"data", "gridBoundsCache", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "inferredPickNoiseStreams", "imageMapRuntime"})
+@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "frozenInterpolators", "frozenGenerators", "preparedRegions", "inferredBiomeStreams", "inferredPickNoiseStreams", "imageMapRuntime"})
+@ToString(exclude = {"data", "gridBoundsCache", "frozenInterpolators", "frozenGenerators", "preparedRegions", "inferredBiomeStreams", "inferredPickNoiseStreams", "imageMapRuntime"})
 public class IrisComplex implements DataProvider {
     private static final NoiseBounds ZERO_NOISE_BOUNDS = new NoiseBounds(0D, 0D);
     private static final AtomicLong lastBoundsFailureLog = new AtomicLong(0L);
@@ -95,6 +95,8 @@ public class IrisComplex implements DataProvider {
     private final transient IrisInterpolator[] frozenInterpolators;
     @Getter(AccessLevel.NONE)
     private final transient IrisGenerator[][] frozenGenerators;
+    @Getter(AccessLevel.NONE)
+    private final transient List<IrisRegion> preparedRegions;
     @Getter(AccessLevel.NONE)
     private final transient Map<IrisRegion, Map<InferredType, ProceduralStream<IrisBiome>>> inferredBiomeStreams;
     @Getter(AccessLevel.NONE)
@@ -152,7 +154,7 @@ public class IrisComplex implements DataProvider {
         focusBiome = engine.getFocus();
         focusRegion = engine.getFocusRegion();
         Map<InferredType, ProceduralStream<IrisBiome>> inferredStreams = new HashMap<>();
-        KList<IrisRegion> preparedRegions = new KList<>();
+        KList<IrisRegion> regionsToPrepare = new KList<>();
 
         if (focusBiome != null) {
             focusBiome = focusBiome.withInferredType(InferredType.LAND);
@@ -161,7 +163,7 @@ public class IrisComplex implements DataProvider {
 
         //@builder
         if (focusRegion != null) {
-            prepareInferredBiomes(focusRegion, preparedRegions);
+            prepareInferredBiomes(focusRegion, regionsToPrepare);
             focusRegion.getAllBiomes(this).forEach(this::registerGenerators);
         } else {
             engine.getDimension().getRegions().forEach(regionKey -> {
@@ -169,15 +171,16 @@ public class IrisComplex implements DataProvider {
                 if (region == null) {
                     return;
                 }
-                prepareInferredBiomes(region, preparedRegions);
+                prepareInferredBiomes(region, regionsToPrepare);
                 region.getAllBiomes(this).forEach(this::registerGenerators);
             });
             for (IrisRegion region : imageMapRuntime.getMappedRegions()) {
-                prepareInferredBiomes(region, preparedRegions);
+                prepareInferredBiomes(region, regionsToPrepare);
                 region.getAllBiomes(this).forEach(this::registerGenerators);
             }
             imageMapRuntime.getMappedBiomes().forEach(this::registerGenerators);
         }
+        preparedRegions = List.copyOf(regionsToPrepare);
         inferredPickNoiseStreams = compileInferredBiomeStreams(
                 preparedRegions,
                 (region, inferredType) -> compileInferredPickNoise(engine, region, inferredType)
@@ -226,21 +229,21 @@ public class IrisComplex implements DataProvider {
         regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i),
                 String.valueOf(i * 38445).hashCode() * 3245556666L));
         caveBiomeStream = regionStream.contextInjecting(engine, (c, x, z) -> c.getRegion().get(x, z))
-                .convert((r) -> createInferredBiomeStream(r, InferredType.CAVE))
+                .convert((r) -> biomePicks(r,InferredType.CAVE))
                 .convertAware2D(ProceduralStream::get).cache2D("caveBiomeStream", engine, cacheSize);
         inferredStreams.put(InferredType.CAVE, caveBiomeStream);
         landBiomeStream = regionStream.contextInjecting(engine, (c, x, z) -> c.getRegion().get(x, z))
-                .convert((r) -> createInferredBiomeStream(r, InferredType.LAND))
+                .convert((r) -> biomePicks(r,InferredType.LAND))
                 .convertAware2D(ProceduralStream::get)
                 .cache2D("landBiomeStream", engine, cacheSize);
         inferredStreams.put(InferredType.LAND, landBiomeStream);
         seaBiomeStream = regionStream.contextInjecting(engine, (c, x, z) -> c.getRegion().get(x, z))
-                .convert((r) -> createInferredBiomeStream(r, InferredType.SEA))
+                .convert((r) -> biomePicks(r,InferredType.SEA))
                 .convertAware2D(ProceduralStream::get)
                 .cache2D("seaBiomeStream", engine, cacheSize);
         inferredStreams.put(InferredType.SEA, seaBiomeStream);
         shoreBiomeStream = regionStream.contextInjecting(engine, (c, x, z) -> c.getRegion().get(x, z))
-                .convert((r) -> createInferredBiomeStream(r, InferredType.SHORE))
+                .convert((r) -> biomePicks(r,InferredType.SHORE))
                 .convertAware2D(ProceduralStream::get).cache2D("shoreBiomeStream", engine, cacheSize);
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
         bridgeStream = focusBiome != null ? ProceduralStream.of((x, z) -> focusBiome.getInferredType(),
@@ -314,6 +317,52 @@ public class IrisComplex implements DataProvider {
             throw new IllegalArgumentException("Engine is required to sample procedural terrain height");
         }
         return getHeight(engine, worldX, worldZ, engine.getSeedManager().getHeight());
+    }
+
+    /** The regions this world picks biomes for: the dimension's and the image map's, or only the focused one. */
+    public List<IrisRegion> preparedRegions() {
+        return preparedRegions;
+    }
+
+    /** The prepared region with this key, or null when this world picks no biomes for it. */
+    public IrisRegion preparedRegion(String regionKey) {
+        for (IrisRegion region : preparedRegions) {
+            if (Objects.equals(region.getLoadKey(), regionKey)) {
+                return region;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The surface biome a spot would get if it belonged to the region, for previewing one region across the map: the
+     * continent picks the biome list, the terrain height may move the spot to another list, then children replace it.
+     */
+    public BiomePick surfacePickAsIfIn(IrisRegion region, double x, double z) {
+        return surfacePickAsIfIn(region, x, z, heightStream.get(x, z));
+    }
+
+    /** {@link #surfacePickAsIfIn(IrisRegion, double, double)} on terrain of a height the caller already has. */
+    public BiomePick surfacePickAsIfIn(IrisRegion region, double x, double z, double terrainHeight) {
+        if (focusBiome != null) {
+            return new BiomePick(baseBiomeStream.get(x, z), focusBiome.getInferredType());
+        }
+        InferredType continentType = bridgeStream.get(x, z);
+        IrisBiome listPick = biomePicks(region, continentType).get(x, z);
+        if (listPick == null) {
+            return new BiomePick(null, continentType);
+        }
+        IrisBiome base = implode(listPick, x, z);
+        IrisBiome surface = resolveSurfaceBiome(terrainHeight, base, region, x, z, fluidHeight,
+                biomePicks(region, InferredType.LAND), biomePicks(region, InferredType.SEA), biomePicks(region, InferredType.SHORE));
+        if (surface == null || surface == base) {
+            return new BiomePick(base, continentType);
+        }
+        return new BiomePick(implode(surface, x, z), surface.getInferredType());
+    }
+
+    /** A spot's biome and the region's biome list it was picked from. */
+    public record BiomePick(IrisBiome biome, InferredType list) {
     }
 
     private IrisRegion findRegion(IrisBiome focus, Engine engine) {
@@ -504,10 +553,8 @@ public class IrisComplex implements DataProvider {
         preparedRegions.add(region);
     }
 
-    private ProceduralStream<IrisBiome> createInferredBiomeStream(
-            IrisRegion region,
-            InferredType inferredType
-    ) {
+    /** The biome the region's list of this type picks at each spot, before children replace it. */
+    public ProceduralStream<IrisBiome> biomePicks(IrisRegion region, InferredType inferredType) {
         return preparedInferredBiomeStream(inferredBiomeStreams, region, inferredType);
     }
 

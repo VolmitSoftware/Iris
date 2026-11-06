@@ -31,7 +31,8 @@ import java.util.List;
  * A {@link MapTile} as the studio reads it, little endian:
  * <pre>
  * u32 header length | header, UTF-8 JSON | padding to 4 bytes
- * i16 subjects[grid²] | padding to 4 | i16 regions[grid²] | padding to 4 | f32 heights[grid²], when the header says so
+ * i16 subjects[grid²] | padding to 4 | i16 regions[grid²] | padding to 4
+ * f32 heights[grid²], when the header says so | f32 pickNoise[grid²], when the header says so
  * </pre>
  * The header holds the size, the scale, the subject kind and the labels the grids index. Every array starts on a
  * multiple of 4 bytes, so the studio views them in place.
@@ -44,12 +45,15 @@ final class MapTileEncoding {
 
     static byte[] encode(MapTile tile, Gson gson) {
         boolean hasHeights = tile.heights() != null;
-        byte[] header = gson.toJson(new Header(tile.size(), tile.blocksPerPixel(), tile.subjectKind(), tile.labels(), hasHeights))
+        boolean hasPickNoise = tile.pickNoise() != null;
+        byte[] header = gson.toJson(new Header(tile.size(), tile.blocksPerPixel(), tile.subjectKind(), tile.labels(),
+                        hasHeights, hasPickNoise))
                 .getBytes(StandardCharsets.UTF_8);
         int cells = tile.gridSize() * tile.gridSize();
         int length = aligned(Integer.BYTES + header.length)
                 + aligned(cells * Short.BYTES) * 2
-                + (hasHeights ? cells * Float.BYTES : 0);
+                + (hasHeights ? cells * Float.BYTES : 0)
+                + (hasPickNoise ? cells * Float.BYTES : 0);
         ByteBuffer buffer = ByteBuffer.allocate(length).order(ByteOrder.LITTLE_ENDIAN);
         buffer.putInt(header.length).put(header);
         align(buffer);
@@ -61,6 +65,10 @@ final class MapTileEncoding {
         align(buffer);
         if (hasHeights) {
             buffer.asFloatBuffer().put(tile.heights());
+            buffer.position(buffer.position() + cells * Float.BYTES);
+        }
+        if (hasPickNoise) {
+            buffer.asFloatBuffer().put(tile.pickNoise());
         }
         return buffer.array();
     }
@@ -73,6 +81,7 @@ final class MapTileEncoding {
         buffer.position(aligned(buffer.position()));
     }
 
-    private record Header(int size, double blocksPerPixel, MapLabel.Kind subjectKind, List<MapLabel> labels, boolean heights) {
+    private record Header(int size, double blocksPerPixel, MapLabel.Kind subjectKind, List<MapLabel> labels,
+                          boolean heights, boolean pickNoise) {
     }
 }

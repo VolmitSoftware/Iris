@@ -28,11 +28,19 @@ import java.util.List;
  * @param subjects the index in {@code labels} of each cell's biome, or its region in the region view;
  *                 {@link #NO_LABEL} where the stream had none
  * @param regions  the index in {@code labels} of each cell's region; the same array as {@code subjects} in the region view
- * @param heights  each cell's terrain height, or null when it was not asked for
+ * @param heights   each cell's terrain height, or null when it was not asked for
+ * @param pickNoise each cell's noise value that settled its pick, 0 to 1 and NaN where nothing picked it; null when it
+ *                  was not asked for or the layer has none
  */
 public record MapTile(int size, double blocksPerPixel, MapLabel.Kind subjectKind, List<MapLabel> labels,
-                      short[] subjects, short[] regions, float[] heights) {
+                      short[] subjects, short[] regions, float[] heights, float[] pickNoise) {
     public static final short NO_LABEL = -1;
+
+    /** What a tile can carry besides its labels. */
+    public enum Extra {
+        HEIGHTS,
+        PICK_NOISE
+    }
 
     public int gridSize() {
         return size + 2;

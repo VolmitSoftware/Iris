@@ -45,11 +45,14 @@ public record MapHover(double worldX, double worldZ, MapLabel biome, MapLabel ca
     // IrisComplex measures slope as the height change over this many blocks.
     private static final double SLOPE_STREAM_RANGE_BLOCKS = 3D;
 
-    public static MapHover sample(Engine engine, MapView view, double worldX, double worldZ) {
+    /** In a region preview, the biome and region are the previewed ones; the rest is the world as it is. */
+    public static MapHover sample(Engine engine, MapLayer layer, double worldX, double worldZ) {
         IrisComplex complex = engine.getComplex();
-        IrisBiome biome = complex.getBaseBiomeStream().get(worldX, worldZ);
+        IrisBiome biome = layer.previews()
+                ? complex.surfacePickAsIfIn(layer.previewRegion(), worldX, worldZ).biome()
+                : complex.getBaseBiomeStream().get(worldX, worldZ);
         IrisBiome caveBiome = complex.getCaveBiomeStream().get(worldX, worldZ);
-        IrisRegion region = complex.getRegionStream().get(worldX, worldZ);
+        IrisRegion region = layer.previews() ? layer.previewRegion() : complex.getRegionStream().get(worldX, worldZ);
         PlatformBiome vanillaBiome = complex.getTrueBiomeDerivativeStream().get(worldX, worldZ);
         double slope = complex.getSlopeStream().getDouble(worldX, worldZ);
         IrisDimension dimension = engine.getDimension();
@@ -65,7 +68,7 @@ public record MapHover(double worldX, double worldZ, MapLabel biome, MapLabel ca
                 Math.toDegrees(Math.atan(slope / SLOPE_STREAM_RANGE_BLOCKS)),
                 packPath(engine, biome),
                 packPath(engine, region),
-                MapPickPath.explain(engine, view, worldX, worldZ)
+                MapPickPath.explain(engine, layer, worldX, worldZ)
         );
     }
 

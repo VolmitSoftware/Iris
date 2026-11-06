@@ -166,6 +166,8 @@ public class StudioBridgeTest {
         JsonObject firstStep = hover.getAsJsonArray("pickPath").get(0).getAsJsonObject();
         assertEquals("FOCUS", firstStep.get("kind").getAsString());
         assertEquals("temperate", firstStep.getAsJsonObject("picked").get("key").getAsString());
+        assertTrue("nothing picked the focused region, which the studio reads as a null noise",
+                firstStep.has("noise") && firstStep.get("noise").isJsonNull());
     }
 
     @Test
@@ -173,6 +175,17 @@ public class StudioBridgeTest {
         HttpResponse<String> response = http.send(authorized("hover?x=5&z=-3"), HttpResponse.BodyHandlers.ofString());
 
         assertEquals(400, response.statusCode());
+    }
+
+    @Test
+    public void onlyTheRegionViewPreviewsARegionAndOnlyOneTheWorldPrepared() throws Exception {
+        assertEquals(400, get("hover?view=biomes&preview=temperate&x=0&z=0").statusCode());
+        assertEquals(400, get("hover?view=regions&preview=nowhere&x=0&z=0").statusCode());
+    }
+
+    @Test
+    public void theHeightViewHasNoPicksToInspect() throws Exception {
+        assertEquals(400, get("picks?view=height&minX=0&minZ=0&maxX=10&maxZ=10").statusCode());
     }
 
     @Test

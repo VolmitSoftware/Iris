@@ -26,10 +26,12 @@ import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.function.BooleanSupplier;
 
@@ -44,39 +46,81 @@ public final class MapTileRenderer {
     /**
      * The square of {@code size} pixels whose top left pixel samples ({@code startX}, {@code startZ}).
      *
-     * @param withHeights also sample terrain heights, for shading; the height view always has them
+     * @param extras what to sample besides the labels; the height view always has heights, and only a layer that
+     *               {@linkplain MapLayer#hasPickNoise() has pick noise} gets it
      * @throws CancellationException as soon as {@code cancelled} answers true
      */
-    public MapTile render(MapView view, double startX, double startZ, double blocksPerPixel, int size,
-                          boolean withHeights, BooleanSupplier cancelled) {
+    public MapTile render(MapLayer layer, double startX, double startZ, double blocksPerPixel, int size,
+                          Set<MapTile.Extra> extras, BooleanSupplier cancelled) {
         if (!Double.isFinite(startX) || !Double.isFinite(startZ) || !Double.isFinite(blocksPerPixel) || blocksPerPixel <= 0D) {
             throw new IllegalArgumentException("Map tile coordinates and scale must be finite");
         }
         if (size < 1) {
             throw new IllegalArgumentException("Map tile size must be positive");
         }
-        Objects.requireNonNull(view, "view");
+        Objects.requireNonNull(layer, "layer");
+        Objects.requireNonNull(extras, "extras");
         Objects.requireNonNull(cancelled, "cancelled");
         checkCancelled(cancelled);
 
         TileGrid grid = new TileGrid(size + 2, startX - blocksPerPixel, startZ - blocksPerPixel, blocksPerPixel, cancelled);
-        TileLabels labels = new TileLabels(engine, view.colorType());
-        short[] regions = sampleRegions(grid, labels);
-        short[] subjects = view.labelsRegions() ? regions : sampleBiomes(grid, labels, view.biomeStream(engine.getComplex()));
-        float[] heights = withHeights || view == MapView.HEIGHT
-                ? new HeightLattice(grid, engine.getComplex().getHeightStream()).interpolatedHeights()
+        return layer.previews()
+                ? renderPreview(layer, grid, blocksPerPixel, extras)
+                : renderView(layer, grid, blocksPerPixel, extras);
+    }
+
+    private MapTile renderView(MapLayer layer, TileGrid grid, double blocksPerPixel, Set<MapTile.Extra> extras) {
+        TileLabels labels = new TileLabels(engine, layer.colorType());
+        IrisComplex complex = engine.getComplex();
+        ProceduralStream<IrisRegion> regionStream = complex.getRegionStream();
+        short[] regions = everyCell(grid, (x, z) -> labels.indexOf(regionStream.get(x, z)));
+        ProceduralStream<IrisBiome> biomeStream = layer.view().biomeStream(complex);
+        short[] subjects = layer.labelsRegions() ? regions : everyCell(grid, (x, z) -> labels.indexOf(biomeStream.get(x, z)));
+        float[] heights = extras.contains(MapTile.Extra.HEIGHTS) || layer.view() == MapView.HEIGHT ? latticeHeights(grid) : null;
+        float[] pickNoise = extras.contains(MapTile.Extra.PICK_NOISE) && layer.hasPickNoise()
+                ? MapPickNoise.sample(engine, layer, grid)
                 : null;
-        MapLabel.Kind subjectKind = view.labelsRegions() ? MapLabel.Kind.REGION : MapLabel.Kind.BIOME;
-        return new MapTile(size, blocksPerPixel, subjectKind, labels.labels(), subjects, regions, heights);
+        MapLabel.Kind subjectKind = layer.labelsRegions() ? MapLabel.Kind.REGION : MapLabel.Kind.BIOME;
+        return new MapTile(grid.size() - 2, blocksPerPixel, subjectKind, labels.labels(), subjects, regions, heights, pickNoise);
     }
 
-    private static short[] sampleRegions(TileGrid grid, TileLabels labels) {
-        ProceduralStream<IrisRegion> stream = labels.engine.getComplex().getRegionStream();
-        return everyCell(grid, (x, z) -> labels.indexOf(stream.get(x, z)));
+    // Each spot's surface biome hangs on its height, which the lattice gives at a fraction of the exact heights' cost.
+    // Only a coastline pixel whose smoothed height lands across the shore line can show another biome than its hover.
+    private MapTile renderPreview(MapLayer layer, TileGrid grid, double blocksPerPixel, Set<MapTile.Extra> extras) {
+        TileLabels labels = new TileLabels(engine, layer.colorType());
+        IrisRegion region = layer.previewRegion();
+        float[] heights = latticeHeights(grid);
+        IrisComplex.BiomePick[] picks = previewPicks(grid, region, heights);
+        short[] subjects = new short[picks.length];
+        for (int cell = 0; cell < picks.length; cell++) {
+            subjects[cell] = labels.indexOf(picks[cell].biome());
+        }
+        short[] regions = new short[picks.length];
+        Arrays.fill(regions, labels.indexOf(region));
+        float[] pickNoise = extras.contains(MapTile.Extra.PICK_NOISE)
+                ? MapPickNoise.samplePreview(engine, region, grid, picks)
+                : null;
+        float[] requestedHeights = extras.contains(MapTile.Extra.HEIGHTS) ? heights : null;
+        return new MapTile(grid.size() - 2, blocksPerPixel, MapLabel.Kind.BIOME, labels.labels(), subjects, regions, requestedHeights, pickNoise);
     }
 
-    private static short[] sampleBiomes(TileGrid grid, TileLabels labels, ProceduralStream<IrisBiome> stream) {
-        return everyCell(grid, (x, z) -> labels.indexOf(stream.get(x, z)));
+    private IrisComplex.BiomePick[] previewPicks(TileGrid grid, IrisRegion region, float[] heights) {
+        IrisComplex complex = engine.getComplex();
+        int size = grid.size();
+        IrisComplex.BiomePick[] picks = new IrisComplex.BiomePick[size * size];
+        for (int gridZ = 0; gridZ < size; gridZ++) {
+            checkCancelled(grid.cancelled());
+            double worldZ = grid.worldZ(gridZ);
+            for (int gridX = 0; gridX < size; gridX++) {
+                int cell = gridZ * size + gridX;
+                picks[cell] = complex.surfacePickAsIfIn(region, grid.worldX(gridX), worldZ, heights[cell]);
+            }
+        }
+        return picks;
+    }
+
+    private float[] latticeHeights(TileGrid grid) {
+        return new HeightLattice(grid, engine.getComplex().getHeightStream()).interpolatedHeights();
     }
 
     // A fractured child style speckles finer than any square a few samples could vouch for, so every cell is asked.

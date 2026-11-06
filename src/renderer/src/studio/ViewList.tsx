@@ -18,10 +18,12 @@ interface ViewListProps {
   views: ViewInfo[]
   current: string
   onSelect(view: string): void
+  /** What the current view adds below the views, such as the regions it can preview. */
+  children?: React.ReactNode
 }
 
 /** The views the server offers, in its groups, each with what it shows and its key. */
-export function ViewList({ views, current, onSelect }: ViewListProps): React.JSX.Element {
+export function ViewList({ views, current, onSelect, children }: ViewListProps): React.JSX.Element {
   const groups = [...new Set(views.map((view) => view.groupLabel))]
   return (
     <aside className="w-60 shrink-0 border-r bg-card">
@@ -37,6 +39,7 @@ export function ViewList({ views, current, onSelect }: ViewListProps): React.JSX
                 ))}
             </section>
           ))}
+          {children}
         </nav>
       </ScrollArea>
     </aside>

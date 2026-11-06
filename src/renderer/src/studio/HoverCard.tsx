@@ -10,6 +10,8 @@ interface HoverCardProps {
   hover: MapHover
   point: CanvasPoint
   viewId: string
+  /** The region view fills the map with one region's biomes, so the spot is described by its previewed biome. */
+  previewing: boolean
   detailed: boolean
   minY: number
 }
@@ -24,7 +26,7 @@ interface Row {
 }
 
 /** The spot under the cursor: its biome and ground, and with Shift held, the rest of what the server knows. */
-export function HoverCard({ hover, point, viewId, detailed, minY }: HoverCardProps): React.JSX.Element {
+export function HoverCard({ hover, point, viewId, previewing, detailed, minY }: HoverCardProps): React.JSX.Element {
   const card = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState({ left: point.x + CURSOR_GAP_PIXELS, top: point.y + CURSOR_GAP_PIXELS })
 
@@ -42,7 +44,8 @@ export function HoverCard({ hover, point, viewId, detailed, minY }: HoverCardPro
     })
   }, [point, hover, detailed])
 
-  const subject = viewId === 'caveBiomes' ? hover.caveBiome : viewId === 'regions' ? hover.region : hover.biome
+  const labelsRegions = viewId === 'regions' && !previewing
+  const subject = viewId === 'caveBiomes' ? hover.caveBiome : labelsRegions ? hover.region : hover.biome
   const groups = detailed ? detailGroups(hover, viewId) : []
   const parent = replacedParent(hover.pickPath)
   return (
@@ -51,7 +54,7 @@ export function HoverCard({ hover, point, viewId, detailed, minY }: HoverCardPro
       className="pointer-events-none absolute z-10 w-80 rounded-[10px] border border-overlay-border bg-popover px-3.5 py-3 text-popover-foreground shadow-xl backdrop-blur-sm"
       style={position}
     >
-      <Header subject={subject} region={viewId === 'regions' ? null : hover.region} />
+      <Header subject={subject} region={labelsRegions ? null : hover.region} />
       {parent !== null && <p className="mt-0.5 truncate text-[12px] text-secondary-text">child of {parent}</p>}
       <p className="mt-0.5 truncate text-[12px] text-secondary-text tabular-nums">{ground(hover, minY)}</p>
       <PickRows path={hover.pickPath} />

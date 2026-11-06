@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ThemeChoice } from '../../../shared/bridge'
-import type { BridgeClient } from '../bridge/BridgeClient'
-import type { MapHover, Marker, WorldInfo } from '../bridge/types'
+import type { BridgeClient, MapLayerQuery, WorldRect } from '../bridge/BridgeClient'
+import type { MapHover, MapLabel, Marker, PickDisplay, PickInspection, WorldInfo } from '../bridge/types'
 import type { Share } from '../map/census'
 import type { MapController, MapStatus, MapToggles } from '../map/MapController'
 import type { Highlight } from '../map/tileStyle'
@@ -9,6 +9,8 @@ import { HelpDialog } from './HelpDialog'
 import { HoverCard } from './HoverCard'
 import { Legend } from './Legend'
 import { MapCanvas, type CanvasPoint } from './MapCanvas'
+import { PickInspector } from './PickInspector'
+import { RegionPreviewList } from './RegionPreviewList'
 import { actionForKey, viewForKey, type ShortcutAction } from './shortcuts'
 import { StatusBar } from './StatusBar'
 import { StudioToolbar } from './StudioToolbar'
@@ -17,6 +19,10 @@ import { ViewList } from './ViewList'
 const KEYBOARD_ZOOM_FACTOR = 2 ** 0.25
 const ENTITY_POLL_MILLIS = 2000
 const NOTICE_MILLIS = 4000
+// Measuring the picks in view samples thousands of spots, so it waits for the map to rest.
+const INSPECTION_REST_MILLIS = 350
+/** The views whose spots a noise picks, which the pick inspector explains. */
+const PICK_VIEWS = new Set(['biomes', 'regions'])
 
 interface MapStudioProps {
   client: BridgeClient
@@ -46,7 +52,16 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   const [helpOpen, setHelpOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [connected, setConnected] = useState(true)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [pickDisplay, setPickDisplay] = useState<PickDisplay>('picks')
+  const [area, setArea] = useState<WorldRect | null>(null)
+  const [packRevision, setPackRevision] = useState(0)
   const view = world.views.find((candidate) => candidate.id === viewId) ?? world.views[0]
+  const layer = useMemo<MapLayerQuery>(() => ({ view: viewId, preview: viewId === 'regions' ? preview : null }), [viewId, preview])
+  const regions = usePreviewableRegions(client, packRevision)
+  const inspectsPicks = PICK_VIEWS.has(viewId)
+  const inspection = usePickInspection(client, layer, area, inspectsPicks, packRevision)
+  const previewName = layer.preview === null ? null : (regions.find((region) => region.key === layer.preview)?.name ?? layer.preview)
 
   const tell = useCallback((message: string) => setNotice(message), [])
 
@@ -58,7 +73,8 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
     return () => window.clearTimeout(timer)
   }, [notice])
 
-  useEffect(() => controller.current?.setView(viewId), [viewId])
+  useEffect(() => controller.current?.setView(layer.view, layer.preview), [layer])
+  useEffect(() => controller.current?.setPickDisplay(pickDisplay), [pickDisplay])
   useEffect(() => controller.current?.setToggles(toggles), [toggles])
   useEffect(() => controller.current?.setHighlight(highlight), [highlight])
   useEffect(() => controller.current?.setMarkers(players, toggles.entities ? entities : []), [players, entities, toggles.entities])
@@ -69,12 +85,18 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
     }
   }, [players, toggles.follow])
 
-  useServerEvents(client, controller, setPlayers, tell, setConnected)
+  const packReloaded = useCallback(() => setPackRevision((revision) => revision + 1), [])
+  useServerEvents(client, controller, setPlayers, tell, setConnected, packReloaded)
   useEntities(client, toggles.entities, setEntities)
-  useHover(client, controller, viewId, pointer, setHover)
+  useHover(client, controller, layer, pointer, setHover)
 
   const selectView = useCallback((nextViewId: string) => {
     setViewId(nextViewId)
+    setHighlight(null)
+  }, [])
+
+  const selectPreview = useCallback((regionKey: string | null) => {
+    setPreview(regionKey)
     setHighlight(null)
   }, [])
 
@@ -181,14 +203,16 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         onDisconnect={onDisconnect}
       />
       <div className="flex min-h-0 flex-1">
-        <ViewList views={world.views} current={viewId} onSelect={selectView} />
+        <ViewList views={world.views} current={viewId} onSelect={selectView}>
+          {viewId === 'regions' && regions.length > 1 && <RegionPreviewList regions={regions} current={layer.preview} onSelect={selectPreview} />}
+        </ViewList>
         <div className="relative min-w-0 flex-1">
           <MapCanvas
             client={client}
             world={world}
             viewId={viewId}
             controllerRef={controller}
-            listener={{ onStatus: setStatus, onShares: setShares, onError: tell }}
+            listener={{ onStatus: setStatus, onShares: setShares, onArea: (next) => setArea((current) => (sameRect(current, next) ? current : next)), onError: tell }}
             onPointer={setPointer}
             onDragged={() => setToggles((current) => (current.follow ? { ...current, follow: false } : current))}
             onTeleport={teleport}
@@ -201,7 +225,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
             }}
           />
           {pointer !== null && hover !== null && (
-            <HoverCard hover={hover} point={pointer} viewId={viewId} detailed={detailed} minY={world.minY} />
+            <HoverCard hover={hover} point={pointer} viewId={viewId} previewing={layer.preview !== null} detailed={detailed} minY={world.minY} />
           )}
           {!connected && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/70">
@@ -214,14 +238,26 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
             </div>
           )}
         </div>
-        <Legend
-          title={legendTitle(viewId)}
-          shares={shares}
-          highlight={highlight}
-          onSelect={(subject) => setHighlight((current) => (sameSubject(current, subject) ? null : subject))}
-        />
+        <aside className="flex w-[250px] shrink-0 flex-col border-l bg-card">
+          {inspectsPicks && (
+            <PickInspector
+              title={previewName ?? view.label}
+              picksLabel={viewId === 'regions' && layer.preview === null ? 'Regions' : 'Biomes'}
+              inspection={inspection}
+              display={pickDisplay}
+              onDisplay={setPickDisplay}
+            />
+          )}
+          <Legend
+            className={inspectsPicks ? 'flex-[3]' : 'flex-1'}
+            title={legendTitle(layer)}
+            shares={shares}
+            highlight={highlight}
+            onSelect={(subject) => setHighlight((current) => (sameSubject(current, subject) ? null : subject))}
+          />
+        </aside>
       </div>
-      <StatusBar viewLabel={view.label} status={status} notice={notice} />
+      <StatusBar viewLabel={previewName === null ? view.label : `${view.label} · ${previewName}`} status={status} notice={notice} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} views={world.views} />
     </div>
   )
@@ -231,11 +267,63 @@ function sameSubject(first: Highlight | null, second: Highlight | null): boolean
   return first !== null && second !== null && first.kind === second.kind && first.key === second.key
 }
 
-function legendTitle(viewId: string): string {
-  if (viewId === 'regions') {
+function sameRect(first: WorldRect | null, second: WorldRect): boolean {
+  return first !== null && first.minX === second.minX && first.minZ === second.minZ && first.maxX === second.maxX && first.maxZ === second.maxZ
+}
+
+function legendTitle(layer: MapLayerQuery): string {
+  if (layer.view === 'regions' && layer.preview === null) {
     return 'Regions on screen'
   }
-  return viewId === 'height' ? 'Heights on screen' : 'Biomes on screen'
+  return layer.view === 'height' ? 'Heights on screen' : 'Biomes on screen'
+}
+
+/** The regions the region view can preview, read again after the pack reloads. */
+function usePreviewableRegions(client: BridgeClient, packRevision: number): MapLabel[] {
+  const [regions, setRegions] = useState<MapLabel[]>([])
+  useEffect(() => {
+    let active = true
+    client
+      .regions()
+      .then((found) => active && setRegions(found))
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [client, packRevision])
+  return regions
+}
+
+/**
+ * Measures how the noise picks what the view shows, once the map has rested on an area for a moment; the last
+ * measurement stays up until the next one arrives, so panning does not blank the panel.
+ */
+function usePickInspection(
+  client: BridgeClient,
+  layer: MapLayerQuery,
+  area: WorldRect | null,
+  enabled: boolean,
+  packRevision: number
+): PickInspection | null {
+  const [inspection, setInspection] = useState<PickInspection | null>(null)
+  useEffect(() => setInspection(null), [layer, packRevision])
+  useEffect(() => {
+    if (!enabled || area === null) {
+      return
+    }
+    const stop = new AbortController()
+    const timer = window.setTimeout(() => {
+      client
+        .picks(layer, area, stop.signal)
+        .then(setInspection)
+        .catch(() => undefined)
+    }, INSPECTION_REST_MILLIS)
+    return () => {
+      window.clearTimeout(timer)
+      stop.abort()
+    }
+  }, [client, layer, area, enabled, packRevision])
+  return inspection
 }
 
 /** Players and hotloads from the server; the first world event only says the world runs, which is known. */
@@ -244,7 +332,8 @@ function useServerEvents(
   controller: React.RefObject<MapController | null>,
   setPlayers: (players: Marker[]) => void,
   tell: (message: string) => void,
-  setConnected: (connected: boolean) => void
+  setConnected: (connected: boolean) => void,
+  onPackReloaded: () => void
 ): void {
   useEffect(() => {
     const stop = new AbortController()
@@ -258,6 +347,7 @@ function useServerEvents(
           }
           if (running) {
             controller.current?.refresh()
+            onPackReloaded()
             tell('Pack reloaded, redrawing')
           } else {
             tell('The world stopped')
@@ -269,7 +359,7 @@ function useServerEvents(
       stop.signal
     )
     return () => stop.abort()
-  }, [client, controller, setPlayers, tell, setConnected])
+  }, [client, controller, setPlayers, tell, setConnected, onPackReloaded])
 }
 
 function useEntities(client: BridgeClient, visible: boolean, setEntities: (entities: Marker[]) => void): void {
@@ -297,7 +387,7 @@ function useEntities(client: BridgeClient, visible: boolean, setEntities: (entit
 function useHover(
   client: BridgeClient,
   controller: React.RefObject<MapController | null>,
-  viewId: string,
+  layer: MapLayerQuery,
   pointer: CanvasPoint | null,
   setHover: (hover: MapHover | null) => void
 ): void {
@@ -309,11 +399,11 @@ function useHover(
     const spot = controller.current.worldAt(pointer.x, pointer.y)
     const stop = new AbortController()
     client
-      .hover(viewId, Math.floor(spot.x), Math.floor(spot.z), stop.signal)
+      .hover(layer, Math.floor(spot.x), Math.floor(spot.z), stop.signal)
       .then(setHover)
       .catch(() => undefined)
     return () => stop.abort()
-  }, [client, controller, viewId, pointer, setHover])
+  }, [client, controller, layer, pointer, setHover])
 }
 
 function useKeyboard(

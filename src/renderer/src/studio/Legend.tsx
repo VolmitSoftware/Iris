@@ -9,13 +9,14 @@ interface LegendProps {
   shares: Share[]
   highlight: Highlight | null
   onSelect(subject: Highlight): void
+  className?: string
 }
 
 /** What is on screen and how much of it each covers; clicking one highlights it on the map. */
-export function Legend({ title, shares, highlight, onSelect }: LegendProps): React.JSX.Element {
+export function Legend({ title, shares, highlight, onSelect, className }: LegendProps): React.JSX.Element {
   const sharedNames = namesUsedMoreThanOnce(shares)
   return (
-    <aside className="flex w-[250px] shrink-0 flex-col border-l bg-card">
+    <section className={cn('flex min-h-0 flex-col', className)}>
       <h2 className="px-4 pt-2.5 pb-1.5 text-[11px] font-semibold text-muted-foreground">{title}</h2>
       <ScrollArea className="min-h-0 flex-1">
         <ul className="px-1.5 pb-1">
@@ -44,7 +45,7 @@ export function Legend({ title, shares, highlight, onSelect }: LegendProps): Rea
         </ul>
       </ScrollArea>
       <p className="px-4 pt-1.5 pb-2 text-[11px] text-muted-foreground">Click to highlight · Esc clears</p>
-    </aside>
+    </section>
   )
 }
 

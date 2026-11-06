@@ -8,6 +8,7 @@ interface TileHeader {
   subjectKind: LabelKind
   labels: MapLabel[]
   heights: boolean
+  pickNoise: boolean
 }
 
 function aligned(bytes: number): number {
@@ -16,7 +17,8 @@ function aligned(bytes: number): number {
 
 /**
  * Reads a tile as the bridge writes it (MapTileEncoding): a u32 header length, the JSON header, then the subject,
- * region and height grids, each starting on a multiple of 4 bytes. The grids are views into the buffer, not copies.
+ * region, height and pick noise grids, each starting on a multiple of 4 bytes. The grids are views into the buffer,
+ * not copies.
  */
 export function decodeTile(buffer: ArrayBuffer): MapTile {
   const view = new DataView(buffer)
@@ -27,6 +29,7 @@ export function decodeTile(buffer: ArrayBuffer): MapTile {
   const subjectsAt = aligned(4 + headerLength)
   const regionsAt = aligned(subjectsAt + cells * Int16Array.BYTES_PER_ELEMENT)
   const heightsAt = aligned(regionsAt + cells * Int16Array.BYTES_PER_ELEMENT)
+  const pickNoiseAt = heightsAt + (header.heights ? cells * Float32Array.BYTES_PER_ELEMENT : 0)
   return {
     size: header.size,
     blocksPerPixel: header.blocksPerPixel,
@@ -34,7 +37,8 @@ export function decodeTile(buffer: ArrayBuffer): MapTile {
     labels: header.labels,
     subjects: new Int16Array(buffer, subjectsAt, cells),
     regions: new Int16Array(buffer, regionsAt, cells),
-    heights: header.heights ? new Float32Array(buffer, heightsAt, cells) : null
+    heights: header.heights ? new Float32Array(buffer, heightsAt, cells) : null,
+    pickNoise: header.pickNoise ? new Float32Array(buffer, pickNoiseAt, cells) : null
   }
 }
 

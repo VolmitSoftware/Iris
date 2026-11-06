@@ -1,6 +1,6 @@
 import type { BridgeConnection } from '../../../shared/bridge'
 import { decodeTile } from './tileDecoding'
-import type { MapHover, MapTile, Marker, WorldInfo } from './types'
+import type { MapHover, MapLabel, MapTile, Marker, PickInspection, WorldInfo } from './types'
 
 export class BridgeError extends Error {
   constructor(
@@ -13,11 +13,27 @@ export class BridgeError extends Error {
 
 export interface TileRequest {
   view: string
+  /** The region the region view previews everywhere, or null for the world as it is. */
+  preview: string | null
   tileX: number
   tileZ: number
   blocksPerPixel: number
   size: number
   heights: boolean
+  pickNoise: boolean
+}
+
+/** What a map spot or area is asked about: a view, and the region it previews. */
+export interface MapLayerQuery {
+  view: string
+  preview: string | null
+}
+
+export interface WorldRect {
+  minX: number
+  minZ: number
+  maxX: number
+  maxZ: number
 }
 
 export interface BridgeEvents {
@@ -42,8 +58,19 @@ export class BridgeClient {
     return this.json('world')
   }
 
-  hover(view: string, worldX: number, worldZ: number, signal?: AbortSignal): Promise<MapHover> {
-    return this.json(`hover?view=${encodeURIComponent(view)}&x=${worldX}&z=${worldZ}`, { signal })
+  hover(layer: MapLayerQuery, worldX: number, worldZ: number, signal?: AbortSignal): Promise<MapHover> {
+    return this.json(`hover?${layerQuery(layer, { x: String(worldX), z: String(worldZ) })}`, { signal })
+  }
+
+  /** How the noise picks what the layer shows across {@code area}. */
+  picks(layer: MapLayerQuery, area: WorldRect, signal?: AbortSignal): Promise<PickInspection> {
+    const corners = { minX: String(area.minX), minZ: String(area.minZ), maxX: String(area.maxX), maxZ: String(area.maxZ) }
+    return this.json(`picks?${layerQuery(layer, corners)}`, { signal })
+  }
+
+  /** The regions the world picks biomes for, which the region view can preview. */
+  regions(): Promise<MapLabel[]> {
+    return this.json('regions')
   }
 
   entities(): Promise<Marker[]> {
@@ -61,13 +88,13 @@ export class BridgeClient {
   }
 
   async tile(request: TileRequest, signal: AbortSignal): Promise<MapTile> {
-    const query = new URLSearchParams({
-      view: request.view,
+    const query = layerQuery(request, {
       x: String(request.tileX),
       z: String(request.tileZ),
       scale: String(request.blocksPerPixel),
       size: String(request.size),
-      heights: request.heights ? '1' : '0'
+      heights: request.heights ? '1' : '0',
+      noise: request.pickNoise ? '1' : '0'
     })
     const response = await this.fetch(`tile?${query}`, { signal })
     return decodeTile(await response.arrayBuffer())
@@ -118,6 +145,14 @@ export class BridgeClient {
     }
     return response
   }
+}
+
+function layerQuery(layer: MapLayerQuery, rest: Record<string, string>): URLSearchParams {
+  const query = new URLSearchParams({ view: layer.view, ...rest })
+  if (layer.preview !== null) {
+    query.set('preview', layer.preview)
+  }
+  return query
 }
 
 function dispatch(block: string, events: BridgeEvents): void {

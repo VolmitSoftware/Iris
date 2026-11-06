@@ -1,6 +1,6 @@
-import type { BridgeClient } from '../bridge/BridgeClient'
+import type { BridgeClient, WorldRect } from '../bridge/BridgeClient'
 import { gridIndex } from '../bridge/tileDecoding'
-import { NO_LABEL, type MapLabel, type Marker, type WorldInfo } from '../bridge/types'
+import { NO_LABEL, type MapLabel, type Marker, type PickDisplay, type WorldInfo } from '../bridge/types'
 import { countShares, type PlacedTile, type Share } from './census'
 import { bandIndexOf, HEIGHT_BANDS } from './heightColors'
 import type { Highlight, TileStyle } from './tileStyle'
@@ -33,8 +33,13 @@ export interface MapStatus {
 export interface MapListener {
   onStatus(status: MapStatus): void
   onShares(shares: Share[]): void
+  /** The world area on screen, reported with the shares: a few times a second while it moves, and once at rest. */
+  onArea(area: WorldRect): void
   onError(message: string): void
 }
+
+/** The views whose spots a noise picks, so they can draw that noise. */
+const PICK_NOISE_VIEWS = new Set(['biomes', 'regions'])
 
 /** What the map shows at a spot, read from the tiles already drawn. */
 export interface SpotSubjects {
@@ -72,6 +77,7 @@ export class MapController {
   private readonly view: Viewport = { centerX: 0, centerZ: 0, blocksPerPixel: DEFAULT_BLOCKS_PER_PIXEL, width: 1, height: 1 }
   private layer: TileLayer
   private toggles: MapToggles = { shading: true, regionBorders: false, grid: false }
+  private pickDisplay: PickDisplay = 'picks'
   private highlight: Highlight | null = null
   private players: Marker[] = []
   private entities: Marker[] = []
@@ -89,7 +95,7 @@ export class MapController {
     private readonly listener: MapListener
   ) {
     this.context = canvas.getContext('2d')!
-    this.layer = { view, heights: this.needsHeights(view, this.toggles), revision: 0 }
+    this.layer = { view, preview: null, heights: this.needsHeights(view, this.toggles), pickNoise: false, revision: 0 }
     this.store = new TileStore(client, world.tileSize, () => this.redraw(), (message) => listener.onError(message))
   }
 
@@ -108,9 +114,27 @@ export class MapController {
     this.redraw()
   }
 
-  setView(view: string): void {
-    this.layer = { ...this.layer, view, heights: this.needsHeights(view, this.toggles) }
+  /** Shows a view; the region view previews {@code preview} everywhere when it is not null. */
+  setView(view: string, preview: string | null = null): void {
+    this.layer = {
+      ...this.layer,
+      view,
+      preview: view === 'regions' ? preview : null,
+      heights: this.needsHeights(view, this.toggles),
+      pickNoise: this.needsPickNoise(view, this.pickDisplay)
+    }
     this.redraw()
+  }
+
+  setPickDisplay(display: PickDisplay): void {
+    this.pickDisplay = display
+    this.layer = { ...this.layer, pickNoise: this.needsPickNoise(this.layer.view, display) }
+    this.redraw()
+  }
+
+  // Tiles only carry their pick noise while it is drawn, so drawing the picks alone costs nothing extra.
+  private needsPickNoise(view: string, display: PickDisplay): boolean {
+    return display !== 'picks' && PICK_NOISE_VIEWS.has(view)
   }
 
   setToggles(toggles: MapToggles): void {
@@ -214,7 +238,8 @@ export class MapController {
       shading: this.toggles.shading,
       regionBorders: this.toggles.regionBorders,
       highlight: this.highlight,
-      seaLevel: this.world.fluidHeight
+      seaLevel: this.world.fluidHeight,
+      pickDisplay: this.pickDisplay
     }
   }
 
@@ -375,7 +400,17 @@ export class MapController {
     this.censusTimer = window.setTimeout(() => {
       this.lastCensusMillis = performance.now()
       this.listener.onShares(this.census(tiles))
+      this.listener.onArea(this.screenArea())
     }, wait)
+  }
+
+  private screenArea(): WorldRect {
+    return {
+      minX: screenToWorldX(this.view, 0),
+      minZ: screenToWorldZ(this.view, 0),
+      maxX: screenToWorldX(this.view, this.view.width),
+      maxZ: screenToWorldZ(this.view, this.view.height)
+    }
   }
 
   private census(tiles: TileAddress[]): Share[] {
@@ -387,12 +422,8 @@ export class MapController {
         placed.push({ tile, worldX: address.tileX * span, worldZ: address.tileZ * span })
       }
     }
-    const area = {
-      minimumX: screenToWorldX(this.view, 0),
-      minimumZ: screenToWorldZ(this.view, 0),
-      maximumX: screenToWorldX(this.view, this.view.width),
-      maximumZ: screenToWorldZ(this.view, this.view.height)
-    }
+    const screen = this.screenArea()
+    const area = { minimumX: screen.minX, minimumZ: screen.minZ, maximumX: screen.maxX, maximumZ: screen.maxZ }
     return countShares(placed, area, this.isHeightView(), this.world.fluidHeight)
   }
 }

@@ -6,7 +6,10 @@ import type { TileAddress } from './viewport'
 /** What one tile request needs besides where the tile is. */
 export interface TileLayer {
   view: string
+  /** The region the region view previews everywhere, or null for the world as it is. */
+  preview: string | null
   heights: boolean
+  pickNoise: boolean
   /** Bumped when the pack is hotloaded, so older tiles are not used again. */
   revision: number
 }
@@ -44,7 +47,8 @@ export class TileStore {
   ) {}
 
   key(address: TileAddress, layer: TileLayer): string {
-    return `${layer.revision}/${layer.view}/${layer.heights}/${address.blocksPerPixel}/${address.tileX}/${address.tileZ}`
+    const parts = [layer.revision, layer.view, layer.preview ?? '', layer.heights, layer.pickNoise]
+    return `${parts.join('/')}/${address.blocksPerPixel}/${address.tileX}/${address.tileZ}`
   }
 
   /** The tile if it has arrived, marked as just used. */
@@ -118,7 +122,7 @@ export class TileStore {
   private fetchTile(key: string, address: TileAddress, layer: TileLayer): void {
     const controller = new AbortController()
     this.inFlight.set(key, controller)
-    const request = { view: layer.view, ...address, size: this.tileSize, heights: layer.heights }
+    const request = { ...layer, ...address, size: this.tileSize }
     this.client
       .tile(request, controller.signal)
       .then((tile) => this.store(key, tile))
@@ -139,7 +143,7 @@ export class TileStore {
   }
 
   private store(key: string, tile: MapTile): void {
-    const bytes = tile.subjects.byteLength * 2 + (tile.heights?.byteLength ?? 0) + tile.size * tile.size * 4
+    const bytes = tile.subjects.byteLength * 2 + (tile.heights?.byteLength ?? 0) + (tile.pickNoise?.byteLength ?? 0) + tile.size * tile.size * 4
     this.tiles.set(key, { tile, bytes, lastUsed: ++this.useClock, picture: null, pictureStyle: '' })
     this.storedBytes += bytes
     this.evictOldest()

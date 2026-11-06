@@ -4,6 +4,8 @@ import { hexColor } from './colors'
 // Gaps between bands shrink as there are more of them, so many thin bands still read as a bar.
 const WIDE_GAP_MOST_BANDS = 18
 const NARROW_GAP_MOST_BANDS = 50
+/** Why a step that nothing picked has its label. */
+const UNPICKED_NOTES: Partial<Record<PickStep['kind'], string>> = { FOCUS: 'Focus', IMAGE_MAP: 'Image map', PREVIEW: 'Preview' }
 
 /** How the spot got its region and biome: one row per pick, the noise value marked on every option's share of it. */
 export function PickRows({ path }: { path: PickStep[] }): React.JSX.Element | null {
@@ -24,7 +26,7 @@ function PickRow({ step }: { step: PickStep }): React.JSX.Element {
     <>
       <span className="text-muted-foreground">{rowLabel(step)}</span>
       {step.noise === null ? (
-        <span className="truncate text-secondary-text">{step.kind === 'FOCUS' ? 'Focus' : 'Image map'}</span>
+        <span className="truncate text-secondary-text">{UNPICKED_NOTES[step.kind] ?? ''}</span>
       ) : (
         <NoiseBar bands={step.bands} noise={step.noise} />
       )}
@@ -73,6 +75,7 @@ function rowLabel(step: PickStep): string {
       return 'Child'
     case 'IMAGE_MAP':
     case 'FOCUS':
+    case 'PREVIEW':
       return step.picked.kind === 'REGION' ? 'Region' : 'Biome'
   }
 }

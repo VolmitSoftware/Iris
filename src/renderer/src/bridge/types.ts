@@ -47,8 +47,8 @@ export interface MapHover {
   pickPath: PickStep[]
 }
 
-/** REGION, BIOME and CHILD were picked by noise; IMAGE_MAP and FOCUS were set without a pick. */
-export type PickKind = 'REGION' | 'BIOME' | 'CHILD' | 'IMAGE_MAP' | 'FOCUS'
+/** REGION, BIOME and CHILD were picked by noise; IMAGE_MAP, FOCUS and PREVIEW were set without a pick. */
+export type PickKind = 'REGION' | 'BIOME' | 'CHILD' | 'IMAGE_MAP' | 'FOCUS' | 'PREVIEW'
 
 export interface PickStep {
   kind: PickKind
@@ -68,6 +68,40 @@ export interface PickBand {
   from: number
   to: number
 }
+
+/** How the noise picks what an area of the map shows (MapPickInspection). */
+export interface PickInspection {
+  detail: string
+  sections: PickSection[]
+}
+
+/** The picks on one region's ground; `region` is null in the region view, where the regions themselves are picked. */
+export interface PickSection {
+  region: MapLabel | null
+  /** How much of the area's picked ground the region holds. */
+  share: number
+  biomeCount: number
+  spreads: PickSpread[]
+}
+
+/** One noise in the area: its values in 50 equal steps from 0 to 1, and each option's share of it. */
+export interface PickSpread {
+  title: string
+  bands: PickBand[]
+  histogram: number[]
+  samples: number
+  rows: PickShare[]
+}
+
+/** `weight`: how much of the noise picks the option; `inView`: how much of the area's values do. */
+export interface PickShare {
+  option: MapLabel
+  weight: number
+  inView: number
+}
+
+/** How the region and biome views draw their picks: the labels, the noise that picked them, or the labels by noise. */
+export type PickDisplay = 'picks' | 'noise' | 'both'
 
 export interface Marker {
   label: string
@@ -89,6 +123,8 @@ export interface MapTile {
   subjects: Int16Array
   regions: Int16Array
   heights: Float32Array | null
+  /** The noise value that settled each cell's pick, 0 to 1 and NaN where nothing picked it; null unless asked for. */
+  pickNoise: Float32Array | null
 }
 
 export const NO_LABEL = -1

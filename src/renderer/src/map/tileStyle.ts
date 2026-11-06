@@ -1,5 +1,5 @@
 import { gridIndex } from '../bridge/tileDecoding'
-import { NO_LABEL, type MapTile } from '../bridge/types'
+import { NO_LABEL, type MapTile, type PickDisplay } from '../bridge/types'
 import { bandIndexOf, blend, heightColor } from './heightColors'
 
 /** What a highlight picks out: a biome or region by key, or a height band in the height view. */
@@ -16,11 +16,13 @@ export interface TileStyle {
   regionBorders: boolean
   highlight: Highlight | null
   seaLevel: number
+  /** How tiles that carry their pick noise draw it. */
+  pickDisplay: PickDisplay
 }
 
 export function styleKey(style: TileStyle): string {
   const highlight = style.highlight === null ? '' : `${style.highlight.kind}:${style.highlight.key}`
-  return `${style.byHeight}|${style.shading}|${style.regionBorders}|${highlight}|${style.seaLevel}`
+  return `${style.byHeight}|${style.shading}|${style.regionBorders}|${highlight}|${style.seaLevel}|${style.pickDisplay}`
 }
 
 const UNKNOWN_SUBJECT = 0x5a5c62
@@ -43,6 +45,10 @@ const HIGHLIGHT_EDGE = 0xffffff
 const HIGHLIGHT_EDGE_STRENGTH = 0.55
 const REGION_BORDER = 0x101114
 const REGION_BORDER_STRENGTH = 0.6
+const NOISE_LOW = 0x050505
+const NOISE_HIGH = 0xffffff
+// Picks drawn by their noise keep some colour where the noise is low, so they still read as the pick.
+const DARKEST_PICK_SHADE = 0.3
 
 /** The tile's pixels as RGBA, as {@code style} draws them (v3e MapTile.styledPixels). */
 export function stylePixels(tile: MapTile, style: TileStyle): Uint8ClampedArray<ArrayBuffer> {
@@ -50,12 +56,17 @@ export function stylePixels(tile: MapTile, style: TileStyle): Uint8ClampedArray<
   const pixels = new Uint8ClampedArray(size * size * 4)
   const colors = tile.labels.map((label) => label.color)
   const byHeight = style.byHeight && heights !== null
-  const shading = (style.shading || byHeight) && heights !== null
+  const pickNoise = style.pickDisplay === 'picks' ? null : tile.pickNoise
+  // The bare noise is read by its brightness, which relief shading would mix up.
+  const shading = (style.shading || byHeight) && heights !== null && !(pickNoise !== null && style.pickDisplay === 'noise')
   const highlighted = highlightCells(tile, style)
   for (let pixelZ = 0; pixelZ < size; pixelZ++) {
     for (let pixelX = 0; pixelX < size; pixelX++) {
       const cell = gridIndex(tile, pixelX, pixelZ)
       let color = byHeight ? heightColor(heights[cell], style.seaLevel) : labelColor(colors, tile.subjects[cell])
+      if (pickNoise !== null) {
+        color = byNoise(color, pickNoise[cell], style.pickDisplay)
+      }
       if (shading) {
         color = shade(tile, heights, cell, color, style.seaLevel)
       }
@@ -77,6 +88,15 @@ export function stylePixels(tile: MapTile, style: TileStyle): Uint8ClampedArray<
 
 function labelColor(colors: number[], index: number): number {
   return index === NO_LABEL ? UNKNOWN_SUBJECT : colors[index]
+}
+
+// Where nothing picked the spot, as on an image map, it keeps its colour.
+function byNoise(color: number, noise: number, display: PickDisplay): number {
+  if (Number.isNaN(noise)) {
+    return color
+  }
+  const value = Math.min(1, Math.max(0, noise))
+  return display === 'noise' ? blend(NOISE_LOW, NOISE_HIGH, value) : scale(color, DARKEST_PICK_SHADE + (1 - DARKEST_PICK_SHADE) * value)
 }
 
 // Lit from the north west like a relief map, so slopes read as hills and valleys at a glance.

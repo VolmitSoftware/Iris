@@ -56,6 +56,7 @@ export function MapCanvas(props: MapCanvasProps): React.JSX.Element {
     const map = new MapController(canvas, client, world, viewId, {
       onStatus: (status) => latest.current.listener.onStatus(status),
       onShares: (shares) => latest.current.listener.onShares(shares),
+      onArea: (area) => latest.current.listener.onArea(area),
       onError: (message) => latest.current.listener.onError(message)
     })
     controllerRef.current = map

@@ -9,7 +9,7 @@ import { coarserTile, previewsFor, renderBlocksPerPixel, screenToWorldX, visible
 const PLAINS: MapLabel = { kind: 'BIOME', key: 'plains', name: 'Plains', color: 0x00ff00 }
 const DESERT: MapLabel = { kind: 'BIOME', key: 'desert', name: 'Desert', color: 0xffff00 }
 const WARM: MapLabel = { kind: 'REGION', key: 'warm', name: 'Warm', color: 0xff0000 }
-const FLAT: TileStyle = { byHeight: false, shading: false, regionBorders: false, highlight: null, seaLevel: 63 }
+const FLAT: TileStyle = { byHeight: false, shading: false, regionBorders: false, highlight: null, seaLevel: 63, pickDisplay: 'picks' }
 
 /** A tile whose left half is plains and right half desert, all in one region, at height 70. */
 function splitTile(size = 4): MapTile {
@@ -25,25 +25,32 @@ function splitTile(size = 4): MapTile {
     labels: [PLAINS, DESERT, WARM],
     subjects,
     regions: new Int16Array(cells).fill(2),
-    heights: new Float32Array(cells).fill(70)
+    heights: new Float32Array(cells).fill(70),
+    pickNoise: null
   }
 }
 
 /** A tile as the bridge sends it: u32 header length, JSON header, aligned grids. */
-function encode(size: number, withHeights: boolean): ArrayBuffer {
-  const header = new TextEncoder().encode(JSON.stringify({ size, blocksPerPixel: 2, subjectKind: 'BIOME', labels: [PLAINS], heights: withHeights }))
+function encode(size: number, withHeights: boolean, withPickNoise = false): ArrayBuffer {
+  const header = new TextEncoder().encode(
+    JSON.stringify({ size, blocksPerPixel: 2, subjectKind: 'BIOME', labels: [PLAINS], heights: withHeights, pickNoise: withPickNoise })
+  )
   const cells = (size + 2) ** 2
   const align = (bytes: number): number => Math.ceil(bytes / 4) * 4
   const subjectsAt = align(4 + header.length)
   const regionsAt = align(subjectsAt + cells * 2)
   const heightsAt = align(regionsAt + cells * 2)
-  const buffer = new ArrayBuffer(heightsAt + (withHeights ? cells * 4 : 0))
+  const pickNoiseAt = heightsAt + (withHeights ? cells * 4 : 0)
+  const buffer = new ArrayBuffer(pickNoiseAt + (withPickNoise ? cells * 4 : 0))
   new DataView(buffer).setUint32(0, header.length, true)
   new Uint8Array(buffer, 4).set(header)
   new Int16Array(buffer, subjectsAt, cells).fill(0)
   new Int16Array(buffer, regionsAt, cells).fill(-1)
   if (withHeights) {
     new Float32Array(buffer, heightsAt, cells).fill(81.5)
+  }
+  if (withPickNoise) {
+    new Float32Array(buffer, pickNoiseAt, cells).fill(0.25)
   }
   return buffer
 }
@@ -62,6 +69,37 @@ describe('tile decoding', () => {
 
   it('has no heights when the header says so', () => {
     expect(decodeTile(encode(3, false)).heights).toBeNull()
+  })
+
+  it('reads the pick noise after the heights, or in their place without them', () => {
+    expect(decodeTile(encode(3, true, true)).pickNoise?.[24]).toBe(0.25)
+    expect(decodeTile(encode(3, false, true)).pickNoise?.[0]).toBe(0.25)
+    expect(decodeTile(encode(3, true)).pickNoise).toBeNull()
+  })
+})
+
+describe('pick noise', () => {
+  function noisyTile(noise: number): MapTile {
+    const tile = splitTile()
+    return { ...tile, pickNoise: new Float32Array(tile.subjects.length).fill(noise) }
+  }
+
+  it('draws the bare noise from dark to white', () => {
+    const pixels = stylePixels(noisyTile(1), { ...FLAT, pickDisplay: 'noise' })
+
+    expect([pixels[0], pixels[1], pixels[2]]).toEqual([255, 255, 255])
+  })
+
+  it('draws the picks darker where their noise is lower', () => {
+    const pixels = stylePixels(noisyTile(0), { ...FLAT, pickDisplay: 'both' })
+
+    expect(pixels[1]).toBe(Math.floor(255 * 0.3))
+  })
+
+  it('leaves a spot nothing picked in its own colour', () => {
+    const pixels = stylePixels(noisyTile(Number.NaN), { ...FLAT, pickDisplay: 'noise' })
+
+    expect([pixels[0], pixels[1], pixels[2]]).toEqual([0, 255, 0])
   })
 })
 

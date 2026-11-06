@@ -25,6 +25,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.annotations.SerializedName;
 import com.volmit.config.JsonForms;
 import com.volmit.config.MaxNumber;
+import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 
 import java.lang.reflect.Array;
@@ -35,11 +36,8 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * The bounds IrisApi's {@link MinNumber} and {@link MaxNumber} declare, enforced on decoded settings. Only options the
- * JSON writes are checked: a default is the module's own choice.
- * <p>
- * {@code @MinItems} is not enforced yet: most options carrying {@code @MinItems(1)} default to an empty list, and
- * packs write {@code []} for them (OPEN_QUESTIONS 57).
+ * The bounds IrisApi's {@link MinNumber}, {@link MaxNumber} and {@link MinItems} declare, enforced on decoded settings.
+ * Only options the JSON writes are checked: a default is the module's own choice.
  */
 final class DeclaredBounds {
     private static final List<String> LIBRARY_PACKAGES = List.of("java.", "javax.", "com.google.gson.");
@@ -85,6 +83,18 @@ final class DeclaredBounds {
         MaxNumber maximum = field.getAnnotation(MaxNumber.class);
         if (maximum != null && value instanceof Number number && number.doubleValue() > maximum.value()) {
             throw new JsonParseException(path + " is " + number + "; it must be at most " + label(maximum.value()));
+        }
+        requireMinimumItems(field, value, path);
+    }
+
+    private static void requireMinimumItems(Field field, Object value, String path) {
+        MinItems minimumItems = field.getAnnotation(MinItems.class);
+        if (minimumItems == null || value == null) {
+            return;
+        }
+        int count = itemsOf(value).size();
+        if (count < minimumItems.value()) {
+            throw new JsonParseException(path + " has " + count + " items; it must have at least " + minimumItems.value());
         }
     }
 

@@ -151,6 +151,18 @@ public class DecorantSettingsDecodingTest {
                 + " not an object of options", refused.getMessage());
     }
 
+    @Test
+    public void aPaletteNeedsAnEntryButAnEmptyListOfNoneIsFine() {
+        List<Decorator> none = decorators("{\"decorators\": [{\"whitelist\": [], \"blacklist\": [], \"topPalette\": []}]}");
+        assertEquals(List.of(), none.getFirst().blacklist());
+
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> decorators("{\"decorators\": [{\"chance\": 1}, {\"palette\": []}]}"));
+
+        assertEquals("Cannot read settings iris:decorant under \"decorators\" in biome meadow:"
+                + " decorators[1].palette has 0 items; it must have at least 1", refused.getMessage());
+    }
+
     private List<Decorator> decorators(String biomeJson) {
         return decoder.decode(Level.BIOME, new JSONObject(biomeJson), "biome meadow")
                 .find(DecorantSettings.class).orElseThrow().decorators();

@@ -20,7 +20,6 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
-import art.arcane.iris.builtin.blocks.ObjectMarkers;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectRun;
 import art.arcane.iris.modules.objects.CarvedSpace;
@@ -37,6 +36,7 @@ import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockTrait;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.object.PlaceableObject;
+import com.volmit.placement.PlacedMarker;
 import com.volmit.placement.PlacementOutcome;
 import com.volmit.placement.PlacementTerrain;
 import com.volmit.stage.MantleStageContext;
@@ -145,11 +145,11 @@ final class ObjectChunk {
             if (tags.marker() != null) {
                 placer.recordPlacement(position.x(), position.y(), position.z(), tags.marker());
                 if (tags.treeMaterial()) {
-                    placer.mark(ObjectMarkers.treeMaterial(position));
+                    placer.mark(new PlacedMarker.TreeMaterial(position));
                 }
             }
             if (tags.buriedTreasure() && blocks.hasTrait(placer.get(position.x(), position.y(), position.z()), BlockTrait.STORAGE)) {
-                placer.mark(ObjectMarkers.buriedTreasure(position));
+                placer.mark(new PlacedMarker.BuriedTreasure(position));
             }
         }
     }

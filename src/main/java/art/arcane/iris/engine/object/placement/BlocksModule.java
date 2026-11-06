@@ -19,7 +19,6 @@
 package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.anchor.PlaceTrait;
-import art.arcane.iris.builtin.blocks.ObjectMarkers;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
@@ -40,6 +39,7 @@ import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.object.BlockEntityData;
 import com.volmit.object.ObjectBlock;
+import com.volmit.placement.PlacedMarker;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.geometry.BlockPosition;
@@ -231,7 +231,7 @@ public final class BlocksModule implements IrisModule {
                     break;
                 }
                 if (!marker.get().emptyAbove() || hasAirAbove(world, position)) {
-                    context.access().marker(ObjectMarkers.of(position, rule.marker()));
+                    context.access().marker(new PlacedMarker.PackMarker(position, rule.marker()));
                     remaining--;
                 }
             }

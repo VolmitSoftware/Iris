@@ -1,15 +1,14 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn } from '@/lib/utils'
 import type { BridgeClient } from '../bridge/BridgeClient'
-import type { SceneEntry, SceneViewInfo } from '../bridge/types'
+import type { ModuleViewInfo, SceneEntry } from '../bridge/types'
 import { BlockModels } from '../scene/blockModels'
 import { BridgeAssets } from '../scene/BridgeAssets'
 import { INTS_PER_BLOCK, type BlockScene } from '../scene/sceneDecoding'
 import { buildSceneMesh, type SceneMesh } from '../scene/sceneMesh'
+import { EntryBrowser } from './EntryBrowser'
 import { SceneViewport } from './SceneViewport'
 
 const NUMBER = new Intl.NumberFormat('en-US')
@@ -17,7 +16,7 @@ const DEFAULT_NAMESPACE_PREFIX = 'minecraft:'
 
 interface SceneStudioProps {
   client: BridgeClient
-  view: SceneViewInfo
+  view: ModuleViewInfo
   /** Changes when the pack reloads, so the entries and the scene are read again. */
   packRevision: number
   /** What the status bar says about the scene, or null while none is shown. */
@@ -68,7 +67,7 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
         )}
       </div>
       <aside className="flex w-[250px] shrink-0 flex-col border-l bg-card">
-        <EntryBrowser title={view.label} entries={entries} current={entry?.key ?? null} onSelect={(key) => setChosen({ key, variant: 0 })} />
+        <EntryBrowser className="flex-[7]" title={view.label} entries={entries} current={entry?.key ?? null} onSelect={(key) => setChosen({ key, variant: 0 })} />
         <BlockList scene={scene} />
       </aside>
     </>
@@ -144,68 +143,6 @@ function useSceneMesh(
 
 function disposeMesh(mesh: SceneMesh | null): void {
   mesh?.dispose()
-}
-
-interface EntryBrowserProps {
-  title: string
-  entries: SceneEntry[]
-  current: string | null
-  onSelect(key: string): void
-}
-
-/** The view's entries under their folders, with a search over names and folders (v3e ObjectBrowser). */
-function EntryBrowser({ title, entries, current, onSelect }: EntryBrowserProps): React.JSX.Element {
-  const [search, setSearch] = useState('')
-  const wanted = search.trim().toLowerCase()
-  const groups = useMemo(() => groupedEntries(entries, wanted), [entries, wanted])
-  return (
-    <section className="flex min-h-0 flex-[7] flex-col border-b">
-      <header className="px-4 pt-2.5 pb-2.5">
-        <h2 className="truncate text-[13px] font-semibold">{title}</h2>
-        <p className="truncate text-[11.5px] text-secondary-text">{NUMBER.format(entries.length)} in the pack</p>
-        <Input
-          className="mt-2 h-7 text-[12px]"
-          placeholder="Find by name or folder"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          onKeyDown={(event) => event.key === 'Escape' && setSearch('')}
-        />
-      </header>
-      <ScrollArea className="min-h-0 flex-1 border-t">
-        <div className="px-2 py-1.5">
-          {groups.map(([group, members]) => (
-            <section key={group}>
-              {group !== '' && <h3 className="truncate px-2 pt-2 pb-1 text-[11px] font-semibold text-muted-foreground">{group}</h3>}
-              {members.map((entry) => (
-                <button
-                  key={entry.key}
-                  title={entry.key}
-                  onClick={() => onSelect(entry.key)}
-                  className={cn('flex h-[26px] w-full items-center rounded-md px-2 text-left', entry.key === current ? 'bg-selection' : 'hover:bg-accent')}
-                >
-                  <span className="truncate">{entry.name}</span>
-                </button>
-              ))}
-            </section>
-          ))}
-          {groups.length === 0 && <p className="px-2 py-1 text-[12px] text-muted-foreground">{entries.length === 0 ? 'Nothing to show' : 'Nothing matches'}</p>}
-        </div>
-      </ScrollArea>
-    </section>
-  )
-}
-
-function groupedEntries(entries: SceneEntry[], wanted: string): [string, SceneEntry[]][] {
-  const groups = new Map<string, SceneEntry[]>()
-  for (const entry of entries) {
-    if (wanted !== '' && !entry.key.toLowerCase().includes(wanted)) {
-      continue
-    }
-    const members = groups.get(entry.group) ?? []
-    members.push(entry)
-    groups.set(entry.group, members)
-  }
-  return [...groups.entries()]
 }
 
 /** The blocks of the scene, most used first, each with its count (v3e ObjectOverviewPanel). */

@@ -1,5 +1,6 @@
 import type { BridgeConnection } from '../../../shared/bridge'
 import { decodeScene, type BlockScene } from '../scene/sceneDecoding'
+import { decodePattern } from './patternDecoding'
 import { decodeSavedTile } from './savedTileDecoding'
 import { decodeTile } from './tileDecoding'
 import type {
@@ -7,14 +8,16 @@ import type {
   MapLabel,
   MapTile,
   Marker,
+  ModuleViewInfo,
   NoiseSource,
   NoiseTile,
+  PatternEntry,
+  PatternTile,
   PickInspection,
   SavedStart,
   SavedTile,
   SavedWorldInfo,
   SceneEntry,
-  SceneViewInfo,
   WorldInfo
 } from './types'
 
@@ -40,6 +43,17 @@ export interface TileRequest {
   size: number
   heights: boolean
   pickNoise: boolean
+}
+
+/** One tile of a pattern: tile (x, z) covers columns × blocksPerColumn blocks from x × that, z × that. */
+export interface PatternRequest {
+  viewId: string
+  key: string
+  depth: number
+  tileX: number
+  tileZ: number
+  blocksPerColumn: number
+  columns: number
 }
 
 /** What a map spot or area is asked about: a view, and the region it previews. */
@@ -120,7 +134,7 @@ export class BridgeClient {
   }
 
   /** The scene views the pack's modules show, such as its objects. */
-  sceneViews(): Promise<SceneViewInfo[]> {
+  sceneViews(): Promise<ModuleViewInfo[]> {
     return this.json('scenes')
   }
 
@@ -131,6 +145,30 @@ export class BridgeClient {
   async scene(viewId: string, key: string, variant: number, signal?: AbortSignal): Promise<BlockScene> {
     const response = await this.fetch(`scene?${new URLSearchParams({ view: viewId, key, variant: String(variant) })}`, { signal })
     return decodeScene(await response.arrayBuffer())
+  }
+
+  /** The pattern views the pack's modules show, such as its palettes. */
+  patternViews(): Promise<ModuleViewInfo[]> {
+    return this.json('patterns')
+  }
+
+  patternEntries(viewId: string): Promise<PatternEntry[]> {
+    return this.json(`pattern-entries?${new URLSearchParams({ view: viewId })}`)
+  }
+
+  /** What an entry places at {@code depth} below the top across one tile, a column every {@code blocksPerColumn} blocks. */
+  async pattern(request: PatternRequest, signal: AbortSignal): Promise<PatternTile> {
+    const query = new URLSearchParams({
+      view: request.viewId,
+      key: request.key,
+      depth: String(request.depth),
+      x: String(request.tileX),
+      z: String(request.tileZ),
+      scale: String(request.blocksPerColumn),
+      size: String(request.columns)
+    })
+    const response = await this.fetch(`pattern?${query}`, { signal })
+    return decodePattern(await response.arrayBuffer())
   }
 
   /** The worlds saved on the server's disk. */

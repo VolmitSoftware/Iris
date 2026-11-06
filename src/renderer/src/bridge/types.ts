@@ -18,8 +18,8 @@ export interface ViewInfo {
   groupLabel: string
 }
 
-/** A view of block scenes a module of the pack shows, such as its objects (IrisApi SceneView). */
-export interface SceneViewInfo {
+/** A studio view a module of the pack shows (IrisApi StudioView): block scenes such as its objects, or patterns such as its palettes. */
+export interface ModuleViewInfo {
   id: string
   label: string
   description: string
@@ -32,6 +32,30 @@ export interface SceneEntry {
   group: string
   variants: number
 }
+
+/** Something a pattern view lays out, such as one of a biome's palettes (IrisApi PatternEntry). */
+export interface PatternEntry {
+  key: string
+  name: string
+  /** The heading it is listed under, such as its biome. */
+  group: string
+  /** How many depths below the top it has a pick for; at least 1. */
+  depths: number
+  /** Short lines about it, such as its blocks and noise. */
+  facts: string[]
+}
+
+/** What a pattern entry places across a square of columns, row by row from the north west. */
+export interface PatternTile {
+  columns: number
+  blocksPerColumn: number
+  /** The block states the picks index, as BlockState keys. */
+  blocks: string[]
+  /** Each column's block, or NO_PATTERN_BLOCK where the pattern places none. */
+  picks: Int16Array
+}
+
+export const NO_PATTERN_BLOCK = -1
 
 /** A world saved on the server's disk, a dimension folder of region files. */
 export interface SavedWorldInfo {

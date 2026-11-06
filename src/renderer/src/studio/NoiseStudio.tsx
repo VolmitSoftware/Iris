@@ -7,13 +7,14 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 import type { BridgeClient } from '../bridge/BridgeClient'
 import type { NoiseSource, NoiseTile } from '../bridge/types'
-import { NOISE_TILE_PIXELS, type NoiseController, type NoiseStatus } from '../noise/NoiseController'
+import type { TiledFraming as TerrainFraming } from '../map/TiledView'
 import { NOISE_PALETTES, noiseScale, type NoisePaletteId, type NoiseScale } from '../noise/noiseScale'
 import { NoiseTerrain, type NoiseArea } from '../noise/noiseTerrain'
+import { createNoiseView, NOISE_TILE_PIXELS, type NoiseStatus, type NoiseView } from '../noise/noiseTiles'
 import { buildTerrainMesh } from '../scene/terrainMesh'
 import { hexColor } from './colors'
-import { NoiseCanvas } from './NoiseCanvas'
 import { SceneViewport } from './SceneViewport'
+import { TiledCanvas } from './TiledCanvas'
 
 type NoiseDisplay = 'flat' | 'terrain'
 
@@ -46,9 +47,14 @@ export function NoiseStudio({ client, packRevision, onSummary, tell }: NoiseStud
   const [reliefBlocks, setReliefBlocks] = useState(DEFAULT_RELIEF_BLOCKS)
   const [status, setStatus] = useState<NoiseStatus | null>(null)
   const [terrainFraming, setTerrainFraming] = useState<TerrainFraming | null>(null)
-  const controllerRef = useRef<NoiseController | null>(null)
+  const controllerRef = useRef<NoiseView | null>(null)
   const scale = useMemo(() => noiseScale(paletteId, source), [paletteId, source])
-  const listener = useMemo(() => ({ onStatus: setStatus, onError: tell }), [tell])
+  const latestTell = useRef(tell)
+  latestTell.current = tell
+  const createView = useCallback(
+    (canvas: HTMLCanvasElement) => createNoiseView(canvas, client, { onStatus: setStatus, onError: (message) => latestTell.current(message) }),
+    [client]
+  )
 
   useEffect(() => {
     const layer = source === null ? null : { sourceId: source.id, seed, revision: packRevision }
@@ -75,10 +81,9 @@ export function NoiseStudio({ client, packRevision, onSummary, tell }: NoiseStud
   return (
     <>
       <div className="relative min-w-0 flex-1">
-        <NoiseCanvas
-          client={client}
-          controllerRef={controllerRef}
-          listener={listener}
+        <TiledCanvas
+          create={createView}
+          viewRef={controllerRef}
           className={cn('absolute inset-0 size-full cursor-grab active:cursor-grabbing', display !== 'flat' && 'invisible')}
         />
         {display === 'terrain' && source !== null && terrainFraming !== null && (
@@ -261,12 +266,6 @@ function ReliefControl({ blocks, onChange }: { blocks: number; onChange(blocks: 
       <span className="w-[72px] text-foreground tabular-nums">{NUMBER.format(blocks)} blocks</span>
     </label>
   )
-}
-
-interface TerrainFraming {
-  centerX: number
-  centerZ: number
-  renderScale: number
 }
 
 function NoiseTerrainView({

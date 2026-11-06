@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ThemeChoice } from '../../../shared/bridge'
 import type { BridgeClient, MapLayerQuery, WorldRect } from '../bridge/BridgeClient'
-import type { MapHover, MapLabel, Marker, PickDisplay, PickInspection, SceneViewInfo, ViewInfo, WorldInfo } from '../bridge/types'
+import type { MapHover, MapLabel, Marker, ModuleViewInfo, PickDisplay, PickInspection, ViewInfo, WorldInfo } from '../bridge/types'
 import type { Share } from '../map/census'
 import type { MapController, MapStatus, MapToggles } from '../map/MapController'
 import type { Highlight } from '../map/tileStyle'
@@ -12,6 +12,7 @@ import { MapCanvas, type CanvasPoint } from './MapCanvas'
 import { PickInspector } from './PickInspector'
 import { RegionPreviewList } from './RegionPreviewList'
 import { NoiseStudio } from './NoiseStudio'
+import { PatternStudio } from './PatternStudio'
 import { SavedWorldStudio } from './SavedWorldStudio'
 import { SceneStudio } from './SceneStudio'
 import { WorldStudio3D } from './WorldStudio3D'
@@ -61,10 +62,17 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   const [area, setArea] = useState<WorldRect | null>(null)
   const [packRevision, setPackRevision] = useState(0)
   const [sceneSummary, setSceneSummary] = useState<string | null>(null)
-  const sceneViews = useSceneViews(client, packRevision)
-  const views = useMemo(() => [...withAppViews(world.views), ...sceneViews.map(asViewInfo), NOISE], [world.views, sceneViews])
+  const loadSceneViews = useCallback(() => client.sceneViews(), [client])
+  const loadPatternViews = useCallback(() => client.patternViews(), [client])
+  const sceneViews = useModuleViews(loadSceneViews, packRevision)
+  const patternViews = useModuleViews(loadPatternViews, packRevision)
+  const views = useMemo(
+    () => [...withAppViews(world.views), ...patternViews.map(asViewInfo), ...sceneViews.map(asViewInfo), NOISE],
+    [world.views, patternViews, sceneViews]
+  )
   const sceneView = sceneViews.find((candidate) => candidate.id === viewId) ?? null
-  const showsMap = sceneView === null && !APP_VIEW_IDS.has(viewId)
+  const patternView = patternViews.find((candidate) => candidate.id === viewId) ?? null
+  const showsMap = sceneView === null && patternView === null && !APP_VIEW_IDS.has(viewId)
   const view = views.find((candidate) => candidate.id === viewId) ?? views[0]
   const layer = useMemo<MapLayerQuery>(() => ({ view: viewId, preview: viewId === 'regions' ? preview : null }), [viewId, preview])
   const regions = usePreviewableRegions(client, packRevision)
@@ -218,6 +226,8 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         </ViewList>
         {sceneView !== null ? (
           <SceneStudio client={client} view={sceneView} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
+        ) : patternView !== null ? (
+          <PatternStudio client={client} view={patternView} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : viewId === WORLD_3D.id ? (
           <WorldStudio3D client={client} world={world} mapArea={area} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : viewId === SAVED_WORLD.id ? (
@@ -315,7 +325,7 @@ function withAppViews(serverViews: ViewInfo[]): ViewInfo[] {
   return [...serverViews.slice(0, afterHeight), WORLD_3D, SAVED_WORLD, ...serverViews.slice(afterHeight)]
 }
 
-function asViewInfo(view: SceneViewInfo): ViewInfo {
+function asViewInfo(view: ModuleViewInfo): ViewInfo {
   return { ...view, ...SCENE_GROUP }
 }
 
@@ -324,19 +334,18 @@ function statusLabel(viewLabel: string, previewName: string | null, sceneSummary
   return detail === null ? viewLabel : `${viewLabel} · ${detail}`
 }
 
-/** The scene views the pack's modules show, read again after the pack reloads. */
-function useSceneViews(client: BridgeClient, packRevision: number): SceneViewInfo[] {
-  const [views, setViews] = useState<SceneViewInfo[]>([])
+/** Views the pack's modules show, read again after the pack reloads; keep {@code load} stable. */
+function useModuleViews(load: () => Promise<ModuleViewInfo[]>, packRevision: number): ModuleViewInfo[] {
+  const [views, setViews] = useState<ModuleViewInfo[]>([])
   useEffect(() => {
     let active = true
-    client
-      .sceneViews()
+    load()
       .then((found) => active && setViews(found))
       .catch(() => undefined)
     return () => {
       active = false
     }
-  }, [client, packRevision])
+  }, [load, packRevision])
   return views
 }
 

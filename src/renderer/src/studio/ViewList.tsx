@@ -1,4 +1,4 @@
-import { AudioWaveform, Box, Gem, Globe, HardDrive, Map as MapIcon, Mountain, Shapes, Sprout, Trees, Waves, type LucideIcon } from 'lucide-react'
+import { AudioWaveform, Box, Gem, Globe, HardDrive, Layers, Map as MapIcon, Mountain, Shapes, Sprout, Trees, Waves, type LucideIcon } from 'lucide-react'
 import { Kbd } from '@/components/ui/kbd'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
@@ -16,7 +16,8 @@ const VIEW_ICONS: Record<string, LucideIcon> = {
   seaBiomes: Waves,
   caveBiomes: Gem,
   'iris:objects': Box,
-  'iris:objects/procedural': Shapes
+  'iris:objects/procedural': Shapes,
+  'iris:terrain/palettes': Layers
 }
 
 interface ViewListProps {

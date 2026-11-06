@@ -1367,6 +1367,31 @@ API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSet
 - **The wire is the host's.** The studio protocol may encode an absent part or block as it likes (Iris sends `-1`);
   the API types say absent with `Optional`/`OptionalInt`.
 
+## Commands
+
+`ToolingRegistry.registerCommand` mounts a module's `Command` below the host's command root. The api holds the tree and
+the typed arguments; parsing, completion, permission and threads are the host's.
+
+- **A tree, not a platform's commands.** The same `Command` runs on Bukkit and on modded hosts. Nothing in it names a
+  player, a position or a colour; a platform part reaches the platform's own sender through `Sender.extension`. Argument
+  values are the neutral types of the api (`ResourceId`, an enum, a number), so a module's action never parses text.
+- **The host resolves the pack, not the module.** Commands, completions and classes belong to one pack's module set, so
+  the host picks the pack first (`pack=<name>`, the sender's world, the sender's open studio) and only then walks the
+  tree. One rule serves every module; a module never declares a pack argument.
+- **Workers, not the main thread.** An action may read and write files and wait, so the host runs it off the server's
+  threads. To touch the world it asks the platform for the right thread through a part.
+- **One door for writes.** `ToolPack.edit` holds the pack against other edits and against a hotload, then reloads the
+  resources once. The host gives that guarantee; the module keeps the atomicity of its own multi-file writes, as a
+  journal over a `Path`. `outputFolder()` keeps exports out of the pack. A `Path` is honest here because tools are file
+  tools; generation still never sees one.
+- **The object format is the host's.** `ObjectCodec` lets a tool stage object files inside its own transaction instead of
+  asking the host to write at once.
+- **Plain messages.** Info, success and error are three lines the host styles; a module that ships translations needs an
+  api for them, which does not exist yet.
+- **Names are checked early.** `Command` rejects bad names, duplicate children and aliases, an optional argument before a
+  required one, and anything after a rest-of-line argument when the tree is built. Two modules claiming one root name or
+  alias fail the pack load, naming both.
+
 ## Not implemented
 
 - Host wiring, which lives in Iris: JSON decoding and validation, rendering `PackSchema` into Iris's schema and

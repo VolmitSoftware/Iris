@@ -505,6 +505,49 @@ final class RuinScenes implements SceneView {
 - Absent values are empty, never blank or `-1`: an entry without a group, a node that draws no part of the scene
   (`GraphNode.part()`), a column a pattern places nothing at (`BlockPattern.pickAt`).
 
+## Commands
+
+A module adds commands to the host's command root, such as `/iris structure list`, with `registerCommand`. The same
+`Command` runs on every platform; the host parses it, completes it and runs it.
+
+```java
+private static final Argument<ResourceId> STRUCTURE = Argument.resource("structure", RuinResources.STRUCTURES);
+private static final Argument<Long> RADIUS = Argument.integer("radius", 1, 1000).orElse(48L);
+
+public void setup(ModuleSetup setup) {
+    setup.tooling().registerCommand(Command.named("ruins").alias("rn")
+            .describe("Ruin tools")
+            .child(Command.named("info").argument(STRUCTURE).runs(this::info))
+            .child(Command.named("scan").argument(RADIUS).runs(this::scan)));
+}
+
+private void info(CommandContext context) {
+    context.sender().info("Ruin " + context.get(STRUCTURE));
+}
+```
+
+- `Command` is immutable: `named`, `alias`, `describe`, `child`, `argument`, `runs` and `openToEveryone` each return a
+  changed copy. A word that names a sub-command always selects it. A command with no action only lists its children.
+- Arguments are typed: `word`, `text` (the rest of the line, last only), `integer`, `decimal`, `flag`, `choice` (an enum
+  constant written in lower case with `-`), `resource` (an id of a `ResourceKind` in the pack) and `registered` (an id in
+  one of the platform's registries, by `Reference`). `orElse` makes an argument optional; an optional argument may not
+  come before a required one. `suggesting` adds completions. Read a value with `context.get(argument)`.
+- The host resolves the pack before it parses the line: `pack=<name>` taken out of the arguments, else the pack of the
+  sender's world, else the pack of the sender's open studio, else it fails with `Name a pack: pack=<name>`. A command
+  exists only for packs whose jars contain its module. `context.pack()` is that pack, `context.world()` the sender's
+  world when it generates with it, and `context.platform()` the platform's registries.
+- An action runs on a worker thread, never the server's main thread or a region thread, so it may block. What it throws
+  reaches the sender as an error and the module's log. `Sender` messages are plain text; the host styles them as
+  information, success or error, and delivers them on the thread the platform needs. There is no colour and no
+  translation.
+- By default only operators run a command (Bukkit `iris.all`, game master on modded); `openToEveryone()` lifts that.
+- `ToolPack` is the pack as a tool sees it. `edit` is the only way to change its files: one edit runs at a time per pack,
+  the host does not hotload during it, and it reloads the resources once after the edit returns normally. Atomicity across
+  files is the edit's own job. `outputFolder()` is a folder outside the pack for what tools produce, and `objects()` reads
+  and writes pack objects in the host's object format (`ObjectCodec`).
+- A root command's name and each alias are root names. One that another module of the pack took fails the pack load,
+  naming both modules. A host without commands, such as a build check, accepts the registration and ignores it.
+
 ## Module jars
 
 A pack loads its modules from `<pack>/modules/*.jar`. A jar holds one or more modules. Each module's

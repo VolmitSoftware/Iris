@@ -368,7 +368,7 @@ waves.record(now);                                              // changed in pl
   one wrote.
 - `Codec.write` may run while module threads change the value, so it must read it safely. A stored payload the codec
   rejects is logged and replaced with `initial`.
-- The id names the stored file, so its path has no empty, `.` or `..` segment.
+- The id names the stored file, so none of its segments is empty, `.` or `..`.
 
 A module that wants to act when the host loads a pack or starts or stops a world registers a `ModuleLifecycle`. Every
 hook does nothing by default, and a module class may implement it and register itself:

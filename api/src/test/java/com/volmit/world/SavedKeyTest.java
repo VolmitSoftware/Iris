@@ -43,7 +43,7 @@ class SavedKeyTest {
 
     @Test
     void rejectsIdsThatCouldLeaveTheWorldsStorage() {
-        for (String id : new String[]{"example:../book", "example:a/../b", "example:./book", "example:/book", "example:book/", "example:a//b"}) {
+        for (String id : new String[]{"example:../book", "example:a/../b", "example:./book", "example:/book", "example:book/", "example:a//b", "..:book", ".:book"}) {
             assertThrows(IllegalArgumentException.class, () -> key(id), id);
         }
     }

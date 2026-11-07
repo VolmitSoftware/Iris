@@ -171,11 +171,11 @@ public class NativeStructurePlacementPlannerTest {
 
         assertNotNull(plan);
         assertTrue("64 of 640 piece columns, all beyond the start chunk, are 10% river",
-                StructureWaterRules.admitsStart(plan, stageWater, VILLAGE));
+                StructureWaterRules.admitsStart(plan, false, stageWater, VILLAGE));
 
         roles.put(columnKey(35, 15), WaterRole.CHANNEL);
         assertFalse("65 of 640 piece columns are more than 10% river",
-                StructureWaterRules.admitsStart(plan, stageWater, VILLAGE));
+                StructureWaterRules.admitsStart(plan, false, stageWater, VILLAGE));
 
         roles.clear();
         WaterRole[] dry = {WaterRole.MOUTH, WaterRole.SHORE, WaterRole.POND_SHORE, WaterRole.BANK, WaterRole.DAM};
@@ -186,7 +186,7 @@ public class NativeStructurePlacementPlannerTest {
             }
         }
         assertTrue("mouths, shores, banks and dams do not count as river water",
-                StructureWaterRules.admitsStart(plan, stageWater, VILLAGE));
+                StructureWaterRules.admitsStart(plan, false, stageWater, VILLAGE));
 
         roles.clear();
         for (int x = 0; x <= 39; x++) {
@@ -194,7 +194,7 @@ public class NativeStructurePlacementPlannerTest {
                 roles.put(columnKey(x, z), x % 2 == 0 ? WaterRole.INLET : WaterRole.BANK);
             }
         }
-        assertFalse("a sea inlet under the pieces counts as river water", StructureWaterRules.admitsStart(plan, stageWater, VILLAGE));
+        assertFalse("a sea inlet under the pieces counts as river water", StructureWaterRules.admitsStart(plan, false, stageWater, VILLAGE));
     }
 
     @Test
@@ -234,7 +234,7 @@ public class NativeStructurePlacementPlannerTest {
         NativeStructureStartPlan plan = NativeStructurePlacementPlanner.planAt(engine, placement, 12, -7);
 
         assertNotNull(plan);
-        assertTrue(StructureWaterRules.admitsStart(plan, new BukkitStructureStagePolicy(engine).water(engine), VILLAGE));
+        assertTrue(StructureWaterRules.admitsStart(plan, false, new BukkitStructureStagePolicy(engine).water(engine), VILLAGE));
     }
 
     @Test
@@ -247,12 +247,12 @@ public class NativeStructurePlacementPlannerTest {
         IrisStructurePlacement placement = nativePlacement();
 
         assertFalse(StructureWaterRules.admitsStart(
-                NativeStructurePlacementPlanner.planAt(engine, placement, 0, 0), stageWater, VILLAGE));
+                NativeStructurePlacementPlanner.planAt(engine, placement, 0, 0), false, stageWater, VILLAGE));
 
         placement.setAllowWater(true);
         NativeStructureStartPlan plan = NativeStructurePlacementPlanner.planAt(engine, placement, 0, 0);
         assertTrue(plan.allowWater());
-        assertTrue(StructureWaterRules.admitsStart(plan, stageWater, VILLAGE));
+        assertTrue(StructureWaterRules.admitsStart(plan, false, stageWater, VILLAGE));
     }
 
     @Test

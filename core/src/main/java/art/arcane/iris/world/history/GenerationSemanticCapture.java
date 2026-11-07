@@ -8,6 +8,7 @@ import art.arcane.iris.generation.runtime.DimensionStackContext;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.placement.StructurePlacementMarker;
 import art.arcane.iris.structure.placement.StructurePlacementScope;
@@ -398,13 +399,19 @@ public final class GenerationSemanticCapture {
             if (placement == null || !placement.hasIrisStructures()) {
                 continue;
             }
-            IrisStructureLocator.ResolvedPlacement resolved = IrisStructureLocator.resolvePlacement(
-                    engine,
-                    placement,
-                    chunkX,
-                    chunkZ
-            );
-            if (resolved == null || !IrisStructureLocator.allowsResolvedFootprint(engine, resolved)) {
+            IrisStructureLocator.ResolvedPlacement resolved;
+            try {
+                resolved = IrisStructureLocator.resolvePlacement(
+                        engine,
+                        placement,
+                        chunkX,
+                        chunkZ
+                );
+                if (resolved == null || !IrisStructureLocator.allowsResolvedFootprint(engine, resolved)) {
+                    continue;
+                }
+            } catch (Throwable e) {
+                GenerationFailures.skipPlacement(e, "structure", String.valueOf(placement.getStructures()), chunkX << 4, -1, chunkZ << 4, "none");
                 continue;
             }
             semantics.addStructure(

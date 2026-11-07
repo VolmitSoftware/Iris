@@ -17,6 +17,10 @@ import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.structure.placement.StructurePlacementMarker;
+import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
+import art.arcane.iris.structure.placement.StructurePlacementScope;
+import art.arcane.iris.structure.placement.IrisStructurePlacement;
+import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
@@ -583,6 +587,51 @@ public final class GenerationSemanticCaptureTest {
                     () -> GenerationSemanticCapture.capture(fixture.engine, 0, 0, 5L));
 
             assertTrue(failure.getMessage().contains("water raster is not planned"));
+        }
+    }
+
+    @Test
+    public void aStructurePlacementThatFailsToResolveIsSkippedAndTheChunkStillCaptures() {
+        Fixture fixture = new Fixture();
+        IrisStructurePlacement broken = mock(IrisStructurePlacement.class);
+        IrisStructurePlacement working = mock(IrisStructurePlacement.class);
+        when(broken.hasIrisStructures()).thenReturn(true);
+        when(working.hasIrisStructures()).thenReturn(true);
+        when(fixture.complex.allowsNewGenerationChunk(-2, 3)).thenReturn(true);
+        when(fixture.mantle.hasFlag(-2, 3, ReservedFlag.JIGSAW)).thenReturn(true);
+        IrisStructureLocator.ResolvedPlacement resolved = mock(IrisStructureLocator.ResolvedPlacement.class);
+        when(resolved.structureKey()).thenReturn("iris:ruin");
+        try (MockedStatic<StructurePlacementScope> scope = mockStatic(StructurePlacementScope.class);
+             MockedStatic<IrisStructureLocator> locator = mockStatic(IrisStructureLocator.class)) {
+            scope.when(() -> StructurePlacementScope.placementsAt(fixture.engine, -2, 3))
+                    .thenReturn(new KList<>(broken, working));
+            locator.when(() -> IrisStructureLocator.resolvePlacement(fixture.engine, broken, -2, 3))
+                    .thenThrow(new IllegalStateException("Iris structure 'iris:bad' has no runtime-viable assembly graph"));
+            locator.when(() -> IrisStructureLocator.resolvePlacement(fixture.engine, working, -2, 3)).thenReturn(resolved);
+            locator.when(() -> IrisStructureLocator.allowsResolvedFootprint(fixture.engine, resolved)).thenReturn(true);
+
+            ChunkGenerationSemantics captured = GenerationSemanticCapture.capture(fixture.engine, -2, 3, 5L);
+
+            assertEquals(1, captured.structures().size());
+            assertTrue(captured.sealed());
+        }
+    }
+
+    @Test
+    public void aBrokenEngineDuringStructureCaptureStillFailsTheChunk() {
+        Fixture fixture = new Fixture();
+        IrisStructurePlacement placement = mock(IrisStructurePlacement.class);
+        when(placement.hasIrisStructures()).thenReturn(true);
+        when(fixture.complex.allowsNewGenerationChunk(-2, 3)).thenReturn(true);
+        when(fixture.mantle.hasFlag(-2, 3, ReservedFlag.JIGSAW)).thenReturn(true);
+        try (MockedStatic<StructurePlacementScope> scope = mockStatic(StructurePlacementScope.class);
+             MockedStatic<IrisStructureLocator> locator = mockStatic(IrisStructureLocator.class)) {
+            scope.when(() -> StructurePlacementScope.placementsAt(fixture.engine, -2, 3))
+                    .thenReturn(new KList<>(placement));
+            locator.when(() -> IrisStructureLocator.resolvePlacement(fixture.engine, placement, -2, 3))
+                    .thenThrow(new OutOfMemoryError("test"));
+
+            assertThrows(OutOfMemoryError.class, () -> GenerationSemanticCapture.capture(fixture.engine, -2, 3, 5L));
         }
     }
 

@@ -161,7 +161,7 @@ final class HeadlessStructurePlanner {
                 policies.injection().discard(plan.structureKey(), chunk.getPos().x(), chunk.getPos().z());
                 continue;
             }
-            if (!StructureWaterRules.admitsStart(plan, policies.water(), NativeStructureTerrainIntegrator.pieceFootprints(generated))) {
+            if (!StructureWaterRules.admitsStart(plan, false, policies.water(), NativeStructureTerrainIntegrator.pieceFootprints(generated))) {
                 chunk.setStartForStructure(structure, StructureStart.INVALID_START);
                 policies.injection().discard(plan.structureKey(), chunk.getPos().x(), chunk.getPos().z());
                 continue;

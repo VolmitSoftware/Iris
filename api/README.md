@@ -611,6 +611,10 @@ worlds.open(new ToolWorldSpec("scratch", painter, new ToolWorldListener() { }))
   `Cause`). Each method returns `true` to allow or `false` to cancel where it decides, and `blockChanging` freezes the
   world unless the tool overrides it. Calls come on the thread that owns the player or the position, and must return
   quickly.
+- A tool world takes the pack's studio slot: opening another studio, the studio close command and a server stop go
+  through the world. `closeRefusal()` lets the tool veto such a close with a message (an unsaved edit, a running
+  save), and `closing(by)` lets it finish its work before another studio replaces it; the host closes the world when
+  that future completes.
 - On a platform that splits a world across threads (Folia), `ToolWorld.owns(at)` says whether the calling thread may
   touch the block, `run`/`call` get a task there, and `block`, `blockEntity` and `setBlock` fail with
   `IllegalStateException` elsewhere. `ToolPlayer` readers are valid on the player's own thread (`ToolPlayer.run`); its

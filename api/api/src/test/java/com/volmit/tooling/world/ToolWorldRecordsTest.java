@@ -38,6 +38,15 @@ class ToolWorldRecordsTest {
     }
 
     @Test
+    void aListenerThatSaysNothingAboutClosingLetsTheWorldCloseAtOnce() {
+        var listener = new ToolWorldListener() { };
+
+        assertEquals(java.util.Optional.empty(), listener.closeRefusal());
+        assertEquals(true, listener.closing(java.util.Optional.empty()).isDone());
+        assertEquals(false, listener.closing(java.util.Optional.empty()).isCompletedExceptionally());
+    }
+
+    @Test
     void aToolItemKeepsItsOwnCopyOfTheLore() {
         var lore = new ArrayList<>(List.of("one"));
         var item = new ToolItem(STICK, "Name", lore, true, "payload");

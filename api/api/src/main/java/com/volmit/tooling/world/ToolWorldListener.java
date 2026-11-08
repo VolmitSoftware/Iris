@@ -2,6 +2,7 @@ package com.volmit.tooling.world;
 
 import com.volmit.geometry.BlockPosition;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * What a tool hears about its world. Every method has a default that does nothing, so a tool implements only the ones
@@ -50,6 +51,26 @@ public interface ToolWorldListener {
 
     /** A chunk of the world finished loading, painted or read back. */
     default void chunkLoaded(int chunkX, int chunkZ) {
+    }
+
+    /**
+     * Whether the host may close the world now, asked before the host closes it for any reason other than the tool's own
+     * {@link ToolWorld#close()}: another studio opening, the studio close command, the server stopping. A tool world takes
+     * the pack's studio slot, so those paths go through the world. Return a message for the user to veto the close, such
+     * as "autosave is still running"; empty lets it happen. Asked on any thread, and must return quickly.
+     */
+    default Optional<String> closeRefusal() {
+        return Optional.empty();
+    }
+
+    /**
+     * Another studio wants this world's slot. Get the world ready to close, such as finishing a save, and complete the
+     * future when it is ready; the host then closes the world. Complete it exceptionally to refuse, with a message for the
+     * user. {@code by} is the player who asked, empty when the console did. Called on any thread; the future may complete
+     * on any thread.
+     */
+    default CompletableFuture<Void> closing(Optional<ToolPlayer> by) {
+        return CompletableFuture.completedFuture(null);
     }
 
     /** The world was unloaded and is gone; nothing can be done with it any more. */

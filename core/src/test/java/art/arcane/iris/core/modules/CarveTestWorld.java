@@ -154,6 +154,11 @@ public final class CarveTestWorld implements PackWorld {
     }
 
     @Override
+    public <S> List<S> services(Class<S> service) {
+        return List.of();
+    }
+
+    @Override
     public ModuleLog log() {
         return ModuleLogs.discarding();
     }

@@ -227,6 +227,11 @@ public class LootValidatorTest {
             }
 
             @Override
+            public <S> List<S> services(Class<S> service) {
+                return List.of();
+            }
+
+            @Override
             public void report(Problem problem) {
                 problems.add(problem);
             }

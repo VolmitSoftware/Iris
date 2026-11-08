@@ -22,6 +22,7 @@ import art.arcane.iris.core.tooling.SenderWorld;
 import art.arcane.iris.core.tooling.ServedPack;
 import art.arcane.iris.core.tooling.ToolingSender;
 import art.arcane.iris.engine.framework.Engine;
+import com.volmit.tooling.world.ToolPlayer;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 
@@ -29,7 +30,8 @@ import java.util.Optional;
 
 /**
  * A modded source of a tooling command. It reads the world of the source when it is built, on the server thread that
- * received the command, and delivers messages on the server thread. A modded platform has no studio.
+ * received the command, and delivers messages on the server thread. A modded platform has no studio and no tool
+ * players yet: tool worlds are not supported there, so {@link #player()} is empty.
  */
 final class ModdedToolingSender implements ToolingSender {
     private final CommandSourceStack source;
@@ -68,6 +70,11 @@ final class ModdedToolingSender implements ToolingSender {
             return Optional.of(type.cast(source));
         }
         return Optional.ofNullable(source.getEntity()).filter(type::isInstance).map(type::cast);
+    }
+
+    @Override
+    public Optional<ToolPlayer> player() {
+        return Optional.empty();
     }
 
     @Override

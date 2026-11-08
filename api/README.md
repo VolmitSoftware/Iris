@@ -471,6 +471,10 @@ final class RuinsObjects implements ObjectsAt {
   and combines the answers), `FIRST` (the host asks in order until one answers) or `ONE` (at most one provider per
   pack; a second fails the pack load, naming both modules). Providers are in module id order, each module's in
   registration order.
+- A module asks another module's service with `services(type)`, on the `PackWorld` a stage or service gets, on the
+  `ValidationContext` a validator gets and on the `ToolPack` a command gets. It returns the pack's providers in that
+  order, empty when no module provides the service, and fails with `IllegalArgumentException` for an interface that is
+  not a `@Service`. Pass the world you hold to the provider's methods.
 
 | Service | Providers | What the host asks |
 | --- | --- | --- |
@@ -573,6 +577,47 @@ private void info(CommandContext context) {
   and writes pack objects in the host's object format (`ObjectCodec`).
 - A root command's name and each alias are root names. One that another module of the pack took fails the pack load,
   naming both modules. A host without commands, such as a build check, accepts the registration and ignores it.
+- `Sender.player()` is the sender as a `ToolPlayer` (see Tool worlds), empty for the console and on a platform without
+  tool worlds.
+
+## Tool worlds
+
+A tool that shows or edits what it builds in a world, such as a jigsaw studio, opens a tool world through
+`ToolPack.worlds()`, in `com.volmit.tooling.world`. The package is neutral, so the same tool runs on every platform that
+implements it; a platform without tool worlds answers with a failed future.
+
+```java
+ToolWorlds worlds = context.pack().worlds();
+ChunkPainter painter = (chunkX, chunkZ, canvas) -> {
+    for (int x = 0; x < 16; x++) {
+        for (int z = 0; z < 16; z++) {
+            canvas.set(x, canvas.minY() + 1, z, BlockState.parse("minecraft:smooth_stone"));
+        }
+    }
+};
+worlds.open(new ToolWorldSpec("scratch", painter, new ToolWorldListener() { }))
+        .thenAccept(world -> context.sender().player().ifPresent(player ->
+                player.teleport(world, 8, world.minY() + 2, 8, 0, 0)));
+```
+
+- The world's chunks come only from the `ChunkPainter`, which the host calls from its generation threads, several at once,
+  and again for `ToolWorld.repaint`. A painter keeps no per-call state and does not keep the `ChunkCanvas`. Block entities
+  go through `canvas.set(..., BlockEntityData)` and are applied once the chunk is live.
+- It is a studio world of the tool's pack with generation swapped for the painter, so its height range is the pack
+  dimension's (`minY()`, `maxY()`). Every Y in this package is the world's own Y, not the height above the bottom that
+  `PackWorld` counts. There is no natural mob spawning, weather, daylight cycle, portal, vanilla structure or feature.
+- `ToolWorldListener` is how the tool hears about the world: players entering, leaving and moving to another block,
+  sneaking, using their hand (`ToolUse`), commands, loaded chunks, and every change to blocks (`BlockChange` with a
+  `Cause`). Each method returns `true` to allow or `false` to cancel where it decides, and `blockChanging` freezes the
+  world unless the tool overrides it. Calls come on the thread that owns the player or the position, and must return
+  quickly.
+- On a platform that splits a world across threads (Folia), `ToolWorld.owns(at)` says whether the calling thread may
+  touch the block, `run`/`call` get a task there, and `block`, `blockEntity` and `setBlock` fail with
+  `IllegalStateException` elsewhere. `ToolPlayer` readers are valid on the player's own thread (`ToolPlayer.run`); its
+  changing methods are safe from any thread.
+- `ToolPlayer` also gives items (`ToolItem`, whose payload the host keeps on the item), a chest-style menu (`ToolMenu`
+  of `MenuButton`s), an action bar, a sidebar, sounds and dust `Particle`s. `ToolWorld.close()` sends every player back
+  to where they came from and deletes the world.
 
 ## Module jars
 
@@ -677,8 +722,8 @@ The host loads a part through its own class loader, `ToolingPartLoader`, a child
 classes from the same jar copy, hands the platform's api packages to the platform's loader and everything else to the
 pack's loader, so a part gets the same `Class` objects the modules registered. The adapter opens it
 (`LoadedPack.openToolingPart`) and closes it before the pack; closing it leaves the pack's loader open. The generation
-loader never sees `com.volmit.tooling.<platform>`, the platform parts of the tooling api; `com.volmit.tooling` itself stays
-visible.
+loader never sees `com.volmit.tooling.<platform>`, the platform parts of the tooling api; `com.volmit.tooling` itself and
+the neutral `com.volmit.tooling.world` stay visible.
 
 ## Settings for studio
 

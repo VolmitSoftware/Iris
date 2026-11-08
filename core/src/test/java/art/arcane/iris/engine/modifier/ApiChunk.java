@@ -691,6 +691,11 @@ public final class ApiChunk implements GenerationContext {
         }
 
         @Override
+        public <S> List<S> services(Class<S> service) {
+            return List.of();
+        }
+
+        @Override
         public ModuleLog log() {
             return ModuleLogs.discarding();
         }

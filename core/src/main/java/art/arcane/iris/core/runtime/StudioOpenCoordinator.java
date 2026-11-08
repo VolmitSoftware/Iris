@@ -97,6 +97,16 @@ public final class StudioOpenCoordinator {
         return closeWorldCoordinated(provider, worldName, world, true, project);
     }
 
+    /**
+     * Unloads a tool world and deletes its files, reserving the world mutation lock like a studio close. Players must be
+     * gone from it already; any that remain are sent to the spawn of another world.
+     */
+    public CompletableFuture<StudioCloseResult> closeToolWorld(World world) {
+        Objects.requireNonNull(world, "world");
+        PlatformChunkGenerator provider = IrisToolbelt.access(world);
+        return closeWorldCoordinated(provider, IrisWorldStorage.logicalName(world), world, true, null);
+    }
+
     public CompletableFuture<Boolean> teleportPlayerToProject(
             IrisProject project,
             Player player
@@ -772,7 +782,7 @@ public final class StudioOpenCoordinator {
                 }
                 String transientName = TransientWorldCleanupSupport.transientStudioBaseWorldName(
                         child.getFileName().toString());
-                if (transientName != null) {
+                if (transientName != null && !StudioPainterSlots.isInstalled(transientName)) {
                     worldNames.add(transientName);
                 }
             }
@@ -925,6 +935,10 @@ public final class StudioOpenCoordinator {
         JIGSAW(
                 false,
                 false,
+                IrisCreator.DatapackPreparation.REUSE_LOADED_RUNTIME_IF_READY),
+        TOOL(
+                false,
+                false,
                 IrisCreator.DatapackPreparation.REUSE_LOADED_RUNTIME_IF_READY);
 
         private final boolean teleportThroughStandardEntry;
@@ -952,7 +966,7 @@ public final class StudioOpenCoordinator {
         }
 
         public boolean prepareGeneratorState() {
-            return this != JIGSAW;
+            return this != JIGSAW && this != TOOL;
         }
 
         public IrisCreator.DatapackPreparation datapackPreparation() {

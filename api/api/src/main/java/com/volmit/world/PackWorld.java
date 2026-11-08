@@ -6,6 +6,7 @@ import com.volmit.placement.Placements;
 import com.volmit.random.WorldRandom;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -87,4 +88,15 @@ public interface PackWorld {
     default <T> Optional<T> extension(Class<T> type) {
         return Optional.empty();
     }
+
+    /**
+     * The providers of {@code service} that the pack's modules registered, in module id order and each module's in the
+     * order it registered them; empty when no module provides it. This is how a module asks another module's service,
+     * such as a placement asking who builds a structure. A provider takes the world as the first argument of its
+     * methods, so pass this one. The list does not change while the world runs.
+     *
+     * @param service an interface marked {@link com.volmit.service.Service}
+     * @throws IllegalArgumentException when {@code service} is not such an interface
+     */
+    <S> List<S> services(Class<S> service);
 }

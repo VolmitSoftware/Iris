@@ -30,6 +30,7 @@ import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -83,6 +84,11 @@ public final class TestLayerBlocks {
         @Override
         public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) {
             return type.cast(states.computeIfAbsent(type, ignored -> create.apply(this)));
+        }
+
+        @Override
+        public <S> List<S> services(Class<S> service) {
+            return List.of();
         }
 
         @Override

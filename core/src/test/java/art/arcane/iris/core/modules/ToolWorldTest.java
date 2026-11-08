@@ -25,6 +25,8 @@ import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 import org.junit.Test;
 
+import java.util.List;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -48,7 +50,8 @@ public class ToolWorldTest {
     public void theWorldKeepsItsStateUntilItIsClosed() {
         PackResources resources = mock(PackResources.class);
         Tracked tracked;
-        try (ToolWorld world = new ToolWorld(SEED, resources, mock(PackSettings.class), ignored -> mock(Placements.class))) {
+        try (ToolWorld world = new ToolWorld(SEED, resources, mock(PackSettings.class), mock(PackServices.class),
+                ignored -> mock(Placements.class))) {
             tracked = world.state(Tracked.class, ignored -> new Tracked());
 
             assertSame(tracked, world.state(Tracked.class, ignored -> new Tracked()));
@@ -59,5 +62,23 @@ public class ToolWorldTest {
         }
 
         assertTrue(tracked.closed);
+    }
+
+    @Test
+    public void theWorldAnswersServicesWithTheProvidersOfThePacksModules() {
+        Runnable provider = () -> { };
+        PackServices services = new PackServices() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public <S> List<S> providers(Class<S> service) {
+                return service == Runnable.class ? (List<S>) List.of(provider) : List.of();
+            }
+        };
+
+        try (ToolWorld world = new ToolWorld(SEED, mock(PackResources.class), mock(PackSettings.class), services,
+                ignored -> mock(Placements.class))) {
+            assertEquals(List.of(provider), world.services(Runnable.class));
+            assertEquals(List.of(), world.services(Comparable.class));
+        }
     }
 }

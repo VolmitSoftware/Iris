@@ -91,6 +91,11 @@ public final class IrisValidationContext implements ValidationContext {
     }
 
     @Override
+    public <S> List<S> services(Class<S> service) {
+        return PackServices.of(data).providers(service);
+    }
+
+    @Override
     public void report(Problem problem) {
         problems.add(Objects.requireNonNull(problem, "problem"));
     }

@@ -13,7 +13,8 @@ import java.util.TreeSet;
  * {@code com.volmitx}. The host side of IrisApi, {@code com.volmit.host}, lies inside the API's
  * root package but is never exposed: it loads and runs modules, and no module may reach it. The
  * platform packages of the tooling api, {@code com.volmit.tooling.<platform>}, are never exposed either:
- * only a tooling part may use them. The neutral {@code com.volmit.tooling} stays exposed.
+ * only a tooling part may use them. The neutral {@code com.volmit.tooling} stays exposed, and so does the world api for
+ * tools, {@code com.volmit.tooling.world}, which every platform implements.
  */
 final class ExposedPackages {
     /** The root package of the Iris API. Module classes must not use it. */
@@ -22,6 +23,9 @@ final class ExposedPackages {
     static final String HOST_PACKAGE = ExposedPackages.class.getPackageName();
     /** The neutral tooling api. Each platform's own api is a subpackage of it, such as {@code com.volmit.tooling.bukkit}. */
     static final String TOOLING_PACKAGE = API_PACKAGE + ".tooling";
+    /** The world api for tools, which every platform implements; it is neutral, so modules see it. */
+    static final String TOOL_WORLD_PACKAGE = TOOLING_PACKAGE + ".world";
+    private static final PackageName TOOL_WORLD = new PackageName(TOOL_WORLD_PACKAGE);
     private static final PackageName API = new PackageName(API_PACKAGE);
     private static final PackageName HOST = new PackageName(HOST_PACKAGE);
     private static final PackageName TOOLING = new PackageName(TOOLING_PACKAGE);
@@ -77,9 +81,12 @@ final class ExposedPackages {
         return !HOST.contains(dottedName) && packages.stream().anyMatch(name -> name.contains(dottedName));
     }
 
-    /** Whether the package lies below {@code com.volmit.tooling}, where each platform's api has its package. */
+    /** Whether the package lies below {@code com.volmit.tooling}, where each platform's api has its package. The
+     * platform-neutral world api for tools, {@code com.volmit.tooling.world}, lies there too but is not a platform's.
+     */
     private static boolean isToolingPlatformPackage(String packageName) {
-        return TOOLING.contains(packageName);
+        boolean isToolWorldApi = packageName.equals(TOOL_WORLD_PACKAGE) || TOOL_WORLD.contains(packageName);
+        return TOOLING.contains(packageName) && !isToolWorldApi;
     }
 
     /** What precedes the last separator: the package of a class name, or the directory of a resource path. */

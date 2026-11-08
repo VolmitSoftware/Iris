@@ -26,6 +26,7 @@ import com.volmit.host.WorldStates;
 import com.volmit.placement.Placements;
 import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -98,6 +99,11 @@ public final class IrisPackWorld implements PackWorld {
     @Override
     public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) {
         return states.state(type, () -> create.apply(this));
+    }
+
+    @Override
+    public <S> List<S> services(Class<S> service) {
+        return PackServices.of(engine.getData()).providers(service);
     }
 
     @Override

@@ -326,7 +326,8 @@ the part then gets the same `Class` objects the modules registered, where a sibl
 defines into a `ClassCastException`. The caller opens and closes it; closing it never closes the pack's loader.
 
 `ExposedPackages` carves out every `com.volmit.tooling.<platform>` package like `com.volmit.host`: only a part sees a
-platform's tooling api. `com.volmit.tooling` itself, the neutral api, stays exposed. Enabling parts lazily, mounting their
+platform's tooling api. `com.volmit.tooling` itself, the neutral api, stays exposed, and so does
+`com.volmit.tooling.world`, the one neutral subpackage (Tool worlds). Enabling parts lazily, mounting their
 commands and listeners, and disabling them belongs to the platform adapter, not to the host.
 
 ### Namespaces
@@ -1236,6 +1237,11 @@ from a sapling, which drops a block has. A module answers such questions through
 - **Lookup.** The host asks the pack's catalog: `services(type)` for every provider, `service(type)` for the one
   provider of a `ONE` service. Looking up a type that is not marked fails, and so does `service` for a service that may
   have several providers.
+- **Modules ask each other.** `PackWorld`, `ValidationContext` and `ToolPack` carry the same `services(type)`, so a
+  module reaches another module's service without a host extension. It returns the providers only, unscoped: the caller
+  passes the world it holds, and the provider's log is the host's concern when the host calls it, not the caller's.
+  `service(type)` for a `ONE` service is not repeated there, since `services(type).stream().findFirst()` says the same
+  and the api keeps one lookup.
 - **Threading.** The host may call a provider from any thread, several at once. A provider that searches long
   (`StructureLocator.locate`) is called off the server's main thread.
 - **Loot, drops, entities, trees.** `Loot` (`ALL`) asks in two steps, which tables a container draws from and what a
@@ -1401,6 +1407,35 @@ the typed arguments; parsing, completion, permission and threads are the host's.
 - **Names are checked early.** `Command` rejects bad names, duplicate children and aliases, an optional argument before a
   required one, and anything after a rest-of-line argument when the tree is built. Two modules claiming one root name or
   alias fail the pack load, naming both.
+
+## Tool worlds
+
+`com.volmit.tooling.world` is what an in-world tool, the jigsaw studio first, needs from a platform and nothing more.
+It exists so the tool lives in a module and runs on every platform: a tool that imported Bukkit could not.
+
+- **The world is a studio world with a painter.** The host opens a studio world of the tool's pack and swaps its
+  generation for a `ChunkPainter`. That keeps one way to create, load, unload and delete worlds per platform, and the
+  platform's own height range, instead of a second kind of world. The cost is that heights are the pack dimension's.
+- **Platform Y.** A tool world is not a `PackWorld`: it is the platform's world as players see it, so positions use the
+  world's own Y, and `minY()`/`maxY()` say its range. Converting to the height above the bottom would make every
+  position a tool shows a player disagree with the coordinates on their screen.
+- **Painters are pure, listeners are threaded.** A painter is called from generation threads, so it reads shared state
+  only. A listener is called on the thread that owns the player or the position, so a module never needs a lock for
+  platform state, and `owns`/`run`/`call` exist for the rest. Splitting a world by region is the platform's right
+  (Folia); the api makes it visible instead of pretending to one thread.
+- **Cancel by return value.** `blockChanging`, `used` and `command` return whether to allow. The host maps every platform
+  event onto `BlockChange.Cause` and cancels on `false`, so a tool freezes a bay or lets edits through without knowing which
+  event it was. The default for blocks is frozen: a world that forgets to answer cannot be damaged.
+- **The host keeps the boring guarantees.** No natural spawning, weather, daylight, portals, vanilla structures or
+  features; players go back where they came from on close; the world is deleted on close and what is left is deleted at
+  the next start; an item's payload survives. A tool that had to do these itself would do them differently on every
+  platform.
+- **Items, menus, sidebars are values.** `ToolItem`, `ToolMenu` and the sidebar lines are plain data the host draws with
+  its own widgets (VolmLib windows and scoreboards on Bukkit). No colour codes or components cross the api, for the
+  reason `Sender` has none.
+- **A platform may not have it.** `ToolWorlds.open` then returns a failed future and `Sender.player()` is empty, so a tool
+  tells its user instead of failing at class loading. The package is exposed to pack modules, unlike the platform
+  packages below `com.volmit.tooling`.
 
 ## Not implemented
 

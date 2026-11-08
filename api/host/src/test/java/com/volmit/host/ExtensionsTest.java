@@ -88,6 +88,7 @@ class ExtensionsTest {
         public Optional<RunningWorld> running() { return Optional.empty(); }
         public Placements placements() { throw new AssertionError("Unused placements"); }
         public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) { return states.state(type, () -> create.apply(this)); }
+        public <S> List<S> services(Class<S> service) { return List.of(); }
         public ModuleLog log() { return ModuleLogs.discarding(); }
 
         @Override

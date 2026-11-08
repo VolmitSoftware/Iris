@@ -27,6 +27,7 @@ import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -42,12 +43,15 @@ final class ToolWorld implements PackWorld, AutoCloseable {
     private final WorldStates states;
     private final ModuleLog log;
     private final Placements placements;
+    private final PackServices services;
 
-    /** {@code placements} makes the placements of the new world. */
-    ToolWorld(long seed, PackResources resources, PackSettings settings, Function<PackWorld, Placements> placements) {
+    /** {@code placements} makes the placements of the new world; {@code services} are those of the pack's modules. */
+    ToolWorld(long seed, PackResources resources, PackSettings settings, PackServices services,
+              Function<PackWorld, Placements> placements) {
         this.seeds = new SeedManager(seed);
         this.resources = resources;
         this.settings = settings;
+        this.services = services;
         this.states = new WorldStates();
         this.log = IrisApiLogger.hostLog();
         this.placements = placements.apply(this);
@@ -89,6 +93,11 @@ final class ToolWorld implements PackWorld, AutoCloseable {
     @Override
     public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) {
         return states.state(type, () -> create.apply(this));
+    }
+
+    @Override
+    public <S> List<S> services(Class<S> service) {
+        return services.providers(service);
     }
 
     @Override

@@ -20,19 +20,23 @@ package art.arcane.iris.core.tooling;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.IrisValidationContext;
+import art.arcane.iris.core.modules.PackServices;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.IrisServices;
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.resource.PackResources;
 import com.volmit.tooling.ObjectCodec;
 import com.volmit.tooling.PackEdit;
 import com.volmit.tooling.ToolPack;
+import com.volmit.tooling.world.ToolWorlds;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -99,6 +103,17 @@ public final class IrisToolPack implements ToolPack {
     @Override
     public ModuleLog log() {
         return log;
+    }
+
+    @Override
+    public ToolWorlds worlds() {
+        ToolWorldsHost host = IrisServices.getOrNull(ToolWorldsHost.class);
+        return host == null ? UnsupportedToolWorlds.INSTANCE : host.worldsOf(data.getDataFolder().getName());
+    }
+
+    @Override
+    public <S> List<S> services(Class<S> service) {
+        return PackServices.of(data).providers(service);
     }
 
     @Override

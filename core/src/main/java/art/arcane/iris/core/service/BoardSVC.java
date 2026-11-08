@@ -65,6 +65,7 @@ public class BoardSVC implements IrisService, BoardProvider {
 
     private final Map<Player, PlayerBoard> boards = new ConcurrentHashMap<>();
     private final Map<UUID, JigsawStudioBoardContext> jigsawContexts = new ConcurrentHashMap<>();
+    private final Map<UUID, ToolSidebar> toolSidebars = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> yieldedWorlds = new ConcurrentHashMap<>();
     private final Set<UUID> hiddenPlayers = ConcurrentHashMap.newKeySet();
     private volatile BoardSettings settings;
@@ -118,6 +119,7 @@ public class BoardSVC implements IrisService, BoardProvider {
         }
         boards.clear();
         jigsawContexts.clear();
+        toolSidebars.clear();
         yieldedWorlds.clear();
         hiddenPlayers.clear();
         settings = null;
@@ -137,6 +139,7 @@ public class BoardSVC implements IrisService, BoardProvider {
     public void on(PlayerQuitEvent e) {
         remove(e.getPlayer());
         jigsawContexts.remove(e.getPlayer().getUniqueId());
+        toolSidebars.remove(e.getPlayer().getUniqueId());
         yieldedWorlds.remove(e.getPlayer().getUniqueId());
         clearPlayerPreference(e.getPlayer().getUniqueId());
     }
@@ -164,17 +167,56 @@ public class BoardSVC implements IrisService, BoardProvider {
 
         if (!isEligibleWorld(p)) {
             jigsawContexts.remove(playerId);
+            toolSidebars.remove(playerId);
             remove(p);
             return;
         }
 
         PlayerBoard playerBoard = boards.computeIfAbsent(p, PlayerBoard::new);
+        ToolSidebar toolSidebar = currentToolSidebar(p);
         JigsawStudioBoardContext jigsawContext = currentJigsawContext(p);
-        if (jigsawContext != null) {
+        if (toolSidebar != null) {
+            playerBoard.showTool(toolSidebar);
+        } else if (jigsawContext != null) {
             playerBoard.showJigsaw(jigsawContext);
         } else {
             playerBoard.showOrdinary();
         }
+    }
+
+    /** What a tool shows a player in a tool world: a title and plain lines, top to bottom, for as long as the player stays in {@code worldId}. */
+    public record ToolSidebar(UUID worldId, String title, List<String> lines) {
+        public ToolSidebar {
+            Objects.requireNonNull(worldId, "worldId");
+            Objects.requireNonNull(title, "title");
+            lines = List.copyOf(lines);
+        }
+    }
+
+    public void applyToolSidebar(Player player, ToolSidebar sidebar) {
+        Objects.requireNonNull(player, "Tool sidebar player");
+        Objects.requireNonNull(sidebar, "Tool sidebar");
+        if (!J.isOwnedByCurrentRegion(player)) {
+            J.runEntity(player, () -> applyToolSidebar(player, sidebar));
+            return;
+        }
+        if (!player.isOnline()) {
+            return;
+        }
+        toolSidebars.put(player.getUniqueId(), sidebar);
+        if (sidebar.worldId().equals(player.getWorld().getUID())) {
+            updatePlayer(player);
+        }
+    }
+
+    public void clearToolSidebar(Player player) {
+        Objects.requireNonNull(player, "Tool sidebar player");
+        if (!J.isOwnedByCurrentRegion(player)) {
+            J.runEntity(player, () -> clearToolSidebar(player));
+            return;
+        }
+        toolSidebars.remove(player.getUniqueId());
+        updatePlayer(player);
     }
 
     public void applyJigsawContext(Player player, JigsawStudioBoardContext context) {
@@ -212,6 +254,7 @@ public class BoardSVC implements IrisService, BoardProvider {
         PlayerBoard previousBoard = boards.get(player);
         boolean alreadyOrdinary = previousBoard != null && previousBoard.isOrdinary();
         jigsawContexts.remove(player.getUniqueId());
+        toolSidebars.remove(player.getUniqueId());
         updatePlayer(player);
         PlayerBoard playerBoard = boards.get(player);
         if (alreadyOrdinary && playerBoard == previousBoard) {
@@ -247,6 +290,10 @@ public class BoardSVC implements IrisService, BoardProvider {
 
     @Override
     public String getTitle(Player player) {
+        PlayerBoard board = boards.get(player);
+        if (board != null && board.view == BoardView.TOOL) {
+            return board.title;
+        }
         return IrisLanguage.text(BukkitUiMessages.SCOREBOARD_TITLE);
     }
 
@@ -342,6 +389,18 @@ public class BoardSVC implements IrisService, BoardProvider {
         }
     }
 
+    private ToolSidebar currentToolSidebar(Player player) {
+        ToolSidebar sidebar = toolSidebars.get(player.getUniqueId());
+        if (sidebar == null || !sidebar.worldId().equals(player.getWorld().getUID())) {
+            return null;
+        }
+        return sidebar;
+    }
+
+    static List<String> toolLines(ToolSidebar sidebar) {
+        return sidebar.lines().stream().map(BoardSVC::untrustedBoardValue).toList();
+    }
+
     private JigsawStudioBoardContext currentJigsawContext(Player player) {
         JigsawStudioBoardContext context = jigsawContexts.get(player.getUniqueId());
         if (context == null || !context.worldId().equals(player.getWorld().getUID())) {
@@ -355,6 +414,8 @@ public class BoardSVC implements IrisService, BoardProvider {
         private final Board board;
         private volatile List<String> lines;
         private volatile JigsawStudioBoardContext jigsawContext;
+        private volatile ToolSidebar toolSidebar;
+        private volatile String title;
         private volatile BoardView view;
         private volatile boolean cancelled;
         private volatile boolean ordinaryTickScheduled;
@@ -364,6 +425,8 @@ public class BoardSVC implements IrisService, BoardProvider {
             this.board = new Board(player, settings);
             this.lines = List.of();
             this.jigsawContext = null;
+            this.toolSidebar = null;
+            this.title = "";
             this.view = BoardView.NONE;
             this.cancelled = false;
             this.ordinaryTickScheduled = false;
@@ -380,6 +443,7 @@ public class BoardSVC implements IrisService, BoardProvider {
             boolean switched = view != BoardView.ORDINARY;
             view = BoardView.ORDINARY;
             jigsawContext = null;
+            toolSidebar = null;
             if (switched) {
                 updateOrdinary();
                 board.update();
@@ -412,7 +476,27 @@ public class BoardSVC implements IrisService, BoardProvider {
             }
             view = BoardView.JIGSAW;
             jigsawContext = context;
+            toolSidebar = null;
             lines = jigsawLines(context);
+            board.update();
+        }
+
+        private void showTool(ToolSidebar sidebar) {
+            if (cancelled) {
+                return;
+            }
+            if (!board.ownsScoreboardAssignment()) {
+                yieldBoard(player, this);
+                return;
+            }
+            if (view == BoardView.TOOL && sidebar.equals(toolSidebar)) {
+                return;
+            }
+            view = BoardView.TOOL;
+            toolSidebar = sidebar;
+            jigsawContext = null;
+            title = untrustedBoardValue(sidebar.title());
+            lines = toolLines(sidebar);
             board.update();
         }
 
@@ -442,6 +526,11 @@ public class BoardSVC implements IrisService, BoardProvider {
             if (!isEligibleWorld(player)) {
                 boards.remove(player, this);
                 cancel();
+                return;
+            }
+            ToolSidebar sidebar = currentToolSidebar(player);
+            if (sidebar != null) {
+                showTool(sidebar);
                 return;
             }
             JigsawStudioBoardContext context = currentJigsawContext(player);
@@ -534,6 +623,7 @@ public class BoardSVC implements IrisService, BoardProvider {
     private enum BoardView {
         NONE,
         ORDINARY,
-        JIGSAW
+        JIGSAW,
+        TOOL
     }
 }

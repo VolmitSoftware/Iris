@@ -72,6 +72,18 @@ public class StudioOpenCoordinatorOpenKindTest {
     }
 
     @Test
+    public void toolWorldsOpenLikeAJigsawStudioWithTheirOwnDestinationTeleport() {
+        StudioOpenCoordinator.StudioOpenKind kind = StudioOpenCoordinator.StudioOpenKind.TOOL;
+
+        assertFalse(kind.openWorkspace());
+        assertFalse(kind.teleportThroughStandardEntry());
+        assertFalse(kind.prepareGeneratorState());
+        assertEquals(
+                IrisCreator.DatapackPreparation.REUSE_LOADED_RUNTIME_IF_READY,
+                kind.datapackPreparation());
+    }
+
+    @Test
     public void studioRequestRetainsExplicitOpenKind() {
         IrisProject project = new IrisProject(new File("overworld"));
         StudioOpenCoordinator.StudioOpenRequest request =

@@ -6,6 +6,7 @@ import com.volmit.placement.Placements;
 import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -70,6 +71,11 @@ final class ModuleWorld implements PackWorld {
     @Override
     public <T> Optional<T> extension(Class<T> type) {
         return world.extension(type);
+    }
+
+    @Override
+    public <S> List<S> services(Class<S> service) {
+        return world.services(service);
     }
 
     @Override

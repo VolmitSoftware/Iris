@@ -362,7 +362,7 @@ public class NMSBindingDatapackStructureScopeTest {
         assertTrue(standardPublication > retention);
         assertTrue(immediateInitialization > standardPublication);
         assertFalse(method.contains("scopedState.ensureStructuresGenerated();"));
-        assertFalse(method.contains("if (studioBootstrap && platformGenerator.isJigsawStudioActive())"));
+        assertFalse(method.contains("if (studioBootstrap && platformGenerator.isPaintedStudioActive())"));
     }
 
     @Test

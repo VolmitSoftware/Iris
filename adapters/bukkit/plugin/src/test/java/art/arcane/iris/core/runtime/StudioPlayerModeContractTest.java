@@ -46,8 +46,7 @@ public class StudioPlayerModeContractTest {
 
         assertTrue(objectCommands.contains("GameMode.CREATIVE"));
         assertTrue(objectCommands.contains("StudioOpenCoordinator.StudioOpenKind.OBJECT"));
-        assertTrue(jigsawCommands.contains("GameMode.CREATIVE"));
+        assertTrue(jigsawCommands.contains("player.creative(true)"));
         assertFalse(objectCommands.contains("GameMode.SPECTATOR"));
-        assertFalse(jigsawCommands.contains("GameMode.SPECTATOR"));
-    }
+        assertFalse(jigsawCommands.contains("GameMode.SPECTATOR"));    }
 }

@@ -2,14 +2,11 @@ package art.arcane.iris.core.service;
 
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolAction;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolPayload;
-
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.volmit.resource.ResourceId;
+import com.volmit.tooling.world.ToolItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,98 +14,82 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+/** Turns a studio tool payload into the tool item a player holds, and the item back into the payload. */
 public final class JigsawStudioToolCodec {
-    static final NamespacedKey SCHEMA_KEY = new NamespacedKey("iris", "jigsaw_tool_schema");
-    static final NamespacedKey ACTION_KEY = new NamespacedKey("iris", "jigsaw_tool_action");
-    static final NamespacedKey REQUEST_KEY = new NamespacedKey("iris", "jigsaw_tool_request");
-    static final NamespacedKey WORKCELL_KEY = new NamespacedKey("iris", "jigsaw_tool_workcell");
-    static final NamespacedKey PIECE_KEY = new NamespacedKey("iris", "jigsaw_tool_piece");
-    static final NamespacedKey POOL_KEY = new NamespacedKey("iris", "jigsaw_tool_pool");
-    static final NamespacedKey ENTRY_INDEX_KEY = new NamespacedKey("iris", "jigsaw_tool_entry_index");
-    static final NamespacedKey AMOUNT_KEY = new NamespacedKey("iris", "jigsaw_tool_amount");
+    static final ResourceId TOOL_ITEM = ResourceId.parse("minecraft:stick");
+    static final String NAME_PREFIX = "Jigsaw Studio: ";
+    static final String SCHEMA_FIELD = "schema";
+    static final String ACTION_FIELD = "action";
+    static final String REQUEST_FIELD = "request";
+    static final String WORKCELL_FIELD = "workcell";
+    static final String PIECE_FIELD = "piece";
+    static final String POOL_FIELD = "pool";
+    static final String ENTRY_INDEX_FIELD = "entryIndex";
+    static final String AMOUNT_FIELD = "amount";
 
-    public ItemStack create(JigsawStudioToolPayload payload) {
-        ItemStack tool = new ItemStack(Material.STICK);
-        bind(tool, payload);
-        return tool;
-    }
+    private static final Gson GSON = new Gson();
 
-    public void bind(ItemStack tool, JigsawStudioToolPayload payload) {
-        ItemStack item = Objects.requireNonNull(tool, "Jigsaw Studio tool item");
+    public ToolItem create(JigsawStudioToolPayload payload) {
         JigsawStudioToolPayload binding = requireCurrentSchema(payload);
-        if (item.getType() != Material.STICK) {
-            throw new IllegalArgumentException("Jigsaw Studio tools must use a stick");
-        }
-        ItemMeta meta = item.getItemMeta();
-        if (meta == null) {
-            throw new IllegalStateException("Jigsaw Studio tool stick has no item metadata");
-        }
-        write(meta.getPersistentDataContainer(), binding);
-        meta.setDisplayName(ChatColor.AQUA + "Jigsaw Studio: " + binding.action().displayName());
-        meta.setLore(lore(binding));
-        if (!item.setItemMeta(meta)) {
-            throw new IllegalStateException("Jigsaw Studio tool metadata was rejected");
-        }
+        return new ToolItem(
+                TOOL_ITEM,
+                NAME_PREFIX + binding.action().displayName(),
+                lore(binding),
+                false,
+                encode(binding));
     }
 
-    public Optional<JigsawStudioToolPayload> decode(ItemStack tool) {
-        if (tool == null || tool.getType() != Material.STICK || !tool.hasItemMeta()) {
+    public Optional<JigsawStudioToolPayload> decode(ToolItem tool) {
+        if (tool == null || !TOOL_ITEM.equals(tool.item())) {
             return Optional.empty();
         }
-        ItemMeta meta = tool.getItemMeta();
-        return meta == null ? Optional.empty() : decode(meta.getPersistentDataContainer());
+        return decode(tool.payload());
     }
 
-    public boolean isTool(ItemStack tool) {
+    public boolean isTool(ToolItem tool) {
         return decode(tool).isPresent();
     }
 
-    void write(PersistentDataContainer container, JigsawStudioToolPayload payload) {
-        PersistentDataContainer data = Objects.requireNonNull(
-                container,
-                "Jigsaw Studio tool persistent data");
+    String encode(JigsawStudioToolPayload payload) {
         JigsawStudioToolPayload binding = requireCurrentSchema(payload);
-        data.set(SCHEMA_KEY, PersistentDataType.INTEGER, binding.schemaVersion());
-        data.set(ACTION_KEY, PersistentDataType.STRING, binding.action().name());
-        data.set(REQUEST_KEY, PersistentDataType.STRING, binding.requestId().toString());
-        data.set(WORKCELL_KEY, PersistentDataType.STRING, binding.workcellId());
-        data.set(PIECE_KEY, PersistentDataType.STRING, binding.pieceKey());
-        data.set(POOL_KEY, PersistentDataType.STRING, binding.poolKey());
-        data.set(ENTRY_INDEX_KEY, PersistentDataType.INTEGER, binding.entryIndex());
-        data.set(AMOUNT_KEY, PersistentDataType.INTEGER, binding.amount());
+        JsonObject json = new JsonObject();
+        json.addProperty(SCHEMA_FIELD, binding.schemaVersion());
+        json.addProperty(ACTION_FIELD, binding.action().name());
+        json.addProperty(REQUEST_FIELD, binding.requestId().toString());
+        json.addProperty(WORKCELL_FIELD, binding.workcellId());
+        json.addProperty(PIECE_FIELD, binding.pieceKey());
+        json.addProperty(POOL_FIELD, binding.poolKey());
+        json.addProperty(ENTRY_INDEX_FIELD, binding.entryIndex());
+        json.addProperty(AMOUNT_FIELD, binding.amount());
+        return GSON.toJson(json);
     }
 
-    Optional<JigsawStudioToolPayload> decode(PersistentDataContainer container) {
-        if (container == null) {
-            return Optional.empty();
-        }
-        Integer schemaVersion = container.get(SCHEMA_KEY, PersistentDataType.INTEGER);
-        String actionName = container.get(ACTION_KEY, PersistentDataType.STRING);
-        String requestValue = container.get(REQUEST_KEY, PersistentDataType.STRING);
-        if (schemaVersion == null
-                || schemaVersion != JigsawStudioToolPayload.CURRENT_SCHEMA_VERSION
-                || actionName == null
-                || requestValue == null) {
+    Optional<JigsawStudioToolPayload> decode(String payload) {
+        if (payload == null || payload.isEmpty()) {
             return Optional.empty();
         }
         try {
-            JigsawStudioToolAction action = JigsawStudioToolAction.valueOf(actionName);
-            UUID requestId = UUID.fromString(requestValue);
-            String workcellId = optionalString(container, WORKCELL_KEY);
-            String pieceKey = optionalString(container, PIECE_KEY);
-            String poolKey = optionalString(container, POOL_KEY);
-            Integer entryIndex = container.get(ENTRY_INDEX_KEY, PersistentDataType.INTEGER);
-            Integer amount = container.get(AMOUNT_KEY, PersistentDataType.INTEGER);
+            JsonObject json = GSON.fromJson(payload, JsonObject.class);
+            if (json == null
+                    || !json.has(SCHEMA_FIELD)
+                    || !json.has(ACTION_FIELD)
+                    || !json.has(REQUEST_FIELD)
+                    || json.get(SCHEMA_FIELD).getAsInt() != JigsawStudioToolPayload.CURRENT_SCHEMA_VERSION) {
+                return Optional.empty();
+            }
             return Optional.of(new JigsawStudioToolPayload(
-                    schemaVersion,
-                    action,
-                    requestId,
-                    workcellId,
-                    pieceKey,
-                    poolKey,
-                    entryIndex == null ? JigsawStudioToolPayload.NO_ENTRY_INDEX : entryIndex,
-                    amount == null ? 0 : amount));
-        } catch (IllegalArgumentException exception) {
+                    json.get(SCHEMA_FIELD).getAsInt(),
+                    JigsawStudioToolAction.valueOf(json.get(ACTION_FIELD).getAsString()),
+                    UUID.fromString(json.get(REQUEST_FIELD).getAsString()),
+                    optionalString(json, WORKCELL_FIELD),
+                    optionalString(json, PIECE_FIELD),
+                    optionalString(json, POOL_FIELD),
+                    json.has(ENTRY_INDEX_FIELD)
+                            ? json.get(ENTRY_INDEX_FIELD).getAsInt()
+                            : JigsawStudioToolPayload.NO_ENTRY_INDEX,
+                    json.has(AMOUNT_FIELD) ? json.get(AMOUNT_FIELD).getAsInt() : 0));
+        } catch (IllegalArgumentException | IllegalStateException | UnsupportedOperationException
+                 | JsonParseException exception) {
             return Optional.empty();
         }
     }
@@ -122,29 +103,28 @@ public final class JigsawStudioToolCodec {
         return binding;
     }
 
-    private static String optionalString(PersistentDataContainer container, NamespacedKey key) {
-        String value = container.get(key, PersistentDataType.STRING);
-        return value == null ? "" : value;
+    private static String optionalString(JsonObject json, String field) {
+        return json.has(field) ? json.get(field).getAsString() : "";
     }
 
     private static List<String> lore(JigsawStudioToolPayload payload) {
         List<String> lore = new ArrayList<>();
         if (!payload.workcellId().isEmpty()) {
-            lore.add(ChatColor.GRAY + "Workcell: " + payload.workcellId());
+            lore.add("Workcell: " + payload.workcellId());
         }
         if (!payload.pieceKey().isEmpty()) {
-            lore.add(ChatColor.GRAY + "Variant: " + payload.pieceKey());
+            lore.add("Variant: " + payload.pieceKey());
         }
         if (!payload.poolKey().isEmpty()) {
-            lore.add(ChatColor.GRAY + "Pool: " + payload.poolKey()
+            lore.add("Pool: " + payload.poolKey()
                     + (payload.entryIndex() < 0 ? "" : " [" + payload.entryIndex() + "]"));
         }
         if (payload.amount() != 0) {
-            lore.add(ChatColor.GRAY + "Amount: " + payload.amount());
+            lore.add("Amount: " + payload.amount());
         }
         lore.add(payload.action().destructive()
-                ? ChatColor.RED + "Right-click twice to confirm"
-                : ChatColor.YELLOW + "Right-click to use");
+                ? "Right-click twice to confirm"
+                : "Right-click to use");
         return List.copyOf(lore);
     }
 }

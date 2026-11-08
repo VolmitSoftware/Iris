@@ -3,7 +3,6 @@ package art.arcane.iris.engine.platform.studio.generators;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarDirection;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarTopology;
-import art.arcane.iris.core.runtime.jigsaw.JigsawStudioActivation;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBay;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBounds;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
@@ -11,95 +10,89 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioControlPosition;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioLayout;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioSession;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariant;
-import art.arcane.iris.core.service.JigsawStudioService;
-import art.arcane.iris.engine.data.chunk.TerrainChunk;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.GenerationSessionLease;
-import art.arcane.iris.engine.framework.WrongEngineBroException;
+import art.arcane.iris.core.service.JigsawStudioBlocks;
+import art.arcane.iris.core.service.JigsawStudioRequest;
 import art.arcane.iris.engine.object.value.IrisDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.ObjectTurn;
-import art.arcane.iris.engine.object.prefab.BlockStateRotation;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
-import art.arcane.iris.engine.object.prefab.TileData;
-import art.arcane.iris.engine.platform.studio.EnginedStudioGenerator;
-import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.volmlib.util.data.VectorMap;
-import art.arcane.volmlib.util.math.IrisBlockVector;
-import art.arcane.volmlib.util.math.Vector3i;
-import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.volmlib.util.collection.KList;
-import org.bukkit.World;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.object.BlockEntityData;
+import com.volmit.object.ObjectBlock;
+import com.volmit.object.PlaceableObject;
+import com.volmit.resource.PackResources;
+import com.volmit.tooling.ToolPack;
+import com.volmit.tooling.world.ChunkCanvas;
+import com.volmit.tooling.world.ChunkPainter;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public final class JigsawStudioGenerator extends EnginedStudioGenerator {
+public final class JigsawStudioGenerator implements ChunkPainter {
     private static final int CHECKER_SIZE = 4;
+    private static final int CHUNK_SIZE = 16;
 
-    private final JigsawStudioActivation.Request request;
+    private final ToolPack pack;
+    private final JigsawStudioRequest request;
     private final JigsawStudioSession session;
-    private final PlatformBlockState lightFloor;
-    private final PlatformBlockState darkFloor;
-    private final PlatformBlockState frame;
-    private final PlatformBlockState topologyBase;
-    private final PlatformBlockState topologyPath;
-    private final PlatformBlockState connectorCap;
-    private final PlatformBlockState invalidMarker;
-    private final PlatformBlockState controlChest;
+    private final BlockState lightFloor;
+    private final BlockState darkFloor;
+    private final BlockState frame;
+    private final BlockState topologyBase;
+    private final BlockState topologyPath;
+    private final BlockState connectorCap;
+    private final BlockState invalidMarker;
+    private final BlockState controlChest;
     private final FinalStateRenderer finalStateRenderer;
-    private final AtomicBoolean serviceRegistered = new AtomicBoolean(false);
     private final ConcurrentMap<RenderKey, RenderedBay> renderedBays = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, PlatformBlockState> jigsawStates = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, BlockState> jigsawStates = new ConcurrentHashMap<>();
 
     public JigsawStudioGenerator(
-            Engine engine,
-            JigsawStudioActivation.Request request,
+            ToolPack pack,
+            JigsawStudioRequest request,
             JigsawStudioSession session
     ) {
         this(
-                engine,
+                pack,
                 request,
                 session,
-                B.getState("minecraft:smooth_stone"),
-                B.getState("minecraft:polished_deepslate"),
-                B.getState("minecraft:white_concrete"),
-                B.getState("minecraft:light_gray_wool"),
-                B.getState("minecraft:red_wool"),
-                B.getState("minecraft:sea_lantern"),
-                B.getState("minecraft:red_stained_glass"),
-                B.getState("minecraft:chest[facing=south,type=single,waterlogged=false]"),
-                JigsawStudioGenerator::rotatedFinalState
+                BlockState.parse("minecraft:smooth_stone"),
+                BlockState.parse("minecraft:polished_deepslate"),
+                BlockState.parse("minecraft:white_concrete"),
+                BlockState.parse("minecraft:light_gray_wool"),
+                BlockState.parse("minecraft:red_wool"),
+                BlockState.parse("minecraft:sea_lantern"),
+                BlockState.parse("minecraft:red_stained_glass"),
+                BlockState.parse("minecraft:chest[facing=south,type=single,waterlogged=false]"),
+                null
         );
     }
 
     JigsawStudioGenerator(
-            Engine engine,
-            JigsawStudioActivation.Request request,
+            ToolPack pack,
+            JigsawStudioRequest request,
             JigsawStudioSession session,
-            PlatformBlockState lightFloor,
-            PlatformBlockState darkFloor,
-            PlatformBlockState frame,
-            PlatformBlockState topologyBase,
-            PlatformBlockState topologyPath,
-            PlatformBlockState connectorCap,
-            PlatformBlockState invalidMarker,
-            PlatformBlockState controlChest,
+            BlockState lightFloor,
+            BlockState darkFloor,
+            BlockState frame,
+            BlockState topologyBase,
+            BlockState topologyPath,
+            BlockState connectorCap,
+            BlockState invalidMarker,
+            BlockState controlChest,
             FinalStateRenderer finalStateRenderer
     ) {
-        super(engine);
+        this.pack = Objects.requireNonNull(pack, "Jigsaw Studio pack");
         this.request = Objects.requireNonNull(request, "Jigsaw Studio request");
         this.session = Objects.requireNonNull(session, "Jigsaw Studio session");
         this.lightFloor = Objects.requireNonNull(lightFloor, "Jigsaw Studio light floor block");
@@ -110,9 +103,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         this.connectorCap = Objects.requireNonNull(connectorCap, "Jigsaw Studio connector cap block");
         this.invalidMarker = Objects.requireNonNull(invalidMarker, "Jigsaw Studio invalid marker block");
         this.controlChest = Objects.requireNonNull(controlChest, "Jigsaw Studio control chest block");
-        this.finalStateRenderer = Objects.requireNonNull(
-                finalStateRenderer,
-                "Jigsaw Studio connector final-state renderer");
+        this.finalStateRenderer = finalStateRenderer == null ? this::rotatedFinalState : finalStateRenderer;
         if (!request.requestId().equals(session.sessionId())) {
             throw new IllegalArgumentException("Jigsaw Studio request and session IDs do not match");
         }
@@ -121,7 +112,11 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         }
     }
 
-    public JigsawStudioActivation.Request getRequest() {
+    public ToolPack getPack() {
+        return pack;
+    }
+
+    public JigsawStudioRequest getRequest() {
         return request;
     }
 
@@ -176,29 +171,21 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
     }
 
     @Override
-    public void generateChunk(Engine engine, TerrainChunk terrainChunk, int chunkX, int chunkZ)
-            throws WrongEngineBroException {
-        try (GenerationSessionLease lease = engine.acquireGenerationLease("bukkit_jigsaw_studio_stage");
-             IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
-            paintChunk(terrainChunk, chunkX, chunkZ);
-            ensureServiceRegistered(engine);
-            if (serviceRegistered.get()) {
-                JigsawStudioService.get().markChunkGenerated(engine, this, chunkX, chunkZ);
-            }
-        }
+    public void paint(int chunkX, int chunkZ, ChunkCanvas canvas) {
+        paintChunk(canvas, chunkX, chunkZ);
     }
 
-    public void paintChunk(TerrainChunk terrainChunk, int chunkX, int chunkZ) {
-        Objects.requireNonNull(terrainChunk, "Jigsaw Studio terrain chunk");
-        int floorY = Math.max(terrainChunk.getMinHeight(), JigsawStudioLayout.FLOOR_Y);
-        if (floorY >= terrainChunk.getMaxHeight()) {
+    public void paintChunk(ChunkCanvas canvas, int chunkX, int chunkZ) {
+        Objects.requireNonNull(canvas, "Jigsaw Studio chunk canvas");
+        int floorY = Math.max(canvas.minY(), JigsawStudioLayout.FLOOR_Y);
+        if (floorY >= canvas.maxY()) {
             return;
         }
 
         int chunkWorldX = chunkX << 4;
         int chunkWorldZ = chunkZ << 4;
-        paintFloor(terrainChunk, floorY, chunkWorldX, chunkWorldZ);
-        paintControlChest(terrainChunk, chunkWorldX, chunkWorldZ);
+        paintFloor(canvas, floorY, chunkWorldX, chunkWorldZ);
+        paintControlChest(canvas, chunkWorldX, chunkWorldZ);
 
         int chunkMaxX = chunkWorldX + 15;
         int chunkMaxZ = chunkWorldZ + 15;
@@ -211,21 +198,21 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
                     chunkMaxZ + 1)) {
                 continue;
             }
-            paintCage(terrainChunk, workcell, chunkWorldX, chunkWorldZ);
+            paintCage(canvas, workcell, chunkWorldX, chunkWorldZ);
             if (workcell.archetype().isPresent()) {
-                paintTopologyGlyph(terrainChunk, workcell, chunkWorldX, chunkWorldZ);
+                paintTopologyGlyph(canvas, workcell, chunkWorldX, chunkWorldZ);
             }
             RenderedBay renderedBay = renderBay(workcell);
             if (!renderedBay.valid()) {
-                paintInvalidBay(terrainChunk, workcell, chunkWorldX, chunkWorldZ);
+                paintInvalidBay(canvas, workcell, chunkWorldX, chunkWorldZ);
                 continue;
             }
-            paintObject(terrainChunk, workcell, renderedBay, chunkWorldX, chunkWorldZ);
+            paintObject(canvas, workcell, renderedBay, chunkWorldX, chunkWorldZ);
             if (session.workcellSnapshot(workcell.stableId()).connectorsVisible()) {
-                paintConnectors(terrainChunk, workcell, renderedBay, chunkWorldX, chunkWorldZ);
+                paintConnectors(canvas, workcell, renderedBay, chunkWorldX, chunkWorldZ);
             } else {
                 paintHiddenConnectorFinalStates(
-                        terrainChunk,
+                        canvas,
                         workcell,
                         renderedBay,
                         chunkWorldX,
@@ -234,48 +221,23 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         }
     }
 
-    private void ensureServiceRegistered(Engine engine) {
-        if (serviceRegistered.get()) {
-            return;
-        }
-        World world = BukkitWorldBinding.world(engine.getTarget().getWorld());
-        if (world == null) {
-            return;
-        }
-        publishServiceRegistration(() -> JigsawStudioService.get().register(engine, this));
-    }
-
-    void publishServiceRegistration(Runnable registration) {
-        Objects.requireNonNull(registration, "Jigsaw Studio service registration");
-        if (serviceRegistered.get()) {
-            return;
-        }
-        synchronized (serviceRegistered) {
-            if (serviceRegistered.get()) {
-                return;
-            }
-            registration.run();
-            serviceRegistered.set(true);
-        }
-    }
-
-    private void paintFloor(TerrainChunk terrainChunk, int floorY, int chunkWorldX, int chunkWorldZ) {
-        for (int localX = 0; localX < 16; localX++) {
-            for (int localZ = 0; localZ < 16; localZ++) {
+    private void paintFloor(ChunkCanvas canvas, int floorY, int chunkWorldX, int chunkWorldZ) {
+        for (int localX = 0; localX < CHUNK_SIZE; localX++) {
+            for (int localZ = 0; localZ < CHUNK_SIZE; localZ++) {
                 int worldX = chunkWorldX + localX;
                 int worldZ = chunkWorldZ + localZ;
                 int tileX = Math.floorDiv(worldX, CHECKER_SIZE);
                 int tileZ = Math.floorDiv(worldZ, CHECKER_SIZE);
-                PlatformBlockState block = ((tileX + tileZ) & 1) == 0 ? lightFloor : darkFloor;
-                terrainChunk.setBlock(localX, floorY, localZ, block);
+                BlockState block = ((tileX + tileZ) & 1) == 0 ? lightFloor : darkFloor;
+                canvas.set(localX, floorY, localZ, block);
             }
         }
     }
 
-    private void paintControlChest(TerrainChunk terrainChunk, int chunkWorldX, int chunkWorldZ) {
+    private void paintControlChest(ChunkCanvas canvas, int chunkWorldX, int chunkWorldZ) {
         JigsawStudioControlPosition control = getLayout().controlPosition();
         setWorldBlock(
-                terrainChunk,
+                canvas,
                 control.worldX(),
                 control.worldY(),
                 control.worldZ(),
@@ -285,7 +247,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
     }
 
     private void paintCage(
-            TerrainChunk terrainChunk,
+            ChunkCanvas canvas,
             JigsawStudioBay workcell,
             int chunkWorldX,
             int chunkWorldZ
@@ -299,7 +261,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         int topY = bounds.maxY() + 1;
 
         paintRectangle(
-                terrainChunk,
+                canvas,
                 minimumX,
                 maximumX,
                 bottomY,
@@ -308,7 +270,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
                 chunkWorldX,
                 chunkWorldZ);
         paintRectangle(
-                terrainChunk,
+                canvas,
                 minimumX,
                 maximumX,
                 topY,
@@ -317,15 +279,15 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
                 chunkWorldX,
                 chunkWorldZ);
         for (int y = bottomY + 1; y < topY; y++) {
-            setWorldBlock(terrainChunk, minimumX, y, minimumZ, frame, chunkWorldX, chunkWorldZ);
-            setWorldBlock(terrainChunk, maximumX, y, minimumZ, frame, chunkWorldX, chunkWorldZ);
-            setWorldBlock(terrainChunk, minimumX, y, maximumZ, frame, chunkWorldX, chunkWorldZ);
-            setWorldBlock(terrainChunk, maximumX, y, maximumZ, frame, chunkWorldX, chunkWorldZ);
+            setWorldBlock(canvas, minimumX, y, minimumZ, frame, chunkWorldX, chunkWorldZ);
+            setWorldBlock(canvas, maximumX, y, minimumZ, frame, chunkWorldX, chunkWorldZ);
+            setWorldBlock(canvas, minimumX, y, maximumZ, frame, chunkWorldX, chunkWorldZ);
+            setWorldBlock(canvas, maximumX, y, maximumZ, frame, chunkWorldX, chunkWorldZ);
         }
     }
 
     private void paintRectangle(
-            TerrainChunk terrainChunk,
+            ChunkCanvas canvas,
             int minimumX,
             int maximumX,
             int y,
@@ -335,17 +297,17 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
             int chunkWorldZ
     ) {
         for (int x = minimumX; x <= maximumX; x++) {
-            setWorldBlock(terrainChunk, x, y, minimumZ, frame, chunkWorldX, chunkWorldZ);
-            setWorldBlock(terrainChunk, x, y, maximumZ, frame, chunkWorldX, chunkWorldZ);
+            setWorldBlock(canvas, x, y, minimumZ, frame, chunkWorldX, chunkWorldZ);
+            setWorldBlock(canvas, x, y, maximumZ, frame, chunkWorldX, chunkWorldZ);
         }
         for (int z = minimumZ + 1; z < maximumZ; z++) {
-            setWorldBlock(terrainChunk, minimumX, y, z, frame, chunkWorldX, chunkWorldZ);
-            setWorldBlock(terrainChunk, maximumX, y, z, frame, chunkWorldX, chunkWorldZ);
+            setWorldBlock(canvas, minimumX, y, z, frame, chunkWorldX, chunkWorldZ);
+            setWorldBlock(canvas, maximumX, y, z, frame, chunkWorldX, chunkWorldZ);
         }
     }
 
     private void paintTopologyGlyph(
-            TerrainChunk terrainChunk,
+            ChunkCanvas canvas,
             JigsawStudioBay workcell,
             int chunkWorldX,
             int chunkWorldZ
@@ -366,14 +328,14 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
             int localX = worldX - bounds.originX();
             for (int worldZ = minimumZ; worldZ <= maximumZ; worldZ++) {
                 int localZ = worldZ - bounds.originZ();
-                PlatformBlockState state = topologyGlyphState(topology, bounds.dimensions(), localX, localZ,
+                BlockState state = topologyGlyphState(topology, bounds.dimensions(), localX, localZ,
                         centerX, centerZ);
-                setWorldBlock(terrainChunk, worldX, glyphY, worldZ, state, chunkWorldX, chunkWorldZ);
+                setWorldBlock(canvas, worldX, glyphY, worldZ, state, chunkWorldX, chunkWorldZ);
             }
         }
     }
 
-    private PlatformBlockState topologyGlyphState(
+    private BlockState topologyGlyphState(
             JigsawPlanarTopology topology,
             JigsawStudioCellDimensions dimensions,
             int localX,
@@ -426,7 +388,8 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
     }
 
     private RenderedBay buildRenderedBay(JigsawStudioBay workcell, JigsawStudioVariant variant) {
-        IrisJigsawPiece piece = StructureResources.piece(request.source().getPackResources(), variant.pieceKey());
+        PackResources resources = pack.resources();
+        IrisJigsawPiece piece = StructureResources.piece(resources, variant.pieceKey());
         if (piece == null) {
             return RenderedBay.invalid(
                     workcell.bounds().dimensions(),
@@ -443,13 +406,13 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
                     "piece '" + variant.pieceKey() + "' changed its object from '" + variant.objectKey()
                             + "' to '" + piece.getObject() + "'");
         }
-        IrisObject object = request.source().getObjectLoader().load(variant.objectKey(), false);
+        PlaceableObject object = resources.objects().object(resources.idOf(variant.objectKey())).orElse(null);
         if (object == null) {
             return RenderedBay.invalid(
                     workcell.bounds().dimensions(),
                     "object '" + variant.objectKey() + "' is missing");
         }
-        if (object.getW() < 1 || object.getH() < 1 || object.getD() < 1) {
+        if (object.width() < 1 || object.height() < 1 || object.depth() < 1) {
             return RenderedBay.invalid(
                     workcell.bounds().dimensions(),
                     "object '" + variant.objectKey() + "' has invalid dimensions");
@@ -464,7 +427,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         }
 
         ObjectTurn rotation = ObjectTurn.of(0, -90.0D * quarterTurns, 0);
-        List<RenderedBlock> blocks = renderBlocks(object, dimensions, quarterTurns, rotation);
+        List<RenderedBlock> blocks = renderBlocks(resources.blocks(), object, dimensions, quarterTurns, rotation);
         if (blocks == null) {
             return RenderedBay.invalid(
                     dimensions,
@@ -479,29 +442,28 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
     }
 
     private List<RenderedBlock> renderBlocks(
-            IrisObject object,
+            BlockRegistry registry,
+            PlaceableObject object,
             JigsawStudioCellDimensions dimensions,
             int quarterTurns,
             ObjectTurn rotation
     ) {
-        VectorMap<PlatformBlockState> sourceBlocks = object.getBlocks();
-        VectorMap<TileData> sourceTiles = object.getStates();
-        Vector3i center = object.getCenter();
+        BlockPosition center = object.center();
+        List<ObjectBlock> sourceBlocks = object.geometry().blocks();
         List<RenderedBlock> blocks = new ArrayList<>(sourceBlocks.size());
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : sourceBlocks) {
-            IrisBlockVector signed = entry.getKey();
-            int sourceX = signed.getBlockX() + center.getBlockX();
-            int sourceY = signed.getBlockY() + center.getBlockY();
-            int sourceZ = signed.getBlockZ() + center.getBlockZ();
-            if (!inside(sourceX, sourceY, sourceZ, object.getW(), object.getH(), object.getD())) {
+        for (ObjectBlock source : sourceBlocks) {
+            int sourceX = source.position().x() + center.x();
+            int sourceY = source.position().y() + center.y();
+            int sourceZ = source.position().z() + center.z();
+            if (!inside(sourceX, sourceY, sourceZ, object.width(), object.height(), object.depth())) {
                 return null;
             }
             RotatedPosition position = rotatePosition(
                     sourceX,
                     sourceY,
                     sourceZ,
-                    object.getW(),
-                    object.getD(),
+                    object.width(),
+                    object.depth(),
                     quarterTurns);
             if (!inside(
                     position.x(),
@@ -512,26 +474,25 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
                     dimensions.depth())) {
                 return null;
             }
-            PlatformBlockState blockState = quarterTurns == 0
-                    ? entry.getValue()
-                    : BlockStateRotation.rotate(rotation, entry.getValue());
+            BlockState blockState = quarterTurns == 0
+                    ? source.state()
+                    : JigsawStudioBlocks.rotated(registry, source.state(), rotation);
             if (blockState == null) {
                 return null;
             }
-            TileData tileData = sourceTiles.get(signed);
             blocks.add(new RenderedBlock(
                     position.x(),
                     position.y(),
                     position.z(),
                     blockState,
-                    tileData == null ? null : tileData.clone()));
+                    source.blockEntity().orElse(null)));
         }
         return List.copyOf(blocks);
     }
 
     private ConnectorRenderResult renderConnectors(
             IrisJigsawPiece piece,
-            IrisObject object,
+            PlaceableObject object,
             JigsawStudioCellDimensions dimensions,
             int quarterTurns,
             ObjectTurn rotation
@@ -551,17 +512,17 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
                     sourcePosition.getX(),
                     sourcePosition.getY(),
                     sourcePosition.getZ(),
-                    object.getW(),
-                    object.getH(),
-                    object.getD())) {
+                    object.width(),
+                    object.height(),
+                    object.depth())) {
                 return ConnectorRenderResult.invalid("connector " + index + " is outside its object bounds");
             }
             RotatedPosition position = rotatePosition(
                     sourcePosition.getX(),
                     sourcePosition.getY(),
                     sourcePosition.getZ(),
-                    object.getW(),
-                    object.getD(),
+                    object.width(),
+                    object.depth(),
                     quarterTurns);
             IrisDirection front = quarterTurns == 0
                     ? source.getDirection()
@@ -601,24 +562,21 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         return ConnectorRenderResult.valid(connectors);
     }
 
-    private static String rotatedFinalState(
-            String finalState,
-            ObjectTurn rotation,
-            int quarterTurns
-    ) {
-        PlatformBlockState state = B.getStateOrNull(finalState, false);
+    private String rotatedFinalState(String finalState, ObjectTurn rotation, int quarterTurns) {
+        BlockRegistry registry = pack.resources().blocks();
+        BlockState state = registry.find(finalState).orElse(null);
         if (state == null) {
             return null;
         }
         if (quarterTurns == 0) {
             return state.key();
         }
-        PlatformBlockState rotated = BlockStateRotation.rotate(rotation, state);
+        BlockState rotated = JigsawStudioBlocks.rotated(registry, state, rotation);
         return rotated == null ? null : rotated.key();
     }
 
     private void paintObject(
-            TerrainChunk terrainChunk,
+            ChunkCanvas canvas,
             JigsawStudioBay workcell,
             RenderedBay renderedBay,
             int chunkWorldX,
@@ -627,7 +585,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         JigsawStudioBounds bounds = workcell.bounds();
         for (RenderedBlock block : renderedBay.blocks()) {
             setWorldBlock(
-                    terrainChunk,
+                    canvas,
                     bounds.originX() + block.x(),
                     bounds.originY() + block.y(),
                     bounds.originZ() + block.z(),
@@ -638,7 +596,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
     }
 
     private void paintConnectors(
-            TerrainChunk terrainChunk,
+            ChunkCanvas canvas,
             JigsawStudioBay workcell,
             RenderedBay renderedBay,
             int chunkWorldX,
@@ -646,22 +604,24 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
     ) {
         JigsawStudioBounds bounds = workcell.bounds();
         for (RenderedConnector connector : renderedBay.connectors()) {
-            PlatformBlockState state = jigsawStates.computeIfAbsent(
+            BlockState state = jigsawStates.computeIfAbsent(
                     connector.orientation(),
-                    key -> B.getState("minecraft:jigsaw[orientation=" + key + "]"));
+                    key -> pack.resources().blocks()
+                            .find("minecraft:jigsaw[orientation=" + key + "]")
+                            .orElse(invalidMarker));
             setWorldBlock(
-                    terrainChunk,
+                    canvas,
                     bounds.originX() + connector.x(),
                     bounds.originY() + connector.y(),
                     bounds.originZ() + connector.z(),
-                    state == null ? invalidMarker : state,
+                    state,
                     chunkWorldX,
                     chunkWorldZ);
         }
     }
 
     private void paintHiddenConnectorFinalStates(
-            TerrainChunk terrainChunk,
+            ChunkCanvas canvas,
             JigsawStudioBay workcell,
             RenderedBay renderedBay,
             int chunkWorldX,
@@ -671,14 +631,15 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         for (RenderedBlock block : renderedBay.blocks()) {
             occupied.add(new RenderedPosition(block.x(), block.y(), block.z()));
         }
+        BlockRegistry registry = pack.resources().blocks();
         JigsawStudioBounds bounds = workcell.bounds();
         for (RenderedConnector connector : renderedBay.connectors()) {
             if (occupied.contains(new RenderedPosition(connector.x(), connector.y(), connector.z()))) {
                 continue;
             }
-            PlatformBlockState finalState = B.getStateOrNull(connector.connector().getFinalState(), false);
+            BlockState finalState = registry.find(connector.connector().getFinalState()).orElse(null);
             setWorldBlock(
-                    terrainChunk,
+                    canvas,
                     bounds.originX() + connector.x(),
                     bounds.originY() + connector.y(),
                     bounds.originZ() + connector.z(),
@@ -689,7 +650,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
     }
 
     private void paintInvalidBay(
-            TerrainChunk terrainChunk,
+            ChunkCanvas canvas,
             JigsawStudioBay workcell,
             int chunkWorldX,
             int chunkWorldZ
@@ -699,7 +660,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         int length = Math.min(bounds.dimensions().width(), bounds.dimensions().depth());
         for (int offset = 0; offset < length; offset++) {
             setWorldBlock(
-                    terrainChunk,
+                    canvas,
                     bounds.originX() + offset,
                     y,
                     bounds.originZ() + offset,
@@ -707,7 +668,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
                     chunkWorldX,
                     chunkWorldZ);
             setWorldBlock(
-                    terrainChunk,
+                    canvas,
                     bounds.maxX() - offset,
                     y,
                     bounds.originZ() + offset,
@@ -766,10 +727,10 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         return directionName(activeFront) + "_up";
     }
 
-    private static JigsawStudioCellDimensions rotatedDimensions(IrisObject object, int quarterTurns) {
+    private static JigsawStudioCellDimensions rotatedDimensions(PlaceableObject object, int quarterTurns) {
         return Math.floorMod(quarterTurns, 2) == 0
-                ? new JigsawStudioCellDimensions(object.getW(), object.getH(), object.getD())
-                : new JigsawStudioCellDimensions(object.getD(), object.getH(), object.getW());
+                ? new JigsawStudioCellDimensions(object.width(), object.height(), object.depth())
+                : new JigsawStudioCellDimensions(object.depth(), object.height(), object.width());
     }
 
     private static boolean fits(JigsawStudioCellDimensions object, JigsawStudioCellDimensions bay) {
@@ -830,23 +791,23 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
     }
 
     private void setWorldBlock(
-            TerrainChunk terrainChunk,
+            ChunkCanvas canvas,
             int worldX,
             int worldY,
             int worldZ,
-            PlatformBlockState block,
+            BlockState block,
             int chunkWorldX,
             int chunkWorldZ
     ) {
         int localX = worldX - chunkWorldX;
         int localZ = worldZ - chunkWorldZ;
-        if (localX < 0 || localX >= 16 || localZ < 0 || localZ >= 16) {
+        if (localX < 0 || localX >= CHUNK_SIZE || localZ < 0 || localZ >= CHUNK_SIZE) {
             return;
         }
-        if (worldY < terrainChunk.getMinHeight() || worldY >= terrainChunk.getMaxHeight()) {
+        if (worldY < canvas.minY() || worldY >= canvas.maxY()) {
             return;
         }
-        terrainChunk.setBlock(localX, worldY, localZ, block);
+        canvas.set(localX, worldY, localZ, block);
     }
 
     public record RenderedBay(
@@ -883,7 +844,8 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         }
     }
 
-    public record RenderedBlock(int x, int y, int z, PlatformBlockState state, TileData tileData) {
+    /** A block of the object in the workcell, with the block entity it carries; the entity is null for a plain block. */
+    public record RenderedBlock(int x, int y, int z, BlockState state, BlockEntityData blockEntity) {
         public RenderedBlock {
             state = Objects.requireNonNull(state, "Jigsaw Studio rendered block state");
         }

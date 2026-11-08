@@ -1,13 +1,11 @@
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.ResourceLoader;
-import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBounds;
-import art.arcane.iris.core.runtime.jigsaw.JigsawStudioActivation;
+import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarArchetype;
+import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarTopology;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBay;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBayKind;
+import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBounds;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCompatibilityTarget;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioLayout;
@@ -17,161 +15,109 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioPoolMembership;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioSession;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariant;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariantCatalog;
-import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarTopology;
-import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarArchetype;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioWorkcellSpec;
 import art.arcane.iris.core.structure.authoring.StructureWriteResult;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
-import art.arcane.iris.engine.object.prefab.BlockStateRotation;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
-import art.arcane.iris.engine.object.prefab.TileData;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.platform.studio.generators.JigsawStudioGenerator;
-import art.arcane.iris.platform.bukkit.BukkitBlockState;
-import art.arcane.iris.platform.bukkit.BukkitPlatform;
-import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.volmlib.util.math.IrisBlockVector;
-import art.arcane.iris.util.common.plugin.VolmitPlugin;
-import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.Directional;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.block.BlockCookEvent;
-import org.bukkit.event.block.BlockDispenseEvent;
-import org.bukkit.event.block.BrewingStartEvent;
-import org.bukkit.event.block.BlockPistonExtendEvent;
-import org.bukkit.event.block.BlockPistonRetractEvent;
-import org.bukkit.event.block.BlockRedstoneEvent;
-import org.bukkit.event.block.CrafterCraftEvent;
-import org.bukkit.event.inventory.BrewEvent;
-import org.bukkit.event.inventory.BrewingStandFuelEvent;
-import org.bukkit.event.inventory.FurnaceBurnEvent;
-import org.bukkit.event.inventory.FurnaceStartSmeltEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryMoveItemEvent;
-import org.bukkit.event.inventory.InventoryPickupItemEvent;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.world.ChunkLoadEvent;
-import org.bukkit.event.world.WorldUnloadEvent;
+import com.volmit.ModuleLog;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.object.BlockEntityData;
+import com.volmit.object.GeneratedObject;
+import com.volmit.object.ObjectBlock;
+import com.volmit.resource.ResourceId;
+import com.volmit.tooling.ObjectCodec;
+import org.junit.After;
 import org.junit.Test;
-import org.mockito.MockedStatic;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class JigsawStudioServiceCaptureTest {
+    private static final UUID OWNER = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final long WAIT_SECONDS = 10L;
+    private static final ResourceId TILE_FORMAT = ResourceId.parse("iris:tile");
+
+    private final ModuleLog log = mock(ModuleLog.class);
+    private final JigsawStudioService service = new JigsawStudioService(log);
+    private final BlockRegistry registry = FakeBlockRegistry.create();
+    private final ObjectCodec codec = new TextObjectCodec();
+
+    @After
+    public void stopService() {
+        service.registry().finishOpen(OWNER);
+        service.registry().deactivate("overworld");
+        service.quiesceForServerShutdown();
+    }
 
     @Test
-    public void shutdownQuiesceIsIdempotentAndResetsOnEnable() throws Exception {
-        JigsawStudioService service = new JigsawStudioService();
-        VolmitPlugin plugin = mock(VolmitPlugin.class);
+    public void shutdownQuiesceIsIdempotent() throws Exception {
         Field disableStartedField = JigsawStudioService.class.getDeclaredField("disableStarted");
         Field enabledField = JigsawStudioService.class.getDeclaredField("enabled");
         disableStartedField.setAccessible(true);
         enabledField.setAccessible(true);
         AtomicBoolean disableStarted = (AtomicBoolean) disableStartedField.get(service);
+        assertFalse(disableStarted.get());
+        assertTrue(enabledField.getBoolean(service));
 
-        try (MockedStatic<BukkitPlatform> platform = mockStatic(BukkitPlatform.class)) {
-            platform.when(BukkitPlatform::volmitPlugin).thenReturn(plugin);
+        service.quiesceForServerShutdown();
+        service.quiesceForServerShutdown();
 
-            service.onEnable();
-            assertFalse(disableStarted.get());
-            assertTrue(enabledField.getBoolean(service));
-
-            service.quiesceForServerShutdown();
-            service.quiesceForServerShutdown();
-            assertTrue(disableStarted.get());
-            assertFalse(enabledField.getBoolean(service));
-
-            service.onEnable();
-            assertFalse(disableStarted.get());
-            assertTrue(enabledField.getBoolean(service));
-            service.onDisable();
-        }
+        assertTrue(disableStarted.get());
+        assertFalse(enabledField.getBoolean(service));
     }
 
     @Test
     public void successfulStudioSavePlaysOneOwnerLocalBell() {
-        Player player = mock(Player.class);
-        Location location = mock(Location.class);
-        when(player.getLocation()).thenReturn(location);
+        FakeToolPlayer player = new FakeToolPlayer(OWNER, "owner", new FakeToolWorld("jigsaw"));
 
-        try (MockedStatic<J> scheduling = mockStatic(J.class)) {
-            scheduling.when(() -> J.runEntity(same(player), any(Runnable.class))).thenAnswer(invocation -> {
-                invocation.getArgument(1, Runnable.class).run();
-                return true;
-            });
+        JigsawStudioService.playSaveSound(player);
 
-            JigsawStudioService.playSaveSound(player);
-
-            verify(player).playSound(location, "minecraft:block.note_block.bell", 0.65F, 1.65F);
-        }
+        assertEquals(
+                List.of(new FakeToolPlayer.Sound(ResourceId.parse("minecraft:block.note_block.bell"), 0.65F, 1.65F)),
+                player.sounds);
     }
 
     @Test
     public void hiddenConnectorResetRestoresOnlyItsSavedOrdinaryBlock() throws Exception {
-        World world = mock(World.class);
-        Block target = mock(Block.class);
-        BlockData blockData = mock(BlockData.class);
-        PlatformBlockState state = mock(PlatformBlockState.class);
+        FakeToolWorld world = new FakeToolWorld("jigsaw");
+        BlockState stone = BlockState.parse("minecraft:stone");
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(15, 15, 15);
         JigsawStudioBay workcell = new JigsawStudioBay(
                 "spatial",
@@ -179,32 +125,49 @@ public class JigsawStudioServiceCaptureTest {
                 Optional.empty(),
                 "",
                 new JigsawStudioBounds(10, 20, 30, dimensions));
-        IrisJigsawConnector connector = connectorAt(1, 2, 3)
-                .setFinalState("minecraft:stone");
         JigsawStudioGenerator.RenderedConnector renderedConnector =
                 new JigsawStudioGenerator.RenderedConnector(
                         1,
                         2,
                         3,
-                        connector,
+                        connectorAt(1, 2, 3).setFinalState("minecraft:stone"),
                         "north_up");
         JigsawStudioGenerator.RenderedBlock renderedBlock =
-                new JigsawStudioGenerator.RenderedBlock(1, 2, 3, state, null);
-
-        when(world.getBlockAt(11, 22, 33)).thenReturn(target);
-        when(state.isCustom()).thenReturn(false);
-        when(state.nativeHandle()).thenReturn(blockData);
+                new JigsawStudioGenerator.RenderedBlock(1, 2, 3, stone, null);
 
         JigsawStudioService.restoreConnectorChunk(
                 world,
+                registry,
                 workcell,
                 List.of(renderedConnector),
                 Map.of(new JigsawStudioService.LocalPosition(1, 2, 3), renderedBlock),
                 false);
 
-        verify(world).getBlockAt(11, 22, 33);
-        verify(target).setBlockData(blockData, false);
+        assertEquals(Map.of(new BlockPosition(11, 22, 33), stone), world.blocks);
     }
+
+    @Test
+    public void visibleConnectorResetRestoresItsJigsawMarkerWithTheConnectorNbt() throws Exception {
+        FakeToolWorld world = new FakeToolWorld("jigsaw");
+        JigsawStudioBay workcell = new JigsawStudioBay(
+                "spatial",
+                JigsawStudioBayKind.SPATIAL_WORKCELL,
+                Optional.empty(),
+                "",
+                new JigsawStudioBounds(10, 20, 30, new JigsawStudioCellDimensions(15, 15, 15)));
+        IrisJigsawConnector connector = connectorAt(1, 2, 3).setFinalState("minecraft:stone");
+        JigsawStudioGenerator.RenderedConnector rendered =
+                new JigsawStudioGenerator.RenderedConnector(1, 2, 3, connector, "north_up");
+
+        JigsawStudioService.restoreConnectorChunk(world, registry, workcell, List.of(rendered), Map.of(), true);
+
+        BlockPosition at = new BlockPosition(11, 22, 33);
+        assertEquals(BlockState.parse("minecraft:jigsaw[orientation=north_up]"), world.blocks.get(at));
+        KMap<String, Object> nbt = JigsawStudioTileCodec.nbt(world.entities.get(at)).orElseThrow();
+        assertEquals("minecraft:stone", nbt.get("final_state"));
+        assertEquals("iris:door", nbt.get("name"));
+    }
+
     @Test
     public void liveRelayoutDetectsMovedBoundsAndIncludesCageChunks() {
         JigsawStudioCellDimensions originalDimensions = new JigsawStudioCellDimensions(16, 8, 16);
@@ -291,7 +254,7 @@ public class JigsawStudioServiceCaptureTest {
     }
 
     @Test
-    public void nonOwnerMutatingCommandsAreBlockedAtHighestPriority() throws NoSuchMethodException {
+    public void nonOwnerMutatingCommandsAreBlocked() {
         UUID ownerId = UUID.fromString("11111111-1111-1111-1111-111111111111");
         UUID otherId = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
@@ -315,22 +278,6 @@ public class JigsawStudioServiceCaptureTest {
                 true, "/iris jigsaw variant load test/end"));
         assertFalse(JigsawStudioService.blocksNonEditableWorkcellMutation(
                 false, "/fill 0 0 0 1 1 1 stone"));
-
-        Method method = JigsawStudioService.class.getMethod(
-                "onUnauthorizedPlayerCommand",
-                PlayerCommandPreprocessEvent.class);
-        EventHandler handler = method.getAnnotation(EventHandler.class);
-        assertNotNull(handler);
-        assertEquals(EventPriority.HIGHEST, handler.priority());
-        assertTrue(handler.ignoreCancelled());
-    }
-
-    @Test
-    public void indirectMutationEventsRemainMonitorListeners() throws NoSuchMethodException {
-        assertMutationHandler("onPlayerInteract", PlayerInteractEvent.class);
-        assertMutationHandler("onBlockRedstone", BlockRedstoneEvent.class);
-        assertMutationHandler("onPistonExtend", BlockPistonExtendEvent.class);
-        assertMutationHandler("onPistonRetract", BlockPistonRetractEvent.class);
     }
 
     @Test
@@ -354,31 +301,6 @@ public class JigsawStudioServiceCaptureTest {
                 true, true, false, false, ownerId, null));
         assertTrue(JigsawStudioService.blocksStudioInventoryMutation(
                 true, true, false, false, ownerId, ownerId));
-    }
-
-    @Test
-    public void containerAndMachineMutationEventsHaveProtectionAndAutosaveContracts()
-            throws NoSuchMethodException {
-        assertHandler("onProtectedInventoryClick", InventoryClickEvent.class, EventPriority.HIGHEST, true);
-        assertHandler("onProtectedInventoryDrag", InventoryDragEvent.class, EventPriority.HIGHEST, true);
-        assertHandler("onProtectedInventoryMove", InventoryMoveItemEvent.class, EventPriority.HIGHEST, true);
-        assertHandler("onProtectedInventoryPickup", InventoryPickupItemEvent.class, EventPriority.HIGHEST, true);
-        assertHandler("onProtectedBlockCook", BlockCookEvent.class, EventPriority.HIGHEST, true);
-        assertHandler("onProtectedFurnaceBurn", FurnaceBurnEvent.class, EventPriority.HIGHEST, true);
-        assertHandler("onProtectedBrew", BrewEvent.class, EventPriority.HIGHEST, true);
-        assertHandler("onProtectedBrewingStandFuel", BrewingStandFuelEvent.class, EventPriority.HIGHEST, true);
-        assertHandler("onProtectedBlockDispense", BlockDispenseEvent.class, EventPriority.HIGHEST, true);
-        assertHandler("onProtectedCrafterCraft", CrafterCraftEvent.class, EventPriority.HIGHEST, true);
-
-        assertMutationHandler("onBlockCook", BlockCookEvent.class);
-        assertMutationHandler("onFurnaceBurn", FurnaceBurnEvent.class);
-        assertHandler("onFurnaceStartSmelt", FurnaceStartSmeltEvent.class, EventPriority.MONITOR, false);
-        assertMutationHandler("onBrew", BrewEvent.class);
-        assertHandler("onBrewingStart", BrewingStartEvent.class, EventPriority.MONITOR, false);
-        assertMutationHandler("onBrewingStandFuel", BrewingStandFuelEvent.class);
-        assertMutationHandler("onBlockDispense", BlockDispenseEvent.class);
-        assertMutationHandler("onCrafterCraft", CrafterCraftEvent.class);
-        assertHandler("onWorldUnload", WorldUnloadEvent.class, EventPriority.HIGHEST, true);
     }
 
     @Test
@@ -437,47 +359,46 @@ public class JigsawStudioServiceCaptureTest {
         JigsawStudioService.AutosaveFailureState writerState =
                 new JigsawStudioService.AutosaveFailureState();
 
-        try (MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
-            JigsawStudioService.AutosaveFailureDecision firstValidation =
-                    JigsawStudioService.recordPersistentAutosaveFailure(
-                            validationState,
-                            requestId,
-                            "qa/profile_final",
-                            "workcell/end",
-                            "qa/profile_final/end",
-                            validationDetail,
-                            validationFailure);
-            JigsawStudioService.AutosaveFailureDecision secondValidation =
-                    JigsawStudioService.recordPersistentAutosaveFailure(
-                            validationState,
-                            requestId,
-                            "qa/profile_final",
-                            "workcell/end",
-                            "qa/profile_final/end",
-                            validationDetail,
-                            validationFailure);
-            List<Integer> writerDelays = new ArrayList<>();
-            for (int attempt = 0; attempt < 7; attempt++) {
-                writerDelays.add(JigsawStudioService.recordPersistentAutosaveFailure(
-                        writerState,
+        JigsawStudioService.AutosaveFailureDecision firstValidation =
+                JigsawStudioService.recordPersistentAutosaveFailure(
+                        log,
+                        validationState,
                         requestId,
                         "qa/profile_final",
                         "workcell/end",
                         "qa/profile_final/end",
-                        writerDetail,
-                        null).retryTicks());
-            }
-
-            assertEquals(40, firstValidation.retryTicks());
-            assertTrue(firstValidation.logFailure());
-            assertEquals(80, secondValidation.retryTicks());
-            assertFalse(secondValidation.logFailure());
-            assertEquals(List.of(40, 80, 160, 320, 600, 600, 600), writerDelays);
-            logging.verify(
-                    () -> IrisLogging.reportError(validationContext, validationFailure),
-                    times(1));
-            logging.verify(() -> IrisLogging.warn("%s", writerContext), times(1));
+                        validationDetail,
+                        validationFailure);
+        JigsawStudioService.AutosaveFailureDecision secondValidation =
+                JigsawStudioService.recordPersistentAutosaveFailure(
+                        log,
+                        validationState,
+                        requestId,
+                        "qa/profile_final",
+                        "workcell/end",
+                        "qa/profile_final/end",
+                        validationDetail,
+                        validationFailure);
+        List<Integer> writerDelays = new ArrayList<>();
+        for (int attempt = 0; attempt < 7; attempt++) {
+            writerDelays.add(JigsawStudioService.recordPersistentAutosaveFailure(
+                    log,
+                    writerState,
+                    requestId,
+                    "qa/profile_final",
+                    "workcell/end",
+                    "qa/profile_final/end",
+                    writerDetail,
+                    null).retryTicks());
         }
+
+        assertEquals(40, firstValidation.retryTicks());
+        assertTrue(firstValidation.logFailure());
+        assertEquals(80, secondValidation.retryTicks());
+        assertFalse(secondValidation.logFailure());
+        assertEquals(List.of(40, 80, 160, 320, 600, 600, 600), writerDelays);
+        verify(log, times(1)).error(validationContext, validationFailure);
+        verify(log, times(1)).warn(writerContext);
 
         JigsawStudioService.AutosaveFailureDecision newIdentity =
                 new JigsawStudioService.AutosaveFailureState().recordPersistentFailure();
@@ -487,9 +408,7 @@ public class JigsawStudioServiceCaptureTest {
 
     @Test
     public void siblingAutosaveResolvesTheCurrentBayAfterACommittedSaveReloadsLayout()
-            throws ReflectiveOperationException {
-        UUID requestId = UUID.fromString("33333333-3333-3333-3333-333333333333");
-        UUID worldId = UUID.fromString("44444444-4444-4444-4444-444444444444");
+            throws ReflectiveOperationException, InterruptedException {
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(16, 16, 16);
         JigsawStudioVariant endVariant = planarVariant(
                 "test/end",
@@ -507,10 +426,15 @@ public class JigsawStudioServiceCaptureTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 dimensions,
                 catalog);
-        JigsawStudioSession session = new JigsawStudioSession(
+        JigsawStudioRequest request = service.registry().activate(
                 "overworld",
                 "qa/profile_final",
+                JigsawStudioMode.PLANAR_JIGSAW,
+                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
+                dimensions,
+                mock(IrisData.class),
                 initialLayout);
+        JigsawStudioSession session = service.registry().getSession(request.requestId());
         JigsawStudioBay initialEnd = initialLayout.get("workcell/end");
         JigsawStudioBay initialStraight = initialLayout.get("workcell/straight");
         JigsawStudioSession.DirtyIdentity endDirty = session.markWorkcellDirty(initialEnd.stableId())
@@ -519,191 +443,97 @@ public class JigsawStudioServiceCaptureTest {
         JigsawStudioSession.DirtyIdentity straightDirty = session.markWorkcellDirty(initialStraight.stableId())
                 .identity()
                 .orElseThrow();
-        JigsawStudioActivation.Request request = mock(JigsawStudioActivation.Request.class);
-        when(request.requestId()).thenReturn(requestId);
-        when(request.packKey()).thenReturn("overworld");
-        when(request.structureKey()).thenReturn("qa/profile_final");
-        IrisData source = mock(IrisData.class);
-        @SuppressWarnings("unchecked")
-        ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        when(request.source()).thenReturn(source);
-        ModuleResourceFixture resources = ModuleResourceFixture.serve(source);
-        when(source.getObjectLoader()).thenReturn(objectLoader);
-        resources.resource(StructureResources.PIECES, "test/end", new IrisJigsawPiece().setObject("test/end"));
-        resources.resource(StructureResources.PIECES, "test/straight", new IrisJigsawPiece().setObject("test/straight"));
-        when(objectLoader.load("test/end", false)).thenReturn(new IrisObject(16, 16, 16));
-        when(objectLoader.load("test/straight", false)).thenReturn(new IrisObject(16, 16, 16));
-        JigsawStudioGenerator generator = mock(JigsawStudioGenerator.class);
-        when(generator.getRequest()).thenReturn(request);
-        when(generator.getSession()).thenReturn(session);
-        when(generator.getLayout()).thenAnswer(invocation -> session.layout());
-        World world = mock(World.class);
-        when(world.getUID()).thenReturn(worldId);
+        FakeStudioPack pack = new FakeStudioPack()
+                .piece("test/end", new IrisJigsawPiece().setObject("test/end"))
+                .piece("test/straight", new IrisJigsawPiece().setObject("test/straight"))
+                .emptyObject("test/end", 16, 16, 16)
+                .emptyObject("test/straight", 16, 16, 16);
+        FakeToolWorld world = new FakeToolWorld("jigsaw");
+        world.holdTasks = true;
+        JigsawStudioGenerator generator = generatorOf(pack, request, session);
         ConcurrentHashMap<String, JigsawStudioService.BayPopulation> populations = new ConcurrentHashMap<>();
-        JigsawStudioService.BayPopulation endPopulation =
-                new JigsawStudioService.BayPopulation(Set.of(0L), "");
-        JigsawStudioService.BayPopulation straightPopulation =
-                new JigsawStudioService.BayPopulation(Set.of(0L), "");
-        endPopulation.markFullyReady();
-        straightPopulation.markFullyReady();
-        populations.put(initialEnd.stableId(), endPopulation);
-        populations.put(initialStraight.stableId(), straightPopulation);
-        Class<?> studioType = Class.forName(JigsawStudioService.class.getName() + "$ActiveStudio");
-        Constructor<?> studioConstructor = studioType.getDeclaredConstructor(
-                UUID.class,
-                World.class,
-                Engine.class,
-                JigsawStudioGenerator.class,
-                ConcurrentHashMap.class,
-                Set.class,
-                AtomicLong.class);
-        studioConstructor.setAccessible(true);
-        Object studio = studioConstructor.newInstance(
-                worldId,
-                world,
-                mock(Engine.class),
-                generator,
-                populations,
-                ConcurrentHashMap.newKeySet(),
-                new AtomicLong());
+        populations.put(initialEnd.stableId(), readyPopulation());
+        populations.put(initialStraight.stableId(), readyPopulation());
+        JigsawStudioService.ActiveStudio studio = register(world, generator, populations);
         Method scheduleAutosave = JigsawStudioService.class.getDeclaredMethod(
                 "scheduleAutosave",
-                studioType,
+                JigsawStudioService.ActiveStudio.class,
                 JigsawStudioBay.class,
                 JigsawStudioSession.DirtyIdentity.class,
                 int.class);
         scheduleAutosave.setAccessible(true);
-        JigsawStudioService service = new JigsawStudioService();
-        Field studiosField = JigsawStudioService.class.getDeclaredField("studios");
-        studiosField.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        Map<UUID, Object> studios = (Map<UUID, Object>) studiosField.get(service);
-        studios.put(worldId, studio);
-        List<Runnable> delayedAutosaves = new ArrayList<>();
 
-        try (MockedStatic<J> scheduling = mockStatic(J.class);
-             MockedStatic<JigsawStudioActivation> activation = mockStatic(JigsawStudioActivation.class)) {
-            activation.when(() -> JigsawStudioActivation.getRequest("overworld")).thenReturn(request);
-            scheduling.when(() -> J.runRegion(
-                            any(World.class),
-                            anyInt(),
-                            anyInt(),
-                            any(Runnable.class),
-                            eq(40)))
-                    .thenAnswer(invocation -> {
-                        delayedAutosaves.add(invocation.getArgument(3, Runnable.class));
-                        return true;
-                    });
-            scheduling.when(() -> J.runRegion(
-                            any(World.class),
-                            anyInt(),
-                            anyInt(),
-                            any(Runnable.class)))
-                    .thenReturn(true);
-            scheduleAutosave.invoke(service, studio, initialEnd, endDirty, 40);
-            scheduleAutosave.invoke(service, studio, initialStraight, straightDirty, 40);
-            assertEquals(2, delayedAutosaves.size());
+        scheduleAutosave.invoke(service, studio, initialEnd, endDirty, 1);
+        scheduleAutosave.invoke(service, studio, initialStraight, straightDirty, 1);
+        awaitTrue(() -> world.held.size() == 2);
 
-            JigsawStudioSession.SaveIdentity committedEnd = session.beginSave(initialEnd.stableId())
-                    .identity()
-                    .orElseThrow();
-            assertTrue(session.markWorkcellSaved(committedEnd));
-            JigsawStudioLayout replacementLayout = JigsawStudioLayout.create(
-                    JigsawStudioMode.PLANAR_JIGSAW,
-                    dimensions,
-                    catalog);
-            assertTrue(session.replaceLayout(replacementLayout));
-            JigsawStudioBay currentStraight = JigsawStudioService.resolveCurrentAutosaveBay(
-                    session,
-                    initialStraight.stableId());
-            assertNotSame(initialStraight, currentStraight);
-            assertSame(replacementLayout.get(initialStraight.stableId()), currentStraight);
-            assertTrue(session.isDirtyCurrent(straightDirty));
+        JigsawStudioSession.SaveIdentity committedEnd = session.beginSave(initialEnd.stableId())
+                .identity()
+                .orElseThrow();
+        assertTrue(session.markWorkcellSaved(committedEnd));
+        JigsawStudioLayout replacementLayout = JigsawStudioLayout.create(
+                JigsawStudioMode.PLANAR_JIGSAW,
+                dimensions,
+                catalog);
+        assertTrue(session.replaceLayout(replacementLayout));
+        JigsawStudioBay currentStraight = JigsawStudioService.resolveCurrentAutosaveBay(
+                session,
+                initialStraight.stableId());
+        assertNotSame(initialStraight, currentStraight);
+        assertSame(replacementLayout.get(initialStraight.stableId()), currentStraight);
+        assertTrue(session.isDirtyCurrent(straightDirty));
 
-            delayedAutosaves.get(1).run();
+        world.holdTasks = true;
+        world.runHeld();
 
-            assertTrue(session.workcellSnapshot(initialStraight.stableId()).saveInProgress());
-        }
+        assertTrue(session.workcellSnapshot(initialStraight.stableId()).saveInProgress());
     }
 
     @Test
     public void saveNowRetainsAutosaveAcrossNotReadyInProgressAndSchedulerRejection()
             throws ReflectiveOperationException {
-        UUID ownerId = UUID.fromString("11111111-1111-1111-1111-111111111111");
-        UUID requestId = UUID.fromString("33333333-3333-3333-3333-333333333333");
-        UUID worldId = UUID.fromString("44444444-4444-4444-4444-444444444444");
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(16, 16, 16);
         JigsawStudioLayout layout = JigsawStudioLayout.create(
                 JigsawStudioMode.PLANAR_JIGSAW,
                 dimensions,
                 new JigsawStudioVariantCatalog(List.of(planarVariant(true, true))));
         JigsawStudioBay bay = layout.get("workcell/end");
-        JigsawStudioSession session = new JigsawStudioSession("overworld", "village", layout);
+        assertTrue(service.registry().tryBeginOpen(OWNER));
+        JigsawStudioRequest request = service.registry().activate(
+                "overworld",
+                "village",
+                JigsawStudioMode.PLANAR_JIGSAW,
+                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
+                dimensions,
+                mock(IrisData.class),
+                layout,
+                OWNER);
+        service.registry().finishOpen(OWNER);
+        JigsawStudioSession session = service.registry().getSession(request.requestId());
         JigsawStudioSession.DirtyIdentity identity = session.markWorkcellDirty(bay.stableId())
                 .identity()
                 .orElseThrow();
-        JigsawStudioActivation.Request request = mock(JigsawStudioActivation.Request.class);
-        when(request.requestId()).thenReturn(requestId);
-        when(request.ownerId()).thenReturn(ownerId);
-        IrisData source = mock(IrisData.class);
-        @SuppressWarnings("unchecked")
-        ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        IrisJigsawPiece piece = new IrisJigsawPiece().setObject("test/end");
-        IrisObject object = new IrisObject(16, 16, 16);
-        when(request.source()).thenReturn(source);
-        ModuleResourceFixture resources = ModuleResourceFixture.serve(source);
-        when(source.getObjectLoader()).thenReturn(objectLoader);
-        resources.resource(StructureResources.PIECES, "test/end", piece);
-        when(objectLoader.load("test/end", false)).thenReturn(object);
-        JigsawStudioGenerator generator = mock(JigsawStudioGenerator.class);
-        when(generator.getRequest()).thenReturn(request);
-        when(generator.getSession()).thenReturn(session);
-        when(generator.getLayout()).thenReturn(layout);
-        when(generator.renderBay(any(JigsawStudioBay.class)))
-                .thenReturn(JigsawStudioGenerator.RenderedBay.empty(dimensions));
-        World world = mock(World.class);
-        when(world.getUID()).thenReturn(worldId);
-        Player player = mock(Player.class);
-        when(player.getUniqueId()).thenReturn(ownerId);
-        when(player.getWorld()).thenReturn(world);
-
-        JigsawStudioService service = new JigsawStudioService();
+        FakeStudioPack pack = new FakeStudioPack()
+                .piece("test/end", new IrisJigsawPiece().setObject("test/end"))
+                .emptyObject("test/end", 16, 16, 16);
+        FakeToolWorld world = new FakeToolWorld("jigsaw");
+        world.schedulingFails = true;
+        FakeToolPlayer player = new FakeToolPlayer(OWNER, "owner", world);
+        JigsawStudioGenerator generator = generatorOf(pack, request, session);
         ConcurrentHashMap<String, JigsawStudioService.BayPopulation> populations = new ConcurrentHashMap<>();
         populations.put(
                 bay.stableId(),
                 new JigsawStudioService.BayPopulation(Set.of(0L), "workcell hydration failed"));
-        Class<?> studioType = Class.forName(JigsawStudioService.class.getName() + "$ActiveStudio");
-        Constructor<?> studioConstructor = studioType.getDeclaredConstructor(
-                UUID.class,
-                World.class,
-                Engine.class,
-                JigsawStudioGenerator.class,
-                ConcurrentHashMap.class,
-                Set.class,
-                AtomicLong.class);
-        studioConstructor.setAccessible(true);
-        Object studio = studioConstructor.newInstance(
-                worldId,
-                world,
-                mock(Engine.class),
-                generator,
-                populations,
-                ConcurrentHashMap.newKeySet(),
-                new AtomicLong());
-        Field studiosField = JigsawStudioService.class.getDeclaredField("studios");
-        studiosField.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        Map<UUID, Object> studios = (Map<UUID, Object>) studiosField.get(service);
-        studios.put(worldId, studio);
+        JigsawStudioService.ActiveStudio studio = register(world, generator, populations);
 
         Class<?> keyType = Class.forName(JigsawStudioService.class.getName() + "$AutosaveKey");
         Constructor<?> keyConstructor = keyType.getDeclaredConstructor(UUID.class, String.class);
         keyConstructor.setAccessible(true);
-        Object key = keyConstructor.newInstance(requestId, bay.stableId());
+        Object key = keyConstructor.newInstance(request.requestId(), bay.stableId());
         Class<?> ticketType = Class.forName(JigsawStudioService.class.getName() + "$AutosaveTicket");
         Constructor<?> ticketConstructor = ticketType.getDeclaredConstructor(
                 keyType,
-                studioType,
+                JigsawStudioService.ActiveStudio.class,
                 JigsawStudioSession.DirtyIdentity.class,
                 AtomicBoolean.class,
                 AtomicBoolean.class);
@@ -725,38 +555,27 @@ public class JigsawStudioServiceCaptureTest {
                 (JigsawStudioService.AutosaveFailureState) failureStateAccessor.invoke(ticket);
         assertEquals(40, failureState.recordPersistentFailure().retryTicks());
 
-        try (MockedStatic<J> scheduling = mockStatic(J.class)) {
-            scheduling.when(() -> J.isOwnedByCurrentRegion(player)).thenReturn(true);
-            scheduling.when(() -> J.runRegion(
-                    any(World.class), anyInt(), anyInt(), any(Runnable.class), anyInt()))
-                    .thenReturn(false);
+        assertFalse(service.flushAutosave(player, bay.stableId()));
+        assertEquals(1, autosaves.size());
+        assertTrue(session.isDirtyCurrent(identity));
 
-            assertFalse(service.flushAutosave(player, bay.stableId()));
-            assertEquals(1, autosaves.size());
-            assertTrue(session.isDirtyCurrent(identity));
+        populations.put(
+                bay.stableId(),
+                new JigsawStudioService.BayPopulation(Set.of(0L), ""));
+        assertFalse(service.flushAutosave(player, bay.stableId()));
+        assertEquals(1, autosaves.size());
+        assertTrue(session.isDirtyCurrent(identity));
 
-            populations.put(
-                    bay.stableId(),
-                    new JigsawStudioService.BayPopulation(Set.of(0L), ""));
-            assertFalse(service.flushAutosave(player, bay.stableId()));
-            assertEquals(1, autosaves.size());
-            assertTrue(session.isDirtyCurrent(identity));
-
-            JigsawStudioService.BayPopulation ready =
-                    new JigsawStudioService.BayPopulation(Set.of(0L), "");
-            ready.markFullyReady();
-            populations.put(bay.stableId(), ready);
-            JigsawStudioSession.SaveIdentity inProgress = session.beginSave(bay.stableId())
-                    .identity()
-                    .orElseThrow();
-            assertFalse(service.flushAutosave(player, bay.stableId()));
-            assertEquals(1, autosaves.size());
-            assertTrue(session.abortSave(inProgress));
-            scheduling.verify(() -> J.s(any(Runnable.class), eq(5)), times(3));
-            Object retainedTicket = autosaves.values().iterator().next();
-            assertSame(failureState, failureStateAccessor.invoke(retainedTicket));
-            assertEquals(80, failureState.recordPersistentFailure().retryTicks());
-        }
+        populations.put(bay.stableId(), readyPopulation());
+        JigsawStudioSession.SaveIdentity inProgress = session.beginSave(bay.stableId())
+                .identity()
+                .orElseThrow();
+        assertFalse(service.flushAutosave(player, bay.stableId()));
+        assertEquals(1, autosaves.size());
+        assertTrue(session.abortSave(inProgress));
+        Object retainedTicket = autosaves.values().iterator().next();
+        assertSame(failureState, failureStateAccessor.invoke(retainedTicket));
+        assertEquals(80, failureState.recordPersistentFailure().retryTicks());
     }
 
     @Test
@@ -816,10 +635,10 @@ public class JigsawStudioServiceCaptureTest {
                 0,
                 new JigsawStudioCellDimensions(3, 1, 3));
         List<JigsawStudioService.ChunkCaptureArea> areas = JigsawStudioService.chunkIntersections(bounds);
-        PlatformBlockState sourceState = BukkitBlockState.of(directionalBlockData(BlockFace.NORTH));
+        BlockState sourceState = BlockState.parse("minecraft:observer[facing=north]");
         for (int quarterTurns = 1; quarterTurns <= 3; quarterTurns++) {
             ObjectTurn displayRotation = ObjectTurn.of(0, -90.0D * quarterTurns, 0);
-            PlatformBlockState displayedState = BlockStateRotation.rotate(displayRotation, sourceState);
+            BlockState displayedState = FakeBlockRegistry.rotated(sourceState, displayRotation.blockTurn());
             IrisDirection displayedDirection = displayRotation.rotate(IrisDirection.NORTH_NEGATIVE_Z);
             JigsawStudioService.CapturedConnector connector = new JigsawStudioService.CapturedConnector(
                     1,
@@ -839,24 +658,23 @@ public class JigsawStudioServiceCaptureTest {
                     areas.getFirst(),
                     List.of(),
                     List.of(connector));
-            try (MockedStatic<B> blocks = mockStatic(B.class)) {
-                blocks.when(() -> B.getStateOrNull(
-                        displayedState.key(), false)).thenReturn(displayedState);
-                JigsawStudioService.Capture capture = JigsawStudioService.aggregateSnapshots(
-                        bounds,
-                        areas,
-                        List.of(snapshot),
-                        quarterTurns);
 
-                assertEquals(sourceState.key(), capture.connectors().getFirst().getFinalState());
-                assertEquals(-3, capture.connectors().getFirst().getSelectionPriority());
-                assertEquals(7, capture.connectors().getFirst().getPlacementPriority());
-            }
+            JigsawStudioService.Capture capture = JigsawStudioService.aggregateSnapshots(
+                    registry,
+                    codec,
+                    bounds,
+                    areas,
+                    List.of(snapshot),
+                    quarterTurns);
+
+            assertEquals(sourceState.key(), capture.connectors().getFirst().getFinalState());
+            assertEquals(-3, capture.connectors().getFirst().getSelectionPriority());
+            assertEquals(7, capture.connectors().getFirst().getPlacementPriority());
         }
     }
 
     @Test
-    public void hiddenConnectorCapturesExactBlockStateTilePayloadAndMetadata() throws Throwable {
+    public void hiddenConnectorCapturesExactBlockStateTilePayloadAndMetadata() throws Exception {
         JigsawStudioBounds bounds = new JigsawStudioBounds(
                 0,
                 64,
@@ -868,44 +686,35 @@ public class JigsawStudioServiceCaptureTest {
                 .setPlacementPriority(11);
         IrisJigsawPiece piece = new IrisJigsawPiece().setConnectors(new KList<>());
         piece.getConnectors().add(connector);
-        BlockData chestData = directionalBlockData(Material.CHEST, BlockFace.EAST);
-        PlatformBlockState chestState = BukkitBlockState.of(chestData);
-        IrisObject sourceObject = new IrisObject(1, 1, 1);
-        sourceObject.setUnsigned(0, 0, 0, chestState);
-        KMap<String, Object> properties = new KMap<>();
-        properties.put("CustomName", "Hidden Connector Chest");
-        properties.put("Lock", "iris:hidden");
-        TileData tileData = new TileData("minecraft:chest", properties);
-        Block block = mock(Block.class);
-        when(block.getBlockData()).thenReturn(chestData);
-        World world = mock(World.class);
-        when(world.getBlockAt(0, 64, 0)).thenReturn(block);
+        BlockState chest = BlockState.parse("minecraft:chest[facing=east]");
+        BlockEntityData tile = tile(1);
+        FakeToolWorld world = new FakeToolWorld("jigsaw");
+        world.setBlock(new BlockPosition(0, 64, 0), chest, Optional.of(tile));
         JigsawStudioService.ChunkCaptureArea area = JigsawStudioService.chunkIntersections(bounds).getFirst();
 
-        JigsawStudioService.ChunkSnapshot snapshot;
-        try (MockedStatic<TileData> tiles = mockStatic(TileData.class)) {
-            tiles.when(() -> TileData.getTileState(block, false)).thenReturn(tileData);
-            snapshot = JigsawStudioService.captureChunkIntersection(
-                    world,
-                    bounds,
-                    piece,
-                    sourceObject,
-                    area,
-                    0,
-                    false);
-        }
+        JigsawStudioService.ChunkSnapshot snapshot = JigsawStudioService.captureChunkIntersection(
+                world,
+                registry,
+                bounds,
+                piece,
+                new JigsawStudioService.SourceObject(1, 1, 1, Map.of()),
+                area,
+                0,
+                false);
         JigsawStudioService.Capture capture = JigsawStudioService.aggregateSnapshots(
+                registry,
+                codec,
                 bounds,
                 List.of(area),
                 List.of(snapshot));
-        IrisObject restored = readCapturedObject(capture.objectContent(), chestState);
+        GeneratedObject restored = codec.decode(capture.objectContent());
         IrisJigsawConnector captured = capture.connectors().getFirst();
 
-        assertEquals(chestData.getAsString(), captured.getFinalState());
+        assertEquals(chest.key(), captured.getFinalState());
         assertEquals("gate/owned", captured.getChannel());
         assertEquals(-7, captured.getSelectionPriority());
         assertEquals(11, captured.getPlacementPriority());
-        assertEquals(tileData, restored.getStates().get(restored.getSigned(0, 0, 0)));
+        assertEquals(Optional.of(tile), restored.blocks().getFirst().blockEntity());
         assertTrue(capture.hasBlockEntities());
     }
 
@@ -1055,12 +864,11 @@ public class JigsawStudioServiceCaptureTest {
         IrisJigsawPiece source = new IrisJigsawPiece().setConnectors(new KList<>());
         source.getConnectors().add(sourceFirst);
         source.getConnectors().add(sourceSecond);
-        PlatformBlockState sourceState = BukkitBlockState.of(
-                directionalBlockData(Material.OBSERVER, BlockFace.NORTH));
+        BlockState sourceState = BlockState.parse("minecraft:observer[facing=north]");
 
         for (int quarterTurns = 1; quarterTurns <= 3; quarterTurns++) {
             ObjectTurn displayRotation = ObjectTurn.of(0, -90.0D * quarterTurns, 0);
-            PlatformBlockState displayedState = BlockStateRotation.rotate(displayRotation, sourceState);
+            BlockState displayedState = FakeBlockRegistry.rotated(sourceState, displayRotation.blockTurn());
             JigsawStudioService.CapturedConnector displayedFirst = displayedConnector(
                     sourceFirst,
                     bounds.dimensions(),
@@ -1078,35 +886,34 @@ public class JigsawStudioServiceCaptureTest {
                     List.of(),
                     List.of(displayedSecond, displayedFirst));
 
-            try (MockedStatic<B> blocks = mockStatic(B.class)) {
-                blocks.when(() -> B.getStateOrNull(displayedState.key(), false)).thenReturn(displayedState);
-                JigsawStudioService.Capture capture = JigsawStudioService.aggregateSnapshots(
-                        bounds,
-                        areas,
-                        List.of(snapshot),
-                        quarterTurns);
-                List<IrisJigsawConnector> ordered = JigsawStudioService.preserveCapturedConnectorOrder(
-                        source,
-                        capture.connectors());
+            JigsawStudioService.Capture capture = JigsawStudioService.aggregateSnapshots(
+                    registry,
+                    codec,
+                    bounds,
+                    areas,
+                    List.of(snapshot),
+                    quarterTurns);
+            List<IrisJigsawConnector> ordered = JigsawStudioService.preserveCapturedConnectorOrder(
+                    source,
+                    capture.connectors());
 
-                assertEquals(sourceFirst.getPosition(), ordered.getFirst().getPosition());
-                assertEquals(sourceSecond.getPosition(), ordered.getLast().getPosition());
-            }
+            assertEquals(sourceFirst.getPosition(), ordered.getFirst().getPosition());
+            assertEquals(sourceSecond.getPosition(), ordered.getLast().getPosition());
         }
     }
 
     @Test
-    public void rotatedBlockEntityPayloadReturnsToItsStoredCoordinateUnchanged() throws Throwable {
+    public void rotatedBlockEntityPayloadReturnsToItsStoredCoordinateUnchanged() throws IOException {
+        int width = 5;
+        int height = 2;
+        int depth = 3;
         JigsawStudioBounds bounds = new JigsawStudioBounds(
                 0,
                 64,
                 0,
-                new JigsawStudioCellDimensions(5, 2, 3));
+                new JigsawStudioCellDimensions(width, height, depth));
         List<JigsawStudioService.ChunkCaptureArea> areas = JigsawStudioService.chunkIntersections(bounds);
-        KMap<String, Object> properties = new KMap<>();
-        properties.put("CustomName", "QA Chest");
-        properties.put("Lock", "iris:test");
-        TileData tileData = new TileData("minecraft:chest", properties);
+        BlockEntityData tile = tile(2);
         int[][] expectedPositions = {
                 {0, 0, 0},
                 {1, 1, 3},
@@ -1114,109 +921,106 @@ public class JigsawStudioServiceCaptureTest {
                 {1, 1, 1}
         };
         for (int quarterTurns = 1; quarterTurns <= 3; quarterTurns++) {
-            BlockData displayedData = directionalBlockData(Material.CHEST, BlockFace.EAST);
-            PlatformBlockState displayedState = BukkitBlockState.of(displayedData);
+            BlockState displayedState = BlockState.parse("minecraft:chest[facing=east]");
             JigsawStudioService.CapturedBlock capturedBlock = new JigsawStudioService.CapturedBlock(
                     1,
                     1,
                     1,
                     displayedState,
-                    tileData);
+                    tile);
             JigsawStudioService.ChunkSnapshot snapshot = new JigsawStudioService.ChunkSnapshot(
                     areas.getFirst(),
                     List.of(capturedBlock),
                     List.of());
 
             JigsawStudioService.Capture capture = JigsawStudioService.aggregateSnapshots(
+                    registry,
+                    codec,
                     bounds,
                     areas,
                     List.of(snapshot),
                     quarterTurns);
-            IrisObject restored = readCapturedObject(capture.objectContent(), displayedState);
+            GeneratedObject restored = codec.decode(capture.objectContent());
+            int sourceWidth = (quarterTurns & 1) == 0 ? width : depth;
+            int sourceDepth = (quarterTurns & 1) == 0 ? depth : width;
             int[] expected = expectedPositions[quarterTurns];
-            TileData restoredTile = restored.getStates().get(restored.getSigned(
-                    expected[0], expected[1], expected[2]));
+            BlockPosition storedAt = new BlockPosition(
+                    expected[0] - sourceWidth / 2,
+                    expected[1] - height / 2,
+                    expected[2] - sourceDepth / 2);
+            ObjectBlock restoredBlock = restored.blocks().stream()
+                    .filter(block -> block.position().equals(storedAt))
+                    .findFirst()
+                    .orElse(null);
 
             assertTrue(capture.hasBlockEntities());
-            assertNotNull(restoredTile);
-            assertEquals(tileData, restoredTile);
+            assertNotNull(restoredBlock);
+            assertEquals(Optional.of(tile), restoredBlock.blockEntity());
         }
     }
 
     @Test
     public void rotatedTilePayloadDoesNotBlockMaterialization() {
-        KMap<String, Object> properties = new KMap<>();
-        properties.put("CustomName", "QA Chest");
-        TileData tileData = new TileData("minecraft:chest", properties);
-        PlatformBlockState state = BukkitBlockState.of(
-                directionalBlockData(Material.CHEST, BlockFace.NORTH));
+        BlockState state = BlockState.parse("minecraft:chest[facing=north]");
         JigsawStudioGenerator.RenderedBay rendered = JigsawStudioGenerator.RenderedBay.valid(
                 new JigsawStudioCellDimensions(3, 2, 5),
-                List.of(new JigsawStudioGenerator.RenderedBlock(0, 0, 0, state, tileData)),
+                List.of(new JigsawStudioGenerator.RenderedBlock(0, 0, 0, state, tile(3))),
                 List.of());
 
-        assertEquals("", JigsawStudioService.validateMaterialization(rendered));
+        assertEquals("", JigsawStudioService.validateMaterialization(rendered, registry));
     }
 
     @Test
-    public void explicitAirFinalStateRemainsInTheCapturedObject() throws Throwable {
-        IrisObject object = new IrisObject(2, 2, 2);
-        BlockData air = blockData(Material.AIR, "minecraft:air");
-        BlockData structureVoid = blockData(Material.STRUCTURE_VOID, "minecraft:structure_void");
+    public void explicitAirFinalStateRemainsInTheCapturedObject() throws Exception {
+        JigsawStudioBounds bounds = new JigsawStudioBounds(
+                0,
+                64,
+                0,
+                new JigsawStudioCellDimensions(2, 1, 1));
+        JigsawStudioService.ChunkCaptureArea area = JigsawStudioService.chunkIntersections(bounds).getFirst();
+        FakeToolWorld world = new FakeToolWorld("jigsaw");
+        IrisJigsawConnector airMarker = connectorAt(0, 0, 0).setName("iris:air").setFinalState("minecraft:air");
+        IrisJigsawConnector voidMarker = connectorAt(1, 0, 0).setName("iris:void").setFinalState("minecraft:structure_void");
+        IrisJigsawPiece piece = new IrisJigsawPiece().setConnectors(new KList<>());
+        piece.getConnectors().add(airMarker);
+        piece.getConnectors().add(voidMarker);
+        world.setBlock(new BlockPosition(0, 64, 0), BlockState.parse("minecraft:jigsaw[orientation=north_up]"),
+                Optional.of(JigsawStudioTileCodec.encode("minecraft:jigsaw", JigsawStudioService.markerNbt(airMarker))));
+        world.setBlock(new BlockPosition(1, 64, 0), BlockState.parse("minecraft:jigsaw[orientation=north_up]"),
+                Optional.of(JigsawStudioTileCodec.encode("minecraft:jigsaw", JigsawStudioService.markerNbt(voidMarker))));
 
-        JigsawStudioService.storeConnectorFinalState(object, 0, 0, 0, air);
-        JigsawStudioService.storeConnectorFinalState(object, 1, 0, 0, structureVoid);
+        JigsawStudioService.ChunkSnapshot snapshot = JigsawStudioService.captureChunkIntersection(
+                world,
+                registry,
+                bounds,
+                piece,
+                new JigsawStudioService.SourceObject(2, 1, 1, Map.of()),
+                area,
+                0,
+                true);
+        JigsawStudioService.Capture capture = JigsawStudioService.aggregateSnapshots(
+                registry,
+                codec,
+                bounds,
+                List.of(area),
+                List.of(snapshot));
+        GeneratedObject restored = codec.decode(capture.objectContent());
 
-        IrisBlockVector airPosition = object.getSigned(0, 0, 0);
-        IrisBlockVector structureVoidPosition = object.getSigned(1, 0, 0);
-        assertTrue(object.getBlocks().containsKey(airPosition));
-        assertEquals("minecraft:air", object.getBlocks().get(airPosition).key());
-        assertFalse(object.getBlocks().containsKey(structureVoidPosition));
-
-        assertAirRoundTrip(object);
+        assertEquals(2, snapshot.connectors().size());
+        assertEquals(1, restored.blocks().size());
+        assertEquals("minecraft:air", restored.blocks().getFirst().state().key());
     }
 
     @Test
-    public void originalExplicitAirOutsideAConnectorSurvivesWhileNewAirRemainsAbsent() throws Throwable {
-        IrisObject source = new IrisObject(2, 2, 2);
-        BlockData air = blockData(Material.AIR, "minecraft:air");
-        BlockData structureVoid = blockData(Material.STRUCTURE_VOID, "minecraft:structure_void");
-        PlatformBlockState sourceAir = mock(PlatformBlockState.class);
-        when(sourceAir.isAir()).thenReturn(true);
-        when(sourceAir.key()).thenReturn("minecraft:air");
-        source.setUnsigned(0, 0, 0, sourceAir);
+    public void originalExplicitAirOutsideAConnectorSurvivesWhileNewAirRemainsAbsent() {
+        BlockState air = BlockState.parse("minecraft:air");
+        BlockState structureVoid = BlockState.parse("minecraft:structure_void");
+        JigsawStudioService.SourceObject source = new JigsawStudioService.SourceObject(
+                2, 2, 2, Map.of(new JigsawStudioService.LocalPosition(0, 0, 0), air));
 
-        PlatformBlockState retained = JigsawStudioService.retainedSourceAir(source, 0, 0, 0, air);
-        assertNotNull(retained);
+        assertEquals(air, JigsawStudioService.retainedSourceAir(source, 0, 0, 0, air));
         assertNull(JigsawStudioService.retainedSourceAir(source, 1, 0, 0, air));
         assertNull(JigsawStudioService.retainedSourceAir(source, 0, 0, 0, structureVoid));
-
-        IrisObject captured = new IrisObject(2, 2, 2);
-        captured.setUnsigned(0, 0, 0, retained);
-        assertAirRoundTrip(captured);
-    }
-
-    private static void assertAirRoundTrip(IrisObject object) throws Throwable {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        object.write(output);
-        PlatformBlockState restoredAir = mock(PlatformBlockState.class);
-        when(restoredAir.key()).thenReturn("minecraft:air");
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(registries.block(anyString())).thenReturn(restoredAir);
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.unbind();
-        IrisPlatforms.bind(platform);
-        try {
-            IrisObject restored = new IrisObject();
-            restored.read(new ByteArrayInputStream(output.toByteArray()));
-
-            assertTrue(restored.getBlocks().containsKey(restored.getSigned(0, 0, 0)));
-            assertEquals("minecraft:air", restored.getBlocks().get(restored.getSigned(0, 0, 0)).key());
-            assertFalse(restored.getBlocks().containsKey(restored.getSigned(1, 0, 0)));
-        } finally {
-            IrisPlatforms.unbind();
-        }
     }
 
     @Test
@@ -1275,9 +1079,7 @@ public class JigsawStudioServiceCaptureTest {
     }
 
     @Test
-    public void chunkLoadRecoversAGenerationSignalMissedDuringStudioRegistration()
-            throws ReflectiveOperationException {
-        UUID worldId = UUID.fromString("55555555-5555-5555-5555-555555555555");
+    public void chunkLoadRecoversAGenerationSignalMissedDuringStudioRegistration() {
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(16, 16, 16);
         JigsawStudioLayout layout = JigsawStudioLayout.create(
                 JigsawStudioMode.PLANAR_JIGSAW,
@@ -1289,49 +1091,17 @@ public class JigsawStudioServiceCaptureTest {
                 new JigsawStudioService.BayPopulation(Set.of(chunkKey), "");
         ConcurrentHashMap<String, JigsawStudioService.BayPopulation> populations = new ConcurrentHashMap<>();
         populations.put(blank.stableId(), population);
-
-        World world = mock(World.class);
-        when(world.getUID()).thenReturn(worldId);
+        JigsawStudioRequest request = requestOf(UUID.randomUUID(), JigsawStudioMode.PLANAR_JIGSAW, dimensions);
+        FakeToolWorld world = new FakeToolWorld("jigsaw");
+        world.holdTasks = true;
         JigsawStudioGenerator generator = mock(JigsawStudioGenerator.class);
         when(generator.getLayout()).thenReturn(layout);
-        JigsawStudioActivation.Request request = mock(JigsawStudioActivation.Request.class);
-        when(request.requestId()).thenReturn(UUID.randomUUID());
         when(generator.getRequest()).thenReturn(request);
         when(generator.renderBay(any(JigsawStudioBay.class)))
                 .thenReturn(JigsawStudioGenerator.RenderedBay.empty(dimensions));
-        Class<?> studioType = Class.forName(JigsawStudioService.class.getName() + "$ActiveStudio");
-        Constructor<?> studioConstructor = studioType.getDeclaredConstructor(
-                UUID.class,
-                World.class,
-                Engine.class,
-                JigsawStudioGenerator.class,
-                ConcurrentHashMap.class,
-                Set.class,
-                AtomicLong.class);
-        studioConstructor.setAccessible(true);
-        Object studio = studioConstructor.newInstance(
-                worldId,
-                world,
-                mock(Engine.class),
-                generator,
-                populations,
-                ConcurrentHashMap.newKeySet(),
-                new AtomicLong());
-        JigsawStudioService service = new JigsawStudioService();
-        Field studiosField = JigsawStudioService.class.getDeclaredField("studios");
-        studiosField.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        Map<UUID, Object> studios = (Map<UUID, Object>) studiosField.get(service);
-        studios.put(worldId, studio);
+        register(world, generator, populations);
 
-        Chunk chunk = mock(Chunk.class);
-        when(chunk.getX()).thenReturn(1);
-        when(chunk.getZ()).thenReturn(1);
-        ChunkLoadEvent event = mock(ChunkLoadEvent.class);
-        when(event.getWorld()).thenReturn(world);
-        when(event.getChunk()).thenReturn(chunk);
-
-        service.onChunkLoad(event);
+        service.chunkLoaded(request.requestId(), 1, 1);
 
         assertTrue(population.needsApplication(chunkKey));
         assertEquals(1, population.readiness().generatedChunks());
@@ -1392,8 +1162,7 @@ public class JigsawStudioServiceCaptureTest {
                 0,
                 new JigsawStudioCellDimensions(20, 2, 1));
         List<JigsawStudioService.ChunkCaptureArea> areas = JigsawStudioService.chunkIntersections(bounds);
-        PlatformBlockState stone = mock(PlatformBlockState.class);
-        when(stone.key()).thenReturn("minecraft:stone");
+        BlockState stone = BlockState.parse("minecraft:stone");
         JigsawStudioService.ChunkSnapshot first = new JigsawStudioService.ChunkSnapshot(
                 areas.getFirst(),
                 List.of(new JigsawStudioService.CapturedBlock(0, 0, 0, stone, null)),
@@ -1404,20 +1173,19 @@ public class JigsawStudioServiceCaptureTest {
                 List.of());
 
         JigsawStudioService.Capture forward = JigsawStudioService.aggregateSnapshots(
-                bounds, areas, List.of(first, second));
+                registry, codec, bounds, areas, List.of(first, second));
         JigsawStudioService.Capture reverse = JigsawStudioService.aggregateSnapshots(
-                bounds, areas, List.of(second, first));
+                registry, codec, bounds, areas, List.of(second, first));
 
         assertArrayEquals(forward.objectContent(), reverse.objectContent());
         assertFalse(forward.hasBlockEntities());
         assertTrue(forward.connectors().isEmpty());
         assertThrows(IOException.class,
-                () -> JigsawStudioService.aggregateSnapshots(bounds, areas, List.of(first)));
+                () -> JigsawStudioService.aggregateSnapshots(registry, codec, bounds, areas, List.of(first)));
     }
 
     @Test
     public void saveRegistrationIsRequestScoped() {
-        JigsawStudioService service = new JigsawStudioService();
         UUID firstRequest = UUID.fromString("44444444-4444-4444-4444-444444444444");
         UUID secondRequest = UUID.fromString("55555555-5555-5555-5555-555555555555");
 
@@ -1429,6 +1197,80 @@ public class JigsawStudioServiceCaptureTest {
         assertEquals(JigsawStudioService.SaveStart.STARTED, service.tryBeginSave(firstRequest));
         service.finishSave(firstRequest);
         service.finishSave(secondRequest);
+    }
+
+    private JigsawStudioService.ActiveStudio register(
+            FakeToolWorld world,
+            JigsawStudioGenerator generator,
+            ConcurrentHashMap<String, JigsawStudioService.BayPopulation> populations
+    ) {
+        UUID studioId = generator.getRequest().requestId();
+        JigsawStudioService.ActiveStudio studio = new JigsawStudioService.ActiveStudio(
+                studioId,
+                world,
+                generator,
+                populations,
+                ConcurrentHashMap.newKeySet(),
+                ConcurrentHashMap.newKeySet(),
+                new AtomicLong());
+        try {
+            Field studiosField = JigsawStudioService.class.getDeclaredField("studios");
+            studiosField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            Map<UUID, JigsawStudioService.ActiveStudio> studios =
+                    (Map<UUID, JigsawStudioService.ActiveStudio>) studiosField.get(service);
+            studios.put(studioId, studio);
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException(failure);
+        }
+        return studio;
+    }
+
+    private static JigsawStudioGenerator generatorOf(
+            FakeStudioPack pack,
+            JigsawStudioRequest request,
+            JigsawStudioSession session
+    ) {
+        JigsawStudioGenerator generator = mock(JigsawStudioGenerator.class);
+        when(generator.getRequest()).thenReturn(request);
+        when(generator.getSession()).thenReturn(session);
+        when(generator.getLayout()).thenAnswer(invocation -> session.layout());
+        when(generator.getPack()).thenReturn(pack.pack);
+        when(generator.renderBay(any(JigsawStudioBay.class))).thenAnswer(invocation ->
+                JigsawStudioGenerator.RenderedBay.empty(request.cellDimensions()));
+        return generator;
+    }
+
+    private static JigsawStudioRequest requestOf(UUID id, JigsawStudioMode mode, JigsawStudioCellDimensions dimensions) {
+        return new JigsawStudioRequest(
+                id,
+                "overworld",
+                "qa/profile_final",
+                mode,
+                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
+                dimensions,
+                mock(IrisData.class),
+                null);
+    }
+
+    private static JigsawStudioService.BayPopulation readyPopulation() {
+        JigsawStudioService.BayPopulation ready = new JigsawStudioService.BayPopulation(Set.of(0L), "");
+        ready.markFullyReady();
+        return ready;
+    }
+
+    private static BlockEntityData tile(int seed) {
+        return new BlockEntityData(TILE_FORMAT, 1, new byte[]{(byte) seed, 2, 3});
+    }
+
+    private static void awaitTrue(BooleanSupplier condition) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS);
+        while (!condition.getAsBoolean()) {
+            if (System.nanoTime() > deadline) {
+                throw new AssertionError("Timed out waiting for the studio scheduler");
+            }
+            Thread.sleep(10L);
+        }
     }
 
     private static IrisJigsawConnector connector() {
@@ -1565,73 +1407,5 @@ public class JigsawStudioServiceCaptureTest {
                 List.of(),
                 new JigsawStudioPieceRules(0, 30, 0, 0, false),
                 List.of());
-    }
-
-    private static Directional directionalBlockData(BlockFace initialFacing) {
-        return directionalBlockData(Material.OBSERVER, initialFacing);
-    }
-
-    private static Directional directionalBlockData(Material material, BlockFace initialFacing) {
-        AtomicReference<BlockFace> facing = new AtomicReference<>(initialFacing);
-        Directional data = mock(Directional.class);
-        when(data.getFacing()).thenAnswer(invocation -> facing.get());
-        when(data.getFaces()).thenReturn(Set.of(
-                BlockFace.NORTH,
-                BlockFace.EAST,
-                BlockFace.SOUTH,
-                BlockFace.WEST));
-        doAnswer(invocation -> {
-            facing.set(invocation.getArgument(0, BlockFace.class));
-            return null;
-        }).when(data).setFacing(any(BlockFace.class));
-        when(data.getMaterial()).thenReturn(material);
-        when(data.getAsString()).thenAnswer(invocation ->
-                "minecraft:" + material.name().toLowerCase(Locale.ROOT) + "[facing="
-                        + facing.get().name().toLowerCase(Locale.ROOT) + "]");
-        when(data.clone()).thenAnswer(invocation -> directionalBlockData(material, facing.get()));
-        return data;
-    }
-
-    private static IrisObject readCapturedObject(
-            byte[] content,
-            PlatformBlockState restoredState
-    ) throws Throwable {
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(registries.block(anyString())).thenReturn(restoredState);
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.unbind();
-        IrisPlatforms.bind(platform);
-        try {
-            IrisObject restored = new IrisObject();
-            restored.read(new ByteArrayInputStream(content));
-            return restored;
-        } finally {
-            IrisPlatforms.unbind();
-        }
-    }
-
-    private static void assertMutationHandler(String methodName, Class<?> eventType) throws NoSuchMethodException {
-        assertHandler(methodName, eventType, EventPriority.MONITOR, true);
-    }
-
-    private static void assertHandler(
-            String methodName,
-            Class<?> eventType,
-            EventPriority priority,
-            boolean ignoreCancelled
-    ) throws NoSuchMethodException {
-        Method method = JigsawStudioService.class.getMethod(methodName, eventType);
-        EventHandler annotation = method.getAnnotation(EventHandler.class);
-        assertNotNull(annotation);
-        assertEquals(priority, annotation.priority());
-        assertEquals(ignoreCancelled, annotation.ignoreCancelled());
-    }
-
-    private static BlockData blockData(Material material, String state) {
-        BlockData blockData = mock(BlockData.class);
-        when(blockData.getMaterial()).thenReturn(material);
-        when(blockData.getAsString()).thenReturn(state);
-        return blockData;
     }
 }

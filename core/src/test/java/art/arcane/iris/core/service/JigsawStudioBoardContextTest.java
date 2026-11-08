@@ -12,7 +12,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-public class BoardSVCJigsawContextTest {
+public class JigsawStudioBoardContextTest {
     @Test
     public void rendersWorkcellIdentityWithoutModeOrOrientationData() {
         JigsawStudioBoardContext context = context(
@@ -23,18 +23,18 @@ public class BoardSVCJigsawContextTest {
                 "Right-click the chest for variants"
         );
 
-        List<String> lines = BoardSVC.jigsawLines(context);
+        List<String> lines = context.sidebarLines();
 
         assertEquals(List.of(
-                "&7&m-------------------",
-                "&dJigsaw Studio",
-                "&bStructure&7: village",
-                "&bWorkcell&7: Corner",
-                "&bVariant&7: mossy",
-                "&bState&7: Unsaved",
-                "&7&m-------------------",
-                "&eRight-click the chest for variants",
-                "&7&m-------------------"
+                "-------------------",
+                "Jigsaw Studio",
+                "Structure: village",
+                "Workcell: Corner",
+                "Variant: mossy",
+                "State: Unsaved",
+                "-------------------",
+                "Right-click the chest for variants",
+                "-------------------"
         ), lines);
         String rendered = String.join("\n", lines).toLowerCase(Locale.ROOT);
         assertFalse(rendered.contains("mode"));
@@ -57,15 +57,15 @@ public class BoardSVCJigsawContextTest {
         );
 
         assertEquals(List.of(
-                "&7&m-------------------",
-                "&dJigsaw Studio",
-                "&bStructure&7: village",
-                "&bMode&7: Spatial",
-                "&7&m-------------------",
-                "&eWalk into a workcell",
-                "&7Use the workcell chest to choose a variant",
-                "&7&m-------------------"
-        ), BoardSVC.jigsawLines(context));
+                "-------------------",
+                "Jigsaw Studio",
+                "Structure: village",
+                "Mode: Spatial",
+                "-------------------",
+                "Walk into a workcell",
+                "Use the workcell chest to choose a variant",
+                "-------------------"
+        ), context.sidebarLines());
     }
 
     @Test
@@ -81,11 +81,11 @@ public class BoardSVCJigsawContextTest {
                 JigsawStudioBoardState.SAVED,
                 "Triple-sneak for controls");
 
-        List<String> lines = BoardSVC.jigsawLines(context);
+        List<String> lines = context.sidebarLines();
 
-        assertTrue(lines.contains("&bWorkcell&7: Village Entrances"));
-        assertTrue(lines.contains("&bRole&7: End Cap"));
-        assertTrue(lines.contains("&bVariant&7: Grand Longhouse"));
+        assertTrue(lines.contains("Workcell: Village Entrances"));
+        assertTrue(lines.contains("Role: End Cap"));
+        assertTrue(lines.contains("Variant: Grand Longhouse"));
     }
 
     @Test
@@ -105,10 +105,11 @@ public class BoardSVCJigsawContextTest {
         JigsawStudioBoardContext changedVariant = context(worldId, requestId, "ruined", JigsawStudioBoardState.SAVED);
         JigsawStudioBoardContext changedState = context(worldId, requestId, "mossy", JigsawStudioBoardState.UNSAVED);
 
-        assertFalse(BoardSVC.shouldRenderJigsaw(previous, equal));
-        assertTrue(BoardSVC.shouldRenderJigsaw(previous, changedVariant));
-        assertTrue(BoardSVC.shouldRenderJigsaw(previous, changedState));
-        assertTrue(BoardSVC.shouldRenderJigsaw(null, previous));
+        assertEquals(previous.sidebarLines(), equal.sidebarLines());
+        assertFalse(previous.sidebarLines().equals(changedVariant.sidebarLines()));
+        assertFalse(previous.sidebarLines().equals(changedState.sidebarLines()));
+        assertEquals(previous, equal);
+        assertFalse(previous.equals(changedVariant));
     }
 
     @Test

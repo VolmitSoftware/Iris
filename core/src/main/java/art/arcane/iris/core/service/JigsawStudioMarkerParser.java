@@ -5,7 +5,6 @@ import art.arcane.iris.engine.object.value.IrisDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
-import org.bukkit.block.Orientation;
 
 import java.util.Locale;
 import java.util.Map;
@@ -17,7 +16,7 @@ final class JigsawStudioMarkerParser {
 
     static IrisJigsawConnector parse(
             Map<String, Object> nbt,
-            Orientation orientation,
+            String orientation,
             int x,
             int y,
             int z
@@ -45,20 +44,23 @@ final class JigsawStudioMarkerParser {
                 .setPlacementPriority(optionalInt(properties, "placement_priority"));
     }
 
-    static Directions directions(Orientation orientation) {
-        return switch (Objects.requireNonNull(orientation, "Jigsaw orientation")) {
-            case DOWN_EAST -> new Directions(IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.EAST_POSITIVE_X);
-            case DOWN_NORTH -> new Directions(IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.NORTH_NEGATIVE_Z);
-            case DOWN_SOUTH -> new Directions(IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.SOUTH_POSITIVE_Z);
-            case DOWN_WEST -> new Directions(IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.WEST_NEGATIVE_X);
-            case UP_EAST -> new Directions(IrisDirection.UP_POSITIVE_Y, IrisDirection.EAST_POSITIVE_X);
-            case UP_NORTH -> new Directions(IrisDirection.UP_POSITIVE_Y, IrisDirection.NORTH_NEGATIVE_Z);
-            case UP_SOUTH -> new Directions(IrisDirection.UP_POSITIVE_Y, IrisDirection.SOUTH_POSITIVE_Z);
-            case UP_WEST -> new Directions(IrisDirection.UP_POSITIVE_Y, IrisDirection.WEST_NEGATIVE_X);
-            case WEST_UP -> new Directions(IrisDirection.WEST_NEGATIVE_X, IrisDirection.UP_POSITIVE_Y);
-            case EAST_UP -> new Directions(IrisDirection.EAST_POSITIVE_X, IrisDirection.UP_POSITIVE_Y);
-            case NORTH_UP -> new Directions(IrisDirection.NORTH_NEGATIVE_Z, IrisDirection.UP_POSITIVE_Y);
-            case SOUTH_UP -> new Directions(IrisDirection.SOUTH_POSITIVE_Z, IrisDirection.UP_POSITIVE_Y);
+    /** The front and top a jigsaw block's {@code orientation} property names, such as {@code down_east}. */
+    static Directions directions(String orientation) {
+        String name = Objects.requireNonNull(orientation, "Jigsaw orientation").toLowerCase(Locale.ROOT);
+        return switch (name) {
+            case "down_east" -> new Directions(IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.EAST_POSITIVE_X);
+            case "down_north" -> new Directions(IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.NORTH_NEGATIVE_Z);
+            case "down_south" -> new Directions(IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.SOUTH_POSITIVE_Z);
+            case "down_west" -> new Directions(IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.WEST_NEGATIVE_X);
+            case "up_east" -> new Directions(IrisDirection.UP_POSITIVE_Y, IrisDirection.EAST_POSITIVE_X);
+            case "up_north" -> new Directions(IrisDirection.UP_POSITIVE_Y, IrisDirection.NORTH_NEGATIVE_Z);
+            case "up_south" -> new Directions(IrisDirection.UP_POSITIVE_Y, IrisDirection.SOUTH_POSITIVE_Z);
+            case "up_west" -> new Directions(IrisDirection.UP_POSITIVE_Y, IrisDirection.WEST_NEGATIVE_X);
+            case "west_up" -> new Directions(IrisDirection.WEST_NEGATIVE_X, IrisDirection.UP_POSITIVE_Y);
+            case "east_up" -> new Directions(IrisDirection.EAST_POSITIVE_X, IrisDirection.UP_POSITIVE_Y);
+            case "north_up" -> new Directions(IrisDirection.NORTH_NEGATIVE_Z, IrisDirection.UP_POSITIVE_Y);
+            case "south_up" -> new Directions(IrisDirection.SOUTH_POSITIVE_Z, IrisDirection.UP_POSITIVE_Y);
+            default -> throw new IllegalArgumentException("Unsupported jigsaw orientation '" + orientation + "'");
         };
     }
 

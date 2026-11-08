@@ -23,9 +23,12 @@ import art.arcane.iris.core.runtime.InPlaceChunkRegenerator;
 import art.arcane.iris.core.runtime.StudioOpenCoordinator;
 import art.arcane.iris.core.runtime.StudioPainterSlots;
 import art.arcane.iris.core.runtime.StudioPainterSlots.PaintedBlockEntity;
+import art.arcane.iris.core.runtime.StudioSlotOccupant;
+import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.engine.data.chunk.TerrainChunk;
 import art.arcane.iris.engine.platform.studio.TerrainChunkCanvas;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.util.common.scheduling.J;
 import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockPosition;
@@ -34,6 +37,7 @@ import com.volmit.object.BlockEntityData;
 import com.volmit.tooling.world.ToolPlayer;
 import com.volmit.tooling.world.ToolWorld;
 import com.volmit.tooling.world.ToolWorldListener;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -56,7 +60,7 @@ import java.util.function.Supplier;
  * One tool world on Bukkit: a studio world whose chunks come from the tool's painter. It exists, registered, from before
  * Bukkit creates the world until the world is unloaded; {@link #bind} gives it the Bukkit world once that exists.
  */
-final class BukkitToolWorld implements ToolWorld {
+final class BukkitToolWorld implements ToolWorld, StudioSlotOccupant {
     private static final int CHUNK_SHIFT = 4;
 
     private final String packName;
@@ -215,6 +219,27 @@ final class BukkitToolWorld implements ToolWorld {
         return closed;
     }
 
+    @Override
+    public Optional<String> closeRefusal() {
+        try {
+            return listener.closeRefusal();
+        } catch (Throwable failure) {
+            IrisLogging.reportError("The listener of tool world " + name + " failed.", failure);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public CompletableFuture<Void> prepareReplacement(Optional<UUID> requestedBy) {
+        Optional<ToolPlayer> by = requestedBy.map(Bukkit::getPlayer).map(players::of);
+        try {
+            return listener.closing(by);
+        } catch (Throwable failure) {
+            IrisLogging.reportError("The listener of tool world " + name + " failed.", failure);
+            return CompletableFuture.completedFuture(null);
+        }
+    }
+
     /** The tool's listener asked, with {@code fallback} as the answer when it throws. Runs on the caller's thread. */
     boolean ask(Function<ToolWorldListener, Boolean> question, boolean fallback) {
         try {
@@ -248,7 +273,15 @@ final class BukkitToolWorld implements ToolWorld {
         }
         StudioPainterSlots.remove(storageName);
         registry.unregister(this);
+        releaseStudioSlot();
         tell(ToolWorldListener::closed);
+    }
+
+    private void releaseStudioSlot() {
+        StudioSVC studios = IrisServices.getOrNull(StudioSVC.class);
+        if (studios != null) {
+            studios.releaseStudioSlot(this);
+        }
     }
 
     /** Called by the opener when creating the world failed: nothing of it is left to unload. */

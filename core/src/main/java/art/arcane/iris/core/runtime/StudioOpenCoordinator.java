@@ -932,10 +932,6 @@ public final class StudioOpenCoordinator {
                 false,
                 true,
                 IrisCreator.DatapackPreparation.REUSE_LOADED_RUNTIME_IF_READY),
-        JIGSAW(
-                false,
-                false,
-                IrisCreator.DatapackPreparation.REUSE_LOADED_RUNTIME_IF_READY),
         TOOL(
                 false,
                 false,
@@ -966,7 +962,7 @@ public final class StudioOpenCoordinator {
         }
 
         public boolean prepareGeneratorState() {
-            return this != JIGSAW && this != TOOL;
+            return this != TOOL;
         }
 
         public IrisCreator.DatapackPreparation datapackPreparation() {

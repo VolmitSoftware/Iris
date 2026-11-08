@@ -6,17 +6,7 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioMode;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioPieceRules;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolAction;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolPayload;
-import art.arcane.iris.util.common.scheduling.J;
-import art.arcane.volmlib.util.data.MaterialBlock;
-import art.arcane.volmlib.util.inventorygui.UIElement;
-import art.arcane.volmlib.util.inventorygui.UIPaneDecorator;
-import art.arcane.volmlib.util.inventorygui.UIWindow;
-import art.arcane.volmlib.util.inventorygui.WindowResolution;
-import art.arcane.volmlib.util.plugin.ComponentMessenger;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
+import com.volmit.tooling.world.ToolPlayer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 public final class JigsawStudioMenuController {
     static final int VARIANTS_PER_PAGE = 28;
@@ -40,38 +31,42 @@ public final class JigsawStudioMenuController {
     private static final int WORKCELL_RESIZE_REFRESH_TICKS = 2;
     private static final int WORKCELL_RESIZE_REFRESH_ATTEMPTS = 200;
     private static final int[] GRID_POSITIONS = {-3, -2, -1, 0, 1, 2, 3};
+    private static final Pattern LEGACY_COLOR = Pattern.compile("(?i)\\u00a7[0-9A-FK-ORX]");
+    private static final int CLOSE_AFTER_ACTION_TICKS = 1;
+    private static final int RIGHT_CLICK_OPEN_DELAY_TICKS = 1;
+    private static final int DETAILS_REFRESH_DELAY_TICKS = 1;
 
-    private final JavaPlugin plugin;
     private final Actions actions;
-    private final Map<UUID, UIWindow> windows = new ConcurrentHashMap<>();
+    private final JigsawStudioScheduler scheduler;
+    private final Map<UUID, JigsawStudioMenuWindow> windows = new ConcurrentHashMap<>();
     private final Map<UUID, PendingUnlink> pendingUnlinks = new ConcurrentHashMap<>();
     private final Map<UUID, PendingDelete> pendingDeletes = new ConcurrentHashMap<>();
     private final Map<UUID, PendingProjectDelete> pendingProjectDeletes = new ConcurrentHashMap<>();
     private final Map<UUID, PendingWorkcellResize> pendingWorkcellResizes = new ConcurrentHashMap<>();
 
-    public JigsawStudioMenuController(JavaPlugin plugin, Actions actions) {
-        this.plugin = Objects.requireNonNull(plugin, "Jigsaw Studio menu plugin");
+    public JigsawStudioMenuController(Actions actions, JigsawStudioScheduler scheduler) {
         this.actions = Objects.requireNonNull(actions, "Jigsaw Studio menu actions");
+        this.scheduler = Objects.requireNonNull(scheduler, "Jigsaw Studio menu scheduler");
     }
 
-    public boolean open(Player player) {
+    public boolean open(ToolPlayer player) {
         if (player == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> open(player));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> open(player));
         }
 
         Optional<JigsawStudioMenuState> available = actions.menuState(player);
         if (available.isEmpty()) {
             close(player);
-            send(player, ChatColor.RED + "Iris Jigsaw Studio is not active in this world.");
+            sendError(player, "Iris Jigsaw Studio is not active in this world.");
             return false;
         }
         JigsawStudioMenuState state = available.get();
         if (state.workcells().isEmpty()) {
             close(player);
-            send(player, ChatColor.RED + "This Jigsaw Studio has no workcells.");
+            sendError(player, "This Jigsaw Studio has no workcells.");
             return false;
         }
 
@@ -93,13 +88,11 @@ public final class JigsawStudioMenuController {
         }
 
         close(player);
-        UUID playerId = player.getUniqueId();
-        UIWindow window = new UIWindow(plugin, player);
-        window.setResolution(WindowResolution.W9_H6);
+        UUID playerId = player.id();
+        JigsawStudioMenuWindow window = new JigsawStudioMenuWindow(player);
         window.setViewportHeight(6);
-        window.setDecorator(new UIPaneDecorator(Material.BLACK_STAINED_GLASS_PANE));
         window.setTitle(title(state.structureKey()));
-        window.onClosed(closed -> {
+        window.onClosed(() -> {
             windows.remove(playerId, window);
             pendingUnlinks.remove(playerId);
             pendingDeletes.remove(playerId);
@@ -116,12 +109,12 @@ public final class JigsawStudioMenuController {
         return true;
     }
 
-    public boolean openWorkcellSettings(Player player, String workcellId) {
+    public boolean openWorkcellSettings(ToolPlayer player, String workcellId) {
         if (player == null || workcellId == null || workcellId.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> openWorkcellSettings(player, workcellId));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> openWorkcellSettings(player, workcellId));
         }
         if (!open(player)) {
             return false;
@@ -135,7 +128,7 @@ public final class JigsawStudioMenuController {
         return true;
     }
 
-    public boolean openVariantSettings(Player player, String workcellId, String pieceKey) {
+    public boolean openVariantSettings(ToolPlayer player, String workcellId, String pieceKey) {
         if (player == null
                 || workcellId == null
                 || workcellId.isBlank()
@@ -143,8 +136,8 @@ public final class JigsawStudioMenuController {
                 || pieceKey.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> openVariantSettings(player, workcellId, pieceKey));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> openVariantSettings(player, workcellId, pieceKey));
         }
         if (!open(player)) {
             return false;
@@ -161,8 +154,7 @@ public final class JigsawStudioMenuController {
             return false;
         }
         if (!current.get().irisExtended()) {
-            send(player, ChatColor.YELLOW
-                    + "Vanilla-portable pieces cannot encode Iris theme or piece-rule metadata.");
+            send(player, "Vanilla-portable pieces cannot encode Iris theme or piece-rule metadata.");
             close(player);
             return false;
         }
@@ -170,13 +162,13 @@ public final class JigsawStudioMenuController {
         return true;
     }
 
-    public boolean openVariantSizeSettings(Player player, String workcellId, String pieceKey) {
+    public boolean openVariantSizeSettings(ToolPlayer player, String workcellId, String pieceKey) {
         if (player == null || workcellId == null || workcellId.isBlank()
                 || pieceKey == null || pieceKey.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> openVariantSizeSettings(player, workcellId, pieceKey));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> openVariantSizeSettings(player, workcellId, pieceKey));
         }
         if (!open(player)) {
             return false;
@@ -192,7 +184,7 @@ public final class JigsawStudioMenuController {
             stale(player);
             return false;
         }
-        UIWindow window = windows.get(player.getUniqueId());
+        JigsawStudioMenuWindow window = windows.get(player.id());
         if (window == null) {
             return false;
         }
@@ -200,12 +192,12 @@ public final class JigsawStudioMenuController {
         return true;
     }
 
-    public boolean openStructureSettings(Player player) {
+    public boolean openStructureSettings(ToolPlayer player) {
         if (player == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> openStructureSettings(player));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> openStructureSettings(player));
         }
         if (!open(player)) {
             return false;
@@ -223,44 +215,35 @@ public final class JigsawStudioMenuController {
         return true;
     }
 
-    public void close(Player player) {
+    public void close(ToolPlayer player) {
         if (player == null) {
             return;
         }
-        UUID playerId = player.getUniqueId();
-        UIWindow window = windows.remove(playerId);
+        UUID playerId = player.id();
+        JigsawStudioMenuWindow window = windows.remove(playerId);
         pendingUnlinks.remove(playerId);
         pendingDeletes.remove(playerId);
         pendingProjectDeletes.remove(playerId);
         if (window == null) {
             return;
         }
-        if (J.isOwnedByCurrentRegion(player)) {
-            window.close();
-            return;
-        }
-        J.runEntity(player, window::close);
+        JigsawStudioThreads.run(player, window::close);
     }
 
     public void closeAll() {
-        List<UIWindow> activeWindows = new ArrayList<>(windows.values());
+        List<JigsawStudioMenuWindow> activeWindows = new ArrayList<>(windows.values());
         windows.clear();
         pendingUnlinks.clear();
         pendingDeletes.clear();
         pendingProjectDeletes.clear();
         pendingWorkcellResizes.clear();
-        for (UIWindow window : activeWindows) {
-            Player player = window.getViewer();
-            if (J.isOwnedByCurrentRegion(player)) {
-                window.close();
-            } else {
-                J.runEntity(player, window::close);
-            }
+        for (JigsawStudioMenuWindow window : activeWindows) {
+            JigsawStudioThreads.run(window.getViewer(), window::close);
         }
     }
 
     private void renderMain(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell selected,
             int requestedPage
@@ -276,49 +259,49 @@ public final class JigsawStudioMenuController {
         });
     }
 
-    private void addFamilyControl(UIWindow window, JigsawStudioMenuState state) {
+    private void addFamilyControl(JigsawStudioMenuWindow window, JigsawStudioMenuState state) {
         String nextThemeKey = nextThemeSetKey(state.themeSets());
         boolean available = state.irisExtended() && state.workcells().stream()
                 .filter(JigsawStudioMenuState.Workcell::enabled)
                 .allMatch(workcell -> workcell.activeVariant() != null && workcell.activeVariant().owned());
-        UIElement family = element(
+        JigsawStudioMenuElement family = element(
                 "duplicate-family",
-                available ? Material.PURPLE_DYE : Material.GRAY_DYE,
+                available ? JigsawStudioMenuIcon.PURPLE_DYE : JigsawStudioMenuIcon.GRAY_DYE,
                 available
-                        ? ChatColor.LIGHT_PURPLE + "Duplicate All Enabled Cells as Family"
-                        : ChatColor.GRAY + "Duplicate All Enabled Cells as Family");
-        family.addLore(ChatColor.GRAY + "Copies each enabled cell's loaded variant into one coherent family.");
-        family.addLore(ChatColor.GRAY + "New family: " + safe(nextThemeKey));
+                        ? "Duplicate All Enabled Cells as Family"
+                        : "Duplicate All Enabled Cells as Family");
+        family.addLore("Copies each enabled cell's loaded variant into one coherent family.");
+        family.addLore("New family: " + safe(nextThemeKey));
         if (available) {
-            family.addLore(ChatColor.YELLOW + "Left-click to duplicate the complete family atomically");
+            family.addLore("Left-click to duplicate the complete family atomically");
             family.onLeftClick(clicked -> duplicateActiveFamily(
                     window.getViewer(), state.requestId(), nextThemeKey));
         } else if (!state.irisExtended()) {
-            family.addLore(ChatColor.GRAY + "Coherent families require Iris compatibility.");
+            family.addLore("Coherent families require Iris compatibility.");
         } else {
-            family.addLore(ChatColor.GRAY + "Load an owned variant in every enabled workcell first.");
+            family.addLore("Load an owned variant in every enabled workcell first.");
         }
         window.setElement(3, 0, family);
     }
 
     private void addStructureControl(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             String selectedWorkcellId
     ) {
-        UIElement structure = element(
+        JigsawStudioMenuElement structure = element(
                 "structure-rules",
                 state.irisExtended()
-                        ? state.requireCaps() ? Material.IRON_BARS : Material.TRIPWIRE_HOOK
-                        : Material.BARRIER,
-                ChatColor.LIGHT_PURPLE + "Structure Rules");
-        structure.addLore(ChatColor.GRAY + "Mandatory caps: " + yesNo(state.requireCaps()));
-        structure.addLore(ChatColor.GRAY + "Theme sets: " + state.themeSets().size());
-        structure.addLore(ChatColor.GRAY + "Compatibility: " + compatibilityName(state.compatibilityTarget()));
-        structure.addLore(ChatColor.YELLOW + "Left-click for themes and rules");
+                        ? state.requireCaps() ? JigsawStudioMenuIcon.IRON_BARS : JigsawStudioMenuIcon.TRIPWIRE_HOOK
+                        : JigsawStudioMenuIcon.BARRIER,
+                "Structure Rules");
+        structure.addLore("Mandatory caps: " + yesNo(state.requireCaps()));
+        structure.addLore("Theme sets: " + state.themeSets().size());
+        structure.addLore("Compatibility: " + compatibilityName(state.compatibilityTarget()));
+        structure.addLore("Left-click for themes and rules");
         structure.addLore(state.irisExtended()
-                ? ChatColor.YELLOW + "Right-click to toggle mandatory caps"
-                : ChatColor.GRAY + "Mandatory caps and themes require Iris compatibility");
+                ? "Right-click to toggle mandatory caps"
+                : "Mandatory caps and themes require Iris compatibility");
         structure.onLeftClick(clicked -> openStructureSettings(
                 window.getViewer(), state.requestId(), selectedWorkcellId, 0));
         if (state.irisExtended()) {
@@ -328,36 +311,35 @@ public final class JigsawStudioMenuController {
         window.setElement(4, 0, structure);
     }
 
-    private void addWorkcells(UIWindow window, JigsawStudioMenuState state, String selectedWorkcellId) {
+    private void addWorkcells(JigsawStudioMenuWindow window, JigsawStudioMenuState state, String selectedWorkcellId) {
         int count = state.workcells().size();
         int start = count == 1 ? 0 : -(count / 2);
         for (int index = 0; index < count; index++) {
             JigsawStudioMenuState.Workcell workcell = state.workcells().get(index);
             boolean selected = workcell.stableId().equals(selectedWorkcellId);
-            UIElement element = element(
+            JigsawStudioMenuElement element = element(
                     "workcell-" + index,
                     workcellMaterial(workcell, selected),
-                    (selected ? ChatColor.AQUA : workcell.enabled() ? ChatColor.WHITE : ChatColor.GRAY)
-                            + safe(workcell.displayName()))
+                    safe(workcell.displayName()))
                     .setEnchanted(selected);
             element.addLore(workcell.enabled()
-                    ? ChatColor.GREEN + "Enabled"
-                    : ChatColor.RED + "Disabled for assembly and export");
+                    ? "Enabled"
+                    : "Disabled for assembly and export");
             if (!workcell.canonicalName().equals(workcell.displayName())) {
-                element.addLore(ChatColor.GRAY + "Solver role: " + safe(workcell.canonicalName()));
+                element.addLore("Solver role: " + safe(workcell.canonicalName()));
             }
-            element.addLore(ChatColor.GRAY + "Capacity: " + dimensions(workcell.capacity()));
-            element.addLore(ChatColor.GRAY + "Variants: " + workcell.variants().size());
+            element.addLore("Capacity: " + dimensions(workcell.capacity()));
+            element.addLore("Variants: " + workcell.variants().size());
             JigsawStudioMenuState.Variant active = workcell.activeVariant();
-            element.addLore(ChatColor.GRAY + "Loaded: "
+            element.addLore("Loaded: "
                     + (active == null ? "None" : safe(active.displayName())));
             element.addLore(workcellStatus(workcell));
-            element.addLore(ChatColor.GRAY + "Connector blocks: "
+            element.addLore("Connector blocks: "
                     + (workcell.connectorsVisible() ? "Visible" : "Hidden"));
-            element.addLore(ChatColor.YELLOW + "Left-click to select and teleport");
-            element.addLore(ChatColor.YELLOW + "Right-click for workcell settings");
+            element.addLore("Left-click to select and teleport");
+            element.addLore("Right-click for workcell settings");
             if (workcell.dirty() && !workcell.saving()) {
-                element.addLore(ChatColor.GOLD + "Shift-left: Flush Autosave Now");
+                element.addLore("Shift-left: Flush Autosave Now");
                 element.onShiftLeftClick(clicked -> flushNow(
                         window.getViewer(), state.requestId(), workcell.stableId()));
             }
@@ -365,19 +347,20 @@ public final class JigsawStudioMenuController {
                     window.getViewer(),
                     state.requestId(),
                     workcell.stableId()));
-            element.onRightClick(clicked -> J.runEntity(
+            element.onRightClick(clicked -> scheduler.onPlayerLater(
                     window.getViewer(),
                     () -> openWorkcellSettings(
                             window.getViewer(),
                             state.requestId(),
                             workcell.stableId()),
-                    1));
+                    RIGHT_CLICK_OPEN_DELAY_TICKS,
+                    () -> { }));
             window.setElement(start + index, 0, element);
         }
     }
 
     private void addVariants(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell,
             int page
@@ -385,8 +368,8 @@ public final class JigsawStudioMenuController {
         List<JigsawStudioMenuState.Variant> variants = page(
                 workcell.variants(), page, VARIANTS_PER_PAGE);
         if (variants.isEmpty()) {
-            UIElement empty = element("no-variants", Material.BARRIER, ChatColor.RED + "No variants");
-            empty.addLore(ChatColor.GRAY + "Create a variant to begin authoring this workcell.");
+            JigsawStudioMenuElement empty = element("no-variants", JigsawStudioMenuIcon.BARRIER, "No variants");
+            empty.addLore("Create a variant to begin authoring this workcell.");
             window.setElement(0, 2, empty);
             return;
         }
@@ -395,35 +378,34 @@ public final class JigsawStudioMenuController {
             JigsawStudioMenuState.Variant variant = variants.get(index);
             int position = GRID_POSITIONS[index % GRID_POSITIONS.length];
             int row = 1 + index / GRID_POSITIONS.length;
-            UIElement element = element(
+            JigsawStudioMenuElement element = element(
                     "variant-" + index,
                     variantMaterial(variant),
-                    (variant.active() ? ChatColor.GREEN : ChatColor.WHITE)
-                            + safe(variant.displayName())
-                            + (variant.active() ? ChatColor.AQUA + " [Loaded]" : ""))
+                    safe(variant.displayName())
+                            + (variant.active() ? " [Loaded]" : ""))
                     .setEnchanted(variant.active());
-            element.addLore(ChatColor.DARK_GRAY + safe(variant.pieceKey()));
+            element.addLore(safe(variant.pieceKey()));
             element.addLore(variant.owned()
-                    ? ChatColor.GREEN + "Owned"
-                    : ChatColor.GRAY + "Read-only");
-            element.addLore(ChatColor.GRAY + "Rotation: " + (variant.rotatable() ? "Enabled" : "Disabled"));
-            element.addLore(ChatColor.GRAY + "Size: " + variant.dimensions()
+                    ? "Owned"
+                    : "Read-only");
+            element.addLore("Rotation: " + (variant.rotatable() ? "Enabled" : "Disabled"));
+            element.addLore("Size: " + variant.dimensions()
                     .map(JigsawStudioMenuController::dimensions)
                     .orElse("Object missing"));
-            element.addLore(ChatColor.GRAY + "Themes: " + themes(variant.themes()));
-            element.addLore(ChatColor.GRAY + "Pool entries: " + variant.memberships().size());
+            element.addLore("Themes: " + themes(variant.themes()));
+            element.addLore("Pool entries: " + variant.memberships().size());
             element.addLore(variant.active()
-                    ? ChatColor.YELLOW + "Loaded; right-click for details"
-                    : ChatColor.YELLOW + "Left-click to load");
+                    ? "Loaded; right-click for details"
+                    : "Left-click to load");
             if (!variant.active()) {
-                element.addLore(ChatColor.YELLOW + "Right-click for details or deletion");
+                element.addLore("Right-click for details or deletion");
             }
             element.onLeftClick(clicked -> switchVariant(
                     window.getViewer(),
                     state.requestId(),
                     workcell.stableId(),
                     variant.pieceKey()));
-            element.onRightClick(clicked -> J.runEntity(
+            element.onRightClick(clicked -> scheduler.onPlayerLater(
                     window.getViewer(),
                     () -> openDetails(
                             window.getViewer(),
@@ -431,66 +413,67 @@ public final class JigsawStudioMenuController {
                             workcell.stableId(),
                             variant.pieceKey(),
                             0),
-                    1));
+                    RIGHT_CLICK_OPEN_DELAY_TICKS,
+                    () -> { }));
             window.setElement(position, row, element);
         }
     }
 
     private void addMainActions(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell,
             int page
     ) {
-        UIElement create = element("create", Material.NETHER_STAR, ChatColor.GREEN + "New Blank Variant");
-        create.addLore(ChatColor.GRAY + "Create an empty owned variant with this cell's current size.");
+        JigsawStudioMenuElement create = element("create", JigsawStudioMenuIcon.NETHER_STAR, "New Blank Variant");
+        create.addLore("Create an empty owned variant with this cell's current size.");
         create.onLeftClick(clicked -> createVariant(
                 window.getViewer(), state.requestId(), workcell.stableId(), false));
         window.setElement(-4, 5, create);
 
         JigsawStudioMenuState.Variant active = workcell.activeVariant();
         boolean duplicateAvailable = active != null && active.owned();
-        UIElement duplicate = element(
+        JigsawStudioMenuElement duplicate = element(
                 "duplicate",
-                duplicateAvailable ? Material.PAPER : Material.GRAY_DYE,
+                duplicateAvailable ? JigsawStudioMenuIcon.PAPER : JigsawStudioMenuIcon.GRAY_DYE,
                 duplicateAvailable
-                        ? ChatColor.AQUA + "Duplicate This Cell's Variant"
+                        ? "Duplicate This Cell's Variant"
                         : active == null
-                        ? ChatColor.GRAY + "Duplicate This Cell's Variant"
-                        : ChatColor.GRAY + "Duplicate This Cell's Variant");
+                        ? "Duplicate This Cell's Variant"
+                        : "Duplicate This Cell's Variant");
         duplicate.addLore(duplicateAvailable
-                ? ChatColor.GRAY + "Clone the loaded variant into an owned variant."
+                ? "Clone the loaded variant into an owned variant."
                 : active == null
-                        ? ChatColor.GRAY + "Load a variant before duplicating it."
-                        : ChatColor.GRAY + "Adopt the read-only graph before duplicating it.");
+                        ? "Load a variant before duplicating it."
+                        : "Adopt the read-only graph before duplicating it.");
         if (duplicateAvailable) {
             duplicate.onLeftClick(clicked -> createVariant(
                     window.getViewer(), state.requestId(), workcell.stableId(), true));
         }
         window.setElement(-3, 5, duplicate);
 
-        UIElement settings = element("settings", Material.CRAFTING_TABLE, ChatColor.GOLD + "Workcell Settings");
-        settings.addLore(ChatColor.GRAY + "Enabled: " + yesNo(workcell.enabled()));
-        settings.addLore(ChatColor.GRAY + "Capacity: " + dimensions(workcell.capacity()));
+        JigsawStudioMenuElement settings = element("settings", JigsawStudioMenuIcon.CRAFTING_TABLE, "Workcell Settings");
+        settings.addLore("Enabled: " + yesNo(workcell.enabled()));
+        settings.addLore("Capacity: " + dimensions(workcell.capacity()));
         settings.onLeftClick(clicked -> openWorkcellSettings(
                 window.getViewer(), state.requestId(), workcell.stableId()));
         window.setElement(-2, 5, settings);
 
         int pageCount = pageCount(workcell.variants().size(), VARIANTS_PER_PAGE);
         if (page > 0) {
-            UIElement previous = element("previous", Material.ARROW, ChatColor.YELLOW + "Previous Page");
+            JigsawStudioMenuElement previous = element("previous", JigsawStudioMenuIcon.ARROW, "Previous Page");
             previous.onLeftClick(clicked -> refreshMain(
                     window.getViewer(), state.requestId(), workcell.stableId(), page - 1));
             window.setElement(-1, 5, previous);
         }
 
-        UIElement pageIndicator = element("page", Material.BOOK, ChatColor.WHITE + "Page "
+        JigsawStudioMenuElement pageIndicator = element("page", JigsawStudioMenuIcon.BOOK, "Page "
                 + (page + 1) + "/" + pageCount);
-        pageIndicator.addLore(ChatColor.GRAY + "" + workcell.variants().size() + " variants");
+        pageIndicator.addLore("" + workcell.variants().size() + " variants");
         window.setElement(0, 5, pageIndicator);
 
         if (page + 1 < pageCount) {
-            UIElement next = element("next", Material.ARROW, ChatColor.YELLOW + "Next Page");
+            JigsawStudioMenuElement next = element("next", JigsawStudioMenuIcon.ARROW, "Next Page");
             next.onLeftClick(clicked -> refreshMain(
                     window.getViewer(), state.requestId(), workcell.stableId(), page + 1));
             window.setElement(1, 5, next);
@@ -498,25 +481,25 @@ public final class JigsawStudioMenuController {
 
         window.setElement(2, 5, evaluationElement(state.evaluation()));
 
-        UIElement preview = element("preview", Material.ENDER_EYE, ChatColor.LIGHT_PURPLE + "Go to Preview");
-        preview.addLore(ChatColor.GRAY + "Open the deterministic assembly preview.");
+        JigsawStudioMenuElement preview = element("preview", JigsawStudioMenuIcon.ENDER_EYE, "Go to Preview");
+        preview.addLore("Open the deterministic assembly preview.");
         preview.onLeftClick(clicked -> goToPreview(window.getViewer(), state.requestId()));
         window.setElement(3, 5, preview);
 
-        UIElement toolbox = element("toolbox", Material.STICK, ChatColor.AQUA + "Toolbox");
-        toolbox.addLore(ChatColor.GRAY + "Take named sticks bound to this Studio session.");
+        JigsawStudioMenuElement toolbox = element("toolbox", JigsawStudioMenuIcon.STICK, "Toolbox");
+        toolbox.addLore("Take named sticks bound to this Studio session.");
         toolbox.onLeftClick(clicked -> openToolbox(
                 window.getViewer(), state.requestId(), workcell.stableId(), 0));
         window.setElement(4, 5, toolbox);
     }
 
     private void renderWorkcellSettings(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell
     ) {
         PendingWorkcellResize pendingResize = pendingWorkcellResize(
-                window.getViewer().getUniqueId(),
+                window.getViewer().id(),
                 state.requestId(),
                 workcell.stableId());
         JigsawStudioMenuState.Workcell renderedWorkcell = pendingResize == null
@@ -525,31 +508,31 @@ public final class JigsawStudioMenuController {
         window.batch(() -> {
             window.clearElements();
 
-            UIElement back = element("settings-back", Material.ARROW, ChatColor.YELLOW + "Back to Variants");
+            JigsawStudioMenuElement back = element("settings-back", JigsawStudioMenuIcon.ARROW, "Back to Variants");
             back.onLeftClick(clicked -> leaveWorkcellSettings(
                     window.getViewer(), state.requestId(), renderedWorkcell.stableId()));
             window.setElement(-4, 0, back);
 
-            UIElement identity = element(
+            JigsawStudioMenuElement identity = element(
                     "settings-identity",
-                    renderedWorkcell.enabled() ? Material.LIME_WOOL : Material.GRAY_WOOL,
-                    ChatColor.AQUA + safe(renderedWorkcell.displayName()));
-            identity.addLore(ChatColor.DARK_GRAY + safe(renderedWorkcell.stableId()));
+                    renderedWorkcell.enabled() ? JigsawStudioMenuIcon.LIME_WOOL : JigsawStudioMenuIcon.GRAY_WOOL,
+                    safe(renderedWorkcell.displayName()));
+            identity.addLore(safe(renderedWorkcell.stableId()));
             identity.addLore(renderedWorkcell.enabled()
-                    ? ChatColor.GREEN + "Enabled"
-                    : ChatColor.RED + "Disabled for assembly and export");
+                    ? "Enabled"
+                    : "Disabled for assembly and export");
             if (!renderedWorkcell.canonicalName().equals(renderedWorkcell.displayName())) {
-                identity.addLore(ChatColor.GRAY + "Solver role: " + safe(renderedWorkcell.canonicalName()));
+                identity.addLore("Solver role: " + safe(renderedWorkcell.canonicalName()));
             }
-            identity.addLore(ChatColor.GRAY + "Capacity: " + dimensions(renderedWorkcell.capacity()));
+            identity.addLore("Capacity: " + dimensions(renderedWorkcell.capacity()));
             if (pendingResize != null) {
                 identity.addLore(pendingResize.applying()
-                        ? ChatColor.YELLOW + "Applying one live relayout"
-                        : ChatColor.GOLD + "Pending; apply when all dimensions are ready");
+                        ? "Applying one live relayout"
+                        : "Pending; apply when all dimensions are ready");
             }
-            identity.addLore(ChatColor.YELLOW + "Left-click for a rename stick");
-            identity.addLore(ChatColor.GRAY + "Rename that stick in an anvil, then right-click it.");
-            identity.addLore(ChatColor.GRAY + "Sneak-right-click the stick to reset this label.");
+            identity.addLore("Left-click for a rename stick");
+            identity.addLore("Rename that stick in an anvil, then right-click it.");
+            identity.addLore("Sneak-right-click the stick to reset this label.");
             identity.onLeftClick(clicked -> actions.giveTool(
                     window.getViewer(),
                     JigsawStudioToolPayload.workcell(
@@ -560,14 +543,14 @@ public final class JigsawStudioMenuController {
             window.setElement(4, 0, evaluationElement(state.evaluation()));
 
             if (state.mode() == JigsawStudioMode.PLANAR_JIGSAW) {
-                UIElement enabled = element(
+                JigsawStudioMenuElement enabled = element(
                         "settings-enabled",
-                        renderedWorkcell.enabled() ? Material.LEVER : Material.REDSTONE_TORCH,
+                        renderedWorkcell.enabled() ? JigsawStudioMenuIcon.LEVER : JigsawStudioMenuIcon.REDSTONE_TORCH,
                         renderedWorkcell.enabled()
-                                ? ChatColor.GREEN + "Workcell Enabled"
-                                : ChatColor.RED + "Workcell Disabled");
-                enabled.addLore(ChatColor.GRAY + "Disabled workcells remain editable and keep their size.");
-                enabled.addLore(ChatColor.YELLOW + "Left-click to "
+                                ? "Workcell Enabled"
+                                : "Workcell Disabled");
+                enabled.addLore("Disabled workcells remain editable and keep their size.");
+                enabled.addLore("Left-click to "
                         + (renderedWorkcell.enabled() ? "disable" : "enable"));
                 enabled.onLeftClick(clicked -> setWorkcellEnabled(
                         window.getViewer(),
@@ -576,23 +559,23 @@ public final class JigsawStudioMenuController {
                         !renderedWorkcell.enabled()));
                 window.setElement(0, 1, enabled);
             } else {
-                UIElement spatial = element(
+                JigsawStudioMenuElement spatial = element(
                         "spatial-bounds",
-                        Material.SCAFFOLDING,
-                        ChatColor.AQUA + "Spatial Workcell Bounds");
-                spatial.addLore(ChatColor.GRAY + "Spatial project bounds are shared by the project.");
-                spatial.addLore(ChatColor.GRAY + "Changing them regenerates the Studio layout.");
+                        JigsawStudioMenuIcon.SCAFFOLDING,
+                        "Spatial Workcell Bounds");
+                spatial.addLore("Spatial project bounds are shared by the project.");
+                spatial.addLore("Changing them regenerates the Studio layout.");
                 window.setElement(0, 1, spatial);
             }
 
-            UIElement connectors = element(
+            JigsawStudioMenuElement connectors = element(
                     "settings-connectors",
-                    renderedWorkcell.connectorsVisible() ? Material.JIGSAW : Material.STRUCTURE_VOID,
+                    renderedWorkcell.connectorsVisible() ? JigsawStudioMenuIcon.JIGSAW : JigsawStudioMenuIcon.STRUCTURE_VOID,
                     renderedWorkcell.connectorsVisible()
-                            ? ChatColor.GREEN + "Connector Blocks Visible"
-                            : ChatColor.YELLOW + "Connector Blocks Hidden");
-            connectors.addLore(ChatColor.GRAY + "Hidden connectors retain their metadata and final block state.");
-            connectors.addLore(ChatColor.YELLOW + "Left-click to "
+                            ? "Connector Blocks Visible"
+                            : "Connector Blocks Hidden");
+            connectors.addLore("Hidden connectors retain their metadata and final block state.");
+            connectors.addLore("Left-click to "
                     + (renderedWorkcell.connectorsVisible() ? "hide" : "show") + " connector blocks");
             connectors.onLeftClick(clicked -> toggleConnectorBlocks(
                     window.getViewer(),
@@ -601,12 +584,12 @@ public final class JigsawStudioMenuController {
                     !renderedWorkcell.connectorsVisible()));
             window.setElement(2, 1, connectors);
 
-            UIElement resetConnectors = element(
+            JigsawStudioMenuElement resetConnectors = element(
                     "settings-reset-connectors",
-                    Material.RECOVERY_COMPASS,
-                    ChatColor.AQUA + "Reset Connector Blocks");
-            resetConnectors.addLore(ChatColor.GRAY + "Restore every connector in this workcell from disk.");
-            resetConnectors.addLore(ChatColor.GRAY + "Other edited blocks are left unchanged.");
+                    JigsawStudioMenuIcon.RECOVERY_COMPASS,
+                    "Reset Connector Blocks");
+            resetConnectors.addLore("Restore every connector in this workcell from disk.");
+            resetConnectors.addLore("Other edited blocks are left unchanged.");
             resetConnectors.onLeftClick(clicked -> resetConnectorBlocks(
                     window.getViewer(),
                     state.requestId(),
@@ -618,29 +601,29 @@ public final class JigsawStudioMenuController {
                     state,
                     renderedWorkcell,
                     DimensionAxis.WIDTH,
-                    Material.IRON_INGOT));
+                    JigsawStudioMenuIcon.IRON_INGOT));
             window.setElement(0, 2, axisElement(
                     window,
                     state,
                     renderedWorkcell,
                     DimensionAxis.HEIGHT,
-                    Material.GOLD_INGOT));
+                    JigsawStudioMenuIcon.GOLD_INGOT));
             window.setElement(2, 2, axisElement(
                     window,
                     state,
                     renderedWorkcell,
                     DimensionAxis.DEPTH,
-                    Material.COPPER_INGOT));
+                    JigsawStudioMenuIcon.COPPER_INGOT));
 
             if (pendingResize != null) {
-                UIElement apply = element(
+                JigsawStudioMenuElement apply = element(
                         "settings-apply-capacity",
-                        pendingResize.applying() ? Material.CLOCK : Material.EMERALD_BLOCK,
+                        pendingResize.applying() ? JigsawStudioMenuIcon.CLOCK : JigsawStudioMenuIcon.EMERALD_BLOCK,
                         pendingResize.applying()
-                                ? ChatColor.YELLOW + "Applying Cell Size"
-                                : ChatColor.GREEN + "Apply Cell Size");
-                apply.addLore(ChatColor.WHITE + dimensions(pendingResize.dimensions()));
-                apply.addLore(ChatColor.GRAY + "Regenerates the layout once after all size edits.");
+                                ? "Applying Cell Size"
+                                : "Apply Cell Size");
+                apply.addLore(dimensions(pendingResize.dimensions()));
+                apply.addLore("Regenerates the layout once after all size edits.");
                 if (!pendingResize.applying()) {
                     apply.onLeftClick(clicked -> applyWorkcellResize(
                             window.getViewer(), state.requestId(), renderedWorkcell.stableId()));
@@ -648,52 +631,52 @@ public final class JigsawStudioMenuController {
                 window.setElement(0, 3, apply);
 
                 if (!pendingResize.applying()) {
-                    UIElement discard = element(
+                    JigsawStudioMenuElement discard = element(
                             "settings-discard-capacity",
-                            Material.BARRIER,
-                            ChatColor.RED + "Discard Size Changes");
+                            JigsawStudioMenuIcon.BARRIER,
+                            "Discard Size Changes");
                     discard.onLeftClick(clicked -> discardWorkcellResize(
                             window.getViewer(), state.requestId(), renderedWorkcell.stableId()));
                     window.setElement(2, 3, discard);
                 }
             }
 
-            UIElement footerBack = element("settings-footer-back", Material.ARROW, ChatColor.YELLOW + "Back");
+            JigsawStudioMenuElement footerBack = element("settings-footer-back", JigsawStudioMenuIcon.ARROW, "Back");
             footerBack.onLeftClick(clicked -> leaveWorkcellSettings(
                     window.getViewer(), state.requestId(), renderedWorkcell.stableId()));
             window.setElement(-4, 5, footerBack);
 
-            UIElement undo = element(
+            JigsawStudioMenuElement undo = element(
                     "settings-undo",
-                    Material.CLOCK,
-                    ChatColor.LIGHT_PURPLE + "Undo Last Autosave");
-            undo.addLore(ChatColor.GRAY + "Restore the previous owned graph iteration.");
-            undo.addLore(ChatColor.GRAY + "Up to five autosave iterations are retained on disk.");
+                    JigsawStudioMenuIcon.CLOCK,
+                    "Undo Last Autosave");
+            undo.addLore("Restore the previous owned graph iteration.");
+            undo.addLore("Up to five autosave iterations are retained on disk.");
             undo.onLeftClick(clicked -> undoAutosave(
                     window.getViewer(),
                     state.requestId()));
             window.setElement(0, 5, undo);
 
             if (renderedWorkcell.dirty() && !renderedWorkcell.saving()) {
-                UIElement saveNow = element(
+                JigsawStudioMenuElement saveNow = element(
                         "save-now",
-                        Material.EMERALD,
-                        ChatColor.GOLD + "Flush Autosave Now");
-                saveNow.addLore(ChatColor.GRAY + "Autosave is automatic.");
-                saveNow.addLore(ChatColor.GRAY + "Use this only to flush pending work or recover immediately.");
+                        JigsawStudioMenuIcon.EMERALD,
+                        "Flush Autosave Now");
+                saveNow.addLore("Autosave is automatic.");
+                saveNow.addLore("Use this only to flush pending work or recover immediately.");
                 saveNow.onLeftClick(clicked -> flushNow(
                         window.getViewer(), state.requestId(), renderedWorkcell.stableId()));
                 window.setElement(2, 5, saveNow);
             }
 
-            UIElement preview = element(
+            JigsawStudioMenuElement preview = element(
                     "settings-preview",
-                    Material.ENDER_EYE,
-                    ChatColor.LIGHT_PURPLE + "Go to Preview");
+                    JigsawStudioMenuIcon.ENDER_EYE,
+                    "Go to Preview");
             preview.onLeftClick(clicked -> goToPreview(window.getViewer(), state.requestId()));
             window.setElement(3, 5, preview);
 
-            UIElement toolbox = element("settings-toolbox", Material.STICK, ChatColor.AQUA + "Toolbox");
+            JigsawStudioMenuElement toolbox = element("settings-toolbox", JigsawStudioMenuIcon.STICK, "Toolbox");
             toolbox.onLeftClick(clicked -> openToolbox(
                     window.getViewer(), state.requestId(), renderedWorkcell.stableId(), 0));
             window.setElement(4, 5, toolbox);
@@ -701,7 +684,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void renderVariantSizeSettings(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell,
             JigsawStudioMenuState.Variant variant
@@ -710,38 +693,38 @@ public final class JigsawStudioMenuController {
         window.batch(() -> {
             window.clearElements();
 
-            UIElement back = element("variant-size-back", Material.ARROW, ChatColor.YELLOW + "Back to Details");
+            JigsawStudioMenuElement back = element("variant-size-back", JigsawStudioMenuIcon.ARROW, "Back to Details");
             back.onLeftClick(clicked -> openDetails(
                     window.getViewer(), state.requestId(), workcell.stableId(), variant.pieceKey(), 0));
             window.setElement(-4, 0, back);
 
-            UIElement identity = element(
+            JigsawStudioMenuElement identity = element(
                     "variant-size-identity",
-                    Material.SCAFFOLDING,
-                    ChatColor.AQUA + safe(variant.displayName()) + " Size");
-            identity.addLore(ChatColor.DARK_GRAY + safe(variant.pieceKey()));
-            identity.addLore(ChatColor.WHITE + "Current: " + dimensions(current));
-            identity.addLore(ChatColor.GRAY + "Workcell capacity: " + dimensions(workcell.capacity()));
-            identity.addLore(ChatColor.GRAY + "Only this variant object and its edge connectors change.");
+                    JigsawStudioMenuIcon.SCAFFOLDING,
+                    safe(variant.displayName()) + " Size");
+            identity.addLore(safe(variant.pieceKey()));
+            identity.addLore("Current: " + dimensions(current));
+            identity.addLore("Workcell capacity: " + dimensions(workcell.capacity()));
+            identity.addLore("Only this variant object and its edge connectors change.");
             window.setElement(0, 0, identity);
             window.setElement(4, 0, evaluationElement(state.evaluation()));
 
             window.setElement(-2, 2, variantAxisElement(
-                    window, state, workcell, variant, DimensionAxis.WIDTH, Material.IRON_INGOT));
+                    window, state, workcell, variant, DimensionAxis.WIDTH, JigsawStudioMenuIcon.IRON_INGOT));
             window.setElement(0, 2, variantAxisElement(
-                    window, state, workcell, variant, DimensionAxis.HEIGHT, Material.GOLD_INGOT));
+                    window, state, workcell, variant, DimensionAxis.HEIGHT, JigsawStudioMenuIcon.GOLD_INGOT));
             window.setElement(2, 2, variantAxisElement(
-                    window, state, workcell, variant, DimensionAxis.DEPTH, Material.COPPER_INGOT));
+                    window, state, workcell, variant, DimensionAxis.DEPTH, JigsawStudioMenuIcon.COPPER_INGOT));
 
-            UIElement capacity = element(
+            JigsawStudioMenuElement capacity = element(
                     "variant-size-capacity",
-                    variant.resizableToCapacity() ? Material.NETHER_STAR : Material.GRAY_DYE,
+                    variant.resizableToCapacity() ? JigsawStudioMenuIcon.NETHER_STAR : JigsawStudioMenuIcon.GRAY_DYE,
                     variant.resizableToCapacity()
-                            ? ChatColor.GREEN + "Resize This Variant to Capacity"
-                            : ChatColor.GRAY + "Variant Already Matches Capacity");
-            capacity.addLore(ChatColor.GRAY + dimensions(workcell.capacity()));
+                            ? "Resize This Variant to Capacity"
+                            : "Variant Already Matches Capacity");
+            capacity.addLore(dimensions(workcell.capacity()));
             if (variant.resizableToCapacity()) {
-                capacity.addLore(ChatColor.YELLOW + "Left-click to resize only this variant");
+                capacity.addLore("Left-click to resize only this variant");
                 capacity.onLeftClick(clicked -> resizeVariant(
                         window.getViewer(),
                         state.requestId(),
@@ -751,31 +734,31 @@ public final class JigsawStudioMenuController {
             }
             window.setElement(0, 3, capacity);
 
-            UIElement footerBack = element("variant-size-footer-back", Material.ARROW, ChatColor.YELLOW + "Back");
+            JigsawStudioMenuElement footerBack = element("variant-size-footer-back", JigsawStudioMenuIcon.ARROW, "Back");
             footerBack.onLeftClick(clicked -> openDetails(
                     window.getViewer(), state.requestId(), workcell.stableId(), variant.pieceKey(), 0));
             window.setElement(-4, 5, footerBack);
         });
     }
 
-    private UIElement variantAxisElement(
-            UIWindow window,
+    private JigsawStudioMenuElement variantAxisElement(
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell,
             JigsawStudioMenuState.Variant variant,
             DimensionAxis axis,
-            Material material
+            JigsawStudioMenuIcon material
     ) {
         JigsawStudioCellDimensions current = variant.dimensions().orElseThrow();
-        UIElement element = element(
+        JigsawStudioMenuElement element = element(
                 "variant-axis-" + axis.name().toLowerCase(Locale.ROOT),
                 material,
-                ChatColor.AQUA + axis.displayName() + ": " + axis.value(current));
-        element.addLore(ChatColor.GREEN + "Left-click: +1");
-        element.addLore(ChatColor.YELLOW + "Right-click: -1");
-        element.addLore(ChatColor.GREEN + "Shift-left: +8");
-        element.addLore(ChatColor.YELLOW + "Shift-right: -8");
-        element.addLore(ChatColor.GRAY + "Maximum: " + axis.value(workcell.capacity()));
+                axis.displayName() + ": " + axis.value(current));
+        element.addLore("Left-click: +1");
+        element.addLore("Right-click: -1");
+        element.addLore("Shift-left: +8");
+        element.addLore("Shift-right: -8");
+        element.addLore("Maximum: " + axis.value(workcell.capacity()));
         element.onLeftClick(clicked -> resizeVariantAxis(
                 window.getViewer(), state.requestId(), workcell.stableId(), variant.pieceKey(), axis, 1));
         element.onRightClick(clicked -> resizeVariantAxis(
@@ -788,49 +771,49 @@ public final class JigsawStudioMenuController {
     }
 
     private void renderStructureSettings(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             String selectedWorkcellId,
             int requestedPage
     ) {
         int page = clampPage(requestedPage, state.themeSets().size(), THEME_SETS_PER_PAGE);
-        purgeExpiredConfirmations(window.getViewer().getUniqueId());
+        purgeExpiredConfirmations(window.getViewer().id());
         window.batch(() -> {
             window.clearElements();
 
-            UIElement back = element("structure-back", Material.ARROW, ChatColor.YELLOW + "Back to Variants");
+            JigsawStudioMenuElement back = element("structure-back", JigsawStudioMenuIcon.ARROW, "Back to Variants");
             back.onLeftClick(clicked -> refreshMain(
                     window.getViewer(), state.requestId(), selectedWorkcellId, 0));
             window.setElement(-4, 0, back);
 
-            UIElement identity = element(
+            JigsawStudioMenuElement identity = element(
                     "structure-identity",
-                    Material.JIGSAW,
-                    ChatColor.LIGHT_PURPLE + "Structure Themes & Caps");
-            identity.addLore(ChatColor.DARK_GRAY + safe(state.structureKey()));
-            identity.addLore(ChatColor.GRAY + "Compatibility: " + compatibilityName(state.compatibilityTarget()));
-            identity.addLore(ChatColor.GRAY + "Theme sets select one coherent variant family per assembly.");
-            identity.addLore(ChatColor.GRAY + "Empty piece themes remain available to every family.");
+                    JigsawStudioMenuIcon.JIGSAW,
+                    "Structure Themes & Caps");
+            identity.addLore(safe(state.structureKey()));
+            identity.addLore("Compatibility: " + compatibilityName(state.compatibilityTarget()));
+            identity.addLore("Theme sets select one coherent variant family per assembly.");
+            identity.addLore("Empty piece themes remain available to every family.");
             window.setElement(0, 0, identity);
             window.setElement(4, 0, evaluationElement(state.evaluation()));
 
-            UIElement requireCaps = element(
+            JigsawStudioMenuElement requireCaps = element(
                     "require-caps",
                     state.irisExtended()
-                            ? state.requireCaps() ? Material.IRON_BARS : Material.TRIPWIRE_HOOK
-                            : Material.BARRIER,
+                            ? state.requireCaps() ? JigsawStudioMenuIcon.IRON_BARS : JigsawStudioMenuIcon.TRIPWIRE_HOOK
+                            : JigsawStudioMenuIcon.BARRIER,
                     !state.irisExtended()
-                            ? ChatColor.GRAY + "Mandatory Caps Require Iris Compatibility"
+                            ? "Mandatory Caps Require Iris Compatibility"
                             : state.requireCaps()
-                            ? ChatColor.GREEN + "Mandatory Caps Enabled"
-                            : ChatColor.YELLOW + "Mandatory Caps Disabled");
+                            ? "Mandatory Caps Enabled"
+                            : "Mandatory Caps Disabled");
             requireCaps.addLore(!state.irisExtended()
-                    ? ChatColor.GRAY + "Vanilla-portable export rejects Iris mandatory-cap metadata."
+                    ? "Vanilla-portable export rejects Iris mandatory-cap metadata."
                     : state.requireCaps()
-                    ? ChatColor.GRAY + "Every open connector must close with a terminal piece."
-                    : ChatColor.GRAY + "Assembly may leave an open connector when no cap can fit.");
+                    ? "Every open connector must close with a terminal piece."
+                    : "Assembly may leave an open connector when no cap can fit.");
             if (state.irisExtended()) {
-                requireCaps.addLore(ChatColor.YELLOW + "Left-click to toggle");
+                requireCaps.addLore("Left-click to toggle");
                 requireCaps.onLeftClick(clicked -> setRequireCaps(
                         window.getViewer(), state.requestId(), !state.requireCaps()));
             }
@@ -838,65 +821,65 @@ public final class JigsawStudioMenuController {
 
             String nextThemeKey = nextThemeSetKey(state.themeSets());
             boolean themeEditingAvailable = state.irisExtended();
-            UIElement createTheme = element(
+            JigsawStudioMenuElement createTheme = element(
                     "new-theme-set",
-                    themeEditingAvailable ? Material.NETHER_STAR : Material.BARRIER,
+                    themeEditingAvailable ? JigsawStudioMenuIcon.NETHER_STAR : JigsawStudioMenuIcon.BARRIER,
                     themeEditingAvailable
-                            ? ChatColor.GREEN + "Duplicate All Enabled Cells as Family: " + safe(nextThemeKey)
-                            : ChatColor.GRAY + "Theme Sets Require Iris Compatibility");
+                            ? "Duplicate All Enabled Cells as Family: " + safe(nextThemeKey)
+                            : "Theme Sets Require Iris Compatibility");
             if (themeEditingAvailable) {
-                createTheme.addLore(ChatColor.GRAY + "Creates one new owned variant for every enabled workcell.");
-                createTheme.addLore(ChatColor.GRAY + "All created variants join " + safe(nextThemeKey) + ".");
-                createTheme.addLore(ChatColor.GRAY + "One family is selected for the complete assembly.");
-                createTheme.addLore(ChatColor.YELLOW + "Left-click to create the complete set");
+                createTheme.addLore("Creates one new owned variant for every enabled workcell.");
+                createTheme.addLore("All created variants join " + safe(nextThemeKey) + ".");
+                createTheme.addLore("One family is selected for the complete assembly.");
+                createTheme.addLore("Left-click to create the complete set");
                 createTheme.onLeftClick(clicked -> duplicateActiveFamily(
                         window.getViewer(), state.requestId(), nextThemeKey));
             } else {
-                createTheme.addLore(ChatColor.GRAY + "Vanilla jigsaw resources cannot encode Iris theme metadata.");
+                createTheme.addLore("Vanilla jigsaw resources cannot encode Iris theme metadata.");
             }
             window.setElement(0, 1, createTheme);
 
             boolean deleteConfirmed = isProjectDeleteConfirmed(
-                    window.getViewer().getUniqueId(), state.requestId());
-            UIElement deleteProject = element(
+                    window.getViewer().id(), state.requestId());
+            JigsawStudioMenuElement deleteProject = element(
                     "delete-project",
-                    deleteConfirmed ? Material.REDSTONE : Material.LAVA_BUCKET,
+                    deleteConfirmed ? JigsawStudioMenuIcon.REDSTONE : JigsawStudioMenuIcon.LAVA_BUCKET,
                     deleteConfirmed
-                            ? ChatColor.RED + "Confirm Delete Jigsaw"
-                            : ChatColor.RED + "Delete Jigsaw")
+                            ? "Confirm Delete Jigsaw"
+                            : "Delete Jigsaw")
                     .setEnchanted(deleteConfirmed);
             deleteProject.addLore(deleteConfirmed
-                    ? ChatColor.RED + "Click again to delete this entire managed project."
-                    : ChatColor.RED + "Click twice within 10 seconds to confirm.");
+                    ? "Click again to delete this entire managed project."
+                    : "Click twice within 10 seconds to confirm.");
             deleteProject.onLeftClick(clicked -> confirmOrDeleteProject(
                     window.getViewer(), state.requestId(), selectedWorkcellId, page));
             window.setElement(3, 1, deleteProject);
 
             addThemeSets(window, state, page);
 
-            UIElement footerBack = element("structure-footer-back", Material.ARROW, ChatColor.YELLOW + "Back");
+            JigsawStudioMenuElement footerBack = element("structure-footer-back", JigsawStudioMenuIcon.ARROW, "Back");
             footerBack.onLeftClick(clicked -> refreshMain(
                     window.getViewer(), state.requestId(), selectedWorkcellId, 0));
             window.setElement(-4, 5, footerBack);
 
             int pageCount = pageCount(state.themeSets().size(), THEME_SETS_PER_PAGE);
             if (page > 0) {
-                UIElement previous = element(
+                JigsawStudioMenuElement previous = element(
                         "theme-previous",
-                        Material.ARROW,
-                        ChatColor.YELLOW + "Previous Page");
+                        JigsawStudioMenuIcon.ARROW,
+                        "Previous Page");
                 previous.onLeftClick(clicked -> refreshStructureSettings(
                         window.getViewer(), state.requestId(), selectedWorkcellId, page - 1));
                 window.setElement(-1, 5, previous);
             }
-            UIElement indicator = element(
+            JigsawStudioMenuElement indicator = element(
                     "theme-page",
-                    Material.BOOK,
-                    ChatColor.WHITE + "Page " + (page + 1) + "/" + pageCount);
-            indicator.addLore(ChatColor.GRAY + "" + state.themeSets().size() + " theme sets");
+                    JigsawStudioMenuIcon.BOOK,
+                    "Page " + (page + 1) + "/" + pageCount);
+            indicator.addLore("" + state.themeSets().size() + " theme sets");
             window.setElement(0, 5, indicator);
             if (page + 1 < pageCount) {
-                UIElement next = element("theme-next", Material.ARROW, ChatColor.YELLOW + "Next Page");
+                JigsawStudioMenuElement next = element("theme-next", JigsawStudioMenuIcon.ARROW, "Next Page");
                 next.onLeftClick(clicked -> refreshStructureSettings(
                         window.getViewer(), state.requestId(), selectedWorkcellId, page + 1));
                 window.setElement(1, 5, next);
@@ -906,18 +889,18 @@ public final class JigsawStudioMenuController {
     }
 
     private void addThemeSets(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             int page
     ) {
         List<JigsawStudioMenuState.ThemeSet> themeSets = page(
                 state.themeSets(), page, THEME_SETS_PER_PAGE);
         if (themeSets.isEmpty()) {
-            UIElement empty = element(
+            JigsawStudioMenuElement empty = element(
                     "no-theme-sets",
-                    Material.GRAY_DYE,
-                    ChatColor.GRAY + "Implicit Unthemed Assembly");
-            empty.addLore(ChatColor.GRAY + "Create variant-1 to begin coherent theme selection.");
+                    JigsawStudioMenuIcon.GRAY_DYE,
+                    "Implicit Unthemed Assembly");
+            empty.addLore("Create variant-1 to begin coherent theme selection.");
             window.setElement(0, 3, empty);
             return;
         }
@@ -925,18 +908,18 @@ public final class JigsawStudioMenuController {
             JigsawStudioMenuState.ThemeSet themeSet = themeSets.get(index);
             int position = GRID_POSITIONS[index % GRID_POSITIONS.length];
             int row = 2 + index / GRID_POSITIONS.length;
-            UIElement element = element(
+            JigsawStudioMenuElement element = element(
                     "theme-set-" + index,
-                    state.irisExtended() ? Material.PURPLE_DYE : Material.GRAY_DYE,
-                    (state.irisExtended() ? ChatColor.LIGHT_PURPLE : ChatColor.GRAY) + safe(themeSet.key()));
-            element.addLore(ChatColor.WHITE + "Selection weight: " + themeSet.weight());
-            element.addLore(ChatColor.WHITE + "Whole-assembly chance: "
+                    state.irisExtended() ? JigsawStudioMenuIcon.PURPLE_DYE : JigsawStudioMenuIcon.GRAY_DYE,
+                    safe(themeSet.key()));
+            element.addLore("Selection weight: " + themeSet.weight());
+            element.addLore("Whole-assembly chance: "
                     + themeSelectionPercent(state.themeSets(), themeSet));
             if (state.irisExtended()) {
-                element.addLore(ChatColor.GREEN + "Left-click: weight +1");
-                element.addLore(ChatColor.YELLOW + "Right-click: weight -1");
-                element.addLore(ChatColor.GREEN + "Shift-left: weight +8");
-                element.addLore(ChatColor.YELLOW + "Shift-right: weight -8");
+                element.addLore("Left-click: weight +1");
+                element.addLore("Right-click: weight -1");
+                element.addLore("Shift-left: weight +8");
+                element.addLore("Shift-right: weight -8");
                 element.onLeftClick(clicked -> adjustThemeSetWeight(
                         window.getViewer(), state.requestId(), themeSet, 1));
                 element.onRightClick(clicked -> adjustThemeSetWeight(
@@ -946,28 +929,28 @@ public final class JigsawStudioMenuController {
                 element.onShiftRightClick(clicked -> adjustThemeSetWeight(
                         window.getViewer(), state.requestId(), themeSet, -8));
             } else {
-                element.addLore(ChatColor.GRAY + "Theme metadata is unavailable for vanilla-portable graphs.");
+                element.addLore("Theme metadata is unavailable for vanilla-portable graphs.");
             }
             window.setElement(position, row, element);
         }
     }
 
-    private UIElement axisElement(
-            UIWindow window,
+    private JigsawStudioMenuElement axisElement(
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell,
             DimensionAxis axis,
-            Material material
+            JigsawStudioMenuIcon material
     ) {
-        UIElement element = element(
+        JigsawStudioMenuElement element = element(
                 "axis-" + axis.name().toLowerCase(Locale.ROOT),
                 material,
-                ChatColor.AQUA + axis.displayName() + " Capacity: " + axis.value(workcell.capacity()));
-        element.addLore(ChatColor.GREEN + "Left-click: +1");
-        element.addLore(ChatColor.YELLOW + "Right-click: -1");
-        element.addLore(ChatColor.GREEN + "Shift-left: +8");
-        element.addLore(ChatColor.YELLOW + "Shift-right: -8");
-        element.addLore(ChatColor.GRAY + "Changes stay in this menu until Apply Cell Size.");
+                axis.displayName() + " Capacity: " + axis.value(workcell.capacity()));
+        element.addLore("Left-click: +1");
+        element.addLore("Right-click: -1");
+        element.addLore("Shift-left: +8");
+        element.addLore("Shift-right: -8");
+        element.addLore("Changes stay in this menu until Apply Cell Size.");
         element.onLeftClick(clicked -> resizeWorkcell(
                 window.getViewer(), state.requestId(), workcell.stableId(), axis, 1));
         element.onRightClick(clicked -> resizeWorkcell(
@@ -980,14 +963,14 @@ public final class JigsawStudioMenuController {
     }
 
     private void renderDetails(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell,
             JigsawStudioMenuState.Variant variant,
             int requestedPage
     ) {
         int page = clampPage(requestedPage, variant.memberships().size(), MEMBERSHIPS_PER_PAGE);
-        purgeExpiredConfirmations(window.getViewer().getUniqueId());
+        purgeExpiredConfirmations(window.getViewer().id());
         window.batch(() -> {
             window.clearElements();
             addDetailsHeader(window, state, workcell, variant, page);
@@ -997,39 +980,39 @@ public final class JigsawStudioMenuController {
     }
 
     private void addDetailsHeader(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell,
             JigsawStudioMenuState.Variant variant,
             int page
     ) {
-        UIElement back = element("back", Material.ARROW, ChatColor.YELLOW + "Back to Variants");
+        JigsawStudioMenuElement back = element("back", JigsawStudioMenuIcon.ARROW, "Back to Variants");
         back.onLeftClick(clicked -> refreshMain(
                 window.getViewer(), state.requestId(), workcell.stableId(), 0));
         window.setElement(-4, 0, back);
 
-        UIElement identity = element("identity", Material.NAME_TAG, ChatColor.AQUA + safe(variant.displayName()));
-        identity.addLore(ChatColor.DARK_GRAY + safe(variant.pieceKey()));
+        JigsawStudioMenuElement identity = element("identity", JigsawStudioMenuIcon.NAME_TAG, safe(variant.displayName()));
+        identity.addLore(safe(variant.pieceKey()));
         identity.addLore(variant.owned()
-                ? ChatColor.GREEN + "Owned variant"
-                : ChatColor.GRAY + "Read-only variant");
+                ? "Owned variant"
+                : "Read-only variant");
         identity.addLore(variant.active()
-                ? ChatColor.GREEN + "Loaded in this workcell"
-                : ChatColor.GRAY + "Not currently loaded");
-        identity.addLore(ChatColor.GRAY + "Size: " + variant.dimensions()
+                ? "Loaded in this workcell"
+                : "Not currently loaded");
+        identity.addLore("Size: " + variant.dimensions()
                 .map(JigsawStudioMenuController::dimensions)
                 .orElse("Object missing"));
-        identity.addLore(ChatColor.GRAY + "Themes: " + themes(variant.themes()));
-        identity.addLore(ChatColor.GRAY + "Depth: " + variant.rules().minimumDepth()
+        identity.addLore("Themes: " + themes(variant.themes()));
+        identity.addLore("Depth: " + variant.rules().minimumDepth()
                 + "-" + variant.rules().maximumDepth());
-        identity.addLore(ChatColor.GRAY + "Placements: " + variant.rules().minimumPlacements()
+        identity.addLore("Placements: " + variant.rules().minimumPlacements()
                 + "-" + maximumPlacements(variant.rules().maximumPlacements()));
-        identity.addLore(ChatColor.GRAY + "Terminal: " + yesNo(variant.rules().terminal()));
-        identity.addLore(ChatColor.GRAY + "Pool entries: " + variant.memberships().size());
+        identity.addLore("Terminal: " + yesNo(variant.rules().terminal()));
+        identity.addLore("Pool entries: " + variant.memberships().size());
         if (variant.owned()) {
-            identity.addLore(ChatColor.YELLOW + "Left-click for a rename stick");
-            identity.addLore(ChatColor.GRAY + "Rename that stick in an anvil, then right-click it.");
-            identity.addLore(ChatColor.GRAY + "Sneak-right-click the stick to reset this label.");
+            identity.addLore("Left-click for a rename stick");
+            identity.addLore("Rename that stick in an anvil, then right-click it.");
+            identity.addLore("Sneak-right-click the stick to reset this label.");
             identity.onLeftClick(clicked -> actions.giveTool(
                     window.getViewer(),
                     JigsawStudioToolPayload.variant(
@@ -1042,60 +1025,60 @@ public final class JigsawStudioMenuController {
 
         boolean activeOwned = variant.active() && variant.owned();
         boolean irisRuleEditing = activeOwned && state.irisExtended();
-        UIElement settings = element(
+        JigsawStudioMenuElement settings = element(
                 "variant-settings",
-                irisRuleEditing ? Material.COMPARATOR : Material.GRAY_DYE,
+                irisRuleEditing ? JigsawStudioMenuIcon.COMPARATOR : JigsawStudioMenuIcon.GRAY_DYE,
                 irisRuleEditing
-                        ? ChatColor.GOLD + "Themes & Piece Rules"
-                        : ChatColor.GRAY + "Themes & Rules Unavailable");
+                        ? "Themes & Piece Rules"
+                        : "Themes & Rules Unavailable");
         settings.addLore(irisRuleEditing
-                ? ChatColor.GRAY + "Edit this loaded variant's theme membership and placement rules."
+                ? "Edit this loaded variant's theme membership and placement rules."
                 : state.irisExtended()
-                        ? ChatColor.GRAY + "Load an owned variant before editing its rules."
-                        : ChatColor.GRAY + "Vanilla-portable pieces cannot encode Iris theme or rule metadata.");
+                        ? "Load an owned variant before editing its rules."
+                        : "Vanilla-portable pieces cannot encode Iris theme or rule metadata.");
         if (irisRuleEditing) {
-            settings.addLore(ChatColor.YELLOW + "Left-click to edit");
+            settings.addLore("Left-click to edit");
             settings.onLeftClick(clicked -> openVariantSettings(
                     window.getViewer(), state.requestId(), workcell.stableId(), variant.pieceKey(), 0));
         }
         window.setElement(-2, 0, settings);
 
         boolean rotationEditable = variant.active() && variant.rotationEditable();
-        UIElement rotation = element(
+        JigsawStudioMenuElement rotation = element(
                 "rotation",
-                rotationEditable ? Material.REPEATER : Material.BARRIER,
+                rotationEditable ? JigsawStudioMenuIcon.REPEATER : JigsawStudioMenuIcon.BARRIER,
                 rotationEditable
-                        ? ChatColor.LIGHT_PURPLE + "Toggle Rotation"
-                        : ChatColor.GRAY + "Rotation is Read-only");
-        rotation.addLore(ChatColor.GRAY + "Currently: " + (variant.rotatable() ? "Enabled" : "Disabled"));
+                        ? "Toggle Rotation"
+                        : "Rotation is Read-only");
+        rotation.addLore("Currently: " + (variant.rotatable() ? "Enabled" : "Disabled"));
         if (rotationEditable) {
-            rotation.addLore(ChatColor.YELLOW + "Left-click to toggle");
+            rotation.addLore("Left-click to toggle");
             rotation.onLeftClick(clicked -> toggleRotation(
                     window.getViewer(), state.requestId(), workcell.stableId()));
         } else if (!variant.active()) {
-            rotation.addLore(ChatColor.GRAY + "Load this variant before editing rotation.");
+            rotation.addLore("Load this variant before editing rotation.");
         } else if (variant.owned() && variant.rotatable()) {
-            rotation.addLore(ChatColor.GRAY + "Vanilla-portable variants must remain rotatable.");
+            rotation.addLore("Vanilla-portable variants must remain rotatable.");
         }
         window.setElement(3, 0, rotation);
 
         boolean sizeEditable = variant.owned() && variant.dimensions().isPresent();
-        UIElement size = element(
+        JigsawStudioMenuElement size = element(
                 "variant-size",
-                sizeEditable ? Material.SCAFFOLDING : Material.BARRIER,
+                sizeEditable ? JigsawStudioMenuIcon.SCAFFOLDING : JigsawStudioMenuIcon.BARRIER,
                 sizeEditable
-                        ? ChatColor.GREEN + "Edit This Variant's Size"
-                        : ChatColor.GRAY + "Variant Size is Read-only");
-        size.addLore(ChatColor.GRAY + "Current: " + variant.dimensions()
+                        ? "Edit This Variant's Size"
+                        : "Variant Size is Read-only");
+        size.addLore("Current: " + variant.dimensions()
                 .map(JigsawStudioMenuController::dimensions)
                 .orElse("Object missing"));
-        size.addLore(ChatColor.GRAY + "Workcell capacity: " + dimensions(workcell.capacity()));
+        size.addLore("Workcell capacity: " + dimensions(workcell.capacity()));
         if (sizeEditable) {
-            size.addLore(ChatColor.YELLOW + "Left-click for width, height, and depth controls");
+            size.addLore("Left-click for width, height, and depth controls");
             size.onLeftClick(clicked -> openVariantSizeSettings(
                     window.getViewer(), state.requestId(), workcell.stableId(), variant.pieceKey()));
             if (variant.resizableToCapacity()) {
-                size.addLore(ChatColor.YELLOW + "Shift-left: resize this variant to capacity");
+                size.addLore("Shift-left: resize this variant to capacity");
                 size.onShiftLeftClick(clicked -> resizeVariant(
                         window.getViewer(),
                         state.requestId(),
@@ -1109,25 +1092,25 @@ public final class JigsawStudioMenuController {
         boolean lastVariant = workcell.variants().size() <= 1;
         boolean deletionAvailable = variant.owned() && !variant.active() && !lastVariant;
         boolean confirmed = deletionAvailable && isDeleteConfirmed(
-                window.getViewer().getUniqueId(),
+                window.getViewer().id(),
                 state.requestId(),
                 workcell.stableId(),
                 variant.pieceKey());
-        UIElement delete = element(
+        JigsawStudioMenuElement delete = element(
                 "delete-variant",
-                deletionAvailable ? confirmed ? Material.REDSTONE : Material.LAVA_BUCKET : Material.BARRIER,
+                deletionAvailable ? confirmed ? JigsawStudioMenuIcon.REDSTONE : JigsawStudioMenuIcon.LAVA_BUCKET : JigsawStudioMenuIcon.BARRIER,
                 deletionAvailable
-                        ? confirmed ? ChatColor.RED + "Confirm Delete Variant" : ChatColor.RED + "Delete Variant"
+                        ? confirmed ? "Confirm Delete Variant" : "Delete Variant"
                         : variant.active()
-                                ? ChatColor.GRAY + "Loaded Variant Cannot Be Deleted"
+                                ? "Loaded Variant Cannot Be Deleted"
                                 : lastVariant
-                                        ? ChatColor.GRAY + "Last Variant Cannot Be Deleted"
-                                        : ChatColor.GRAY + "Deletion is Read-only")
+                                        ? "Last Variant Cannot Be Deleted"
+                                        : "Deletion is Read-only")
                 .setEnchanted(confirmed);
         if (deletionAvailable) {
             delete.addLore(confirmed
-                    ? ChatColor.RED + "Click again to permanently delete this owned variant."
-                    : ChatColor.RED + "Click twice within 10 seconds to confirm.");
+                    ? "Click again to permanently delete this owned variant."
+                    : "Click twice within 10 seconds to confirm.");
             delete.onLeftClick(clicked -> confirmOrDeleteVariant(
                     window.getViewer(),
                     state.requestId(),
@@ -1135,15 +1118,15 @@ public final class JigsawStudioMenuController {
                     variant.pieceKey(),
                     page));
         } else if (variant.active()) {
-            delete.addLore(ChatColor.GRAY + "Load another variant in this workcell first.");
+            delete.addLore("Load another variant in this workcell first.");
         } else if (lastVariant) {
-            delete.addLore(ChatColor.GRAY + "Create another variant before deleting this one.");
+            delete.addLore("Create another variant before deleting this one.");
         }
         window.setElement(4, 0, delete);
     }
 
     private void addMemberships(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell,
             JigsawStudioMenuState.Variant variant,
@@ -1152,8 +1135,8 @@ public final class JigsawStudioMenuController {
         List<JigsawStudioMenuState.Membership> memberships = page(
                 variant.memberships(), page, MEMBERSHIPS_PER_PAGE);
         if (memberships.isEmpty()) {
-            UIElement empty = element("no-memberships", Material.BARRIER, ChatColor.RED + "No Pool Entries");
-            empty.addLore(ChatColor.GRAY + "This variant is not linked from an owned pool.");
+            JigsawStudioMenuElement empty = element("no-memberships", JigsawStudioMenuIcon.BARRIER, "No Pool Entries");
+            empty.addLore("This variant is not linked from an owned pool.");
             window.setElement(0, 2, empty);
             return;
         }
@@ -1163,38 +1146,36 @@ public final class JigsawStudioMenuController {
             int position = GRID_POSITIONS[index % GRID_POSITIONS.length];
             int row = 1 + index / GRID_POSITIONS.length;
             boolean confirmed = variant.active() && variant.owned() && isUnlinkConfirmed(
-                    window.getViewer().getUniqueId(),
+                    window.getViewer().id(),
                     state.requestId(),
                     workcell.stableId(),
                     variant.pieceKey(),
                     membership);
-            UIElement element = element(
+            JigsawStudioMenuElement element = element(
                     "membership-" + index,
-                    confirmed ? Material.REDSTONE : Material.GOLD_NUGGET,
-                    (confirmed ? ChatColor.RED : ChatColor.GOLD)
-                            + safe(displayKey(membership.poolKey()))
+                    confirmed ? JigsawStudioMenuIcon.REDSTONE : JigsawStudioMenuIcon.GOLD_NUGGET,
+                    safe(displayKey(membership.poolKey()))
                             + " [" + membership.entryIndex() + "]")
                     .setEnchanted(confirmed);
-            element.addLore(ChatColor.DARK_GRAY + safe(membership.poolKey()));
-            element.addLore(ChatColor.GRAY + "Exact entry: " + membership.entryIndex());
-            element.addLore(ChatColor.WHITE + "Weight: " + membership.weight());
-            element.addLore((state.irisExtended() ? ChatColor.WHITE : ChatColor.GRAY)
-                    + "Chance: " + chance(membership.chance())
+            element.addLore(safe(membership.poolKey()));
+            element.addLore("Exact entry: " + membership.entryIndex());
+            element.addLore("Weight: " + membership.weight());
+            element.addLore("Chance: " + chance(membership.chance())
                     + (state.irisExtended() ? "" : " (Iris only)"));
             if (variant.active() && variant.owned()) {
-                element.addLore(ChatColor.GREEN + "Left-click: weight +1");
-                element.addLore(ChatColor.YELLOW + "Right-click: weight -1");
+                element.addLore("Left-click: weight +1");
+                element.addLore("Right-click: weight -1");
                 if (state.irisExtended()) {
-                    element.addLore(ChatColor.GREEN + "Shift-left: chance +"
+                    element.addLore("Shift-left: chance +"
                             + CHANCE_STEP_PERCENTAGE_POINTS + "%");
-                    element.addLore(ChatColor.YELLOW + "Shift-right: chance -"
+                    element.addLore("Shift-right: chance -"
                             + CHANCE_STEP_PERCENTAGE_POINTS + "%");
                 } else {
-                    element.addLore(ChatColor.GRAY + "Vanilla-portable pool entries always have 100% chance.");
+                    element.addLore("Vanilla-portable pool entries always have 100% chance.");
                 }
                 element.addLore(confirmed
-                        ? ChatColor.RED + "Middle-click again to unlink"
-                        : ChatColor.RED + "Middle-click twice to unlink");
+                        ? "Middle-click again to unlink"
+                        : "Middle-click twice to unlink");
                 element.onLeftClick(clicked -> adjustMembershipWeight(
                         window.getViewer(), state.requestId(), workcell.stableId(), membership, 1));
                 element.onRightClick(clicked -> adjustMembershipWeight(
@@ -1217,28 +1198,28 @@ public final class JigsawStudioMenuController {
                         window.getViewer(), state.requestId(), workcell.stableId(), membership, page));
             } else {
                 element.addLore(variant.active()
-                        ? ChatColor.GRAY + "Read-only pool entry"
-                        : ChatColor.GRAY + "Load this variant to edit its pool entry");
+                        ? "Read-only pool entry"
+                        : "Load this variant to edit its pool entry");
             }
             window.setElement(position, row, element);
         }
     }
 
     private void addDetailsFooter(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell,
             JigsawStudioMenuState.Variant variant,
             int page
     ) {
-        UIElement back = element("footer-back", Material.ARROW, ChatColor.YELLOW + "Back");
+        JigsawStudioMenuElement back = element("footer-back", JigsawStudioMenuIcon.ARROW, "Back");
         back.onLeftClick(clicked -> refreshMain(
                 window.getViewer(), state.requestId(), workcell.stableId(), 0));
         window.setElement(-4, 5, back);
 
         int pageCount = pageCount(variant.memberships().size(), MEMBERSHIPS_PER_PAGE);
         if (page > 0) {
-            UIElement previous = element("membership-previous", Material.ARROW, ChatColor.YELLOW + "Previous Page");
+            JigsawStudioMenuElement previous = element("membership-previous", JigsawStudioMenuIcon.ARROW, "Previous Page");
             previous.onLeftClick(clicked -> refreshDetails(
                     window.getViewer(),
                     state.requestId(),
@@ -1247,12 +1228,12 @@ public final class JigsawStudioMenuController {
                     page - 1));
             window.setElement(-1, 5, previous);
         }
-        UIElement indicator = element("membership-page", Material.BOOK, ChatColor.WHITE + "Page "
+        JigsawStudioMenuElement indicator = element("membership-page", JigsawStudioMenuIcon.BOOK, "Page "
                 + (page + 1) + "/" + pageCount);
-        indicator.addLore(ChatColor.GRAY + "" + variant.memberships().size() + " exact pool entries");
+        indicator.addLore("" + variant.memberships().size() + " exact pool entries");
         window.setElement(0, 5, indicator);
         if (page + 1 < pageCount) {
-            UIElement next = element("membership-next", Material.ARROW, ChatColor.YELLOW + "Next Page");
+            JigsawStudioMenuElement next = element("membership-next", JigsawStudioMenuIcon.ARROW, "Next Page");
             next.onLeftClick(clicked -> refreshDetails(
                     window.getViewer(),
                     state.requestId(),
@@ -1263,14 +1244,14 @@ public final class JigsawStudioMenuController {
         }
         window.setElement(2, 5, evaluationElement(state.evaluation()));
 
-        UIElement toolbox = element("details-toolbox", Material.STICK, ChatColor.AQUA + "Toolbox");
+        JigsawStudioMenuElement toolbox = element("details-toolbox", JigsawStudioMenuIcon.STICK, "Toolbox");
         toolbox.onLeftClick(clicked -> openToolbox(
                 window.getViewer(), state.requestId(), workcell.stableId(), 0));
         window.setElement(4, 5, toolbox);
     }
 
     private void renderVariantSettings(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell,
             JigsawStudioMenuState.Variant variant,
@@ -1280,31 +1261,31 @@ public final class JigsawStudioMenuController {
         window.batch(() -> {
             window.clearElements();
 
-            UIElement back = element("variant-settings-back", Material.ARROW, ChatColor.YELLOW + "Back to Details");
+            JigsawStudioMenuElement back = element("variant-settings-back", JigsawStudioMenuIcon.ARROW, "Back to Details");
             back.onLeftClick(clicked -> openDetails(
                     window.getViewer(), state.requestId(), workcell.stableId(), variant.pieceKey(), 0));
             window.setElement(-4, 0, back);
 
-            UIElement identity = element(
+            JigsawStudioMenuElement identity = element(
                     "variant-settings-identity",
-                    Material.COMPARATOR,
-                    ChatColor.GOLD + safe(variant.displayName()) + " Rules");
-            identity.addLore(ChatColor.DARK_GRAY + safe(variant.pieceKey()));
-            identity.addLore(ChatColor.GRAY + "Theme memberships: " + themes(variant.themes()));
-            identity.addLore(ChatColor.GRAY + "Use Duplicate All Enabled Cells as Family for coherent sets.");
+                    JigsawStudioMenuIcon.COMPARATOR,
+                    safe(variant.displayName()) + " Rules");
+            identity.addLore(safe(variant.pieceKey()));
+            identity.addLore("Theme memberships: " + themes(variant.themes()));
+            identity.addLore("Use Duplicate All Enabled Cells as Family for coherent sets.");
             window.setElement(0, 0, identity);
             window.setElement(4, 0, evaluationElement(state.evaluation()));
 
             if (!variant.active() || !variant.owned() || !state.irisExtended()) {
-                UIElement unavailable = element(
+                JigsawStudioMenuElement unavailable = element(
                         "variant-settings-unavailable",
-                        Material.BARRIER,
+                        JigsawStudioMenuIcon.BARRIER,
                         state.irisExtended()
-                                ? ChatColor.RED + "Load an Owned Variant First"
-                                : ChatColor.GRAY + "Iris Metadata Unavailable");
+                                ? "Load an Owned Variant First"
+                                : "Iris Metadata Unavailable");
                 unavailable.addLore(state.irisExtended()
-                        ? ChatColor.GRAY + "Rules and themes can only change for the loaded owned variant."
-                        : ChatColor.GRAY + "Vanilla-portable pieces use vanilla placement behavior.");
+                        ? "Rules and themes can only change for the loaded owned variant."
+                        : "Vanilla-portable pieces use vanilla placement behavior.");
                 window.setElement(0, 2, unavailable);
             } else {
                 window.setElement(-4, 1, ruleElement(
@@ -1316,14 +1297,14 @@ public final class JigsawStudioMenuController {
                 window.setElement(2, 1, ruleElement(
                         window, state, workcell, variant, RuleField.MAXIMUM_PLACEMENTS));
 
-                UIElement terminal = element(
+                JigsawStudioMenuElement terminal = element(
                         "rule-terminal",
-                        variant.rules().terminal() ? Material.REDSTONE_TORCH : Material.LEVER,
+                        variant.rules().terminal() ? JigsawStudioMenuIcon.REDSTONE_TORCH : JigsawStudioMenuIcon.LEVER,
                         variant.rules().terminal()
-                                ? ChatColor.GREEN + "Terminal Piece: Yes"
-                                : ChatColor.YELLOW + "Terminal Piece: No");
-                terminal.addLore(ChatColor.GRAY + "Terminal pieces consume a connector without expanding.");
-                terminal.addLore(ChatColor.YELLOW + "Left-click to toggle");
+                                ? "Terminal Piece: Yes"
+                                : "Terminal Piece: No");
+                terminal.addLore("Terminal pieces consume a connector without expanding.");
+                terminal.addLore("Left-click to toggle");
                 terminal.onLeftClick(clicked -> updateVariantRules(
                         window.getViewer(),
                         state.requestId(),
@@ -1335,17 +1316,17 @@ public final class JigsawStudioMenuController {
                 addVariantThemeMemberships(window, state, workcell, variant, page);
             }
 
-            UIElement footerBack = element("variant-rules-footer-back", Material.ARROW, ChatColor.YELLOW + "Back");
+            JigsawStudioMenuElement footerBack = element("variant-rules-footer-back", JigsawStudioMenuIcon.ARROW, "Back");
             footerBack.onLeftClick(clicked -> openDetails(
                     window.getViewer(), state.requestId(), workcell.stableId(), variant.pieceKey(), 0));
             window.setElement(-4, 5, footerBack);
 
             int pageCount = pageCount(state.themeSets().size(), THEME_SETS_PER_PAGE);
             if (page > 0) {
-                UIElement previous = element(
+                JigsawStudioMenuElement previous = element(
                         "variant-theme-previous",
-                        Material.ARROW,
-                        ChatColor.YELLOW + "Previous Page");
+                        JigsawStudioMenuIcon.ARROW,
+                        "Previous Page");
                 previous.onLeftClick(clicked -> refreshVariantSettings(
                         window.getViewer(),
                         state.requestId(),
@@ -1354,17 +1335,17 @@ public final class JigsawStudioMenuController {
                         page - 1));
                 window.setElement(-1, 5, previous);
             }
-            UIElement indicator = element(
+            JigsawStudioMenuElement indicator = element(
                     "variant-theme-page",
-                    Material.BOOK,
-                    ChatColor.WHITE + "Theme Page " + (page + 1) + "/" + pageCount);
-            indicator.addLore(ChatColor.GRAY + "" + state.themeSets().size() + " declared themes");
+                    JigsawStudioMenuIcon.BOOK,
+                    "Theme Page " + (page + 1) + "/" + pageCount);
+            indicator.addLore("" + state.themeSets().size() + " declared themes");
             window.setElement(0, 5, indicator);
             if (page + 1 < pageCount) {
-                UIElement next = element(
+                JigsawStudioMenuElement next = element(
                         "variant-theme-next",
-                        Material.ARROW,
-                        ChatColor.YELLOW + "Next Page");
+                        JigsawStudioMenuIcon.ARROW,
+                        "Next Page");
                 next.onLeftClick(clicked -> refreshVariantSettings(
                         window.getViewer(),
                         state.requestId(),
@@ -1377,35 +1358,35 @@ public final class JigsawStudioMenuController {
         });
     }
 
-    private UIElement ruleElement(
-            UIWindow window,
+    private JigsawStudioMenuElement ruleElement(
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell,
             JigsawStudioMenuState.Variant variant,
             RuleField field
     ) {
         int value = field.value(variant.rules());
-        UIElement element = element(
+        JigsawStudioMenuElement element = element(
                 "rule-" + field.name().toLowerCase(Locale.ROOT),
                 field.material(),
-                ChatColor.AQUA + field.displayName() + ": " + field.displayValue(value));
+                field.displayName() + ": " + field.displayValue(value));
         boolean unlimitedMaximum = field == RuleField.MAXIMUM_PLACEMENTS && value == 0;
         if (unlimitedMaximum) {
-            element.addLore(ChatColor.GRAY + "Increase is already unlimited.");
+            element.addLore("Increase is already unlimited.");
         } else {
-            element.addLore(ChatColor.GREEN + "Left-click: +1");
-            element.addLore(ChatColor.GREEN + "Shift-left: +" + field.shiftStep());
+            element.addLore("Left-click: +1");
+            element.addLore("Shift-left: +" + field.shiftStep());
             element.onLeftClick(clicked -> adjustVariantRule(
                     window.getViewer(), state.requestId(), workcell, variant, field, 1));
             element.onShiftLeftClick(clicked -> adjustVariantRule(
                     window.getViewer(), state.requestId(), workcell, variant, field, field.shiftStep()));
         }
         element.addLore(unlimitedMaximum
-                ? ChatColor.YELLOW + "Right-click: set 512"
-                : ChatColor.YELLOW + "Right-click: -1");
+                ? "Right-click: set 512"
+                : "Right-click: -1");
         element.addLore(unlimitedMaximum
-                ? ChatColor.YELLOW + "Shift-right: set 497"
-                : ChatColor.YELLOW + "Shift-right: -" + field.shiftStep());
+                ? "Shift-right: set 497"
+                : "Shift-right: -" + field.shiftStep());
         element.onRightClick(clicked -> adjustVariantRule(
                 window.getViewer(), state.requestId(), workcell, variant, field, -1));
         element.onShiftRightClick(clicked -> adjustVariantRule(
@@ -1414,7 +1395,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void addVariantThemeMemberships(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell,
             JigsawStudioMenuState.Variant variant,
@@ -1423,11 +1404,11 @@ public final class JigsawStudioMenuController {
         List<JigsawStudioMenuState.ThemeSet> themeSets = page(
                 state.themeSets(), page, THEME_SETS_PER_PAGE);
         if (themeSets.isEmpty()) {
-            UIElement empty = element(
+            JigsawStudioMenuElement empty = element(
                     "variant-no-themes",
-                    Material.GRAY_DYE,
-                    ChatColor.GRAY + "Available to Every Theme");
-            empty.addLore(ChatColor.GRAY + "Create a coherent theme set from Structure Rules first.");
+                    JigsawStudioMenuIcon.GRAY_DYE,
+                    "Available to Every Theme");
+            empty.addLore("Create a coherent theme set from Structure Rules first.");
             window.setElement(0, 3, empty);
             return;
         }
@@ -1436,16 +1417,16 @@ public final class JigsawStudioMenuController {
             boolean member = variant.themes().contains(themeSet.key());
             int position = GRID_POSITIONS[index % GRID_POSITIONS.length];
             int row = 2 + index / GRID_POSITIONS.length;
-            UIElement element = element(
+            JigsawStudioMenuElement element = element(
                     "variant-theme-" + index,
-                    member ? Material.LIME_DYE : Material.GRAY_DYE,
-                    (member ? ChatColor.GREEN : ChatColor.GRAY) + safe(themeSet.key()))
+                    member ? JigsawStudioMenuIcon.LIME_DYE : JigsawStudioMenuIcon.GRAY_DYE,
+                    safe(themeSet.key()))
                     .setEnchanted(member);
             element.addLore(member
-                    ? ChatColor.GREEN + "This variant belongs to the theme."
-                    : ChatColor.GRAY + "This variant does not belong to the theme.");
-            element.addLore(ChatColor.GRAY + "Only variants in the selected family are eligible.");
-            element.addLore(ChatColor.YELLOW + "Left-click to toggle membership");
+                    ? "This variant belongs to the theme."
+                    : "This variant does not belong to the theme.");
+            element.addLore("Only variants in the selected family are eligible.");
+            element.addLore("Left-click to toggle membership");
             element.onLeftClick(clicked -> toggleVariantTheme(
                     window.getViewer(), state.requestId(), workcell, variant, themeSet.key()));
             window.setElement(position, row, element);
@@ -1453,7 +1434,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void renderToolbox(
-            UIWindow window,
+            JigsawStudioMenuWindow window,
             JigsawStudioMenuState state,
             JigsawStudioMenuState.Workcell workcell,
             int requestedPage
@@ -1464,14 +1445,14 @@ public final class JigsawStudioMenuController {
         window.batch(() -> {
             window.clearElements();
 
-            UIElement back = element("toolbox-back", Material.ARROW, ChatColor.YELLOW + "Back to Variants");
+            JigsawStudioMenuElement back = element("toolbox-back", JigsawStudioMenuIcon.ARROW, "Back to Variants");
             back.onLeftClick(clicked -> refreshMain(
                     window.getViewer(), state.requestId(), workcell.stableId(), 0));
             window.setElement(-4, 0, back);
 
-            UIElement heading = element("toolbox-heading", Material.CHEST, ChatColor.AQUA + "Bound Tool Sticks");
-            heading.addLore(ChatColor.GRAY + "Every stick is bound to request " + state.requestId());
-            heading.addLore(ChatColor.GRAY + "Stale sticks stop working when this Studio closes.");
+            JigsawStudioMenuElement heading = element("toolbox-heading", JigsawStudioMenuIcon.CHEST, "Bound Tool Sticks");
+            heading.addLore("Every stick is bound to request " + state.requestId());
+            heading.addLore("Stale sticks stop working when this Studio closes.");
             window.setElement(0, 0, heading);
             window.setElement(4, 0, evaluationElement(state.evaluation()));
 
@@ -1479,38 +1460,38 @@ public final class JigsawStudioMenuController {
                 ToolboxTool tool = tools.get(index);
                 int position = GRID_POSITIONS[index % GRID_POSITIONS.length];
                 int row = 1 + index / GRID_POSITIONS.length;
-                UIElement element = element(
+                JigsawStudioMenuElement element = element(
                         "tool-" + index,
-                        Material.STICK,
-                        ChatColor.AQUA + safe(tool.displayName()));
-                element.addLore(ChatColor.GRAY + "Action: " + tool.payload().action().displayName());
+                        JigsawStudioMenuIcon.STICK,
+                        safe(tool.displayName()));
+                element.addLore("Action: " + tool.payload().action().displayName());
                 addToolBindingLore(element, tool.payload());
                 element.addLore(tool.payload().action().destructive()
-                        ? ChatColor.RED + "Bound tools require confirmation when used."
-                        : ChatColor.YELLOW + "Left-click to receive this named stick.");
+                        ? "Bound tools require confirmation when used."
+                        : "Left-click to receive this named stick.");
                 element.onLeftClick(clicked -> giveTool(
                         window.getViewer(), state.requestId(), tool.payload()));
                 window.setElement(position, row, element);
             }
 
-            UIElement footerBack = element("toolbox-footer-back", Material.ARROW, ChatColor.YELLOW + "Back");
+            JigsawStudioMenuElement footerBack = element("toolbox-footer-back", JigsawStudioMenuIcon.ARROW, "Back");
             footerBack.onLeftClick(clicked -> refreshMain(
                     window.getViewer(), state.requestId(), workcell.stableId(), 0));
             window.setElement(-4, 5, footerBack);
 
             int pageCount = pageCount(allTools.size(), TOOLS_PER_PAGE);
             if (page > 0) {
-                UIElement previous = element("toolbox-previous", Material.ARROW, ChatColor.YELLOW + "Previous Page");
+                JigsawStudioMenuElement previous = element("toolbox-previous", JigsawStudioMenuIcon.ARROW, "Previous Page");
                 previous.onLeftClick(clicked -> refreshToolbox(
                         window.getViewer(), state.requestId(), workcell.stableId(), page - 1));
                 window.setElement(-1, 5, previous);
             }
-            UIElement indicator = element("toolbox-page", Material.BOOK, ChatColor.WHITE + "Page "
+            JigsawStudioMenuElement indicator = element("toolbox-page", JigsawStudioMenuIcon.BOOK, "Page "
                     + (page + 1) + "/" + pageCount);
-            indicator.addLore(ChatColor.GRAY + "" + allTools.size() + " bound tools");
+            indicator.addLore("" + allTools.size() + " bound tools");
             window.setElement(0, 5, indicator);
             if (page + 1 < pageCount) {
-                UIElement next = element("toolbox-next", Material.ARROW, ChatColor.YELLOW + "Next Page");
+                JigsawStudioMenuElement next = element("toolbox-next", JigsawStudioMenuIcon.ARROW, "Next Page");
                 next.onLeftClick(clicked -> refreshToolbox(
                         window.getViewer(), state.requestId(), workcell.stableId(), page + 1));
                 window.setElement(1, 5, next);
@@ -1518,18 +1499,18 @@ public final class JigsawStudioMenuController {
         });
     }
 
-    private void selectWorkcell(Player player, UUID requestId, String workcellId) {
+    private void selectWorkcell(ToolPlayer player, UUID requestId, String workcellId) {
         if (matchingState(player, requestId, true).isEmpty()) {
             return;
         }
         if (actions.teleportToWorkcell(player, workcellId)) {
-            clearConfirmations(player.getUniqueId());
+            clearConfirmations(player.id());
             closeAfterAction(player);
         }
     }
 
     private void toggleConnectorBlocks(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             boolean visible
@@ -1543,7 +1524,7 @@ public final class JigsawStudioMenuController {
         }
     }
 
-    private void resetConnectorBlocks(Player player, UUID requestId, String workcellId) {
+    private void resetConnectorBlocks(ToolPlayer player, UUID requestId, String workcellId) {
         Optional<JigsawStudioMenuState> current = matchingState(player, requestId, true);
         if (current.isEmpty() || current.get().workcell(workcellId) == null) {
             return;
@@ -1553,7 +1534,7 @@ public final class JigsawStudioMenuController {
         }
     }
 
-    private void undoAutosave(Player player, UUID requestId) {
+    private void undoAutosave(ToolPlayer player, UUID requestId) {
         if (matchingState(player, requestId, true).isEmpty()) {
             return;
         }
@@ -1562,7 +1543,7 @@ public final class JigsawStudioMenuController {
         }
     }
 
-    private void switchVariant(Player player, UUID requestId, String workcellId, String pieceKey) {
+    private void switchVariant(ToolPlayer player, UUID requestId, String workcellId, String pieceKey) {
         Optional<JigsawStudioMenuState> current = matchingState(player, requestId, true);
         if (current.isEmpty()) {
             return;
@@ -1574,7 +1555,7 @@ public final class JigsawStudioMenuController {
             return;
         }
         if (variant.active()) {
-            send(player, ChatColor.YELLOW + "That variant is already loaded. Right-click it for details.");
+            send(player, "That variant is already loaded. Right-click it for details.");
             return;
         }
         if (actions.switchVariant(player, workcellId, pieceKey, false)) {
@@ -1583,7 +1564,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void openDetails(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             String pieceKey,
@@ -1599,19 +1580,19 @@ public final class JigsawStudioMenuController {
             stale(player);
             return;
         }
-        UIWindow window = windows.get(player.getUniqueId());
+        JigsawStudioMenuWindow window = windows.get(player.id());
         if (window != null) {
             renderDetails(window, current.get(), workcell, variant, page);
         }
     }
 
-    private void openWorkcellSettings(Player player, UUID requestId, String workcellId) {
+    private void openWorkcellSettings(ToolPlayer player, UUID requestId, String workcellId) {
         Optional<JigsawStudioMenuState> current = matchingState(player, requestId, true);
         if (current.isEmpty()) {
             return;
         }
         JigsawStudioMenuState.Workcell workcell = current.get().workcell(workcellId);
-        UIWindow window = windows.get(player.getUniqueId());
+        JigsawStudioMenuWindow window = windows.get(player.id());
         if (workcell == null || window == null) {
             stale(player);
             return;
@@ -1620,7 +1601,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void openStructureSettings(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String selectedWorkcellId,
             int page
@@ -1629,7 +1610,7 @@ public final class JigsawStudioMenuController {
         if (current.isEmpty()) {
             return;
         }
-        UIWindow window = windows.get(player.getUniqueId());
+        JigsawStudioMenuWindow window = windows.get(player.id());
         if (current.get().workcell(selectedWorkcellId) == null || window == null) {
             stale(player);
             return;
@@ -1638,7 +1619,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void openVariantSettings(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             String pieceKey,
@@ -1650,25 +1631,24 @@ public final class JigsawStudioMenuController {
         }
         JigsawStudioMenuState.Workcell workcell = current.get().workcell(workcellId);
         JigsawStudioMenuState.Variant variant = variant(workcell, pieceKey);
-        UIWindow window = windows.get(player.getUniqueId());
+        JigsawStudioMenuWindow window = windows.get(player.id());
         if (workcell == null || variant == null || window == null) {
             stale(player);
             return;
         }
         if (!variant.active() || !variant.owned()) {
-            send(player, ChatColor.YELLOW + "Load an owned variant before editing its rules.");
+            send(player, "Load an owned variant before editing its rules.");
             return;
         }
         if (!current.get().irisExtended()) {
-            send(player, ChatColor.YELLOW
-                    + "Vanilla-portable pieces cannot encode Iris theme or piece-rule metadata.");
+            send(player, "Vanilla-portable pieces cannot encode Iris theme or piece-rule metadata.");
             return;
         }
         renderVariantSettings(window, current.get(), workcell, variant, page);
     }
 
     private void openVariantSizeSettings(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             String pieceKey
@@ -1679,7 +1659,7 @@ public final class JigsawStudioMenuController {
         }
         JigsawStudioMenuState.Workcell workcell = current.get().workcell(workcellId);
         JigsawStudioMenuState.Variant variant = variant(workcell, pieceKey);
-        UIWindow window = windows.get(player.getUniqueId());
+        JigsawStudioMenuWindow window = windows.get(player.id());
         if (workcell == null || variant == null || !variant.owned()
                 || variant.dimensions().isEmpty() || window == null) {
             stale(player);
@@ -1688,13 +1668,13 @@ public final class JigsawStudioMenuController {
         renderVariantSizeSettings(window, current.get(), workcell, variant);
     }
 
-    private void openToolbox(Player player, UUID requestId, String workcellId, int page) {
+    private void openToolbox(ToolPlayer player, UUID requestId, String workcellId, int page) {
         Optional<JigsawStudioMenuState> current = matchingState(player, requestId, true);
         if (current.isEmpty()) {
             return;
         }
         JigsawStudioMenuState.Workcell workcell = current.get().workcell(workcellId);
-        UIWindow window = windows.get(player.getUniqueId());
+        JigsawStudioMenuWindow window = windows.get(player.id());
         if (workcell == null || window == null) {
             stale(player);
             return;
@@ -1703,7 +1683,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void createVariant(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             boolean duplicateActive
@@ -1717,7 +1697,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void setWorkcellEnabled(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             boolean enabled
@@ -1736,7 +1716,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void resizeWorkcell(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             DimensionAxis axis,
@@ -1751,10 +1731,10 @@ public final class JigsawStudioMenuController {
             stale(player);
             return;
         }
-        UUID playerId = player.getUniqueId();
+        UUID playerId = player.id();
         PendingWorkcellResize existing = pendingWorkcellResize(playerId, requestId, workcellId);
         if (existing != null && existing.applying()) {
-            send(player, ChatColor.YELLOW + "That cell size is already being applied.");
+            send(player, "That cell size is already being applied.");
             return;
         }
         JigsawStudioCellDimensions base = existing == null
@@ -1763,7 +1743,7 @@ public final class JigsawStudioMenuController {
         Optional<JigsawStudioCellDimensions> adjusted = adjustedDimensions(
                 base, axis, delta);
         if (adjusted.isEmpty()) {
-            send(player, ChatColor.RED + "That workcell size is outside Iris limits.");
+            sendError(player, "That workcell size is outside Iris limits.");
             return;
         }
         PendingWorkcellResize pending = new PendingWorkcellResize(
@@ -1772,18 +1752,18 @@ public final class JigsawStudioMenuController {
                 adjusted.get(),
                 false);
         pendingWorkcellResizes.put(playerId, pending);
-        UIWindow window = windows.get(playerId);
+        JigsawStudioMenuWindow window = windows.get(playerId);
         if (window != null) {
             renderWorkcellSettings(window, current.get(), withCapacity(workcell, pending.dimensions()));
         }
     }
 
-    private void applyWorkcellResize(Player player, UUID requestId, String workcellId) {
+    private void applyWorkcellResize(ToolPlayer player, UUID requestId, String workcellId) {
         Optional<JigsawStudioMenuState> current = matchingState(player, requestId, true);
         if (current.isEmpty()) {
             return;
         }
-        UUID playerId = player.getUniqueId();
+        UUID playerId = player.id();
         PendingWorkcellResize pending = pendingWorkcellResize(playerId, requestId, workcellId);
         JigsawStudioMenuState.Workcell workcell = current.get().workcell(workcellId);
         if (pending == null || pending.applying() || workcell == null) {
@@ -1800,7 +1780,7 @@ public final class JigsawStudioMenuController {
                 pending.dimensions(),
                 true);
         pendingWorkcellResizes.put(playerId, applying);
-        UIWindow window = windows.get(playerId);
+        JigsawStudioMenuWindow window = windows.get(playerId);
         if (window != null) {
             renderWorkcellSettings(window, current.get(), withCapacity(workcell, applying.dimensions()));
         }
@@ -1813,25 +1793,23 @@ public final class JigsawStudioMenuController {
     }
 
     private void scheduleWorkcellResizeRefresh(
-            Player player,
+            ToolPlayer player,
             PendingWorkcellResize pending,
             int attemptsRemaining
     ) {
-        boolean scheduled = J.runEntity(
+        scheduler.onPlayerLater(
                 player,
                 () -> refreshAppliedWorkcellResize(player, pending, attemptsRemaining),
-                WORKCELL_RESIZE_REFRESH_TICKS);
-        if (!scheduled) {
-            pendingWorkcellResizes.remove(player.getUniqueId(), pending);
-        }
+                WORKCELL_RESIZE_REFRESH_TICKS,
+                () -> pendingWorkcellResizes.remove(player.id(), pending));
     }
 
     private void refreshAppliedWorkcellResize(
-            Player player,
+            ToolPlayer player,
             PendingWorkcellResize pending,
             int attemptsRemaining
     ) {
-        UUID playerId = player.getUniqueId();
+        UUID playerId = player.id();
         if (!pending.equals(pendingWorkcellResizes.get(playerId))) {
             return;
         }
@@ -1845,7 +1823,7 @@ public final class JigsawStudioMenuController {
         }
         if (workcell.capacity().equals(pending.dimensions())) {
             pendingWorkcellResizes.remove(playerId, pending);
-            UIWindow window = windows.get(playerId);
+            JigsawStudioMenuWindow window = windows.get(playerId);
             if (window != null) {
                 renderWorkcellSettings(window, current.orElseThrow(), workcell);
             }
@@ -1861,33 +1839,32 @@ public final class JigsawStudioMenuController {
                 pending.dimensions(),
                 false);
         pendingWorkcellResizes.replace(playerId, pending, retry);
-        UIWindow window = windows.get(playerId);
+        JigsawStudioMenuWindow window = windows.get(playerId);
         if (window != null) {
             renderWorkcellSettings(window, current.orElseThrow(), withCapacity(workcell, retry.dimensions()));
         }
-        send(player, ChatColor.YELLOW
-                + "Cell resizing is still pending; use Apply Cell Size to retry after the current operation settles.");
+        send(player, "Cell resizing is still pending; use Apply Cell Size to retry after the current operation settles.");
     }
 
-    private void discardWorkcellResize(Player player, UUID requestId, String workcellId) {
-        PendingWorkcellResize pending = pendingWorkcellResize(player.getUniqueId(), requestId, workcellId);
+    private void discardWorkcellResize(ToolPlayer player, UUID requestId, String workcellId) {
+        PendingWorkcellResize pending = pendingWorkcellResize(player.id(), requestId, workcellId);
         if (pending != null && !pending.applying()) {
-            pendingWorkcellResizes.remove(player.getUniqueId(), pending);
+            pendingWorkcellResizes.remove(player.id(), pending);
         }
         refreshWorkcellSettings(player, requestId, workcellId);
     }
 
-    private void leaveWorkcellSettings(Player player, UUID requestId, String workcellId) {
-        PendingWorkcellResize pending = pendingWorkcellResize(player.getUniqueId(), requestId, workcellId);
+    private void leaveWorkcellSettings(ToolPlayer player, UUID requestId, String workcellId) {
+        PendingWorkcellResize pending = pendingWorkcellResize(player.id(), requestId, workcellId);
         if (pending != null && !pending.applying()) {
-            pendingWorkcellResizes.remove(player.getUniqueId(), pending);
+            pendingWorkcellResizes.remove(player.id(), pending);
         }
         refreshMain(player, requestId, workcellId, 0);
     }
 
-    private void refreshWorkcellSettings(Player player, UUID requestId, String workcellId) {
+    private void refreshWorkcellSettings(ToolPlayer player, UUID requestId, String workcellId) {
         Optional<JigsawStudioMenuState> current = matchingState(player, requestId, true);
-        UIWindow window = windows.get(player.getUniqueId());
+        JigsawStudioMenuWindow window = windows.get(player.id());
         JigsawStudioMenuState.Workcell workcell = current
                 .map(state -> state.workcell(workcellId))
                 .orElse(null);
@@ -1908,7 +1885,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void resizeVariantAxis(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             String pieceKey,
@@ -1928,14 +1905,14 @@ public final class JigsawStudioMenuController {
         Optional<JigsawStudioCellDimensions> adjusted = adjustedDimensions(
                 variant.dimensions().orElseThrow(), axis, delta);
         if (adjusted.isEmpty()) {
-            send(player, ChatColor.RED + "That variant size is outside Iris limits.");
+            sendError(player, "That variant size is outside Iris limits.");
             return;
         }
         resizeVariant(player, requestId, workcellId, pieceKey, adjusted.get());
     }
 
     private void resizeVariant(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             String pieceKey,
@@ -1954,7 +1931,7 @@ public final class JigsawStudioMenuController {
         if (dimensions.width() > workcell.capacity().width()
                 || dimensions.height() > workcell.capacity().height()
                 || dimensions.depth() > workcell.capacity().depth()) {
-            send(player, ChatColor.RED + "Increase this workcell's capacity before making the variant larger.");
+            sendError(player, "Increase this workcell's capacity before making the variant larger.");
             return;
         }
         if (actions.resizeVariant(player, workcellId, pieceKey, dimensions)) {
@@ -1962,33 +1939,33 @@ public final class JigsawStudioMenuController {
         }
     }
 
-    private void setRequireCaps(Player player, UUID requestId, boolean requireCaps) {
+    private void setRequireCaps(ToolPlayer player, UUID requestId, boolean requireCaps) {
         Optional<JigsawStudioMenuState> current = matchingState(player, requestId, true);
         if (current.isEmpty()) {
             return;
         }
         if (!current.get().irisExtended()) {
-            send(player, ChatColor.YELLOW + "Mandatory caps require Iris compatibility.");
+            send(player, "Mandatory caps require Iris compatibility.");
             return;
         }
         if (current.get().requireCaps() == requireCaps) {
-            send(player, ChatColor.YELLOW + "Mandatory caps are already "
+            send(player, "Mandatory caps are already "
                     + (requireCaps ? "enabled." : "disabled."));
             return;
         }
         if (actions.setRequireCaps(player, requireCaps)) {
-            clearConfirmations(player.getUniqueId());
+            clearConfirmations(player.id());
             closeAfterAction(player);
         }
     }
 
-    private void duplicateActiveFamily(Player player, UUID requestId, String themeKey) {
+    private void duplicateActiveFamily(ToolPlayer player, UUID requestId, String themeKey) {
         Optional<JigsawStudioMenuState> current = matchingState(player, requestId, true);
         if (current.isEmpty()) {
             return;
         }
         if (!current.get().irisExtended()) {
-            send(player, ChatColor.YELLOW + "Theme sets require Iris compatibility.");
+            send(player, "Theme sets require Iris compatibility.");
             return;
         }
         if (!nextThemeSetKey(current.get().themeSets()).equals(themeKey)) {
@@ -1996,13 +1973,13 @@ public final class JigsawStudioMenuController {
             return;
         }
         if (actions.duplicateActiveFamily(player, themeKey)) {
-            clearConfirmations(player.getUniqueId());
+            clearConfirmations(player.id());
             closeAfterAction(player);
         }
     }
 
     private void adjustThemeSetWeight(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             JigsawStudioMenuState.ThemeSet expected,
             int delta
@@ -2012,7 +1989,7 @@ public final class JigsawStudioMenuController {
             return;
         }
         if (!current.get().irisExtended()) {
-            send(player, ChatColor.YELLOW + "Theme weights require Iris compatibility.");
+            send(player, "Theme weights require Iris compatibility.");
             return;
         }
         JigsawStudioMenuState.ThemeSet themeSet = current.get().themeSet(expected.key());
@@ -2022,16 +1999,16 @@ public final class JigsawStudioMenuController {
         }
         Optional<Integer> weight = adjustedPositiveValue(themeSet.weight(), delta);
         if (weight.isEmpty()) {
-            send(player, ChatColor.RED + "Theme weights must remain positive.");
+            sendError(player, "Theme weights must remain positive.");
             return;
         }
         if (actions.updateThemeSetWeight(player, themeSet.key(), weight.get())) {
-            clearConfirmations(player.getUniqueId());
+            clearConfirmations(player.id());
             closeAfterAction(player);
         }
     }
 
-    private void flushNow(Player player, UUID requestId, String workcellId) {
+    private void flushNow(ToolPlayer player, UUID requestId, String workcellId) {
         Optional<JigsawStudioMenuState> current = matchingState(player, requestId, true);
         if (current.isEmpty()) {
             return;
@@ -2042,7 +2019,7 @@ public final class JigsawStudioMenuController {
             return;
         }
         if (!workcell.dirty()) {
-            send(player, ChatColor.YELLOW + "This workcell has no pending changes to flush.");
+            send(player, "This workcell has no pending changes to flush.");
             return;
         }
         if (actions.flushAutosave(player, workcellId)) {
@@ -2050,14 +2027,14 @@ public final class JigsawStudioMenuController {
         }
     }
 
-    private void goToPreview(Player player, UUID requestId) {
+    private void goToPreview(ToolPlayer player, UUID requestId) {
         if (matchingState(player, requestId, true).isPresent()
                 && actions.goToPreview(player)) {
             closeAfterAction(player);
         }
     }
 
-    private void toggleRotation(Player player, UUID requestId, String workcellId) {
+    private void toggleRotation(ToolPlayer player, UUID requestId, String workcellId) {
         Optional<JigsawStudioMenuState> current = matchingState(player, requestId, true);
         if (current.isEmpty() || activeVariant(current.get(), workcellId) == null) {
             return;
@@ -2068,7 +2045,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void adjustVariantRule(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             JigsawStudioMenuState.Workcell workcell,
             JigsawStudioMenuState.Variant expected,
@@ -2086,7 +2063,7 @@ public final class JigsawStudioMenuController {
         }
         Optional<JigsawStudioPieceRules> rules = adjustedRules(variant.rules(), field, delta);
         if (rules.isEmpty()) {
-            send(player, ChatColor.RED + "That piece rule value is outside Iris limits.");
+            sendError(player, "That piece rule value is outside Iris limits.");
             return;
         }
         updateVariantRules(
@@ -2098,7 +2075,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void updateVariantRules(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             String pieceKey,
@@ -2109,7 +2086,7 @@ public final class JigsawStudioMenuController {
             return;
         }
         if (!current.get().irisExtended()) {
-            send(player, ChatColor.YELLOW + "Piece rules require Iris compatibility.");
+            send(player, "Piece rules require Iris compatibility.");
             return;
         }
         JigsawStudioMenuState.Variant variant = activeVariant(current.get(), workcellId);
@@ -2118,13 +2095,13 @@ public final class JigsawStudioMenuController {
             return;
         }
         if (actions.updateVariantRules(player, workcellId, pieceKey, rules)) {
-            clearConfirmations(player.getUniqueId());
+            clearConfirmations(player.id());
             closeAfterAction(player);
         }
     }
 
     private void toggleVariantTheme(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             JigsawStudioMenuState.Workcell workcell,
             JigsawStudioMenuState.Variant expected,
@@ -2135,7 +2112,7 @@ public final class JigsawStudioMenuController {
             return;
         }
         if (!current.get().irisExtended()) {
-            send(player, ChatColor.YELLOW + "Theme membership requires Iris compatibility.");
+            send(player, "Theme membership requires Iris compatibility.");
             return;
         }
         JigsawStudioMenuState.Variant variant = activeVariant(current.get(), workcell.stableId());
@@ -2155,13 +2132,13 @@ public final class JigsawStudioMenuController {
                 workcell.stableId(),
                 variant.pieceKey(),
                 List.copyOf(themes))) {
-            clearConfirmations(player.getUniqueId());
+            clearConfirmations(player.id());
             closeAfterAction(player);
         }
     }
 
     private void adjustMembershipWeight(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             JigsawStudioMenuState.Membership membership,
@@ -2184,13 +2161,13 @@ public final class JigsawStudioMenuController {
                 membership.poolKey(),
                 membership.entryIndex(),
                 delta)) {
-            clearConfirmations(player.getUniqueId());
+            clearConfirmations(player.id());
             closeAfterAction(player);
         }
     }
 
     private void adjustMembershipChance(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             JigsawStudioMenuState.Membership membership,
@@ -2202,7 +2179,7 @@ public final class JigsawStudioMenuController {
             return;
         }
         if (!current.get().irisExtended()) {
-            send(player, ChatColor.YELLOW + "Per-entry chance requires Iris compatibility.");
+            send(player, "Per-entry chance requires Iris compatibility.");
             return;
         }
         JigsawStudioMenuState.Variant active = activeVariant(current.get(), workcellId);
@@ -2217,13 +2194,13 @@ public final class JigsawStudioMenuController {
                 membership.poolKey(),
                 membership.entryIndex(),
                 deltaPercentagePoints)) {
-            clearConfirmations(player.getUniqueId());
+            clearConfirmations(player.id());
             closeAfterAction(player);
         }
     }
 
     private void confirmOrUnlink(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             JigsawStudioMenuState.Membership membership,
@@ -2235,7 +2212,7 @@ public final class JigsawStudioMenuController {
             return;
         }
 
-        UUID playerId = player.getUniqueId();
+        UUID playerId = player.id();
         JigsawStudioMenuState.Variant active = activeVariant(current.get(), workcellId);
         if (active == null || !active.owned()) {
             stale(player);
@@ -2249,7 +2226,11 @@ public final class JigsawStudioMenuController {
                     membership.poolKey(),
                     membership.entryIndex(),
                     System.nanoTime() + DESTRUCTIVE_CONFIRM_NANOS));
-            J.runEntity(player, () -> refreshDetails(player, requestId, workcellId, page), 1);
+            scheduler.onPlayerLater(
+                    player,
+                    () -> refreshDetails(player, requestId, workcellId, page),
+                    DETAILS_REFRESH_DELAY_TICKS,
+                    () -> { });
             return;
         }
 
@@ -2265,7 +2246,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void confirmOrDeleteVariant(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             String pieceKey,
@@ -2282,15 +2263,18 @@ public final class JigsawStudioMenuController {
             return;
         }
 
-        UUID playerId = player.getUniqueId();
+        UUID playerId = player.id();
         if (!isDeleteConfirmed(playerId, requestId, workcellId, pieceKey)) {
             pendingDeletes.put(playerId, new PendingDelete(
                     requestId,
                     workcellId,
                     pieceKey,
                     System.nanoTime() + DESTRUCTIVE_CONFIRM_NANOS));
-            J.runEntity(player, () -> refreshDetails(
-                    player, requestId, workcellId, pieceKey, page), 1);
+            scheduler.onPlayerLater(
+                    player,
+                    () -> refreshDetails(player, requestId, workcellId, pieceKey, page),
+                    DETAILS_REFRESH_DELAY_TICKS,
+                    () -> { });
             return;
         }
 
@@ -2301,7 +2285,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void confirmOrDeleteProject(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String selectedWorkcellId,
             int page
@@ -2310,13 +2294,16 @@ public final class JigsawStudioMenuController {
         if (current.isEmpty()) {
             return;
         }
-        UUID playerId = player.getUniqueId();
+        UUID playerId = player.id();
         if (!isProjectDeleteConfirmed(playerId, requestId)) {
             pendingProjectDeletes.put(playerId, new PendingProjectDelete(
                     requestId,
                     System.nanoTime() + DESTRUCTIVE_CONFIRM_NANOS));
-            J.runEntity(player, () -> refreshStructureSettings(
-                    player, requestId, selectedWorkcellId, page), 1);
+            scheduler.onPlayerLater(
+                    player,
+                    () -> refreshStructureSettings(player, requestId, selectedWorkcellId, page),
+                    DETAILS_REFRESH_DELAY_TICKS,
+                    () -> { });
             return;
         }
         if (actions.deleteProject(player)) {
@@ -2325,7 +2312,7 @@ public final class JigsawStudioMenuController {
         }
     }
 
-    private void giveTool(Player player, UUID requestId, JigsawStudioToolPayload payload) {
+    private void giveTool(ToolPlayer player, UUID requestId, JigsawStudioToolPayload payload) {
         if (matchingState(player, requestId, true).isEmpty()) {
             return;
         }
@@ -2336,13 +2323,13 @@ public final class JigsawStudioMenuController {
         actions.giveTool(player, payload);
     }
 
-    private void refreshMain(Player player, UUID requestId, String workcellId, int page) {
+    private void refreshMain(ToolPlayer player, UUID requestId, String workcellId, int page) {
         Optional<JigsawStudioMenuState> current = matchingState(player, requestId, true);
         if (current.isEmpty()) {
             return;
         }
         JigsawStudioMenuState.Workcell workcell = current.get().workcell(workcellId);
-        UIWindow window = windows.get(player.getUniqueId());
+        JigsawStudioMenuWindow window = windows.get(player.id());
         if (workcell == null || window == null) {
             stale(player);
             return;
@@ -2350,7 +2337,7 @@ public final class JigsawStudioMenuController {
         renderMain(window, current.get(), workcell, page);
     }
 
-    private void refreshDetails(Player player, UUID requestId, String workcellId, int page) {
+    private void refreshDetails(ToolPlayer player, UUID requestId, String workcellId, int page) {
         Optional<JigsawStudioMenuState> current = matchingState(player, requestId, true);
         if (current.isEmpty()) {
             return;
@@ -2364,7 +2351,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void refreshDetails(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             String pieceKey,
@@ -2376,7 +2363,7 @@ public final class JigsawStudioMenuController {
         }
         JigsawStudioMenuState.Workcell workcell = current.get().workcell(workcellId);
         JigsawStudioMenuState.Variant variant = variant(workcell, pieceKey);
-        UIWindow window = windows.get(player.getUniqueId());
+        JigsawStudioMenuWindow window = windows.get(player.id());
         if (workcell == null || variant == null || window == null) {
             stale(player);
             return;
@@ -2385,7 +2372,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void refreshStructureSettings(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String selectedWorkcellId,
             int page
@@ -2394,7 +2381,7 @@ public final class JigsawStudioMenuController {
         if (current.isEmpty()) {
             return;
         }
-        UIWindow window = windows.get(player.getUniqueId());
+        JigsawStudioMenuWindow window = windows.get(player.id());
         if (current.get().workcell(selectedWorkcellId) == null || window == null) {
             stale(player);
             return;
@@ -2403,7 +2390,7 @@ public final class JigsawStudioMenuController {
     }
 
     private void refreshVariantSettings(
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             String workcellId,
             String pieceKey,
@@ -2415,7 +2402,7 @@ public final class JigsawStudioMenuController {
         }
         JigsawStudioMenuState.Workcell workcell = current.get().workcell(workcellId);
         JigsawStudioMenuState.Variant variant = variant(workcell, pieceKey);
-        UIWindow window = windows.get(player.getUniqueId());
+        JigsawStudioMenuWindow window = windows.get(player.id());
         if (workcell == null || variant == null || window == null) {
             stale(player);
             return;
@@ -2423,13 +2410,13 @@ public final class JigsawStudioMenuController {
         renderVariantSettings(window, current.get(), workcell, variant, page);
     }
 
-    private void refreshToolbox(Player player, UUID requestId, String workcellId, int page) {
+    private void refreshToolbox(ToolPlayer player, UUID requestId, String workcellId, int page) {
         Optional<JigsawStudioMenuState> current = matchingState(player, requestId, true);
         if (current.isEmpty()) {
             return;
         }
         JigsawStudioMenuState.Workcell workcell = current.get().workcell(workcellId);
-        UIWindow window = windows.get(player.getUniqueId());
+        JigsawStudioMenuWindow window = windows.get(player.id());
         if (workcell == null || window == null) {
             stale(player);
             return;
@@ -2437,7 +2424,7 @@ public final class JigsawStudioMenuController {
         renderToolbox(window, current.get(), workcell, page);
     }
 
-    private Optional<JigsawStudioMenuState> matchingState(Player player, UUID requestId, boolean closeStale) {
+    private Optional<JigsawStudioMenuState> matchingState(ToolPlayer player, UUID requestId, boolean closeStale) {
         Optional<JigsawStudioMenuState> current = actions.menuState(player);
         if (current.isPresent() && current.get().requestId().equals(requestId)) {
             return current;
@@ -2448,17 +2435,21 @@ public final class JigsawStudioMenuController {
         return Optional.empty();
     }
 
-    private void stale(Player player) {
+    private void stale(ToolPlayer player) {
         closeAfterAction(player);
-        send(player, ChatColor.RED + "This Jigsaw Studio menu is stale. Open the control chest again.");
+        sendError(player, "This Jigsaw Studio menu is stale. Open the control chest again.");
     }
 
-    private static void send(Player player, String message) {
-        ComponentMessenger.sendSection(player, message);
+    private static void send(ToolPlayer player, String message) {
+        player.sender().info(message);
     }
 
-    private void closeAfterAction(Player player) {
-        J.runEntity(player, () -> close(player), 1);
+    private static void sendError(ToolPlayer player, String message) {
+        player.sender().error(message);
+    }
+
+    private void closeAfterAction(ToolPlayer player) {
+        scheduler.onPlayerLater(player, () -> close(player), CLOSE_AFTER_ACTION_TICKS, () -> { });
     }
 
     private boolean isUnlinkConfirmed(
@@ -2991,19 +2982,19 @@ public final class JigsawStudioMenuController {
                         0)));
     }
 
-    private static void addToolBindingLore(UIElement element, JigsawStudioToolPayload payload) {
+    private static void addToolBindingLore(JigsawStudioMenuElement element, JigsawStudioToolPayload payload) {
         if (!payload.workcellId().isEmpty()) {
-            element.addLore(ChatColor.GRAY + "Workcell: " + safe(payload.workcellId()));
+            element.addLore("Workcell: " + safe(payload.workcellId()));
         }
         if (!payload.pieceKey().isEmpty()) {
-            element.addLore(ChatColor.GRAY + "Variant: " + safe(payload.pieceKey()));
+            element.addLore("Variant: " + safe(payload.pieceKey()));
         }
         if (!payload.poolKey().isEmpty()) {
-            element.addLore(ChatColor.GRAY + "Pool: " + safe(payload.poolKey())
+            element.addLore("Pool: " + safe(payload.poolKey())
                     + (payload.entryIndex() < 0 ? "" : " [" + payload.entryIndex() + "]"));
         }
         if (payload.amount() != 0) {
-            element.addLore(ChatColor.GRAY + "Amount: " + payload.amount());
+            element.addLore("Amount: " + payload.amount());
         }
     }
 
@@ -3027,43 +3018,33 @@ public final class JigsawStudioMenuController {
         return values.subList(start, end);
     }
 
-    private static UIElement evaluationElement(JigsawStudioMenuState.Evaluation evaluation) {
-        UIElement element = element(
+    private static JigsawStudioMenuElement evaluationElement(JigsawStudioMenuState.Evaluation evaluation) {
+        JigsawStudioMenuElement element = element(
                 "evaluation",
                 evaluationMaterial(evaluation.state()),
-                evaluationColor(evaluation.state()) + evaluationName(evaluation.state()));
-        element.addLore(ChatColor.GRAY + "Evaluation updates automatically.");
-        element.addLore(ChatColor.GRAY + "Seed: " + evaluation.seed());
+                evaluationName(evaluation.state()));
+        element.addLore("Evaluation updates automatically.");
+        element.addLore("Seed: " + evaluation.seed());
         if (evaluation.generation() > 0L) {
-            element.addLore(ChatColor.GRAY + "Generation: " + evaluation.generation());
+            element.addLore("Generation: " + evaluation.generation());
         }
         if (!evaluation.selectedTheme().isEmpty()) {
-            element.addLore(ChatColor.GRAY + "Theme: " + safe(evaluation.selectedTheme()));
+            element.addLore("Theme: " + safe(evaluation.selectedTheme()));
         }
-        element.addLore(ChatColor.GRAY + "Pieces: " + evaluation.pieceCount());
+        element.addLore("Pieces: " + evaluation.pieceCount());
         if (!evaluation.detail().isEmpty()) {
-            element.addLore(ChatColor.GRAY + safe(evaluation.detail()));
+            element.addLore(safe(evaluation.detail()));
         }
         return element;
     }
 
-    static Material evaluationMaterial(JigsawStudioEvaluationState state) {
+    static JigsawStudioMenuIcon evaluationMaterial(JigsawStudioEvaluationState state) {
         return switch (state) {
-            case PENDING -> Material.CLOCK;
-            case VALID -> Material.EMERALD;
-            case WARNING -> Material.YELLOW_DYE;
-            case INVALID -> Material.RED_DYE;
-            case STALE -> Material.GRAY_DYE;
-        };
-    }
-
-    private static ChatColor evaluationColor(JigsawStudioEvaluationState state) {
-        return switch (state) {
-            case PENDING -> ChatColor.AQUA;
-            case VALID -> ChatColor.GREEN;
-            case WARNING -> ChatColor.YELLOW;
-            case INVALID -> ChatColor.RED;
-            case STALE -> ChatColor.GRAY;
+            case PENDING -> JigsawStudioMenuIcon.CLOCK;
+            case VALID -> JigsawStudioMenuIcon.EMERALD;
+            case WARNING -> JigsawStudioMenuIcon.YELLOW_DYE;
+            case INVALID -> JigsawStudioMenuIcon.RED_DYE;
+            case STALE -> JigsawStudioMenuIcon.GRAY_DYE;
         };
     }
 
@@ -3077,37 +3058,37 @@ public final class JigsawStudioMenuController {
         };
     }
 
-    private static Material workcellMaterial(JigsawStudioMenuState.Workcell workcell, boolean selected) {
+    private static JigsawStudioMenuIcon workcellMaterial(JigsawStudioMenuState.Workcell workcell, boolean selected) {
         if (!workcell.enabled()) {
-            return Material.GRAY_WOOL;
+            return JigsawStudioMenuIcon.GRAY_WOOL;
         }
         if (workcell.loading() || workcell.saving()) {
-            return Material.YELLOW_WOOL;
+            return JigsawStudioMenuIcon.YELLOW_WOOL;
         }
         if (workcell.dirty()) {
-            return Material.ORANGE_WOOL;
+            return JigsawStudioMenuIcon.ORANGE_WOOL;
         }
-        return selected ? Material.LIME_WOOL : Material.LIGHT_GRAY_WOOL;
+        return selected ? JigsawStudioMenuIcon.LIME_WOOL : JigsawStudioMenuIcon.LIGHT_GRAY_WOOL;
     }
 
-    static Material variantMaterial(JigsawStudioMenuState.Variant variant) {
+    static JigsawStudioMenuIcon variantMaterial(JigsawStudioMenuState.Variant variant) {
         if (variant.active()) {
-            return Material.JIGSAW;
+            return JigsawStudioMenuIcon.JIGSAW;
         }
-        return variant.owned() ? Material.PAPER : Material.GRAY_DYE;
+        return variant.owned() ? JigsawStudioMenuIcon.PAPER : JigsawStudioMenuIcon.GRAY_DYE;
     }
 
     static String workcellStatus(JigsawStudioMenuState.Workcell workcell) {
         if (workcell.loading()) {
-            return ChatColor.YELLOW + "Loading variant";
+            return "Loading variant";
         }
         if (workcell.saving()) {
-            return ChatColor.YELLOW + "Autosave in progress";
+            return "Autosave in progress";
         }
         if (workcell.dirty()) {
-            return ChatColor.GOLD + "Autosave pending";
+            return "Autosave pending";
         }
-        return ChatColor.GREEN + "Autosaved";
+        return "Autosaved";
     }
 
     private static String dimensions(JigsawStudioCellDimensions dimensions) {
@@ -3137,9 +3118,9 @@ public final class JigsawStudioMenuController {
         };
     }
 
-    private static UIElement element(String id, Material material, String name) {
-        return new UIElement(id)
-                .setMaterial(new MaterialBlock(material))
+    private static JigsawStudioMenuElement element(String id, JigsawStudioMenuIcon material, String name) {
+        return new JigsawStudioMenuElement(id)
+                .setIcon(material)
                 .setName(name);
     }
 
@@ -3154,80 +3135,84 @@ public final class JigsawStudioMenuController {
     }
 
     private static String safe(String value) {
-        return BoardSVC.untrustedBoardValue(value);
+        String normalized = value == null ? "" : value.replace('\n', ' ').replace('\r', ' ');
+        return LEGACY_COLOR.matcher(normalized).replaceAll("")
+                .replace("&", "＆")
+                .replace("<", "‹")
+                .replace(">", "›");
     }
 
     public interface Actions {
-        Optional<JigsawStudioMenuState> menuState(Player player);
+        Optional<JigsawStudioMenuState> menuState(ToolPlayer player);
 
-        boolean selectWorkcell(Player player, String workcellId);
+        boolean selectWorkcell(ToolPlayer player, String workcellId);
 
-        boolean teleportToWorkcell(Player player, String workcellId);
+        boolean teleportToWorkcell(ToolPlayer player, String workcellId);
 
-        boolean setConnectorBlocksVisible(Player player, String workcellId, boolean visible);
+        boolean setConnectorBlocksVisible(ToolPlayer player, String workcellId, boolean visible);
 
-        boolean resetConnectorBlocks(Player player, String workcellId);
+        boolean resetConnectorBlocks(ToolPlayer player, String workcellId);
 
-        boolean undoAutosave(Player player);
+        boolean undoAutosave(ToolPlayer player);
 
-        boolean switchVariant(Player player, String workcellId, String pieceKey, boolean discardDirty);
+        boolean switchVariant(ToolPlayer player, String workcellId, String pieceKey, boolean discardDirty);
 
-        boolean createVariant(Player player, String workcellId, boolean duplicateActive);
+        boolean createVariant(ToolPlayer player, String workcellId, boolean duplicateActive);
 
-        boolean setWorkcellEnabled(Player player, String workcellId, boolean enabled);
+        boolean setWorkcellEnabled(ToolPlayer player, String workcellId, boolean enabled);
 
         boolean updateWorkcellDimensions(
-                Player player,
+                ToolPlayer player,
                 String workcellId,
                 JigsawStudioCellDimensions dimensions
         );
 
-        boolean updateWorkcellDisplayName(Player player, String workcellId, String displayName);
+        boolean updateWorkcellDisplayName(ToolPlayer player, String workcellId, String displayName);
 
-        boolean setRequireCaps(Player player, boolean requireCaps);
+        boolean setRequireCaps(ToolPlayer player, boolean requireCaps);
 
-        boolean duplicateActiveFamily(Player player, String themeKey);
+        boolean duplicateActiveFamily(ToolPlayer player, String themeKey);
 
-        boolean updateThemeSetWeight(Player player, String themeKey, int weight);
+        boolean updateThemeSetWeight(ToolPlayer player, String themeKey, int weight);
 
-        boolean flushAutosave(Player player, String workcellId);
+        boolean flushAutosave(ToolPlayer player, String workcellId);
 
-        boolean goToPreview(Player player);
+        boolean goToPreview(ToolPlayer player);
 
-        boolean toggleVariantRotatable(Player player, String workcellId);
+        boolean toggleVariantRotatable(ToolPlayer player, String workcellId);
 
-        boolean expandVariantToCell(Player player, String workcellId);
+        boolean expandVariantToCell(ToolPlayer player, String workcellId);
 
         boolean resizeVariant(
-                Player player,
+                ToolPlayer player,
                 String workcellId,
                 String pieceKey,
                 JigsawStudioCellDimensions dimensions
         );
 
         boolean updateVariantDisplayName(
-                Player player,
+                ToolPlayer player,
                 String workcellId,
                 String pieceKey,
                 String displayName
         );
 
         boolean updateVariantThemes(
-                Player player,
+                ToolPlayer player,
                 String workcellId,
                 String pieceKey,
                 List<String> themes
         );
 
         boolean updateVariantRules(
-                Player player,
+                ToolPlayer player,
                 String workcellId,
                 String pieceKey,
                 JigsawStudioPieceRules rules
         );
 
         boolean adjustVariantWeight(
-                Player player,
+                ToolPlayer player,
                 String workcellId,
                 String pieceKey,
                 String poolKey,
@@ -3236,7 +3221,7 @@ public final class JigsawStudioMenuController {
         );
 
         boolean adjustVariantChance(
-                Player player,
+                ToolPlayer player,
                 String workcellId,
                 String pieceKey,
                 String poolKey,
@@ -3245,40 +3230,40 @@ public final class JigsawStudioMenuController {
         );
 
         boolean unlinkVariantMembership(
-                Player player,
+                ToolPlayer player,
                 String workcellId,
                 String pieceKey,
                 String poolKey,
                 int entryIndex
         );
 
-        boolean deleteVariant(Player player, String workcellId, String pieceKey);
+        boolean deleteVariant(ToolPlayer player, String workcellId, String pieceKey);
 
-        boolean deleteProject(Player player);
+        boolean deleteProject(ToolPlayer player);
 
-        boolean giveTool(Player player, JigsawStudioToolPayload payload);
+        boolean giveTool(ToolPlayer player, JigsawStudioToolPayload payload);
     }
 
     enum RuleField {
-        MINIMUM_DEPTH("Minimum Depth", Material.LIGHT_BLUE_DYE, RULE_SHIFT_STEP) {
+        MINIMUM_DEPTH("Minimum Depth", JigsawStudioMenuIcon.LIGHT_BLUE_DYE, RULE_SHIFT_STEP) {
             @Override
             int value(JigsawStudioPieceRules rules) {
                 return rules.minimumDepth();
             }
         },
-        MAXIMUM_DEPTH("Maximum Depth", Material.BLUE_DYE, RULE_SHIFT_STEP) {
+        MAXIMUM_DEPTH("Maximum Depth", JigsawStudioMenuIcon.BLUE_DYE, RULE_SHIFT_STEP) {
             @Override
             int value(JigsawStudioPieceRules rules) {
                 return rules.maximumDepth();
             }
         },
-        MINIMUM_PLACEMENTS("Minimum Placements", Material.TARGET, PLACEMENT_RULE_SHIFT_STEP) {
+        MINIMUM_PLACEMENTS("Minimum Placements", JigsawStudioMenuIcon.TARGET, PLACEMENT_RULE_SHIFT_STEP) {
             @Override
             int value(JigsawStudioPieceRules rules) {
                 return rules.minimumPlacements();
             }
         },
-        MAXIMUM_PLACEMENTS("Maximum Placements", Material.GREEN_DYE, PLACEMENT_RULE_SHIFT_STEP) {
+        MAXIMUM_PLACEMENTS("Maximum Placements", JigsawStudioMenuIcon.GREEN_DYE, PLACEMENT_RULE_SHIFT_STEP) {
             @Override
             int value(JigsawStudioPieceRules rules) {
                 return rules.maximumPlacements();
@@ -3291,10 +3276,10 @@ public final class JigsawStudioMenuController {
         };
 
         private final String displayName;
-        private final Material material;
+        private final JigsawStudioMenuIcon material;
         private final int shiftStep;
 
-        RuleField(String displayName, Material material, int shiftStep) {
+        RuleField(String displayName, JigsawStudioMenuIcon material, int shiftStep) {
             this.displayName = displayName;
             this.material = material;
             this.shiftStep = shiftStep;
@@ -3304,7 +3289,7 @@ public final class JigsawStudioMenuController {
             return displayName;
         }
 
-        Material material() {
+        JigsawStudioMenuIcon material() {
             return material;
         }
 

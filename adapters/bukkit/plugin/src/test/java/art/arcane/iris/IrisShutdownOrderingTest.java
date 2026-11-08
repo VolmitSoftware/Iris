@@ -57,7 +57,7 @@ public class IrisShutdownOrderingTest {
         assertTrue("Server-stop quiescence must leave queued Paper generation admitted",
                 quiesce.contains("generator.quiesceForServerShutdown()"));
         assertOrdered(quiesce,
-                "jigsawStudioService.quiesceForServerShutdown()",
+                "quiesceJigsawStudio(\"Failed to quiesce Jigsaw Studio before server shutdown.\")",
                 "PregeneratorJob.shutdownAndWait",
                 "generator.quiesceForServerShutdown()");
         assertOrdered(onDisable,
@@ -116,16 +116,18 @@ public class IrisShutdownOrderingTest {
     @Test
     public void jigsawStudio_quiescesOnceBeforeDeferredServiceTeardown() throws Exception {
         String source = Files.readString(Path.of(System.getProperty("iris.jigsawStudioSvcSource")));
-        String enable = section(source, "public void onEnable()", "public void onDisable()");
-        String disable = section(source, "public void onDisable()", "public void quiesceForServerShutdown()");
-        String quiesce = section(source, "public void quiesceForServerShutdown()", "public void register(");
-        String register = section(source, "public void register(", "public void activationCommitted(");
-        String activation = section(source, "public void activationCommitted(", "public void markChunkGenerated(");
-        String chunkGenerated = section(source, "public void markChunkGenerated(", "private void markChunkAvailable(");
+        String startup = Files.readString(Path.of(System.getProperty("iris.startupSource")));
+        String teardown = section(startup, "private void teardownRuntime", "private void quiesceJigsawStudio");
+        String quiesceStudio = section(startup, "private void quiesceJigsawStudio", "private void quiesceRuntimeForServerShutdown");
+        String quiesce = section(source, "public void quiesceForServerShutdown()", "public CompletableFuture<ToolWorld> open(");
+        String register = section(source, "void register(", "private void replayChunksLoadedBeforeRegistration(");
+        String activation = section(source, "public void activationCommitted(", "private void markChunkAvailable(");
 
-        assertOrdered(enable, "disableStarted.set(false)", "enabled = true");
-        assertTrue("Deferred service teardown must reuse the idempotent early disable",
-                disable.contains("quiesceForServerShutdown();"));
+        assertOrdered(teardown,
+                "quiesceJigsawStudio(\"Failed to disable Jigsaw Studio.\")",
+                "service.onDisable()");
+        assertTrue("Deferred service teardown must reuse the idempotent early quiesce",
+                quiesceStudio.contains("studio.quiesceForServerShutdown()"));
         assertOrdered(quiesce,
                 "disableStarted.compareAndSet(false, true)",
                 "finalizeAllJigsawTileWatches()",
@@ -138,8 +140,6 @@ public class IrisShutdownOrderingTest {
                 occurrences(register, "!enabled || disableStarted.get()") >= 2);
         assertTrue("Activation must reject work after shutdown begins",
                 activation.contains("!enabled || disableStarted.get()"));
-        assertTrue("Chunk-generation callbacks must reject work after shutdown begins",
-                occurrences(chunkGenerated, "!enabled || disableStarted.get()") >= 2);
     }
 
     private static String section(String source, String startMarker, String endMarker) {

@@ -60,18 +60,6 @@ public class StudioOpenCoordinatorOpenKindTest {
     }
 
     @Test
-    public void jigsawStudioLeavesWorkspaceClosedAndUsesItsDestinationTeleport() {
-        StudioOpenCoordinator.StudioOpenKind kind = StudioOpenCoordinator.StudioOpenKind.JIGSAW;
-
-        assertFalse(kind.openWorkspace());
-        assertFalse(kind.teleportThroughStandardEntry());
-        assertFalse(kind.prepareGeneratorState());
-        assertEquals(
-                IrisCreator.DatapackPreparation.REUSE_LOADED_RUNTIME_IF_READY,
-                kind.datapackPreparation());
-    }
-
-    @Test
     public void toolWorldsOpenLikeAJigsawStudioWithTheirOwnDestinationTeleport() {
         StudioOpenCoordinator.StudioOpenKind kind = StudioOpenCoordinator.StudioOpenKind.TOOL;
 
@@ -91,11 +79,11 @@ public class StudioOpenCoordinatorOpenKindTest {
                         project,
                         null,
                         1337L,
-                        StudioOpenCoordinator.StudioOpenKind.JIGSAW,
+                        StudioOpenCoordinator.StudioOpenKind.TOOL,
                         null,
                         null);
 
-        assertEquals(StudioOpenCoordinator.StudioOpenKind.JIGSAW, request.openKind());
+        assertEquals(StudioOpenCoordinator.StudioOpenKind.TOOL, request.openKind());
         assertTrue(request.requestedAtNanos() > 0L);
     }
 

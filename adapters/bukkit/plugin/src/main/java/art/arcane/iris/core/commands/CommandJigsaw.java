@@ -8,7 +8,6 @@ import art.arcane.iris.core.runtime.WorldRuntimeControlService;
 import art.arcane.iris.core.runtime.StudioOpenCoordinator;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarArchetype;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarTopology;
-import art.arcane.iris.core.runtime.jigsaw.JigsawStudioActivation;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBay;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCompatibilityTarget;
@@ -22,6 +21,8 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioSession;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioStructureEditor;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariant;
 import art.arcane.iris.core.service.JigsawStudioGraphEvaluation;
+import art.arcane.iris.core.service.JigsawStudioRegistry;
+import art.arcane.iris.core.service.JigsawStudioRequest;
 import art.arcane.iris.core.service.JigsawStudioService;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.core.structure.StructureImporter;
@@ -64,7 +65,8 @@ import art.arcane.volmlib.util.director.DirectorParameterHandler;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
-import org.bukkit.GameMode;
+import com.volmit.tooling.world.ToolPlayer;
+import com.volmit.tooling.world.ToolWorld;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
@@ -94,13 +96,17 @@ import java.util.regex.Pattern;
 public class CommandJigsaw implements DirectorExecutor {
     private static final long DEFAULT_STUDIO_SEED = 1337L;
     static final StudioOpenCoordinator.StudioOpenKind STUDIO_OPEN_KIND =
-            StudioOpenCoordinator.StudioOpenKind.JIGSAW;
+            StudioOpenCoordinator.StudioOpenKind.TOOL;
     private static final Pattern EXPORT_OUTPUT_NAME = Pattern.compile("[a-zA-Z0-9_-][a-zA-Z0-9._-]{0,127}");
     private static final Map<UUID, SessionBinding> PLAYER_PACKS = new ConcurrentHashMap<>();
     private static final Map<UUID, AdoptionPlanBinding> ADOPTION_PLANS = new ConcurrentHashMap<>();
     private static final Map<Path, IrisStructureAdoptionService> ADOPTION_SERVICES = new ConcurrentHashMap<>();
     private static final Set<UUID> EXPORTING_PLAYERS = ConcurrentHashMap.newKeySet();
     private static final Set<Path> EXPORT_DESTINATIONS = ConcurrentHashMap.newKeySet();
+
+    static JigsawStudioRegistry registry() {
+        return JigsawStudioBridge.get().registry();
+    }
 
     private CommandJigsawPiece piece;
     private CommandJigsawPool pool;
@@ -236,12 +242,12 @@ public class CommandJigsaw implements DirectorExecutor {
             long seed
     ) {
         UUID playerId = targetPlayer.getUniqueId();
-        UUID ownerId = JigsawStudioActivation.activeOwnerId();
+        UUID ownerId = registry().activeOwnerId();
         if (ownerId != null && !ownerId.equals(playerId)) {
             sendError(commandSender, "Jigsaw Studio is already owned by another player session.");
             return;
         }
-        UUID openingOwner = JigsawStudioActivation.openingOwnerId();
+        UUID openingOwner = registry().openingOwnerId();
         if (openingOwner != null) {
             sendError(commandSender, openingOwner.equals(playerId)
                     ? "Your Jigsaw Studio is already opening."
@@ -278,12 +284,12 @@ public class CommandJigsaw implements DirectorExecutor {
             return;
         }
         String packKey = dimension.getLoadKey();
-        if (!JigsawStudioActivation.tryBeginOpen(playerId)) {
+        if (!registry().tryBeginOpen(playerId)) {
             sendError(commandSender,
                     "Jigsaw Studio began opening for another player. Try again after it finishes.");
             return;
         }
-        JigsawStudioService studioService = JigsawStudioService.get();
+        JigsawStudioBridge studioService = JigsawStudioBridge.get();
         UUID closingRequestId = previous == null ? null : previous.request().requestId();
         if (closingRequestId != null) {
             JigsawStudioService.CloseStart closeStart = studioService.tryBeginClose(
@@ -291,7 +297,7 @@ public class CommandJigsaw implements DirectorExecutor {
                     playerId,
                     false);
             if (closeStart != JigsawStudioService.CloseStart.STARTED) {
-                JigsawStudioActivation.finishOpen(playerId);
+                registry().finishOpen(playerId);
                 sendError(commandSender, closeStart == JigsawStudioService.CloseStart.SAVE_IN_PROGRESS
                         ? "The current Jigsaw Studio is saving. Wait for it to finish before opening another project."
                         : closeStart == JigsawStudioService.CloseStart.OPERATION_IN_PROGRESS
@@ -302,9 +308,9 @@ public class CommandJigsaw implements DirectorExecutor {
                 return;
             }
         }
-        JigsawStudioActivation.StagedActivation staged;
+        JigsawStudioRegistry.StagedActivation staged;
         try {
-            staged = JigsawStudioActivation.stage(
+            staged = registry().stage(
                     packKey,
                     structure,
                     layout.mode(),
@@ -315,7 +321,7 @@ public class CommandJigsaw implements DirectorExecutor {
                     playerId,
                     closingRequestId);
         } catch (RuntimeException exception) {
-            JigsawStudioActivation.finishOpen(playerId);
+            registry().finishOpen(playerId);
             studioService.cancelClose(closingRequestId);
             Iris.reportError("Failed to stage Jigsaw Studio for '" + structure + "'.", exception);
             sendError(commandSender, "Jigsaw Studio staging failed: " + exception.getMessage());
@@ -324,27 +330,34 @@ public class CommandJigsaw implements DirectorExecutor {
         commandSender.sendMessage(C.GREEN + "Opening transient Jigsaw Studio for '" + structure + "' with "
                 + layout.bays().size() + " workcells.");
 
+        BrokenPackException admissionFailure = StudioSVC.reportPackAdmissionFailure(
+                commandSender, packKey, STUDIO_OPEN_KIND);
+        if (admissionFailure != null) {
+            finishOpenAttempt(commandSender, playerId, structure, closingRequestId, studioService, staged, null, admissionFailure);
+            return;
+        }
         try {
-            Iris.service(StudioSVC.class).openTracked(
-                            commandSender,
-                            seed,
-                            packKey,
-                            STUDIO_OPEN_KIND,
-                            () -> beginStagedOpen(staged),
-                            world -> finishOpen(targetPlayer, world, staged, studioService))
-                    .whenComplete((result, throwable) -> J.s(() -> finishOpenAttempt(
-                            commandSender,
-                            playerId,
-                            structure,
-                            closingRequestId,
-                            studioService,
-                            staged,
-                            result,
-                            throwable)));
+            beginStagedOpen(staged);
+            studioService.open(data, staged)
+                    .whenComplete((world, throwable) -> J.s(() -> {
+                        Throwable failure = throwable;
+                        if (failure == null) {
+                            failure = commitOpenedStudio(targetPlayer, world, staged, studioService);
+                        }
+                        finishOpenAttempt(
+                                commandSender,
+                                playerId,
+                                structure,
+                                closingRequestId,
+                                studioService,
+                                staged,
+                                world,
+                                failure);
+                    }));
         } catch (Throwable exception) {
-            JigsawStudioActivation.finishOpen(playerId);
+            registry().finishOpen(playerId);
             studioService.cancelClose(closingRequestId);
-            JigsawStudioActivation.rollback(staged);
+            registry().rollback(staged);
             Iris.reportError("Failed to open Jigsaw Studio for '" + structure + "'.", exception);
             sendError(commandSender, "Jigsaw Studio open failed: " + exception.getMessage());
         }
@@ -365,7 +378,7 @@ public class CommandJigsaw implements DirectorExecutor {
             sendError("This Jigsaw Studio is waiting for autosave. Wait for it to finish or run close with discard=true.");
             return;
         }
-        JigsawStudioService studioService = JigsawStudioService.get();
+        JigsawStudioBridge studioService = JigsawStudioBridge.get();
         UUID requestId = context.request().requestId();
         JigsawStudioService.CloseStart closeStart = studioService.tryBeginClose(
                 requestId,
@@ -393,7 +406,7 @@ public class CommandJigsaw implements DirectorExecutor {
                             + (failure == null ? "unknown failure" : failure.getMessage()));
                     return;
                 }
-                JigsawStudioActivation.deactivate(context.packKey(), requestId);
+                registry().deactivate(context.packKey(), requestId);
                 PLAYER_PACKS.remove(targetPlayer.getUniqueId(),
                         new SessionBinding(context.packKey(), requestId));
                 commandSender.sendMessage(C.GREEN + "Jigsaw Studio closed.");
@@ -417,7 +430,7 @@ public class CommandJigsaw implements DirectorExecutor {
             sendError("Project deletion removes every resource owned by this jigsaw. Run again with confirm=true.");
             return;
         }
-        JigsawStudioService.get().deleteProject(player());
+        JigsawStudioBridge.get().deleteProject(player());
     }
 
     @Director(description = "Show active Jigsaw Studio and dynamic evaluation state", sync = true,
@@ -436,7 +449,7 @@ public class CommandJigsaw implements DirectorExecutor {
         JigsawStudioCellDimensions selectedDimensions = selectedBay == null
                 ? null
                 : selectedBay.bounds().dimensions();
-        Optional<JigsawStudioGraphEvaluation> evaluation = JigsawStudioService.get().evaluation(player());
+        Optional<JigsawStudioGraphEvaluation> evaluation = JigsawStudioBridge.get().evaluation(player());
         sender().sendMessage(C.AQUA + "Jigsaw Studio: " + context.request().structureKey());
         sender().sendMessage(C.GRAY + "mode=" + layout.mode()
                 + ", compatibility=" + context.request().compatibilityTarget()
@@ -466,7 +479,7 @@ public class CommandJigsaw implements DirectorExecutor {
             origin = DirectorOrigin.PLAYER)
     public void menu() {
         if (requireActive() != null) {
-            JigsawStudioService.get().openControlMenu(player());
+            JigsawStudioBridge.get().openControlMenu(player());
         }
     }
 
@@ -516,7 +529,7 @@ public class CommandJigsaw implements DirectorExecutor {
             sender().sendMessage(C.YELLOW + "Workcell capacity is unchanged.");
             return;
         }
-        JigsawStudioService.get().updateWorkcellDimensions(player(), selected.stableId(), dimensions);
+        JigsawStudioBridge.get().updateWorkcellDimensions(player(), selected.stableId(), dimensions);
     }
 
     @Director(description = "Flush the automatic save for a workcell now", sync = true,
@@ -534,10 +547,10 @@ public class CommandJigsaw implements DirectorExecutor {
                 sendError("Select a Jigsaw Studio workcell before flushing its autosave.");
                 return;
             }
-            JigsawStudioService.get().flushAutosave(player(), selected.stableId());
+            JigsawStudioBridge.get().flushAutosave(player(), selected.stableId());
             return;
         }
-        JigsawStudioService.get().flushAutosave(player(), bay);
+        JigsawStudioBridge.get().flushAutosave(player(), bay);
     }
 
     @Director(name = "goto", aliases = "teleport", description = "Select and teleport to a Studio workcell",
@@ -546,7 +559,7 @@ public class CommandJigsaw implements DirectorExecutor {
             @Param(description = "Workcell ID") String bay
     ) {
         if (requireActive() != null) {
-            JigsawStudioService.get().teleportTo(player(), bay);
+            JigsawStudioBridge.get().teleportTo(player(), bay);
         }
     }
 
@@ -556,7 +569,7 @@ public class CommandJigsaw implements DirectorExecutor {
             @Param(description = "Whether particles are visible") boolean visible
     ) {
         if (requireActive() != null) {
-            JigsawStudioService.get().setParticles(player(), visible);
+            JigsawStudioBridge.get().setParticles(player(), visible);
         }
     }
 
@@ -610,7 +623,7 @@ public class CommandJigsaw implements DirectorExecutor {
         Player targetPlayer = player();
         UUID playerId = targetPlayer.getUniqueId();
         UUID requestId = context.request().requestId();
-        JigsawStudioService studioService = JigsawStudioService.get();
+        JigsawStudioBridge studioService = JigsawStudioBridge.get();
         JigsawStudioService.ExportStart exportStart = studioService.tryBeginExport(requestId, playerId);
         if (exportStart != JigsawStudioService.ExportStart.STARTED) {
             sendError(exportStartError(exportStart));
@@ -686,8 +699,8 @@ public class CommandJigsaw implements DirectorExecutor {
     }
 
     private static boolean studioIsActiveOrOpening() {
-        return JigsawStudioActivation.activeOwnerId() != null
-                || JigsawStudioActivation.openingOwnerId() != null;
+        return registry().activeOwnerId() != null
+                || registry().openingOwnerId() != null;
     }
 
     private static void runAdoptionApply(
@@ -893,8 +906,8 @@ public class CommandJigsaw implements DirectorExecutor {
     }
 
     private static ActiveContext context(SessionBinding binding) {
-        JigsawStudioActivation.Request request = JigsawStudioActivation.getRequest(binding.packKey());
-        JigsawStudioSession session = JigsawStudioActivation.getSession(binding.packKey());
+        JigsawStudioRequest request = registry().getRequest(binding.packKey());
+        JigsawStudioSession session = registry().getSession(binding.packKey());
         if (request == null || session == null
                 || !binding.requestId().equals(request.requestId())
                 || !request.requestId().equals(session.sessionId())) {
@@ -905,8 +918,8 @@ public class CommandJigsaw implements DirectorExecutor {
 
     private static ActiveContext findDirtyContext() {
         for (SessionBinding binding : PLAYER_PACKS.values()) {
-            JigsawStudioActivation.Request request = JigsawStudioActivation.getRequest(binding.packKey());
-            JigsawStudioSession session = JigsawStudioActivation.getSession(binding.packKey());
+            JigsawStudioRequest request = registry().getRequest(binding.packKey());
+            JigsawStudioSession session = registry().getSession(binding.packKey());
             if (request != null && session != null
                     && binding.requestId().equals(request.requestId())
                     && session.isDirty()) {
@@ -936,8 +949,8 @@ public class CommandJigsaw implements DirectorExecutor {
         return data;
     }
 
-    private static void beginStagedOpen(JigsawStudioActivation.StagedActivation staged) {
-        if (!JigsawStudioActivation.beginStagedGeneration(staged)) {
+    private static void beginStagedOpen(JigsawStudioRegistry.StagedActivation staged) {
+        if (!registry().beginStagedGeneration(staged)) {
             throw new IllegalStateException("The staged Jigsaw Studio activation is no longer current");
         }
     }
@@ -947,18 +960,18 @@ public class CommandJigsaw implements DirectorExecutor {
             UUID playerId,
             String structureKey,
             UUID closingRequestId,
-            JigsawStudioService studioService,
-            JigsawStudioActivation.StagedActivation staged,
-            StudioOpenCoordinator.StudioOpenResult result,
+            JigsawStudioBridge studioService,
+            JigsawStudioRegistry.StagedActivation staged,
+            ToolWorld result,
             Throwable throwable
     ) {
-        JigsawStudioActivation.finishOpen(playerId);
+        registry().finishOpen(playerId);
         if (throwable == null && result != null) {
             studioService.cancelClose(closingRequestId);
             return;
         }
         studioService.cancelClose(closingRequestId);
-        JigsawStudioActivation.rollback(staged);
+        registry().rollback(staged);
         Throwable failure = unwrapCompletionFailure(throwable == null
                 ? new IllegalStateException("Studio open completed without a result")
                 : throwable);
@@ -971,42 +984,53 @@ public class CommandJigsaw implements DirectorExecutor {
         sendError(commandSender, "Jigsaw Studio open failed: " + failure.getMessage());
     }
 
-    private static void finishOpen(
+    /** Commits the staged studio once its world is open and moves the player in; the failure, or null when all went well. */
+    private static Throwable commitOpenedStudio(
             Player targetPlayer,
-            World world,
-            JigsawStudioActivation.StagedActivation staged,
-            JigsawStudioService studioService
+            ToolWorld world,
+            JigsawStudioRegistry.StagedActivation staged,
+            JigsawStudioBridge studioService
+    ) {
+        try {
+            enterCommittedStudio(targetPlayer, world, staged, studioService);
+            return null;
+        } catch (RuntimeException exception) {
+            return exception;
+        }
+    }
+
+    private static void enterCommittedStudio(
+            Player targetPlayer,
+            ToolWorld world,
+            JigsawStudioRegistry.StagedActivation staged,
+            JigsawStudioBridge studioService
     ) {
         if (world == null) {
             throw new IllegalStateException("Jigsaw Studio opened without a world");
         }
-        JigsawStudioActivation.Request request = staged.request();
+        JigsawStudioRequest request = staged.request();
         JigsawStudioSession session = staged.session();
-        try {
-            WorldRuntimeControlService.get().applyObjectStudioWorldRules(world);
-        } catch (Throwable exception) {
-            Iris.reportError("Failed to apply Jigsaw Studio world rules for '" + world.getName() + "'.", exception);
-        }
         JigsawStudioBay destination = initialBay(session.layout());
-        Location target = destination == null
-                ? new Location(world, 0.5D, 66D, 0.5D)
-                : new Location(
-                        world,
-                        destination.bounds().originX() + destination.bounds().dimensions().width() / 2.0D,
-                        destination.bounds().maxY() + 2.0D,
-                        destination.bounds().originZ() + destination.bounds().dimensions().depth() / 2.0D);
+        double targetX = destination == null
+                ? 0.5D
+                : destination.bounds().originX() + destination.bounds().dimensions().width() / 2.0D;
+        double targetY = destination == null ? 66D : destination.bounds().maxY() + 2.0D;
+        double targetZ = destination == null
+                ? 0.5D
+                : destination.bounds().originZ() + destination.bounds().dimensions().depth() / 2.0D;
         if (destination != null) {
             session.selectBay(destination.stableId());
         }
-        if (!JigsawStudioActivation.commit(staged)) {
+        if (!registry().commit(staged)) {
             throw new IllegalStateException("The staged Jigsaw Studio activation could not be committed");
         }
-        studioService.activationCommitted(world, request.requestId());
+        studioService.activationCommitted(request.requestId());
         PLAYER_PACKS.put(targetPlayer.getUniqueId(), new SessionBinding(
                 request.packKey(), request.requestId()));
+        ToolPlayer player = JigsawStudioBridge.toolPlayer(targetPlayer);
         try {
-            J.runEntity(targetPlayer, () -> BukkitPlatform.teleportAsync(targetPlayer, target)
-                    .thenRun(() -> J.runEntity(targetPlayer, () -> targetPlayer.setGameMode(GameMode.CREATIVE))));
+            player.teleport(world, targetX, targetY, targetZ, 0.0F, 0.0F)
+                    .thenRun(() -> player.creative(true));
         } catch (RuntimeException exception) {
             Iris.reportError("Failed to move the player to the committed Jigsaw Studio workcell.", exception);
         }
@@ -1207,7 +1231,7 @@ public class CommandJigsaw implements DirectorExecutor {
             ActiveContext context,
             JigsawStudioService.CommandGraphMutation mutation
     ) {
-        return JigsawStudioService.get().runCommandGraphMutation(
+        return JigsawStudioBridge.get().runCommandGraphMutation(
                 player,
                 context.request().requestId(),
                 mutation);
@@ -1306,7 +1330,7 @@ public class CommandJigsaw implements DirectorExecutor {
 
     public record ActiveContext(
             String packKey,
-            JigsawStudioActivation.Request request,
+            JigsawStudioRequest request,
             JigsawStudioSession session
     ) {
     }
@@ -1891,7 +1915,7 @@ public class CommandJigsaw implements DirectorExecutor {
                 sendError(this, "Select a workcell before expanding its active variant.");
                 return;
             }
-            JigsawStudioService.get().expandVariantToCell(player(), workcell.stableId());
+            JigsawStudioBridge.get().expandVariantToCell(player(), workcell.stableId());
         }
     }
 
@@ -1922,7 +1946,7 @@ public class CommandJigsaw implements DirectorExecutor {
                 sendError(this, exception.getMessage());
                 return;
             }
-            JigsawStudioService.get().updateWorkcellDimensions(
+            JigsawStudioBridge.get().updateWorkcellDimensions(
                     player(),
                     selected.stableId(),
                     dimensions);
@@ -1943,7 +1967,7 @@ public class CommandJigsaw implements DirectorExecutor {
                 sendError(this, "Select a workcell before renaming it.");
                 return;
             }
-            JigsawStudioService.get().updateWorkcellDisplayName(
+            JigsawStudioBridge.get().updateWorkcellDisplayName(
                     player(),
                     selected.stableId(),
                     displayName);
@@ -1963,7 +1987,7 @@ public class CommandJigsaw implements DirectorExecutor {
                 sendError(this, "Select a workcell before resetting its label.");
                 return;
             }
-            JigsawStudioService.get().updateWorkcellDisplayName(player(), selected.stableId(), "");
+            JigsawStudioBridge.get().updateWorkcellDisplayName(player(), selected.stableId(), "");
         }
     }
 
@@ -2031,7 +2055,7 @@ public class CommandJigsaw implements DirectorExecutor {
                 sendError(this, exception.getMessage());
                 return;
             }
-            JigsawStudioService.get().resizeVariant(
+            JigsawStudioBridge.get().resizeVariant(
                     player(),
                     selectedWorkcell.stableId(),
                     selectedVariant.pieceKey(),
@@ -2054,7 +2078,7 @@ public class CommandJigsaw implements DirectorExecutor {
                 sendError(this, "Select a workcell with an active variant before renaming it.");
                 return;
             }
-            JigsawStudioService.get().updateVariantDisplayName(
+            JigsawStudioBridge.get().updateVariantDisplayName(
                     player(),
                     selectedWorkcell.stableId(),
                     selectedVariant.pieceKey(),
@@ -2076,7 +2100,7 @@ public class CommandJigsaw implements DirectorExecutor {
                 sendError(this, "Select a workcell with an active variant before resetting its label.");
                 return;
             }
-            JigsawStudioService.get().updateVariantDisplayName(
+            JigsawStudioBridge.get().updateVariantDisplayName(
                     player(),
                     selectedWorkcell.stableId(),
                     selectedVariant.pieceKey(),
@@ -2096,7 +2120,7 @@ public class CommandJigsaw implements DirectorExecutor {
                 sendError(this, "Select a workcell with an active variant before duplicating it.");
                 return;
             }
-            JigsawStudioService.get().createVariant(player(), selected.stableId(), true);
+            JigsawStudioBridge.get().createVariant(player(), selected.stableId(), true);
         }
 
         @Director(name = "duplicate-family", aliases = "family",
@@ -2119,7 +2143,7 @@ public class CommandJigsaw implements DirectorExecutor {
                     return;
                 }
             }
-            JigsawStudioService.get().duplicateActiveFamily(player(), selectedTheme);
+            JigsawStudioBridge.get().duplicateActiveFamily(player(), selectedTheme);
         }
     }
 
@@ -2194,7 +2218,7 @@ public class CommandJigsaw implements DirectorExecutor {
         @Director(name = "goto", aliases = "teleport", description = "Teleport to the live seed-1337 preview",
                 sync = true, origin = DirectorOrigin.PLAYER)
         public void gotoPreview() {
-            JigsawStudioService.get().goToPreview(player());
+            JigsawStudioBridge.get().goToPreview(player());
         }
 
         @Director(description = "Assemble a deterministic preview at your location", sync = true,
@@ -2202,7 +2226,7 @@ public class CommandJigsaw implements DirectorExecutor {
         public void assemble(
                 @Param(description = "Assembly seed", defaultValue = "1337") long seed
         ) {
-            JigsawStudioService.get().previewStudio(player(), seed);
+            JigsawStudioBridge.get().previewStudio(player(), seed);
         }
 
     }

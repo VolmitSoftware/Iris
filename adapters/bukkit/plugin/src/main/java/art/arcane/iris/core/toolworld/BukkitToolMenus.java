@@ -43,34 +43,77 @@ final class BukkitToolMenus {
     private static final int SLOTS_PER_ROW = ToolMenu.SLOTS_PER_ROW;
     private static final int CENTER_SLOT_OFFSET = SLOTS_PER_ROW / 2;
 
-    private final Map<UUID, UIWindow> windows = new ConcurrentHashMap<>();
+    private final Map<UUID, OpenMenu> windows = new ConcurrentHashMap<>();
 
-    /** Opens {@code menu} for {@code viewer}, closing the one they had. Runs on the viewer's thread. */
+    /**
+     * The window a player has open and what it was opened with. A menu with the rows and title of the open one fills the
+     * same window, as a page of buttons changing under the player's cursor; the close handler is the latest menu's.
+     */
+    private static final class OpenMenu {
+        private final UIWindow window;
+        private final int rows;
+        private final String title;
+        private volatile Runnable onClose;
+
+        private OpenMenu(UIWindow window, int rows, String title, Runnable onClose) {
+            this.window = window;
+            this.rows = rows;
+            this.title = title;
+            this.onClose = onClose;
+        }
+
+        private boolean showsSameFrame(ToolMenu menu) {
+            return rows == menu.rows() && title.equals(shortened(menu.title()));
+        }
+    }
+
+    /** Opens {@code menu} for {@code viewer}, replacing the one they had. Runs on the viewer's thread. */
     void open(BukkitToolPlayer viewer, ToolMenu menu) {
         Player player = viewer.bukkit();
+        OpenMenu open = windows.get(player.getUniqueId());
+        if (open != null && open.showsSameFrame(menu)) {
+            fill(open, viewer, menu);
+            return;
+        }
         close(player);
         UUID playerId = player.getUniqueId();
         UIWindow window = new UIWindow(BukkitPlatform.volmitPlugin(), player);
+        OpenMenu created = new OpenMenu(window, menu.rows(), shortened(menu.title()), menu.onClose());
         window.setResolution(WindowResolution.W9_H6);
         window.setViewportHeight(menu.rows());
         window.setDecorator(new UIPaneDecorator(Material.BLACK_STAINED_GLASS_PANE));
-        window.setTitle(shortened(menu.title()));
+        window.setTitle(created.title);
         window.onClosed(closed -> {
-            windows.remove(playerId, window);
-            runGuarded(menu.onClose(), "menu close handler of " + player.getName());
+            windows.remove(playerId, created);
+            runGuarded(created.onClose, "menu close handler of " + player.getName());
         });
+        window.batch(() -> addButtons(window, viewer, menu));
+        windows.put(playerId, created);
+        window.open();
+    }
+
+    /** Puts the buttons of {@code menu} in the window {@code open} holds, telling the menu it replaces that it closed. */
+    private void fill(OpenMenu open, BukkitToolPlayer viewer, ToolMenu menu) {
+        Runnable replaced = open.onClose;
+        open.onClose = menu.onClose();
+        open.window.batch(() -> {
+            open.window.clearElements();
+            addButtons(open.window, viewer, menu);
+        });
+        runGuarded(replaced, "menu close handler of " + viewer.name());
+    }
+
+    private static void addButtons(UIWindow window, BukkitToolPlayer viewer, ToolMenu menu) {
         for (MenuButton button : menu.buttons()) {
             window.setElement(positionOf(button.slot()), button.slot() / SLOTS_PER_ROW, element(viewer, button));
         }
-        windows.put(playerId, window);
-        window.open();
     }
 
     /** Closes the player's menu; does nothing when none is open. Runs on the player's thread. */
     void close(Player player) {
-        UIWindow window = windows.remove(player.getUniqueId());
-        if (window != null) {
-            window.close();
+        OpenMenu open = windows.remove(player.getUniqueId());
+        if (open != null) {
+            open.window.close();
         }
     }
 
@@ -93,6 +136,9 @@ final class BukkitToolMenus {
         element.onRightClick(clicked -> click(viewer, button, true, false));
         element.onShiftLeftClick(clicked -> click(viewer, button, false, true));
         element.onShiftRightClick(clicked -> click(viewer, button, true, true));
+        element.onMiddleClick(clicked -> runGuarded(
+                () -> button.action().accept(new MenuClick(viewer, false, false, true)),
+                "menu button of " + viewer.name()));
         return element;
     }
 

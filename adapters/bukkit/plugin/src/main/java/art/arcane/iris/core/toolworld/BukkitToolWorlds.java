@@ -20,6 +20,8 @@ package art.arcane.iris.core.toolworld;
 
 import art.arcane.iris.core.runtime.StudioOpenCoordinator;
 import art.arcane.iris.core.runtime.StudioPainterSlots;
+import art.arcane.iris.core.service.StudioSVC;
+import art.arcane.iris.spi.IrisServices;
 import com.volmit.tooling.world.ToolWorld;
 import com.volmit.tooling.world.ToolWorldSpec;
 import com.volmit.tooling.world.ToolWorlds;
@@ -61,7 +63,10 @@ final class BukkitToolWorlds implements ToolWorlds {
         }
         StudioPainterSlots.install(storageName, slot);
         CompletableFuture<ToolWorld> opened = new CompletableFuture<>();
-        StudioOpenCoordinator.get().open(openRequest(storageName, toolWorld)).whenComplete((result, failure) -> {
+        IrisServices.get(StudioSVC.class).occupyStudioSlot(
+                toolWorld,
+                () -> StudioOpenCoordinator.get().open(openRequest(storageName, toolWorld))
+        ).whenComplete((result, failure) -> {
             if (failure != null) {
                 toolWorld.abandon();
                 opened.completeExceptionally(unwrap(failure));

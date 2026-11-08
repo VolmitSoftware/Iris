@@ -2,15 +2,11 @@ package art.arcane.iris.core.service;
 
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolAction;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolPayload;
-
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
+import com.volmit.resource.ResourceId;
+import com.volmit.tooling.world.ToolItem;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,20 +14,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class JigsawStudioToolCodecTest {
     private static final UUID REQUEST = UUID.fromString("77777777-7777-7777-7777-777777777777");
+    private static final ResourceId STICK = ResourceId.parse("minecraft:stick");
 
     @Test
-    public void bindsACompleteNamedStickPayload() {
+    public void createsACompleteNamedStickWithLore() {
         JigsawStudioToolCodec codec = new JigsawStudioToolCodec();
-        ItemStack tool = mock(ItemStack.class);
-        ItemMeta meta = mock(ItemMeta.class);
-        PersistentDataContainer data = mock(PersistentDataContainer.class);
         JigsawStudioToolPayload payload = JigsawStudioToolPayload.membership(
                 JigsawStudioToolAction.ADJUST_VARIANT_WEIGHT,
                 REQUEST,
@@ -40,57 +30,47 @@ public class JigsawStudioToolCodecTest {
                 "village/start",
                 3,
                 -1);
-        when(tool.getType()).thenReturn(Material.STICK);
-        when(tool.getItemMeta()).thenReturn(meta);
-        when(tool.setItemMeta(meta)).thenReturn(true);
-        when(meta.getPersistentDataContainer()).thenReturn(data);
 
-        codec.bind(tool, payload);
+        ToolItem tool = codec.create(payload);
 
-        verify(data).set(
-                JigsawStudioToolCodec.SCHEMA_KEY,
-                PersistentDataType.INTEGER,
-                JigsawStudioToolPayload.CURRENT_SCHEMA_VERSION);
-        verify(data).set(
-                JigsawStudioToolCodec.ACTION_KEY,
-                PersistentDataType.STRING,
-                JigsawStudioToolAction.ADJUST_VARIANT_WEIGHT.name());
-        verify(data).set(
-                JigsawStudioToolCodec.REQUEST_KEY,
-                PersistentDataType.STRING,
-                REQUEST.toString());
-        verify(data).set(
-                JigsawStudioToolCodec.WORKCELL_KEY,
-                PersistentDataType.STRING,
-                "workcell/corner");
-        verify(data).set(
-                JigsawStudioToolCodec.PIECE_KEY,
-                PersistentDataType.STRING,
-                "village/corner_mossy");
-        verify(data).set(
-                JigsawStudioToolCodec.POOL_KEY,
-                PersistentDataType.STRING,
-                "village/start");
-        verify(data).set(JigsawStudioToolCodec.ENTRY_INDEX_KEY, PersistentDataType.INTEGER, 3);
-        verify(data).set(JigsawStudioToolCodec.AMOUNT_KEY, PersistentDataType.INTEGER, -1);
-        verify(meta).setDisplayName(ChatColor.AQUA + "Jigsaw Studio: Adjust Variant Weight");
-        verify(meta).setLore(argThat(lore -> lore.contains(ChatColor.GRAY + "Amount: -1")
-                && lore.contains(ChatColor.YELLOW + "Right-click to use")));
-        verify(tool).setItemMeta(meta);
+        assertEquals(STICK, tool.item());
+        assertEquals("Jigsaw Studio: Adjust Variant Weight", tool.name());
+        assertEquals(List.of(
+                "Workcell: workcell/corner",
+                "Variant: village/corner_mossy",
+                "Pool: village/start [3]",
+                "Amount: -1",
+                "Right-click to use"), tool.lore());
+        assertFalse(tool.glowing());
+    }
+
+    @Test
+    public void everyPayloadRoundTripsThroughTheItem() {
+        JigsawStudioToolCodec codec = new JigsawStudioToolCodec();
+        List<JigsawStudioToolPayload> payloads = List.of(
+                JigsawStudioToolPayload.request(JigsawStudioToolAction.PREVIEW_GRAPH, REQUEST),
+                JigsawStudioToolPayload.workcell(JigsawStudioToolAction.SELECT_WORKCELL, REQUEST, "workcell/end"),
+                JigsawStudioToolPayload.membership(
+                        JigsawStudioToolAction.ADJUST_VARIANT_WEIGHT,
+                        REQUEST,
+                        "workcell/corner",
+                        "village/corner_mossy",
+                        "village/start",
+                        3,
+                        -1));
+
+        for (JigsawStudioToolPayload payload : payloads) {
+            assertEquals(payload, codec.decode(codec.create(payload)).orElseThrow());
+        }
     }
 
     @Test
     public void decodesCurrentSchemaAndDefaultsOptionalFields() {
         JigsawStudioToolCodec codec = new JigsawStudioToolCodec();
-        PersistentDataContainer data = mock(PersistentDataContainer.class);
-        when(data.get(JigsawStudioToolCodec.SCHEMA_KEY, PersistentDataType.INTEGER))
-                .thenReturn(JigsawStudioToolPayload.CURRENT_SCHEMA_VERSION);
-        when(data.get(JigsawStudioToolCodec.ACTION_KEY, PersistentDataType.STRING))
-                .thenReturn(JigsawStudioToolAction.PREVIEW_GRAPH.name());
-        when(data.get(JigsawStudioToolCodec.REQUEST_KEY, PersistentDataType.STRING))
-                .thenReturn(REQUEST.toString());
+        String payload = "{\"schema\":" + JigsawStudioToolPayload.CURRENT_SCHEMA_VERSION
+                + ",\"action\":\"PREVIEW_GRAPH\",\"request\":\"" + REQUEST + "\"}";
 
-        Optional<JigsawStudioToolPayload> decoded = codec.decode(data);
+        Optional<JigsawStudioToolPayload> decoded = codec.decode(payload);
 
         assertTrue(decoded.isPresent());
         assertEquals(
@@ -102,49 +82,52 @@ public class JigsawStudioToolCodecTest {
     public void schemaTwoInvalidatesLegacyBoundTools() {
         assertEquals(2, JigsawStudioToolPayload.CURRENT_SCHEMA_VERSION);
         JigsawStudioToolCodec codec = new JigsawStudioToolCodec();
-        PersistentDataContainer legacy = mock(PersistentDataContainer.class);
-        when(legacy.get(JigsawStudioToolCodec.SCHEMA_KEY, PersistentDataType.INTEGER)).thenReturn(1);
-        when(legacy.get(JigsawStudioToolCodec.ACTION_KEY, PersistentDataType.STRING))
-                .thenReturn(JigsawStudioToolAction.DUPLICATE_VARIANT.name());
-        when(legacy.get(JigsawStudioToolCodec.REQUEST_KEY, PersistentDataType.STRING))
-                .thenReturn(REQUEST.toString());
+        String legacy = "{\"schema\":1,\"action\":\"DUPLICATE_VARIANT\",\"request\":\"" + REQUEST + "\"}";
 
         assertTrue(codec.decode(legacy).isEmpty());
     }
 
     @Test
-    public void rejectsMalformedOrUnsupportedPersistentBindings() {
+    public void rejectsMalformedOrUnsupportedPayloads() {
         JigsawStudioToolCodec codec = new JigsawStudioToolCodec();
-        PersistentDataContainer unsupported = mock(PersistentDataContainer.class);
-        when(unsupported.get(JigsawStudioToolCodec.SCHEMA_KEY, PersistentDataType.INTEGER)).thenReturn(99);
-        when(unsupported.get(JigsawStudioToolCodec.ACTION_KEY, PersistentDataType.STRING))
-                .thenReturn(JigsawStudioToolAction.SELECT_WORKCELL.name());
-        when(unsupported.get(JigsawStudioToolCodec.REQUEST_KEY, PersistentDataType.STRING))
-                .thenReturn(REQUEST.toString());
-        assertTrue(codec.decode(unsupported).isEmpty());
+        String unsupported = "{\"schema\":99,\"action\":\"SELECT_WORKCELL\",\"request\":\"" + REQUEST + "\"}";
+        String malformed = "{\"schema\":" + JigsawStudioToolPayload.CURRENT_SCHEMA_VERSION
+                + ",\"action\":\"NOT_AN_ACTION\",\"request\":\"not-a-uuid\"}";
 
-        PersistentDataContainer malformed = mock(PersistentDataContainer.class);
-        when(malformed.get(JigsawStudioToolCodec.SCHEMA_KEY, PersistentDataType.INTEGER))
-                .thenReturn(JigsawStudioToolPayload.CURRENT_SCHEMA_VERSION);
-        when(malformed.get(JigsawStudioToolCodec.ACTION_KEY, PersistentDataType.STRING))
-                .thenReturn("NOT_AN_ACTION");
-        when(malformed.get(JigsawStudioToolCodec.REQUEST_KEY, PersistentDataType.STRING))
-                .thenReturn("not-a-uuid");
+        assertTrue(codec.decode(unsupported).isEmpty());
         assertTrue(codec.decode(malformed).isEmpty());
+        assertTrue(codec.decode("not json").isEmpty());
+        assertTrue(codec.decode("").isEmpty());
     }
 
     @Test
     public void recognizesOnlyValidStickBindings() {
         JigsawStudioToolCodec codec = new JigsawStudioToolCodec();
-        ItemStack stone = mock(ItemStack.class);
-        when(stone.getType()).thenReturn(Material.STONE);
+        JigsawStudioToolPayload payload = JigsawStudioToolPayload.request(JigsawStudioToolAction.PREVIEW_GRAPH, REQUEST);
+        ToolItem tool = codec.create(payload);
+        ToolItem stone = new ToolItem(ResourceId.parse("minecraft:stone"), tool.name(), tool.lore(), false, tool.payload());
+        ToolItem plainStick = new ToolItem(STICK, "Stick", List.of(), false, "");
 
+        assertTrue(codec.isTool(tool));
         assertFalse(codec.isTool(stone));
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> codec.bind(
-                        stone,
-                        JigsawStudioToolPayload.request(JigsawStudioToolAction.PREVIEW_GRAPH, REQUEST)));
+        assertFalse(codec.isTool(plainStick));
+        assertFalse(codec.isTool(null));
+    }
+
+    @Test
+    public void refusesToCreateAToolOfAnOldSchema() {
+        JigsawStudioToolCodec codec = new JigsawStudioToolCodec();
+        JigsawStudioToolPayload old = new JigsawStudioToolPayload(
+                1,
+                JigsawStudioToolAction.PREVIEW_GRAPH,
+                REQUEST,
+                "",
+                "",
+                "",
+                JigsawStudioToolPayload.NO_ENTRY_INDEX,
+                0);
+
+        assertThrows(IllegalArgumentException.class, () -> codec.create(old));
     }
 
     @Test

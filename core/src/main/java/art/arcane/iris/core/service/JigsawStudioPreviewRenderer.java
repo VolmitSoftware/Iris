@@ -2,19 +2,13 @@ package art.arcane.iris.core.service;
 
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.ObjectTurn;
-import art.arcane.iris.engine.object.prefab.BlockStateRotation;
-import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.math.IrisBlockVector;
-import art.arcane.iris.util.common.scheduling.J;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
+import com.volmit.ModuleLog;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.object.ObjectBlock;
+import com.volmit.tooling.world.ToolWorld;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,10 +29,17 @@ public final class JigsawStudioPreviewRenderer {
     private static final int MAX_BLOCKS = 250_000;
     private static final String AIR = "minecraft:air";
     private static final String STRUCTURE_VOID = "minecraft:structure_void";
+    private static final BlockState AIR_STATE = BlockState.parse(AIR);
+    private static final int CHUNK_SHIFT = 4;
 
     private final Map<UUID, RenderState> requests = new HashMap<>();
+    private final ModuleLog log;
 
-    public static PreviewPlan plan(List<PlacedStructurePiece> pieces) throws IOException {
+    public JigsawStudioPreviewRenderer(ModuleLog log) {
+        this.log = Objects.requireNonNull(log, "Jigsaw Studio preview log");
+    }
+
+    public static PreviewPlan plan(List<PlacedStructurePiece> pieces, BlockRegistry registry) throws IOException {
         List<PlacedStructurePiece> source = List.copyOf(Objects.requireNonNull(
                 pieces,
                 "Jigsaw Studio preview pieces"));
@@ -62,8 +64,8 @@ public final class JigsawStudioPreviewRenderer {
             maximumX = Math.max(maximumX, piece.getMaxX());
             maximumY = Math.max(maximumY, piece.getMaxY());
             maximumZ = Math.max(maximumZ, piece.getMaxZ());
-            appendObject(blocks, piece);
-            appendFinalStates(blocks, piece);
+            appendObject(blocks, piece, registry);
+            appendFinalStates(blocks, piece, registry);
             if (blocks.size() > MAX_BLOCKS) {
                 throw new IOException("The seed-1337 preview exceeds the Studio render limit of "
                         + MAX_BLOCKS + " explicit blocks");
@@ -75,13 +77,13 @@ public final class JigsawStudioPreviewRenderer {
     }
 
     public void render(
-            World world,
+            ToolWorld world,
             UUID requestId,
             long generation,
             PreviewPlan plan,
             Consumer<RenderResult> completion
     ) {
-        World activeWorld = Objects.requireNonNull(world, "Jigsaw Studio preview world");
+        ToolWorld activeWorld = Objects.requireNonNull(world, "Jigsaw Studio preview world");
         UUID activeRequestId = Objects.requireNonNull(requestId, "Jigsaw Studio preview request ID");
         PreviewPlan activePlan = Objects.requireNonNull(plan, "Jigsaw Studio preview plan");
         Consumer<RenderResult> callback = Objects.requireNonNull(completion, "Jigsaw Studio preview callback");
@@ -90,10 +92,10 @@ public final class JigsawStudioPreviewRenderer {
         Map<Long, List<BlockUpdate>> updates;
         synchronized (this) {
             RenderState old = requests.get(activeRequestId);
-            previous = old == null || !old.worldId().equals(activeWorld.getUID())
+            previous = old == null || old.world() != activeWorld
                     ? Map.of()
                     : old.blocks();
-            uncertain = old == null || !old.worldId().equals(activeWorld.getUID())
+            uncertain = old == null || old.world() != activeWorld
                     ? Set.of()
                     : Set.copyOf(old.pending());
             updates = updates(previous, activePlan.blocks(), uncertain);
@@ -104,7 +106,7 @@ public final class JigsawStudioPreviewRenderer {
                 }
             }
             requests.put(activeRequestId, new RenderState(
-                    activeWorld.getUID(), generation, activePlan.blocks(), activePlan.bounds(), pending));
+                    activeWorld, generation, activePlan.blocks(), activePlan.bounds(), pending));
         }
         if (updates.isEmpty()) {
             callback.accept(new RenderResult(true, 0, ""));
@@ -115,7 +117,8 @@ public final class JigsawStudioPreviewRenderer {
         for (Map.Entry<Long, List<BlockUpdate>> chunk : updates.entrySet()) {
             int chunkX = chunkX(chunk.getKey());
             int chunkZ = chunkZ(chunk.getKey());
-            boolean scheduled = J.runRegion(
+            JigsawStudioThreads.onRegion(
+                    log,
                     activeWorld,
                     chunkX,
                     chunkZ,
@@ -126,16 +129,16 @@ public final class JigsawStudioPreviewRenderer {
                             chunk.getValue(),
                             remaining,
                             failed,
-                            callback));
-            if (!scheduled) {
-                failed.set(true);
-                if (remaining.decrementAndGet() == 0) {
-                    callback.accept(new RenderResult(
-                            false,
-                            activePlan.blocks().size(),
-                            "One or more preview chunks could not be scheduled"));
-                }
-            }
+                            callback),
+                    () -> {
+                        failed.set(true);
+                        if (remaining.decrementAndGet() == 0) {
+                            callback.accept(new RenderResult(
+                                    false,
+                                    activePlan.blocks().size(),
+                                    "One or more preview chunks could not be scheduled"));
+                        }
+                    });
         }
     }
 
@@ -158,10 +161,7 @@ public final class JigsawStudioPreviewRenderer {
             removed = requests.remove(requestId);
         }
         if (removed != null) {
-            World world = Bukkit.getWorld(removed.worldId());
-            if (world != null) {
-                clear(world, removalPositions(removed));
-            }
+            clear(removed.world(), removalPositions(removed));
         }
     }
 
@@ -181,38 +181,35 @@ public final class JigsawStudioPreviewRenderer {
             requests.clear();
         }
         for (RenderState state : removed.values()) {
-            World world = Bukkit.getWorld(state.worldId());
-            if (world != null) {
-                clear(world, removalPositions(state));
-            }
+            clear(state.world(), removalPositions(state));
         }
     }
 
     private static void appendObject(
             Map<BlockPosition, String> blocks,
-            PlacedStructurePiece piece
+            PlacedStructurePiece piece,
+            BlockRegistry registry
     ) throws IOException {
-        IrisObject object = piece.getObject();
         ObjectTurn rotation = piece.getRotation();
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.getBlocks()) {
-            IrisBlockVector rotated = rotation.rotate(entry.getKey());
-            PlatformBlockState state = BlockStateRotation.rotate(rotation, entry.getValue());
+        for (ObjectBlock block : piece.getObject().geometry().blocks()) {
+            IrisBlockVector rotated = rotation.rotate(new IrisBlockVector(
+                    block.position().x(), block.position().y(), block.position().z()));
             putState(
                     blocks,
                     new BlockPosition(
                             piece.getX() + rotated.getBlockX(),
                             piece.getY() + rotated.getBlockY(),
                             piece.getZ() + rotated.getBlockZ()),
-                    state,
+                    JigsawStudioBlocks.rotated(registry, block.state(), rotation),
                     "object block");
         }
     }
 
     private static void appendFinalStates(
             Map<BlockPosition, String> blocks,
-            PlacedStructurePiece piece
+            PlacedStructurePiece piece,
+            BlockRegistry registry
     ) throws IOException {
-        IrisObject object = piece.getObject();
         ObjectTurn rotation = piece.getRotation();
         if (piece.getPiece().getConnectors() == null) {
             return;
@@ -222,19 +219,18 @@ public final class JigsawStudioPreviewRenderer {
                 throw new IOException("Jigsaw Studio preview contains an incomplete connector");
             }
             IrisBlockVector signed = new IrisBlockVector(
-                    connector.getPosition().getX() - object.getCenter().getBlockX(),
-                    connector.getPosition().getY() - object.getCenter().getBlockY(),
-                    connector.getPosition().getZ() - object.getCenter().getBlockZ());
+                    connector.getPosition().getX() - piece.getObject().center().x(),
+                    connector.getPosition().getY() - piece.getObject().center().y(),
+                    connector.getPosition().getZ() - piece.getObject().center().z());
             IrisBlockVector rotated = rotation.rotate(signed);
-            PlatformBlockState source = B.getStateOrNull(connector.getFinalState(), false);
-            PlatformBlockState state = source == null ? null : BlockStateRotation.rotate(rotation, source);
+            BlockState source = registry.find(connector.getFinalState()).orElse(null);
             putState(
                     blocks,
                     new BlockPosition(
                             piece.getX() + rotated.getBlockX(),
                             piece.getY() + rotated.getBlockY(),
                             piece.getZ() + rotated.getBlockZ()),
-                    state,
+                    source == null ? null : JigsawStudioBlocks.rotated(registry, source, rotation),
                     "connector final state");
         }
     }
@@ -242,7 +238,7 @@ public final class JigsawStudioPreviewRenderer {
     private static void putState(
             Map<BlockPosition, String> blocks,
             BlockPosition position,
-            PlatformBlockState state,
+            BlockState state,
             String source
     ) throws IOException {
         if (state == null || state.key() == null || state.key().isBlank()) {
@@ -257,7 +253,7 @@ public final class JigsawStudioPreviewRenderer {
     }
 
     private void applyChunk(
-            World world,
+            ToolWorld world,
             UUID requestId,
             long generation,
             List<BlockUpdate> updates,
@@ -268,24 +264,25 @@ public final class JigsawStudioPreviewRenderer {
         int changed = 0;
         List<BlockPosition> applied = new ArrayList<>(updates.size());
         try {
-            if (!isCurrent(world.getUID(), requestId, generation)) {
+            if (!isCurrent(world, requestId, generation)) {
                 return;
             }
             for (BlockUpdate update : updates) {
-                Block block = world.getBlockAt(update.position().x(), update.position().y(), update.position().z());
-                BlockData data = Bukkit.createBlockData(update.stateKey());
-                block.setBlockData(data, false);
+                world.setBlock(
+                        new com.volmit.geometry.BlockPosition(update.position().x(), update.position().y(), update.position().z()),
+                        BlockState.parse(update.stateKey()),
+                        Optional.empty());
                 applied.add(update.position());
                 changed++;
             }
         } catch (RuntimeException exception) {
             failed.set(true);
-            IrisLogging.reportError(exception);
+            log.error("The Jigsaw Studio preview could not be rendered.", exception);
         } finally {
             synchronized (this) {
                 RenderState active = requests.get(requestId);
                 if (active != null
-                        && active.worldId().equals(world.getUID())
+                        && active.world() == world
                         && active.generation() == generation) {
                     active.pending().removeAll(applied);
                 }
@@ -298,7 +295,7 @@ public final class JigsawStudioPreviewRenderer {
                     pendingEmpty = state != null && state.pending().isEmpty();
                 }
                 boolean current = state != null
-                        && state.worldId().equals(world.getUID())
+                        && state.world() == world
                         && state.generation() == generation;
                 completion.accept(new RenderResult(
                         current && pendingEmpty && !failed.get(),
@@ -310,9 +307,9 @@ public final class JigsawStudioPreviewRenderer {
         }
     }
 
-    private synchronized boolean isCurrent(UUID worldId, UUID requestId, long generation) {
+    private synchronized boolean isCurrent(ToolWorld world, UUID requestId, long generation) {
         RenderState state = requests.get(requestId);
-        return state != null && state.worldId().equals(worldId) && state.generation() == generation;
+        return state != null && state.world() == world && state.generation() == generation;
     }
 
     private static Map<Long, List<BlockUpdate>> updates(
@@ -346,23 +343,23 @@ public final class JigsawStudioPreviewRenderer {
                 || !next.getOrDefault(position, AIR).equals(previous.get(position));
     }
 
-    private static void clear(World world, Set<BlockPosition> positions) {
+    private void clear(ToolWorld world, Set<BlockPosition> positions) {
         Map<Long, List<BlockUpdate>> updates = new HashMap<>();
         for (BlockPosition position : positions) {
             updates.computeIfAbsent(
-                    chunkKey(position.x() >> 4, position.z() >> 4),
+                    chunkKey(position.x() >> CHUNK_SHIFT, position.z() >> CHUNK_SHIFT),
                     ignored -> new ArrayList<>()).add(new BlockUpdate(position, AIR));
         }
         for (Map.Entry<Long, List<BlockUpdate>> chunk : updates.entrySet()) {
-            J.runRegion(world, chunkX(chunk.getKey()), chunkZ(chunk.getKey()), () -> {
+            JigsawStudioThreads.onRegion(log, world, chunkX(chunk.getKey()), chunkZ(chunk.getKey()), () -> {
                 for (BlockUpdate update : chunk.getValue()) {
-                    world.getBlockAt(
-                                    update.position().x(),
-                                    update.position().y(),
-                                    update.position().z())
-                            .setType(Material.AIR, false);
+                    world.setBlock(
+                            new com.volmit.geometry.BlockPosition(
+                                    update.position().x(), update.position().y(), update.position().z()),
+                            AIR_STATE,
+                            Optional.empty());
                 }
-            });
+            }, () -> { });
         }
     }
 
@@ -437,14 +434,14 @@ public final class JigsawStudioPreviewRenderer {
     }
 
     private record RenderState(
-            UUID worldId,
+            ToolWorld world,
             long generation,
             Map<BlockPosition, String> blocks,
             PreviewBounds bounds,
             Set<BlockPosition> pending
     ) {
         private RenderState {
-            Objects.requireNonNull(worldId, "Jigsaw Studio preview world ID");
+            Objects.requireNonNull(world, "Jigsaw Studio preview world");
             blocks = Map.copyOf(Objects.requireNonNull(blocks, "Jigsaw Studio preview state blocks"));
             bounds = Objects.requireNonNull(bounds, "Jigsaw Studio preview state bounds");
             pending = Objects.requireNonNull(pending, "Jigsaw Studio preview pending blocks");

@@ -1,6 +1,14 @@
-package art.arcane.iris.core.runtime.jigsaw;
+package art.arcane.iris.core.service;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
+import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCompatibilityTarget;
+import art.arcane.iris.core.runtime.jigsaw.JigsawStudioLayout;
+import art.arcane.iris.core.runtime.jigsaw.JigsawStudioMode;
+import art.arcane.iris.core.runtime.jigsaw.JigsawStudioPieceRules;
+import art.arcane.iris.core.runtime.jigsaw.JigsawStudioSession;
+import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariant;
+import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariantCatalog;
 import org.junit.After;
 import org.junit.Test;
 
@@ -16,21 +24,23 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-public class JigsawStudioActivationTest {
+public class JigsawStudioRegistryTest {
     private static final UUID OWNER = UUID.fromString("11111111-1111-1111-1111-111111111111");
+
+    private final JigsawStudioRegistry registry = new JigsawStudioRegistry();
 
     @After
     public void clearActivation() {
-        JigsawStudioActivation.finishOpen(OWNER);
-        JigsawStudioActivation.deactivate("overworld");
-        JigsawStudioActivation.deactivate("nether");
+        registry.finishOpen(OWNER);
+        registry.deactivate("overworld");
+        registry.deactivate("nether");
     }
 
     @Test
     public void storesRequestAndSessionByNormalizedPackKey() {
         IrisData source = mock(IrisData.class);
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(11, 7, 11);
-        JigsawStudioActivation.Request request = JigsawStudioActivation.activate(
+        JigsawStudioRequest request = registry.activate(
                 "OverWorld",
                 "village/plains",
                 JigsawStudioMode.PLANAR_JIGSAW,
@@ -39,20 +49,20 @@ public class JigsawStudioActivationTest {
                 source
         );
 
-        assertTrue(JigsawStudioActivation.isActive("overworld"));
-        assertSame(request, JigsawStudioActivation.getRequest("OVERWORLD"));
+        assertTrue(registry.isActive("overworld"));
+        assertSame(request, registry.getRequest("OVERWORLD"));
         assertSame(source, request.source());
         assertEquals(JigsawStudioMode.PLANAR_JIGSAW, request.mode());
         assertEquals(JigsawStudioCompatibilityTarget.VANILLA_PORTABLE, request.compatibilityTarget());
         assertEquals(dimensions, request.cellDimensions());
-        assertNotNull(JigsawStudioActivation.getSession("overworld"));
-        assertEquals(6, JigsawStudioActivation.getLayout("overworld").bays().size());
+        assertNotNull(registry.getSession("overworld"));
+        assertEquals(6, registry.getLayout("overworld").bays().size());
     }
 
     @Test
     public void replacementGetsANewRequestScopedSession() {
         IrisData source = mock(IrisData.class);
-        JigsawStudioActivation.Request first = JigsawStudioActivation.activate(
+        JigsawStudioRequest first = registry.activate(
                 "overworld",
                 "village",
                 JigsawStudioMode.PLANAR_JIGSAW,
@@ -60,7 +70,7 @@ public class JigsawStudioActivationTest {
                 new JigsawStudioCellDimensions(7, 5, 7),
                 source
         );
-        JigsawStudioActivation.Request second = JigsawStudioActivation.activate(
+        JigsawStudioRequest second = registry.activate(
                 "overworld",
                 "stronghold",
                 JigsawStudioMode.SPATIAL_JIGSAW,
@@ -70,18 +80,18 @@ public class JigsawStudioActivationTest {
         );
 
         assertNotEquals(first.requestId(), second.requestId());
-        assertEquals(second.requestId(), JigsawStudioActivation.getSession("overworld").sessionId());
-        assertEquals(JigsawStudioMode.SPATIAL_JIGSAW, JigsawStudioActivation.getLayout("overworld").mode());
-        assertEquals(1, JigsawStudioActivation.getLayout("overworld").bays().size());
+        assertEquals(second.requestId(), registry.getSession("overworld").sessionId());
+        assertEquals(JigsawStudioMode.SPATIAL_JIGSAW, registry.getLayout("overworld").mode());
+        assertEquals(1, registry.getLayout("overworld").bays().size());
 
-        JigsawStudioActivation.deactivate("overworld");
-        assertFalse(JigsawStudioActivation.isActive("overworld"));
+        registry.deactivate("overworld");
+        assertFalse(registry.isActive("overworld"));
     }
 
     @Test
     public void staleRequestCannotDeactivateItsReplacement() {
         IrisData source = mock(IrisData.class);
-        JigsawStudioActivation.Request first = JigsawStudioActivation.activate(
+        JigsawStudioRequest first = registry.activate(
                 "overworld",
                 "village",
                 JigsawStudioMode.SPATIAL_JIGSAW,
@@ -89,7 +99,7 @@ public class JigsawStudioActivationTest {
                 new JigsawStudioCellDimensions(16, 16, 16),
                 source
         );
-        JigsawStudioActivation.Request second = JigsawStudioActivation.activate(
+        JigsawStudioRequest second = registry.activate(
                 "overworld",
                 "stronghold",
                 JigsawStudioMode.SPATIAL_JIGSAW,
@@ -98,10 +108,10 @@ public class JigsawStudioActivationTest {
                 source
         );
 
-        assertFalse(JigsawStudioActivation.deactivate("overworld", first.requestId()));
-        assertSame(second, JigsawStudioActivation.getRequest("overworld"));
-        assertTrue(JigsawStudioActivation.deactivate("overworld", second.requestId()));
-        assertFalse(JigsawStudioActivation.isActive("overworld"));
+        assertFalse(registry.deactivate("overworld", first.requestId()));
+        assertSame(second, registry.getRequest("overworld"));
+        assertTrue(registry.deactivate("overworld", second.requestId()));
+        assertFalse(registry.isActive("overworld"));
     }
 
     @Test
@@ -126,7 +136,7 @@ public class JigsawStudioActivationTest {
                 new JigsawStudioVariantCatalog(List.of(variant))
         );
 
-        JigsawStudioActivation.activate(
+        registry.activate(
                 "overworld",
                 "stronghold",
                 JigsawStudioMode.SPATIAL_JIGSAW,
@@ -136,10 +146,10 @@ public class JigsawStudioActivationTest {
                 initialLayout
         );
 
-        assertSame(initialLayout, JigsawStudioActivation.getLayout("overworld"));
-        assertSame(variant, JigsawStudioActivation.getSession("overworld")
+        assertSame(initialLayout, registry.getLayout("overworld"));
+        assertSame(variant, registry.getSession("overworld")
                 .activeVariant(JigsawStudioLayout.SPATIAL_WORKCELL_ID).orElseThrow());
-        assertFalse(JigsawStudioActivation.getSession("overworld").isDirty());
+        assertFalse(registry.getSession("overworld").isDirty());
     }
 
     @Test
@@ -150,8 +160,8 @@ public class JigsawStudioActivationTest {
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 dimensions,
                 JigsawStudioVariantCatalog.empty());
-        assertTrue(JigsawStudioActivation.tryBeginOpen(OWNER));
-        JigsawStudioActivation.Request previous = JigsawStudioActivation.activate(
+        assertTrue(registry.tryBeginOpen(OWNER));
+        JigsawStudioRequest previous = registry.activate(
                 "overworld",
                 "stronghold/old",
                 JigsawStudioMode.SPATIAL_JIGSAW,
@@ -160,11 +170,11 @@ public class JigsawStudioActivationTest {
                 source,
                 oldLayout,
                 OWNER);
-        JigsawStudioSession previousSession = JigsawStudioActivation.getSession("overworld");
-        JigsawStudioActivation.finishOpen(OWNER);
+        JigsawStudioSession previousSession = registry.getSession("overworld");
+        registry.finishOpen(OWNER);
 
-        assertTrue(JigsawStudioActivation.tryBeginOpen(OWNER));
-        JigsawStudioActivation.StagedActivation staged = JigsawStudioActivation.stage(
+        assertTrue(registry.tryBeginOpen(OWNER));
+        JigsawStudioRegistry.StagedActivation staged = registry.stage(
                 "overworld",
                 "stronghold/new",
                 JigsawStudioMode.SPATIAL_JIGSAW,
@@ -175,19 +185,16 @@ public class JigsawStudioActivationTest {
                 OWNER,
                 previous.requestId());
 
-        assertSame(previous, JigsawStudioActivation.getRequest("overworld"));
-        assertSame(previousSession, JigsawStudioActivation.getSession("overworld"));
-        assertSame(previous, JigsawStudioActivation.getGeneratorRequest("overworld"));
-        assertTrue(JigsawStudioActivation.beginStagedGeneration(staged));
-        assertSame(staged.request(), JigsawStudioActivation.getGeneratorRequest("overworld"));
-        assertSame(staged.session(), JigsawStudioActivation.getGeneratorSession("overworld"));
-        assertSame(previous, JigsawStudioActivation.getRequest("overworld"));
-        assertFalse(JigsawStudioActivation.deactivate("overworld", previous.requestId()));
-        assertSame(previous, JigsawStudioActivation.getRequest("overworld"));
+        assertSame(previous, registry.getRequest("overworld"));
+        assertSame(previousSession, registry.getSession("overworld"));
+        assertTrue(registry.beginStagedGeneration(staged));
+        assertSame(previous, registry.getRequest("overworld"));
+        assertFalse(registry.deactivate("overworld", previous.requestId()));
+        assertSame(previous, registry.getRequest("overworld"));
 
-        assertTrue(JigsawStudioActivation.commit(staged));
-        assertSame(staged.request(), JigsawStudioActivation.getRequest("overworld"));
-        assertSame(staged.session(), JigsawStudioActivation.getSession("overworld"));
+        assertTrue(registry.commit(staged));
+        assertSame(staged.request(), registry.getRequest("overworld"));
+        assertSame(staged.session(), registry.getSession("overworld"));
     }
 
     @Test
@@ -198,8 +205,8 @@ public class JigsawStudioActivationTest {
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 dimensions,
                 JigsawStudioVariantCatalog.empty());
-        assertTrue(JigsawStudioActivation.tryBeginOpen(OWNER));
-        JigsawStudioActivation.Request previous = JigsawStudioActivation.activate(
+        assertTrue(registry.tryBeginOpen(OWNER));
+        JigsawStudioRequest previous = registry.activate(
                 "overworld",
                 "stronghold/old",
                 JigsawStudioMode.SPATIAL_JIGSAW,
@@ -208,11 +215,11 @@ public class JigsawStudioActivationTest {
                 source,
                 layout,
                 OWNER);
-        JigsawStudioSession previousSession = JigsawStudioActivation.getSession("overworld");
-        JigsawStudioActivation.finishOpen(OWNER);
+        JigsawStudioSession previousSession = registry.getSession("overworld");
+        registry.finishOpen(OWNER);
 
-        assertTrue(JigsawStudioActivation.tryBeginOpen(OWNER));
-        JigsawStudioActivation.StagedActivation staged = JigsawStudioActivation.stage(
+        assertTrue(registry.tryBeginOpen(OWNER));
+        JigsawStudioRegistry.StagedActivation staged = registry.stage(
                 "overworld",
                 "stronghold/new",
                 JigsawStudioMode.SPATIAL_JIGSAW,
@@ -222,12 +229,11 @@ public class JigsawStudioActivationTest {
                 layout,
                 OWNER,
                 previous.requestId());
-        assertTrue(JigsawStudioActivation.beginStagedGeneration(staged));
-        assertFalse(JigsawStudioActivation.deactivate("overworld", previous.requestId()));
+        assertTrue(registry.beginStagedGeneration(staged));
+        assertFalse(registry.deactivate("overworld", previous.requestId()));
 
-        assertTrue(JigsawStudioActivation.rollback(staged));
-        assertSame(previous, JigsawStudioActivation.getRequest("overworld"));
-        assertSame(previousSession, JigsawStudioActivation.getSession("overworld"));
-        assertSame(previous, JigsawStudioActivation.getGeneratorRequest("overworld"));
+        assertTrue(registry.rollback(staged));
+        assertSame(previous, registry.getRequest("overworld"));
+        assertSame(previousSession, registry.getSession("overworld"));
     }
 }

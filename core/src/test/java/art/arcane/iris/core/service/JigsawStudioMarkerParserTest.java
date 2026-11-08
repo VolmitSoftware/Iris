@@ -3,7 +3,6 @@ package art.arcane.iris.core.service;
 import art.arcane.iris.engine.object.value.IrisDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
-import org.bukkit.block.Orientation;
 import org.junit.Test;
 
 import java.util.LinkedHashMap;
@@ -14,19 +13,24 @@ import static org.junit.Assert.assertThrows;
 
 public class JigsawStudioMarkerParserTest {
     @Test
-    public void mapsEveryBukkitJigsawOrientation() {
-        assertDirections(Orientation.DOWN_EAST, IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.EAST_POSITIVE_X);
-        assertDirections(Orientation.DOWN_NORTH, IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.NORTH_NEGATIVE_Z);
-        assertDirections(Orientation.DOWN_SOUTH, IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.SOUTH_POSITIVE_Z);
-        assertDirections(Orientation.DOWN_WEST, IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.WEST_NEGATIVE_X);
-        assertDirections(Orientation.UP_EAST, IrisDirection.UP_POSITIVE_Y, IrisDirection.EAST_POSITIVE_X);
-        assertDirections(Orientation.UP_NORTH, IrisDirection.UP_POSITIVE_Y, IrisDirection.NORTH_NEGATIVE_Z);
-        assertDirections(Orientation.UP_SOUTH, IrisDirection.UP_POSITIVE_Y, IrisDirection.SOUTH_POSITIVE_Z);
-        assertDirections(Orientation.UP_WEST, IrisDirection.UP_POSITIVE_Y, IrisDirection.WEST_NEGATIVE_X);
-        assertDirections(Orientation.WEST_UP, IrisDirection.WEST_NEGATIVE_X, IrisDirection.UP_POSITIVE_Y);
-        assertDirections(Orientation.EAST_UP, IrisDirection.EAST_POSITIVE_X, IrisDirection.UP_POSITIVE_Y);
-        assertDirections(Orientation.NORTH_UP, IrisDirection.NORTH_NEGATIVE_Z, IrisDirection.UP_POSITIVE_Y);
-        assertDirections(Orientation.SOUTH_UP, IrisDirection.SOUTH_POSITIVE_Z, IrisDirection.UP_POSITIVE_Y);
+    public void mapsEveryJigsawOrientation() {
+        assertDirections("down_east", IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.EAST_POSITIVE_X);
+        assertDirections("down_north", IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.NORTH_NEGATIVE_Z);
+        assertDirections("down_south", IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.SOUTH_POSITIVE_Z);
+        assertDirections("down_west", IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.WEST_NEGATIVE_X);
+        assertDirections("up_east", IrisDirection.UP_POSITIVE_Y, IrisDirection.EAST_POSITIVE_X);
+        assertDirections("up_north", IrisDirection.UP_POSITIVE_Y, IrisDirection.NORTH_NEGATIVE_Z);
+        assertDirections("up_south", IrisDirection.UP_POSITIVE_Y, IrisDirection.SOUTH_POSITIVE_Z);
+        assertDirections("up_west", IrisDirection.UP_POSITIVE_Y, IrisDirection.WEST_NEGATIVE_X);
+        assertDirections("west_up", IrisDirection.WEST_NEGATIVE_X, IrisDirection.UP_POSITIVE_Y);
+        assertDirections("east_up", IrisDirection.EAST_POSITIVE_X, IrisDirection.UP_POSITIVE_Y);
+        assertDirections("north_up", IrisDirection.NORTH_NEGATIVE_Z, IrisDirection.UP_POSITIVE_Y);
+        assertDirections("south_up", IrisDirection.SOUTH_POSITIVE_Z, IrisDirection.UP_POSITIVE_Y);
+    }
+
+    @Test
+    public void rejectsAnOrientationNoJigsawHas() {
+        assertThrows(IllegalArgumentException.class, () -> JigsawStudioMarkerParser.directions("sideways"));
     }
 
     @Test
@@ -37,7 +41,7 @@ public class JigsawStudioMarkerParserTest {
         nbt.put("placement_priority", 17L);
 
         IrisJigsawConnector connector = JigsawStudioMarkerParser.parse(
-                nbt, Orientation.NORTH_UP, 3, 5, 7);
+                nbt, "north_up", 3, 5, 7);
 
         assertEquals(3, connector.getPosition().getX());
         assertEquals(5, connector.getPosition().getY());
@@ -57,7 +61,7 @@ public class JigsawStudioMarkerParserTest {
     @Test
     public void defaultsMissingOptionalMetadata() {
         IrisJigsawConnector connector = JigsawStudioMarkerParser.parse(
-                markerNbt(), Orientation.SOUTH_UP, 0, 0, 0);
+                markerNbt(), "south_up", 0, 0, 0);
 
         assertEquals("", connector.getChannel());
         assertEquals(0, connector.getSelectionPriority());
@@ -70,7 +74,7 @@ public class JigsawStudioMarkerParserTest {
         nbt.remove("pool");
 
         assertThrows(IllegalArgumentException.class,
-                () -> JigsawStudioMarkerParser.parse(nbt, Orientation.NORTH_UP, 0, 0, 0));
+                () -> JigsawStudioMarkerParser.parse(nbt, "north_up", 0, 0, 0));
     }
 
     @Test
@@ -79,7 +83,7 @@ public class JigsawStudioMarkerParserTest {
         nbt.put("pool", "minecraft:fort/pool");
 
         assertThrows(IllegalArgumentException.class,
-                () -> JigsawStudioMarkerParser.parse(nbt, Orientation.NORTH_UP, 0, 0, 0));
+                () -> JigsawStudioMarkerParser.parse(nbt, "north_up", 0, 0, 0));
     }
 
     private static Map<String, Object> markerNbt() {
@@ -93,7 +97,7 @@ public class JigsawStudioMarkerParserTest {
     }
 
     private static void assertDirections(
-            Orientation orientation,
+            String orientation,
             IrisDirection expectedFront,
             IrisDirection expectedTop
     ) {

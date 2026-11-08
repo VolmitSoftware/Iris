@@ -2,13 +2,9 @@ package art.arcane.iris.core.service;
 
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.StructureAssemblies;
-import art.arcane.iris.core.nms.INMS;
-import art.arcane.iris.core.runtime.InPlaceChunkRegenerator;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarArchetype;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarDirection;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarTopology;
-import art.arcane.iris.core.runtime.jigsaw.JigsawStudioActivation;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBay;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBounds;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
@@ -32,8 +28,6 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariant;
 import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.core.structure.authoring.StructureWriteOptions;
 import art.arcane.iris.core.structure.authoring.StructureWriteResult;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.data.chunk.TerrainChunk;
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.framework.StructureAssembler;
 import art.arcane.iris.engine.framework.structure.StructureAssemblyResult;
@@ -46,98 +40,36 @@ import art.arcane.iris.engine.object.value.IrisDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.ObjectTurn;
-import art.arcane.iris.engine.object.prefab.BlockStateRotation;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
-import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.platform.studio.generators.JigsawStudioGenerator;
-import art.arcane.iris.platform.bukkit.BukkitBlockState;
-import art.arcane.iris.platform.bukkit.BukkitPlatform;
-import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
-import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.common.plugin.IrisService;
-import art.arcane.iris.util.common.scheduling.J;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.volmlib.util.plugin.ComponentMessenger;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Chunk;
-import org.bukkit.Color;
-import org.bukkit.GameRules;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.DoubleChest;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.type.Jigsaw;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockBurnEvent;
-import org.bukkit.event.block.BlockCookEvent;
-import org.bukkit.event.block.BlockDispenseEvent;
-import org.bukkit.event.block.BlockExplodeEvent;
-import org.bukkit.event.block.BlockFadeEvent;
-import org.bukkit.event.block.BlockFormEvent;
-import org.bukkit.event.block.BlockFromToEvent;
-import org.bukkit.event.block.BlockGrowEvent;
-import org.bukkit.event.block.BlockMultiPlaceEvent;
-import org.bukkit.event.block.BlockPistonExtendEvent;
-import org.bukkit.event.block.BlockPistonRetractEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.block.BlockRedstoneEvent;
-import org.bukkit.event.block.BlockSpreadEvent;
-import org.bukkit.event.block.BrewingStartEvent;
-import org.bukkit.event.block.CrafterCraftEvent;
-import org.bukkit.event.entity.EntityChangeBlockEvent;
-import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.event.inventory.BrewEvent;
-import org.bukkit.event.inventory.BrewingStandFuelEvent;
-import org.bukkit.event.inventory.FurnaceBurnEvent;
-import org.bukkit.event.inventory.FurnaceStartSmeltEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryMoveItemEvent;
-import org.bukkit.event.inventory.InventoryPickupItemEvent;
-import org.bukkit.event.player.PlayerBucketEmptyEvent;
-import org.bukkit.event.player.PlayerBucketFillEvent;
-import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerPortalEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerRespawnEvent;
-import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.event.player.PlayerToggleSneakEvent;
-import org.bukkit.event.server.ServerCommandEvent;
-import org.bukkit.event.world.ChunkLoadEvent;
-import org.bukkit.event.world.StructureGrowEvent;
-import org.bukkit.event.world.WorldUnloadEvent;
-import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.BlockInventoryHolder;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
+import com.volmit.ModuleLog;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.geometry.ChunkPos;
+import com.volmit.object.BlockEntityData;
+import com.volmit.object.GeneratedObject;
+import com.volmit.object.ObjectBlock;
+import com.volmit.object.PlaceableObject;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
+import com.volmit.tooling.ObjectCodec;
+import com.volmit.tooling.ToolPack;
+import com.volmit.tooling.world.BlockChange;
+import com.volmit.tooling.world.Particle;
+import com.volmit.tooling.world.ToolItem;
+import com.volmit.tooling.world.ToolPlayer;
+import com.volmit.tooling.world.ToolUse;
+import com.volmit.tooling.world.ToolWorld;
+import com.volmit.tooling.world.ToolWorldListener;
+import com.volmit.tooling.world.ToolWorldSpec;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -159,7 +91,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-public final class JigsawStudioService implements IrisService, JigsawStudioMenuController.Actions {
+public final class JigsawStudioService implements JigsawStudioMenuController.Actions {
+    private static final String WORLD_NAME_PREFIX = "jigsaw-";
+    private static final String MESSAGE_PREFIX = "[Iris Jigsaw Studio] ";
+    private static final ResourceId SAVE_SOUND = ResourceId.parse("minecraft:block.note_block.bell");
+    private static final float SAVE_SOUND_VOLUME = 0.65F;
+    private static final float SAVE_SOUND_PITCH = 1.65F;
+    private static final int CHUNK_SHIFT = 4;
+    private static final float TELEPORT_PITCH_DEGREES = 45.0F;
+    private static final int RECONCILE_RETRY_TICKS = 1;
+    private static final double BLOCK_CENTER = 0.5D;
     private static final int AUTOSAVE_DEBOUNCE_TICKS = 40;
     private static final int AUTOSAVE_RETRY_TICKS = 5;
     private static final int REPLACEMENT_CLOSE_WAIT_TICKS = 2_400;
@@ -177,13 +118,13 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     private static final int JIGSAW_TILE_WATCH_INTERVAL_TICKS = 5;
     private static final double VISUAL_RANGE = 96.0D;
     private static final double VISUAL_RANGE_SQUARED = VISUAL_RANGE * VISUAL_RANGE;
-    private static final Color SELECTED_COLOR = Color.AQUA;
-    private static final Color NEARBY_COLOR = Color.fromRGB(92, 102, 118);
-    private static final Color INVALID_BAY_COLOR = Color.RED;
-    private static final Color INVALID_CONNECTOR_COLOR = Color.RED;
-    private static final Color VALID_CONNECTOR_COLOR = Color.LIME;
-    private static final Color ASSEMBLY_PREVIEW_COLOR = Color.fromRGB(180, 90, 255);
-    private static final Color LIVE_PREVIEW_WARNING_COLOR = Color.fromRGB(255, 180, 55);
+    private static final int SELECTED_COLOR = 0x00FFFF;
+    private static final int NEARBY_COLOR = rgb(92, 102, 118);
+    private static final int INVALID_BAY_COLOR = 0xFF0000;
+    private static final int INVALID_CONNECTOR_COLOR = 0xFF0000;
+    private static final int VALID_CONNECTOR_COLOR = 0x00FF00;
+    private static final int ASSEMBLY_PREVIEW_COLOR = rgb(180, 90, 255);
+    private static final int LIVE_PREVIEW_WARNING_COLOR = rgb(255, 180, 55);
     private static final long ASSEMBLY_PREVIEW_MILLIS = 10_000L;
     private static final Set<String> MUTATING_COMMANDS = Set.of(
             "biome", "brush", "chunk", "clone", "copy", "cut", "data", "deform", "drain",
@@ -199,9 +140,11 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             .comparingInt((IrisJigsawConnector connector) -> connector.getPosition().getX())
             .thenComparingInt(connector -> connector.getPosition().getY())
             .thenComparingInt(connector -> connector.getPosition().getZ());
-    private static JigsawStudioService INSTANCE;
-
+    private final ModuleLog log;
+    private final JigsawStudioRegistry registry = new JigsawStudioRegistry();
+    private final JigsawStudioScheduler scheduler;
     private final Map<UUID, ActiveStudio> studios = new ConcurrentHashMap<>();
+    private final Map<UUID, Set<Long>> earlyChunks = new ConcurrentHashMap<>();
     private final Set<UUID> particlesDisabled = ConcurrentHashMap.newKeySet();
     private final Set<UUID> visualizationLoops = ConcurrentHashMap.newKeySet();
     private final Map<UUID, AssemblyPreview> assemblyPreviews = new ConcurrentHashMap<>();
@@ -213,7 +156,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     private final Map<UUID, JigsawStudioGraphEvaluation> evaluations = new ConcurrentHashMap<>();
     private final JigsawStudioTripleSneakTracker tripleSneakTracker = new JigsawStudioTripleSneakTracker();
     private final JigsawStudioToolCodec toolCodec = new JigsawStudioToolCodec();
-    private final JigsawStudioPreviewRenderer previewRenderer = new JigsawStudioPreviewRenderer();
+    private final JigsawStudioPreviewRenderer previewRenderer;
     private final AtomicBoolean disableStarted = new AtomicBoolean();
     private final Object saveLifecycleLock = new Object();
     private final Set<UUID> savesInProgress = new HashSet<>();
@@ -228,26 +171,38 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     private volatile JigsawStudioMenuController menuController;
     private volatile boolean enabled;
 
-    public static JigsawStudioService get() {
-        JigsawStudioService service = INSTANCE;
-        return service == null ? IrisServices.get(JigsawStudioService.class) : service;
+    public JigsawStudioService(ModuleLog log) {
+        this.log = Objects.requireNonNull(log, "Jigsaw Studio log");
+        this.scheduler = new JigsawStudioScheduler(log);
+        this.previewRenderer = new JigsawStudioPreviewRenderer(log);
+        this.menuController = new JigsawStudioMenuController(this, scheduler);
+        this.enabled = true;
+    }
+
+    public JigsawStudioRegistry registry() {
+        return registry;
+    }
+
+    private void reportError(Throwable cause) {
+        log.error("A Jigsaw Studio operation failed.", cause);
+    }
+
+    private void reportError(String message, Throwable cause) {
+        log.error(message, cause);
+    }
+
+    private void warn(String format, Object... arguments) {
+        log.warn(String.format(Locale.ROOT, format, arguments));
+    }
+
+    private void debug(String format, Object... arguments) {
+        if (log.debugging()) {
+            log.debug(String.format(Locale.ROOT, format, arguments));
+        }
     }
 
     public static void clearAutosaveHistory(Path packRoot, String structureKey) throws IOException {
         new JigsawStudioHistoryStore(packRoot, structureKey).delete();
-    }
-
-    @Override
-    public void onEnable() {
-        disableStarted.set(false);
-        enabled = true;
-        menuController = new JigsawStudioMenuController(BukkitPlatform.volmitPlugin(), this);
-        INSTANCE = this;
-    }
-
-    @Override
-    public void onDisable() {
-        quiesceForServerShutdown();
     }
 
     public void quiesceForServerShutdown() {
@@ -257,12 +212,12 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         try {
             finalizeAllJigsawTileWatches();
         } catch (Throwable exception) {
-            IrisLogging.reportError("Failed to finalize Jigsaw Studio tile watches during shutdown.", exception);
+            reportError("Failed to finalize Jigsaw Studio tile watches during shutdown.", exception);
         }
         try {
             drainAutosavesBeforeDisable();
         } catch (Throwable exception) {
-            IrisLogging.reportError("Failed to drain Jigsaw Studio autosaves during shutdown.", exception);
+            reportError("Failed to drain Jigsaw Studio autosaves during shutdown.", exception);
         }
         enabled = false;
         JigsawStudioMenuController activeMenuController = menuController;
@@ -271,7 +226,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             try {
                 activeMenuController.closeAll();
             } catch (Throwable exception) {
-                IrisLogging.reportError("Failed to close Jigsaw Studio menus during shutdown.", exception);
+                reportError("Failed to close Jigsaw Studio menus during shutdown.", exception);
             }
         }
         particlesDisabled.clear();
@@ -287,7 +242,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         try {
             previewRenderer.removeAll();
         } catch (Throwable exception) {
-            IrisLogging.reportError("Failed to remove Jigsaw Studio previews during shutdown.", exception);
+            reportError("Failed to remove Jigsaw Studio previews during shutdown.", exception);
         }
         reopenRequiredRequests.clear();
         unregisterRetries.clear();
@@ -301,111 +256,88 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             closingRequests.clear();
             discardingRequests.clear();
         }
-        INSTANCE = null;
+        scheduler.stop();
     }
 
-    public void register(Engine engine, JigsawStudioGenerator generator) {
+    /**
+     * Opens the tool world of a staged studio and registers the studio once its players can enter. The world is named
+     * after the request, so every studio is a world of its own.
+     */
+    public CompletableFuture<ToolWorld> open(ToolPack pack, JigsawStudioRegistry.StagedActivation staged) {
+        Objects.requireNonNull(pack, "Jigsaw Studio pack");
+        Objects.requireNonNull(staged, "Jigsaw Studio staged activation");
+        if (!enabled || disableStarted.get()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Jigsaw Studio is stopped."));
+        }
+        JigsawStudioGenerator generator = new JigsawStudioGenerator(pack, staged.request(), staged.session());
+        ToolWorldSpec spec = new ToolWorldSpec(
+                WORLD_NAME_PREFIX + staged.request().requestId(),
+                generator,
+                new JigsawStudioWorldListener(this, staged.request().requestId()));
+        return pack.worlds().open(spec).thenApply(world -> {
+            register(world, generator);
+            return world;
+        });
+    }
+
+    void register(ToolWorld world, JigsawStudioGenerator generator) {
         if (!enabled || disableStarted.get()) {
             return;
         }
-        Engine activeEngine = Objects.requireNonNull(engine, "Jigsaw Studio engine");
-        JigsawStudioGenerator activeGenerator = Objects.requireNonNull(generator, "Jigsaw Studio generator");
-        World world = BukkitWorldBinding.world(activeEngine.getTarget().getWorld());
-        if (world == null) {
-            return;
-        }
-        ActiveStudio existing = studios.get(world.getUID());
-        if (existing != null && existing.generator() == activeGenerator) {
-            return;
-        }
-        if (existing != null) {
-            UUID existingRequestId = existing.generator().getRequest().requestId();
-            finalizeJigsawTileWatches(existingRequestId);
-            drainAutosavesBeforeRemoval(existing);
-            if (requiresLifecycleDrain(existing) && !discardingRequest(existingRequestId)) {
-                IrisLogging.warn("Jigsaw Studio registration deferred while request %s finishes its final autosave drain",
-                        existingRequestId);
-                return;
-            }
-        }
+        UUID worldId = generator.getRequest().requestId();
         ActiveStudio next = new ActiveStudio(
-                world.getUID(),
+                worldId,
                 world,
-                activeEngine,
-                activeGenerator,
+                generator,
                 new ConcurrentHashMap<>(),
                 ConcurrentHashMap.newKeySet(),
+                ConcurrentHashMap.newKeySet(),
                 new AtomicLong());
-        UUID displacedRequestId = null;
         synchronized (saveLifecycleLock) {
             if (!enabled || disableStarted.get()) {
                 return;
             }
-            ActiveStudio previous = studios.get(world.getUID());
-            if (previous != null && previous.generator() == activeGenerator) {
-                return;
-            }
-            ActiveStudio displaced = studios.put(world.getUID(), next);
-            if (displaced != null) {
-                displacedRequestId = displaced.generator().getRequest().requestId();
-                savesInProgress.remove(displacedRequestId);
-                graphMutationsInProgress.remove(displacedRequestId);
-                materializationsInProgress.remove(displacedRequestId);
-                exportsInProgress.remove(displacedRequestId);
-                closingRequests.remove(displacedRequestId);
-                discardingRequests.remove(displacedRequestId);
-                reopenRequiredRequests.remove(displacedRequestId);
-            }
+            studios.put(worldId, next);
         }
-        if (displacedRequestId != null) {
-            clearAutosaves(displacedRequestId);
-            clearJigsawTileWatches(displacedRequestId);
-            unregisterRetries.remove(displacedRequestId);
-            unregisterDrainWarnings.remove(displacedRequestId);
-            tripleSneakTracker.clearRequest(displacedRequestId);
-            evaluations.remove(displacedRequestId);
-            previewRenderer.removeRequest(displacedRequestId);
-        }
-        IrisLogging.debug("Jigsaw Studio authoring registered: world=%s structure=%s bays=%d",
-                world.getName(), activeGenerator.getSession().structureKey(), activeGenerator.getLayout().bays().size());
+        debug("Jigsaw Studio authoring registered: world=%s structure=%s bays=%d",
+                world.name(), generator.getSession().structureKey(), generator.getLayout().bays().size());
+        replayChunksLoadedBeforeRegistration(next);
         scheduleInitialEvaluation(next);
-        scheduleOnlinePlayers(world.getUID());
+        scheduleOnlinePlayers(worldId);
     }
 
-    public void activationCommitted(World world, UUID requestId) {
-        if (!enabled || disableStarted.get() || world == null || requestId == null) {
+    private void replayChunksLoadedBeforeRegistration(ActiveStudio studio) {
+        Set<Long> early = earlyChunks.remove(studio.worldId());
+        if (early == null) {
             return;
         }
-        ActiveStudio studio = studios.get(world.getUID());
-        if (studio == null || !requestId.equals(studio.generator().getRequest().requestId())) {
+        for (long chunkKey : early) {
+            markChunkAvailable(studio, (int) (chunkKey >> 32), (int) chunkKey);
+        }
+    }
+
+    /** The studio whose world the player stands in; null when they stand elsewhere. */
+    private ActiveStudio studioOf(ToolPlayer player) {
+        return player.world().flatMap(this::studioIn).orElse(null);
+    }
+
+    private Optional<ActiveStudio> studioIn(ToolWorld world) {
+        return studios.values().stream().filter(studio -> studio.world() == world).findFirst();
+    }
+
+    public void activationCommitted(UUID requestId) {
+        if (!enabled || disableStarted.get() || requestId == null) {
             return;
         }
-        disableNaturalStudioSpawning(world);
+        ActiveStudio studio = studios.get(requestId);
+        if (studio == null) {
+            return;
+        }
         scheduleInitialEvaluation(studio);
     }
 
-    public void markChunkGenerated(
-            Engine engine,
-            JigsawStudioGenerator generator,
-            int chunkX,
-            int chunkZ
-    ) {
-        if (!enabled || disableStarted.get() || engine == null || generator == null) {
-            return;
-        }
-        World world = BukkitWorldBinding.world(engine.getTarget().getWorld());
-        if (world == null) {
-            return;
-        }
-        ActiveStudio studio = studios.get(world.getUID());
-        if (!enabled || disableStarted.get()
-                || studio == null || studio.engine() != engine || studio.generator() != generator) {
-            return;
-        }
-        markChunkAvailable(studio, chunkX, chunkZ);
-    }
-
     private void markChunkAvailable(ActiveStudio studio, int chunkX, int chunkZ) {
+        studio.loadedChunks().add(chunkKey(chunkX, chunkZ));
         long chunkKey = chunkKey(chunkX, chunkZ);
         boolean relevant = false;
         for (JigsawStudioBay bay : studio.generator().getLayout().bays()) {
@@ -419,28 +351,28 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         }
     }
 
-    public void unregister(World world) {
-        if (world == null) {
+    public void unregister(UUID worldId) {
+        if (worldId == null) {
             return;
         }
-        ActiveStudio active = studios.get(world.getUID());
+        ActiveStudio active = studios.get(worldId);
         if (active != null) {
             UUID activeRequestId = active.generator().getRequest().requestId();
             finalizeJigsawTileWatches(activeRequestId);
             drainAutosavesBeforeRemoval(active);
             if (requiresLifecycleDrain(active) && !discardingRequest(activeRequestId)) {
                 if (unregisterDrainWarnings.add(activeRequestId)) {
-                    IrisLogging.warn("Jigsaw Studio unregister deferred while request %s finishes its final autosave drain",
+                    warn("Jigsaw Studio unregister deferred while request %s finishes its final autosave drain",
                             activeRequestId);
                 }
-                scheduleUnregisterRetry(world, activeRequestId);
+                scheduleUnregisterRetry(worldId, activeRequestId);
                 return;
             }
         }
         ActiveStudio removed;
-        JigsawStudioActivation.Request request;
+        JigsawStudioRequest request;
         synchronized (saveLifecycleLock) {
-            removed = studios.remove(world.getUID());
+            removed = studios.remove(worldId);
             if (removed == null) {
                 return;
             }
@@ -462,28 +394,23 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         tripleSneakTracker.clearRequest(request.requestId());
         evaluations.remove(request.requestId());
         previewRenderer.forgetRequest(request.requestId());
-        JigsawStudioActivation.deactivate(request.packKey(), request.requestId());
-        clearWorldPlayerContexts(world.getUID());
-        IrisLogging.debug("Jigsaw Studio authoring unregistered: world=%s", world.getName());
+        registry.deactivate(request.packKey(), request.requestId());
+        clearWorldPlayerContexts(removed.world(), worldId);
+        debug("Jigsaw Studio authoring unregistered: world=%s", removed.world().name());
     }
 
-    private void scheduleUnregisterRetry(World world, UUID requestId) {
+    private void scheduleUnregisterRetry(UUID worldId, UUID requestId) {
         if (!enabled || !unregisterRetries.add(requestId)) {
             return;
         }
-        try {
-            J.s(() -> {
-                unregisterRetries.remove(requestId);
-                ActiveStudio current = studios.get(world.getUID());
-                if (current != null
-                        && current.generator().getRequest().requestId().equals(requestId)) {
-                    unregister(world);
-                }
-            }, AUTOSAVE_RETRY_TICKS);
-        } catch (Throwable exception) {
+        scheduler.later(AUTOSAVE_RETRY_TICKS, () -> {
             unregisterRetries.remove(requestId);
-            IrisLogging.reportError(exception);
-        }
+            ActiveStudio current = studios.get(worldId);
+            if (current != null
+                    && current.generator().getRequest().requestId().equals(requestId)) {
+                unregister(worldId);
+            }
+        });
     }
 
     public CloseStart tryBeginClose(UUID requestId, UUID ownerId, boolean discard) {
@@ -492,8 +419,8 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         }
         finalizeJigsawTileWatches(requestId);
         synchronized (saveLifecycleLock) {
-            JigsawStudioActivation.Request request = JigsawStudioActivation.getRequest(requestId);
-            JigsawStudioSession session = JigsawStudioActivation.getSession(requestId);
+            JigsawStudioRequest request = registry.getRequest(requestId);
+            JigsawStudioSession session = registry.getSession(requestId);
             if (request == null || session == null) {
                 return CloseStart.NOT_ACTIVE;
             }
@@ -551,7 +478,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             if (materializationsInProgress.contains(requestId)) {
                 return "The active Jigsaw Studio is loading or restoring a variant and cannot be closed yet.";
             }
-            JigsawStudioSession session = JigsawStudioActivation.getSession(requestId);
+            JigsawStudioSession session = registry.getSession(requestId);
             if (session != null && session.operationInProgress()) {
                 return "The active Jigsaw Studio is loading a variant and cannot be closed or replaced yet.";
             }
@@ -597,15 +524,11 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                                     : failure));
                     return;
                 }
-                try {
-                    J.s(() -> awaitCloseForReplacement(
-                            requestId,
-                            ownerId,
-                            readiness,
-                            waitedTicks + AUTOSAVE_RETRY_TICKS), AUTOSAVE_RETRY_TICKS);
-                } catch (Throwable exception) {
-                    readiness.completeExceptionally(exception);
-                }
+                scheduler.later(AUTOSAVE_RETRY_TICKS, () -> awaitCloseForReplacement(
+                        requestId,
+                        ownerId,
+                        readiness,
+                        waitedTicks + AUTOSAVE_RETRY_TICKS));
             }
         }
     }
@@ -656,8 +579,8 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         Objects.requireNonNull(ownerId, "Jigsaw Studio export owner ID");
         finalizeJigsawTileWatches(requestId);
         synchronized (saveLifecycleLock) {
-            JigsawStudioActivation.Request request = JigsawStudioActivation.getRequest(requestId);
-            JigsawStudioSession session = JigsawStudioActivation.getSession(requestId);
+            JigsawStudioRequest request = registry.getRequest(requestId);
+            JigsawStudioSession session = registry.getSession(requestId);
             if (request == null || session == null) {
                 return ExportStart.NOT_ACTIVE;
             }
@@ -698,14 +621,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         }
     }
 
-    public boolean saveSelected(Player player) {
+    public boolean saveSelected(ToolPlayer player) {
         if (player == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> saveSelected(player));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> saveSelected(player));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null) {
             message(player, "Iris Jigsaw Studio is not active in this world.");
             return false;
@@ -730,9 +653,8 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         JigsawStudioSession session = studio.generator().getSession();
         String selected = session.selectedBayId().orElse(null);
         if (selected == null) {
-            Location location = player.getLocation();
-            JigsawStudioBay underPlayer = session.layout().findAt(
-                    location.getBlockX(), location.getBlockY(), location.getBlockZ());
+            BlockPosition at = player.position();
+            JigsawStudioBay underPlayer = session.layout().findAt(at.x(), at.y(), at.z());
             if (underPlayer != null) {
                 selected = underPlayer.stableId();
                 session.selectBay(selected);
@@ -745,14 +667,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return saveBay(player, selected);
     }
 
-    public boolean saveBay(Player player, String bayId) {
+    public boolean saveBay(ToolPlayer player, String bayId) {
         if (player == null || bayId == null || bayId.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> saveBay(player, bayId));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> saveBay(player, bayId));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null) {
             message(player, "Iris Jigsaw Studio is not active in this world.");
             return false;
@@ -765,14 +687,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, "No Jigsaw Studio bay matches '" + bayId + "'.");
             return false;
         }
-        return startSave(studio, player.getWorld(), bay, player, true) == SaveAttempt.STARTED;
+        return startSave(studio, studio.world(), bay, player, true) == SaveAttempt.STARTED;
     }
 
     private SaveAttempt startSave(
             ActiveStudio studio,
-            World world,
+            ToolWorld world,
             JigsawStudioBay bay,
-            Player player,
+            ToolPlayer player,
             boolean report
     ) {
         UUID requestId = studio.generator().getRequest().requestId();
@@ -871,21 +793,21 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             session.abortSave(saveIdentity);
             finishSave(requestId);
             refreshWorkcellContext(studio.worldId(), bay.stableId());
-            IrisLogging.reportError(exception);
+            reportError(exception);
             report(player, report, "Jigsaw Studio could not schedule the workcell capture: "
                     + failureMessage(exception));
             return SaveAttempt.DEFERRED;
         }
     }
 
-    public boolean teleportTo(Player player, String bayId) {
+    public boolean teleportTo(ToolPlayer player, String bayId) {
         if (player == null || bayId == null || bayId.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> teleportTo(player, bayId));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> teleportTo(player, bayId));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null) {
             message(player, "Iris Jigsaw Studio is not active in this world.");
             return false;
@@ -903,37 +825,34 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             return false;
         }
         JigsawStudioBounds bounds = bay.bounds();
-        Location destination = new Location(
-                player.getWorld(),
+        studio.generator().getSession().selectBay(bay.stableId());
+        player.teleport(
+                studio.world(),
                 bounds.originX() + bounds.dimensions().width() / 2.0D,
                 bounds.maxY() + 2.0D,
                 bounds.originZ() + bounds.dimensions().depth() / 2.0D,
-                player.getLocation().getYaw(),
-                45.0F
-        );
-        studio.generator().getSession().selectBay(bay.stableId());
-        BukkitPlatform.teleportAsync(player, destination).thenRun(() -> J.runEntity(
-                player,
-                () -> reconcilePlayerContext(player, player.getLocation())));
+                player.yaw(),
+                TELEPORT_PITCH_DEGREES
+        ).thenRun(() -> JigsawStudioThreads.run(player, () -> reconcilePlayerContext(player, player.position())));
         message(player, "Selected Jigsaw Studio workcell '" + bay.stableId() + "'.");
         ensureVisualizationLoop(player);
         return true;
     }
 
     @Override
-    public boolean teleportToWorkcell(Player player, String workcellId) {
+    public boolean teleportToWorkcell(ToolPlayer player, String workcellId) {
         return teleportTo(player, workcellId);
     }
 
     @Override
-    public boolean setConnectorBlocksVisible(Player player, String workcellId, boolean visible) {
+    public boolean setConnectorBlocksVisible(ToolPlayer player, String workcellId, boolean visible) {
         if (player == null || workcellId == null || workcellId.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> setConnectorBlocksVisible(player, workcellId, visible));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> setConnectorBlocksVisible(player, workcellId, visible));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
@@ -973,7 +892,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         message(player, (visible ? "Showing" : "Hiding") + " connector blocks in " + workcellId + "...");
         return scheduleMaterialization(new MaterializationWork(
                 studio,
-                player.getWorld(),
+                studio.world(),
                 player,
                 workcell,
                 token,
@@ -985,14 +904,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     @Override
-    public boolean resetConnectorBlocks(Player player, String workcellId) {
+    public boolean resetConnectorBlocks(ToolPlayer player, String workcellId) {
         if (player == null || workcellId == null || workcellId.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> resetConnectorBlocks(player, workcellId));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> resetConnectorBlocks(player, workcellId));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
@@ -1010,7 +929,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         JigsawStudioGenerator.RenderedBay rendered = studio.generator().renderVariant(
                 workcell,
                 activeVariant);
-        String validationFailure = validateMaterialization(rendered);
+        String validationFailure = validateMaterialization(rendered, registryOf(studio));
         if (!validationFailure.isEmpty()) {
             message(player, "Connector blocks cannot reset: " + validationFailure);
             return false;
@@ -1036,14 +955,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     @Override
-    public boolean undoAutosave(Player player) {
+    public boolean undoAutosave(ToolPlayer player) {
         if (player == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> undoAutosave(player));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> undoAutosave(player));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
@@ -1061,13 +980,12 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                             workcell.stableId(),
                             studio.generator().renderBay(workcell))));
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         message(player, "Restoring the previous Jigsaw Studio autosave iteration...");
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
-                    Path packRoot = request.source().getDataFolder().toPath();
+                packRoot -> {
                     JigsawStudioHistoryStore.UndoResult result = new JigsawStudioHistoryStore(
                             packRoot,
                             request.structureKey()).undoLatest();
@@ -1104,29 +1022,29 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 });
     }
 
-    public boolean setParticles(Player player, boolean visible) {
+    public boolean setParticles(ToolPlayer player, boolean visible) {
         if (player == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> setParticles(player, visible));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> setParticles(player, visible));
         }
-        if (!studios.containsKey(player.getWorld().getUID())) {
+        if (studioOf(player) == null) {
             message(player, "Iris Jigsaw Studio is not active in this world.");
             return false;
         }
         if (visible) {
-            particlesDisabled.remove(player.getUniqueId());
+            particlesDisabled.remove(player.id());
             ensureVisualizationLoop(player);
         } else {
-            particlesDisabled.add(player.getUniqueId());
+            particlesDisabled.add(player.id());
         }
         message(player, "Jigsaw Studio particles " + (visible ? "enabled." : "disabled."));
         return true;
     }
 
     public boolean switchVariant(
-            Player player,
+            ToolPlayer player,
             String workcellId,
             String targetPieceKey,
             boolean discardDirty
@@ -1134,11 +1052,11 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (player == null || workcellId == null || targetPieceKey == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> switchVariant(
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> switchVariant(
                     player, workcellId, targetPieceKey, discardDirty));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null) {
             message(player, "Iris Jigsaw Studio is not active in this world.");
             return false;
@@ -1181,7 +1099,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private void reloadActiveVariant(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
             VariantReloadRequest reload
     ) {
@@ -1205,7 +1123,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private boolean materializeVariant(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
             JigsawStudioBay workcell,
             JigsawStudioSession.SwitchStart start,
@@ -1236,7 +1154,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         }
         JigsawStudioVariant previousVariant = token.previousVariant().orElse(null);
         if (previousVariant != null) {
-            String rollbackFailure = validateMaterialization(previous);
+            String rollbackFailure = validateMaterialization(previous, registryOf(studio));
             if (!rollbackFailure.isEmpty()) {
                 session.abortVariantSwitch(token);
                 refreshWorkcellContext(studio.worldId(), workcell.stableId());
@@ -1249,7 +1167,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         message(player, "Loading variant '" + targetPieceKey + "' into " + workcell.stableId() + "...");
         return scheduleMaterialization(new MaterializationWork(
                 studio,
-                player.getWorld(),
+                studio.world(),
                 player,
                 workcell,
                 token,
@@ -1261,17 +1179,17 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     public boolean createVariant(
-            Player player,
+            ToolPlayer player,
             String workcellId,
             boolean duplicateActive
     ) {
         if (player == null || workcellId == null || workcellId.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> createVariant(player, workcellId, duplicateActive));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> createVariant(player, workcellId, duplicateActive));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null) {
             message(player, "Iris Jigsaw Studio is not active in this world.");
             return false;
@@ -1296,7 +1214,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, sourceFailure);
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         if (duplicateActive && deferDuplicationUntilAutosaved(
                 player,
                 studio,
@@ -1322,8 +1240,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
-                    Path packRoot = request.source().getDataFolder().toPath();
+                packRoot -> {
                     String pieceKey = JigsawStudioGraphEditor.nextVariantKey(
                             packRoot, request.structureKey(), archetypeKey);
                     if (duplicateActive) {
@@ -1361,14 +1278,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     @Override
-    public boolean setWorkcellEnabled(Player player, String workcellId, boolean enabled) {
+    public boolean setWorkcellEnabled(ToolPlayer player, String workcellId, boolean enabled) {
         if (player == null || workcellId == null || workcellId.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> setWorkcellEnabled(player, workcellId, enabled));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> setWorkcellEnabled(player, workcellId, enabled));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
@@ -1388,14 +1305,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, reservationFailure);
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         JigsawPlanarArchetype archetype = workcell.archetype().orElseThrow();
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioStructureEditor.updateWorkcellEnabled(
-                            request.source().getDataFolder().toPath(),
+                            packRoot,
                             request.structureKey(),
                             archetype,
                             enabled);
@@ -1410,17 +1327,17 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
 
     @Override
     public boolean updateWorkcellDimensions(
-            Player player,
+            ToolPlayer player,
             String workcellId,
             JigsawStudioCellDimensions dimensions
     ) {
         if (player == null || workcellId == null || workcellId.isBlank() || dimensions == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> updateWorkcellDimensions(player, workcellId, dimensions));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> updateWorkcellDimensions(player, workcellId, dimensions));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
@@ -1445,21 +1362,21 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, reservationFailure);
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         JigsawPlanarArchetype archetype = workcell.archetype().orElse(null);
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioGraphEditor.WorkcellCapacityResult capacityResult = null;
                     if (archetype == null) {
                         JigsawStudioStructureEditor.updateCellSize(
-                                request.source().getDataFolder().toPath(),
+                                packRoot,
                                 request.structureKey(),
                                 dimensions);
                     } else {
                         capacityResult = JigsawStudioGraphEditor.updatePlanarWorkcellCapacity(
-                                request.source().getDataFolder().toPath(),
+                                packRoot,
                                 request.structureKey(),
                                 archetype,
                                 dimensions);
@@ -1481,18 +1398,18 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     @Override
-    public boolean setRequireCaps(Player player, boolean requireCaps) {
+    public boolean setRequireCaps(ToolPlayer player, boolean requireCaps) {
         if (player == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> setRequireCaps(player, requireCaps));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> setRequireCaps(player, requireCaps));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         if (request.compatibilityTarget() == JigsawStudioCompatibilityTarget.VANILLA_PORTABLE
                 && requireCaps) {
             message(player, "Mandatory caps are Iris-only and cannot be enabled for a vanilla-portable graph.");
@@ -1516,9 +1433,9 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioStructureEditor.updateRequireCaps(
-                            request.source().getDataFolder().toPath(),
+                            packRoot,
                             request.structureKey(),
                             requireCaps);
                     return new CommandGraphMutationResult(
@@ -1531,18 +1448,18 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     @Override
-    public boolean duplicateActiveFamily(Player player, String themeKey) {
+    public boolean duplicateActiveFamily(ToolPlayer player, String themeKey) {
         if (player == null || themeKey == null || themeKey.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> duplicateActiveFamily(player, themeKey));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> duplicateActiveFamily(player, themeKey));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         if (request.compatibilityTarget() == JigsawStudioCompatibilityTarget.VANILLA_PORTABLE) {
             message(player, "Coherent variant families are Iris-only and cannot be added to a vanilla-portable graph.");
             return false;
@@ -1580,10 +1497,10 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioGraphEditor.VariantFamilyCreation creation =
                             JigsawStudioGraphEditor.duplicateActiveFamily(
-                                    request.source().getDataFolder().toPath(),
+                                    packRoot,
                                     request.structureKey(),
                                     sourcePieces,
                                     themeKey);
@@ -1607,18 +1524,18 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     @Override
-    public boolean updateThemeSetWeight(Player player, String themeKey, int weight) {
+    public boolean updateThemeSetWeight(ToolPlayer player, String themeKey, int weight) {
         if (player == null || themeKey == null || themeKey.isBlank() || weight < 1) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> updateThemeSetWeight(player, themeKey, weight));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> updateThemeSetWeight(player, themeKey, weight));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         if (request.compatibilityTarget() == JigsawStudioCompatibilityTarget.VANILLA_PORTABLE) {
             message(player, "Coherent theme sets are Iris-only.");
             return false;
@@ -1655,9 +1572,9 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioStructureEditor.updateThemeSets(
-                            request.source().getDataFolder().toPath(),
+                            packRoot,
                             request.structureKey(),
                             updated);
                     return new CommandGraphMutationResult(
@@ -1670,7 +1587,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
 
     @Override
     public boolean updateVariantThemes(
-            Player player,
+            ToolPlayer player,
             String workcellId,
             String pieceKey,
             List<String> themes
@@ -1678,11 +1595,11 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (player == null || pieceKey == null || themes == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> updateVariantThemes(
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> updateVariantThemes(
                     player, workcellId, pieceKey, themes));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
@@ -1690,7 +1607,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (variant == null) {
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         List<String> targetThemes = List.copyOf(themes);
         if (request.compatibilityTarget() == JigsawStudioCompatibilityTarget.VANILLA_PORTABLE
                 && !targetThemes.isEmpty()) {
@@ -1723,9 +1640,9 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioGraphEditor.updatePieceThemes(
-                            request.source().getDataFolder().toPath(),
+                            packRoot,
                             request.structureKey(),
                             variant.pieceKey(),
                             targetThemes);
@@ -1739,7 +1656,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
 
     @Override
     public boolean updateVariantRules(
-            Player player,
+            ToolPlayer player,
             String workcellId,
             String pieceKey,
             JigsawStudioPieceRules rules
@@ -1747,11 +1664,11 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (player == null || pieceKey == null || rules == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> updateVariantRules(
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> updateVariantRules(
                     player, workcellId, pieceKey, rules));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
@@ -1759,7 +1676,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (variant == null) {
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         if (request.compatibilityTarget() == JigsawStudioCompatibilityTarget.VANILLA_PORTABLE
                 && !DEFAULT_PIECE_RULES.equals(rules)) {
             message(player, "Piece placement rules are Iris-only for a vanilla-portable graph.");
@@ -1778,9 +1695,9 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioGraphEditor.updatePieceRules(
-                            request.source().getDataFolder().toPath(),
+                            packRoot,
                             request.structureKey(),
                             variant.pieceKey(),
                             rules);
@@ -1792,14 +1709,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 });
     }
 
-    public boolean toggleVariantRotatable(Player player, String workcellId) {
+    public boolean toggleVariantRotatable(ToolPlayer player, String workcellId) {
         if (player == null || workcellId == null || workcellId.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> toggleVariantRotatable(player, workcellId));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> toggleVariantRotatable(player, workcellId));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio != null && !authorizeOwner(player, studio)) {
             return false;
         }
@@ -1807,7 +1724,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (variant == null) {
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         if (!canToggleVariantRotation(request.compatibilityTarget(), variant)) {
             message(player, "Vanilla-portable variants must remain rotatable.");
             return false;
@@ -1822,9 +1739,9 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioGraphEditor.updateRotatable(
-                            request.source().getDataFolder().toPath(),
+                            packRoot,
                             request.structureKey(),
                             variant.pieceKey(),
                             rotatable);
@@ -1836,14 +1753,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 });
     }
 
-    public boolean expandVariantToCell(Player player, String workcellId) {
+    public boolean expandVariantToCell(ToolPlayer player, String workcellId) {
         if (player == null || workcellId == null || workcellId.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> expandVariantToCell(player, workcellId));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> expandVariantToCell(player, workcellId));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio != null && !authorizeOwner(player, studio)) {
             return false;
         }
@@ -1862,7 +1779,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
 
     @Override
     public boolean resizeVariant(
-            Player player,
+            ToolPlayer player,
             String workcellId,
             String pieceKey,
             JigsawStudioCellDimensions dimensions
@@ -1871,10 +1788,10 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 || pieceKey == null || pieceKey.isBlank() || dimensions == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> resizeVariant(player, workcellId, pieceKey, dimensions));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> resizeVariant(player, workcellId, pieceKey, dimensions));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
@@ -1923,16 +1840,16 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, reservationFailure);
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         message(player, "Resizing variant '" + variant.resolvedDisplayName() + "' to "
                 + dimensions.width() + "x" + dimensions.height() + "x" + dimensions.depth() + "...");
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioGraphEditor.VariantResizeResult resize =
                             JigsawStudioGraphEditor.resizePieceObject(
-                            request.source().getDataFolder().toPath(),
+                            packRoot,
                             request.structureKey(),
                             variant.pieceKey(),
                             dimensions);
@@ -1954,7 +1871,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
 
     @Override
     public boolean updateVariantDisplayName(
-            Player player,
+            ToolPlayer player,
             String workcellId,
             String pieceKey,
             String displayName
@@ -1962,11 +1879,11 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (player == null || workcellId == null || pieceKey == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> updateVariantDisplayName(
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> updateVariantDisplayName(
                     player, workcellId, pieceKey, displayName));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
@@ -1993,13 +1910,13 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, reservationFailure);
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioGraphEditor.updatePieceDisplayName(
-                            request.source().getDataFolder().toPath(),
+                            packRoot,
                             request.structureKey(),
                             pieceKey,
                             normalizedName);
@@ -2015,17 +1932,17 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
 
     @Override
     public boolean updateWorkcellDisplayName(
-            Player player,
+            ToolPlayer player,
             String workcellId,
             String displayName
     ) {
         if (player == null || workcellId == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> updateWorkcellDisplayName(player, workcellId, displayName));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> updateWorkcellDisplayName(player, workcellId, displayName));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
@@ -2047,20 +1964,20 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, reservationFailure);
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         JigsawPlanarArchetype archetype = workcell.archetype().orElse(null);
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     if (archetype == null) {
                         JigsawStudioStructureEditor.updateSpatialWorkcellDisplayName(
-                                request.source().getDataFolder().toPath(),
+                                packRoot,
                                 request.structureKey(),
                                 normalizedName);
                     } else {
                         JigsawStudioStructureEditor.updateWorkcellDisplayName(
-                                request.source().getDataFolder().toPath(),
+                                packRoot,
                                 request.structureKey(),
                                 archetype,
                                 normalizedName);
@@ -2077,7 +1994,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
 
     @Override
     public boolean adjustVariantWeight(
-            Player player,
+            ToolPlayer player,
             String workcellId,
             String pieceKey,
             String poolKey,
@@ -2090,11 +2007,11 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (player == null || workcellId == null || pieceKey == null || poolKey == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> adjustVariantWeight(
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> adjustVariantWeight(
                     player, workcellId, pieceKey, poolKey, entryIndex, delta));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio != null && !authorizeOwner(player, studio)) {
             return false;
         }
@@ -2125,13 +2042,13 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, reservationFailure);
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioPoolEditor.updateWeightAtIndex(
-                            request.source().getDataFolder().toPath(),
+                            packRoot,
                             request.structureKey(),
                             membership.poolKey(),
                             membership.entryIndex(),
@@ -2148,7 +2065,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
 
     @Override
     public boolean adjustVariantChance(
-            Player player,
+            ToolPlayer player,
             String workcellId,
             String pieceKey,
             String poolKey,
@@ -2159,8 +2076,8 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 || pieceKey == null || poolKey == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> adjustVariantChance(
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> adjustVariantChance(
                     player,
                     workcellId,
                     pieceKey,
@@ -2168,7 +2085,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                     entryIndex,
                     deltaPercentagePoints));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio != null && !authorizeOwner(player, studio)) {
             return false;
         }
@@ -2187,7 +2104,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             return false;
         }
         chance = Math.round(chance * 1_000_000.0D) / 1_000_000.0D;
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         if (request.compatibilityTarget() == JigsawStudioCompatibilityTarget.VANILLA_PORTABLE
                 && chance != 1.0D) {
             message(player, "Chance gates are Iris-only and cannot be added to a vanilla-portable graph.");
@@ -2203,9 +2120,9 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioPoolEditor.updateChanceAtIndex(
-                            request.source().getDataFolder().toPath(),
+                            packRoot,
                             request.structureKey(),
                             membership.poolKey(),
                             membership.entryIndex(),
@@ -2222,15 +2139,15 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     @Override
-    public boolean deleteVariant(Player player, String workcellId, String pieceKey) {
+    public boolean deleteVariant(ToolPlayer player, String workcellId, String pieceKey) {
         if (player == null || workcellId == null || workcellId.isBlank()
                 || pieceKey == null || pieceKey.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> deleteVariant(player, workcellId, pieceKey));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> deleteVariant(player, workcellId, pieceKey));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
@@ -2258,14 +2175,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, reservationFailure);
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioGraphEditor.PieceDeletionResult deletion =
                             JigsawStudioGraphEditor.deletePieceVariant(
-                                    request.source().getDataFolder().toPath(),
+                                    packRoot,
                                     request.structureKey(),
                                     pieceKey);
                     return new CommandGraphMutationResult(
@@ -2278,19 +2195,19 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 });
     }
 
-    public boolean deleteProject(Player player) {
+    public boolean deleteProject(ToolPlayer player) {
         if (player == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> deleteProject(player));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> deleteProject(player));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
-        CloseStart closeStart = tryBeginClose(request.requestId(), player.getUniqueId(), false);
+        JigsawStudioRequest request = studio.generator().getRequest();
+        CloseStart closeStart = tryBeginClose(request.requestId(), player.id(), false);
         if (closeStart != CloseStart.STARTED) {
             message(player, switch (closeStart) {
                 case DIRTY -> "Wait for autosave to finish before deleting this project.";
@@ -2302,24 +2219,23 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             });
             return false;
         }
-        Path packRoot = request.source().getDataFolder().toPath();
         message(player, "Inspecting owned resources and reverse references before project deletion...");
-        J.a(() -> inspectProjectDeletion(player, studio, request, packRoot));
+        scheduler.async(() -> inspectProjectDeletion(player, studio, request));
         return true;
     }
 
     private void inspectProjectDeletion(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
-            JigsawStudioActivation.Request request,
-            Path packRoot
+            JigsawStudioRequest request
     ) {
         JigsawStudioProjectDeletionService.DeletionPlan plan;
         try {
-            plan = JigsawStudioProjectDeletionService.inspect(packRoot, request.structureKey());
+            plan = studio.generator().getPack().edit(packRoot ->
+                    JigsawStudioProjectDeletionService.inspect(packRoot, request.structureKey()));
         } catch (Throwable exception) {
             cancelClose(request.requestId());
-            IrisLogging.reportError(exception);
+            reportError(exception);
             message(player, "Project deletion inspection failed: " + failureMessage(exception));
             return;
         }
@@ -2331,21 +2247,20 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                     + plan.blockers().getFirst().location() + ".");
             return;
         }
-        boolean scheduled = J.runEntity(
+        scheduler.onPlayerLater(
                 player,
                 () -> closeAndDeleteProject(player, studio, request, plan),
                 0,
-                () -> cancelClose(request.requestId()));
-        if (!scheduled) {
-            cancelClose(request.requestId());
-            message(player, "Project deletion stopped because the owner session ended.");
-        }
+                () -> {
+                    cancelClose(request.requestId());
+                    message(player, "Project deletion stopped because the owner session ended.");
+                });
     }
 
     private void closeAndDeleteProject(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
-            JigsawStudioActivation.Request request,
+            JigsawStudioRequest request,
             JigsawStudioProjectDeletionService.DeletionPlan plan
     ) {
         if (!isCurrentRequest(studio, request.requestId())) {
@@ -2353,46 +2268,43 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, "Project deletion stopped because the Jigsaw Studio session changed.");
             return;
         }
-        IrisServices.get(StudioSVC.class).close().whenComplete((result, throwable) -> {
-            Throwable failure = throwable != null
-                    ? throwable
-                    : result == null ? new IllegalStateException("Studio close completed without a result")
-                    : result.failureCause();
+        studio.world().close().whenComplete((ignored, failure) -> {
             if (failure != null) {
                 cancelClose(request.requestId());
-                IrisLogging.reportError(failure);
+                reportError(failure);
                 message(player, "Project deletion stopped because Studio could not close: "
                         + failureMessage(failure));
                 return;
             }
-            J.a(() -> applyProjectDeletion(player, request, plan));
+            scheduler.async(() -> applyProjectDeletion(player, studio.generator().getPack(), request, plan));
         });
     }
 
     private void applyProjectDeletion(
-            Player player,
-            JigsawStudioActivation.Request request,
+            ToolPlayer player,
+            ToolPack pack,
+            JigsawStudioRequest request,
             JigsawStudioProjectDeletionService.DeletionPlan plan
     ) {
         try {
-            JigsawStudioProjectDeletionService.ProjectDeletionResult result =
-                    JigsawStudioProjectDeletionService.delete(plan);
-            try {
-                clearAutosaveHistory(
-                        request.source().getDataFolder().toPath(),
-                        request.structureKey());
-            } catch (IOException historyFailure) {
-                IrisLogging.reportError(historyFailure);
-                message(player, "The project graph was deleted, but its autosave history could not be removed: "
-                        + failureMessage(historyFailure));
-            }
-            request.source().invalidateStructureResources();
+            JigsawStudioProjectDeletionService.ProjectDeletionResult result = pack.edit(packRoot -> {
+                JigsawStudioProjectDeletionService.ProjectDeletionResult deleted =
+                        JigsawStudioProjectDeletionService.delete(plan);
+                try {
+                    clearAutosaveHistory(packRoot, request.structureKey());
+                } catch (IOException historyFailure) {
+                    reportError(historyFailure);
+                    message(player, "The project graph was deleted, but its autosave history could not be removed: "
+                            + failureMessage(historyFailure));
+                }
+                return deleted;
+            });
             message(player, "Deleted Jigsaw project '" + request.structureKey() + "' and "
                     + result.removedResourceCount() + " owned resource(s).");
-            IrisLogging.debug("Jigsaw Studio project deleted: structure=%s resources=%d",
+            debug("Jigsaw Studio project deleted: structure=%s resources=%d",
                     request.structureKey(), result.removedResourceCount());
         } catch (Throwable exception) {
-            IrisLogging.reportError(exception);
+            reportError(exception);
             message(player, "Studio closed, but the project was not deleted: "
                     + failureMessage(exception) + ". Its files remain recoverable on disk.");
         }
@@ -2400,7 +2312,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
 
     @Override
     public boolean unlinkVariantMembership(
-            Player player,
+            ToolPlayer player,
             String workcellId,
             String pieceKey,
             String poolKey,
@@ -2409,11 +2321,11 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (player == null || workcellId == null || pieceKey == null || poolKey == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> unlinkVariantMembership(
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> unlinkVariantMembership(
                     player, workcellId, pieceKey, poolKey, entryIndex));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio != null && !authorizeOwner(player, studio)) {
             return false;
         }
@@ -2432,13 +2344,13 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, reservationFailure);
             return false;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         return scheduleGraphMutation(
                 player,
                 studio,
-                () -> {
+                packRoot -> {
                     JigsawStudioPoolEditor.removeEntry(
-                            request.source().getDataFolder().toPath(),
+                            packRoot,
                             request.structureKey(),
                             membership.poolKey(),
                             membership.entryIndex(),
@@ -2452,14 +2364,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 });
     }
 
-    public boolean previewStudio(Player player, long seed) {
+    public boolean previewStudio(ToolPlayer player, long seed) {
         if (player == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> previewStudio(player, seed));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> previewStudio(player, seed));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null) {
             message(player, "Iris Jigsaw Studio is not active in this world.");
             return false;
@@ -2467,61 +2379,59 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (!authorizeOwner(player, studio)) {
             return false;
         }
-        Location location = player.getLocation();
-        IrisPosition origin = new IrisPosition(
-                location.getBlockX(), location.getBlockY(), location.getBlockZ());
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
-        J.a(() -> {
+        BlockPosition playerAt = player.position();
+        IrisPosition origin = new IrisPosition(playerAt.x(), playerAt.y(), playerAt.z());
+        JigsawStudioRequest request = studio.generator().getRequest();
+        ToolPack pack = studio.generator().getPack();
+        scheduler.async(() -> {
             try {
                 IrisStructure structure = StructureResources.structure(
-                        request.source().getPackResources(), request.structureKey());
+                        pack.resources(), request.structureKey());
                 if (structure == null) {
                     throw new IOException("The active structure resource no longer exists");
                 }
-                StructureAssembler assembler = StructureAssemblies.forData(
-                        request.source(), structure, origin);
+                StructureAssembler assembler = StructureAssembler.forData(
+                        request.source(), structure, origin, pack.log());
                 StructureAssemblyResult assembly = assembler.assemble(new RNG(seed));
                 if (!assembly.hasOutput()) {
                     message(player, "The active graph assembled zero preview pieces.");
                     return;
                 }
                 List<PlacedStructurePiece> pieces = assembly.pieces();
-                if (!J.runEntity(player, () -> {
+                JigsawStudioThreads.run(player, () -> {
                     if (isCurrentRequest(studio, request.requestId())) {
                         showAssemblyPreview(player, pieces);
                         message(player, "Showing a " + pieces.size()
                                 + "-piece particle preview for 10 seconds.");
                     }
-                })) {
-                    message(player, "The preview completed after the player session ended.");
-                }
+                });
             } catch (Throwable exception) {
-                IrisLogging.reportError(exception);
+                reportError(exception);
                 message(player, "Preview assembly failed: " + failureMessage(exception));
             }
         });
         return true;
     }
 
-    public Optional<JigsawStudioGraphEvaluation> evaluation(Player player) {
-        if (player == null || !J.isOwnedByCurrentRegion(player)) {
+    public Optional<JigsawStudioGraphEvaluation> evaluation(ToolPlayer player) {
+        if (player == null || !JigsawStudioThreads.owns(player)) {
             return Optional.empty();
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !ownerMatches(player, studio)) {
             return Optional.empty();
         }
         return Optional.ofNullable(evaluations.get(studio.generator().getRequest().requestId()));
     }
 
-    public boolean goToPreview(Player player) {
+    public boolean goToPreview(ToolPlayer player) {
         if (player == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> goToPreview(player));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> goToPreview(player));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
@@ -2534,16 +2444,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                     : "The seed-1337 preview has no generated blocks: " + evaluation.detail());
             return false;
         }
-        Location destination = new Location(
+        player.teleport(
                 studio.world(),
                 bounds.centerX() + 0.5D,
                 bounds.maximumY() + 2.0D,
                 bounds.centerZ() + 0.5D,
-                player.getLocation().getYaw(),
-                player.getLocation().getPitch());
-        BukkitPlatform.teleportAsync(player, destination).thenRun(() -> J.runEntity(
-                player,
-                () -> message(player, "Teleported to the live seed-1337 preview.")));
+                player.yaw(),
+                player.pitch()
+        ).thenRun(() -> message(player, "Teleported to the live seed-1337 preview."));
         return true;
     }
 
@@ -2551,7 +2459,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (studio == null) {
             return;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         UUID requestId = request.requestId();
         if (!claimInitialEvaluation(
                 studio.evaluationGeneration(),
@@ -2571,7 +2479,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (studio == null) {
             return;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         UUID requestId = request.requestId();
         if (!isCurrentRequest(studio, requestId)) {
             return;
@@ -2594,15 +2502,15 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 "Compiling the committed graph and assembling seed 1337",
                 previousBounds));
         refreshAllWorkcellContexts(studio);
-        J.a(() -> evaluateGraph(studio, requestId, generation));
+        scheduler.async(() -> evaluateGraph(studio, requestId, generation));
     }
 
     private void evaluateGraph(ActiveStudio studio, UUID requestId, long generation) {
         EvaluationComputation computation;
         try {
-            JigsawStudioActivation.Request request = studio.generator().getRequest();
+            JigsawStudioRequest request = studio.generator().getRequest();
             IrisStructure structure = StructureResources.structure(
-                    request.source().getPackResources(),
+                    studio.generator().getPack().resources(),
                     request.structureKey());
             if (structure == null) {
                 throw new IOException("The active structure resource no longer exists");
@@ -2627,10 +2535,11 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                         generation,
                         compilation,
                         assembly,
-                        studio.generator().getLayout().mode());
+                        studio.generator().getLayout().mode(),
+                        studio.generator().getPack().resources().blocks());
             }
         } catch (Throwable exception) {
-            IrisLogging.reportError(exception);
+            reportError(exception);
             computation = invalidEvaluation(requestId, generation, failureMessage(exception));
         }
         completeEvaluation(studio, computation);
@@ -2641,7 +2550,8 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             long generation,
             StructureGraphCompilation compilation,
             StructureAssemblyResult assembly,
-            JigsawStudioMode mode
+            JigsawStudioMode mode,
+            BlockRegistry blocks
     ) throws IOException {
         if (assembly.status().isFailure()) {
             return invalidEvaluation(
@@ -2665,7 +2575,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                     JigsawStudioPreviewRenderer.PreviewPlan.empty());
         }
         List<PlacedStructurePiece> aligned = alignPreviewPieces(assembly.pieces(), mode);
-        JigsawStudioPreviewRenderer.PreviewPlan plan = JigsawStudioPreviewRenderer.plan(aligned);
+        JigsawStudioPreviewRenderer.PreviewPlan plan = JigsawStudioPreviewRenderer.plan(aligned, blocks);
         StructureGraphDiagnostic firstWarning = firstDiagnostic(
                 compilation,
                 StructureGraphDiagnostic.Severity.WARNING);
@@ -2802,8 +2712,8 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private static IrisStructure loadStudioStructure(ActiveStudio studio) {
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
-        return StructureResources.structure(request.source().getPackResources(), request.structureKey());
+        JigsawStudioRequest request = studio.generator().getRequest();
+        return StructureResources.structure(studio.generator().getPack().resources(), request.structureKey());
     }
 
     private static boolean canResizeVariantToCapacity(
@@ -2827,18 +2737,18 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 || canonical.depth() < target.depth());
     }
 
-    public Optional<JigsawStudioMenuState> menuState(Player player) {
-        if (player == null || !J.isOwnedByCurrentRegion(player)) {
+    public Optional<JigsawStudioMenuState> menuState(ToolPlayer player) {
+        if (player == null || !JigsawStudioThreads.owns(player)) {
             return Optional.empty();
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null) {
             return Optional.empty();
         }
         if (!ownerMatches(player, studio)) {
             return Optional.empty();
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         JigsawStudioSession session = studio.generator().getSession();
         JigsawStudioLayout layout = session.layout();
         IrisStructure structure = loadStudioStructure(studio);
@@ -2909,14 +2819,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 workcells));
     }
 
-    public boolean selectWorkcell(Player player, String workcellId) {
+    public boolean selectWorkcell(ToolPlayer player, String workcellId) {
         if (player == null || workcellId == null || workcellId.isBlank()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> selectWorkcell(player, workcellId));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> selectWorkcell(player, workcellId));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null) {
             message(player, "Iris Jigsaw Studio is not active in this world.");
             return false;
@@ -2933,10 +2843,10 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return true;
     }
 
-    public boolean openControlMenu(Player player) {
-        if (player != null && J.isOwnedByCurrentRegion(player)) {
-            finalizeJigsawTileWatchesForPlayer(player.getUniqueId());
-            ActiveStudio studio = studios.get(player.getWorld().getUID());
+    public boolean openControlMenu(ToolPlayer player) {
+        if (player != null && JigsawStudioThreads.owns(player)) {
+            finalizeJigsawTileWatchesForPlayer(player.id());
+            ActiveStudio studio = studioOf(player);
             if (studio != null
                     && reopenRequiredRequests.contains(studio.generator().getRequest().requestId())) {
                 message(player, "Close and reopen Jigsaw Studio to apply the resized workcell layout.");
@@ -2947,38 +2857,33 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return activeMenuController != null && activeMenuController.open(player);
     }
 
-    public boolean giveTool(Player player, JigsawStudioToolPayload payload) {
+    public boolean giveTool(ToolPlayer player, JigsawStudioToolPayload payload) {
         if (player == null || payload == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> giveTool(player, payload));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> giveTool(player, payload));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null
                 || !studio.generator().getRequest().requestId().equals(payload.requestId())
                 || !authorizeOwner(player, studio)) {
             message(player, "This tool belongs to a different or closed Jigsaw Studio session.");
             return false;
         }
-        ItemStack tool = toolCodec.create(payload);
-        Map<Integer, ItemStack> rejected = player.getInventory().addItem(tool);
-        if (!rejected.isEmpty()) {
-            message(player, "Your inventory is full; no Jigsaw Studio tool was added.");
-            return false;
-        }
+        player.give(toolCodec.create(payload));
         message(player, "Added " + payload.action().displayName() + " tool.");
         return true;
     }
 
-    public boolean flushAutosave(Player player, String workcellId) {
+    public boolean flushAutosave(ToolPlayer player, String workcellId) {
         if (player == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> flushAutosave(player, workcellId));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> flushAutosave(player, workcellId));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !authorizeOwner(player, studio)) {
             return false;
         }
@@ -3015,7 +2920,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return false;
     }
 
-    public void closeMenu(Player player) {
+    public void closeMenu(ToolPlayer player) {
         JigsawStudioMenuController activeMenuController = menuController;
         if (activeMenuController != null) {
             activeMenuController.close(player);
@@ -3023,15 +2928,15 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private boolean useTool(
-            Player player,
+            ToolPlayer player,
             JigsawStudioToolPayload payload,
-            ItemStack tool,
+            ToolItem tool,
             boolean resetLabel
     ) {
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> useTool(player, payload, tool, resetLabel));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> useTool(player, payload, tool, resetLabel));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null
                 || !studio.generator().getRequest().requestId().equals(payload.requestId())
                 || !authorizeOwner(player, studio)) {
@@ -3091,7 +2996,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         };
     }
 
-    private boolean toggleWorkcellFromTool(Player player, String workcellId) {
+    private boolean toggleWorkcellFromTool(ToolPlayer player, String workcellId) {
         Optional<JigsawStudioMenuState> state = menuState(player);
         JigsawStudioMenuState.Workcell workcell = state
                 .map(menu -> menu.workcell(workcellId))
@@ -3103,13 +3008,13 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return setWorkcellEnabled(player, workcellId, !workcell.enabled());
     }
 
-    private boolean openWorkcellSettingsFromTool(Player player, String workcellId) {
+    private boolean openWorkcellSettingsFromTool(ToolPlayer player, String workcellId) {
         JigsawStudioMenuController activeMenuController = menuController;
         return activeMenuController != null
                 && activeMenuController.openWorkcellSettings(player, workcellId);
     }
 
-    private boolean openVariantSettingsFromTool(Player player, JigsawStudioToolPayload payload) {
+    private boolean openVariantSettingsFromTool(ToolPlayer player, JigsawStudioToolPayload payload) {
         JigsawStudioMenuController activeMenuController = menuController;
         return activeMenuController != null
                 && activeMenuController.openVariantSettings(
@@ -3118,7 +3023,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 payload.pieceKey());
     }
 
-    private boolean openVariantSizeSettingsFromTool(Player player, JigsawStudioToolPayload payload) {
+    private boolean openVariantSizeSettingsFromTool(ToolPlayer player, JigsawStudioToolPayload payload) {
         JigsawStudioMenuController activeMenuController = menuController;
         return activeMenuController != null
                 && activeMenuController.openVariantSizeSettings(
@@ -3128,9 +3033,9 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private boolean renameVariantFromTool(
-            Player player,
+            ToolPlayer player,
             JigsawStudioToolPayload payload,
-            ItemStack tool,
+            ToolItem tool,
             boolean resetLabel
     ) {
         Optional<String> displayName = toolDisplayName(player, payload, tool, resetLabel);
@@ -3142,9 +3047,9 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private boolean renameWorkcellFromTool(
-            Player player,
+            ToolPlayer player,
             JigsawStudioToolPayload payload,
-            ItemStack tool,
+            ToolItem tool,
             boolean resetLabel
     ) {
         Optional<String> displayName = toolDisplayName(player, payload, tool, resetLabel);
@@ -3155,20 +3060,16 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private static Optional<String> toolDisplayName(
-            Player player,
+            ToolPlayer player,
             JigsawStudioToolPayload payload,
-            ItemStack tool,
+            ToolItem tool,
             boolean resetLabel
     ) {
         if (resetLabel) {
             return Optional.of("");
         }
-        String displayName = tool == null || !tool.hasItemMeta() || tool.getItemMeta() == null
-                ? ""
-                : tool.getItemMeta().getDisplayName();
-        String normalized = ChatColor.stripColor(displayName);
-        normalized = normalized == null ? "" : normalized.trim();
-        String defaultName = "Jigsaw Studio: " + payload.action().displayName();
+        String normalized = tool == null ? "" : tool.name().trim();
+        String defaultName = JigsawStudioToolCodec.NAME_PREFIX + payload.action().displayName();
         if (normalized.isEmpty() || normalized.equals(defaultName)) {
             message(player, "Rename this bound stick in an anvil to the desired label, then right-click it. "
                     + "Sneak-right-click resets the label.");
@@ -3177,7 +3078,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return Optional.of(normalized);
     }
 
-    private boolean useThemeTool(Player player, JigsawStudioToolPayload payload) {
+    private boolean useThemeTool(ToolPlayer player, JigsawStudioToolPayload payload) {
         if (!payload.pieceKey().isBlank()) {
             return openVariantSettingsFromTool(player, payload);
         }
@@ -3190,35 +3091,35 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 JigsawStudioMenuController.nextThemeSetKey(state.get().themeSets()));
     }
 
-    private boolean duplicateFamilyFromTool(Player player) {
+    private boolean duplicateFamilyFromTool(ToolPlayer player) {
         Optional<JigsawStudioMenuState> state = menuState(player);
         return state.isPresent() && duplicateActiveFamily(
                 player,
                 JigsawStudioMenuController.nextThemeSetKey(state.get().themeSets()));
     }
 
-    private boolean toggleRequireCapsFromTool(Player player) {
+    private boolean toggleRequireCapsFromTool(ToolPlayer player) {
         Optional<JigsawStudioMenuState> state = menuState(player);
         return state.isPresent() && setRequireCaps(player, !state.get().requireCaps());
     }
 
-    private boolean confirmTool(Player player, JigsawStudioToolPayload payload) {
+    private boolean confirmTool(ToolPlayer player, JigsawStudioToolPayload payload) {
         long now = System.nanoTime();
-        ToolConfirmation previous = toolConfirmations.get(player.getUniqueId());
+        ToolConfirmation previous = toolConfirmations.get(player.id());
         if (previous != null
                 && previous.expiresAtNanos() >= now
                 && previous.payload().equals(payload)) {
-            toolConfirmations.remove(player.getUniqueId(), previous);
+            toolConfirmations.remove(player.id(), previous);
             return true;
         }
         toolConfirmations.put(
-                player.getUniqueId(),
+                player.id(),
                 new ToolConfirmation(payload, now + TOOL_CONFIRM_NANOS));
         return false;
     }
 
     private JigsawStudioVariant activeOwnedVariant(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
             String workcellId
     ) {
@@ -3245,7 +3146,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private JigsawStudioVariant activeOwnedVariant(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
             String workcellId,
             String expectedPieceKey
@@ -3275,7 +3176,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private boolean deferDuplicationUntilAutosaved(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
             DeferredDuplication requested
     ) {
@@ -3308,34 +3209,37 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 || !deferred.scheduled().compareAndSet(false, true)) {
             return;
         }
-        try {
-            J.s(() -> {
-                deferred.scheduled().set(false);
-                if (deferredDuplications.get(deferred.requestId()) != deferred) {
-                    return;
-                }
-                Player player = Bukkit.getPlayer(deferred.playerId());
-                if (player == null) {
-                    deferredDuplications.remove(deferred.requestId(), deferred);
-                    return;
-                }
-                boolean scheduled = J.runEntity(
-                        player,
-                        () -> resumeDeferredDuplication(player, deferred),
-                        0,
-                        () -> deferredDuplications.remove(deferred.requestId(), deferred));
-                if (!scheduled) {
-                    deferredDuplications.remove(deferred.requestId(), deferred);
-                }
-            }, AUTOSAVE_RETRY_TICKS);
-        } catch (Throwable exception) {
+        scheduler.later(AUTOSAVE_RETRY_TICKS, () -> {
             deferred.scheduled().set(false);
-            deferredDuplications.remove(deferred.requestId(), deferred);
-            IrisLogging.reportError(exception);
-        }
+            if (deferredDuplications.get(deferred.requestId()) != deferred) {
+                return;
+            }
+            ToolPlayer player = onlinePlayer(studios.get(deferred.worldId()), deferred.playerId());
+            if (player == null) {
+                deferredDuplications.remove(deferred.requestId(), deferred);
+                return;
+            }
+            scheduler.onPlayerLater(
+                    player,
+                    () -> resumeDeferredDuplication(player, deferred),
+                    0,
+                    () -> deferredDuplications.remove(deferred.requestId(), deferred));
+        });
     }
 
-    private void resumeDeferredDuplication(Player player, DeferredDuplication deferred) {
+    private static ToolPlayer onlinePlayer(ActiveStudio studio, UUID playerId) {
+        if (studio == null) {
+            return null;
+        }
+        for (ToolPlayer candidate : studio.world().players()) {
+            if (candidate.id().equals(playerId)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private void resumeDeferredDuplication(ToolPlayer player, DeferredDuplication deferred) {
         if (deferredDuplications.get(deferred.requestId()) != deferred) {
             return;
         }
@@ -3344,7 +3248,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         boolean currentRequest = studio != null
                 && studio.generator().getRequest().requestId().equals(deferred.requestId())
                 && session.sessionId().equals(deferred.sessionId())
-                && player.getWorld().getUID().equals(deferred.worldId());
+                && studioOf(player) == studio;
         boolean sourcesCurrent = currentRequest && sourceBindingsCurrent(session, deferred.sourcePieces());
         boolean autosavePending;
         boolean operationPending;
@@ -3474,7 +3378,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     public boolean runCommandGraphMutation(
-            Player player,
+            ToolPlayer player,
             UUID expectedRequestId,
             CommandGraphMutation task
     ) {
@@ -3483,10 +3387,10 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (player == null) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> runCommandGraphMutation(player, expectedRequestId, task));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> runCommandGraphMutation(player, expectedRequestId, task));
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null
                 || !studio.generator().getRequest().requestId().equals(expectedRequestId)) {
             message(player, "This Jigsaw Studio session is no longer active.");
@@ -3500,26 +3404,26 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, reservationFailure);
             return false;
         }
-        return scheduleGraphMutation(player, studio, task);
+        return scheduleGraphMutation(player, studio, packRoot -> task.run());
     }
 
     private boolean scheduleGraphMutation(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
-            CommandGraphMutation task
+            RootedGraphMutation task
     ) {
         UUID requestId = studio.generator().getRequest().requestId();
-        J.a(() -> {
+        scheduler.async(() -> {
             CommandGraphMutationResult result = null;
             Throwable failure = null;
             try {
-                result = task.run();
+                result = studio.generator().getPack().edit(task::run);
             } catch (Throwable exception) {
                 failure = exception;
             }
             CommandGraphMutationResult completedResult = result;
             Throwable completedFailure = failure;
-            boolean scheduled = J.runEntity(
+            scheduler.onPlayerLater(
                     player,
                     () -> completeGraphMutation(
                             player,
@@ -3528,19 +3432,24 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                             completedResult,
                             completedFailure),
                     0,
-                    () -> finishGraphMutation(requestId));
-            if (!scheduled) {
-                finishGraphMutation(requestId);
-                if (completedFailure != null) {
-                    IrisLogging.reportError(completedFailure);
-                }
-            }
+                    () -> {
+                        finishGraphMutation(requestId);
+                        if (completedFailure != null) {
+                            reportError(completedFailure);
+                        }
+                    });
         });
         return true;
     }
 
+    /** A change to the pack's files the studio makes for a graph edit, given the pack folder it may change. */
+    @FunctionalInterface
+    private interface RootedGraphMutation {
+        CommandGraphMutationResult run(Path packRoot) throws IOException;
+    }
+
     private void completeGraphMutation(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
             UUID requestId,
             CommandGraphMutationResult result,
@@ -3548,7 +3457,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     ) {
         try {
             if (failure != null) {
-                IrisLogging.reportError(failure);
+                reportError(failure);
                 message(player, "Graph update failed: " + failureMessage(failure));
                 finishGraphMutation(requestId);
                 return;
@@ -3579,7 +3488,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             }
             finishGraphMutationSuccess(player, studio, requestId, result);
         } catch (Throwable exception) {
-            IrisLogging.reportError(exception);
+            reportError(exception);
             message(player, "The graph updated on disk, but Studio could not refresh: "
                     + failureMessage(exception) + ". Reopen this project before editing further.");
             reopenRequiredRequests.add(requestId);
@@ -3588,7 +3497,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private void finishGraphMutationSuccess(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
             UUID requestId,
             CommandGraphMutationResult result
@@ -3611,79 +3520,91 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private void scheduleLiveRelayout(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
             UUID requestId,
             JigsawStudioLayout previousLayout,
             CommandGraphMutationResult result
     ) {
         Set<Long> chunks = relayoutChunks(previousLayout, result.layout());
-        AtomicInteger remaining = new AtomicInteger(chunks.size());
-        AtomicReference<String> failure = new AtomicReference<>("");
-        AtomicReference<Throwable> cause = new AtomicReference<>();
         if (chunks.isEmpty()) {
             completeLiveRelayout(player, studio, requestId, result, "", null);
             return;
         }
-        for (long chunkKey : chunks) {
-            int chunkX = (int) (chunkKey >> 32);
-            int chunkZ = (int) chunkKey;
-            boolean scheduled = J.runRegion(studio.world(), chunkX, chunkZ, () -> {
+        List<ChunkPos> positions = chunks.stream()
+                .map(chunkKey -> new ChunkPos((int) (chunkKey >> 32), (int) chunkKey.longValue()))
+                .toList();
+        studio.world().repaint(positions).whenComplete((ignored, repaintFailure) -> {
+            if (repaintFailure != null) {
+                scheduleLiveRelayoutCompletion(
+                        player,
+                        studio,
+                        requestId,
+                        result,
+                        "the chunks could not regenerate: " + failureMessage(repaintFailure),
+                        repaintFailure);
+                return;
+            }
+            hydrateRepaintedChunks(player, studio, requestId, result, positions);
+        });
+    }
+
+    private void hydrateRepaintedChunks(
+            ToolPlayer player,
+            ActiveStudio studio,
+            UUID requestId,
+            CommandGraphMutationResult result,
+            List<ChunkPos> positions
+    ) {
+        AtomicInteger remaining = new AtomicInteger(positions.size());
+        AtomicReference<String> failure = new AtomicReference<>("");
+        AtomicReference<Throwable> cause = new AtomicReference<>();
+        Runnable chunkDone = () -> {
+            if (remaining.decrementAndGet() == 0) {
+                scheduleLiveRelayoutCompletion(player, studio, requestId, result, failure.get(), cause.get());
+            }
+        };
+        for (ChunkPos position : positions) {
+            JigsawStudioThreads.onRegion(log, studio.world(), position.x(), position.z(), () -> {
                 try {
-                    repaintStudioChunk(studio, chunkX, chunkZ);
+                    hydrateRepaintedChunk(studio, position.x(), position.z());
                 } catch (Throwable exception) {
-                    failure.compareAndSet("", "chunk " + chunkX + "," + chunkZ
+                    failure.compareAndSet("", "chunk " + position.x() + "," + position.z()
                             + " could not regenerate: " + failureMessage(exception));
                     cause.compareAndSet(null, exception);
                 }
-                if (remaining.decrementAndGet() == 0) {
-                    scheduleLiveRelayoutCompletion(
-                            player,
-                            studio,
-                            requestId,
-                            result,
-                            failure.get(),
-                            cause.get());
-                }
-            });
-            if (!scheduled) {
-                failure.compareAndSet("", "chunk " + chunkX + "," + chunkZ
+                chunkDone.run();
+            }, () -> {
+                failure.compareAndSet("", "chunk " + position.x() + "," + position.z()
                         + " could not be scheduled on its owning region");
-                if (remaining.decrementAndGet() == 0) {
-                    scheduleLiveRelayoutCompletion(
-                            player,
-                            studio,
-                            requestId,
-                            result,
-                            failure.get(),
-                            cause.get());
-                }
-            }
+                chunkDone.run();
+            });
         }
     }
 
     private void scheduleLiveRelayoutCompletion(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
             UUID requestId,
             CommandGraphMutationResult result,
             String failure,
             Throwable cause
     ) {
-        boolean scheduled = J.runEntity(
+        scheduler.onPlayerLater(
                 player,
-                () -> completeLiveRelayout(player, studio, requestId, result, failure, cause));
-        if (!scheduled) {
-            reopenRequiredRequests.add(requestId);
-            finishGraphMutation(requestId);
-            if (cause != null) {
-                IrisLogging.reportError(cause);
-            }
-        }
+                () -> completeLiveRelayout(player, studio, requestId, result, failure, cause),
+                0,
+                () -> {
+                    reopenRequiredRequests.add(requestId);
+                    finishGraphMutation(requestId);
+                    if (cause != null) {
+                        reportError(cause);
+                    }
+                });
     }
 
     private void completeLiveRelayout(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
             UUID requestId,
             CommandGraphMutationResult result,
@@ -3694,7 +3615,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             reopenRequiredRequests.add(requestId);
             studio.populations().clear();
             if (cause != null) {
-                IrisLogging.reportError(cause);
+                reportError(cause);
             }
             message(player, "The workcell size was saved, but live regeneration failed"
                     + (failure.isEmpty() ? "." : ": " + failure + ".")
@@ -3757,18 +3678,8 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         }
     }
 
-    private static void repaintStudioChunk(ActiveStudio studio, int chunkX, int chunkZ) throws IOException {
-        World world = studio.world();
-        Chunk chunk = world.getChunkAt(chunkX, chunkZ);
-        TerrainChunk generated = TerrainChunk.create(world);
-        studio.generator().paintChunk(generated, chunkX, chunkZ);
-        if (!INMS.get().applyChunkBlocks(chunk, generated)) {
-            InPlaceChunkRegenerator.applyBlockDiffs(
-                    chunk,
-                    generated.getChunkData(),
-                    world.getMinHeight(),
-                    world.getMaxHeight());
-        }
+    private void hydrateRepaintedChunk(ActiveStudio studio, int chunkX, int chunkZ) throws IOException {
+        ToolWorld world = studio.world();
         for (JigsawStudioBay workcell : studio.generator().getLayout().bays()) {
             JigsawStudioGenerator.RenderedBay rendered = studio.generator().renderBay(workcell);
             if (!rendered.valid()) {
@@ -3780,7 +3691,6 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             applyRenderedBayChunk(world, workcell, rendered, chunkX, chunkZ, connectorsVisible);
             verifyRenderedBayChunk(world, workcell, rendered, chunkX, chunkZ, connectorsVisible);
         }
-        world.refreshChunk(chunkX, chunkZ);
     }
 
     private boolean graphMutationInProgress(UUID requestId) {
@@ -3796,7 +3706,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private static JigsawStudioLayout loadMappedLayout(ActiveStudio studio) throws IOException {
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         IrisData source = request.source();
         source.invalidateStructureResources();
         IrisStructure structure = StructureResources.structure(source.getPackResources(), request.structureKey());
@@ -3806,14 +3716,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return JigsawStudioGraphMapper.map(source, structure);
     }
 
-    public boolean showAssemblyPreview(Player player, List<PlacedStructurePiece> pieces) {
+    public boolean showAssemblyPreview(ToolPlayer player, List<PlacedStructurePiece> pieces) {
         if (player == null || pieces == null || pieces.isEmpty()) {
             return false;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            return J.runEntity(player, () -> showAssemblyPreview(player, pieces));
+        if (!JigsawStudioThreads.owns(player)) {
+            return JigsawStudioThreads.call(player, () -> showAssemblyPreview(player, pieces));
         }
-        if (!studios.containsKey(player.getWorld().getUID())) {
+        if (studioOf(player) == null) {
             message(player, "Iris Jigsaw Studio is not active in this world.");
             return false;
         }
@@ -3828,86 +3738,79 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                     piece.getMinZ(),
                     new JigsawStudioCellDimensions(width, height, depth)));
         }
-        assemblyPreviews.put(player.getUniqueId(), new AssemblyPreview(
-                player.getWorld().getUID(),
+        assemblyPreviews.put(player.id(), new AssemblyPreview(
+                studioOf(player).worldId(),
                 System.currentTimeMillis() + ASSEMBLY_PREVIEW_MILLIS,
                 List.copyOf(bounds)));
-        particlesDisabled.remove(player.getUniqueId());
+        particlesDisabled.remove(player.id());
         ensureVisualizationLoop(player);
         return true;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onWorldUnload(WorldUnloadEvent event) {
-        ActiveStudio studio = studios.get(event.getWorld().getUID());
+    /** The world was unloaded: nothing can be saved from it any more, so the studio goes without a last drain. */
+    void worldClosed(UUID worldId) {
+        earlyChunks.remove(worldId);
+        ActiveStudio studio = studios.get(worldId);
         if (studio != null) {
             UUID requestId = studio.generator().getRequest().requestId();
             finalizeJigsawTileWatches(requestId);
-            if (requiresLifecycleDrain(studio) && !discardingRequest(requestId)) {
-                event.setCancelled(true);
-                expediteAutosaves(requestId);
-                IrisLogging.warn("Jigsaw Studio kept world %s loaded while pending edits finish autosaving",
-                        event.getWorld().getName());
-                return;
+            synchronized (saveLifecycleLock) {
+                discardingRequests.add(requestId);
             }
         }
-        unregister(event.getWorld());
+        unregister(worldId);
     }
 
-    @EventHandler
-    public void onChunkLoad(ChunkLoadEvent event) {
-        ActiveStudio studio = studios.get(event.getWorld().getUID());
-        if (studio != null) {
-            markChunkAvailable(studio, event.getChunk().getX(), event.getChunk().getZ());
+    void chunkLoaded(UUID worldId, int chunkX, int chunkZ) {
+        ActiveStudio studio = studios.get(worldId);
+        if (studio == null) {
+            earlyChunks.computeIfAbsent(worldId, id -> ConcurrentHashMap.newKeySet()).add(chunkKey(chunkX, chunkZ));
+            return;
         }
+        markChunkAvailable(studio, chunkX, chunkZ);
     }
 
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        ensureVisualizationLoop(event.getPlayer());
-        reconcilePlayerContext(event.getPlayer(), event.getPlayer().getLocation());
+    void playerEntered(ToolPlayer player) {
+        scheduler.playerEntered(player.id());
+        closeMenu(player);
+        finalizeJigsawTileWatchesForPlayer(player.id());
+        tripleSneakTracker.clearPlayer(player.id());
+        visualizationLoops.remove(player.id());
+        assemblyPreviews.remove(player.id());
+        playerWorkcells.remove(player.id());
+        ensureVisualizationLoop(player);
+        reconcilePlayerContext(player, player.position());
     }
 
-    @EventHandler
-    public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
-        closeMenu(event.getPlayer());
-        finalizeJigsawTileWatchesForPlayer(event.getPlayer().getUniqueId());
-        tripleSneakTracker.clearPlayer(event.getPlayer().getUniqueId());
-        visualizationLoops.remove(event.getPlayer().getUniqueId());
-        assemblyPreviews.remove(event.getPlayer().getUniqueId());
-        playerWorkcells.remove(event.getPlayer().getUniqueId());
-        ensureVisualizationLoop(event.getPlayer());
-        reconcilePlayerContext(event.getPlayer(), event.getPlayer().getLocation());
-    }
-
-    @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent event) {
-        UUID playerId = event.getPlayer().getUniqueId();
-        closeMenu(event.getPlayer());
+    void playerLeft(ToolPlayer player) {
+        UUID playerId = player.id();
+        scheduler.playerLeft(playerId);
+        closeMenu(player);
         finalizeJigsawTileWatchesForPlayer(playerId);
         tripleSneakTracker.clearPlayer(playerId);
         toolConfirmations.remove(playerId);
         visualizationLoops.remove(playerId);
-        particlesDisabled.remove(playerId);
         assemblyPreviews.remove(playerId);
         playerWorkcells.remove(playerId);
         deferredDuplications.entrySet().removeIf(entry -> entry.getValue().playerId().equals(playerId));
-        boardService().clearJigsawContext(event.getPlayer());
+        player.hideSidebar();
     }
 
-    @EventHandler
-    public void onTripleSneak(PlayerToggleSneakEvent event) {
-        if (!event.isSneaking()) {
+    void playerMoved(ToolPlayer player, BlockPosition to) {
+        reconcilePlayerContext(player, to);
+    }
+
+    void sneakToggled(ToolPlayer player, boolean sneaking) {
+        if (!sneaking) {
             return;
         }
-        Player player = event.getPlayer();
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null || !ownerMatches(player, studio)) {
-            tripleSneakTracker.clearPlayer(player.getUniqueId());
+            tripleSneakTracker.clearPlayer(player.id());
             return;
         }
         JigsawStudioTripleSneakTracker.Progress progress = tripleSneakTracker.recordSneak(
-                player.getUniqueId(),
+                player.id(),
                 studio.worldId(),
                 studio.generator().getRequest().requestId(),
                 System.nanoTime());
@@ -3916,558 +3819,200 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onUseTool(PlayerInteractEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND
-                || (event.getAction() != Action.RIGHT_CLICK_AIR
-                && event.getAction() != Action.RIGHT_CLICK_BLOCK)) {
-            return;
+    /** A player used their hand; false cancels it. */
+    boolean playerUsed(UUID worldId, ToolPlayer player, ToolUse use) {
+        ActiveStudio studio = studios.get(worldId);
+        if (studio == null) {
+            return true;
         }
-        Optional<JigsawStudioToolPayload> decoded = toolCodec.decode(event.getItem());
-        if (decoded.isEmpty()) {
-            return;
-        }
-        finalizeJigsawTileWatchesForPlayer(event.getPlayer().getUniqueId());
-        event.setCancelled(true);
-        useTool(event.getPlayer(), decoded.get(), event.getItem(), event.getPlayer().isSneaking());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerMove(PlayerMoveEvent event) {
-        if (sameBlockPosition(event.getFrom(), event.getTo())) {
-            return;
-        }
-        reconcilePlayerContext(event.getPlayer(), event.getTo());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerTeleport(PlayerTeleportEvent event) {
-        finalizeJigsawTileWatchesForPlayer(event.getPlayer().getUniqueId());
-        reconcilePlayerContext(event.getPlayer(), event.getTo());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerPortal(PlayerPortalEvent event) {
-        finalizeJigsawTileWatchesForPlayer(event.getPlayer().getUniqueId());
-        reconcilePlayerContext(event.getPlayer(), event.getTo());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerRespawn(PlayerRespawnEvent event) {
-        finalizeJigsawTileWatchesForPlayer(event.getPlayer().getUniqueId());
-        reconcilePlayerContext(event.getPlayer(), event.getRespawnLocation());
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onNaturalCreatureSpawn(CreatureSpawnEvent event) {
-        if (studios.containsKey(event.getLocation().getWorld().getUID())
-                && isNaturalStudioSpawn(event.getSpawnReason())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onUnauthorizedBlockPlace(BlockPlaceEvent event) {
-        if (isUnauthorizedStudioEdit(event.getPlayer(), event.getBlockPlaced())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onUnauthorizedBlockMultiPlace(BlockMultiPlaceEvent event) {
-        for (BlockState state : event.getReplacedBlockStates()) {
-            if (isUnauthorizedStudioEdit(event.getPlayer(), state.getBlock())) {
-                event.setCancelled(true);
-                return;
-            }
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedBlockBreak(BlockBreakEvent event) {
-        if (isControlChest(event.getBlock())) {
-            event.setCancelled(true);
-            message(event.getPlayer(), "The Jigsaw Studio control chest cannot be removed.");
-            return;
-        }
-        if (isUnauthorizedStudioEdit(event.getPlayer(), event.getBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onUnauthorizedBucketEmpty(PlayerBucketEmptyEvent event) {
-        Block target = event.getBlockClicked().getRelative(event.getBlockFace());
-        if (isUnauthorizedStudioEdit(event.getPlayer(), target)) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onUnauthorizedBucketFill(PlayerBucketFillEvent event) {
-        if (isUnauthorizedStudioEdit(event.getPlayer(), event.getBlockClicked())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onUnauthorizedInteract(PlayerInteractEvent event) {
-        if (event.getAction() == Action.RIGHT_CLICK_BLOCK
-                && !isControlChest(event.getClickedBlock())
-                && isUnauthorizedStudioEdit(event.getPlayer(), event.getClickedBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockPlace(BlockPlaceEvent event) {
-        markDirty(event.getBlockPlaced());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockMultiPlace(BlockMultiPlaceEvent event) {
-        for (BlockState state : event.getReplacedBlockStates()) {
-            markDirty(state.getBlock());
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockBreak(BlockBreakEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBucketEmpty(PlayerBucketEmptyEvent event) {
-        markDirty(event.getBlockClicked().getRelative(event.getBlockFace()));
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBucketFill(PlayerBucketFillEvent event) {
-        markDirty(event.getBlockClicked());
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onControlChest(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK
-                || event.getHand() != EquipmentSlot.HAND
-                || !isControlChest(event.getClickedBlock())) {
-            return;
-        }
-        event.setCancelled(true);
-        ActiveStudio studio = studios.get(event.getPlayer().getWorld().getUID());
-        if (!authorizeOwner(event.getPlayer(), studio)) {
-            return;
-        }
-        openControlMenu(event.getPlayer());
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedBlockExplode(BlockExplodeEvent event) {
-        if (materializationInProgress(studios.get(event.getBlock().getWorld().getUID()))) {
-            event.blockList().clear();
-            return;
-        }
-        event.blockList().removeIf(this::isImmutableStudioBlock);
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedEntityExplode(EntityExplodeEvent event) {
-        if (materializationInProgress(studios.get(event.getEntity().getWorld().getUID()))) {
-            event.blockList().clear();
-            return;
-        }
-        event.blockList().removeIf(this::isImmutableStudioBlock);
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedPistonExtend(BlockPistonExtendEvent event) {
-        if (materializationInProgress(studios.get(event.getBlock().getWorld().getUID()))
-                || movesProtectedBlocks(event.getBlocks(), event.getDirection())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedPistonRetract(BlockPistonRetractEvent event) {
-        if (materializationInProgress(studios.get(event.getBlock().getWorld().getUID()))
-                || movesProtectedBlocks(event.getBlocks(), event.getDirection())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedEntityChangeBlock(EntityChangeBlockEvent event) {
-        if (materializationInProgress(studios.get(event.getBlock().getWorld().getUID()))
-                || isImmutableStudioBlock(event.getBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedBlockFromTo(BlockFromToEvent event) {
-        if (materializationInProgress(studios.get(event.getBlock().getWorld().getUID()))
-                || isImmutableStudioBlock(event.getBlock())
-                || isImmutableStudioBlock(event.getToBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedBlockForm(BlockFormEvent event) {
-        if (materializationInProgress(studios.get(event.getBlock().getWorld().getUID()))
-                || isImmutableStudioBlock(event.getBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedBlockGrow(BlockGrowEvent event) {
-        if (materializationInProgress(studios.get(event.getBlock().getWorld().getUID()))
-                || isImmutableStudioBlock(event.getBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedBlockSpread(BlockSpreadEvent event) {
-        if (materializationInProgress(studios.get(event.getBlock().getWorld().getUID()))
-                || isImmutableStudioBlock(event.getBlock())
-                || isImmutableStudioBlock(event.getSource())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedBlockFade(BlockFadeEvent event) {
-        if (materializationInProgress(studios.get(event.getBlock().getWorld().getUID()))
-                || isImmutableStudioBlock(event.getBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedBlockBurn(BlockBurnEvent event) {
-        if (materializationInProgress(studios.get(event.getBlock().getWorld().getUID()))
-                || isImmutableStudioBlock(event.getBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST)
-    public void onProtectedBlockRedstone(BlockRedstoneEvent event) {
-        if (materializationInProgress(studios.get(event.getBlock().getWorld().getUID()))
-                || isImmutableStudioBlock(event.getBlock())) {
-            event.setNewCurrent(event.getOldCurrent());
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedStructureGrow(StructureGrowEvent event) {
-        if (event.getLocation().getWorld() != null
-                && (materializationInProgress(studios.get(event.getLocation().getWorld().getUID()))
-                || containsImmutableStudioBlock(event.getBlocks()))) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedInventoryClick(InventoryClickEvent event) {
-        if (!blocksInventoryMutation(
-                event.getView().getTopInventory(),
-                event.getWhoClicked().getUniqueId())) {
-            return;
-        }
-        event.setCancelled(true);
-        if (event.getWhoClicked() instanceof Player player) {
-            message(player, "This Jigsaw Studio container is read-only during the current operation or owner session.");
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedInventoryDrag(InventoryDragEvent event) {
-        if (!blocksInventoryMutation(
-                event.getView().getTopInventory(),
-                event.getWhoClicked().getUniqueId())) {
-            return;
-        }
-        event.setCancelled(true);
-        if (event.getWhoClicked() instanceof Player player) {
-            message(player, "This Jigsaw Studio container is read-only during the current operation or owner session.");
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedInventoryMove(InventoryMoveItemEvent event) {
-        if (blocksInventoryMutation(event.getSource(), null)
-                || blocksInventoryMutation(event.getDestination(), null)) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedInventoryPickup(InventoryPickupItemEvent event) {
-        if (blocksInventoryMutation(event.getInventory(), null)) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedBlockCook(BlockCookEvent event) {
-        if (blocksMachineMutation(event.getBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedFurnaceBurn(FurnaceBurnEvent event) {
-        if (blocksMachineMutation(event.getBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedBrew(BrewEvent event) {
-        if (blocksMachineMutation(event.getBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedBrewingStandFuel(BrewingStandFuelEvent event) {
-        if (blocksMachineMutation(event.getBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedBlockDispense(BlockDispenseEvent event) {
-        if (blocksMachineMutation(event.getBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onProtectedCrafterCraft(CrafterCraftEvent event) {
-        if (blocksMachineMutation(event.getBlock())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK && event.getAction() != Action.PHYSICAL) {
-            return;
-        }
-        Block clicked = event.getClickedBlock();
-        if (clicked != null) {
-            if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-                finalizeJigsawTileWatchesForPlayer(event.getPlayer().getUniqueId());
-                if (clicked.getType() == Material.JIGSAW) {
-                    startJigsawTileWatch(event.getPlayer(), clicked);
-                }
-            }
-            markDirty(clicked);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onInventoryClick(InventoryClickEvent event) {
-        markDirty(event.getView().getTopInventory());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onInventoryDrag(InventoryDragEvent event) {
-        markDirty(event.getView().getTopInventory());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onInventoryClose(InventoryCloseEvent event) {
-        markDirty(event.getView().getTopInventory());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onInventoryMove(InventoryMoveItemEvent event) {
-        markDirty(event.getSource());
-        markDirty(event.getDestination());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onInventoryPickup(InventoryPickupItemEvent event) {
-        markDirty(event.getInventory());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockCook(BlockCookEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onFurnaceBurn(FurnaceBurnEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onFurnaceStartSmelt(FurnaceStartSmeltEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBrew(BrewEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onBrewingStart(BrewingStartEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBrewingStandFuel(BrewingStandFuelEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockDispense(BlockDispenseEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onCrafterCraft(CrafterCraftEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockExplode(BlockExplodeEvent event) {
-        markDirty(event.blockList());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onEntityExplode(EntityExplodeEvent event) {
-        markDirty(event.blockList());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onEntityChangeBlock(EntityChangeBlockEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockFromTo(BlockFromToEvent event) {
-        markDirty(event.getToBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockForm(BlockFormEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockGrow(BlockGrowEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockSpread(BlockSpreadEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockFade(BlockFadeEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockBurn(BlockBurnEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockRedstone(BlockRedstoneEvent event) {
-        markDirty(event.getBlock());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPistonExtend(BlockPistonExtendEvent event) {
-        markDirty(event.getBlock());
-        markDirty(event.getBlock().getRelative(event.getDirection()));
-        for (Block block : event.getBlocks()) {
-            markDirty(block);
-            markDirty(block.getRelative(event.getDirection()));
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPistonRetract(BlockPistonRetractEvent event) {
-        markDirty(event.getBlock());
-        markDirty(event.getBlock().getRelative(event.getDirection()));
-        for (Block block : event.getBlocks()) {
-            markDirty(block);
-            markDirty(block.getRelative(event.getDirection()));
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onStructureGrow(StructureGrowEvent event) {
-        for (BlockState state : event.getBlocks()) {
-            markDirty(state.getBlock());
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onUnauthorizedPlayerCommand(PlayerCommandPreprocessEvent event) {
-        finalizeJigsawTileWatchesForPlayer(event.getPlayer().getUniqueId());
-        ActiveStudio studio = studios.get(event.getPlayer().getWorld().getUID());
-        if (studio != null
-                && materializationInProgress(studio)
-                && !isSafeNonOwnerCommand(event.getMessage())) {
-            event.setCancelled(true);
-            message(event.getPlayer(), "Wait for the current Jigsaw Studio variant load or rollback to finish.");
-            return;
-        }
-        if (studio != null && blocksNonEditableWorkcellMutation(
-                hasNonEditableWorkcell(studio), event.getMessage())) {
-            event.setCancelled(true);
-            message(event.getPlayer(), "Mutating commands are disabled while this Studio has an empty or read-only workcell.");
-            return;
-        }
-        UUID ownerId = studio == null ? null : studio.generator().getRequest().ownerId();
-        if (!blocksMutatingCommand(ownerId, event.getPlayer().getUniqueId(), event.getMessage())) {
-            return;
-        }
-        event.setCancelled(true);
-        message(event.getPlayer(), "This Jigsaw Studio is owned by another player session.");
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
-        if (isMutatingCommand(event.getMessage())) {
-            markAllDirty(event.getPlayer().getWorld());
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onServerCommand(ServerCommandEvent event) {
-        if (!isSafeNonOwnerCommand(event.getCommand()) && anyMaterializationInProgress()) {
-            event.setCancelled(true);
-            return;
-        }
-        if (isMutatingCommand(event.getCommand()) && anyNonEditableWorkcell()) {
-            event.setCancelled(true);
-            return;
-        }
-        if (isMutatingCommand(event.getCommand())) {
-            markAllDirty();
-        }
-    }
-
-    public boolean markDirty(World world, int worldX, int worldY, int worldZ) {
-        if (world == null) {
+        if (usesStudioTool(player, use)) {
             return false;
         }
-        ActiveStudio studio = studios.get(world.getUID());
+        boolean rightClickBlock = use.action() == ToolUse.Action.RIGHT_CLICK_BLOCK;
+        if (rightClickBlock && use.block().isPresent()) {
+            BlockPosition clicked = use.block().get();
+            if (isControlChest(studio, clicked)) {
+                return !opensControlMenu(player, studio, use);
+            }
+            if (isUnauthorizedStudioEdit(player, studio, clicked)) {
+                return false;
+            }
+        }
+        observeInteraction(player, studio, use);
+        return true;
+    }
+
+    private boolean usesStudioTool(ToolPlayer player, ToolUse use) {
+        boolean rightClick = use.action() == ToolUse.Action.RIGHT_CLICK_AIR
+                || use.action() == ToolUse.Action.RIGHT_CLICK_BLOCK;
+        if (use.hand() != ToolUse.Hand.MAIN || !rightClick || use.item().isEmpty()) {
+            return false;
+        }
+        Optional<JigsawStudioToolPayload> decoded = toolCodec.decode(use.item().get());
+        if (decoded.isEmpty()) {
+            return false;
+        }
+        finalizeJigsawTileWatchesForPlayer(player.id());
+        useTool(player, decoded.get(), use.item().get(), player.sneaking());
+        return true;
+    }
+
+    private boolean opensControlMenu(ToolPlayer player, ActiveStudio studio, ToolUse use) {
+        if (use.hand() != ToolUse.Hand.MAIN) {
+            return false;
+        }
+        if (authorizeOwner(player, studio)) {
+            openControlMenu(player);
+        }
+        return true;
+    }
+
+    private void observeInteraction(ToolPlayer player, ActiveStudio studio, ToolUse use) {
+        boolean interacted = use.action() == ToolUse.Action.RIGHT_CLICK_BLOCK
+                || use.action() == ToolUse.Action.PHYSICAL;
+        if (!interacted || use.block().isEmpty()) {
+            return;
+        }
+        BlockPosition clicked = use.block().get();
+        if (use.action() == ToolUse.Action.RIGHT_CLICK_BLOCK) {
+            finalizeJigsawTileWatchesForPlayer(player.id());
+            if (blockIfOwned(studio, clicked).filter(JigsawStudioBlocks::isJigsaw).isPresent()) {
+                startJigsawTileWatch(player, studio, clicked);
+            }
+        }
+        markDirty(studio, clicked);
+    }
+
+    private static Optional<BlockState> blockIfOwned(ActiveStudio studio, BlockPosition at) {
+        return studio.world().owns(at) ? Optional.of(studio.world().block(at)) : Optional.empty();
+    }
+
+    /** Something is about to change blocks; false cancels it. */
+    boolean blockChanging(UUID worldId, BlockChange change) {
+        ActiveStudio studio = studios.get(worldId);
         if (studio == null) {
             return false;
         }
+        if (!allowsBlockChange(studio, change)) {
+            return false;
+        }
+        markChangedBlocksDirty(studio, change);
+        return true;
+    }
+
+    private boolean allowsBlockChange(ActiveStudio studio, BlockChange change) {
+        ToolPlayer player = change.player().orElse(null);
+        return switch (change.cause()) {
+            case PLACE, BUCKET -> change.positions().stream()
+                    .noneMatch(position -> isUnauthorizedStudioEdit(player, studio, position));
+            case BREAK -> allowsBreak(player, studio, change.positions().getFirst());
+            case CONTAINER -> !blocksContainerMutation(studio, change);
+            case MACHINE -> change.positions().stream().noneMatch(position -> blocksMachineMutation(studio, position));
+            case PHYSICS, FLUID, GROWTH, FIRE, REDSTONE, PISTON, EXPLOSION, ENTITY ->
+                    !materializationInProgress(studio)
+                            && change.positions().stream().noneMatch(position -> isImmutableStudioBlock(studio, position));
+        };
+    }
+
+    private boolean allowsBreak(ToolPlayer player, ActiveStudio studio, BlockPosition position) {
+        if (isControlChest(studio, position)) {
+            message(player, "The Jigsaw Studio control chest cannot be removed.");
+            return false;
+        }
+        return !isUnauthorizedStudioEdit(player, studio, position);
+    }
+
+    private boolean blocksContainerMutation(ActiveStudio studio, BlockChange change) {
+        UUID actorId = change.player().map(ToolPlayer::id).orElse(null);
+        for (BlockPosition position : change.positions()) {
+            StudioBlockMutationContext context = studioBlockMutationContext(studio, position);
+            if (context != null && blocksStudioInventoryMutation(
+                    true,
+                    context.immutable(),
+                    materializationInProgress(context.studio()),
+                    reopenRequiredRequests.contains(context.requestId()),
+                    context.ownerId(),
+                    actorId)) {
+                change.player().ifPresent(player -> message(
+                        player,
+                        "This Jigsaw Studio container is read-only during the current operation or owner session."));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void markChangedBlocksDirty(ActiveStudio studio, BlockChange change) {
+        List<BlockPosition> positions = change.positions();
+        switch (change.cause()) {
+            case FLUID -> markDirty(studio, positions.getLast());
+            case PHYSICS -> markDirty(studio, positions.getFirst());
+            default -> positions.forEach(position -> markDirty(studio, position));
+        }
+    }
+
+    /** A command is about to run; false cancels it. */
+    boolean command(UUID worldId, Optional<ToolPlayer> sender, String line) {
+        ActiveStudio studio = studios.get(worldId);
+        if (sender.isPresent()) {
+            return playerCommand(studio, sender.get(), line);
+        }
+        return consoleCommand(studio, line);
+    }
+
+    private boolean playerCommand(ActiveStudio studio, ToolPlayer player, String line) {
+        finalizeJigsawTileWatchesForPlayer(player.id());
+        if (studio != null
+                && materializationInProgress(studio)
+                && !isSafeNonOwnerCommand(line)) {
+            message(player, "Wait for the current Jigsaw Studio variant load or rollback to finish.");
+            return false;
+        }
+        if (studio != null && blocksNonEditableWorkcellMutation(hasNonEditableWorkcell(studio), line)) {
+            message(player, "Mutating commands are disabled while this Studio has an empty or read-only workcell.");
+            return false;
+        }
+        UUID ownerId = studio == null ? null : studio.generator().getRequest().ownerId();
+        if (blocksMutatingCommand(ownerId, player.id(), line)) {
+            message(player, "This Jigsaw Studio is owned by another player session.");
+            return false;
+        }
+        if (studio != null && isMutatingCommand(line)) {
+            markAllDirty(studio);
+        }
+        return true;
+    }
+
+    private boolean consoleCommand(ActiveStudio studio, String line) {
+        if (!isSafeNonOwnerCommand(line) && anyMaterializationInProgress()) {
+            return false;
+        }
+        if (isMutatingCommand(line) && anyNonEditableWorkcell()) {
+            return false;
+        }
+        if (studio != null && isMutatingCommand(line)) {
+            markAllDirty(studio);
+        }
+        return true;
+    }
+
+    /** Whether the host may close the world now, as the message that says why not. */
+    Optional<String> closeRefusal(UUID worldId) {
+        return Optional.ofNullable(closeProtectionFailure(worldId));
+    }
+
+    /** Gets the studio ready for another one to replace it. */
+    CompletableFuture<Void> closing(UUID worldId, Optional<ToolPlayer> by) {
+        return awaitCloseForReplacement(worldId, by.map(ToolPlayer::id).orElse(null));
+    }
+
+    private boolean markDirty(ActiveStudio studio, BlockPosition at) {
+        if (studio == null) {
+            return false;
+        }
+        int worldX = at.x();
+        int worldY = at.y();
+        int worldZ = at.z();
         if (reopenRequiredRequests.contains(studio.generator().getRequest().requestId())) {
             return false;
         }
@@ -4492,20 +4037,12 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return true;
     }
 
-    public int markAllDirty(World world) {
-        if (world == null) {
-            return 0;
-        }
-        ActiveStudio studio = studios.get(world.getUID());
-        return studio == null ? 0 : markAllDirty(studio);
-    }
-
     private boolean scheduleCapture(
             ActiveStudio studio,
-            World world,
+            ToolWorld world,
             JigsawStudioBay bay,
             CaptureTarget captureTarget,
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             JigsawStudioSession.SaveIdentity saveIdentity,
             AutosaveFailureState autosaveFailureState
@@ -4527,22 +4064,20 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             if (coordinator.stopped()) {
                 return false;
             }
-            boolean scheduled = J.runRegion(
+            JigsawStudioThreads.onRegion(
+                    log,
                     world,
                     area.chunkX(),
                     area.chunkZ(),
-                    () -> captureChunk(coordinator, area));
-            if (!scheduled) {
-                coordinator.fail("Iris could not schedule bay chunk "
-                        + area.chunkX() + "," + area.chunkZ() + " on its owning region.", null);
-                return false;
-            }
+                    () -> captureChunk(coordinator, area),
+                    () -> coordinator.fail("Iris could not schedule bay chunk "
+                            + area.chunkX() + "," + area.chunkZ() + " on its owning region.", null));
         }
         return !coordinator.stopped();
     }
 
     private boolean scheduleMaterialization(MaterializationWork work) {
-        String validationFailure = validateMaterialization(work.target());
+        String validationFailure = validateMaterialization(work.target(), registryOf(work.studio()));
         if (!validationFailure.isEmpty()) {
             work.studio().generator().getSession().abortVariantSwitch(work.token());
             refreshWorkcellContext(work.studio().worldId(), work.workcell().stableId());
@@ -4560,20 +4095,18 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         List<ChunkCaptureArea> areas = chunkIntersections(work.workcell().bounds());
         MaterializationCoordinator coordinator = new MaterializationCoordinator(work, areas);
         for (ChunkCaptureArea area : areas) {
-            boolean scheduled = J.runRegion(
+            coordinator.markScheduled();
+            JigsawStudioThreads.onRegion(
+                    log,
                     work.world(),
                     area.chunkX(),
                     area.chunkZ(),
-                    () -> materializeCandidateChunk(coordinator, area));
-            if (!scheduled) {
-                coordinator.candidateComplete(
-                        area,
-                        "Iris could not schedule workcell chunk "
-                                + area.chunkX() + "," + area.chunkZ() + " on its owning region.",
-                        null);
-            } else {
-                coordinator.markScheduled();
-            }
+                    () -> materializeCandidateChunk(coordinator, area),
+                    () -> coordinator.candidateComplete(
+                            area,
+                            "Iris could not schedule workcell chunk "
+                                    + area.chunkX() + "," + area.chunkZ() + " on its owning region.",
+                            null));
         }
         return coordinator.scheduledAny();
     }
@@ -4639,7 +4172,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private boolean scheduleConnectorRepair(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
             JigsawStudioBay workcell,
             JigsawStudioGenerator.RenderedBay rendered,
@@ -4666,14 +4199,16 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 : connectorsByChunk.entrySet()) {
             int chunkX = (int) (entry.getKey() >> 32);
             int chunkZ = (int) entry.getKey().longValue();
-            boolean scheduled = J.runRegion(studio.world(), chunkX, chunkZ, () -> {
+            scheduledAny.set(true);
+            JigsawStudioThreads.onRegion(log, studio.world(), chunkX, chunkZ, () -> {
                 try {
-                    if (!studio.world().isChunkLoaded(chunkX, chunkZ)) {
+                    if (!studio.isChunkLoaded(chunkX, chunkZ)) {
                         throw new IOException("connector chunk " + chunkX + "," + chunkZ
                                 + " is not loaded");
                     }
                     restoreConnectorChunk(
                             studio.world(),
+                            studio.generator().getPack().resources().blocks(),
                             workcell,
                             entry.getValue(),
                             renderedBlocks,
@@ -4690,10 +4225,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                             failure.get(),
                             cause.get());
                 }
-            });
-            if (scheduled) {
-                scheduledAny.set(true);
-            } else {
+            }, () -> {
                 failure.compareAndSet("", "connector chunk " + chunkX + "," + chunkZ
                         + " could not be scheduled on its owning region");
                 if (remaining.decrementAndGet() == 0) {
@@ -4704,7 +4236,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                             failure.get(),
                             cause.get());
                 }
-            }
+            });
         }
         if (!scheduledAny.get()) {
             finishMaterialization(studio.generator().getRequest().requestId());
@@ -4713,17 +4245,17 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private void completeConnectorRepair(
-            Player player,
+            ToolPlayer player,
             ActiveStudio studio,
             int connectorCount,
             String failure,
             Throwable cause
     ) {
         UUID requestId = studio.generator().getRequest().requestId();
-        boolean scheduled = J.runEntity(player, () -> {
+        scheduler.onPlayerLater(player, () -> {
             finishMaterialization(requestId);
             if (cause != null) {
-                IrisLogging.reportError(cause);
+                reportError(cause);
             }
             if (!failure.isEmpty()) {
                 message(player, "Connector reset was incomplete: " + failure + ". Retry after visiting the workcell.");
@@ -4731,17 +4263,17 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             }
             message(player, "Restored " + connectorCount
                     + " connector block(s) from the last saved iteration.");
-        });
-        if (!scheduled) {
+        }, 0, () -> {
             finishMaterialization(requestId);
             if (cause != null) {
-                IrisLogging.reportError(cause);
+                reportError(cause);
             }
-        }
+        });
     }
 
     static void restoreConnectorChunk(
-            World world,
+            ToolWorld world,
+            BlockRegistry registry,
             JigsawStudioBay workcell,
             List<JigsawStudioGenerator.RenderedConnector> connectors,
             Map<LocalPosition, JigsawStudioGenerator.RenderedBlock> renderedBlocks,
@@ -4750,49 +4282,43 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         JigsawStudioBounds bounds = workcell.bounds();
         for (JigsawStudioGenerator.RenderedConnector connector : connectors) {
             LocalPosition position = new LocalPosition(connector.x(), connector.y(), connector.z());
-            Block target = world.getBlockAt(
+            BlockPosition target = new BlockPosition(
                     bounds.originX() + connector.x(),
                     bounds.originY() + connector.y(),
                     bounds.originZ() + connector.z());
             if (connectorsVisible) {
-                BlockData marker;
-                try {
-                    marker = Bukkit.createBlockData(
-                            "minecraft:jigsaw[orientation=" + connector.orientation() + "]");
-                } catch (IllegalArgumentException exception) {
-                    throw new IOException("Invalid saved connector orientation '"
-                            + connector.orientation() + "'", exception);
-                }
-                target.setBlockData(marker, false);
-                BukkitPlatform.deserializeTile(markerNbt(connector.connector()), target.getLocation());
+                BlockState marker = jigsawMarker(registry, connector.orientation())
+                        .orElseThrow(() -> new IOException("Invalid saved connector orientation '"
+                                + connector.orientation() + "'"));
+                world.setBlock(target, marker, Optional.of(markerBlockEntity(connector.connector())));
                 continue;
             }
             JigsawStudioGenerator.RenderedBlock renderedBlock = renderedBlocks.get(position);
-            BlockData restored;
-            if (renderedBlock != null) {
-                if (renderedBlock.state().isCustom()
-                        || !(renderedBlock.state().nativeHandle() instanceof BlockData blockData)) {
-                    throw new IOException("Saved connector block '" + renderedBlock.state().key()
-                            + "' cannot be restored directly in Bukkit Studio");
-                }
-                restored = blockData;
-            } else {
-                try {
-                    restored = Bukkit.createBlockData(connector.connector().getFinalState());
-                } catch (IllegalArgumentException exception) {
-                    throw new IOException("Invalid saved connector final state '"
-                            + connector.connector().getFinalState() + "'", exception);
-                }
-            }
-            target.setBlockData(restored, false);
-            if (renderedBlock != null && renderedBlock.tileData() != null) {
-                TileData tileData = renderedBlock.tileData();
-                if (!tileData.isApplicable(target.getBlockData()) || !tileData.toBukkitTry(target)) {
-                    throw new IOException("Saved connector tile data could not be restored at "
-                            + target.getX() + "," + target.getY() + "," + target.getZ());
-                }
+            BlockState restored = renderedBlock != null
+                    ? renderedBlock.state()
+                    : registry.find(connector.connector().getFinalState())
+                    .orElseThrow(() -> new IOException("Invalid saved connector final state '"
+                            + connector.connector().getFinalState() + "'"));
+            Optional<BlockEntityData> blockEntity = renderedBlock == null
+                    ? Optional.empty()
+                    : Optional.ofNullable(renderedBlock.blockEntity());
+            try {
+                world.setBlock(target, restored, blockEntity);
+            } catch (IllegalArgumentException exception) {
+                throw new IOException("Saved connector tile data could not be restored at "
+                        + target.x() + "," + target.y() + "," + target.z(), exception);
             }
         }
+    }
+
+    /** The jigsaw block of the platform facing {@code orientation}; empty when the platform has no such block. */
+    private static Optional<BlockState> jigsawMarker(BlockRegistry registry, String orientation) {
+        return registry.find(JigsawStudioBlocks.jigsawMarker(orientation).key())
+                .filter(JigsawStudioBlocks::isJigsaw);
+    }
+
+    private static BlockEntityData markerBlockEntity(IrisJigsawConnector connector) {
+        return JigsawStudioTileCodec.encode(JigsawStudioBlocks.JIGSAW_BLOCK, markerNbt(connector));
     }
 
     private void finishMaterialization(UUID requestId) {
@@ -4813,7 +4339,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                     null);
             return;
         }
-        if (!work.world().isChunkLoaded(area.chunkX(), area.chunkZ())) {
+        if (!work.studio().isChunkLoaded(area.chunkX(), area.chunkZ())) {
             coordinator.candidateComplete(
                     area,
                     "Workcell chunk " + area.chunkX() + "," + area.chunkZ()
@@ -4825,6 +4351,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             coordinator.markCandidateTouched(area);
             writeMaterializedChunk(
                     work.world(),
+                    work.studio().generator().getPack().resources().blocks(),
                     work.workcell(),
                     work.target(),
                     area,
@@ -4851,7 +4378,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                     null);
             return;
         }
-        if (!work.world().isChunkLoaded(area.chunkX(), area.chunkZ())) {
+        if (!work.studio().isChunkLoaded(area.chunkX(), area.chunkZ())) {
             coordinator.rollbackComplete(
                     area,
                     "Rollback chunk " + area.chunkX() + "," + area.chunkZ() + " is not loaded.",
@@ -4861,6 +4388,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         try {
             writeMaterializedChunk(
                     work.world(),
+                    work.studio().generator().getPack().resources().blocks(),
                     work.workcell(),
                     work.previous(),
                     area,
@@ -4875,54 +4403,43 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         }
     }
 
-    static String validateMaterialization(JigsawStudioGenerator.RenderedBay rendered) {
+    static String validateMaterialization(JigsawStudioGenerator.RenderedBay rendered, BlockRegistry registry) {
         if (!rendered.valid()) {
             return rendered.failure();
         }
         for (JigsawStudioGenerator.RenderedBlock block : rendered.blocks()) {
-            PlatformBlockState state = block.state();
-            if (state.isCustom()) {
-                return "custom block '" + state.key()
-                        + "' requires provider-owned placement and cannot be swapped live in Studio";
-            }
-            if (!(state.nativeHandle() instanceof BlockData)) {
-                return "block '" + state.key() + "' has no Bukkit block-data representation";
+            BlockState state = block.state();
+            if (registry.find(state.key()).isEmpty()) {
+                return "block '" + state.key() + "' has no block representation on this platform";
             }
         }
         for (JigsawStudioGenerator.RenderedConnector connector : rendered.connectors()) {
-            try {
-                BlockData data = Bukkit.createBlockData(
-                        "minecraft:jigsaw[orientation=" + connector.orientation() + "]");
-                if (!(data instanceof Jigsaw)) {
-                    return "connector orientation '" + connector.orientation()
-                            + "' did not resolve to a jigsaw marker";
-                }
-            } catch (IllegalArgumentException exception) {
+            if (jigsawMarker(registry, connector.orientation()).isEmpty()) {
                 return "connector orientation '" + connector.orientation() + "' is invalid";
             }
         }
         return "";
     }
 
-    private static void writeMaterializedChunk(
-            World world,
+    private void writeMaterializedChunk(
+            ToolWorld world,
+            BlockRegistry registry,
             JigsawStudioBay workcell,
             JigsawStudioGenerator.RenderedBay rendered,
             ChunkCaptureArea area,
             boolean connectorsVisible
     ) throws IOException {
         JigsawStudioBounds bounds = workcell.bounds();
-        Map<LocalPosition, BlockData> expected = materializedBlockData(rendered, connectorsVisible);
-        BlockData air = Material.AIR.createBlockData();
+        Map<LocalPosition, BlockState> expected = materializedBlocks(registry, rendered, connectorsVisible);
         for (int x = area.minimumX(); x < area.maximumX(); x++) {
             for (int y = 0; y < bounds.dimensions().height(); y++) {
                 for (int z = area.minimumZ(); z < area.maximumZ(); z++) {
-                    Block target = world.getBlockAt(
+                    BlockPosition target = new BlockPosition(
                             bounds.originX() + x,
                             bounds.originY() + y,
                             bounds.originZ() + z);
-                    BlockData blockData = expected.getOrDefault(new LocalPosition(x, y, z), air);
-                    target.setBlockData(blockData, false);
+                    BlockState state = expected.getOrDefault(new LocalPosition(x, y, z), JigsawStudioBlocks.AIR);
+                    world.setBlock(target, state, Optional.empty());
                 }
             }
         }
@@ -4930,63 +4447,75 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         verifyMaterializedChunk(world, workcell, rendered, area, expected, connectorsVisible);
     }
 
-    private static Map<LocalPosition, BlockData> materializedBlockData(
+    private static Map<LocalPosition, BlockState> materializedBlocks(
+            BlockRegistry registry,
             JigsawStudioGenerator.RenderedBay rendered,
             boolean connectorsVisible
     ) throws IOException {
-        Map<LocalPosition, BlockData> expected = new HashMap<>();
+        Map<LocalPosition, BlockState> expected = new HashMap<>();
         for (JigsawStudioGenerator.RenderedBlock block : rendered.blocks()) {
-            if (block.state().isCustom() || !(block.state().nativeHandle() instanceof BlockData blockData)) {
-                throw new IOException("Rendered block '" + block.state().key()
-                        + "' cannot be placed directly in Bukkit Studio");
-            }
-            expected.put(new LocalPosition(block.x(), block.y(), block.z()), blockData);
+            expected.put(new LocalPosition(block.x(), block.y(), block.z()), block.state());
         }
         for (JigsawStudioGenerator.RenderedConnector connector : rendered.connectors()) {
             if (!connectorsVisible && expected.containsKey(
                     new LocalPosition(connector.x(), connector.y(), connector.z()))) {
                 continue;
             }
-            BlockData marker;
-            try {
-                marker = Bukkit.createBlockData(connectorsVisible
-                        ? "minecraft:jigsaw[orientation=" + connector.orientation() + "]"
-                        : connector.connector().getFinalState());
-            } catch (IllegalArgumentException exception) {
-                throw new IOException("Invalid rendered connector orientation '"
-                        + connector.orientation() + "'", exception);
-            }
-            expected.put(new LocalPosition(connector.x(), connector.y(), connector.z()), marker);
+            Optional<BlockState> marker = connectorsVisible
+                    ? jigsawMarker(registry, connector.orientation())
+                    : registry.find(connector.connector().getFinalState());
+            expected.put(
+                    new LocalPosition(connector.x(), connector.y(), connector.z()),
+                    marker.orElseThrow(() -> new IOException("Invalid rendered connector orientation '"
+                            + connector.orientation() + "'")));
         }
         return expected;
     }
 
-    private static void verifyMaterializedChunk(
-            World world,
+    private void verifyMaterializedChunk(
+            ToolWorld world,
             JigsawStudioBay workcell,
             JigsawStudioGenerator.RenderedBay rendered,
             ChunkCaptureArea area,
-            Map<LocalPosition, BlockData> expected,
+            Map<LocalPosition, BlockState> expected,
             boolean connectorsVisible
     ) throws IOException {
         JigsawStudioBounds bounds = workcell.bounds();
-        BlockData air = Material.AIR.createBlockData();
         for (int x = area.minimumX(); x < area.maximumX(); x++) {
             for (int y = 0; y < bounds.dimensions().height(); y++) {
                 for (int z = area.minimumZ(); z < area.maximumZ(); z++) {
-                    Block target = world.getBlockAt(
+                    BlockPosition target = new BlockPosition(
                             bounds.originX() + x,
                             bounds.originY() + y,
                             bounds.originZ() + z);
-                    BlockData expectedData = expected.getOrDefault(new LocalPosition(x, y, z), air);
-                    if (!target.getBlockData().equals(expectedData)) {
+                    BlockState expectedState = expected.getOrDefault(new LocalPosition(x, y, z), JigsawStudioBlocks.AIR);
+                    if (!sameBlock(world.block(target), expectedState)) {
                         throw new IOException("Workcell block did not materialize at "
-                                + target.getX() + "," + target.getY() + "," + target.getZ());
+                                + target.x() + "," + target.y() + "," + target.z());
                     }
                 }
             }
         }
         verifyRenderedBayChunk(world, workcell, rendered, area.chunkX(), area.chunkZ(), connectorsVisible);
+    }
+
+    /**
+     * Whether the block in the world is the one that was written: a state the platform completes with the properties it
+     * defaults, so each property the written state names has to agree, and air stands for every kind of air.
+     */
+    private static boolean sameBlock(BlockState actual, BlockState written) {
+        if (JigsawStudioBlocks.isAir(actual) && JigsawStudioBlocks.isAir(written)) {
+            return true;
+        }
+        if (!actual.material().equals(written.material())) {
+            return false;
+        }
+        return written.properties().entrySet().stream()
+                .allMatch(property -> property.getValue().equals(actual.properties().get(property.getKey())));
+    }
+
+    private static BlockRegistry registryOf(ActiveStudio studio) {
+        return studio.generator().getPack().resources().blocks();
     }
 
     private boolean isCurrentVariantSwitch(MaterializationWork work) {
@@ -5001,42 +4530,8 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 && materializationInProgress(work.studio());
     }
 
-    private void markDirty(Block block) {
-        if (block != null) {
-            markDirty(block.getWorld(), block.getX(), block.getY(), block.getZ());
-        }
-    }
-
-    private void markDirty(List<Block> blocks) {
-        for (Block block : blocks) {
-            markDirty(block);
-        }
-    }
-
-    private void markDirty(Inventory inventory) {
-        for (Block block : inventoryBlocks(inventory)) {
-            markDirty(block);
-        }
-    }
-
-    private boolean blocksInventoryMutation(Inventory inventory, UUID actorId) {
-        for (Block block : inventoryBlocks(inventory)) {
-            StudioBlockMutationContext context = studioBlockMutationContext(block);
-            if (context != null && blocksStudioInventoryMutation(
-                    true,
-                    context.immutable(),
-                    materializationInProgress(context.studio()),
-                    reopenRequiredRequests.contains(context.requestId()),
-                    context.ownerId(),
-                    actorId)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean blocksMachineMutation(Block block) {
-        StudioBlockMutationContext context = studioBlockMutationContext(block);
+    private boolean blocksMachineMutation(ActiveStudio studio, BlockPosition at) {
+        StudioBlockMutationContext context = studioBlockMutationContext(studio, at);
         return context != null && blocksStudioInventoryMutation(
                 true,
                 context.immutable(),
@@ -5046,25 +4541,16 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 null);
     }
 
-    private StudioBlockMutationContext studioBlockMutationContext(Block block) {
-        if (block == null) {
+    private StudioBlockMutationContext studioBlockMutationContext(ActiveStudio studio, BlockPosition block) {
+        if (studio == null || block == null) {
             return null;
         }
-        ActiveStudio studio = studios.get(block.getWorld().getUID());
-        if (studio == null) {
-            return null;
-        }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         boolean preview = previewRenderer.contains(
-                request.requestId(), block.getX(), block.getY(), block.getZ());
-        JigsawStudioControlPosition control = studio.generator().getLayout().controlPosition();
-        boolean controlChest = block.getType() == Material.CHEST
-                && block.getX() == control.worldX()
-                && block.getY() == control.worldY()
-                && block.getZ() == control.worldZ();
+                request.requestId(), block.x(), block.y(), block.z());
+        boolean controlChest = isControlChest(studio, block);
         JigsawStudioSession session = studio.generator().getSession();
-        JigsawStudioBay bay = session.layout().findAt(
-                block.getX(), block.getY(), block.getZ());
+        JigsawStudioBay bay = session.layout().findAt(block.x(), block.y(), block.z());
         boolean workcell = bay != null;
         if (!preview && !controlChest && !workcell) {
             return null;
@@ -5080,65 +4566,39 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 preview || controlChest || nonEditableWorkcell);
     }
 
-    private static List<Block> inventoryBlocks(Inventory inventory) {
-        if (inventory == null) {
-            return List.of();
-        }
-        List<Block> blocks = new ArrayList<>(2);
-        InventoryHolder holder = inventory.getHolder();
-        if (holder instanceof BlockInventoryHolder blockInventoryHolder) {
-            blocks.add(blockInventoryHolder.getBlock());
-        } else if (holder instanceof DoubleChest doubleChest) {
-            addInventoryBlock(blocks, doubleChest.getLeftSide());
-            addInventoryBlock(blocks, doubleChest.getRightSide());
-        }
-        return blocks;
-    }
-
-    private static void addInventoryBlock(List<Block> blocks, InventoryHolder holder) {
-        if (holder instanceof BlockInventoryHolder blockInventoryHolder
-                && !blocks.contains(blockInventoryHolder.getBlock())) {
-            blocks.add(blockInventoryHolder.getBlock());
-        }
-    }
-
-    private void startJigsawTileWatch(Player player, Block block) {
-        if (player == null || block == null || block.getType() != Material.JIGSAW) {
+    private void startJigsawTileWatch(ToolPlayer player, ActiveStudio studio, BlockPosition block) {
+        if (player == null || studio == null || block == null) {
             return;
         }
-        World world = block.getWorld();
-        int worldX = block.getX();
-        int worldY = block.getY();
-        int worldZ = block.getZ();
-        UUID playerId = player.getUniqueId();
-        if (J.isOwnedByCurrentRegion(world, worldX >> 4, worldZ >> 4)) {
-            initializeJigsawTileWatch(playerId, world, worldX, worldY, worldZ);
+        ToolWorld world = studio.world();
+        UUID playerId = player.id();
+        if (JigsawStudioThreads.ownsRegion(world, block.x() >> CHUNK_SHIFT, block.z() >> CHUNK_SHIFT)) {
+            initializeJigsawTileWatch(playerId, studio, block.x(), block.y(), block.z());
             return;
         }
-        boolean scheduled = J.runRegion(
+        JigsawStudioThreads.onRegion(
+                log,
                 world,
-                worldX >> 4,
-                worldZ >> 4,
-                () -> initializeJigsawTileWatch(playerId, world, worldX, worldY, worldZ));
-        if (!scheduled) {
-            IrisLogging.warn("Jigsaw Studio could not watch jigsaw marker NBT at %d,%d,%d in %s",
-                    worldX, worldY, worldZ, world.getName());
-        }
+                block.x() >> CHUNK_SHIFT,
+                block.z() >> CHUNK_SHIFT,
+                () -> initializeJigsawTileWatch(playerId, studio, block.x(), block.y(), block.z()),
+                () -> warn("Jigsaw Studio could not watch jigsaw marker NBT at %d,%d,%d in %s",
+                        block.x(), block.y(), block.z(), world.name()));
     }
 
     private void initializeJigsawTileWatch(
             UUID playerId,
-            World world,
+            ActiveStudio studio,
             int worldX,
             int worldY,
             int worldZ
     ) {
-        ActiveStudio studio = studios.get(world.getUID());
-        if (!enabled || studio == null) {
+        ToolWorld world = studio.world();
+        if (!enabled || studios.get(studio.worldId()) != studio) {
             return;
         }
-        Block block = world.getBlockAt(worldX, worldY, worldZ);
-        if (block.getType() != Material.JIGSAW) {
+        BlockPosition at = new BlockPosition(worldX, worldY, worldZ);
+        if (!JigsawStudioBlocks.isJigsaw(world.block(at))) {
             return;
         }
         JigsawStudioSession session = studio.generator().getSession();
@@ -5151,19 +4611,19 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         }
         KMap<String, Object> snapshot;
         try {
-            snapshot = BukkitPlatform.serializeTile(block.getLocation());
+            snapshot = world.blockEntity(at).flatMap(JigsawStudioTileCodec::nbt).orElse(null);
         } catch (Throwable exception) {
-            IrisLogging.reportError(exception);
+            reportError(exception);
             return;
         }
         if (snapshot == null) {
-            IrisLogging.warn("Jigsaw Studio could not read jigsaw marker NBT at %d,%d,%d in %s",
-                    worldX, worldY, worldZ, world.getName());
+            warn("Jigsaw Studio could not read jigsaw marker NBT at %d,%d,%d in %s",
+                    worldX, worldY, worldZ, world.name());
             return;
         }
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         JigsawTileWatchKey key = new JigsawTileWatchKey(
-                request.requestId(), world.getUID(), worldX, worldY, worldZ);
+                request.requestId(), studio.worldId(), worldX, worldY, worldZ);
         JigsawTileWatch watch = new JigsawTileWatch(
                 key,
                 studio,
@@ -5177,16 +4637,18 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private void scheduleJigsawTileWatch(JigsawTileWatch watch) {
-        boolean scheduled = J.runRegion(
+        scheduler.onRegionLater(
                 watch.studio().world(),
-                watch.key().worldX() >> 4,
-                watch.key().worldZ() >> 4,
+                watch.key().worldX() >> CHUNK_SHIFT,
+                watch.key().worldZ() >> CHUNK_SHIFT,
                 () -> runJigsawTileWatch(watch, false),
-                JIGSAW_TILE_WATCH_INTERVAL_TICKS);
-        if (!scheduled && jigsawTileWatches.get(watch.key()) == watch) {
-            warnJigsawTileWatchScheduleFailure(watch);
-            scheduleJigsawTileWatchReconciliation(watch, false);
-        }
+                JIGSAW_TILE_WATCH_INTERVAL_TICKS,
+                () -> {
+                    if (jigsawTileWatches.get(watch.key()) == watch) {
+                        warnJigsawTileWatchScheduleFailure(watch);
+                        scheduleJigsawTileWatchReconciliation(watch, false);
+                    }
+                });
     }
 
     private void runJigsawTileWatch(JigsawTileWatch watch, boolean release) {
@@ -5199,11 +4661,11 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             jigsawTileWatches.remove(watch.key(), watch);
             return;
         }
-        Block block = studio.world().getBlockAt(
+        BlockPosition watched = new BlockPosition(
                 watch.key().worldX(), watch.key().worldY(), watch.key().worldZ());
         JigsawStudioBay bay = studio.generator().getSession().layout().findAt(
                 watch.key().worldX(), watch.key().worldY(), watch.key().worldZ());
-        if (block.getType() != Material.JIGSAW
+        if (!JigsawStudioBlocks.isJigsaw(studio.world().block(watched))
                 || bay == null
                 || !bay.stableId().equals(watch.workcellId())) {
             jigsawTileWatches.remove(watch.key(), watch);
@@ -5211,29 +4673,25 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         }
         KMap<String, Object> snapshot;
         try {
-            snapshot = BukkitPlatform.serializeTile(block.getLocation());
+            snapshot = studio.world().blockEntity(watched).flatMap(JigsawStudioTileCodec::nbt).orElse(null);
         } catch (Throwable exception) {
             jigsawTileWatches.remove(watch.key(), watch);
-            IrisLogging.reportError(exception);
+            reportError(exception);
             return;
         }
         if (snapshot == null) {
             jigsawTileWatches.remove(watch.key(), watch);
-            IrisLogging.warn("Jigsaw Studio stopped watching unreadable jigsaw marker NBT at %d,%d,%d in %s",
+            warn("Jigsaw Studio stopped watching unreadable jigsaw marker NBT at %d,%d,%d in %s",
                     watch.key().worldX(),
                     watch.key().worldY(),
                     watch.key().worldZ(),
-                    studio.world().getName());
+                    studio.world().name());
             return;
         }
         JigsawTilePollDecision decision = jigsawTilePollDecision(
                 watch.snapshot(), snapshot, release);
         if (decision.changed()) {
-            markDirty(
-                    studio.world(),
-                    watch.key().worldX(),
-                    watch.key().worldY(),
-                    watch.key().worldZ());
+            markDirty(studio, watched);
         }
         if (!decision.continueWatching()) {
             jigsawTileWatches.remove(watch.key(), watch);
@@ -5297,7 +4755,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             try {
                 finalizeJigsawTileWatch(watch);
             } catch (Throwable exception) {
-                IrisLogging.reportError("Failed to finalize a Jigsaw Studio tile watch during shutdown.", exception);
+                reportError("Failed to finalize a Jigsaw Studio tile watch during shutdown.", exception);
             }
         }
     }
@@ -5306,31 +4764,32 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (jigsawTileWatches.get(watch.key()) != watch) {
             return;
         }
-        World world = watch.studio().world();
-        int chunkX = watch.key().worldX() >> 4;
-        int chunkZ = watch.key().worldZ() >> 4;
-        if (J.isOwnedByCurrentRegion(world, chunkX, chunkZ)) {
+        ToolWorld world = watch.studio().world();
+        int chunkX = watch.key().worldX() >> CHUNK_SHIFT;
+        int chunkZ = watch.key().worldZ() >> CHUNK_SHIFT;
+        if (JigsawStudioThreads.ownsRegion(world, chunkX, chunkZ)) {
             runJigsawTileWatch(watch, true);
             return;
         }
-        boolean scheduled = J.runRegion(
+        JigsawStudioThreads.onRegion(
+                log,
                 world,
                 chunkX,
                 chunkZ,
-                () -> runJigsawTileWatch(watch, true));
-        if (!scheduled) {
-            warnJigsawTileWatchScheduleFailure(watch);
-            scheduleJigsawTileWatchReconciliation(watch, true);
-        }
+                () -> runJigsawTileWatch(watch, true),
+                () -> {
+                    warnJigsawTileWatchScheduleFailure(watch);
+                    scheduleJigsawTileWatchReconciliation(watch, true);
+                });
     }
 
     private void warnJigsawTileWatchScheduleFailure(JigsawTileWatch watch) {
         if (watch.scheduleFailureLogged().compareAndSet(false, true)) {
-            IrisLogging.warn("Jigsaw Studio could not schedule jigsaw marker NBT at %d,%d,%d in %s; Iris will keep retrying",
+            warn("Jigsaw Studio could not schedule jigsaw marker NBT at %d,%d,%d in %s; Iris will keep retrying",
                     watch.key().worldX(),
                     watch.key().worldY(),
                     watch.key().worldZ(),
-                    watch.studio().world().getName());
+                    watch.studio().world().name());
         }
     }
 
@@ -5338,22 +4797,17 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (!watch.reconciliationScheduled().compareAndSet(false, true)) {
             return;
         }
-        try {
-            J.s(() -> {
-                watch.reconciliationScheduled().set(false);
-                if (jigsawTileWatches.get(watch.key()) != watch) {
-                    return;
-                }
-                if (release) {
-                    finalizeJigsawTileWatch(watch);
-                } else {
-                    scheduleJigsawTileWatch(watch);
-                }
-            }, AUTOSAVE_RETRY_TICKS);
-        } catch (Throwable exception) {
+        scheduler.later(AUTOSAVE_RETRY_TICKS, () -> {
             watch.reconciliationScheduled().set(false);
-            IrisLogging.reportError(exception);
-        }
+            if (jigsawTileWatches.get(watch.key()) != watch) {
+                return;
+            }
+            if (release) {
+                finalizeJigsawTileWatch(watch);
+            } else {
+                scheduleJigsawTileWatch(watch);
+            }
+        });
     }
 
     static boolean tileSnapshotChanged(
@@ -5369,12 +4823,6 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             boolean release
     ) {
         return new JigsawTilePollDecision(tileSnapshotChanged(previous, current), !release);
-    }
-
-    private void markAllDirty() {
-        for (ActiveStudio studio : studios.values()) {
-            markAllDirty(studio);
-        }
     }
 
     private int markAllDirty(ActiveStudio studio) {
@@ -5433,20 +4881,20 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             return;
         }
         JigsawStudioBounds bounds = bay.bounds();
-        boolean scheduled = J.runRegion(
+        scheduler.onRegionLater(
                 ticket.studio().world(),
-                bounds.originX() >> 4,
-                bounds.originZ() >> 4,
+                bounds.originX() >> CHUNK_SHIFT,
+                bounds.originZ() >> CHUNK_SHIFT,
                 () -> runAutosave(ticket),
-                delayTicks);
-        if (!scheduled) {
-            ticket.scheduled().set(false);
-            if (ticket.scheduleFailureLogged().compareAndSet(false, true)) {
-                IrisLogging.warn("Jigsaw Studio autosave could not schedule workcell %s for request %s; Iris will keep retrying",
-                        ticket.key().workcellId(), ticket.key().requestId());
-            }
-            scheduleAutosaveReconciliation(ticket);
-        }
+                delayTicks,
+                () -> {
+                    ticket.scheduled().set(false);
+                    if (ticket.scheduleFailureLogged().compareAndSet(false, true)) {
+                        warn("Jigsaw Studio autosave could not schedule workcell %s for request %s; Iris will keep retrying",
+                                ticket.key().workcellId(), ticket.key().requestId());
+                    }
+                    scheduleAutosaveReconciliation(ticket);
+                });
     }
 
     private JigsawStudioBay resolveAutosaveBay(AutosaveTicket ticket) {
@@ -5520,12 +4968,13 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return true;
     }
 
-    private static AutosaveFailureDecision reportAutosaveFailure(
+    private AutosaveFailureDecision reportAutosaveFailure(
             AutosaveTicket ticket,
             AutosavePersistentFailure failure
     ) {
-        JigsawStudioActivation.Request request = ticket.studio().generator().getRequest();
+        JigsawStudioRequest request = ticket.studio().generator().getRequest();
         return recordPersistentAutosaveFailure(
+                log,
                 ticket.failureState(),
                 ticket.key().requestId(),
                 request.structureKey(),
@@ -5535,14 +4984,15 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 failure.cause());
     }
 
-    private static void reportPersistentSaveFailure(
+    private void reportPersistentSaveFailure(
             ActiveStudio studio,
             JigsawStudioSession.SaveIdentity saveIdentity,
             AutosaveFailureState failureState,
             AutosavePersistentFailure failure
     ) {
-        JigsawStudioActivation.Request request = studio.generator().getRequest();
+        JigsawStudioRequest request = studio.generator().getRequest();
         recordPersistentAutosaveFailure(
+                log,
                 failureState,
                 request.requestId(),
                 request.structureKey(),
@@ -5553,6 +5003,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     static AutosaveFailureDecision recordPersistentAutosaveFailure(
+            ModuleLog log,
             AutosaveFailureState state,
             UUID requestId,
             String structureKey,
@@ -5575,9 +5026,9 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 pieceKey,
                 detail);
         if (cause == null) {
-            IrisLogging.warn("%s", context);
+            log.warn(context);
         } else {
-            IrisLogging.reportError(context, cause);
+            log.error(context, cause);
         }
         return decision;
     }
@@ -5609,16 +5060,12 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private void scheduleAutosaveReconciliation(AutosaveTicket ticket) {
-        try {
-            J.s(() -> {
-                if (autosaves.get(ticket.key()) == ticket
-                        && !ticket.scheduled().get()) {
-                    scheduleAutosave(ticket, AUTOSAVE_RETRY_TICKS);
-                }
-            }, AUTOSAVE_RETRY_TICKS);
-        } catch (Throwable exception) {
-            IrisLogging.reportError(exception);
-        }
+        scheduler.later(AUTOSAVE_RETRY_TICKS, () -> {
+            if (autosaves.get(ticket.key()) == ticket
+                    && !ticket.scheduled().get()) {
+                scheduleAutosave(ticket, AUTOSAVE_RETRY_TICKS);
+            }
+        });
     }
 
     private void runAutosave(AutosaveTicket ticket) {
@@ -5697,14 +5144,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             try {
                 drainAutosavesBeforeRemoval(studio);
             } catch (Throwable exception) {
-                IrisLogging.reportError(
+                reportError(
                         "Failed to drain Jigsaw Studio autosaves in world "
                                 + studio.worldId() + " during shutdown.",
                         exception);
             }
         }
         if (!autosaves.isEmpty()) {
-            IrisLogging.warn("Jigsaw Studio disabled with %d autosave operation(s) still pending after the final drain attempt",
+            warn("Jigsaw Studio disabled with %d autosave operation(s) still pending after the final drain attempt",
                     autosaves.size());
         }
     }
@@ -5717,7 +5164,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         if (discardingRequest(requestId)) {
             return;
         }
-        if (J.isFolia() || !J.isPrimaryThread()) {
+        if (!ownsEveryStudioChunk(studio)) {
             expediteAutosaves(requestId);
             return;
         }
@@ -5726,6 +5173,18 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 drainAutosaveSynchronously(ticket);
             }
         }
+    }
+
+    /** Whether the calling thread may read every workcell chunk, which the final synchronous autosave needs. */
+    private static boolean ownsEveryStudioChunk(ActiveStudio studio) {
+        for (JigsawStudioBay bay : studio.generator().getLayout().bays()) {
+            for (ChunkCaptureArea area : chunkIntersections(bay.bounds())) {
+                if (!JigsawStudioThreads.ownsRegion(studio.world(), area.chunkX(), area.chunkZ())) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private boolean drainAutosaveSynchronously(AutosaveTicket ticket) {
@@ -5788,12 +5247,13 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         List<ChunkSnapshot> snapshots = new ArrayList<>(areas.size());
         try {
             for (ChunkCaptureArea area : areas) {
-                if (!studio.world().isChunkLoaded(area.chunkX(), area.chunkZ())) {
+                if (!studio.isChunkLoaded(area.chunkX(), area.chunkZ())) {
                     throw new IOException("Workcell chunk " + area.chunkX() + "," + area.chunkZ()
                             + " is not loaded during the final autosave drain");
                 }
                 snapshots.add(captureChunkIntersection(
                         studio.world(),
+                        studio.generator().getPack().resources().blocks(),
                         captureTarget.bounds(),
                         captureTarget.piece(),
                         captureTarget.object(),
@@ -5942,12 +5402,12 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             return;
         }
         ActiveStudio studio = coordinator.studio();
-        World world = coordinator.world();
+        ToolWorld world = coordinator.world();
         if (!isCurrentSave(studio, coordinator.requestId(), coordinator.saveIdentity())) {
             coordinator.fail("Jigsaw Studio changed before every bay chunk could be captured; save cancelled.", null);
             return;
         }
-        if (!world.isChunkLoaded(area.chunkX(), area.chunkZ())) {
+        if (!studio.isChunkLoaded(area.chunkX(), area.chunkZ())) {
             coordinator.fail("Bay chunk " + area.chunkX() + "," + area.chunkZ()
                     + " is not loaded. Visit the whole bay and try again.", null);
             return;
@@ -5955,6 +5415,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         try {
             ChunkSnapshot snapshot = captureChunkIntersection(
                     world,
+                    studio.generator().getPack().resources().blocks(),
                     coordinator.captureTarget().bounds(),
                     coordinator.captureTarget().piece(),
                     coordinator.captureTarget().object(),
@@ -5982,7 +5443,10 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             return;
         }
         try {
+            ToolPack pack = studio.generator().getPack();
             Capture capture = aggregateSnapshots(
+                    pack.resources().blocks(),
+                    pack.objects(),
                     coordinator.captureTarget().bounds(),
                     coordinator.areas(),
                     snapshots,
@@ -6021,60 +5485,33 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     ) {
         ActiveStudio studio = coordinator.studio();
         JigsawStudioBay bay = coordinator.bay();
-        Player player = coordinator.player();
+        ToolPlayer player = coordinator.player();
         try {
             if (!isCurrentSave(studio, coordinator.requestId(), coordinator.saveIdentity())) {
                 message(player, "Jigsaw Studio changed before the captured bay could be written; save cancelled.");
                 return;
             }
-            JigsawStudioActivation.Request request = studio.generator().getRequest();
-            IrisData source = request.source();
-            Path packRoot = source.getDataFolder().toPath();
-            JigsawStudioResourceBundleAssembler.Assembly assembly =
-                    JigsawStudioResourceBundleAssembler.assemble(
-                            packRoot,
-                            request.structureKey(),
-                            coordinator.saveIdentity().variantKey(),
-                            capture.objectContent(),
-                            connectors,
-                            capture.hasBlockEntities());
-            StructureResourceBundleGraphCompiler.requireViable(assembly.bundle());
-            if (!isCurrentSave(studio, coordinator.requestId(), coordinator.saveIdentity())) {
-                message(player, "Jigsaw Studio changed during validation; save cancelled before writing.");
+            JigsawStudioRequest request = studio.generator().getRequest();
+            PersistedGraph persisted = studio.generator().getPack().edit(
+                    packRoot -> writeCapturedGraph(coordinator, capture, connectors, packRoot));
+            if (persisted == null) {
                 return;
             }
-            JigsawStudioHistoryStore historyStore = new JigsawStudioHistoryStore(
-                    packRoot,
-                    request.structureKey());
-            JigsawStudioHistoryStore.Snapshot previous = historyStore.snapshotCurrent(
-                    coordinator.saveIdentity().variantKey());
-            if (!previous.matches(assembly.bundle())) {
-                historyStore.append(previous);
-            }
-            StructureWriteResult result;
-            synchronized (saveLifecycleLock) {
-                if (!isCurrentSave(studio, coordinator.requestId(), coordinator.saveIdentity())) {
-                    message(player, "Jigsaw Studio changed before the validated save entered the writer; save cancelled.");
-                    return;
-                }
-                result = new StructureTransactionWriter(packRoot)
-                        .write(assembly.bundle(), StructureWriteOptions.overwriteExpected(
-                                assembly.expectedManifestHash()));
-            }
+            JigsawStudioResourceBundleAssembler.Assembly assembly = persisted.assembly();
+            StructureWriteResult result = persisted.result();
             if (!result.successful()) {
                 String failure = writeFailure(result);
                 coordinator.recordPersistentFailure(failure, result.failure().orElse(null));
                 message(player, failure);
                 return;
             }
-            source.invalidateStructureResources();
             studio.generator().invalidateRender(bay.stableId(), coordinator.saveIdentity().variantKey());
             JigsawStudioSession session = studio.generator().getSession();
             boolean unchanged = session.markWorkcellSaved(coordinator.saveIdentity());
             try {
                 reloadSessionLayout(studio);
             } catch (IOException | RuntimeException refreshFailure) {
-                IrisLogging.reportError(refreshFailure);
+                reportError(refreshFailure);
                 message(player, "The graph saved, but Studio could not refresh its variant catalog. "
                         + "Close and reopen this project before continuing: "
                         + failureMessage(refreshFailure));
@@ -6089,7 +5526,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             if (unchanged) {
                 scheduleEvaluation(studio);
             }
-            IrisLogging.debug("Jigsaw Studio saved: structure=%s piece=%s object=%s connectors=%d status=%s",
+            debug("Jigsaw Studio saved: structure=%s piece=%s object=%s connectors=%d status=%s",
                     request.structureKey(), coordinator.saveIdentity().variantKey(), assembly.objectKey(),
                     connectors.size(), result.status());
         } catch (Throwable exception) {
@@ -6099,6 +5536,58 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         } finally {
             coordinator.complete();
         }
+    }
+
+    /**
+     * Validates the captured workcell against the graph and writes it under the pack folder; null when the studio changed
+     * on the way and the save was dropped, in which case the player has been told.
+     */
+    private PersistedGraph writeCapturedGraph(
+            CaptureCoordinator coordinator,
+            Capture capture,
+            List<IrisJigsawConnector> connectors,
+            Path packRoot
+    ) throws IOException {
+        ActiveStudio studio = coordinator.studio();
+        ToolPlayer player = coordinator.player();
+        JigsawStudioRequest request = studio.generator().getRequest();
+        JigsawStudioResourceBundleAssembler.Assembly assembly =
+                JigsawStudioResourceBundleAssembler.assemble(
+                        packRoot,
+                        request.structureKey(),
+                        coordinator.saveIdentity().variantKey(),
+                        capture.objectContent(),
+                        connectors,
+                        capture.hasBlockEntities());
+        StructureResourceBundleGraphCompiler.requireViable(assembly.bundle());
+        if (!isCurrentSave(studio, coordinator.requestId(), coordinator.saveIdentity())) {
+            message(player, "Jigsaw Studio changed during validation; save cancelled before writing.");
+            return null;
+        }
+        JigsawStudioHistoryStore historyStore = new JigsawStudioHistoryStore(
+                packRoot,
+                request.structureKey());
+        JigsawStudioHistoryStore.Snapshot previous = historyStore.snapshotCurrent(
+                coordinator.saveIdentity().variantKey());
+        if (!previous.matches(assembly.bundle())) {
+            historyStore.append(previous);
+        }
+        synchronized (saveLifecycleLock) {
+            if (!isCurrentSave(studio, coordinator.requestId(), coordinator.saveIdentity())) {
+                message(player, "Jigsaw Studio changed before the validated save entered the writer; save cancelled.");
+                return null;
+            }
+            StructureWriteResult result = new StructureTransactionWriter(packRoot)
+                    .write(assembly.bundle(), StructureWriteOptions.overwriteExpected(
+                            assembly.expectedManifestHash()));
+            return new PersistedGraph(assembly, result);
+        }
+    }
+
+    private record PersistedGraph(
+            JigsawStudioResourceBundleAssembler.Assembly assembly,
+            StructureWriteResult result
+    ) {
     }
 
     static List<ChunkCaptureArea> chunkIntersections(JigsawStudioBounds bounds) {
@@ -6133,25 +5622,28 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     static ChunkSnapshot captureChunkIntersection(
-            World world,
+            ToolWorld world,
+            BlockRegistry registry,
             JigsawStudioBounds bounds,
             IrisJigsawPiece sourcePiece,
-            IrisObject sourceObject,
+            SourceObject sourceObject,
             ChunkCaptureArea area
     ) throws IOException {
-        return captureChunkIntersection(world, bounds, sourcePiece, sourceObject, area, 0);
+        return captureChunkIntersection(world, registry, bounds, sourcePiece, sourceObject, area, 0);
     }
 
     static ChunkSnapshot captureChunkIntersection(
-            World world,
+            ToolWorld world,
+            BlockRegistry registry,
             JigsawStudioBounds bounds,
             IrisJigsawPiece sourcePiece,
-            IrisObject sourceObject,
+            SourceObject sourceObject,
             ChunkCaptureArea area,
             int displayRotationQuarterTurns
     ) throws IOException {
         return captureChunkIntersection(
                 world,
+                registry,
                 bounds,
                 sourcePiece,
                 sourceObject,
@@ -6161,17 +5653,18 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     static ChunkSnapshot captureChunkIntersection(
-            World world,
+            ToolWorld world,
+            BlockRegistry registry,
             JigsawStudioBounds bounds,
             IrisJigsawPiece sourcePiece,
-            IrisObject sourceObject,
+            SourceObject sourceObject,
             ChunkCaptureArea area,
             int displayRotationQuarterTurns,
             boolean connectorsVisible
     ) throws IOException {
-        World captureWorld = Objects.requireNonNull(world, "Jigsaw Studio capture world");
+        ToolWorld captureWorld = Objects.requireNonNull(world, "Jigsaw Studio capture world");
         JigsawStudioBounds captureBounds = Objects.requireNonNull(bounds, "Jigsaw Studio capture bounds");
-        IrisObject captureSource = Objects.requireNonNull(sourceObject, "Jigsaw Studio source object");
+        SourceObject captureSource = Objects.requireNonNull(sourceObject, "Jigsaw Studio source object");
         ChunkCaptureArea captureArea = Objects.requireNonNull(area, "Jigsaw Studio chunk capture area");
         int quarterTurns = Math.floorMod(displayRotationQuarterTurns, 4);
         int sourceWidth = (quarterTurns & 1) == 0
@@ -6188,29 +5681,31 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         for (int x = captureArea.minimumX(); x < captureArea.maximumX(); x++) {
             for (int y = 0; y < bounds.dimensions().height(); y++) {
                 for (int z = captureArea.minimumZ(); z < captureArea.maximumZ(); z++) {
-                    Block block = captureWorld.getBlockAt(
+                    BlockPosition at = new BlockPosition(
                             captureBounds.originX() + x,
                             captureBounds.originY() + y,
                             captureBounds.originZ() + z);
-                    BlockData blockData = block.getBlockData();
+                    BlockState state = captureWorld.block(at);
                     IrisJigsawConnector hiddenConnector = hiddenConnectors.get(new LocalPosition(x, y, z));
                     if (hiddenConnector != null) {
-                        hiddenConnector.setFinalState(blockData.getAsString());
+                        hiddenConnector.setFinalState(state.key());
                         connectors.add(CapturedConnector.from(hiddenConnector));
                     }
-                    if (hiddenConnector == null && blockData instanceof Jigsaw jigsaw) {
-                        KMap<String, Object> nbt = BukkitPlatform.serializeTile(block.getLocation());
+                    if (hiddenConnector == null && JigsawStudioBlocks.isJigsaw(state)) {
+                        KMap<String, Object> nbt = captureWorld.blockEntity(at)
+                                .flatMap(JigsawStudioTileCodec::nbt)
+                                .orElse(null);
                         if (nbt == null) {
                             throw new IOException("Cannot read jigsaw marker NBT at "
-                                    + block.getX() + "," + block.getY() + "," + block.getZ()
+                                    + at.x() + "," + at.y() + "," + at.z()
                                     + ". The active NMS binding must support tile serialization.");
                         }
                         IrisJigsawConnector connector;
                         try {
-                            connector = JigsawStudioMarkerParser.parse(nbt, jigsaw.getOrientation(), x, y, z);
+                            connector = JigsawStudioMarkerParser.parse(nbt, orientationOf(state), x, y, z);
                         } catch (IllegalArgumentException exception) {
                             throw new IOException("Invalid jigsaw marker at "
-                                    + block.getX() + "," + block.getY() + "," + block.getZ()
+                                    + at.x() + "," + at.y() + "," + at.z()
                                     + ": " + failureMessage(exception), exception);
                         }
                         restoreCapturedMetadataForDisplay(
@@ -6218,26 +5713,17 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                                 sourcePiece,
                                 captureBounds.dimensions(),
                                 quarterTurns);
-                        BlockData finalData;
-                        try {
-                            finalData = Bukkit.createBlockData(connector.getFinalState());
-                        } catch (IllegalArgumentException exception) {
-                            throw new IOException("Invalid final_state '" + connector.getFinalState()
-                                    + "' at " + block.getX() + "," + block.getY() + "," + block.getZ(), exception);
-                        }
-                        connector.setFinalState(finalData.getAsString());
+                        BlockState finalState = registry.find(connector.getFinalState())
+                                .orElseThrow(() -> new IOException("Invalid final_state '" + connector.getFinalState()
+                                        + "' at " + at.x() + "," + at.y() + "," + at.z()));
+                        connector.setFinalState(finalState.key());
                         connectors.add(CapturedConnector.from(connector));
-                        if (finalData.getMaterial() != Material.STRUCTURE_VOID) {
-                            blocks.add(new CapturedBlock(
-                                    x,
-                                    y,
-                                    z,
-                                    BukkitBlockState.of(finalData),
-                                    null));
+                        if (!JigsawStudioBlocks.isStructureVoid(finalState)) {
+                            blocks.add(new CapturedBlock(x, y, z, finalState, null));
                         }
                         continue;
                     }
-                    if (isAir(blockData.getMaterial())) {
+                    if (JigsawStudioBlocks.isAir(state)) {
                         LocalPosition sourcePosition = inversePosition(
                                 x,
                                 y,
@@ -6245,26 +5731,21 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                                 sourceWidth,
                                 sourceDepth,
                                 quarterTurns);
-                        PlatformBlockState retainedAir = retainedSourceAir(
+                        BlockState retainedAir = retainedSourceAir(
                                 captureSource,
                                 sourcePosition.x(),
                                 sourcePosition.y(),
                                 sourcePosition.z(),
-                                blockData);
+                                state);
                         if (retainedAir != null) {
                             blocks.add(new CapturedBlock(x, y, z, retainedAir, null));
                         }
                         continue;
                     }
-                    if (blockData.getMaterial() == Material.STRUCTURE_VOID) {
+                    if (JigsawStudioBlocks.isStructureVoid(state)) {
                         continue;
                     }
-                    blocks.add(new CapturedBlock(
-                            x,
-                            y,
-                            z,
-                            BukkitBlockState.of(blockData),
-                            TileData.getTileState(block, false)));
+                    blocks.add(new CapturedBlock(x, y, z, state, captureWorld.blockEntity(at).orElse(null)));
                 }
             }
         }
@@ -6310,41 +5791,64 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return Map.copyOf(displayed);
     }
 
-    static PlatformBlockState retainedSourceAir(
-            IrisObject sourceObject,
+    static BlockState retainedSourceAir(
+            SourceObject sourceObject,
             int x,
             int y,
             int z,
-            BlockData current
+            BlockState current
     ) {
-        IrisObject source = Objects.requireNonNull(sourceObject, "Jigsaw Studio source object");
-        BlockData currentState = Objects.requireNonNull(current, "Jigsaw Studio current block state");
-        if (!isAir(currentState.getMaterial())
+        SourceObject source = Objects.requireNonNull(sourceObject, "Jigsaw Studio source object");
+        BlockState currentState = Objects.requireNonNull(current, "Jigsaw Studio current block state");
+        if (!JigsawStudioBlocks.isAir(currentState)
                 || x < 0
                 || y < 0
                 || z < 0
-                || x >= source.getW()
-                || y >= source.getH()
-                || z >= source.getD()) {
+                || x >= source.width()
+                || y >= source.height()
+                || z >= source.depth()) {
             return null;
         }
-        PlatformBlockState original = source.getBlocks().get(source.getSigned(x, y, z));
-        return original != null && original.isAir() ? original : null;
+        return source.airBlocks().get(new LocalPosition(x, y, z));
     }
 
-    private static boolean isAir(Material material) {
-        return material == Material.AIR || material == Material.CAVE_AIR || material == Material.VOID_AIR;
+    /**
+     * The object a piece was saved as: its declared size, and the air it keeps deliberately. A workcell block that is air
+     * now keeps the air it had in the object, so the saved object still clears the same blocks when it is placed.
+     */
+    record SourceObject(int width, int height, int depth, Map<LocalPosition, BlockState> airBlocks) {
+        SourceObject {
+            airBlocks = Map.copyOf(airBlocks);
+        }
+
+        static SourceObject of(PlaceableObject object) {
+            BlockPosition center = object.center();
+            Map<LocalPosition, BlockState> air = new HashMap<>();
+            for (ObjectBlock block : object.geometry().blocks()) {
+                if (JigsawStudioBlocks.isAir(block.state())) {
+                    air.put(new LocalPosition(
+                            block.position().x() + center.x(),
+                            block.position().y() + center.y(),
+                            block.position().z() + center.z()), block.state());
+                }
+            }
+            return new SourceObject(object.width(), object.height(), object.depth(), air);
+        }
     }
 
     static Capture aggregateSnapshots(
+            BlockRegistry registry,
+            ObjectCodec codec,
             JigsawStudioBounds bounds,
             List<ChunkCaptureArea> expectedAreas,
             List<ChunkSnapshot> snapshots
     ) throws IOException {
-        return aggregateSnapshots(bounds, expectedAreas, snapshots, 0);
+        return aggregateSnapshots(registry, codec, bounds, expectedAreas, snapshots, 0);
     }
 
     static Capture aggregateSnapshots(
+            BlockRegistry registry,
+            ObjectCodec codec,
             JigsawStudioBounds bounds,
             List<ChunkCaptureArea> expectedAreas,
             List<ChunkSnapshot> snapshots,
@@ -6391,10 +5895,8 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         int sourceDepth = (quarterTurns & 1) == 0
                 ? captureBounds.dimensions().depth()
                 : captureBounds.dimensions().width();
-        IrisObject object = new IrisObject(
-                sourceWidth,
-                captureBounds.dimensions().height(),
-                sourceDepth);
+        int sourceHeight = captureBounds.dimensions().height();
+        List<ObjectBlock> objectBlocks = new ArrayList<>();
         ObjectTurn inverseRotation = ObjectTurn.of(0, 90.0D * quarterTurns, 0);
         List<IrisJigsawConnector> connectors = new ArrayList<>();
         Set<LocalPosition> capturedBlocks = new HashSet<>();
@@ -6415,17 +5917,18 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                     throw new IOException("Duplicate captured block at "
                             + block.x() + "," + block.y() + "," + block.z());
                 }
-                PlatformBlockState sourceState = quarterTurns == 0
+                BlockState sourceState = quarterTurns == 0
                         ? block.state()
-                        : BlockStateRotation.rotate(inverseRotation, block.state());
+                        : JigsawStudioBlocks.rotated(registry, block.state(), inverseRotation);
                 if (sourceState == null) {
                     throw new IOException("Captured block state cannot be inverse-rotated at "
                             + block.x() + "," + block.y() + "," + block.z());
                 }
-                object.setUnsigned(position.x(), position.y(), position.z(), sourceState);
-                TileData tileData = block.tileData();
-                if (tileData != null) {
-                    object.setUnsignedTile(position.x(), position.y(), position.z(), tileData.clone());
+                objectBlocks.add(new ObjectBlock(
+                        fromCorner(position, sourceWidth, sourceHeight, sourceDepth),
+                        sourceState,
+                        Optional.ofNullable(block.blockEntity())));
+                if (block.blockEntity() != null) {
                     hasBlockEntities = true;
                 }
             }
@@ -6453,13 +5956,13 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                     connector.setPosition(new IrisPosition(position.x(), position.y(), position.z()));
                     connector.setDirection(inverseRotation.rotate(connector.getDirection()));
                     connector.setTop(inverseRotation.rotate(connector.getTop()));
-                    PlatformBlockState finalState = B.getStateOrNull(connector.getFinalState(), false);
+                    BlockState finalState = registry.find(connector.getFinalState()).orElse(null);
                     if (finalState == null) {
                         throw new IOException("Captured connector final state cannot be parsed at "
                                 + capturedConnector.x() + "," + capturedConnector.y() + ","
                                 + capturedConnector.z());
                     }
-                    PlatformBlockState sourceFinalState = BlockStateRotation.rotate(inverseRotation, finalState);
+                    BlockState sourceFinalState = JigsawStudioBlocks.rotated(registry, finalState, inverseRotation);
                     if (sourceFinalState == null) {
                         throw new IOException("Captured connector final state cannot be inverse-rotated at "
                                 + capturedConnector.x() + "," + capturedConnector.y() + ","
@@ -6470,10 +5973,31 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 connectors.add(connector);
             }
         }
-        try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            object.write(output);
-            return new Capture(output.toByteArray(), connectors, hasBlockEntities);
-        }
+        GeneratedObject object = new GeneratedObject(
+                objectBounds(sourceWidth, sourceHeight, sourceDepth),
+                new BlockPosition(0, 0, 0),
+                objectBlocks,
+                List.of());
+        return new Capture(codec.encode(object), connectors, hasBlockEntities);
+    }
+
+    /** A position counted from the object's corner, as the offset from its center the object format keeps. */
+    private static BlockPosition fromCorner(LocalPosition corner, int width, int height, int depth) {
+        return new BlockPosition(
+                corner.x() - width / 2,
+                corner.y() - height / 2,
+                corner.z() - depth / 2);
+    }
+
+    /** The box of an object of the given size, in the offsets from its center that its blocks are kept in. */
+    private static BlockBox objectBounds(int width, int height, int depth) {
+        return new BlockBox(
+                -(width / 2),
+                -(height / 2),
+                -(depth / 2),
+                width - width / 2,
+                height - height / 2,
+                depth - depth / 2);
     }
 
     static List<IrisJigsawConnector> preserveCapturedConnectorOrder(
@@ -6602,58 +6126,43 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 + (connectorCount == 1 ? "" : "s") + ")";
     }
 
-    static void storeConnectorFinalState(
-            IrisObject object,
-            int x,
-            int y,
-            int z,
-            BlockData finalData
-    ) {
-        Objects.requireNonNull(object, "Jigsaw Studio captured object");
-        BlockData activeFinalData = Objects.requireNonNull(finalData, "Jigsaw connector final state");
-        if (activeFinalData.getMaterial() != Material.STRUCTURE_VOID) {
-            object.setUnsigned(x, y, z, BukkitBlockState.of(activeFinalData));
-        }
-    }
 
     private void scheduleHydration(
             ActiveStudio studio,
-            World world,
+            ToolWorld world,
             int chunkX,
             int chunkZ,
             int attempt
     ) {
-        if (!enabled || studios.get(world.getUID()) != studio) {
+        if (!enabled || studios.get(studio.worldId()) != studio) {
             return;
         }
         long key = chunkKey(chunkX, chunkZ);
         if (!studio.hydrationsInProgress().add(key)) {
             return;
         }
-        boolean scheduled = J.runRegion(
+        scheduler.onRegionLater(
                 world,
                 chunkX,
                 chunkZ,
                 () -> runHydrationAttempt(studio, world, chunkX, chunkZ, attempt, key),
-                HYDRATION_RETRY_TICKS);
-        if (!scheduled) {
-            studio.hydrationsInProgress().remove(key);
-        }
+                HYDRATION_RETRY_TICKS,
+                () -> studio.hydrationsInProgress().remove(key));
     }
 
     private void runHydrationAttempt(
             ActiveStudio studio,
-            World world,
+            ToolWorld world,
             int chunkX,
             int chunkZ,
             int attempt,
             long key
     ) {
         studio.hydrationsInProgress().remove(key);
-        if (!enabled || studios.get(world.getUID()) != studio) {
+        if (!enabled || studios.get(studio.worldId()) != studio) {
             return;
         }
-        if (!world.isChunkLoaded(chunkX, chunkZ)) {
+        if (!studio.isChunkLoaded(chunkX, chunkZ)) {
             if (attempt < MAX_HYDRATION_ATTEMPTS) {
                 scheduleHydration(studio, world, chunkX, chunkZ, attempt + 1);
             }
@@ -6664,9 +6173,9 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         }
     }
 
-    private static boolean hydrateChunk(
+    private boolean hydrateChunk(
             ActiveStudio studio,
-            World world,
+            ToolWorld world,
             int chunkX,
             int chunkZ
     ) {
@@ -6706,15 +6215,15 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             } catch (Throwable exception) {
                 if (population.fail("chunk " + chunkX + "," + chunkZ
                         + " could not hydrate: " + failureMessage(exception))) {
-                    IrisLogging.reportError(exception);
+                    reportError(exception);
                 }
             }
         }
         return verificationRequired;
     }
 
-    private static void applyRenderedBayChunk(
-            World world,
+    private void applyRenderedBayChunk(
+            ToolWorld world,
             JigsawStudioBay bay,
             JigsawStudioGenerator.RenderedBay rendered,
             int chunkX,
@@ -6722,31 +6231,28 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             boolean connectorsVisible
     ) throws IOException {
         JigsawStudioBounds bounds = bay.bounds();
-        Set<LocalPosition> connectorPositions = new HashSet<>(rendered.connectors().size());
-        if (connectorsVisible) {
-            for (JigsawStudioGenerator.RenderedConnector connector : rendered.connectors()) {
-                connectorPositions.add(new LocalPosition(connector.x(), connector.y(), connector.z()));
-            }
-        }
+        Set<LocalPosition> connectorPositions = connectorPositions(rendered, connectorsVisible);
         for (JigsawStudioGenerator.RenderedBlock block : rendered.blocks()) {
-            TileData tileData = block.tileData();
-            if (tileData == null
+            BlockEntityData blockEntity = block.blockEntity();
+            if (blockEntity == null
                     || connectorPositions.contains(new LocalPosition(block.x(), block.y(), block.z()))) {
                 continue;
             }
             int worldX = bounds.originX() + block.x();
             int worldZ = bounds.originZ() + block.z();
-            if ((worldX >> 4) != chunkX || (worldZ >> 4) != chunkZ) {
+            if ((worldX >> CHUNK_SHIFT) != chunkX || (worldZ >> CHUNK_SHIFT) != chunkZ) {
                 continue;
             }
-            Block target = world.getBlockAt(worldX, bounds.originY() + block.y(), worldZ);
-            if (!tileData.isApplicable(target.getBlockData())) {
+            BlockPosition target = new BlockPosition(worldX, bounds.originY() + block.y(), worldZ);
+            if (!sameMaterial(world.block(target), block.state())) {
                 throw new IOException("source tile state does not match rendered block at "
-                        + target.getX() + "," + target.getY() + "," + target.getZ());
+                        + target.x() + "," + target.y() + "," + target.z());
             }
-            if (!tileData.toBukkitTry(target)) {
+            try {
+                world.setBlock(target, world.block(target), Optional.of(blockEntity));
+            } catch (IllegalArgumentException exception) {
                 throw new IOException("source tile state could not hydrate at "
-                        + target.getX() + "," + target.getY() + "," + target.getZ());
+                        + target.x() + "," + target.y() + "," + target.z(), exception);
             }
         }
         if (!connectorsVisible) {
@@ -6755,31 +6261,27 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         for (JigsawStudioGenerator.RenderedConnector renderedConnector : rendered.connectors()) {
             int worldX = bounds.originX() + renderedConnector.x();
             int worldZ = bounds.originZ() + renderedConnector.z();
-            if ((worldX >> 4) != chunkX || (worldZ >> 4) != chunkZ) {
+            if ((worldX >> CHUNK_SHIFT) != chunkX || (worldZ >> CHUNK_SHIFT) != chunkZ) {
                 continue;
             }
-            Block target = world.getBlockAt(
-                    worldX,
-                    bounds.originY() + renderedConnector.y(),
-                    worldZ);
-            BlockData blockData = target.getBlockData();
-            if (!(blockData instanceof Jigsaw jigsaw)) {
+            BlockPosition target = new BlockPosition(worldX, bounds.originY() + renderedConnector.y(), worldZ);
+            BlockState actual = world.block(target);
+            if (!JigsawStudioBlocks.isJigsaw(actual)) {
                 throw new IOException("expected a jigsaw marker at "
-                        + target.getX() + "," + target.getY() + "," + target.getZ());
+                        + target.x() + "," + target.y() + "," + target.z());
             }
-            String actualOrientation = jigsaw.getOrientation().name().toLowerCase(Locale.ROOT);
+            String actualOrientation = orientationOf(actual);
             if (!actualOrientation.equals(renderedConnector.orientation())) {
                 throw new IOException("jigsaw marker orientation at "
-                        + target.getX() + "," + target.getY() + "," + target.getZ()
+                        + target.x() + "," + target.y() + "," + target.z()
                         + " is " + actualOrientation + " instead of " + renderedConnector.orientation());
             }
-            KMap<String, Object> expected = markerNbt(renderedConnector.connector());
-            BukkitPlatform.deserializeTile(expected, target.getLocation());
+            world.setBlock(target, actual, Optional.of(markerBlockEntity(renderedConnector.connector())));
         }
     }
 
-    private static void verifyRenderedBayChunk(
-            World world,
+    private void verifyRenderedBayChunk(
+            ToolWorld world,
             JigsawStudioBay bay,
             JigsawStudioGenerator.RenderedBay rendered,
             int chunkX,
@@ -6787,34 +6289,29 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             boolean connectorsVisible
     ) throws IOException {
         JigsawStudioBounds bounds = bay.bounds();
-        Set<LocalPosition> connectorPositions = new HashSet<>(rendered.connectors().size());
-        if (connectorsVisible) {
-            for (JigsawStudioGenerator.RenderedConnector connector : rendered.connectors()) {
-                connectorPositions.add(new LocalPosition(connector.x(), connector.y(), connector.z()));
-            }
-        }
+        Set<LocalPosition> connectorPositions = connectorPositions(rendered, connectorsVisible);
         for (JigsawStudioGenerator.RenderedBlock block : rendered.blocks()) {
-            TileData tileData = block.tileData();
-            if (tileData == null
+            BlockEntityData expectedEntity = block.blockEntity();
+            if (expectedEntity == null
                     || connectorPositions.contains(new LocalPosition(block.x(), block.y(), block.z()))) {
                 continue;
             }
             int worldX = bounds.originX() + block.x();
             int worldZ = bounds.originZ() + block.z();
-            if ((worldX >> 4) != chunkX || (worldZ >> 4) != chunkZ) {
+            if ((worldX >> CHUNK_SHIFT) != chunkX || (worldZ >> CHUNK_SHIFT) != chunkZ) {
                 continue;
             }
-            Block target = world.getBlockAt(worldX, bounds.originY() + block.y(), worldZ);
-            if (!tileData.isApplicable(target.getBlockData())) {
+            BlockPosition target = new BlockPosition(worldX, bounds.originY() + block.y(), worldZ);
+            if (!sameMaterial(world.block(target), block.state())) {
                 throw new IOException("hydrated tile state no longer matches its block at "
-                        + target.getX() + "," + target.getY() + "," + target.getZ());
+                        + target.x() + "," + target.y() + "," + target.z());
             }
-            KMap<String, Object> hydrated = BukkitPlatform.serializeTile(target.getLocation());
-            if (hydrated == null
-                    || tileData.getProperties() != null
-                    && !nbtContains(tileData.getProperties(), hydrated)) {
+            Optional<KMap<String, Object>> hydrated = world.blockEntity(target)
+                    .flatMap(JigsawStudioTileCodec::nbt);
+            Optional<KMap<String, Object>> expected = JigsawStudioTileCodec.nbt(expectedEntity);
+            if (hydrated.isEmpty() || expected.isPresent() && !nbtContains(expected.get(), hydrated.get())) {
                 throw new IOException("the active NMS binding did not preserve source tile NBT at "
-                        + target.getX() + "," + target.getY() + "," + target.getZ());
+                        + target.x() + "," + target.y() + "," + target.z());
             }
         }
         if (!connectorsVisible) {
@@ -6823,27 +6320,45 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         for (JigsawStudioGenerator.RenderedConnector renderedConnector : rendered.connectors()) {
             int worldX = bounds.originX() + renderedConnector.x();
             int worldZ = bounds.originZ() + renderedConnector.z();
-            if ((worldX >> 4) != chunkX || (worldZ >> 4) != chunkZ) {
+            if ((worldX >> CHUNK_SHIFT) != chunkX || (worldZ >> CHUNK_SHIFT) != chunkZ) {
                 continue;
             }
-            Block target = world.getBlockAt(
-                    worldX,
-                    bounds.originY() + renderedConnector.y(),
-                    worldZ);
-            BlockData blockData = target.getBlockData();
-            if (!(blockData instanceof Jigsaw jigsaw)
-                    || !jigsaw.getOrientation().name().toLowerCase(Locale.ROOT)
-                    .equals(renderedConnector.orientation())) {
+            BlockPosition target = new BlockPosition(worldX, bounds.originY() + renderedConnector.y(), worldZ);
+            BlockState actual = world.block(target);
+            if (!JigsawStudioBlocks.isJigsaw(actual)
+                    || !orientationOf(actual).equals(renderedConnector.orientation())) {
                 throw new IOException("jigsaw marker changed before hydration completed at "
-                        + target.getX() + "," + target.getY() + "," + target.getZ());
+                        + target.x() + "," + target.y() + "," + target.z());
             }
             KMap<String, Object> expected = markerNbt(renderedConnector.connector());
-            KMap<String, Object> hydrated = BukkitPlatform.serializeTile(target.getLocation());
-            if (!markerNbtMatches(expected, hydrated)) {
+            Optional<KMap<String, Object>> hydrated = world.blockEntity(target).flatMap(JigsawStudioTileCodec::nbt);
+            if (hydrated.isEmpty() || !markerNbtMatches(expected, hydrated.get())) {
                 throw new IOException("the active NMS binding did not preserve jigsaw marker NBT at "
-                        + target.getX() + "," + target.getY() + "," + target.getZ());
+                        + target.x() + "," + target.y() + "," + target.z());
             }
         }
+    }
+
+    private static Set<LocalPosition> connectorPositions(
+            JigsawStudioGenerator.RenderedBay rendered,
+            boolean connectorsVisible
+    ) {
+        Set<LocalPosition> positions = new HashSet<>(rendered.connectors().size());
+        if (connectorsVisible) {
+            for (JigsawStudioGenerator.RenderedConnector connector : rendered.connectors()) {
+                positions.add(new LocalPosition(connector.x(), connector.y(), connector.z()));
+            }
+        }
+        return positions;
+    }
+
+    private static boolean sameMaterial(BlockState actual, BlockState expected) {
+        return actual.material().equals(expected.material());
+    }
+
+    private static String orientationOf(BlockState jigsaw) {
+        String orientation = jigsaw.properties().get(JigsawStudioBlocks.ORIENTATION_PROPERTY);
+        return orientation == null ? "" : orientation;
     }
 
     static KMap<String, Object> markerNbt(IrisJigsawConnector connector) {
@@ -7005,7 +6520,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 || !studio.generator().getRequest().requestId().equals(requestId)) {
             return false;
         }
-        JigsawStudioActivation.Request active = JigsawStudioActivation.getRequest(
+        JigsawStudioRequest active = registry.getRequest(
                 studio.generator().getRequest().packKey());
         return active != null && active.requestId().equals(requestId);
     }
@@ -7060,7 +6575,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             JigsawStudioVariant variant
     )
             throws IOException {
-        IrisData source = studio.generator().getRequest().source();
+        PackResources resources = studio.generator().getPack().resources();
         JigsawStudioLayout currentLayout = studio.generator().getSession().layout();
         JigsawStudioBay currentBay = currentLayout.get(bay.stableId());
         if (currentBay == null) {
@@ -7071,17 +6586,17 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             throw new IOException("variant '" + activeVariant.pieceKey()
                     + "' does not belong to workcell '" + currentBay.stableId() + "'");
         }
-        IrisJigsawPiece piece = StructureResources.piece(source.getPackResources(), activeVariant.pieceKey());
+        IrisJigsawPiece piece = StructureResources.piece(resources, activeVariant.pieceKey());
         if (piece == null || piece.getObject() == null || piece.getObject().isBlank()) {
             throw new IOException("piece '" + activeVariant.pieceKey() + "' is missing or has no object");
         }
-        IrisObject object = source.getObjectLoader().load(piece.getObject(), false);
-        if (object == null || object.getW() < 1 || object.getH() < 1 || object.getD() < 1) {
+        PlaceableObject object = resources.objects().object(resources.idOf(piece.getObject())).orElse(null);
+        if (object == null || object.width() < 1 || object.height() < 1 || object.depth() < 1) {
             throw new IOException("object '" + piece.getObject() + "' is missing or has invalid dimensions");
         }
         JigsawStudioBounds bayBounds = currentBay.bounds();
         JigsawStudioCellDimensions sourceDimensions = new JigsawStudioCellDimensions(
-                object.getW(), object.getH(), object.getD());
+                object.width(), object.height(), object.depth());
         JigsawStudioCellDimensions canonicalDimensions = activeVariant.canonicalDimensions(sourceDimensions);
         if (canonicalDimensions.width() > bayBounds.dimensions().width()
                 || canonicalDimensions.height() > bayBounds.dimensions().height()
@@ -7100,7 +6615,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                         bayBounds.originZ(),
                         canonicalDimensions),
                 piece,
-                object,
+                SourceObject.of(object),
                 activeVariant.sourceToCanonicalQuarterTurns(),
                 studio.generator().getSession().workcellSnapshot(currentBay.stableId()).connectorsVisible());
     }
@@ -7114,41 +6629,44 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private void scheduleOnlinePlayers(UUID worldId) {
-        J.runGlobal(() -> {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                J.runEntity(player, () -> {
-                    if (player.getWorld().getUID().equals(worldId)) {
-                        ensureVisualizationLoop(player);
-                        reconcilePlayerContext(player, player.getLocation());
-                    }
-                });
-            }
-        });
+        ActiveStudio studio = studios.get(worldId);
+        if (studio == null) {
+            return;
+        }
+        for (ToolPlayer player : studio.world().players()) {
+            JigsawStudioThreads.run(player, () -> {
+                if (studioOf(player) == studio) {
+                    ensureVisualizationLoop(player);
+                    reconcilePlayerContext(player, player.position());
+                }
+            });
+        }
     }
 
-    public void reconcilePlayerContext(Player player, Location location) {
+    public void reconcilePlayerContext(ToolPlayer player, BlockPosition target) {
         if (player == null) {
             return;
         }
-        Location target = location == null ? player.getLocation() : location;
-        if (!J.isOwnedByCurrentRegion(player)
-                || target.getWorld() == null
-                || !target.getWorld().getUID().equals(player.getWorld().getUID())) {
-            J.runEntity(player, () -> reconcilePlayerContext(player, player.getLocation()), 1);
+        if (!JigsawStudioThreads.owns(player)) {
+            scheduler.onPlayerLater(
+                    player,
+                    () -> reconcilePlayerContext(player, player.position()),
+                    RECONCILE_RETRY_TICKS,
+                    () -> { });
             return;
         }
-        ActiveStudio studio = studios.get(target.getWorld().getUID());
+        BlockPosition at = target == null ? player.position() : target;
+        ActiveStudio studio = studioOf(player);
         if (studio == null) {
             clearPlayerContext(player);
             return;
         }
         JigsawStudioSession session = studio.generator().getSession();
-        JigsawStudioBay workcell = session.layout().findAt(
-                target.getBlockX(), target.getBlockY(), target.getBlockZ());
+        JigsawStudioBay workcell = session.layout().findAt(at.x(), at.y(), at.z());
         boolean owner = ownerMatches(player, studio);
         selectEnteredWorkcell(session, workcell, owner);
         String workcellId = workcell == null ? "" : workcell.stableId();
-        playerWorkcells.put(player.getUniqueId(), new PlayerWorkcellContext(
+        playerWorkcells.put(player.id(), new PlayerWorkcellContext(
                 studio.worldId(),
                 studio.generator().getRequest().requestId(),
                 workcellId));
@@ -7161,7 +6679,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         String workcellName = workcell == null ? "" : workcell.displayName();
         String variantName = variant == null ? "" : variant.resolvedDisplayName();
         String hint = "Triple-sneak for controls";
-        boardService().applyJigsawContext(player, new JigsawStudioBoardContext(
+        JigsawStudioBoardContext context = new JigsawStudioBoardContext(
                 studio.worldId(),
                 studio.generator().getRequest().requestId(),
                 studio.generator().getRequest().structureKey(),
@@ -7170,7 +6688,8 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 workcellName,
                 variantName,
                 state,
-                hint));
+                hint);
+        player.sidebar(context.sidebarTitle(), context.sidebarLines());
     }
 
     static boolean selectEnteredWorkcell(
@@ -7181,65 +6700,50 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return owner && workcell != null && session.selectBay(workcell.stableId());
     }
 
-    static boolean isNaturalStudioSpawn(CreatureSpawnEvent.SpawnReason reason) {
-        return reason == CreatureSpawnEvent.SpawnReason.NATURAL;
-    }
-
-    static void disableNaturalStudioSpawning(World world) {
-        Objects.requireNonNull(world, "world").setGameRule(GameRules.SPAWN_MOBS, false);
-    }
-
     public void refreshWorkcellContext(UUID worldId, String workcellId) {
         if (worldId == null || workcellId == null) {
             return;
         }
-        J.runGlobal(() -> {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                J.runEntity(player, () -> {
-                    if (!player.getWorld().getUID().equals(worldId)) {
-                        return;
-                    }
-                    PlayerWorkcellContext context = playerWorkcells.get(player.getUniqueId());
-                    if (context != null && workcellId.equals(context.workcellId())) {
-                        reconcilePlayerContext(player, player.getLocation());
-                    }
-                });
-            }
-        });
+        ActiveStudio studio = studios.get(worldId);
+        if (studio == null) {
+            return;
+        }
+        for (ToolPlayer player : studio.world().players()) {
+            JigsawStudioThreads.run(player, () -> {
+                PlayerWorkcellContext context = playerWorkcells.get(player.id());
+                if (context != null && workcellId.equals(context.workcellId())) {
+                    reconcilePlayerContext(player, player.position());
+                }
+            });
+        }
     }
 
-    private void clearWorldPlayerContexts(UUID worldId) {
-        J.runGlobal(() -> {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                J.runEntity(player, () -> {
-                    PlayerWorkcellContext context = playerWorkcells.get(player.getUniqueId());
-                    if (context != null && context.worldId().equals(worldId)) {
-                        closeMenu(player);
-                        clearPlayerContext(player);
-                    }
-                });
-            }
-        });
+    private void clearWorldPlayerContexts(ToolWorld world, UUID worldId) {
+        for (ToolPlayer player : world.players()) {
+            JigsawStudioThreads.run(player, () -> {
+                PlayerWorkcellContext context = playerWorkcells.get(player.id());
+                if (context != null && context.worldId().equals(worldId)) {
+                    closeMenu(player);
+                    clearPlayerContext(player);
+                }
+            });
+        }
     }
 
-    private void clearPlayerContext(Player player) {
+    private void clearPlayerContext(ToolPlayer player) {
         if (player == null) {
             return;
         }
-        playerWorkcells.remove(player.getUniqueId());
-        boardService().clearJigsawContext(player);
+        playerWorkcells.remove(player.id());
+        player.hideSidebar();
     }
 
-    private static BoardSVC boardService() {
-        return IrisServices.get(BoardSVC.class);
-    }
-
-    private static boolean ownerMatches(Player player, ActiveStudio studio) {
+    private static boolean ownerMatches(ToolPlayer player, ActiveStudio studio) {
         if (player == null || studio == null) {
             return false;
         }
         UUID ownerId = studio.generator().getRequest().ownerId();
-        return ownerMatches(ownerId, player.getUniqueId());
+        return ownerMatches(ownerId, player.id());
     }
 
     static boolean canCreateVariants(JigsawStudioLayout layout) {
@@ -7272,7 +6776,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return ownerId == null || ownerId.equals(actorId);
     }
 
-    private static boolean authorizeOwner(Player player, ActiveStudio studio) {
+    private static boolean authorizeOwner(ToolPlayer player, ActiveStudio studio) {
         if (ownerMatches(player, studio)) {
             return true;
         }
@@ -7280,21 +6784,17 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return false;
     }
 
-    private boolean isUnauthorizedStudioEdit(Player player, Block block) {
-        if (player == null || block == null) {
-            return false;
-        }
-        ActiveStudio studio = studios.get(block.getWorld().getUID());
-        if (studio == null) {
+    private boolean isUnauthorizedStudioEdit(ToolPlayer player, ActiveStudio studio, BlockPosition block) {
+        if (player == null || studio == null || block == null) {
             return false;
         }
         UUID requestId = studio.generator().getRequest().requestId();
-        if (previewRenderer.contains(requestId, block.getX(), block.getY(), block.getZ())) {
+        if (previewRenderer.contains(requestId, block.x(), block.y(), block.z())) {
             message(player, "The seed-1337 Jigsaw preview is read-only and refreshes automatically.");
             return true;
         }
         JigsawStudioSession session = studio.generator().getSession();
-        JigsawStudioBay bay = session.layout().findAt(block.getX(), block.getY(), block.getZ());
+        JigsawStudioBay bay = session.layout().findAt(block.x(), block.y(), block.z());
         JigsawStudioVariant variant = bay == null
                 ? null
                 : session.activeVariant(bay.stableId()).orElse(null);
@@ -7312,7 +6812,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, "Wait for the current Jigsaw Studio variant load or rollback to finish.");
             return true;
         }
-        if (!blocksStudioEdit(studio.generator().getRequest().ownerId(), player.getUniqueId())) {
+        if (!blocksStudioEdit(studio.generator().getRequest().ownerId(), player.id())) {
             return false;
         }
         message(player, "This Jigsaw Studio is owned by another player session.");
@@ -7374,55 +6874,27 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 || actorId != null && blocksStudioEdit(ownerId, actorId));
     }
 
-    private boolean movesProtectedBlocks(List<Block> blocks, BlockFace direction) {
-        for (Block block : blocks) {
-            if (isImmutableStudioBlock(block)
-                    || isImmutableStudioBlock(block.getRelative(direction))
-                    || isImmutableStudioBlock(block.getRelative(direction.getOppositeFace()))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean containsImmutableStudioBlock(List<BlockState> states) {
-        for (BlockState state : states) {
-            if (isImmutableStudioBlock(state.getBlock())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isImmutableStudioBlock(Block block) {
-        StudioBlockMutationContext context = studioBlockMutationContext(block);
+    private boolean isImmutableStudioBlock(ActiveStudio studio, BlockPosition block) {
+        StudioBlockMutationContext context = studioBlockMutationContext(studio, block);
         return context != null && context.immutable();
     }
 
-    private boolean isPreviewBlock(Block block) {
-        if (block == null) {
-            return false;
-        }
-        ActiveStudio studio = studios.get(block.getWorld().getUID());
-        if (studio == null) {
-            return false;
-        }
-        UUID requestId = studio.generator().getRequest().requestId();
-        return previewRenderer.contains(requestId, block.getX(), block.getY(), block.getZ());
-    }
-
-    private boolean isControlChest(Block block) {
-        if (block == null || block.getType() != Material.CHEST) {
-            return false;
-        }
-        ActiveStudio studio = studios.get(block.getWorld().getUID());
-        if (studio == null) {
+    /**
+     * Whether the block is the studio's control chest. A block this thread does not own cannot be read, and the control
+     * position only ever holds the chest, so the position decides there.
+     */
+    private boolean isControlChest(ActiveStudio studio, BlockPosition block) {
+        if (studio == null || block == null) {
             return false;
         }
         JigsawStudioControlPosition control = studio.generator().getLayout().controlPosition();
-        return block.getX() == control.worldX()
-                && block.getY() == control.worldY()
-                && block.getZ() == control.worldZ();
+        boolean atControlPosition = block.x() == control.worldX()
+                && block.y() == control.worldY()
+                && block.z() == control.worldZ();
+        if (!atControlPosition) {
+            return false;
+        }
+        return blockIfOwned(studio, block).map(JigsawStudioBlocks::isChest).orElse(true);
     }
 
     private static JigsawStudioBoardState boardState(
@@ -7459,40 +6931,30 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return separator < 0 ? resourceKey : resourceKey.substring(separator + 1);
     }
 
-    private static boolean sameBlockPosition(Location first, Location second) {
-        if (first == null || second == null || first.getWorld() == null || second.getWorld() == null) {
-            return false;
-        }
-        return first.getWorld().getUID().equals(second.getWorld().getUID())
-                && first.getBlockX() == second.getBlockX()
-                && first.getBlockY() == second.getBlockY()
-                && first.getBlockZ() == second.getBlockZ();
-    }
-
-    private void ensureVisualizationLoop(Player player) {
+    private void ensureVisualizationLoop(ToolPlayer player) {
         if (player == null) {
             return;
         }
-        if (!J.isOwnedByCurrentRegion(player)) {
-            J.runEntity(player, () -> ensureVisualizationLoop(player));
+        if (!JigsawStudioThreads.owns(player)) {
+            JigsawStudioThreads.run(player, () -> ensureVisualizationLoop(player));
             return;
         }
-        UUID playerId = player.getUniqueId();
+        UUID playerId = player.id();
         if (!enabled || particlesDisabled.contains(playerId)
-                || !studios.containsKey(player.getWorld().getUID())
+                || studioOf(player) == null
                 || !visualizationLoops.add(playerId)) {
             return;
         }
         visualizationTick(player);
     }
 
-    private void visualizationTick(Player player) {
-        UUID playerId = player.getUniqueId();
+    private void visualizationTick(ToolPlayer player) {
+        UUID playerId = player.id();
         if (!enabled || particlesDisabled.contains(playerId)) {
             visualizationLoops.remove(playerId);
             return;
         }
-        ActiveStudio studio = studios.get(player.getWorld().getUID());
+        ActiveStudio studio = studioOf(player);
         if (studio == null) {
             visualizationLoops.remove(playerId);
             return;
@@ -7501,50 +6963,58 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             renderVisualization(player, studio);
         } catch (Throwable exception) {
             visualizationLoops.remove(playerId);
-            IrisLogging.reportError(exception);
+            reportError(exception);
             return;
         }
-        boolean scheduled = J.runEntity(
+        scheduler.onPlayerLater(
                 player,
                 () -> visualizationTick(player),
                 VISUAL_INTERVAL_TICKS,
                 () -> visualizationLoops.remove(playerId));
-        if (!scheduled) {
-            visualizationLoops.remove(playerId);
-        }
     }
 
-    private void renderVisualization(Player player, ActiveStudio studio) {
+    private void renderVisualization(ToolPlayer player, ActiveStudio studio) {
+        ParticleBudget budget = new ParticleBudget(PARTICLE_BUDGET);
+        drawVisualization(player, studio, budget);
+        player.particles(budget.dust());
+    }
+
+    private void drawVisualization(ToolPlayer player, ActiveStudio studio, ParticleBudget budget) {
         JigsawStudioSession session = studio.generator().getSession();
         JigsawStudioLayout layout = session.layout();
-        Location playerLocation = player.getLocation();
-        JigsawStudioBay focused = layout.findAt(
-                playerLocation.getBlockX(),
-                playerLocation.getBlockY(),
-                playerLocation.getBlockZ());
-        ParticleBudget budget = new ParticleBudget(PARTICLE_BUDGET);
+        BlockPosition playerBlock = player.position();
+        ViewPoint playerLocation = new ViewPoint(
+                playerBlock.x() + BLOCK_CENTER, playerBlock.y(), playerBlock.z() + BLOCK_CENTER);
+        JigsawStudioBay focused = layout.findAt(playerBlock.x(), playerBlock.y(), playerBlock.z());
         if (focused != null) {
-            Color focusedColor = bayValid(studio, focused) ? SELECTED_COLOR : INVALID_BAY_COLOR;
-            drawConnectors(player, playerLocation, studio, focused, budget);
-            drawBounds(player, playerLocation, focused.bounds(), focusedColor, 1.15F, 1.0D, budget);
+            int focusedColor = bayValid(studio, focused) ? SELECTED_COLOR : INVALID_BAY_COLOR;
+            drawConnectors(playerLocation, studio, focused, budget);
+            drawBounds(playerLocation, focused.bounds(), focusedColor, 1.15F, 1.0D, budget);
         }
-        drawLivePreview(player, playerLocation, studio, budget);
-        drawAssemblyPreview(player, playerLocation, budget);
+        drawLivePreview(playerLocation, studio, budget);
+        drawAssemblyPreview(player, playerLocation, studio, budget);
         for (JigsawStudioBay bay : layout.bays()) {
             if (bay == focused || !isNearby(playerLocation, bay.bounds())) {
                 continue;
             }
-            Color nearbyColor = bayValid(studio, bay) ? NEARBY_COLOR : INVALID_BAY_COLOR;
-            drawBounds(player, playerLocation, bay.bounds(), nearbyColor, 0.55F, 4.0D, budget);
+            int nearbyColor = bayValid(studio, bay) ? NEARBY_COLOR : INVALID_BAY_COLOR;
+            drawBounds(playerLocation, bay.bounds(), nearbyColor, 0.55F, 4.0D, budget);
             if (budget.empty()) {
                 return;
             }
         }
     }
 
+    /** Where the viewer is, as particle distances count it. */
+    private record ViewPoint(double x, double y, double z) {
+    }
+
+    private static int rgb(int red, int green, int blue) {
+        return (red << 16) | (green << 8) | blue;
+    }
+
     private void drawLivePreview(
-            Player player,
-            Location playerLocation,
+            ViewPoint playerLocation,
             ActiveStudio studio,
             ParticleBudget budget
     ) {
@@ -7558,13 +7028,12 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 preview.maximumX() - preview.minimumX() + 1,
                 preview.maximumY() - preview.minimumY() + 1,
                 preview.maximumZ() - preview.minimumZ() + 1);
-        Color color = switch (evaluation.state()) {
+        int color = switch (evaluation.state()) {
             case VALID -> ASSEMBLY_PREVIEW_COLOR;
             case PENDING, WARNING, STALE -> LIVE_PREVIEW_WARNING_COLOR;
             case INVALID -> INVALID_BAY_COLOR;
         };
         drawBounds(
-                player,
                 playerLocation,
                 new JigsawStudioBounds(
                         preview.minimumX(),
@@ -7578,21 +7047,22 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private void drawAssemblyPreview(
-            Player player,
-            Location playerLocation,
+            ToolPlayer player,
+            ViewPoint playerLocation,
+            ActiveStudio studio,
             ParticleBudget budget
     ) {
-        AssemblyPreview preview = assemblyPreviews.get(player.getUniqueId());
+        AssemblyPreview preview = assemblyPreviews.get(player.id());
         if (preview == null) {
             return;
         }
-        if (!preview.worldId().equals(player.getWorld().getUID())
+        if (!preview.worldId().equals(studio.worldId())
                 || preview.expiresAtMillis() < System.currentTimeMillis()) {
-            assemblyPreviews.remove(player.getUniqueId(), preview);
+            assemblyPreviews.remove(player.id(), preview);
             return;
         }
         for (JigsawStudioBounds bounds : preview.bounds()) {
-            drawBounds(player, playerLocation, bounds, ASSEMBLY_PREVIEW_COLOR, 0.85F, 2.0D, budget);
+            drawBounds(playerLocation, bounds, ASSEMBLY_PREVIEW_COLOR, 0.85F, 2.0D, budget);
             if (budget.empty()) {
                 return;
             }
@@ -7600,8 +7070,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private static void drawConnectors(
-            Player player,
-            Location playerLocation,
+            ViewPoint playerLocation,
             ActiveStudio studio,
             JigsawStudioBay bay,
             ParticleBudget budget
@@ -7614,7 +7083,6 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             IrisJigsawConnector connector = renderedConnector.connector();
             IrisDirection direction = connector.getDirection();
             drawConnectorLine(
-                    player,
                     playerLocation,
                     bay.bounds().originX() + renderedConnector.x() + 0.5D,
                     bay.bounds().originY() + renderedConnector.y() + 0.5D,
@@ -7629,17 +7097,15 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private static void drawConnectorLine(
-            Player player,
-            Location playerLocation,
+            ViewPoint playerLocation,
             double startX,
             double startY,
             double startZ,
             IrisDirection direction,
-            Color color,
+            int color,
             ParticleBudget budget
     ) {
         drawLine(
-                player,
                 playerLocation,
                 startX,
                 startY,
@@ -7658,7 +7124,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return rendered.valid() && studio.population(bay).readiness().failure().isEmpty();
     }
 
-    private static Color connectorColor(IrisJigsawConnector connector) {
+    private static int connectorColor(IrisJigsawConnector connector) {
         if (connector.getPool() == null || connector.getPool().isBlank()
                 || connector.getName() == null || connector.getName().isBlank()
                 || connector.getTargetName() == null || connector.getTargetName().isBlank()) {
@@ -7672,14 +7138,13 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         int red = 80 + (hash & 127);
         int green = 80 + ((hash >>> 8) & 127);
         int blue = 80 + ((hash >>> 16) & 127);
-        return Color.fromRGB(red, green, blue);
+        return rgb(red, green, blue);
     }
 
     private static void drawBounds(
-            Player player,
-            Location playerLocation,
+            ViewPoint playerLocation,
             JigsawStudioBounds bounds,
-            Color color,
+            int color,
             float size,
             double step,
             ParticleBudget budget
@@ -7690,30 +7155,29 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         double maxX = bounds.maxX() + 1.0D;
         double maxY = bounds.maxY() + 1.0D;
         double maxZ = bounds.maxZ() + 1.0D;
-        drawLine(player, playerLocation, minX, minY, minZ, maxX, minY, minZ, color, size, step, budget);
-        drawLine(player, playerLocation, minX, minY, maxZ, maxX, minY, maxZ, color, size, step, budget);
-        drawLine(player, playerLocation, minX, maxY, minZ, maxX, maxY, minZ, color, size, step, budget);
-        drawLine(player, playerLocation, minX, maxY, maxZ, maxX, maxY, maxZ, color, size, step, budget);
-        drawLine(player, playerLocation, minX, minY, minZ, minX, maxY, minZ, color, size, step, budget);
-        drawLine(player, playerLocation, maxX, minY, minZ, maxX, maxY, minZ, color, size, step, budget);
-        drawLine(player, playerLocation, minX, minY, maxZ, minX, maxY, maxZ, color, size, step, budget);
-        drawLine(player, playerLocation, maxX, minY, maxZ, maxX, maxY, maxZ, color, size, step, budget);
-        drawLine(player, playerLocation, minX, minY, minZ, minX, minY, maxZ, color, size, step, budget);
-        drawLine(player, playerLocation, maxX, minY, minZ, maxX, minY, maxZ, color, size, step, budget);
-        drawLine(player, playerLocation, minX, maxY, minZ, minX, maxY, maxZ, color, size, step, budget);
-        drawLine(player, playerLocation, maxX, maxY, minZ, maxX, maxY, maxZ, color, size, step, budget);
+        drawLine(playerLocation, minX, minY, minZ, maxX, minY, minZ, color, size, step, budget);
+        drawLine(playerLocation, minX, minY, maxZ, maxX, minY, maxZ, color, size, step, budget);
+        drawLine(playerLocation, minX, maxY, minZ, maxX, maxY, minZ, color, size, step, budget);
+        drawLine(playerLocation, minX, maxY, maxZ, maxX, maxY, maxZ, color, size, step, budget);
+        drawLine(playerLocation, minX, minY, minZ, minX, maxY, minZ, color, size, step, budget);
+        drawLine(playerLocation, maxX, minY, minZ, maxX, maxY, minZ, color, size, step, budget);
+        drawLine(playerLocation, minX, minY, maxZ, minX, maxY, maxZ, color, size, step, budget);
+        drawLine(playerLocation, maxX, minY, maxZ, maxX, maxY, maxZ, color, size, step, budget);
+        drawLine(playerLocation, minX, minY, minZ, minX, minY, maxZ, color, size, step, budget);
+        drawLine(playerLocation, maxX, minY, minZ, maxX, minY, maxZ, color, size, step, budget);
+        drawLine(playerLocation, minX, maxY, minZ, minX, maxY, maxZ, color, size, step, budget);
+        drawLine(playerLocation, maxX, maxY, minZ, maxX, maxY, maxZ, color, size, step, budget);
     }
 
     private static void drawLine(
-            Player player,
-            Location playerLocation,
+            ViewPoint playerLocation,
             double startX,
             double startY,
             double startZ,
             double endX,
             double endY,
             double endZ,
-            Color color,
+            int color,
             float size,
             double step,
             ParticleBudget budget
@@ -7726,32 +7190,31 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         double deltaZ = endZ - startZ;
         double length = Math.sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
         int samples = Math.max(1, (int) Math.ceil(length / step));
-        Particle.DustOptions dust = new Particle.DustOptions(color, size);
         for (int index = 0; index <= samples; index++) {
             double progress = (double) index / samples;
             double x = startX + deltaX * progress;
             double y = startY + deltaY * progress;
             double z = startZ + deltaZ * progress;
-            double distanceX = playerLocation.getX() - x;
-            double distanceY = playerLocation.getY() - y;
-            double distanceZ = playerLocation.getZ() - z;
+            double distanceX = playerLocation.x() - x;
+            double distanceY = playerLocation.y() - y;
+            double distanceZ = playerLocation.z() - z;
             if (distanceX * distanceX + distanceY * distanceY + distanceZ * distanceZ > VISUAL_RANGE_SQUARED) {
                 continue;
             }
             if (!budget.consume()) {
                 return;
             }
-            player.spawnParticle(Particle.DUST, x, y, z, 1, 0.0D, 0.0D, 0.0D, 0.0D, dust);
+            budget.add(new Particle(x, y, z, color, size));
         }
     }
 
-    private static boolean isNearby(Location location, JigsawStudioBounds bounds) {
+    private static boolean isNearby(ViewPoint location, JigsawStudioBounds bounds) {
         double centerX = bounds.originX() + bounds.dimensions().width() / 2.0D;
         double centerY = bounds.originY() + bounds.dimensions().height() / 2.0D;
         double centerZ = bounds.originZ() + bounds.dimensions().depth() / 2.0D;
-        double deltaX = location.getX() - centerX;
-        double deltaY = location.getY() - centerY;
-        double deltaZ = location.getZ() - centerZ;
+        double deltaX = location.x() - centerX;
+        double deltaY = location.y() - centerY;
+        double deltaZ = location.z() - centerZ;
         return deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ <= VISUAL_RANGE_SQUARED;
     }
 
@@ -7804,23 +7267,19 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         return message == null || message.isBlank() ? exception.getClass().getSimpleName() : message;
     }
 
-    private static void message(Player player, String text) {
+    private static void message(ToolPlayer player, String text) {
         if (player != null) {
-            J.runEntity(player, () -> ComponentMessenger.sendLiteral(player, "[Iris Jigsaw Studio] " + text));
+            player.sender().info(MESSAGE_PREFIX + text);
         }
     }
 
-    static void playSaveSound(Player player) {
+    static void playSaveSound(ToolPlayer player) {
         if (player != null) {
-            J.runEntity(player, () -> player.playSound(
-                    player.getLocation(),
-                    "minecraft:block.note_block.bell",
-                    0.65F,
-                    1.65F));
+            player.sound(SAVE_SOUND, SAVE_SOUND_VOLUME, SAVE_SOUND_PITCH);
         }
     }
 
-    private static void report(Player player, boolean enabled, String text) {
+    private static void report(ToolPlayer player, boolean enabled, String text) {
         if (enabled) {
             message(player, text);
         }
@@ -7838,23 +7297,29 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         }
     }
 
-    private record ActiveStudio(
+    /** An open studio: its world, what paints it, and the bookkeeping of populating the workcells. */
+    record ActiveStudio(
             UUID worldId,
-            World world,
-            Engine engine,
+            ToolWorld world,
             JigsawStudioGenerator generator,
             ConcurrentHashMap<String, BayPopulation> populations,
             Set<Long> hydrationsInProgress,
+            Set<Long> loadedChunks,
             AtomicLong evaluationGeneration
     ) {
         ActiveStudio {
             Objects.requireNonNull(worldId, "Jigsaw Studio world ID");
             Objects.requireNonNull(world, "Jigsaw Studio world");
-            Objects.requireNonNull(engine, "Jigsaw Studio engine");
             Objects.requireNonNull(generator, "Jigsaw Studio generator");
             Objects.requireNonNull(populations, "Jigsaw Studio bay populations");
             Objects.requireNonNull(hydrationsInProgress, "Jigsaw Studio hydrations");
+            Objects.requireNonNull(loadedChunks, "Jigsaw Studio loaded chunks");
             Objects.requireNonNull(evaluationGeneration, "Jigsaw Studio evaluation generation");
+        }
+
+        /** Whether the world has loaded the chunk since the studio opened; the host tells the studio of each load. */
+        boolean isChunkLoaded(int chunkX, int chunkZ) {
+            return loadedChunks.contains(chunkKey(chunkX, chunkZ));
         }
 
         BayPopulation population(JigsawStudioBay bay) {
@@ -7949,7 +7414,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 }
             }
             if (exception != null) {
-                IrisLogging.reportError(exception);
+                reportError(exception);
             }
             if (finishSuccess) {
                 finishSuccess();
@@ -8016,18 +7481,17 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 return;
             }
             for (ChunkCaptureArea area : rollbackAreas) {
-                boolean scheduled = J.runRegion(
+                JigsawStudioThreads.onRegion(
+                        log,
                         work.world(),
                         area.chunkX(),
                         area.chunkZ(),
-                        () -> materializeRollbackChunk(this, area));
-                if (!scheduled) {
-                    rollbackComplete(
-                            area,
-                            "Iris could not schedule rollback for workcell chunk "
-                                    + area.chunkX() + "," + area.chunkZ() + ".",
-                            null);
-                }
+                        () -> materializeRollbackChunk(this, area),
+                        () -> rollbackComplete(
+                                area,
+                                "Iris could not schedule rollback for workcell chunk "
+                                        + area.chunkX() + "," + area.chunkZ() + ".",
+                                null));
             }
         }
 
@@ -8052,7 +7516,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 }
             }
             if (exception != null) {
-                IrisLogging.reportError(exception);
+                reportError(exception);
             }
             if (finalizeRollback) {
                 finishRollback();
@@ -8113,7 +7577,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             return work.studio();
         }
 
-        private World world() {
+        private ToolWorld world() {
             return work.world();
         }
 
@@ -8125,7 +7589,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             return work.captureTarget();
         }
 
-        private Player player() {
+        private ToolPlayer player() {
             return work.player();
         }
 
@@ -8167,7 +7631,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             }
             if (incomplete == 0 && assemblyStarted.compareAndSet(false, true)) {
                 List<ChunkSnapshot> completed = List.copyOf(snapshots.values());
-                J.a(() -> assembleAndPersist(this, completed));
+                scheduler.async(() -> assembleAndPersist(this, completed));
             }
         }
 
@@ -8176,7 +7640,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 return;
             }
             if (exception != null) {
-                IrisLogging.reportError(exception);
+                reportError(exception);
             }
             complete();
             message(player(), failure);
@@ -8211,10 +7675,10 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
 
     private record CaptureWork(
             ActiveStudio studio,
-            World world,
+            ToolWorld world,
             JigsawStudioBay bay,
             CaptureTarget captureTarget,
-            Player player,
+            ToolPlayer player,
             UUID requestId,
             JigsawStudioSession.SaveIdentity saveIdentity,
             AutosaveFailureState autosaveFailureState
@@ -8242,8 +7706,8 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
 
     private record MaterializationWork(
             ActiveStudio studio,
-            World world,
-            Player player,
+            ToolWorld world,
+            ToolPlayer player,
             JigsawStudioBay workcell,
             JigsawStudioSession.VariantSwitchToken token,
             JigsawStudioGenerator.RenderedBay previous,
@@ -8456,7 +7920,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     private record CaptureTarget(
             JigsawStudioBounds bounds,
             IrisJigsawPiece piece,
-            IrisObject object,
+            SourceObject object,
             int displayRotationQuarterTurns,
             boolean connectorsVisible
     ) {
@@ -8603,7 +8067,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         private static DeferredDuplication single(
                 UUID requestId,
                 UUID sessionId,
-                Player player,
+                ToolPlayer player,
                 UUID worldId,
                 String workcellId,
                 String sourcePiece
@@ -8611,7 +8075,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             return new DeferredDuplication(
                     requestId,
                     sessionId,
-                    player.getUniqueId(),
+                    player.id(),
                     worldId,
                     DeferredDuplicationKind.SINGLE,
                     workcellId,
@@ -8623,7 +8087,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         private static DeferredDuplication family(
                 UUID requestId,
                 UUID sessionId,
-                Player player,
+                ToolPlayer player,
                 UUID worldId,
                 Map<String, String> sourcePieces,
                 String themeKey
@@ -8631,7 +8095,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             return new DeferredDuplication(
                     requestId,
                     sessionId,
-                    player.getUniqueId(),
+                    player.id(),
                     worldId,
                     DeferredDuplicationKind.FAMILY,
                     "",
@@ -8702,17 +8166,11 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             int x,
             int y,
             int z,
-            PlatformBlockState state,
-            TileData tileData
+            BlockState state,
+            BlockEntityData blockEntity
     ) {
         CapturedBlock {
             Objects.requireNonNull(state, "Jigsaw Studio captured block state");
-            tileData = tileData == null ? null : tileData.clone();
-        }
-
-        @Override
-        public TileData tileData() {
-            return tileData == null ? null : tileData.clone();
         }
     }
 
@@ -8811,10 +8269,19 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     }
 
     private static final class ParticleBudget {
+        private final List<Particle> dust = new ArrayList<>();
         private int remaining;
 
         private ParticleBudget(int remaining) {
             this.remaining = remaining;
+        }
+
+        private void add(Particle particle) {
+            dust.add(particle);
+        }
+
+        private List<Particle> dust() {
+            return List.copyOf(dust);
         }
 
         private boolean consume() {

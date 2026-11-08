@@ -94,7 +94,7 @@ public class CommandJigsawContractTest {
     @Test
     public void jigsawStudioUsesItsDedicatedOpenLifecycle() {
         assertEquals(
-                StudioOpenCoordinator.StudioOpenKind.JIGSAW,
+                StudioOpenCoordinator.StudioOpenKind.TOOL,
                 CommandJigsaw.STUDIO_OPEN_KIND);
         assertFalse(CommandJigsaw.STUDIO_OPEN_KIND.openWorkspace());
         assertFalse(CommandJigsaw.STUDIO_OPEN_KIND.teleportThroughStandardEntry());
@@ -119,9 +119,9 @@ public class CommandJigsawContractTest {
     public void committedActivationStartsInitialEvaluationBeforePlayerBinding() throws Exception {
         String source = Files.readString(Path.of(
                 "src/main/java/art/arcane/iris/core/commands/CommandJigsaw.java")).replace("\r\n", "\n");
-        int commit = source.indexOf("JigsawStudioActivation.commit(staged)");
+        int commit = source.indexOf("registry().commit(staged)");
         int evaluation = source.indexOf(
-                "studioService.activationCommitted(world, request.requestId())",
+                "studioService.activationCommitted(request.requestId())",
                 commit);
         int binding = source.indexOf("PLAYER_PACKS.put", evaluation);
 

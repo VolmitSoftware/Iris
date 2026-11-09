@@ -1431,8 +1431,9 @@ It exists so the tool lives in a module and runs on every platform: a tool that 
   the next start; an item's payload survives. A tool that had to do these itself would do them differently on every
   platform.
 - **Items, menus, sidebars are values.** `ToolItem`, `ToolMenu` and the sidebar lines are plain data the host draws with
-  its own widgets (VolmLib windows and scoreboards on Bukkit). No colour codes or components cross the api, for the
-  reason `Sender` has none.
+  its own widgets (VolmLib windows and scoreboards on Bukkit). Their text is `ToolText`: spans of a named colour
+  (`TextColor`) and a few styles, so no colour codes or components cross the api, and the host maps the spans onto
+  whatever its platform draws text with.
 - **A platform may not have it.** `ToolWorlds.open` then returns a failed future and `Sender.player()` is empty, so a tool
   tells its user instead of failing at class loading. The package is exposed to pack modules, unlike the platform
   packages below `com.volmit.tooling`.

@@ -6,7 +6,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.volmit.resource.ResourceId;
+import com.volmit.tooling.world.TextColor;
 import com.volmit.tooling.world.ToolItem;
+import com.volmit.tooling.world.ToolText;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +35,7 @@ public final class JigsawStudioToolCodec {
         JigsawStudioToolPayload binding = requireCurrentSchema(payload);
         return new ToolItem(
                 TOOL_ITEM,
-                NAME_PREFIX + binding.action().displayName(),
+                ToolText.colored(TextColor.AQUA, NAME_PREFIX + binding.action().displayName()),
                 lore(binding),
                 false,
                 encode(binding));
@@ -107,24 +109,24 @@ public final class JigsawStudioToolCodec {
         return json.has(field) ? json.get(field).getAsString() : "";
     }
 
-    private static List<String> lore(JigsawStudioToolPayload payload) {
-        List<String> lore = new ArrayList<>();
+    private static List<ToolText> lore(JigsawStudioToolPayload payload) {
+        List<ToolText> lore = new ArrayList<>();
         if (!payload.workcellId().isEmpty()) {
-            lore.add("Workcell: " + payload.workcellId());
+            lore.add(ToolText.colored(TextColor.GRAY, "Workcell: " + payload.workcellId()));
         }
         if (!payload.pieceKey().isEmpty()) {
-            lore.add("Variant: " + payload.pieceKey());
+            lore.add(ToolText.colored(TextColor.GRAY, "Variant: " + payload.pieceKey()));
         }
         if (!payload.poolKey().isEmpty()) {
-            lore.add("Pool: " + payload.poolKey()
-                    + (payload.entryIndex() < 0 ? "" : " [" + payload.entryIndex() + "]"));
+            lore.add(ToolText.colored(TextColor.GRAY, "Pool: " + payload.poolKey()
+                    + (payload.entryIndex() < 0 ? "" : " [" + payload.entryIndex() + "]")));
         }
         if (payload.amount() != 0) {
-            lore.add("Amount: " + payload.amount());
+            lore.add(ToolText.colored(TextColor.GRAY, "Amount: " + payload.amount()));
         }
         lore.add(payload.action().destructive()
-                ? "Right-click twice to confirm"
-                : "Right-click to use");
+                ? ToolText.colored(TextColor.RED, "Right-click twice to confirm")
+                : ToolText.colored(TextColor.YELLOW, "Right-click to use"));
         return List.copyOf(lore);
     }
 }

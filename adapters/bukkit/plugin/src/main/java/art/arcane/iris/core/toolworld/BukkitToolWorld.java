@@ -19,6 +19,7 @@
 package art.arcane.iris.core.toolworld;
 
 import art.arcane.iris.core.nms.INMS;
+import art.arcane.iris.core.project.IrisProject;
 import art.arcane.iris.core.runtime.InPlaceChunkRegenerator;
 import art.arcane.iris.core.runtime.StudioOpenCoordinator;
 import art.arcane.iris.core.runtime.StudioPainterSlots;
@@ -42,6 +43,7 @@ import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -75,6 +77,7 @@ final class BukkitToolWorld implements ToolWorld, StudioSlotOccupant {
     private final AtomicBoolean closing = new AtomicBoolean();
     private final AtomicBoolean gone = new AtomicBoolean();
     private final CompletableFuture<Void> closed = new CompletableFuture<>();
+    private final IrisProject project;
     private volatile World world;
 
     BukkitToolWorld(
@@ -95,6 +98,18 @@ final class BukkitToolWorld implements ToolWorld, StudioSlotOccupant {
         this.pending = pending;
         this.registry = registry;
         this.players = players;
+        this.project = new IrisProject(new File(workspaceFolder(), packName));
+    }
+
+    /** The studio project this world is, as the studio service shows the open studio to its commands. */
+    @Override
+    public IrisProject project() {
+        return project;
+    }
+
+    private static File workspaceFolder() {
+        StudioSVC studios = IrisServices.getOrNull(StudioSVC.class);
+        return studios == null ? new File(".") : studios.getWorkspaceFolder();
     }
 
     String packName() {
@@ -200,6 +215,11 @@ final class BukkitToolWorld implements ToolWorld, StudioSlotOccupant {
     }
 
     @Override
+    public boolean loaded(ChunkPos chunk) {
+        return bukkit().isChunkLoaded(chunk.x(), chunk.z());
+    }
+
+    @Override
     public CompletableFuture<Void> repaint(Collection<ChunkPos> chunks) {
         if (isClosed()) {
             return CompletableFuture.failedFuture(new IllegalStateException("Tool world " + name + " is closed"));
@@ -214,7 +234,7 @@ final class BukkitToolWorld implements ToolWorld, StudioSlotOccupant {
             return closed;
         }
         sendPlayersBack()
-                .thenCompose(ignored -> StudioOpenCoordinator.get().closeToolWorld(bukkit()))
+                .thenCompose(ignored -> StudioOpenCoordinator.get().closeToolWorld(bukkit(), project))
                 .whenComplete((result, failure) -> finishClose(result, failure));
         return closed;
     }

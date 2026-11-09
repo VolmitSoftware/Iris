@@ -26,6 +26,8 @@ final class FakeToolWorld implements ToolWorld {
     final List<ToolPlayer> players = new ArrayList<>();
     final List<ChunkPos> repainted = new ArrayList<>();
     final List<Runnable> held = Collections.synchronizedList(new ArrayList<>());
+    /** Every chunk is loaded except these. */
+    final List<ChunkPos> unloadedChunks = Collections.synchronizedList(new ArrayList<>());
     volatile boolean schedulingFails;
     volatile boolean holdTasks;
     private final String name;
@@ -105,6 +107,11 @@ final class FakeToolWorld implements ToolWorld {
     public void setBlock(BlockPosition at, BlockState state, Optional<BlockEntityData> data) {
         blocks.put(at, state);
         data.ifPresentOrElse(entity -> entities.put(at, entity), () -> entities.remove(at));
+    }
+
+    @Override
+    public boolean loaded(ChunkPos chunk) {
+        return unloadedChunks.stream().noneMatch(chunk::equals);
     }
 
     @Override

@@ -30,6 +30,8 @@ final class FakeBlockRegistry {
                 Optional.of(BlockState.parse(invocation.getArgument(0))));
         when(registry.rotate(any(), any())).thenAnswer(invocation ->
                 rotated(invocation.getArgument(0), invocation.getArgument(1)));
+        when(registry.tryRotate(any(), any())).thenAnswer(invocation ->
+                Optional.of(rotated(invocation.getArgument(0), invocation.getArgument(1))));
         return registry;
     }
 

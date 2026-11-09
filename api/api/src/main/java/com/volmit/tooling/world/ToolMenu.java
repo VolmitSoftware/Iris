@@ -8,14 +8,14 @@ import java.util.Objects;
  * A chest-style menu a tool opens for a player with {@link ToolPlayer#openMenu}. Menus are the host's own inventory
  * windows, so they work the same on every platform; a tool that wants another page opens a new menu from a click.
  *
- * @param title   the title as plain text; the host shortens it to what the window can show
+ * @param title   the title; the host shortens it to what the window can show
  * @param rows    the number of rows, 1 to {@value #MAX_ROWS}
  * @param buttons the slots that do something; the others show a filler. No slot is used twice and every slot is inside
  *                the rows.
  * @param onClose called on the player's thread when the menu closes for any reason: the player closed it, the world
  *                closed, or the tool closed or replaced it. Null stands for nothing to do.
  */
-public record ToolMenu(String title, int rows, List<MenuButton> buttons, Runnable onClose) {
+public record ToolMenu(ToolText title, int rows, List<MenuButton> buttons, Runnable onClose) {
     public static final int MAX_ROWS = 6;
     public static final int SLOTS_PER_ROW = 9;
 

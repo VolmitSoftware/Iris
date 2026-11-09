@@ -49,6 +49,7 @@ import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
+import org.bukkit.event.block.BrewingStartEvent;
 import org.bukkit.event.block.CrafterCraftEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
@@ -56,6 +57,8 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.BrewEvent;
 import org.bukkit.event.inventory.BrewingStandFuelEvent;
 import org.bukkit.event.inventory.FurnaceBurnEvent;
+import org.bukkit.event.inventory.FurnaceStartSmeltEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.FurnaceSmeltEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -184,14 +187,12 @@ public final class ToolWorldEvents implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPistonExtend(BlockPistonExtendEvent event) {
-        allowOrCancel(event, Cause.PISTON, event.getBlock().getWorld(),
-                pistonPositions(event.getBlock(), event.getBlocks(), event.getDirection()), Optional.empty(), Optional.empty());
+        allowPistonOrCancel(event, event.getBlock(), event.getBlocks(), event.getDirection());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPistonRetract(BlockPistonRetractEvent event) {
-        allowOrCancel(event, Cause.PISTON, event.getBlock().getWorld(),
-                pistonPositions(event.getBlock(), event.getBlocks(), event.getDirection()), Optional.empty(), Optional.empty());
+        allowPistonOrCancel(event, event.getBlock(), event.getBlocks(), event.getDirection());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -270,6 +271,33 @@ public final class ToolWorldEvents implements Listener {
         allowOrCancel(event, Cause.MACHINE, event.getBlock(), Optional.empty());
     }
 
+    // What changed inside containers and machines, told after the fact.
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onInventoryClose(InventoryCloseEvent event) {
+        Player player = event.getPlayer() instanceof Player closer ? closer : null;
+        tellContainerChanged(containerBlocks(event.getView().getTopInventory()), Optional.ofNullable(player));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onFurnaceStartSmelt(FurnaceStartSmeltEvent event) {
+        tellContainerChanged(List.of(event.getBlock()), Optional.empty());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onBrewingStart(BrewingStartEvent event) {
+        tellContainerChanged(List.of(event.getBlock()), Optional.empty());
+    }
+
+    private void tellContainerChanged(List<Block> blocks, Optional<Player> player) {
+        for (Block block : blocks) {
+            Optional<ToolPlayer> toolPlayer = player.map(players::of).map(ToolPlayer.class::cast);
+            BlockPosition at = positionOf(block);
+            worlds.forWorld(block.getWorld()).ifPresent(world ->
+                    world.tell(listener -> listener.containerChanged(toolPlayer, at)));
+        }
+    }
+
     // What players do.
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -327,7 +355,8 @@ public final class ToolWorldEvents implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onJoin(PlayerJoinEvent event) {
-        worlds.forWorld(event.getPlayer().getWorld()).ifPresent(world -> enter(world, event.getPlayer()));
+        Player player = event.getPlayer();
+        worlds.forWorld(player.getWorld()).ifPresent(world -> enter(world, player, player.getLocation()));
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -341,17 +370,20 @@ public final class ToolWorldEvents implements Listener {
     public void onChangedWorld(PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
         worlds.forWorld(event.getFrom()).ifPresent(world -> leave(world, player));
-        worlds.forWorld(player.getWorld()).ifPresent(world -> enter(world, player));
+        worlds.forWorld(player.getWorld()).ifPresent(world -> enter(world, player, player.getLocation()));
     }
 
+    /**
+     * Every teleport of any player by anyone, portals included, is told to the tool worlds it touches at the time it
+     * happens, with the position it goes to: the world it leaves hears {@code left}, the one it enters {@code entered},
+     * and the one it arrives in {@code teleported}.
+     */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent event) {
         Player player = event.getPlayer();
+        Location destination = event.getTo();
         Optional<BukkitToolWorld> from = worlds.forWorld(event.getFrom().getWorld());
-        Optional<BukkitToolWorld> to = event.getTo() == null ? Optional.empty() : worlds.forWorld(event.getTo().getWorld());
-        if (from.isPresent() && from.equals(to)) {
-            return;
-        }
+        Optional<BukkitToolWorld> to = destination == null ? Optional.empty() : worlds.forWorld(destination.getWorld());
         if (from.isEmpty() && to.isPresent()) {
             players.rememberOrigin(player, event.getFrom());
         }
@@ -359,13 +391,16 @@ public final class ToolWorldEvents implements Listener {
             players.restoreGameMode(player);
             players.takeOrigin(player);
         }
-        from.ifPresent(world -> leave(world, player));
-        to.ifPresent(world -> enter(world, player));
+        if (!from.equals(to)) {
+            from.ifPresent(world -> leave(world, player));
+        }
+        to.ifPresent(world -> enter(world, player, destination));
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onRespawn(PlayerRespawnEvent event) {
-        worlds.forWorld(event.getRespawnLocation().getWorld()).ifPresent(world -> enter(world, event.getPlayer()));
+        Location respawn = event.getRespawnLocation();
+        worlds.forWorld(respawn.getWorld()).ifPresent(world -> enter(world, event.getPlayer(), respawn));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -405,10 +440,13 @@ public final class ToolWorldEvents implements Listener {
         }
     }
 
-    private void enter(BukkitToolWorld world, Player player) {
+    /** The player is in the world at {@code at}: told as having entered on the first of their arrivals, and as having arrived on each. */
+    private void enter(BukkitToolWorld world, Player player, Location at) {
         if (world.presence().enter(player.getUniqueId())) {
             world.tell(listener -> listener.entered(players.of(player)));
         }
+        BlockPosition arrival = BukkitToolBlocks.positionOf(at);
+        world.tell(listener -> listener.teleported(players.of(player), arrival));
     }
 
     private void leave(BukkitToolWorld world, Player player) {
@@ -434,6 +472,19 @@ public final class ToolWorldEvents implements Listener {
         }
     }
 
+    private void allowPistonOrCancel(Cancellable event, Block piston, List<Block> moved, BlockFace direction) {
+        boolean allowed = isAllowed(
+                Cause.PISTON,
+                piston.getWorld(),
+                pistonChecked(moved, direction),
+                pistonChanged(piston, moved, direction),
+                Optional.empty(),
+                Optional.empty());
+        if (!allowed) {
+            event.setCancelled(true);
+        }
+    }
+
     private void allowContainerOrCancel(Cancellable event, Inventory inventory, Player player) {
         List<Block> blocks = containerBlocks(inventory);
         if (blocks.isEmpty()) {
@@ -451,11 +502,23 @@ public final class ToolWorldEvents implements Listener {
             Optional<Player> player,
             Optional<BlockState> placed
     ) {
+        return isAllowed(cause, world, positions, positions, player, placed);
+    }
+
+    private boolean isAllowed(
+            Cause cause,
+            World world,
+            List<BlockPosition> positions,
+            List<BlockPosition> changed,
+            Optional<Player> player,
+            Optional<BlockState> placed
+    ) {
         Optional<BukkitToolWorld> toolWorld = worlds.forWorld(world);
         if (toolWorld.isEmpty()) {
             return true;
         }
-        BlockChange change = new BlockChange(cause, positions, player.map(players::of).map(ToolPlayer.class::cast), placed);
+        BlockChange change = new BlockChange(
+                cause, positions, changed, player.map(players::of).map(ToolPlayer.class::cast), placed);
         return toolWorld.get().ask(listener -> listener.blockChanging(change), false);
     }
 
@@ -466,14 +529,25 @@ public final class ToolWorldEvents implements Listener {
         exploded.removeIf(block -> !isAllowed(Cause.EXPLOSION, world, List.of(positionOf(block)), Optional.empty(), Optional.empty()));
     }
 
-    /** The piston, each block it moves, and the block each of them leaves and enters, as a protected area is checked. */
-    static List<BlockPosition> pistonPositions(Block piston, List<Block> moved, BlockFace direction) {
+    /** Each block a piston moves and the block each of them enters and leaves, which a protected area is checked against; not the piston. */
+    static List<BlockPosition> pistonChecked(List<Block> moved, BlockFace direction) {
         List<BlockPosition> positions = new ArrayList<>();
-        positions.add(positionOf(piston));
         for (Block block : moved) {
             positions.add(positionOf(block));
             positions.add(positionOf(block.getRelative(direction)));
             positions.add(positionOf(block.getRelative(direction.getOppositeFace())));
+        }
+        return positions.stream().distinct().toList();
+    }
+
+    /** The piston and the block ahead of it, then each block it moves and the block each enters: what a piston changes. */
+    static List<BlockPosition> pistonChanged(Block piston, List<Block> moved, BlockFace direction) {
+        List<BlockPosition> positions = new ArrayList<>();
+        positions.add(positionOf(piston));
+        positions.add(positionOf(piston.getRelative(direction)));
+        for (Block block : moved) {
+            positions.add(positionOf(block));
+            positions.add(positionOf(block.getRelative(direction)));
         }
         return positions.stream().distinct().toList();
     }

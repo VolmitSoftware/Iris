@@ -40,6 +40,16 @@ final class JigsawStudioWorldListener implements ToolWorldListener {
     }
 
     @Override
+    public void teleported(ToolPlayer player, BlockPosition to) {
+        service.playerTeleported(player, to);
+    }
+
+    @Override
+    public void containerChanged(Optional<ToolPlayer> player, BlockPosition at) {
+        service.containerChanged(studioId, at);
+    }
+
+    @Override
     public void sneakToggled(ToolPlayer player, boolean sneaking) {
         service.sneakToggled(player, sneaking);
     }

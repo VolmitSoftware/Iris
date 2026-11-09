@@ -7,7 +7,9 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioPieceRules;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolAction;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolPayload;
 import com.volmit.ModuleLog;
+import com.volmit.tooling.world.TextColor;
 import com.volmit.tooling.world.ToolPlayer;
+import com.volmit.tooling.world.ToolText;
 import org.junit.After;
 import org.junit.Test;
 
@@ -77,7 +79,7 @@ public class JigsawStudioMenuControllerTest {
                 false,
                 List.of(active));
 
-        assertEquals("Autosaved", JigsawStudioMenuController.workcellStatus(fresh));
+        assertEquals(ToolText.colored(TextColor.GREEN, "Autosaved"), JigsawStudioMenuController.workcellStatus(fresh));
     }
 
     @Test

@@ -15,7 +15,11 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariantCatalog;
 import art.arcane.iris.engine.platform.studio.generators.JigsawStudioGenerator;
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockState;
+import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolAction;
+import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolPayload;
 import com.volmit.geometry.BlockPosition;
+import com.volmit.geometry.ChunkPos;
+import com.volmit.tooling.world.ToolText;
 import com.volmit.tooling.world.BlockChange;
 import com.volmit.tooling.world.BlockChange.Cause;
 import com.volmit.tooling.world.ToolWorldListener;
@@ -57,6 +61,8 @@ public class JigsawStudioWorldListenerTest {
     private final FakeToolPlayer other = new FakeToolPlayer(OTHER, "other", world);
     private JigsawStudioLayout layout;
     private JigsawStudioSession session;
+    private JigsawStudioService.ActiveStudio studio;
+    private UUID requestId;
     private ToolWorldListener listener;
 
     @Before
@@ -94,7 +100,6 @@ public class JigsawStudioWorldListenerTest {
                 generator,
                 new ConcurrentHashMap<>(),
                 ConcurrentHashMap.newKeySet(),
-                ConcurrentHashMap.newKeySet(),
                 new AtomicLong());
         Field studiosField = JigsawStudioService.class.getDeclaredField("studios");
         studiosField.setAccessible(true);
@@ -102,6 +107,8 @@ public class JigsawStudioWorldListenerTest {
         Map<UUID, JigsawStudioService.ActiveStudio> studios =
                 (Map<UUID, JigsawStudioService.ActiveStudio>) studiosField.get(service);
         studios.put(request.requestId(), studio);
+        this.studio = studio;
+        this.requestId = request.requestId();
         listener = new JigsawStudioWorldListener(service, request.requestId());
     }
 
@@ -189,6 +196,104 @@ public class JigsawStudioWorldListenerTest {
         }
         assertFalse(listener.blockChanging(change(Cause.MACHINE, null, chest)));
         assertFalse(listener.blockChanging(change(Cause.CONTAINER, owner, chest)));
+    }
+
+    @Test
+    public void aPistonIsCheckedAgainstItsPositionsAndMarksTheBlocksItChanged() {
+        BlockPosition end = inside(EDITABLE_BAY);
+        BlockPosition straight = inside(SECOND_EDITABLE_BAY);
+        BlockChange change = new BlockChange(
+                Cause.PISTON, List.of(end), List.of(straight), Optional.empty(), Optional.empty());
+
+        assertTrue(listener.blockChanging(change));
+
+        assertFalse(dirty(EDITABLE_BAY));
+        assertTrue(dirty(SECOND_EDITABLE_BAY));
+    }
+
+    @Test
+    public void aPistonThatMovesNothingIsAllowedAndMarksItsOwnBlocks() {
+        BlockChange change = new BlockChange(
+                Cause.PISTON, List.of(), List.of(inside(EDITABLE_BAY)), Optional.empty(), Optional.empty());
+
+        assertTrue(listener.blockChanging(change));
+
+        assertTrue(dirty(EDITABLE_BAY));
+    }
+
+    @Test
+    public void aPistonCheckedAgainstAnUneditableBayIsRefusedWhateverItChanged() {
+        BlockChange change = new BlockChange(
+                Cause.PISTON, List.of(inside(EMPTY_BAY)), List.of(inside(EDITABLE_BAY)), Optional.empty(), Optional.empty());
+
+        assertFalse(listener.blockChanging(change));
+
+        assertFalse(dirty(EDITABLE_BAY));
+    }
+
+    @Test
+    public void aContainerThatChangedMarksItsBayDirtyAndOneOutsideAnyBayDoesNot() {
+        listener.containerChanged(Optional.of(owner), inside(EDITABLE_BAY));
+        listener.containerChanged(Optional.empty(), new BlockPosition(100_000, 64, 100_000));
+        listener.containerChanged(Optional.empty(), inside(EMPTY_BAY));
+
+        assertTrue(dirty(EDITABLE_BAY));
+        assertFalse(dirty(SECOND_EDITABLE_BAY));
+        assertFalse(dirty(EMPTY_BAY));
+    }
+
+    @Test
+    public void aTeleportMakesTheStudioReconcileTheArrivalAtOnceAndEnteringAloneDoesNot() {
+        listener.entered(owner);
+        assertTrue(owner.sidebars.isEmpty());
+
+        listener.teleported(owner, inside(EDITABLE_BAY));
+
+        assertFalse(owner.sidebars.isEmpty());
+        assertTrue(owner.sidebars.getLast().stream()
+                .map(ToolText::plainText).anyMatch(line -> line.startsWith("Workcell: ")));
+    }
+
+    @Test
+    public void aChunkIsLoadedWhenThePlatformSaysSo() {
+        world.unloadedChunks.add(new ChunkPos(3, 4));
+
+        assertTrue(studio.isChunkLoaded(0, 0));
+        assertFalse(studio.isChunkLoaded(3, 4));
+    }
+
+    @Test
+    public void aToolIsNotGivenWhenTheInventoryIsFullAndThePlayerIsToldSo() {
+        JigsawStudioToolPayload payload = JigsawStudioToolPayload.request(JigsawStudioToolAction.PREVIEW_GRAPH, requestId);
+        owner.inventoryFull = true;
+
+        assertFalse(service.giveTool(owner, payload));
+
+        assertTrue(owner.given.isEmpty());
+        assertEquals(
+                List.of("[Iris Jigsaw Studio] Your inventory is full; no Jigsaw Studio tool was added."),
+                owner.messages);
+    }
+
+    @Test
+    public void aToolThatFitsIsGivenAndAnnounced() {
+        JigsawStudioToolPayload payload = JigsawStudioToolPayload.request(JigsawStudioToolAction.PREVIEW_GRAPH, requestId);
+
+        assertTrue(service.giveTool(owner, payload));
+
+        assertEquals(1, owner.given.size());
+        assertEquals(
+                List.of("[Iris Jigsaw Studio] Added " + JigsawStudioToolAction.PREVIEW_GRAPH.displayName() + " tool."),
+                owner.messages);
+    }
+
+    @Test
+    public void studioMessagesAreWhiteTextWithTheStudioPrefix() {
+        assertFalse(listener.blockChanging(change(Cause.PLACE, owner, inside(EMPTY_BAY))));
+
+        assertEquals(
+                List.of(ToolText.plain("[Iris Jigsaw Studio] This empty Jigsaw Studio workcell has no loaded editable variant. Load one before editing it.")),
+                owner.texts);
     }
 
     @Test

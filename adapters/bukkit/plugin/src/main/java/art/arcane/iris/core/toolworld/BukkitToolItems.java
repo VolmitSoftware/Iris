@@ -20,8 +20,8 @@ package art.arcane.iris.core.toolworld;
 
 import com.volmit.resource.ResourceId;
 import com.volmit.tooling.world.ToolItem;
+import com.volmit.tooling.world.ToolText;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -43,7 +43,11 @@ final class BukkitToolItems {
     private BukkitToolItems() {
     }
 
-    /** A new stack of {@code item}. */
+    /**
+     * A new stack of {@code item}. The name and lore are set as legacy strings, the way a plugin sets text on an item
+     * with the platform's own calls, so the stack shows what such a stack always showed.
+     */
+    @SuppressWarnings("deprecation")
     static ItemStack create(ToolItem item) {
         Material material = Material.matchMaterial(item.item().toString());
         if (material == null || !material.isItem()) {
@@ -55,10 +59,10 @@ final class BukkitToolItems {
             throw new IllegalStateException("The item " + item.item() + " cannot carry a name or a payload");
         }
         if (!item.name().isEmpty()) {
-            meta.displayName(plain(item.name()));
+            meta.setDisplayName(BukkitToolText.legacy(item.name()));
         }
         if (!item.lore().isEmpty()) {
-            meta.lore(item.lore().stream().map(BukkitToolItems::plain).toList());
+            meta.setLore(item.lore().stream().map(BukkitToolText::legacy).toList());
         }
         if (item.glowing()) {
             meta.setEnchantmentGlintOverride(true);
@@ -86,22 +90,18 @@ final class BukkitToolItems {
         }
         return Optional.of(new ToolItem(
                 ResourceId.parse(stack.getType().getKey().toString()),
-                meta.hasDisplayName() ? plainText(meta.displayName()) : "",
+                meta.hasDisplayName() ? plainText(meta.displayName()) : ToolText.EMPTY,
                 meta.hasLore() ? lore(meta) : List.of(),
                 Boolean.TRUE.equals(meta.getEnchantmentGlintOverride()),
                 payload));
     }
 
-    private static List<String> lore(ItemMeta meta) {
+    private static List<ToolText> lore(ItemMeta meta) {
         List<Component> lines = meta.lore();
         return lines == null ? List.of() : lines.stream().map(BukkitToolItems::plainText).toList();
     }
 
-    private static Component plain(String text) {
-        return Component.text(text).decoration(TextDecoration.ITALIC, false);
-    }
-
-    private static String plainText(Component component) {
-        return component == null ? "" : PlainTextComponentSerializer.plainText().serialize(component);
+    private static ToolText plainText(Component component) {
+        return component == null ? ToolText.EMPTY : ToolText.plain(PlainTextComponentSerializer.plainText().serialize(component));
     }
 }

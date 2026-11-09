@@ -30,6 +30,7 @@ import com.volmit.tooling.world.MenuButton;
 import com.volmit.tooling.world.MenuClick;
 import com.volmit.tooling.world.ToolItem;
 import com.volmit.tooling.world.ToolMenu;
+import com.volmit.tooling.world.ToolText;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
@@ -129,9 +130,9 @@ final class BukkitToolMenus {
         }
         UIElement element = new UIElement("slot-" + button.slot())
                 .setMaterial(new MaterialBlock(material))
-                .setName(icon.name())
+                .setName(BukkitToolText.legacy(icon.name()))
                 .setEnchanted(icon.glowing());
-        icon.lore().forEach(element::addLore);
+        icon.lore().forEach(line -> element.addLore(BukkitToolText.legacy(line)));
         element.onLeftClick(clicked -> click(viewer, button, false, false));
         element.onRightClick(clicked -> click(viewer, button, true, false));
         element.onShiftLeftClick(clicked -> click(viewer, button, false, true));
@@ -151,8 +152,14 @@ final class BukkitToolMenus {
         return slot % SLOTS_PER_ROW - CENTER_SLOT_OFFSET;
     }
 
-    static String shortened(String title) {
-        return title.length() > MAX_TITLE_LENGTH ? title.substring(0, MAX_TITLE_LENGTH) : title;
+    /** The title in the legacy codes the window takes, cut to what it can show without leaving half a code. */
+    static String shortened(ToolText title) {
+        String legacy = BukkitToolText.legacy(title);
+        if (legacy.length() <= MAX_TITLE_LENGTH) {
+            return legacy;
+        }
+        String cut = legacy.substring(0, MAX_TITLE_LENGTH);
+        return cut.endsWith("§") ? cut.substring(0, MAX_TITLE_LENGTH - 1) : cut;
     }
 
     private static void runGuarded(Runnable task, String what) {

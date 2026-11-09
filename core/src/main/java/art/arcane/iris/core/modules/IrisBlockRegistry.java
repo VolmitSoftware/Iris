@@ -148,8 +148,14 @@ final class IrisBlockRegistry implements BlockRegistry {
     /** A block that cannot face the way it is turned is dropped, as Iris drops it: it becomes air. */
     @Override
     public BlockState rotate(BlockState state, BlockTurn turn) {
+        return tryRotate(state, turn).orElse(PlatformBlockStates.AIR);
+    }
+
+    /** Empty exactly when the platform has no state for the turned block, which is when Iris drops it. */
+    @Override
+    public Optional<BlockState> tryRotate(BlockState state, BlockTurn turn) {
         PlatformBlockState rotated = BlockStateRotation.rotate(turn, platformState(state));
-        return rotated == null ? PlatformBlockStates.AIR : apiState(rotated);
+        return rotated == null ? Optional.empty() : Optional.of(apiState(rotated));
     }
 
     @Override

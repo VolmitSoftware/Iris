@@ -1,6 +1,7 @@
 package art.arcane.iris.core.service;
 
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioMode;
+import com.volmit.tooling.world.ToolText;
 import org.junit.Test;
 
 import java.util.List;
@@ -23,8 +24,19 @@ public class JigsawStudioBoardContextTest {
                 "Right-click the chest for variants"
         );
 
-        List<String> lines = context.sidebarLines();
+        List<String> lines = plain(context.sidebarLines());
 
+        assertEquals(List.of(
+                "&7&m-------------------",
+                "&dJigsaw Studio",
+                "&bStructure&7: village",
+                "&bWorkcell&7: Corner",
+                "&bVariant&7: mossy",
+                "&bState&7: Unsaved",
+                "&7&m-------------------",
+                "&eRight-click the chest for variants",
+                "&7&m-------------------"
+        ), context.sidebarLines().stream().map(BoardSVC::boardLine).toList());
         assertEquals(List.of(
                 "-------------------",
                 "Jigsaw Studio",
@@ -65,7 +77,17 @@ public class JigsawStudioBoardContextTest {
                 "Walk into a workcell",
                 "Use the workcell chest to choose a variant",
                 "-------------------"
-        ), context.sidebarLines());
+        ), plain(context.sidebarLines()));
+        assertEquals(List.of(
+                "&7&m-------------------",
+                "&dJigsaw Studio",
+                "&bStructure&7: village",
+                "&bMode&7: Spatial",
+                "&7&m-------------------",
+                "&eWalk into a workcell",
+                "&7Use the workcell chest to choose a variant",
+                "&7&m-------------------"
+        ), context.sidebarLines().stream().map(BoardSVC::boardLine).toList());
     }
 
     @Test
@@ -81,7 +103,7 @@ public class JigsawStudioBoardContextTest {
                 JigsawStudioBoardState.SAVED,
                 "Triple-sneak for controls");
 
-        List<String> lines = context.sidebarLines();
+        List<String> lines = plain(context.sidebarLines());
 
         assertTrue(lines.contains("Workcell: Village Entrances"));
         assertTrue(lines.contains("Role: End Cap"));
@@ -153,6 +175,16 @@ public class JigsawStudioBoardContextTest {
                 JigsawStudioBoardState.LOADING,
                 ""
         ));
+    }
+
+    private static List<String> plain(List<ToolText> lines) {
+        return lines.stream().map(ToolText::plainText).toList();
+    }
+
+    @Test
+    public void theSidebarKeepsThePlatformTitle() {
+        assertTrue(context(JigsawStudioMode.PLANAR_JIGSAW, "", "", JigsawStudioBoardState.SAVED, "")
+                .sidebarTitle().isEmpty());
     }
 
     private JigsawStudioBoardContext context(

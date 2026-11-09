@@ -3,7 +3,9 @@ package art.arcane.iris.core.service;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolAction;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolPayload;
 import com.volmit.resource.ResourceId;
+import com.volmit.tooling.world.TextColor;
 import com.volmit.tooling.world.ToolItem;
+import com.volmit.tooling.world.ToolText;
 import org.junit.Test;
 
 import java.util.List;
@@ -34,14 +36,23 @@ public class JigsawStudioToolCodecTest {
         ToolItem tool = codec.create(payload);
 
         assertEquals(STICK, tool.item());
-        assertEquals("Jigsaw Studio: Adjust Variant Weight", tool.name());
+        assertEquals(ToolText.colored(TextColor.AQUA, "Jigsaw Studio: Adjust Variant Weight"), tool.name());
         assertEquals(List.of(
-                "Workcell: workcell/corner",
-                "Variant: village/corner_mossy",
-                "Pool: village/start [3]",
-                "Amount: -1",
-                "Right-click to use"), tool.lore());
+                ToolText.colored(TextColor.GRAY, "Workcell: workcell/corner"),
+                ToolText.colored(TextColor.GRAY, "Variant: village/corner_mossy"),
+                ToolText.colored(TextColor.GRAY, "Pool: village/start [3]"),
+                ToolText.colored(TextColor.GRAY, "Amount: -1"),
+                ToolText.colored(TextColor.YELLOW, "Right-click to use")), tool.lore());
         assertFalse(tool.glowing());
+    }
+
+    @Test
+    public void aDestructiveToolAsksForConfirmationInRed() {
+        JigsawStudioToolCodec codec = new JigsawStudioToolCodec();
+
+        ToolItem tool = codec.create(JigsawStudioToolPayload.request(JigsawStudioToolAction.DELETE_PROJECT, REQUEST));
+
+        assertEquals(ToolText.colored(TextColor.RED, "Right-click twice to confirm"), tool.lore().getLast());
     }
 
     @Test
@@ -106,7 +117,7 @@ public class JigsawStudioToolCodecTest {
         JigsawStudioToolPayload payload = JigsawStudioToolPayload.request(JigsawStudioToolAction.PREVIEW_GRAPH, REQUEST);
         ToolItem tool = codec.create(payload);
         ToolItem stone = new ToolItem(ResourceId.parse("minecraft:stone"), tool.name(), tool.lore(), false, tool.payload());
-        ToolItem plainStick = new ToolItem(STICK, "Stick", List.of(), false, "");
+        ToolItem plainStick = new ToolItem(STICK, ToolText.plain("Stick"), List.of(), false, "");
 
         assertTrue(codec.isTool(tool));
         assertFalse(codec.isTool(stone));

@@ -2,6 +2,7 @@ package art.arcane.iris.core.toolworld;
 
 import com.volmit.resource.ResourceId;
 import com.volmit.tooling.world.ToolItem;
+import com.volmit.tooling.world.ToolText;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -41,8 +42,8 @@ public class BukkitToolItemsTest {
 
         Optional<ToolItem> item = BukkitToolItems.read(stackWith(data, meta));
 
-        assertEquals(Optional.of(new ToolItem(ResourceId.parse("minecraft:stick"), "Select bay",
-                List.of("Right-click to use"), true, "select:bay-1")), item);
+        assertEquals(Optional.of(new ToolItem(ResourceId.parse("minecraft:stick"), ToolText.plain("Select bay"),
+                List.of(ToolText.plain("Right-click to use")), true, "select:bay-1")), item);
     }
 
     @Test
@@ -54,7 +55,7 @@ public class BukkitToolItemsTest {
         ToolItem tagged = BukkitToolItems.read(stackWith(empty, mock(ItemMeta.class))).orElseThrow();
 
         assertEquals("", tagged.payload());
-        assertEquals("", tagged.name());
+        assertEquals(ToolText.EMPTY, tagged.name());
         assertEquals(List.of(), tagged.lore());
         assertTrue(BukkitToolItems.read(stackWith(missing, mock(ItemMeta.class))).isEmpty());
     }

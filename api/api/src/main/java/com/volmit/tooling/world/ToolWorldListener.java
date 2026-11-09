@@ -23,6 +23,17 @@ public interface ToolWorldListener {
     default void left(ToolPlayer player) {
     }
 
+    /**
+     * A player arrived at a position of the world by other means than walking: they joined the server in it, changed
+     * world into it, respawned in it, or were teleported into it or inside it by anyone, such as a command, another
+     * plugin or a portal. It is told at the time of the teleport, with the position they arrive at, and for a player
+     * coming in after {@link #entered}. A player teleported out only hears {@link #left}. The default treats it as
+     * {@link #moved}.
+     */
+    default void teleported(ToolPlayer player, BlockPosition to) {
+        moved(player, to);
+    }
+
     /** A player moved to another block of the world; not called for moves inside one block. */
     default void moved(ToolPlayer player, BlockPosition to) {
     }
@@ -47,6 +58,18 @@ public interface ToolWorldListener {
      */
     default boolean command(Optional<ToolPlayer> sender, String line) {
         return true;
+    }
+
+    /**
+     * What is inside a container or a machine changed without a block changing: a player closed a container block's
+     * inventory, a furnace started smelting, a brewing stand started brewing. It is told after the fact and cannot be
+     * cancelled; {@link #blockChanging} with {@link BlockChange.Cause#CONTAINER} or {@link BlockChange.Cause#MACHINE}
+     * decides the changes that can be.
+     *
+     * @param player the player behind it, when there is one
+     * @param at     the block of the container or machine
+     */
+    default void containerChanged(Optional<ToolPlayer> player, BlockPosition at) {
     }
 
     /** A chunk of the world finished loading, painted or read back. */

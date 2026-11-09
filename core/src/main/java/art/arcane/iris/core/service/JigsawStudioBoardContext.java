@@ -1,6 +1,8 @@
 package art.arcane.iris.core.service;
 
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioMode;
+import com.volmit.tooling.world.TextColor;
+import com.volmit.tooling.world.ToolText;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +20,6 @@ public record JigsawStudioBoardContext(
         JigsawStudioBoardState state,
         String controlHint
 ) {
-    private static final String SIDEBAR_TITLE = "Iris";
     private static final String SEPARATOR = "-------------------";
     private static final int SIDEBAR_LINE_CAPACITY = 11;
 
@@ -41,38 +42,49 @@ public record JigsawStudioBoardContext(
         return !workcellName.isEmpty();
     }
 
-    public String sidebarTitle() {
-        return SIDEBAR_TITLE;
+    /** Empty: the sidebar keeps the platform's own title. */
+    public ToolText sidebarTitle() {
+        return ToolText.EMPTY;
     }
 
-    /** The sidebar lines for this context, top to bottom, as plain text. */
-    public List<String> sidebarLines() {
-        List<String> lines = new ArrayList<>(SIDEBAR_LINE_CAPACITY);
-        lines.add(SEPARATOR);
-        lines.add("Jigsaw Studio");
-        lines.add("Structure: " + structureKey);
+    /** The sidebar lines for this context, top to bottom. */
+    public List<ToolText> sidebarLines() {
+        List<ToolText> lines = new ArrayList<>(SIDEBAR_LINE_CAPACITY);
+        lines.add(separator());
+        lines.add(ToolText.colored(TextColor.LIGHT_PURPLE, "Jigsaw Studio"));
+        lines.add(labelled("Structure", structureKey));
         if (!insideWorkcell()) {
-            lines.add("Mode: " + modeDisplayName());
-            lines.add(SEPARATOR);
-            lines.add("Walk into a workcell");
+            lines.add(labelled("Mode", modeDisplayName()));
+            lines.add(separator());
+            lines.add(ToolText.colored(TextColor.YELLOW, "Walk into a workcell"));
             if (!controlHint.isEmpty()) {
-                lines.add(controlHint);
+                lines.add(ToolText.colored(TextColor.GRAY, controlHint));
             }
-            lines.add(SEPARATOR);
+            lines.add(separator());
             return List.copyOf(lines);
         }
-        lines.add("Workcell: " + workcellName);
+        lines.add(labelled("Workcell", workcellName));
         if (!workcellRole.isEmpty() && !workcellRole.equals(workcellName)) {
-            lines.add("Role: " + workcellRole);
+            lines.add(labelled("Role", workcellRole));
         }
-        lines.add("Variant: " + (variantName.isEmpty() ? "None" : variantName));
-        lines.add("State: " + state.displayName());
-        lines.add(SEPARATOR);
+        lines.add(labelled("Variant", variantName.isEmpty() ? "None" : variantName));
+        lines.add(labelled("State", state.displayName()));
+        lines.add(separator());
         if (!controlHint.isEmpty()) {
-            lines.add(controlHint);
+            lines.add(ToolText.colored(TextColor.YELLOW, controlHint));
         }
-        lines.add(SEPARATOR);
+        lines.add(separator());
         return List.copyOf(lines);
+    }
+
+    private static ToolText separator() {
+        return ToolText.builder()
+                .append(new ToolText.Span(SEPARATOR, TextColor.GRAY, false, false, true))
+                .build();
+    }
+
+    private static ToolText labelled(String label, String value) {
+        return ToolText.builder().aqua(label).gray(": " + value).build();
     }
 
     public String modeDisplayName() {

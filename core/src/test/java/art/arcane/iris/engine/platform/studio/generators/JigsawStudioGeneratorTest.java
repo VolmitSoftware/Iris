@@ -543,6 +543,7 @@ public class JigsawStudioGeneratorTest {
             when(blocks.find(anyString())).thenAnswer(invocation ->
                     Optional.of(BlockState.parse(invocation.getArgument(0))));
             when(blocks.rotate(any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(blocks.tryRotate(any(), any())).thenAnswer(invocation -> Optional.of(invocation.getArgument(0)));
         }
 
         void piece(String key, IrisJigsawPiece piece) {

@@ -101,10 +101,10 @@ public final class StudioOpenCoordinator {
      * Unloads a tool world and deletes its files, reserving the world mutation lock like a studio close. Players must be
      * gone from it already; any that remain are sent to the spawn of another world.
      */
-    public CompletableFuture<StudioCloseResult> closeToolWorld(World world) {
+    public CompletableFuture<StudioCloseResult> closeToolWorld(World world, IrisProject project) {
         Objects.requireNonNull(world, "world");
         PlatformChunkGenerator provider = IrisToolbelt.access(world);
-        return closeWorldCoordinated(provider, IrisWorldStorage.logicalName(world), world, true, null);
+        return closeWorldCoordinated(provider, IrisWorldStorage.logicalName(world), world, true, project);
     }
 
     public CompletableFuture<Boolean> teleportPlayerToProject(

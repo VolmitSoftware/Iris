@@ -23,7 +23,7 @@ public interface ToolPlayer {
     /** The player's name as the platform shows it. */
     String name();
 
-    /** The player as a command sender; its messages are plain text, delivered on the thread the platform needs. */
+    /** The player as a command sender; its messages are plain text, delivered on the thread the platform needs. For styled text use {@link #message}. */
     Sender sender();
 
     /** The tool world the player stands in; empty when they stand in another world, even another pack's tool world. */
@@ -54,17 +54,20 @@ public interface ToolPlayer {
      */
     void creative(boolean on);
 
+    /** Sends {@code text} to the player's chat, in its colours. */
+    void message(ToolText text);
+
     /** Shows {@code text} above the hotbar. */
-    void actionBar(String text);
+    void actionBar(ToolText text);
 
     /** Plays {@code sound}, such as {@code minecraft:block.note_block.pling}, to this player only, where they stand. */
     void sound(ResourceId sound, float volume, float pitch);
 
     /**
      * Shows a sidebar with {@code title} and {@code lines}, top to bottom, replacing the one this player has from a tool.
-     * Text is plain: the host removes formatting codes. The sidebar goes away when the player leaves the tool world.
+     * An empty title keeps the platform's own sidebar title. The sidebar goes away when the player leaves the tool world.
      */
-    void sidebar(String title, List<String> lines);
+    void sidebar(ToolText title, List<ToolText> lines);
 
     /** Removes the sidebar {@link #sidebar} showed. */
     void hideSidebar();
@@ -72,8 +75,12 @@ public interface ToolPlayer {
     /** Shows dust particles to this player only. Positions are in the world the player stands in. */
     void particles(List<Particle> dust);
 
-    /** Puts {@code item} in the player's inventory, in the first free slot. */
-    void give(ToolItem item);
+    /**
+     * Puts {@code item} in the player's inventory, in the first free slot, and returns whether it fitted. An item that did
+     * not fit is not given and not dropped. Called off the player's own thread, the item is given later and the answer
+     * is true.
+     */
+    boolean give(ToolItem item);
 
     /** The tool item in the player's main hand; empty when the held item is not one, which is when it carries no payload. */
     Optional<ToolItem> held();

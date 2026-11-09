@@ -3,6 +3,7 @@ package art.arcane.iris.core.service;
 import com.volmit.tooling.world.MenuButton;
 import com.volmit.tooling.world.ToolMenu;
 import com.volmit.tooling.world.ToolPlayer;
+import com.volmit.tooling.world.ToolText;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +24,7 @@ final class JigsawStudioMenuWindow {
 
     private final ToolPlayer viewer;
     private final Map<Integer, JigsawStudioMenuElement> elements = new TreeMap<>();
-    private String title = "";
+    private ToolText title = ToolText.EMPTY;
     private int viewportRows = ToolMenu.MAX_ROWS;
     private Runnable onClosed = () -> { };
     private int batchDepth;
@@ -43,9 +44,13 @@ final class JigsawStudioMenuWindow {
         return this;
     }
 
-    JigsawStudioMenuWindow setTitle(String title) {
+    JigsawStudioMenuWindow setTitle(ToolText title) {
         this.title = Objects.requireNonNull(title, "Jigsaw Studio menu title");
         return this;
+    }
+
+    JigsawStudioMenuWindow setTitle(String title) {
+        return setTitle(ToolText.plain(Objects.requireNonNull(title, "Jigsaw Studio menu title")));
     }
 
     JigsawStudioMenuWindow onClosed(Runnable onClosed) {

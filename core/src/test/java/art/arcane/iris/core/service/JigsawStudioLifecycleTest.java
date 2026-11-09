@@ -168,7 +168,6 @@ public class JigsawStudioLifecycleTest {
                 mock(JigsawStudioGenerator.class),
                 new ConcurrentHashMap<>(),
                 ConcurrentHashMap.newKeySet(),
-                ConcurrentHashMap.newKeySet(),
                 new AtomicLong());
         Class<?> watchType = Class.forName(JigsawStudioService.class.getName() + "$JigsawTileWatch");
         Constructor<?> watchConstructor = watchType.getDeclaredConstructor(

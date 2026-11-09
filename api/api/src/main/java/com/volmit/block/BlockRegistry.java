@@ -68,6 +68,17 @@ public interface BlockRegistry {
      */
     BlockState rotate(BlockState state, BlockTurn turn);
 
+    /**
+     * Like {@link #rotate}, but says when the block cannot face the way it is turned instead of answering air, so a
+     * caller can tell a block that was dropped from air that stayed air. The default asks {@link #rotate} and takes air
+     * from a block that is not air for a block that was dropped.
+     */
+    default Optional<BlockState> tryRotate(BlockState state, BlockTurn turn) {
+        BlockState turned = rotate(state, turn);
+        boolean dropped = hasTrait(turned, BlockTrait.AIR) && !hasTrait(state, BlockTrait.AIR);
+        return dropped ? Optional.empty() : Optional.of(turned);
+    }
+
     /** {@code update} laid over {@code base}: the platform's merge of two states of one block, such as the sides of a
      * fence, wall or pane; {@code update} when the platform does not merge them.
      */

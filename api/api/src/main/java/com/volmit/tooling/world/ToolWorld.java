@@ -67,6 +67,9 @@ public interface ToolWorld {
      */
     void setBlock(BlockPosition at, BlockState state, Optional<BlockEntityData> data);
 
+    /** Whether the platform has {@code chunk} loaded right now. Safe from any thread; a tool treats it as a hint. */
+    boolean loaded(ChunkPos chunk);
+
     /**
      * Runs the painter again for {@code chunks}, writes the differences into the live chunks and sends them to the
      * players. Block entities the painter sets replace those of the chunk. The future completes on a host thread when

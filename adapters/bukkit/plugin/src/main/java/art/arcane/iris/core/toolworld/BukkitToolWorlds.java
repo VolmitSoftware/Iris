@@ -85,7 +85,7 @@ final class BukkitToolWorlds implements ToolWorlds {
     private StudioOpenCoordinator.StudioOpenRequest openRequest(String storageName, BukkitToolWorld toolWorld) {
         return new StudioOpenCoordinator.StudioOpenRequest(
                 packName,
-                null,
+                toolWorld.project(),
                 null,
                 TOOL_WORLD_SEED,
                 storageName,

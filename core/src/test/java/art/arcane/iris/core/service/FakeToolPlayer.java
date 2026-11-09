@@ -7,6 +7,7 @@ import com.volmit.tooling.world.Particle;
 import com.volmit.tooling.world.ToolItem;
 import com.volmit.tooling.world.ToolMenu;
 import com.volmit.tooling.world.ToolPlayer;
+import com.volmit.tooling.world.ToolText;
 import com.volmit.tooling.world.ToolWorld;
 
 import java.util.ArrayList;
@@ -19,7 +20,8 @@ import java.util.concurrent.CompletableFuture;
 final class FakeToolPlayer implements ToolPlayer {
     final List<String> messages = new ArrayList<>();
     final List<ToolItem> given = new ArrayList<>();
-    final List<List<String>> sidebars = new ArrayList<>();
+    final List<ToolText> texts = new ArrayList<>();
+    final List<List<ToolText>> sidebars = new ArrayList<>();
     final List<ToolMenu> menus = new ArrayList<>();
     final List<Particle> particles = new ArrayList<>();
     final List<Sound> sounds = new ArrayList<>();
@@ -28,6 +30,7 @@ final class FakeToolPlayer implements ToolPlayer {
     BlockPosition position = new BlockPosition(0, 64, 0);
     boolean sneaking;
     boolean ownedElsewhere;
+    boolean inventoryFull;
     int sidebarsHidden;
     int menusClosed;
     private final UUID id;
@@ -138,7 +141,13 @@ final class FakeToolPlayer implements ToolPlayer {
     }
 
     @Override
-    public void actionBar(String text) {
+    public void message(ToolText text) {
+        texts.add(text);
+        messages.add(text.plainText());
+    }
+
+    @Override
+    public void actionBar(ToolText text) {
     }
 
     @Override
@@ -150,7 +159,7 @@ final class FakeToolPlayer implements ToolPlayer {
     }
 
     @Override
-    public void sidebar(String title, List<String> lines) {
+    public void sidebar(ToolText title, List<ToolText> lines) {
         sidebars.add(lines);
     }
 
@@ -165,8 +174,12 @@ final class FakeToolPlayer implements ToolPlayer {
     }
 
     @Override
-    public void give(ToolItem item) {
+    public boolean give(ToolItem item) {
+        if (inventoryFull) {
+            return false;
+        }
         given.add(item);
+        return true;
     }
 
     @Override

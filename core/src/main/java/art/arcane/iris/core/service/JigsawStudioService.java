@@ -65,6 +65,7 @@ import com.volmit.tooling.world.BlockChange;
 import com.volmit.tooling.world.Particle;
 import com.volmit.tooling.world.ToolItem;
 import com.volmit.tooling.world.ToolPlayer;
+import com.volmit.tooling.world.ToolText;
 import com.volmit.tooling.world.ToolUse;
 import com.volmit.tooling.world.ToolWorld;
 import com.volmit.tooling.world.ToolWorldListener;
@@ -291,7 +292,6 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                 generator,
                 new ConcurrentHashMap<>(),
                 ConcurrentHashMap.newKeySet(),
-                ConcurrentHashMap.newKeySet(),
                 new AtomicLong());
         synchronized (saveLifecycleLock) {
             if (!enabled || disableStarted.get()) {
@@ -337,7 +337,6 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
     }
 
     private void markChunkAvailable(ActiveStudio studio, int chunkX, int chunkZ) {
-        studio.loadedChunks().add(chunkKey(chunkX, chunkZ));
         long chunkKey = chunkKey(chunkX, chunkZ);
         boolean relevant = false;
         for (JigsawStudioBay bay : studio.generator().getLayout().bays()) {
@@ -2871,7 +2870,10 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
             message(player, "This tool belongs to a different or closed Jigsaw Studio session.");
             return false;
         }
-        player.give(toolCodec.create(payload));
+        if (!player.give(toolCodec.create(payload))) {
+            message(player, "Your inventory is full; no Jigsaw Studio tool was added.");
+            return false;
+        }
         message(player, "Added " + payload.action().displayName() + " tool.");
         return true;
     }
@@ -3068,7 +3070,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
         if (resetLabel) {
             return Optional.of("");
         }
-        String normalized = tool == null ? "" : tool.name().trim();
+        String normalized = tool == null ? "" : tool.name().plainText().trim();
         String defaultName = JigsawStudioToolCodec.NAME_PREFIX + payload.action().displayName();
         if (normalized.isEmpty() || normalized.equals(defaultName)) {
             message(player, "Rename this bound stick in an anvil to the desired label, then right-click it. "
@@ -3779,7 +3781,17 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
         assemblyPreviews.remove(player.id());
         playerWorkcells.remove(player.id());
         ensureVisualizationLoop(player);
-        reconcilePlayerContext(player, player.position());
+    }
+
+    /** A player arrived by other means than walking; the host tells it at the time of the teleport, after the arrival it belongs to. */
+    void playerTeleported(ToolPlayer player, BlockPosition to) {
+        finalizeJigsawTileWatchesForPlayer(player.id());
+        reconcilePlayerContext(player, to);
+    }
+
+    /** The contents of a container or machine changed without a block change: the container's workcell has unsaved work. */
+    void containerChanged(UUID worldId, BlockPosition at) {
+        markDirty(studios.get(worldId), at);
     }
 
     void playerLeft(ToolPlayer player) {
@@ -3947,6 +3959,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
         switch (change.cause()) {
             case FLUID -> markDirty(studio, positions.getLast());
             case PHYSICS -> markDirty(studio, positions.getFirst());
+            case PISTON -> change.changed().forEach(position -> markDirty(studio, position));
             default -> positions.forEach(position -> markDirty(studio, position));
         }
     }
@@ -4500,18 +4513,11 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
     }
 
     /**
-     * Whether the block in the world is the one that was written: a state the platform completes with the properties it
-     * defaults, so each property the written state names has to agree, and air stands for every kind of air.
+     * Whether the block in the world is the one that was written: the same block with every property equal. The states
+     * written are the platform's own complete states, so a block the platform changed on its own does not pass.
      */
-    private static boolean sameBlock(BlockState actual, BlockState written) {
-        if (JigsawStudioBlocks.isAir(actual) && JigsawStudioBlocks.isAir(written)) {
-            return true;
-        }
-        if (!actual.material().equals(written.material())) {
-            return false;
-        }
-        return written.properties().entrySet().stream()
-                .allMatch(property -> property.getValue().equals(actual.properties().get(property.getKey())));
+    static boolean sameBlock(BlockState actual, BlockState written) {
+        return actual.equals(written);
     }
 
     private static BlockRegistry registryOf(ActiveStudio studio) {
@@ -7269,7 +7275,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
 
     private static void message(ToolPlayer player, String text) {
         if (player != null) {
-            player.sender().info(MESSAGE_PREFIX + text);
+            player.message(ToolText.plain(MESSAGE_PREFIX + text));
         }
     }
 
@@ -7304,7 +7310,6 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
             JigsawStudioGenerator generator,
             ConcurrentHashMap<String, BayPopulation> populations,
             Set<Long> hydrationsInProgress,
-            Set<Long> loadedChunks,
             AtomicLong evaluationGeneration
     ) {
         ActiveStudio {
@@ -7313,13 +7318,12 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
             Objects.requireNonNull(generator, "Jigsaw Studio generator");
             Objects.requireNonNull(populations, "Jigsaw Studio bay populations");
             Objects.requireNonNull(hydrationsInProgress, "Jigsaw Studio hydrations");
-            Objects.requireNonNull(loadedChunks, "Jigsaw Studio loaded chunks");
             Objects.requireNonNull(evaluationGeneration, "Jigsaw Studio evaluation generation");
         }
 
-        /** Whether the world has loaded the chunk since the studio opened; the host tells the studio of each load. */
+        /** Whether the platform has the chunk loaded now. */
         boolean isChunkLoaded(int chunkX, int chunkZ) {
-            return loadedChunks.contains(chunkKey(chunkX, chunkZ));
+            return world.loaded(new ChunkPos(chunkX, chunkZ));
         }
 
         BayPopulation population(JigsawStudioBay bay) {

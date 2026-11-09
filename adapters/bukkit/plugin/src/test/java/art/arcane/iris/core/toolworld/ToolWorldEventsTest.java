@@ -26,6 +26,7 @@ import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.event.block.Action;
@@ -78,6 +79,16 @@ public class ToolWorldEventsTest {
             @Override
             public void left(ToolPlayer player) {
                 heard.add("left " + player.name());
+            }
+
+            @Override
+            public void teleported(ToolPlayer player, BlockPosition to) {
+                heard.add("teleported " + player.name() + " " + to.x() + "," + to.y() + "," + to.z());
+            }
+
+            @Override
+            public void containerChanged(Optional<ToolPlayer> player, BlockPosition at) {
+                heard.add("container " + player.map(ToolPlayer::name).orElse("nobody") + " " + at.x() + "," + at.y() + "," + at.z());
             }
 
             @Override
@@ -202,21 +213,53 @@ public class ToolWorldEventsTest {
     }
 
     @Test
-    public void aPistonNamesItselfAndEveryBlockItMovesAndTheirNeighboursInTheDirectionOfTheMove() {
+    public void aPistonIsCheckedAgainstEveryBlockItMovesAndTheBlocksTheyLeaveAndEnterButNotItself() {
         Block piston = block(toolBukkitWorld, 0, 64, 0);
         Block moved = block(toolBukkitWorld, 1, 64, 0);
         Block ahead = block(toolBukkitWorld, 2, 64, 0);
         when(moved.getRelative(BlockFace.EAST)).thenReturn(ahead);
         when(moved.getRelative(BlockFace.WEST)).thenReturn(piston);
 
-        List<BlockPosition> positions = ToolWorldEvents.pistonPositions(piston, List.of(moved), BlockFace.EAST);
+        List<BlockPosition> positions = ToolWorldEvents.pistonChecked(List.of(moved), BlockFace.EAST);
 
-        assertEquals(List.of(new BlockPosition(0, 64, 0), new BlockPosition(1, 64, 0), new BlockPosition(2, 64, 0)), positions);
+        assertEquals(List.of(new BlockPosition(1, 64, 0), new BlockPosition(2, 64, 0), new BlockPosition(0, 64, 0)), positions);
+    }
+
+    @Test
+    public void aPistonChangesItselfTheBlockAheadOfItAndEveryBlockItMovesAndWhereTheyGo() {
+        Block piston = block(toolBukkitWorld, 0, 64, 0);
+        Block moved = block(toolBukkitWorld, 1, 64, 0);
+        Block ahead = block(toolBukkitWorld, 2, 64, 0);
+        when(piston.getRelative(BlockFace.EAST)).thenReturn(moved);
+        when(moved.getRelative(BlockFace.EAST)).thenReturn(ahead);
+
+        List<BlockPosition> changed = ToolWorldEvents.pistonChanged(piston, List.of(moved), BlockFace.EAST);
+
+        assertEquals(List.of(new BlockPosition(0, 64, 0), new BlockPosition(1, 64, 0), new BlockPosition(2, 64, 0)), changed);
+    }
+
+    @Test
+    public void aPistonThatMovesNothingStillChangesItsOwnBlocks() {
+        Block piston = block(toolBukkitWorld, 0, 64, 0);
+        Block ahead = block(toolBukkitWorld, 1, 64, 0);
+        when(piston.getRelative(BlockFace.EAST)).thenReturn(ahead);
+        BlockPistonExtendEvent event = mock(BlockPistonExtendEvent.class);
+        when(event.getBlock()).thenReturn(piston);
+        when(event.getBlocks()).thenReturn(List.of());
+        when(event.getDirection()).thenReturn(BlockFace.EAST);
+
+        events.onPistonExtend(event);
+
+        BlockChange change = onlyChange();
+        assertEquals(List.of(), change.positions());
+        assertEquals(List.of(new BlockPosition(0, 64, 0), new BlockPosition(1, 64, 0)), change.changed());
     }
 
     @Test
     public void aPistonExtendingInAToolWorldIsAPistonChange() {
         Block piston = block(toolBukkitWorld, 0, 64, 0);
+        Block ahead = block(toolBukkitWorld, 1, 64, 0);
+        when(piston.getRelative(BlockFace.EAST)).thenReturn(ahead);
         BlockPistonExtendEvent event = mock(BlockPistonExtendEvent.class);
         when(event.getBlock()).thenReturn(piston);
         when(event.getBlocks()).thenReturn(List.of());
@@ -351,7 +394,76 @@ public class ToolWorldEventsTest {
         events.onTeleport(teleport);
         events.onTeleport(teleport);
 
-        assertEquals(List.of("entered Tester"), heard);
+        assertEquals(List.of("entered Tester", "teleported Tester 0,64,0", "teleported Tester 0,64,0"), heard);
+    }
+
+    @Test
+    public void aTeleportInsideAToolWorldIsToldAtOnceWithItsDestination() {
+        PlayerTeleportEvent teleport = mock(PlayerTeleportEvent.class);
+        when(teleport.getPlayer()).thenReturn(bukkitPlayer);
+        when(teleport.getFrom()).thenReturn(new Location(toolBukkitWorld, 0, 64, 0));
+        when(teleport.getTo()).thenReturn(new Location(toolBukkitWorld, 40, 70, -3));
+
+        events.onTeleport(teleport);
+
+        assertEquals(List.of("entered Tester", "teleported Tester 40,70,-3"), heard);
+    }
+
+    @Test
+    public void aTeleportOutOfAToolWorldIsToldAsLeaving() {
+        PlayerTeleportEvent in = mock(PlayerTeleportEvent.class);
+        when(in.getPlayer()).thenReturn(bukkitPlayer);
+        when(in.getFrom()).thenReturn(new Location(otherBukkitWorld, 0, 64, 0));
+        when(in.getTo()).thenReturn(new Location(toolBukkitWorld, 0, 64, 0));
+        PlayerTeleportEvent out = mock(PlayerTeleportEvent.class);
+        when(out.getPlayer()).thenReturn(bukkitPlayer);
+        when(out.getFrom()).thenReturn(new Location(toolBukkitWorld, 0, 64, 0));
+        when(out.getTo()).thenReturn(new Location(otherBukkitWorld, 5, 64, 5));
+
+        events.onTeleport(in);
+        events.onTeleport(out);
+
+        assertEquals(List.of("entered Tester", "teleported Tester 0,64,0", "left Tester"), heard);
+    }
+
+    @Test
+    public void respawningInAToolWorldIsAnArrivalAtTheRespawnPoint() {
+        PlayerRespawnEvent respawn = mock(PlayerRespawnEvent.class);
+        when(respawn.getPlayer()).thenReturn(bukkitPlayer);
+        when(respawn.getRespawnLocation()).thenReturn(new Location(toolBukkitWorld, 8, 66, 8));
+
+        events.onRespawn(respawn);
+
+        assertEquals(List.of("entered Tester", "teleported Tester 8,66,8"), heard);
+    }
+
+    @Test
+    public void closingAContainerInAToolWorldTellsTheToolWhichBlockChanged() {
+        Block chest = block(toolBukkitWorld, 4, 65, 4);
+        org.bukkit.inventory.Inventory inventory = mock(org.bukkit.inventory.Inventory.class);
+        org.bukkit.inventory.BlockInventoryHolder holder = mock(org.bukkit.inventory.BlockInventoryHolder.class);
+        when(holder.getBlock()).thenReturn(chest);
+        when(inventory.getHolder()).thenReturn(holder);
+        org.bukkit.inventory.InventoryView view = mock(org.bukkit.inventory.InventoryView.class);
+        when(view.getTopInventory()).thenReturn(inventory);
+        org.bukkit.event.inventory.InventoryCloseEvent close = mock(org.bukkit.event.inventory.InventoryCloseEvent.class);
+        when(close.getPlayer()).thenReturn(bukkitPlayer);
+        when(close.getView()).thenReturn(view);
+
+        events.onInventoryClose(close);
+
+        assertEquals(List.of("container Tester 4,65,4"), heard);
+    }
+
+    @Test
+    public void aFurnaceStartingToSmeltTellsTheToolWithoutAPlayer() {
+        Block furnace = block(toolBukkitWorld, 2, 64, 2);
+        org.bukkit.event.inventory.FurnaceStartSmeltEvent smelt = mock(org.bukkit.event.inventory.FurnaceStartSmeltEvent.class);
+        when(smelt.getBlock()).thenReturn(furnace);
+
+        events.onFurnaceStartSmelt(smelt);
+
+        assertEquals(List.of("container nobody 2,64,2"), heard);
     }
 
     @Test
@@ -367,7 +479,7 @@ public class ToolWorldEventsTest {
         events.onQuit(quit);
         events.onQuit(quit);
 
-        assertEquals(List.of("entered Tester", "left Tester"), heard);
+        assertEquals(List.of("entered Tester", "teleported Tester 0,64,0", "left Tester"), heard);
     }
 
     @Test
@@ -413,6 +525,9 @@ public class ToolWorldEventsTest {
         assertPriority(byMethod, checked, "onTeleport", EventPriority.MONITOR, true);
         assertPriority(byMethod, checked, "onMove", EventPriority.MONITOR, true);
         assertPriority(byMethod, checked, "onRespawn", EventPriority.MONITOR, false);
+        for (String containerNews : List.of("onInventoryClose", "onFurnaceStartSmelt", "onBrewingStart")) {
+            assertPriority(byMethod, checked, containerNews, EventPriority.MONITOR, false);
+        }
         assertPriority(byMethod, checked, "onWorldUnload", EventPriority.MONITOR, true);
         assertEquals("every handler of the class was checked", byMethod.keySet(), checked);
     }

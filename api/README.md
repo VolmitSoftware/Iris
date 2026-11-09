@@ -620,8 +620,20 @@ worlds.open(new ToolWorldSpec("scratch", painter, new ToolWorldListener() { }))
   `IllegalStateException` elsewhere. `ToolPlayer` readers are valid on the player's own thread (`ToolPlayer.run`); its
   changing methods are safe from any thread.
 - `ToolPlayer` also gives items (`ToolItem`, whose payload the host keeps on the item), a chest-style menu (`ToolMenu`
-  of `MenuButton`s), an action bar, a sidebar, sounds and dust `Particle`s. `ToolWorld.close()` sends every player back
-  to where they came from and deletes the world.
+  of `MenuButton`s), chat messages, an action bar, a sidebar, sounds and dust `Particle`s. `give` answers whether the item
+  fitted; one that did not is neither given nor dropped. `ToolWorld.close()` sends every player back to where they came
+  from and deletes the world.
+- Styled text is `ToolText`, a list of spans with a `TextColor` (the sixteen named colours; none keeps the platform's
+  default) and bold, italic and strikethrough. Build it with `ToolText.builder().gray("Size: ").white("16x16x16").build()`
+  or `ToolText.plain`/`ToolText.colored`; `plainText()` drops the style. Item names and lore, menu titles, sidebar lines,
+  the action bar and `ToolPlayer.message` take it; an empty sidebar title keeps the platform's own. Text of a span is
+  shown as it is, so it needs no escaping. An item the host reads back carries its name and lore as plain text.
+- `ToolWorldListener` also hears `teleported(player, to)` whenever a player arrives by other means than walking (join,
+  world change, respawn, a teleport or portal by anyone, inside the world too), at the time it happens, after `entered`
+  for a player coming in; `containerChanged(player, at)` when a container's inventory was closed or a furnace or brewing
+  stand started working, which no `blockChanging` announced; and `blockChanging` carries in `BlockChange.positions` what
+  a protected area is checked against and in `BlockChange.changed` the blocks whose content changes, which differ for a
+  piston. `ToolWorld.loaded(chunk)` asks the platform whether a chunk is loaded.
 
 ## Module jars
 

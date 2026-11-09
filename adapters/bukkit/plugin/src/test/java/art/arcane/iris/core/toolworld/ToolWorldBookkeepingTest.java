@@ -4,6 +4,8 @@ import art.arcane.iris.core.runtime.StudioPainterSlots.PaintedBlockEntity;
 import art.arcane.iris.core.runtime.StudioPainterSlots.PaintedChunk;
 import com.volmit.object.BlockEntityData;
 import com.volmit.resource.ResourceId;
+import com.volmit.tooling.world.TextColor;
+import com.volmit.tooling.world.ToolText;
 import org.bukkit.World;
 import org.junit.Test;
 
@@ -105,8 +107,9 @@ public class ToolWorldBookkeepingTest {
 
     @Test
     public void aMenuTitleIsShortenedToWhatTheWindowCanShow() {
-        assertEquals("short", BukkitToolMenus.shortened("short"));
-        assertEquals(32, BukkitToolMenus.shortened("x".repeat(50)).length());
+        assertEquals("short", BukkitToolMenus.shortened(ToolText.plain("short")));
+        assertEquals(32, BukkitToolMenus.shortened(ToolText.plain("x".repeat(50))).length());
+        assertEquals("§a" + "x".repeat(30), BukkitToolMenus.shortened(ToolText.colored(TextColor.GREEN, "x".repeat(50))));
     }
 
     private static BukkitToolWorld toolWorld(OpenToolWorlds worlds, String pack, String name, String storageName) {

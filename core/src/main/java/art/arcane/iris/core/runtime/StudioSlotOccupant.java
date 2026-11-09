@@ -18,6 +18,8 @@
 
 package art.arcane.iris.core.runtime;
 
+import art.arcane.iris.core.project.IrisProject;
+
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -28,6 +30,12 @@ import java.util.concurrent.CompletableFuture;
  * the tool that owns the world.
  */
 public interface StudioSlotOccupant {
+    /**
+     * The studio project the world is, which the studio service shows to every command that asks for the open studio: it
+     * is open while the world is and carries the world's generator, as the project of any other studio does.
+     */
+    IrisProject project();
+
     /** A message that vetoes closing the world now; empty lets it close. */
     Optional<String> closeRefusal();
 

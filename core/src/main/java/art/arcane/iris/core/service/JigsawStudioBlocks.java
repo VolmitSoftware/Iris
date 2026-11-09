@@ -38,16 +38,11 @@ public final class JigsawStudioBlocks {
         return BlockState.parse(JIGSAW_BLOCK + "[" + ORIENTATION_PROPERTY + "=" + orientation + "]");
     }
 
-    /**
-     * {@code state} turned like {@code rotation}; null when the block cannot face the way it is turned, which the
-     * registry reports as air.
-     */
+    /** {@code state} turned like {@code rotation}; null when the registry cannot turn the block. */
     public static BlockState rotated(BlockRegistry registry, BlockState state, ObjectTurn rotation) {
         if (!rotation.canRotate()) {
             return state;
         }
-        BlockState turned = registry.rotate(state, rotation.blockTurn());
-        boolean dropped = turned.equals(AIR) && !state.equals(AIR);
-        return dropped ? null : turned;
+        return registry.tryRotate(state, rotation.blockTurn()).orElse(null);
     }
 }

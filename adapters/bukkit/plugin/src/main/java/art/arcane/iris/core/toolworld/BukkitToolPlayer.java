@@ -23,6 +23,8 @@ import art.arcane.iris.core.service.BukkitToolingSender;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.util.common.scheduling.J;
+import art.arcane.volmlib.util.plugin.ComponentMessenger;
+import art.arcane.volmlib.util.plugin.ComponentText;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.resource.ResourceId;
 import com.volmit.tooling.Sender;
@@ -30,6 +32,7 @@ import com.volmit.tooling.world.Particle;
 import com.volmit.tooling.world.ToolItem;
 import com.volmit.tooling.world.ToolMenu;
 import com.volmit.tooling.world.ToolPlayer;
+import com.volmit.tooling.world.ToolText;
 import com.volmit.tooling.world.ToolWorld;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -140,8 +143,13 @@ final class BukkitToolPlayer implements ToolPlayer {
     }
 
     @Override
-    public void actionBar(String text) {
-        J.runEntity(player, () -> player.sendActionBar(text));
+    public void message(ToolText text) {
+        J.runEntity(player, () -> ComponentMessenger.send(player, ComponentText.component(BukkitToolText.component(text))));
+    }
+
+    @Override
+    public void actionBar(ToolText text) {
+        J.runEntity(player, () -> player.sendActionBar(BukkitToolText.component(text)));
     }
 
     @Override
@@ -150,7 +158,7 @@ final class BukkitToolPlayer implements ToolPlayer {
     }
 
     @Override
-    public void sidebar(String title, List<String> lines) {
+    public void sidebar(ToolText title, List<ToolText> lines) {
         BoardSVC board = IrisServices.getOrNull(BoardSVC.class);
         if (board == null) {
             return;
@@ -174,11 +182,13 @@ final class BukkitToolPlayer implements ToolPlayer {
     }
 
     @Override
-    public void give(ToolItem item) {
+    public boolean give(ToolItem item) {
         ItemStack stack = BukkitToolItems.create(item);
-        J.runEntity(player, () -> player.getInventory().addItem(stack)
-                .values()
-                .forEach(leftover -> player.getWorld().dropItem(player.getLocation(), leftover)));
+        if (J.isOwnedByCurrentRegion(player)) {
+            return player.getInventory().addItem(stack).isEmpty();
+        }
+        J.runEntity(player, () -> player.getInventory().addItem(stack));
+        return true;
     }
 
     @Override

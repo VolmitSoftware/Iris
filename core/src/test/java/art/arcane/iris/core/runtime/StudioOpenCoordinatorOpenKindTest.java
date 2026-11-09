@@ -119,7 +119,7 @@ public class StudioOpenCoordinatorOpenKindTest {
         int serviceEnd = service.indexOf("public void open(VolmitSender", serviceStart);
         String serviceMethod = service.substring(serviceStart, serviceEnd);
         int transitionAdmission = serviceMethod.indexOf("studioTransitions.submit(() ->");
-        int projectCapture = serviceMethod.indexOf("IrisProject project = activeProject");
+        int projectCapture = serviceMethod.indexOf("IrisProject project = currentProject()");
         int nativeDelegation = coordinatorMethod.indexOf(
                 "WorldRuntimeControlService.get().teleportInMode(player, entry, GameMode.SPECTATOR)");
 

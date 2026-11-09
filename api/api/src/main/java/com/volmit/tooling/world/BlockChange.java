@@ -10,12 +10,21 @@ import java.util.Optional;
  * Something that is about to change blocks in a tool world, handed to {@link ToolWorldListener#blockChanging}.
  *
  * @param cause     what is changing them
- * @param positions the blocks that change, at least one: the block a player breaks or places, the blocks an explosion
- *                  would destroy one at a time, all the blocks a piston would move together
+ * @param positions the blocks a protected area is checked against: the block a player breaks or places, the blocks an
+ *                  explosion would destroy one at a time, the blocks a piston moves with the blocks they leave and
+ *                  enter. Empty only when {@code changed} is not, such as a piston that moves nothing.
+ * @param changed   the blocks whose content changes, which a tool may want to save; the same as {@code positions}
+ *                  unless the cause touches other blocks than it is checked against, as a piston does with its own block
  * @param player    the player behind it, when there is one
  * @param placed    the state being placed, for {@link Cause#PLACE} and {@link Cause#BUCKET}; empty when it is not known
  */
-public record BlockChange(Cause cause, List<BlockPosition> positions, Optional<ToolPlayer> player, Optional<BlockState> placed) {
+public record BlockChange(
+        Cause cause,
+        List<BlockPosition> positions,
+        List<BlockPosition> changed,
+        Optional<ToolPlayer> player,
+        Optional<BlockState> placed
+) {
     /** What changes a block. */
     public enum Cause {
         /** A player places a block. */
@@ -49,10 +58,16 @@ public record BlockChange(Cause cause, List<BlockPosition> positions, Optional<T
     public BlockChange {
         Objects.requireNonNull(cause, "cause");
         positions = List.copyOf(positions);
-        if (positions.isEmpty()) {
+        changed = List.copyOf(changed);
+        if (positions.isEmpty() && changed.isEmpty()) {
             throw new IllegalArgumentException("A block change names at least one block");
         }
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(placed, "placed");
+    }
+
+    /** A change that is checked against the blocks it changes. */
+    public BlockChange(Cause cause, List<BlockPosition> positions, Optional<ToolPlayer> player, Optional<BlockState> placed) {
+        this(cause, positions, positions, player, placed);
     }
 }

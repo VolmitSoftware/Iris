@@ -1211,7 +1211,6 @@ public class JigsawStudioServiceCaptureTest {
                 generator,
                 populations,
                 ConcurrentHashMap.newKeySet(),
-                ConcurrentHashMap.newKeySet(),
                 new AtomicLong());
         try {
             Field studiosField = JigsawStudioService.class.getDeclaredField("studios");

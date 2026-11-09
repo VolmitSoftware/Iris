@@ -3,7 +3,9 @@ package art.arcane.iris.core.service;
 import com.volmit.resource.ResourceId;
 import com.volmit.tooling.world.MenuButton;
 import com.volmit.tooling.world.MenuClick;
+import com.volmit.tooling.world.TextColor;
 import com.volmit.tooling.world.ToolMenu;
+import com.volmit.tooling.world.ToolText;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -30,7 +32,7 @@ public class JigsawStudioMenuWindowTest {
         window.open();
 
         ToolMenu menu = viewer.menus.getLast();
-        assertEquals("Jigsaw: village", menu.title());
+        assertEquals(ToolText.plain("Jigsaw: village"), menu.title());
         assertEquals(List.of(0, 4, 17, 18, 35), slotsOf(menu));
     }
 
@@ -39,16 +41,16 @@ public class JigsawStudioMenuWindowTest {
         JigsawStudioMenuWindow window = new JigsawStudioMenuWindow(viewer);
         window.setElement(0, 0, new JigsawStudioMenuElement("details")
                 .setIcon(JigsawStudioMenuIcon.EMERALD)
-                .setName("Ready to Assemble")
-                .addLore("Seed 1337 assembled 19 pieces")
+                .setName(ToolText.colored(TextColor.GREEN, "Ready to Assemble"))
+                .addLore(ToolText.colored(TextColor.GRAY, "Seed 1337 assembled 19 pieces"))
                 .setEnchanted(true));
 
         window.open();
 
         MenuButton button = viewer.menus.getLast().buttons().getFirst();
         assertEquals(ResourceId.parse("minecraft:emerald"), button.icon().item());
-        assertEquals("Ready to Assemble", button.icon().name());
-        assertEquals(List.of("Seed 1337 assembled 19 pieces"), button.icon().lore());
+        assertEquals(ToolText.colored(TextColor.GREEN, "Ready to Assemble"), button.icon().name());
+        assertEquals(List.of(ToolText.colored(TextColor.GRAY, "Seed 1337 assembled 19 pieces")), button.icon().lore());
         assertTrue(button.icon().glowing());
     }
 
@@ -169,7 +171,7 @@ public class JigsawStudioMenuWindowTest {
     }
 
     private static JigsawStudioMenuElement element(String id) {
-        return new JigsawStudioMenuElement(id).setName(id);
+        return new JigsawStudioMenuElement(id).setName(ToolText.plain(id));
     }
 
     private static List<Integer> slotsOf(ToolMenu menu) {

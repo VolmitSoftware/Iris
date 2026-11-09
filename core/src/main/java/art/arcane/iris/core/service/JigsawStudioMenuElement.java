@@ -3,6 +3,7 @@ package art.arcane.iris.core.service;
 import com.volmit.tooling.world.MenuButton;
 import com.volmit.tooling.world.MenuClick;
 import com.volmit.tooling.world.ToolItem;
+import com.volmit.tooling.world.ToolText;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,9 +13,9 @@ import java.util.function.Consumer;
 /** One slot of a studio menu: an icon with a name and lore, and what each kind of click on it does. */
 final class JigsawStudioMenuElement {
     private final String id;
-    private final List<String> lore = new ArrayList<>();
+    private final List<ToolText> lore = new ArrayList<>();
     private JigsawStudioMenuIcon icon = JigsawStudioMenuIcon.BARRIER;
-    private String name = "";
+    private ToolText name = ToolText.EMPTY;
     private boolean enchanted;
     private Consumer<JigsawStudioMenuElement> onLeftClick;
     private Consumer<JigsawStudioMenuElement> onRightClick;
@@ -35,7 +36,7 @@ final class JigsawStudioMenuElement {
         return this;
     }
 
-    JigsawStudioMenuElement setName(String name) {
+    JigsawStudioMenuElement setName(ToolText name) {
         this.name = Objects.requireNonNull(name, "Jigsaw Studio menu name");
         return this;
     }
@@ -45,7 +46,7 @@ final class JigsawStudioMenuElement {
         return this;
     }
 
-    JigsawStudioMenuElement addLore(String line) {
+    JigsawStudioMenuElement addLore(ToolText line) {
         lore.add(Objects.requireNonNull(line, "Jigsaw Studio menu lore"));
         return this;
     }

@@ -31,6 +31,7 @@ import art.arcane.volmlib.util.board.Board;
 import art.arcane.volmlib.util.board.BoardProvider;
 import art.arcane.volmlib.util.board.BoardSettings;
 import art.arcane.volmlib.util.board.ScoreDirection;
+import com.volmit.tooling.world.ToolText;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.iris.util.common.plugin.IrisService;
 import art.arcane.iris.util.common.scheduling.J;
@@ -176,8 +177,11 @@ public class BoardSVC implements IrisService, BoardProvider {
         }
     }
 
-    /** What a tool shows a player in a tool world: a title and plain lines, top to bottom, for as long as the player stays in {@code worldId}. */
-    public record ToolSidebar(UUID worldId, String title, List<String> lines) {
+    /**
+     * What a tool shows a player in a tool world: a title and styled lines, top to bottom, for as long as the player
+     * stays in {@code worldId}. An empty title keeps the Iris board title.
+     */
+    public record ToolSidebar(UUID worldId, ToolText title, List<ToolText> lines) {
         public ToolSidebar {
             Objects.requireNonNull(worldId, "worldId");
             Objects.requireNonNull(title, "title");
@@ -256,7 +260,7 @@ public class BoardSVC implements IrisService, BoardProvider {
     @Override
     public String getTitle(Player player) {
         PlayerBoard board = boards.get(player);
-        if (board != null && board.view == BoardView.TOOL) {
+        if (board != null && board.view == BoardView.TOOL && !board.title.isEmpty()) {
             return board.title;
         }
         return IrisLanguage.text(BukkitUiMessages.SCOREBOARD_TITLE);
@@ -324,7 +328,33 @@ public class BoardSVC implements IrisService, BoardProvider {
     }
 
     static List<String> toolLines(ToolSidebar sidebar) {
-        return sidebar.lines().stream().map(BoardSVC::untrustedBoardValue).toList();
+        return sidebar.lines().stream().map(BoardSVC::boardLine).toList();
+    }
+
+    /**
+     * {@code text} in the board's {@code &} codes: each span starts with its colour and styles, a span without a colour
+     * resets after another, and the text of a span cannot carry codes of its own.
+     */
+    static String boardLine(ToolText text) {
+        StringBuilder line = new StringBuilder();
+        for (ToolText.Span span : text.spans()) {
+            if (span.color() != null) {
+                line.append('&').append(span.color().code());
+            } else if (!line.isEmpty()) {
+                line.append("&r");
+            }
+            if (span.bold()) {
+                line.append("&l");
+            }
+            if (span.italic()) {
+                line.append("&o");
+            }
+            if (span.strikethrough()) {
+                line.append("&m");
+            }
+            line.append(untrustedBoardValue(span.text()));
+        }
+        return line.toString();
     }
 
     public class PlayerBoard {
@@ -391,7 +421,7 @@ public class BoardSVC implements IrisService, BoardProvider {
             }
             view = BoardView.TOOL;
             toolSidebar = sidebar;
-            title = untrustedBoardValue(sidebar.title());
+            title = boardLine(sidebar.title());
             lines = toolLines(sidebar);
             board.update();
         }

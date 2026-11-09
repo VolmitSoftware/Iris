@@ -126,8 +126,9 @@ public class StudioSVC implements IrisService {
         boolean stopping = IrisToolbelt.isServerStopping();
         LinkedHashSet<String> worldNamesToDelete = new LinkedHashSet<>(TransientWorldCleanupSupport.collectTransientStudioWorldNames(IrisWorldStorage.levelRoot()));
 
-        if (activeProject != null) {
-            PlatformChunkGenerator activeProvider = activeProject.getActiveProvider();
+        IrisProject openProject = currentProject();
+        if (openProject != null) {
+            PlatformChunkGenerator activeProvider = openProject.getActiveProvider();
             if (activeProvider != null) {
                 String activeWorldName = IrisWorldStorage.logicalName(
                         WorldIdentity.parse(activeProvider.getTarget().getWorld().identity()));
@@ -476,13 +477,20 @@ public class StudioSVC implements IrisService {
     }
 
     public boolean isProjectOpen() {
-        return activeProject != null && activeProject.isOpen();
+        IrisProject project = currentProject();
+        return project != null && project.isOpen();
+    }
+
+    /** The studio project in the slot: the project of the open tool world, or the one opened as a project. */
+    private IrisProject currentProject() {
+        StudioSlotOccupant toolWorld = activeToolWorld;
+        return toolWorld == null ? activeProject : toolWorld.project();
     }
 
     public CompletableFuture<Boolean> teleportToActiveProject(Player player) {
         Player target = Objects.requireNonNull(player, "Studio teleport player");
         return studioTransitions.submit(() -> {
-            IrisProject project = activeProject;
+            IrisProject project = currentProject();
             if (project == null || !project.isOpen()) {
                 return CompletableFuture.failedFuture(new IllegalStateException(
                         "No active Studio project is available for teleport."));
@@ -1493,12 +1501,12 @@ public class StudioSVC implements IrisService {
     }
 
     public IrisProject getActiveProject() {
-        return activeProject;
+        return currentProject();
     }
 
     public void updateWorkspace() {
         if (isProjectOpen()) {
-            new IrisCodeWorkspace(activeProject).updateWorkspace();
+            new IrisCodeWorkspace(currentProject()).updateWorkspace();
         }
     }
 }

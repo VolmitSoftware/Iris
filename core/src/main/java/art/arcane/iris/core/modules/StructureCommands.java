@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.structure.StructureIndexService;
+import art.arcane.iris.core.structure.tooling.PlatformStructuresAccess;
 import art.arcane.iris.core.tooling.IrisToolPack;
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.framework.structure.StructureAssemblyResult;
@@ -30,10 +31,12 @@ import com.volmit.resource.ResourceId;
 import com.volmit.tooling.Argument;
 import com.volmit.tooling.Command;
 import com.volmit.tooling.CommandContext;
+import com.volmit.tooling.PlatformStructures;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 /** The {@code /iris module structure} commands of {@link StructureModelModule}: the index, one structure's graph, and the verification of a world's structures. */
 final class StructureCommands {
@@ -64,7 +67,11 @@ final class StructureCommands {
     }
 
     private static void list(CommandContext context) throws IOException {
-        File index = context.pack().edit(packRoot -> StructureIndexService.write(IrisToolPack.dataOf(context.pack())));
+        Optional<PlatformStructures> platform = PlatformStructuresAccess.require(context);
+        if (platform.isEmpty()) {
+            return;
+        }
+        File index = StructureIndexService.write(context.pack(), platform.get());
         context.sender().success("Wrote the structure index: " + index.getPath());
     }
 

@@ -1434,6 +1434,12 @@ It exists so the tool lives in a module and runs on every platform: a tool that 
   its own widgets (VolmLib windows and scoreboards on Bukkit). Their text is `ToolText`: spans of a named colour
   (`TextColor`) and a few styles, so no colour codes or components cross the api, and the host maps the spans onto
   whatever its platform draws text with.
+- **The platform's structures are one capability.** Registries, resource managers and structure managers differ by
+  platform and version, and some are reached only by reflection. `PlatformStructures` is the one door for the tools that
+  import them, and answers in api types (`BlockState`, `BlockEntityData`, `ResourceId`), so an importer holds only
+  model-building logic. Capturing a structure needs a scratch area that has to be removed, so it is a `CaptureArea` the
+  tool closes, and not a call that leaves the area to the platform. A platform without the capability gives
+  `CommandContext.platformStructures()` empty and the tool says so.
 - **A platform may not have it.** `ToolWorlds.open` then returns a failed future and `Sender.player()` is empty, so a tool
   tells its user instead of failing at class loading. The package is exposed to pack modules, unlike the platform
   packages below `com.volmit.tooling`.

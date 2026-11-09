@@ -11,7 +11,7 @@ import static org.junit.Assert.assertEquals;
  * IllegalArgumentException from Field.getInt, failing the jigsaw import of every datapack
  * structure ("Failed to read jigsaw structure graph").
  */
-public class VillageImporterMaxDistanceReadTest {
+public class ServerReflectionMaxDistanceReadTest {
     private static final class IntShape {
         private final int maxDistanceFromCenter = 80;
     }
@@ -29,16 +29,16 @@ public class VillageImporterMaxDistanceReadTest {
 
     @Test
     public void readsPlainIntField() throws Exception {
-        assertEquals(80, VillageImporter.readIntMember(new IntShape(), "maxDistanceFromCenter"));
+        assertEquals(80, ServerReflection.readIntMember(new IntShape(), "maxDistanceFromCenter"));
     }
 
     @Test
     public void readsLargestIntComponentFromWrapperRecord() throws Exception {
-        assertEquals(96, VillageImporter.readIntMember(new WrapperShape(), "maxDistanceFromCenter"));
+        assertEquals(96, ServerReflection.readIntMember(new WrapperShape(), "maxDistanceFromCenter"));
     }
 
     @Test
     public void readsBoxedNumberField() throws Exception {
-        assertEquals(64, VillageImporter.readIntMember(new BoxedShape(), "maxDistanceFromCenter"));
+        assertEquals(64, ServerReflection.readIntMember(new BoxedShape(), "maxDistanceFromCenter"));
     }
 }

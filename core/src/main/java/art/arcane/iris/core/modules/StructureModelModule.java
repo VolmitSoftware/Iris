@@ -18,15 +18,20 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.core.structure.tooling.JigsawCommands;
+import art.arcane.iris.core.structure.tooling.JigsawStudioHost;
 import art.arcane.iris.engine.framework.structure.StructureLocating;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.framework.structure.StructureValidator;
 import art.arcane.iris.engine.framework.structure.StructureVanillaStructures;
+import art.arcane.iris.spi.IrisServices;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
 import com.volmit.service.StructureLocator;
 import com.volmit.service.VanillaStructures;
+
+import java.util.Optional;
 
 /**
  * Module {@code iris:structure-model}: the parts of Iris's jigsaw structures that still need Iris itself. The structures,
@@ -41,7 +46,8 @@ import com.volmit.service.VanillaStructures;
  * them up, and the pack's structure placements replace them, place them alongside, start them where their
  * {@code nativeStructures} grids say and fit them into the terrain.
  * <p>
- * It mounts {@code /iris module structure list|info|verify} ({@link StructureCommands}) through the tooling api.
+ * It mounts {@code /iris module structure list|info|verify} ({@link StructureCommands}) and the Jigsaw Studio tree
+ * {@code /iris module jigsaw ...} ({@link JigsawCommands}) through the tooling api.
  */
 public final class StructureModelModule implements IrisModule {
     private static final String VERSION = "built-in";
@@ -58,5 +64,6 @@ public final class StructureModelModule implements IrisModule {
         registry.registerService(StructureLocator.class, new StructureLocating());
         registry.registerService(VanillaStructures.class, new StructureVanillaStructures());
         setup.tooling().registerCommand(StructureCommands.root());
+        setup.tooling().registerCommand(JigsawCommands.root(() -> Optional.ofNullable(IrisServices.getOrNull(JigsawStudioHost.class))));
     }
 }

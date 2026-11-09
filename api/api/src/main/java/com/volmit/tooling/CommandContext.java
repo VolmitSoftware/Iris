@@ -30,4 +30,7 @@ public interface CommandContext {
 
     /** The platform's registries; empty when the host runs without a platform. */
     Optional<PlatformRegistries> platform();
+
+    /** The structures the platform registers and the templates it loads; empty on a platform that does not offer them. */
+    Optional<PlatformStructures> platformStructures();
 }

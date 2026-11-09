@@ -46,7 +46,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.core.nms.container.BlockPos;
 import art.arcane.iris.core.nms.container.Pair;
-import art.arcane.iris.core.structure.StructureIndexService;
+import art.arcane.iris.core.tooling.StructureIndexOnStart;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.common.plugin.VolmitSender;
@@ -223,7 +223,7 @@ public class IrisEngine implements Engine {
             IrisLogging.debug("[IrisEngine timing] loadPrefetch=" + (M.ms() - _t0) + "ms");
             logStudioInitializationPhase("load_prefetch", phaseStartedAt, false);
             try {
-                StructureIndexService.writeOnce(getData());
+                StructureIndexOnStart.writeOnce(getData());
             } catch (Throwable e) {
                 IrisLogging.reportError(e);
             }

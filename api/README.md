@@ -579,6 +579,14 @@ private void info(CommandContext context) {
   naming both modules. A host without commands, such as a build check, accepts the registration and ignores it.
 - `Sender.player()` is the sender as a `ToolPlayer` (see Tool worlds), empty for the console and on a platform without
   tool worlds.
+- `CommandContext.platformStructures()` is the platform's structures for the tools that turn them into pack resources,
+  empty on a platform that has none. `PlatformStructures` lists the registered structures and structure sets and the
+  loadable templates (`templates`, `template`, `structures`, `structureSets`), reads a registered jigsaw structure and a
+  template pool (`jigsaw` answering `JigsawStructureInfo`, `pool` answering `TemplatePool` with its members, fallback and
+  the connectors of each element), and generates structures that have no template in a throwaway area
+  (`supportsCapture`, `openCaptureArea`). A template or a captured structure is a list of `TemplateBlock` with
+  `BlockState` and `BlockEntityData`. A reader throws `StructureAccessException` when the platform's registries cannot be
+  read, and says whether asking again may help.
 
 ## Tool worlds
 

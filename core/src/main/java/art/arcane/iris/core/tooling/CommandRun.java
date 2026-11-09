@@ -20,6 +20,7 @@ package art.arcane.iris.core.tooling;
 import com.volmit.resource.PlatformRegistries;
 import com.volmit.tooling.Argument;
 import com.volmit.tooling.CommandContext;
+import com.volmit.tooling.PlatformStructures;
 import com.volmit.tooling.Sender;
 import com.volmit.tooling.ToolPack;
 import com.volmit.world.PackWorld;
@@ -34,13 +35,16 @@ final class CommandRun implements CommandContext {
     private final ToolPack pack;
     private final Optional<PackWorld> world;
     private final Optional<PlatformRegistries> platform;
+    private final Optional<PlatformStructures> platformStructures;
     private final Map<Argument<?>, Object> values = new IdentityHashMap<>();
 
-    CommandRun(Sender sender, ToolPack pack, Optional<PackWorld> world, Optional<PlatformRegistries> platform) {
+    CommandRun(Sender sender, ToolPack pack, Optional<PackWorld> world, Optional<PlatformRegistries> platform,
+               Optional<PlatformStructures> platformStructures) {
         this.sender = sender;
         this.pack = pack;
         this.world = world;
         this.platform = platform;
+        this.platformStructures = platformStructures;
     }
 
     <T> void put(Argument<T> argument, T value) {
@@ -77,5 +81,10 @@ final class CommandRun implements CommandContext {
     @Override
     public Optional<PlatformRegistries> platform() {
         return platform;
+    }
+
+    @Override
+    public Optional<PlatformStructures> platformStructures() {
+        return platformStructures;
     }
 }

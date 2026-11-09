@@ -19,39 +19,40 @@
 package art.arcane.iris.core.structure;
 
 import art.arcane.iris.core.structure.authoring.StructureCapability;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.structure.Palette;
-import org.bukkit.structure.Structure;
-import org.bukkit.util.BlockVector;
+import art.arcane.iris.engine.UsableBlockPlatform;
+import com.volmit.block.BlockState;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.tooling.StructureTemplate;
+import com.volmit.tooling.TemplateBlock;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class StructureImporterCaptureTest {
+    @Before
+    public void bindBlocks() {
+        UsableBlockPlatform.bind();
+    }
+
+    @After
+    public void unbindBlocks() {
+        UsableBlockPlatform.unbind();
+    }
+
     @Test
     public void captureReturnsAnInMemorySnapshotWithDistinctBlockMarkerLoss() {
-        Structure structure = mock(Structure.class);
-        Palette palette = mock(Palette.class);
-        BlockState marker = mock(BlockState.class);
-        BlockData markerData = mock(BlockData.class);
-        Location location = mock(Location.class);
-        when(structure.getSize()).thenReturn(new BlockVector(2, 3, 4));
-        when(structure.getPalettes()).thenReturn(List.of(palette));
-        when(structure.getPaletteCount()).thenReturn(2);
-        when(structure.getEntityCount()).thenReturn(1);
-        when(palette.getBlocks()).thenReturn(List.of(marker));
-        when(marker.getLocation()).thenReturn(location);
-        when(marker.getBlockData()).thenReturn(markerData);
-        when(markerData.getMaterial()).thenReturn(Material.STRUCTURE_BLOCK);
+        StructureTemplate structure = new StructureTemplate(
+                new BlockPosition(2, 3, 4),
+                2,
+                1,
+                List.of(block("minecraft:structure_block", 0)));
 
         StructureImporter.CapturedStructure captured = StructureImporter.captureStructure(structure);
 
@@ -71,13 +72,11 @@ public class StructureImporterCaptureTest {
 
     @Test
     public void captureCountsStoredAirSeparatelyFromPhysicalBlocks() {
-        Structure structure = mock(Structure.class);
-        Palette palette = mock(Palette.class);
-        BlockState air = blockState(Material.AIR, "minecraft:air", 0);
-        BlockState stone = blockState(Material.STONE, "minecraft:stone", 1);
-        when(structure.getSize()).thenReturn(new BlockVector(2, 1, 1));
-        when(structure.getPalettes()).thenReturn(List.of(palette));
-        when(palette.getBlocks()).thenReturn(List.of(air, stone));
+        StructureTemplate structure = new StructureTemplate(
+                new BlockPosition(2, 1, 1),
+                1,
+                0,
+                List.of(block("minecraft:air", 0), block("minecraft:stone", 1)));
 
         StructureImporter.CapturedStructure captured = StructureImporter.captureStructure(structure);
 
@@ -85,15 +84,7 @@ public class StructureImporterCaptureTest {
         assertEquals(1, captured.nonAirBlocks());
     }
 
-    private static BlockState blockState(Material material, String state, int x) {
-        BlockState block = mock(BlockState.class);
-        BlockData data = mock(BlockData.class);
-        Location location = mock(Location.class);
-        when(block.getLocation()).thenReturn(location);
-        when(block.getBlockData()).thenReturn(data);
-        when(location.getBlockX()).thenReturn(x);
-        when(data.getMaterial()).thenReturn(material);
-        when(data.getAsString()).thenReturn(state);
-        return block;
+    private static TemplateBlock block(String state, int x) {
+        return TemplateBlock.of(new BlockPosition(x, 0, 0), BlockState.parse(state), Optional.empty());
     }
 }

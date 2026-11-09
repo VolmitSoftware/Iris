@@ -6,12 +6,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class StructureCaptureImporterFailureTest {
+public class BukkitCaptureAreaFailureTest {
     @Test
     public void captureFailurePreservesStructureChunkDetailAndCause() {
         IllegalArgumentException cause = new IllegalArgumentException("placement broke");
 
-        IllegalStateException error = StructureCaptureImporter.captureFailure(
+        IllegalStateException error = BukkitCaptureArea.captureFailure(
                 "minecraft:monument", 12, -8, "platform placement failed", cause);
 
         assertSame(cause, error.getCause());
@@ -22,7 +22,7 @@ public class StructureCaptureImporterFailureTest {
 
     @Test
     public void captureFailureSupportsInfrastructureFailuresWithoutACause() {
-        IllegalStateException error = StructureCaptureImporter.captureFailure(
+        IllegalStateException error = BukkitCaptureArea.captureFailure(
                 "minecraft:stronghold", -3, 5, "region task was not accepted", null);
 
         assertNull(error.getCause());

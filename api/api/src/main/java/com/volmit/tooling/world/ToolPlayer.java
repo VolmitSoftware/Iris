@@ -38,6 +38,12 @@ public interface ToolPlayer {
 
     boolean sneaking();
 
+    /**
+     * The block the player looks at within {@code maxDistance} blocks, fluids not counting; empty when they look at none.
+     * Like the other readers, valid only on the thread that owns the player.
+     */
+    Optional<BlockPosition> targetBlock(int maxDistance);
+
     /** Runs {@code task} on the thread that owns the player: at once when the caller is that thread, else later. */
     void run(Runnable task);
 

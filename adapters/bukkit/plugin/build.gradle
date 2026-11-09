@@ -66,7 +66,8 @@ tasks.named('jar', Jar).configure {
 
 tasks.named('test').configure {
     systemProperty('iris.commandFindSource', file('src/main/java/art/arcane/iris/core/commands/CommandFind.java').absolutePath)
-    systemProperty('iris.commandStructureSource', file('src/main/java/art/arcane/iris/core/commands/CommandStructure.java').absolutePath)
+    systemProperty('iris.importCommandsSource', rootProject.file('core/src/main/java/art/arcane/iris/core/structure/tooling/ImportCommands.java').absolutePath)
+    systemProperty('iris.studioLifecycleCommandsSource', rootProject.file('core/src/main/java/art/arcane/iris/core/structure/tooling/StudioLifecycleCommands.java').absolutePath)
     systemProperty('iris.commandIrisSource', file('src/main/java/art/arcane/iris/core/commands/CommandIris.java').absolutePath)
     systemProperty('iris.bukkitChunkGeneratorSource', rootProject.file('core/src/main/java/art/arcane/iris/engine/platform/BukkitChunkGenerator.java').absolutePath)
     systemProperty('iris.pregeneratorJobSource', rootProject.file('core/src/main/java/art/arcane/iris/core/gui/PregeneratorJob.java').absolutePath)

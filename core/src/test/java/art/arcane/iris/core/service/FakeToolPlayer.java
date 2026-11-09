@@ -113,6 +113,11 @@ final class FakeToolPlayer implements ToolPlayer {
     }
 
     @Override
+    public java.util.Optional<BlockPosition> targetBlock(int maxDistance) {
+        return java.util.Optional.empty();
+    }
+
+    @Override
     public void run(Runnable task) {
         if (ownedElsewhere) {
             waiting.add(task);

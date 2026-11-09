@@ -18,13 +18,16 @@
 
 package art.arcane.iris.core.structure;
 
-import art.arcane.iris.core.modules.ModuleServices;
-import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.structure.tooling.StructureKeys;
 import com.google.gson.GsonBuilder;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
+import com.volmit.service.StructureLocator;
+import com.volmit.tooling.PlatformStructures;
+import com.volmit.tooling.ToolPack;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -33,43 +36,43 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.TreeSet;
 
 public final class StructureIndexService {
     private static final String INDEX_PATH = ".iris/structure-index.json";
-    private static final Set<String> GENERATED = ConcurrentHashMap.newKeySet();
+    private static final String PLATFORM_NAMESPACE_PREFIX = "minecraft:";
 
     private StructureIndexService() {
     }
 
-    public static File writeOnce(IrisData data) {
-        if (data == null || !IrisPlatforms.isBound() || IrisPlatforms.get().structureHooks() == null) {
-            return null;
-        }
-
-        File dataFolder = data.getDataFolder();
-        String key = dataFolder == null ? null : dataFolder.getAbsolutePath();
-        if (key == null || !GENERATED.add(key)) {
-            return null;
-        }
-
-        try {
-            return write(data);
-        } catch (Throwable e) {
-            GENERATED.remove(key);
-            IrisLogging.reportError(e);
-            return null;
-        }
+    /** Writes the index of every structure the platform registers and the pack's modules know into the pack, and returns its file. */
+    public static File write(ToolPack pack, PlatformStructures platform) throws IOException {
+        List<String> structures = keysOf(platform.structures());
+        List<String> sets = keysOf(platform.structureSets());
+        List<String> iris = irisStructureKeys(pack);
+        return pack.edit(root -> writeIndex(pack, indexFile(root.toFile()), structures, sets, iris));
     }
 
-    public static File write(IrisData data) {
-        List<String> structures = IrisPlatforms.get().structureHooks().structureKeys();
-        List<String> sets = IrisPlatforms.get().structureHooks().structureSetKeys();
+    private static List<String> keysOf(List<ResourceId> ids) {
+        return ids.stream().map(ResourceId::toString).toList();
+    }
 
+    private static List<String> irisStructureKeys(ToolPack pack) {
+        PackResources resources = pack.resources();
+        Set<String> keys = new TreeSet<>();
+        for (StructureLocator provider : pack.services(StructureLocator.class)) {
+            for (ResourceId structure : provider.structures(resources)) {
+                keys.add(StructureKeys.keyOf(resources, structure));
+            }
+        }
+        return new ArrayList<>(keys);
+    }
+
+    private static File writeIndex(ToolPack pack, File file, List<String> structures, List<String> sets, List<String> iris) {
         List<String> vanilla = new ArrayList<>();
         List<String> datapack = new ArrayList<>();
         for (String k : structures) {
-            if (k.startsWith("minecraft:")) {
+            if (k.startsWith(PLATFORM_NAMESPACE_PREFIX)) {
                 vanilla.add(k);
             } else {
                 datapack.add(k);
@@ -79,20 +82,17 @@ public final class StructureIndexService {
         List<String> vanillaSets = new ArrayList<>();
         List<String> datapackSets = new ArrayList<>();
         for (String k : sets) {
-            if (k.startsWith("minecraft:")) {
+            if (k.startsWith(PLATFORM_NAMESPACE_PREFIX)) {
                 vanillaSets.add(k);
             } else {
                 datapackSets.add(k);
             }
         }
 
-        List<String> iris = new ArrayList<>(ModuleServices.structureKeys(data));
-
         Collections.sort(vanilla);
         Collections.sort(datapack);
         Collections.sort(vanillaSets);
         Collections.sort(datapackSets);
-        Collections.sort(iris);
 
         Map<String, Object> structuresNode = new LinkedHashMap<>();
         structuresNode.put("vanilla", vanilla);
@@ -115,13 +115,12 @@ public final class StructureIndexService {
         root.put("structureSets", setsNode);
         root.put("iris", iris);
 
-        File file = indexFile(data.getDataFolder());
         try {
             file.getParentFile().mkdirs();
             String json = new GsonBuilder().setPrettyPrinting().create().toJson(root);
             Files.writeString(file.toPath(), json, StandardCharsets.UTF_8);
         } catch (Throwable e) {
-            IrisLogging.reportError(e);
+            pack.log().error("Could not write the structure index " + file, e);
         }
         return file;
     }

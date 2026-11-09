@@ -16,8 +16,9 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetyp
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.IrisBlockVector;
+import com.volmit.block.BlockState;
+import com.volmit.geometry.BlockPosition;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -379,19 +380,23 @@ final class VanillaJigsawExportCompiler {
             IrisObject object,
             List<VanillaJigsawExportDiagnostic> diagnostics
     ) {
-        if (!object.getStates().isEmpty()) {
+        IrisObject.ApiContents contents = object.apiContents();
+        if (!contents.blockEntities().isEmpty()) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.UNSUPPORTED_TILE_DATA,
                     pieceKey,
                     "The .iob contains tile payloads; exact registry-aware block-entity NBT export is not available in core.");
         }
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.getBlocks()) {
-            PlatformBlockState state = entry.getValue();
-            String resource = pieceKey + "@" + entry.getKey();
-            IrisBlockVector position = entry.getKey();
-            int x = position.getBlockX() + object.getCenter().getX();
-            int y = position.getBlockY() + object.getCenter().getY();
-            int z = position.getBlockZ() + object.getCenter().getZ();
+        for (Map.Entry<BlockPosition, BlockState> entry : contents.blocks().entrySet()) {
+            BlockState state = entry.getValue();
+            BlockPosition position = entry.getKey();
+            String resource = pieceKey + "@" + new IrisBlockVector(
+                    position.x() - object.getCenter().getX(),
+                    position.y() - object.getCenter().getY(),
+                    position.z() - object.getCenter().getZ());
+            int x = position.x();
+            int y = position.y();
+            int z = position.z();
             if (x < 0 || x >= object.getW() || y < 0 || y >= object.getH() || z < 0 || z >= object.getD()) {
                 addError(diagnostics,
                         VanillaJigsawExportDiagnostic.Code.INVALID_BLOCK_STATE,
@@ -399,14 +404,14 @@ final class VanillaJigsawExportCompiler {
                         "The .iob contains a block outside its declared dimensions.");
                 continue;
             }
-            if (state.isCustom()) {
+            if (contents.customBlocks().contains(position)) {
                 addError(diagnostics,
                         VanillaJigsawExportDiagnostic.Code.UNSUPPORTED_CUSTOM_BLOCK,
                         resource,
                         "Custom-content block '" + state.key() + "' is not available in unmodded vanilla.");
                 continue;
             }
-            if (state.hasTileEntity()) {
+            if (contents.blocksNeedingEntity().contains(position)) {
                 addError(diagnostics,
                         VanillaJigsawExportDiagnostic.Code.UNSUPPORTED_BLOCK_ENTITY,
                         resource,
@@ -442,6 +447,7 @@ final class VanillaJigsawExportCompiler {
             return;
         }
         Set<String> positions = new LinkedHashSet<>();
+        Map<BlockPosition, BlockState> storedBlocks = object.apiContents().blocks();
         for (int index = 0; index < piece.getConnectors().size(); index++) {
             IrisJigsawConnector connector = piece.getConnectors().get(index);
             if (connector == null) {
@@ -482,7 +488,7 @@ final class VanillaJigsawExportCompiler {
                         resource,
                         "Multiple vanilla jigsaw block entities cannot occupy " + positionKey + ".");
             }
-            validateFinalState(object, connector, resource, diagnostics);
+            validateFinalState(storedBlocks, connector, resource, diagnostics);
         }
     }
 
@@ -502,7 +508,7 @@ final class VanillaJigsawExportCompiler {
     }
 
     private void validateFinalState(
-            IrisObject object,
+            Map<BlockPosition, BlockState> storedBlocks,
             IrisJigsawConnector connector,
             String resource,
             List<VanillaJigsawExportDiagnostic> diagnostics
@@ -518,8 +524,7 @@ final class VanillaJigsawExportCompiler {
             return;
         }
         IrisPosition position = connector.getPosition();
-        PlatformBlockState objectState = object.getBlocks().get(
-                object.getSigned(position.getX(), position.getY(), position.getZ()));
+        BlockState objectState = storedBlocks.get(new BlockPosition(position.getX(), position.getY(), position.getZ()));
         String expectedSource = objectState == null ? "minecraft:structure_void" : objectState.key();
         try {
             VanillaBlockState expected = VanillaBlockState.parse(expectedSource);

@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.structure;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.structure.authoring.StructureBackend;
 import art.arcane.iris.core.structure.authoring.StructureCapability;
 import art.arcane.iris.core.structure.authoring.StructureKey;
@@ -31,18 +30,19 @@ import art.arcane.iris.engine.framework.structure.StructureGraphValidationExcept
 import art.arcane.iris.engine.framework.structure.StructureResourceBundleGraphCompiler;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.spi.IrisLogging;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.bukkit.Bukkit;
-import org.bukkit.NamespacedKey;
-import org.bukkit.structure.Structure;
+import com.volmit.geometry.BlockFace;
+import com.volmit.resource.ResourceId;
+import com.volmit.tooling.JigsawStructureInfo;
+import com.volmit.tooling.PlatformStructures;
+import com.volmit.tooling.StructureAccessException;
+import com.volmit.tooling.StructureTemplate;
+import com.volmit.tooling.TemplatePool;
+import com.volmit.tooling.ToolPack;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,12 +52,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class VillageImporter {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Set<String> PRINTED_FAILURE_SIGNATURES = ConcurrentHashMap.newKeySet();
+    private static final String EMPTY_POOL_ELEMENT_TYPE = "EmptyPoolElement";
+    private static final String LIST_POOL_ELEMENT_TYPE = "ListPoolElement";
+    private static final String FEATURE_POOL_ELEMENT_TYPE = "FeaturePoolElement";
+    private static final String AIR_FINAL_STATE = "minecraft:air";
 
     public record Result(
             boolean success,
@@ -79,13 +84,15 @@ public final class VillageImporter {
     private VillageImporter() {
     }
 
-    public static Result importVillage(IrisData data, NamespacedKey structureKey, String name, StructureImporter.Mode mode) {
-        return importVillage(data, structureKey, name, mode, StructureImporter.Ownership.EDITABLE);
+    public static Result importVillage(ToolPack pack, PlatformStructures platform, ResourceId structureKey, String name,
+                                       StructureImporter.Mode mode) {
+        return importVillage(pack, platform, structureKey, name, mode, StructureImporter.Ownership.EDITABLE);
     }
 
     static Result importVillage(
-            IrisData data,
-            NamespacedKey structureKey,
+            ToolPack pack,
+            PlatformStructures platform,
+            ResourceId structureKey,
             String name,
             StructureImporter.Mode mode,
             StructureImporter.Ownership ownership
@@ -93,66 +100,28 @@ public final class VillageImporter {
         StructureImporter.Mode activeMode = mode == null ? StructureImporter.Mode.ADD_ONLY : mode;
         List<StructureLoss> losses = new ArrayList<>();
         boolean retryableFailure = false;
-        Object server;
-        Object registryAccess;
-        Object structureManager;
         String writeNote = "";
-        try {
-            Object craftServer = Bukkit.getServer();
-            Object dedicated = invoke(craftServer, "getHandle");
-            server = invoke(dedicated, "getServer");
-            registryAccess = resolveRegistryAccess(server);
-            structureManager = invoke(server, "getStructureManager");
-        } catch (Throwable e) {
-            reportFailure(e);
-            return failed("Failed to access server registries via reflection: " + e, losses, true);
-        }
-        if (registryAccess == null) {
-            return failed("Could not resolve RegistryAccess from the server", losses, true);
-        }
 
-        Object startPool;
-        int maxDepth;
-        int maxDistanceFromCenter;
+        JigsawStructureInfo structure;
         try {
-            Object structureRegistry = lookupRegistry(registryAccess, "STRUCTURE");
-            Object structure = registryGet(structureRegistry, structureKey);
-            if (structure == null) {
-                return failed("No structure registered for key " + structureKey, losses);
+            Optional<JigsawStructureInfo> info = platform.jigsaw(structureKey);
+            if (info.isEmpty()) {
+                return failed(platform.structures().contains(structureKey)
+                        ? "Structure " + structureKey + " is not a jigsaw structure; use 'import' for single-template structures"
+                        : "No structure registered for key " + structureKey, losses);
             }
-            if (!structure.getClass().getName().endsWith("JigsawStructure")) {
-                return failed("Structure " + structureKey + " is not a jigsaw structure ("
-                        + structure.getClass().getSimpleName() + "); use 'import' for single-template structures", losses);
-            }
-            Object startPoolHolder = invoke(structure, "getStartPool");
-            startPool = unwrapHolder(startPoolHolder);
-            maxDepth = readIntMember(structure, "maxDepth");
-            maxDistanceFromCenter = readIntMember(structure, "maxDistanceFromCenter");
+            structure = info.get();
+        } catch (StructureAccessException e) {
+            reportFailure(pack, e);
+            return failed(e.getMessage(), losses, e.retryable());
         } catch (Throwable e) {
-            reportFailure(e);
+            reportFailure(pack, e);
             return failed("Failed to read jigsaw structure graph: " + e, losses, true);
         }
-
-        Object templatePoolRegistry;
-        java.util.Random random;
-        try {
-            templatePoolRegistry = lookupRegistry(registryAccess, "TEMPLATE_POOL");
-            random = new java.util.Random(structureKey.hashCode());
-        } catch (Throwable e) {
-            reportFailure(e);
-            return failed("Failed to access TEMPLATE_POOL registry: " + e, losses, true);
-        }
-
-        String startPoolKey;
-        try {
-            startPoolKey = registryKeyOf(templatePoolRegistry, startPool);
-        } catch (Throwable e) {
-            reportFailure(e);
-            return failed("Could not resolve the start pool key for " + structureKey + ": " + e, losses, true);
-        }
-        if (startPoolKey == null) {
-            return failed("Could not resolve the start pool key for " + structureKey, losses);
-        }
+        int maxDepth = structure.maxDepth();
+        int maxDistanceFromCenter = structure.maxDistance();
+        Random random = new Random(structure.shuffleSeed());
+        String startPoolKey = structure.startPool().toString();
 
         Set<String> visitedPools = new HashSet<>();
         Deque<String> poolQueue = new ArrayDeque<>();
@@ -179,144 +148,106 @@ public final class VillageImporter {
             if (!visitedPools.add(poolKey)) {
                 continue;
             }
-            Object pool;
+            Optional<TemplatePool> registered;
             try {
-                pool = registryGetByKey(templatePoolRegistry, poolKey);
+                registered = platform.pool(ResourceId.parse(poolKey));
+            } catch (StructureAccessException e) {
+                reportFailure(pack, e);
+                retryableFailure = true;
+                fatalErrors.add(e.getMessage());
+                continue;
             } catch (Throwable e) {
-                reportFailure(e);
+                reportFailure(pack, e);
                 retryableFailure = true;
                 fatalErrors.add("pool " + poolKey + ": " + e.getMessage());
                 continue;
             }
-            if (pool == null) {
+            if (registered.isEmpty()) {
                 fatalErrors.add("pool " + poolKey + " is not registered");
                 continue;
             }
+            TemplatePool pool = registered.get();
 
             String irisPoolName = poolName(name, poolKey);
             List<Object> pieceEntries = new ArrayList<>();
 
-            String fallbackKey = null;
-            try {
-                Object fallbackHolder = invoke(pool, "getFallback");
-                Object fallbackPool = unwrapHolder(fallbackHolder);
-                fallbackKey = registryKeyOf(templatePoolRegistry, fallbackPool);
-            } catch (Throwable e) {
-                reportFailure(e);
+            if (pool.fallbackFailure().isPresent()) {
                 retryableFailure = true;
                 losses.add(StructureLoss.warning(
                         StructureCapability.CONNECTORS,
                         "fallback_pool_not_imported",
-                        "The fallback for source pool " + poolKey + " could not be resolved: " + failureDetail(e))
+                        "The fallback for source pool " + poolKey + " could not be resolved: " + pool.fallbackFailure().get())
                         .affecting("jigsaw-pools/" + irisPoolName + ".json"));
             }
+            String fallbackKey = pool.fallback().map(ResourceId::toString).orElse(null);
             if (fallbackKey != null && !fallbackKey.equals(poolKey)) {
                 poolQueue.add(fallbackKey);
             }
 
-            List<?> templates;
-            try {
-                templates = (List<?>) invoke(pool, "getTemplates");
-            } catch (Throwable e) {
-                reportFailure(e);
-                retryableFailure = true;
-                fatalErrors.add("templates " + poolKey + ": " + e.getMessage());
-                templates = List.of();
-            }
-
-            for (Object pair : templates) {
-                Object element;
-                int weight;
-                try {
-                    element = invoke(pair, "getFirst");
-                    Object second = invoke(pair, "getSecond");
-                    weight = second instanceof Number ? Math.max(1, ((Number) second).intValue()) : 1;
-                } catch (Throwable e) {
-                    reportFailure(e);
+            List<TemplatePool.Member> templates = pool.members();
+            for (TemplatePool.Member member : templates) {
+                if (member instanceof TemplatePool.Absent) {
+                    continue;
+                }
+                if (member instanceof TemplatePool.Unreadable unreadable) {
                     retryableFailure = true;
-                    losses.add(StructureLoss.warning(
-                            StructureCapability.LIST_ELEMENTS,
-                            "pool_entry_not_imported",
-                            "A source entry in pool " + poolKey + " could not be read: " + failureDetail(e))
-                            .affecting("jigsaw-pools/" + irisPoolName + ".json"));
+                    losses.add(unreadableMemberLoss(unreadable, poolKey).affecting("jigsaw-pools/" + irisPoolName + ".json"));
                     continue;
                 }
-                if (element == null) {
-                    continue;
-                }
-                PoolElementResolution elementResolution;
-                try {
-                    elementResolution = resolvePoolElement(element);
-                } catch (Throwable e) {
-                    reportFailure(e);
-                    retryableFailure = true;
-                    losses.add(StructureLoss.warning(
-                            StructureCapability.BLOCKS,
-                            "template_location_not_imported",
-                            "A source template location in pool " + poolKey + " could not be read: " + failureDetail(e))
-                            .affecting("jigsaw-pools/" + irisPoolName + ".json"));
-                    continue;
-                }
-                if (elementResolution.omittedElements() > 0) {
-                    losses.add(listElementFallbackLoss(elementResolution, poolKey)
+                TemplatePool.Element element = (TemplatePool.Element) member;
+                int weight = element.weight();
+                if (element.omittedElements() > 0) {
+                    losses.add(listElementFallbackLoss(element.listLevels(), element.omittedElements(), poolKey)
                             .affecting("jigsaw-pools/" + irisPoolName + ".json"));
                 }
-                Object physicalElement = elementResolution.physicalElement();
-                String templateLocation = elementResolution.templateLocation();
-                if (templateLocation == null) {
-                    String elementType = physicalElement == null
-                            ? element.getClass().getSimpleName()
-                            : physicalElement.getClass().getSimpleName();
-                    if (elementType.endsWith("EmptyPoolElement")) {
+                if (element.template().isEmpty()) {
+                    if (element.type().endsWith(EMPTY_POOL_ELEMENT_TYPE)) {
                         pieceEntries.add(emptyPoolEntry(weight));
                         emittedPoolMembers++;
                     } else {
-                        StructureCapability unsupportedCapability = unsupportedCapability(elementType);
+                        StructureCapability unsupportedCapability = unsupportedCapability(element.type());
                         losses.add(StructureLoss.warning(
                                 unsupportedCapability,
                                 "unsupported_pool_element",
-                                "Skipped unsupported " + elementType + " in source pool " + poolKey + ".")
+                                "Skipped unsupported " + element.type() + " in source pool " + poolKey + ".")
                                 .affecting("jigsaw-pools/" + irisPoolName + ".json"));
                     }
                     continue;
                 }
-                NamespacedKey pieceNbtKey = NamespacedKey.fromString(templateLocation.toLowerCase());
-                if (pieceNbtKey == null) {
-                    fatalErrors.add("invalid piece key " + templateLocation + " in pool " + poolKey);
-                    continue;
-                }
+                ResourceId pieceNbtKey = element.template().get();
+                String templateLocation = pieceNbtKey.toString();
                 String irisPieceName = pieceName(name, templateLocation);
 
                 ImportedTemplate importedTemplate = importedTemplates.get(irisPieceName);
                 if (importedTemplate == null) {
-                    Structure sourceTemplate;
+                    Optional<StructureTemplate> sourceTemplate;
                     try {
-                        sourceTemplate = Bukkit.getStructureManager().loadStructure(pieceNbtKey);
+                        sourceTemplate = platform.template(pieceNbtKey);
                     } catch (Throwable e) {
-                        reportFailure(e);
+                        reportFailure(pack, e);
                         retryableFailure = true;
                         fatalErrors.add(templateLocation + ": failed to load structure template: " + failureDetail(e));
                         continue;
                     }
-                    if (sourceTemplate == null || sourceTemplate.getPalettes().isEmpty()) {
+                    if (sourceTemplate.isEmpty()) {
                         fatalErrors.add(templateLocation + ": no loadable structure template was registered");
                         continue;
                     }
 
                     StructureImporter.CapturedStructure captured;
                     try {
-                        captured = StructureImporter.captureStructure(sourceTemplate);
+                        captured = StructureImporter.captureStructure(sourceTemplate.get());
                     } catch (Throwable e) {
-                        reportFailure(e);
+                        reportFailure(pack, e);
                         retryableFailure = true;
                         fatalErrors.add(templateLocation + ": failed to capture structure template: " + failureDetail(e));
                         continue;
                     }
                     for (StructureLoss loss : captured.losses()) {
-                        losses.add(loss.affecting("objects/" + irisPieceName + ".iob"));
+                        losses.add(loss.affecting("objects/" + irisPieceName + pack.objects().extension()));
                     }
 
-                    Connectors result = readConnectors(element, structureManager, random, name, irisPieceName);
+                    Connectors result = readConnectors(pack, element, random, name, irisPieceName);
                     retryableFailure |= result.retryableFailure();
                     importedTemplate = new ImportedTemplate(
                             captured.object(),
@@ -383,9 +314,9 @@ public final class VillageImporter {
 
         try {
             StructureKey sourceKey = StructureKey.parse(structureKey.toString());
-            StructureSource.Kind sourceKind = structureKey.getNamespace().equals("minecraft")
+            StructureSource.Kind sourceKind = structureKey.namespace().equals("minecraft")
                     ? StructureSource.Kind.VANILLA : StructureSource.Kind.DATAPACK;
-            StructureSource source = new StructureSource(sourceKind, sourceKey, Bukkit.getBukkitVersion(), "");
+            StructureSource source = new StructureSource(sourceKind, sourceKey, structure.gameVersion(), "");
             Map<String, byte[]> objectResources = new LinkedHashMap<>();
             for (Map.Entry<String, IrisObject> entry : emittedObjects.entrySet()) {
                 objectResources.put(entry.getKey(), serialize(entry.getValue()));
@@ -407,21 +338,18 @@ public final class VillageImporter {
             StructureResourceBundleGraphCompiler.requireViable(bundle);
             StructureWriteMode writeMode = activeMode == StructureImporter.Mode.OVERWRITE
                     ? StructureWriteMode.OVERWRITE : StructureWriteMode.ADD_ONLY;
-            StructureWriteResult writeResult = ownership.write(data, bundle, writeMode);
-            reportWriteFailure(writeResult);
+            StructureWriteResult writeResult = ownership.write(pack, bundle, writeMode);
+            reportWriteFailure(pack, writeResult);
             if (!writeResult.successful()) {
                 return new Result(false, writeFailureMessage(name, writeResult), emittedPools.size(),
                         emittedPieces.size(), losses, writeResult.failure().isPresent());
-            }
-            if (writeResult.committed()) {
-                data.invalidateStructureResources();
             }
             writeNote = writeResultNote(writeResult);
         } catch (StructureGraphValidationException e) {
             return new Result(false, "Failed writing jigsaw resources for '" + name + "': " + e.getMessage(),
                     emittedPools.size(), emittedPieces.size(), losses, retryableFailure);
         } catch (Throwable e) {
-            reportFailure(e);
+            reportFailure(pack, e);
             return new Result(false, "Failed writing jigsaw resources for '" + name + "': " + e,
                     emittedPools.size(), emittedPieces.size(), losses, true);
         }
@@ -507,10 +435,23 @@ public final class VillageImporter {
         }
     }
 
+    private static StructureLoss unreadableMemberLoss(TemplatePool.Unreadable unreadable, String poolKey) {
+        if (unreadable.part() == TemplatePool.Part.ENTRY) {
+            return StructureLoss.warning(
+                    StructureCapability.LIST_ELEMENTS,
+                    "pool_entry_not_imported",
+                    "A source entry in pool " + poolKey + " could not be read: " + unreadable.detail());
+        }
+        return StructureLoss.warning(
+                StructureCapability.BLOCKS,
+                "template_location_not_imported",
+                "A source template location in pool " + poolKey + " could not be read: " + unreadable.detail());
+    }
+
     private static Connectors readConnectors(
-            Object element,
-            Object structureManager,
-            java.util.Random random,
+            ToolPack pack,
+            TemplatePool.Element element,
+            Random random,
             String baseName,
             String pieceName
     ) {
@@ -520,10 +461,8 @@ public final class VillageImporter {
         boolean retryableFailure = false;
         String affectedResource = "jigsaw-pieces/" + pieceName + ".json";
         try {
-            Object zero = staticField("net.minecraft.core.BlockPos", "ZERO");
-            Object rotationNone = staticField("net.minecraft.world.level.block.Rotation", "NONE");
-            Method m = findMethod4(element.getClass(), "getShuffledJigsawBlocks");
-            if (m == null) {
+            TemplatePool.Connectors read = element.connectors().read(random::nextLong);
+            if (read.availability() == TemplatePool.Availability.UNAVAILABLE) {
                 losses.add(StructureLoss.warning(
                         StructureCapability.CONNECTORS,
                         "connector_extraction_unavailable",
@@ -531,10 +470,7 @@ public final class VillageImporter {
                         .affecting(affectedResource));
                 return new Connectors(connectors, targets, losses, false);
             }
-            m.setAccessible(true);
-            Object random0 = freshRandomSource(random);
-            List<?> blocks = (List<?>) m.invoke(element, structureManager, zero, rotationNone, random0);
-            if (blocks == null) {
+            if (read.availability() == TemplatePool.Availability.NO_COLLECTION) {
                 losses.add(StructureLoss.warning(
                         StructureCapability.CONNECTORS,
                         "connector_extraction_returned_null",
@@ -542,26 +478,22 @@ public final class VillageImporter {
                         .affecting(affectedResource));
                 return new Connectors(connectors, targets, losses, false);
             }
-            for (Object jigsaw : blocks) {
-                String[] rawPoolKey = new String[1];
-                try {
-                    Map<String, Object> connector = connectorFrom(jigsaw, baseName, rawPoolKey);
-                    connectors.add(connector);
-                    if (rawPoolKey[0] != null && !rawPoolKey[0].isEmpty()) {
-                        targets.add(rawPoolKey[0]);
-                    }
-                } catch (Throwable e) {
-                    reportFailure(e);
+            for (TemplatePool.Connector connector : read.connectors()) {
+                if (connector instanceof TemplatePool.UnreadableConnector unreadable) {
                     retryableFailure = true;
                     losses.add(StructureLoss.warning(
                             StructureCapability.CONNECTORS,
                             "connector_not_imported",
-                            "A source jigsaw connector could not be converted: " + failureDetail(e))
+                            "A source jigsaw connector could not be converted: " + unreadable.detail())
                             .affecting(affectedResource));
+                    continue;
                 }
+                TemplatePool.JigsawConnector jigsaw = (TemplatePool.JigsawConnector) connector;
+                connectors.add(connectorJson(jigsaw, baseName));
+                jigsaw.pool().ifPresent(pool -> targets.add(pool.toString()));
             }
         } catch (Throwable e) {
-            reportFailure(e);
+            reportFailure(pack, e);
             retryableFailure = true;
             losses.add(StructureLoss.warning(
                     StructureCapability.CONNECTORS,
@@ -572,472 +504,48 @@ public final class VillageImporter {
         return new Connectors(connectors, targets, losses, retryableFailure);
     }
 
-    private static Map<String, Object> connectorFrom(Object jigsaw, String baseName, String[] rawPoolKeyOut) throws Exception {
-        Object info = invoke(jigsaw, "info");
-        Object pos = invoke(info, "pos");
-        Object blockState = invoke(info, "state");
-        int x = readInt(pos, "getX");
-        int y = readInt(pos, "getY");
-        int z = readInt(pos, "getZ");
-
-        Object poolKey = invoke(jigsaw, "pool");
-        String poolId = identifierString(invoke(poolKey, "identifier"));
-        Object nameId = invoke(jigsaw, "name");
-        Object targetId = invoke(jigsaw, "target");
-        Object jointType = invoke(jigsaw, "jointType");
-
-        String front = frontFacing(blockState);
-        String top = topFacing(blockState);
-        rawPoolKeyOut[0] = poolId;
-
-        ConnectorMetadata metadata = readConnectorMetadata(jigsaw, info);
-        return connectorJson(
-                x,
-                y,
-                z,
-                front,
-                top,
-                poolId,
-                baseName,
-                identifierString(nameId),
-                identifierString(targetId),
-                jointType,
-                metadata
-        );
-    }
-
-    static Map<String, Object> connectorJson(
-            int x,
-            int y,
-            int z,
-            String front,
-            String top,
-            String poolId,
-            String baseName,
-            String nameId,
-            String targetId,
-            Object jointType,
-            ConnectorMetadata metadata
-    ) {
+    static Map<String, Object> connectorJson(TemplatePool.JigsawConnector jigsaw, String baseName) {
         Map<String, Object> connector = new LinkedHashMap<>();
         Map<String, Object> position = new LinkedHashMap<>();
-        position.put("x", x);
-        position.put("y", y);
-        position.put("z", z);
+        position.put("x", jigsaw.position().x());
+        position.put("y", jigsaw.position().y());
+        position.put("z", jigsaw.position().z());
         connector.put("position", position);
-        connector.put("direction", irisDirection(front));
-        connector.put("top", irisDirection(top));
-        connector.put("pool", poolId == null ? "" : poolName(baseName, poolId));
-        connector.put("name", nameId);
-        connector.put("targetName", targetId);
-        connector.put("joint", jointType != null && jointType.toString().toUpperCase().contains("ALIGN") ? "ALIGNED" : "ROLLABLE");
-        connector.put("finalState", metadata.finalState());
-        connector.put("selectionPriority", metadata.selectionPriority());
-        connector.put("placementPriority", metadata.placementPriority());
+        connector.put("direction", irisDirection(jigsaw.front()));
+        connector.put("top", irisDirection(jigsaw.top()));
+        connector.put("pool", jigsaw.pool().map(pool -> poolName(baseName, pool.toString())).orElse(""));
+        connector.put("name", jigsaw.name());
+        connector.put("targetName", jigsaw.target());
+        connector.put("joint", jigsaw.aligned() ? "ALIGNED" : "ROLLABLE");
+        connector.put("finalState", jigsaw.finalState()
+                .map(StructureImporter::normalizeJigsawFinalState)
+                .orElse(AIR_FINAL_STATE));
+        connector.put("selectionPriority", jigsaw.selectionPriority());
+        connector.put("placementPriority", jigsaw.placementPriority());
         return connector;
     }
 
-    static ConnectorMetadata readConnectorMetadata(Object jigsaw, Object info) throws Exception {
-        Object nbt = invoke(info, "nbt");
-        String finalState = readNbtString(nbt, "final_state");
-        String normalizedFinalState = finalState == null || finalState.isBlank()
-                ? "minecraft:air"
-                : StructureImporter.normalizeJigsawFinalState(finalState);
-        return new ConnectorMetadata(
-                normalizedFinalState,
-                readIntAccessor(jigsaw, "selectionPriority"),
-                readIntAccessor(jigsaw, "placementPriority")
-        );
-    }
-
-    private static String readNbtString(Object nbt, String key) throws Exception {
-        if (nbt == null) {
-            return null;
-        }
-        Method method = findMethod(nbt.getClass(), "getString", 1);
-        if (method == null) {
-            throw new NoSuchMethodException("getString(String) on " + nbt.getClass().getName());
-        }
-        method.setAccessible(true);
-        Object value = method.invoke(nbt, key);
-        if (value instanceof String string) {
-            return string;
-        }
-        if (value instanceof Optional<?> optional) {
-            return optional.isPresent() ? String.valueOf(optional.get()) : null;
-        }
-        return value == null ? null : String.valueOf(value);
-    }
-
-    private static int readIntAccessor(Object value, String accessor) throws Exception {
-        Method method = findMethod(value.getClass(), accessor);
-        if (method == null) {
-            throw new NoSuchMethodException(accessor + "() on " + value.getClass().getName());
-        }
-        method.setAccessible(true);
-        Object result = method.invoke(value);
-        if (result instanceof Number number) {
-            return number.intValue();
-        }
-        throw new IllegalStateException(accessor + " on " + value.getClass().getName() + " is not numeric");
-    }
-
-    private static String frontFacing(Object blockState) throws Exception {
-        Class<?> jigsawBlock = Class.forName("net.minecraft.world.level.block.JigsawBlock");
-        Method getFront = jigsawBlock.getMethod("getFrontFacing", Class.forName("net.minecraft.world.level.block.state.BlockState"));
-        Object direction = getFront.invoke(null, blockState);
-        if (direction == null) {
-            return "north";
-        }
-        Method getName = direction.getClass().getMethod("getName");
-        getName.setAccessible(true);
-        return String.valueOf(getName.invoke(direction)).toLowerCase();
-    }
-
-    private static String topFacing(Object blockState) throws Exception {
-        Class<?> jigsawBlock = Class.forName("net.minecraft.world.level.block.JigsawBlock");
-        Method getTop = jigsawBlock.getMethod("getTopFacing", Class.forName("net.minecraft.world.level.block.state.BlockState"));
-        Object direction = getTop.invoke(null, blockState);
-        if (direction == null) {
-            return "up";
-        }
-        Method getName = direction.getClass().getMethod("getName");
-        getName.setAccessible(true);
-        return String.valueOf(getName.invoke(direction)).toLowerCase();
-    }
-
-    private static String irisDirection(String front) {
+    private static String irisDirection(BlockFace front) {
         return switch (front) {
-            case "up" -> "UP_POSITIVE_Y";
-            case "down" -> "DOWN_NEGATIVE_Y";
-            case "south" -> "SOUTH_POSITIVE_Z";
-            case "east" -> "EAST_POSITIVE_X";
-            case "west" -> "WEST_NEGATIVE_X";
+            case UP -> "UP_POSITIVE_Y";
+            case DOWN -> "DOWN_NEGATIVE_Y";
+            case SOUTH -> "SOUTH_POSITIVE_Z";
+            case EAST -> "EAST_POSITIVE_X";
+            case WEST -> "WEST_NEGATIVE_X";
             default -> "NORTH_NEGATIVE_Z";
         };
     }
 
-    private static String templateLocationOf(Object element) throws Exception {
-        Method m = findMethod(element.getClass(), "getTemplateLocation");
-        if (m == null) {
-            return null;
-        }
-        m.setAccessible(true);
-        Object id = m.invoke(element);
-        return identifierString(id);
-    }
-
-    static PoolElementResolution resolvePoolElement(Object element) throws Exception {
-        if (element == null) {
-            return new PoolElementResolution(null, null, 0, 0);
-        }
-        if (!element.getClass().getSimpleName().endsWith("ListPoolElement")) {
-            return new PoolElementResolution(element, templateLocationOf(element), 0, 0);
-        }
-        Object rawElements = invoke(element, "getElements");
-        if (!(rawElements instanceof List<?> elements)) {
-            throw new IllegalStateException("getElements on " + element.getClass().getName() + " is not a list");
-        }
-        if (elements.isEmpty()) {
-            return new PoolElementResolution(null, null, 1, 0);
-        }
-        PoolElementResolution primary = resolvePoolElement(elements.getFirst());
-        return new PoolElementResolution(
-                primary.physicalElement(),
-                primary.templateLocation(),
-                primary.listLevels() + 1,
-                primary.omittedElements() + elements.size() - 1
-        );
-    }
-
-    static StructureLoss listElementFallbackLoss(PoolElementResolution resolution, String poolKey) {
-        int omitted = resolution.omittedElements();
+    static StructureLoss listElementFallbackLoss(int listLevels, int omitted, String poolKey) {
         String elementLabel = omitted == 1 ? "element" : "elements";
-        String levelLabel = resolution.listLevels() == 1 ? "list level" : "nested list levels";
+        String levelLabel = listLevels == 1 ? "list level" : "nested list levels";
         return StructureLoss.warning(
                 StructureCapability.LIST_ELEMENTS,
                 "list_pool_overlays_not_imported",
                 "Converted the first physical template from a ListPoolElement in source pool " + poolKey
                         + " and omitted " + omitted + " colocated " + elementLabel
-                        + ", including their processors, across " + resolution.listLevels() + " " + levelLabel + "."
+                        + ", including their processors, across " + listLevels + " " + levelLabel + "."
         );
-    }
-
-    private static Object resolveRegistryAccess(Object server) {
-        try {
-            Class<?> frozen = Class.forName("net.minecraft.core.RegistryAccess$Frozen");
-            for (Method m : server.getClass().getMethods()) {
-                if (m.getParameterCount() == 0 && frozen.isAssignableFrom(m.getReturnType())) {
-                    m.setAccessible(true);
-                    Object o = m.invoke(server);
-                    if (o != null) {
-                        return o;
-                    }
-                }
-            }
-            Class<?> ra = Class.forName("net.minecraft.core.RegistryAccess");
-            for (Method m : server.getClass().getMethods()) {
-                if (m.getParameterCount() == 0 && ra.isAssignableFrom(m.getReturnType())) {
-                    m.setAccessible(true);
-                    Object o = m.invoke(server);
-                    if (o != null) {
-                        return o;
-                    }
-                }
-            }
-        } catch (Throwable e) {
-            reportFailure(e);
-        }
-        return null;
-    }
-
-    private static Object lookupRegistry(Object registryAccess, String registryName) throws Exception {
-        Class<?> registries = Class.forName("net.minecraft.core.registries.Registries");
-        Object resourceKey = registries.getField(registryName).get(null);
-        Class<?> registryClass = Class.forName("net.minecraft.core.Registry");
-        Method registryOverload = null;
-        for (Method m : registryAccess.getClass().getMethods()) {
-            if (m.getName().equals("lookupOrThrow") && m.getParameterCount() == 1
-                    && m.getParameterTypes()[0].getName().endsWith("ResourceKey")
-                    && registryClass.isAssignableFrom(m.getReturnType())) {
-                registryOverload = m;
-                break;
-            }
-        }
-        if (registryOverload == null) {
-            for (Method m : registryAccess.getClass().getMethods()) {
-                if (m.getName().equals("lookupOrThrow") && m.getParameterCount() == 1
-                        && m.getParameterTypes()[0].getName().endsWith("ResourceKey")) {
-                    registryOverload = m;
-                    break;
-                }
-            }
-        }
-        if (registryOverload == null) {
-            throw new NoSuchMethodException("lookupOrThrow(ResourceKey) on " + registryAccess.getClass().getName());
-        }
-        registryOverload.setAccessible(true);
-        return registryOverload.invoke(registryAccess, resourceKey);
-    }
-
-    private static Object registryGet(Object registry, NamespacedKey key) throws Exception {
-        Object id = identifierOf(key);
-        for (Method m : registry.getClass().getMethods()) {
-            if (m.getName().equals("getValue") && m.getParameterCount() == 1 && m.getParameterTypes()[0].getName().endsWith("Identifier")) {
-                m.setAccessible(true);
-                return m.invoke(registry, id);
-            }
-        }
-        for (Method m : registry.getClass().getMethods()) {
-            if (m.getName().equals("getOptional") && m.getParameterCount() == 1 && m.getParameterTypes()[0].getName().endsWith("Identifier")) {
-                m.setAccessible(true);
-                return unwrapOptional(m.invoke(registry, id));
-            }
-        }
-        return null;
-    }
-
-    private static Object registryGetByKey(Object registry, String key) throws Exception {
-        NamespacedKey nk = NamespacedKey.fromString(key.toLowerCase());
-        if (nk == null) {
-            return null;
-        }
-        return registryGet(registry, nk);
-    }
-
-    private static String registryKeyOf(Object registry, Object value) throws Exception {
-        if (value == null) {
-            return null;
-        }
-        for (Method m : registry.getClass().getMethods()) {
-            if (m.getName().equals("getKey") && m.getParameterCount() == 1) {
-                m.setAccessible(true);
-                Object id = m.invoke(registry, value);
-                String s = identifierString(id);
-                if (s != null) {
-                    return s;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static Object identifierOf(NamespacedKey key) throws Exception {
-        Class<?> identifier = Class.forName("net.minecraft.resources.Identifier");
-        try {
-            Method fromNamespaceAndPath = identifier.getMethod("fromNamespaceAndPath", String.class, String.class);
-            return fromNamespaceAndPath.invoke(null, key.getNamespace(), key.getKey());
-        } catch (NoSuchMethodException e) {
-            Method withDefaultNamespace = identifier.getMethod("parse", String.class);
-            return withDefaultNamespace.invoke(null, key.toString());
-        }
-    }
-
-    private static String identifierString(Object id) {
-        if (id == null) {
-            return null;
-        }
-        try {
-            Method getNamespace = id.getClass().getMethod("getNamespace");
-            Method getPath = id.getClass().getMethod("getPath");
-            getNamespace.setAccessible(true);
-            getPath.setAccessible(true);
-            return getNamespace.invoke(id) + ":" + getPath.invoke(id);
-        } catch (Throwable e) {
-            return id.toString();
-        }
-    }
-
-    private static Object unwrapHolder(Object holder) {
-        if (holder == null) {
-            return null;
-        }
-        try {
-            Method value = findMethod(holder.getClass(), "value");
-            if (value != null) {
-                value.setAccessible(true);
-                return value.invoke(holder);
-            }
-        } catch (Throwable ignored) {
-        }
-        return holder;
-    }
-
-    private static Object unwrapOptional(Object opt) {
-        if (opt == null) {
-            return null;
-        }
-        if (opt instanceof java.util.Optional<?> o) {
-            return o.orElse(null);
-        }
-        return opt;
-    }
-
-    static int readIntMember(Object value, String memberName) throws Exception {
-        Class<?> type = value.getClass();
-        while (type != null) {
-            try {
-                Field field = type.getDeclaredField(memberName);
-                field.setAccessible(true);
-                return coerceInt(field.get(value), memberName, value);
-            } catch (NoSuchFieldException ignored) {
-                type = type.getSuperclass();
-            }
-        }
-        Method method = findMethod(value.getClass(), memberName);
-        if (method != null) {
-            method.setAccessible(true);
-            return coerceInt(method.invoke(value), memberName, value);
-        }
-        throw new NoSuchFieldException(memberName + " on " + value.getClass().getName());
-    }
-
-    /**
-     * Members that are plain numbers on one server build are wrapper objects on another
-     * (JigsawStructure.maxDistanceFromCenter became a MaxDistance{horizontal, vertical} record).
-     * Numbers pass through; a wrapper contributes its horizontal component, else its largest
-     * integral component, so a distance bound is never under-read.
-     */
-    private static int coerceInt(Object member, String memberName, Object owner) throws Exception {
-        if (member instanceof Number n) {
-            return n.intValue();
-        }
-        if (member == null) {
-            throw new NoSuchFieldException(memberName + " on " + owner.getClass().getName() + " is null");
-        }
-        Method horizontal = findMethod(member.getClass(), "horizontal");
-        if (horizontal != null && Number.class.isAssignableFrom(boxedType(horizontal.getReturnType()))) {
-            horizontal.setAccessible(true);
-            return ((Number) horizontal.invoke(member)).intValue();
-        }
-        Integer widest = null;
-        for (Field component : member.getClass().getDeclaredFields()) {
-            if (Modifier.isStatic(component.getModifiers())
-                    || !Number.class.isAssignableFrom(boxedType(component.getType()))) {
-                continue;
-            }
-            component.setAccessible(true);
-            Object componentValue = component.get(member);
-            if (componentValue instanceof Number n && (widest == null || n.intValue() > widest)) {
-                widest = n.intValue();
-            }
-        }
-        if (widest != null) {
-            return widest;
-        }
-        throw new NoSuchFieldException(memberName + " on " + owner.getClass().getName()
-                + " is a " + member.getClass().getName() + " with no integral component");
-    }
-
-    private static Class<?> boxedType(Class<?> type) {
-        return type == int.class ? Integer.class : type;
-    }
-
-    private static int readInt(Object o, String method) throws Exception {
-        Method m = o.getClass().getMethod(method);
-        m.setAccessible(true);
-        return ((Number) m.invoke(o)).intValue();
-    }
-
-    private static Object staticField(String className, String fieldName) throws Exception {
-        Class<?> c = Class.forName(className);
-        Field f = c.getField(fieldName);
-        return f.get(null);
-    }
-
-    private static Object invoke(Object target, String method) throws Exception {
-        Method m = findMethod(target.getClass(), method);
-        if (m == null) {
-            throw new NoSuchMethodException(method + " on " + target.getClass().getName());
-        }
-        m.setAccessible(true);
-        return m.invoke(target);
-    }
-
-    private static Method findMethod(Class<?> type, String name) {
-        Class<?> c = type;
-        while (c != null) {
-            for (Method m : c.getDeclaredMethods()) {
-                if (m.getName().equals(name) && m.getParameterCount() == 0) {
-                    return m;
-                }
-            }
-            c = c.getSuperclass();
-        }
-        for (Method m : type.getMethods()) {
-            if (m.getName().equals(name) && m.getParameterCount() == 0) {
-                return m;
-            }
-        }
-        return null;
-    }
-
-    private static Method findMethod4(Class<?> type, String name) {
-        return findMethod(type, name, 4);
-    }
-
-    private static Method findMethod(Class<?> type, String name, int parameterCount) {
-        Class<?> c = type;
-        while (c != null) {
-            for (Method m : c.getDeclaredMethods()) {
-                if (m.getName().equals(name) && m.getParameterCount() == parameterCount) {
-                    return m;
-                }
-            }
-            c = c.getSuperclass();
-        }
-        for (Method m : type.getMethods()) {
-            if (m.getName().equals(name) && m.getParameterCount() == parameterCount) {
-                return m;
-            }
-        }
-        return null;
-    }
-
-    private static Object freshRandomSource(java.util.Random random) throws Exception {
-        Class<?> randomSource = Class.forName("net.minecraft.util.RandomSource");
-        Method create = randomSource.getMethod("create", long.class);
-        return create.invoke(null, random.nextLong());
     }
 
     static String poolName(String base, String poolKey) {
@@ -1178,10 +686,10 @@ public final class VillageImporter {
     }
 
     private static StructureCapability unsupportedCapability(String elementType) {
-        if (elementType.endsWith("ListPoolElement")) {
+        if (elementType.endsWith(LIST_POOL_ELEMENT_TYPE)) {
             return StructureCapability.LIST_ELEMENTS;
         }
-        if (elementType.endsWith("FeaturePoolElement")) {
+        if (elementType.endsWith(FEATURE_POOL_ELEMENT_TYPE)) {
             return StructureCapability.FEATURE_ELEMENTS;
         }
         return StructureCapability.BLOCKS;
@@ -1201,10 +709,8 @@ public final class VillageImporter {
         return new Result(false, message, 0, 0, losses, retryableFailure);
     }
 
-    private static void reportFailure(Throwable failure) {
-        IrisLogging.reportError(failure);
-        if (shouldPrintFullTrace(failure)) {
-        }
+    private static void reportFailure(ToolPack pack, Throwable failure) {
+        pack.log().error("Jigsaw structure import failed", failure);
     }
 
     /**
@@ -1226,8 +732,8 @@ public final class VillageImporter {
         PRINTED_FAILURE_SIGNATURES.clear();
     }
 
-    private static void reportWriteFailure(StructureWriteResult result) {
-        result.failure().ifPresent(VillageImporter::reportFailure);
+    private static void reportWriteFailure(ToolPack pack, StructureWriteResult result) {
+        result.failure().ifPresent(failure -> reportFailure(pack, failure));
     }
 
     private static String writeResultNote(StructureWriteResult result) {
@@ -1251,16 +757,5 @@ public final class VillageImporter {
     private static String failureDetail(Throwable failure) {
         String message = failure.getMessage();
         return message == null || message.isBlank() ? failure.getClass().getSimpleName() : message;
-    }
-
-    record ConnectorMetadata(String finalState, int selectionPriority, int placementPriority) {
-    }
-
-    record PoolElementResolution(
-            Object physicalElement,
-            String templateLocation,
-            int listLevels,
-            int omittedElements
-    ) {
     }
 }

@@ -19,9 +19,10 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
-import art.arcane.iris.engine.object.prefab.TileData;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.IrisBlockVector;
+import com.volmit.block.BlockState;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.object.BlockEntityData;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -1261,12 +1262,15 @@ public final class JigsawStudioGraphEditor {
                 sourceObject.getH(),
                 sourceObject.getD());
         JigsawStudioCellDimensions canonicalDimensions = canonicalDimensions(sourceDimensions, quarterTurns);
-        Map<LocalPosition, PlatformBlockState> canonicalBlocks = canonicalBlocks(
+        IrisObject.ApiContents sourceContents = sourceObject.apiContents();
+        Map<LocalPosition, BlockState> canonicalBlocks = canonicalBlocks(
                 sourceObject,
+                sourceContents,
                 quarterTurns,
                 targetPieceKey);
-        Map<LocalPosition, TileData> canonicalTiles = canonicalTiles(
+        Map<LocalPosition, BlockEntityData> canonicalTiles = canonicalTiles(
                 sourceObject,
+                sourceContents,
                 quarterTurns,
                 targetPieceKey);
         List<IrisJigsawConnector> connectors = targetPiece.getConnectors();
@@ -1285,6 +1289,7 @@ public final class JigsawStudioGraphEditor {
 
         JigsawStudioCellDimensions resizedSourceDimensions = sourceDimensions(targetDimensions, quarterTurns);
         IrisObject resizedObject = rebuildSourceObject(
+                sourceContents,
                 canonicalBlocks,
                 canonicalTiles,
                 resizedSourceDimensions,
@@ -1304,20 +1309,18 @@ public final class JigsawStudioGraphEditor {
         return new PlanarPieceObjectResize(resizedObject, relocatedConnectors);
     }
 
-    private static Map<LocalPosition, PlatformBlockState> canonicalBlocks(
+    private static Map<LocalPosition, BlockState> canonicalBlocks(
             IrisObject source,
+            IrisObject.ApiContents contents,
             int quarterTurns,
             String pieceKey
     ) throws IOException {
-        Map<LocalPosition, PlatformBlockState> blocks = new LinkedHashMap<>();
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : source.getBlocks()) {
-            LocalPosition sourcePosition = unsignedPosition(entry.getKey(), source);
+        Map<LocalPosition, BlockState> blocks = new LinkedHashMap<>();
+        for (Map.Entry<BlockPosition, BlockState> entry : contents.blocks().entrySet()) {
+            LocalPosition sourcePosition = LocalPosition.from(entry.getKey());
             requireInside(sourcePosition, source.getW(), source.getH(), source.getD(),
                     "stored block", pieceKey);
-            PlatformBlockState state = entry.getValue();
-            if (state == null) {
-                throw new IOException("Planar piece '" + pieceKey + "' contains a null stored block state");
-            }
+            BlockState state = entry.getValue();
             LocalPosition canonicalPosition = toCanonical(
                     sourcePosition,
                     source.getW(),
@@ -1331,26 +1334,24 @@ public final class JigsawStudioGraphEditor {
         return blocks;
     }
 
-    private static Map<LocalPosition, TileData> canonicalTiles(
+    private static Map<LocalPosition, BlockEntityData> canonicalTiles(
             IrisObject source,
+            IrisObject.ApiContents contents,
             int quarterTurns,
             String pieceKey
     ) throws IOException {
-        Map<LocalPosition, TileData> tiles = new LinkedHashMap<>();
-        for (Map.Entry<IrisBlockVector, TileData> entry : source.getStates()) {
-            LocalPosition sourcePosition = unsignedPosition(entry.getKey(), source);
+        Map<LocalPosition, BlockEntityData> tiles = new LinkedHashMap<>();
+        for (Map.Entry<BlockPosition, BlockEntityData> entry : contents.blockEntities().entrySet()) {
+            LocalPosition sourcePosition = LocalPosition.from(entry.getKey());
             requireInside(sourcePosition, source.getW(), source.getH(), source.getD(),
                     "tile data", pieceKey);
-            TileData tile = entry.getValue();
-            if (tile == null) {
-                throw new IOException("Planar piece '" + pieceKey + "' contains null tile data");
-            }
+            BlockEntityData tile = entry.getValue();
             LocalPosition canonicalPosition = toCanonical(
                     sourcePosition,
                     source.getW(),
                     source.getD(),
                     quarterTurns);
-            if (tiles.putIfAbsent(canonicalPosition, tile.clone()) != null) {
+            if (tiles.putIfAbsent(canonicalPosition, tile) != null) {
                 throw new IOException("Planar piece '" + pieceKey
                         + "' maps more than one tile payload to " + canonicalPosition.describe());
             }
@@ -1425,8 +1426,8 @@ public final class JigsawStudioGraphEditor {
     }
 
     private static void relocateConnectorPayloads(
-            Map<LocalPosition, PlatformBlockState> blocks,
-            Map<LocalPosition, TileData> tiles,
+            Map<LocalPosition, BlockState> blocks,
+            Map<LocalPosition, BlockEntityData> tiles,
             List<ConnectorResize> connectorResizes,
             String pieceKey
     ) throws IOException {
@@ -1460,7 +1461,7 @@ public final class JigsawStudioGraphEditor {
                 continue;
             }
             boolean present = blocks.containsKey(connectorResize.sourceCanonical());
-            PlatformBlockState state = blocks.remove(connectorResize.sourceCanonical());
+            BlockState state = blocks.remove(connectorResize.sourceCanonical());
             payloads.add(new BlockRelocation(connectorResize.targetCanonical(), state, present));
         }
         for (BlockRelocation payload : payloads) {
@@ -1475,8 +1476,8 @@ public final class JigsawStudioGraphEditor {
     }
 
     private static void requireContentInsideTarget(
-            Map<LocalPosition, PlatformBlockState> blocks,
-            Map<LocalPosition, TileData> tiles,
+            Map<LocalPosition, BlockState> blocks,
+            Map<LocalPosition, BlockEntityData> tiles,
             JigsawStudioCellDimensions dimensions,
             String pieceKey
     ) throws IOException {
@@ -1495,50 +1496,34 @@ public final class JigsawStudioGraphEditor {
     }
 
     private static IrisObject rebuildSourceObject(
-            Map<LocalPosition, PlatformBlockState> canonicalBlocks,
-            Map<LocalPosition, TileData> canonicalTiles,
+            IrisObject.ApiContents sourceContents,
+            Map<LocalPosition, BlockState> canonicalBlocks,
+            Map<LocalPosition, BlockEntityData> canonicalTiles,
             JigsawStudioCellDimensions sourceDimensions,
             int quarterTurns,
             String pieceKey
     ) throws IOException {
-        IrisObject resized = new IrisObject(
-                sourceDimensions.width(),
-                sourceDimensions.height(),
-                sourceDimensions.depth());
-        Set<LocalPosition> sourcePositions = new LinkedHashSet<>();
-        for (Map.Entry<LocalPosition, PlatformBlockState> entry : canonicalBlocks.entrySet()) {
+        Map<BlockPosition, BlockState> blocks = new LinkedHashMap<>();
+        for (Map.Entry<LocalPosition, BlockState> entry : canonicalBlocks.entrySet()) {
             LocalPosition sourcePosition = toSource(entry.getKey(), sourceDimensions, quarterTurns);
-            if (!sourcePositions.add(sourcePosition)) {
+            if (blocks.put(sourcePosition.toBlockPosition(), entry.getValue()) != null) {
                 throw new IOException("Planar piece '" + pieceKey
                         + "' maps multiple stored blocks to " + sourcePosition.describe());
             }
-            resized.setUnsigned(
-                    sourcePosition.x(),
-                    sourcePosition.y(),
-                    sourcePosition.z(),
-                    entry.getValue());
         }
-        sourcePositions.clear();
-        for (Map.Entry<LocalPosition, TileData> entry : canonicalTiles.entrySet()) {
+        Map<BlockPosition, BlockEntityData> blockEntities = new LinkedHashMap<>();
+        for (Map.Entry<LocalPosition, BlockEntityData> entry : canonicalTiles.entrySet()) {
             LocalPosition sourcePosition = toSource(entry.getKey(), sourceDimensions, quarterTurns);
-            if (!sourcePositions.add(sourcePosition)) {
+            if (blockEntities.put(sourcePosition.toBlockPosition(), entry.getValue()) != null) {
                 throw new IOException("Planar piece '" + pieceKey
                         + "' maps multiple tile payloads to " + sourcePosition.describe());
             }
-            resized.setUnsignedTile(
-                    sourcePosition.x(),
-                    sourcePosition.y(),
-                    sourcePosition.z(),
-                    entry.getValue().clone());
         }
-        return resized;
-    }
-
-    private static LocalPosition unsignedPosition(IrisBlockVector signed, IrisObject object) {
-        return new LocalPosition(
-                signed.getBlockX() + object.getCenter().getBlockX(),
-                signed.getBlockY() + object.getCenter().getBlockY(),
-                signed.getBlockZ() + object.getCenter().getBlockZ());
+        return IrisObject.fromApiContents(
+                sourceDimensions.width(),
+                sourceDimensions.height(),
+                sourceDimensions.depth(),
+                sourceContents.with(blocks, blockEntities));
     }
 
     private static JigsawStudioCellDimensions canonicalDimensions(
@@ -1650,35 +1635,23 @@ public final class JigsawStudioGraphEditor {
                 dimensions,
                 "Jigsaw Studio target object dimensions");
         String normalizedPiece = pieceKey == null || pieceKey.isBlank() ? "unknown" : pieceKey;
-        IrisObject resized = new IrisObject(target.width(), target.height(), target.depth());
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.getBlocks()) {
-            IrisBlockVector position = entry.getKey();
-            LocalPosition unsigned = unsignedPosition(position, object);
+        IrisObject.ApiContents contents = object.apiContents();
+        for (BlockPosition position : contents.blocks().keySet()) {
+            LocalPosition unsigned = LocalPosition.from(position);
             if (!inside(unsigned, target)) {
                 throw new IOException("Spatial piece '" + normalizedPiece
                         + "' has a stored block, including explicit air, at " + unsigned.describe()
                         + " that would be cropped by the requested variant size");
             }
-            resized.setUnsigned(
-                    unsigned.x(),
-                    unsigned.y(),
-                    unsigned.z(),
-                    entry.getValue());
         }
-        for (Map.Entry<IrisBlockVector, TileData> entry : object.getStates()) {
-            IrisBlockVector position = entry.getKey();
-            LocalPosition unsigned = unsignedPosition(position, object);
+        for (BlockPosition position : contents.blockEntities().keySet()) {
+            LocalPosition unsigned = LocalPosition.from(position);
             if (!inside(unsigned, target)) {
                 throw new IOException("Spatial piece '" + normalizedPiece + "' has tile data at "
                         + unsigned.describe() + " that would be cropped by the requested variant size");
             }
-            resized.setUnsignedTile(
-                    unsigned.x(),
-                    unsigned.y(),
-                    unsigned.z(),
-                    entry.getValue().clone());
         }
-        return resized;
+        return IrisObject.fromApiContents(target.width(), target.height(), target.depth(), contents);
     }
 
     private static void requireConnectorsInside(
@@ -1848,7 +1821,7 @@ public final class JigsawStudioGraphEditor {
         }
     }
 
-    private record BlockRelocation(LocalPosition target, PlatformBlockState state, boolean present) {
+    private record BlockRelocation(LocalPosition target, BlockState state, boolean present) {
         private BlockRelocation {
             Objects.requireNonNull(target, "Planar Jigsaw Studio connector block target");
             if (present) {
@@ -1860,6 +1833,14 @@ public final class JigsawStudioGraphEditor {
     private record LocalPosition(int x, int y, int z) {
         private static LocalPosition from(IrisPosition position) {
             return new LocalPosition(position.getX(), position.getY(), position.getZ());
+        }
+
+        private static LocalPosition from(BlockPosition position) {
+            return new LocalPosition(position.x(), position.y(), position.z());
+        }
+
+        private BlockPosition toBlockPosition() {
+            return new BlockPosition(x, y, z);
         }
 
         private IrisPosition toIrisPosition() {

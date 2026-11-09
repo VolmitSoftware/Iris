@@ -281,10 +281,9 @@ public class IrisModdedStructureCommandTest {
 
     @Test
     public void structureListInfoAndVerifyBelongToTheStructureModule() throws IOException {
-        String source = source("ModdedStructureCommands.java");
+        Path staticTree = commonSourceRoot().resolve("art/arcane/iris/modded/command/ModdedStructureCommands.java");
 
-        assertFalse(source.contains("Commands.literal(\"list\")"));
-        assertFalse(source.contains("verifyTree("));
+        assertFalse(Files.exists(staticTree));
     }
 
     private String source(String fileName) throws IOException {

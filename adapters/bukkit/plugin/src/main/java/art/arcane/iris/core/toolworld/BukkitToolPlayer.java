@@ -100,6 +100,11 @@ final class BukkitToolPlayer implements ToolPlayer {
     }
 
     @Override
+    public Optional<BlockPosition> targetBlock(int maxDistance) {
+        return Optional.ofNullable(player.getTargetBlockExact(maxDistance)).map(BukkitToolBlocks::positionOf);
+    }
+
+    @Override
     public boolean sneaking() {
         return player.isSneaking();
     }

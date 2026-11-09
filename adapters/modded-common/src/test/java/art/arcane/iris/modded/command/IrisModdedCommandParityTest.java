@@ -162,7 +162,7 @@ public class IrisModdedCommandParityTest {
         assertNotNull("iris", iris.getCommand());
         for (String category : new String[]{"help", "find", "goto", "pregen", "pregenerate", "object", "o",
                 "edit", "studio", "std", "s", "pack", "pk", "world", "w", "datapack", "datapacks", "dp",
-                "structure", "struct", "str", "developer", "dev", "module", "m"}) {
+                "developer", "dev", "module", "m"}) {
             assertNotNull(category, child(iris, category).getCommand());
         }
     }
@@ -173,9 +173,6 @@ public class IrisModdedCommandParityTest {
 
         for (CommandNode<CommandSourceStack> node : iris.getChildren()) {
             assertTrue(node.getName() + " must be a literal", node instanceof LiteralCommandNode);
-        }
-        for (CommandNode<CommandSourceStack> node : child(iris, "structure").getChildren()) {
-            assertTrue("structure " + node.getName() + " must be a literal", node instanceof LiteralCommandNode);
         }
         for (String branch : new String[]{"module", "m"}) {
             CommandNode<CommandSourceStack> module = child(iris, branch);
@@ -225,9 +222,13 @@ public class IrisModdedCommandParityTest {
     }
 
     @Test
-    public void structureHelpListsOnlyImportAndCapture() {
-        assertEquals(List.of("import", "import-all", "reimport", "imp", "all", "capture", "cap"),
-                ModdedCommandHelp.documentedWords("structure"));
+    public void structureImportAndCaptureAreModuleCommandsAndHaveNoLiteralsOfTheirOwn() {
+        CommandNode<CommandSourceStack> iris = irisNode();
+
+        for (String structure : new String[]{"structure", "struct", "str"}) {
+            assertNull(structure, iris.getChild(structure));
+        }
+        assertFalse(ModdedCommandHelp.sections().contains("structure"));
     }
 
     private static CommandNode<CommandSourceStack> child(

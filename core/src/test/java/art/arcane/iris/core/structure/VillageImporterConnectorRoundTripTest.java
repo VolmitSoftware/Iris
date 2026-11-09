@@ -19,6 +19,10 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.nbt.io.NBTUtil;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
 import com.google.gson.Gson;
+import com.volmit.geometry.BlockFace;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.resource.ResourceId;
+import com.volmit.tooling.TemplatePool;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -43,22 +47,19 @@ public class VillageImporterConnectorRoundTripTest {
 
     @Test
     public void vanillaNbtMetadataSurvivesIrisPieceAndVanillaExport() throws Exception {
-        FakeJigsawBlockInfo jigsaw = new FakeJigsawBlockInfo(-29, -17);
-        FakeStructureBlockInfo info = new FakeStructureBlockInfo(new FakeCompoundTag(FINAL_STATE));
-        VillageImporter.ConnectorMetadata metadata = VillageImporter.readConnectorMetadata(jigsaw, info);
-        Map<String, Object> importedConnector = VillageImporter.connectorJson(
-                1,
-                1,
-                0,
-                "north",
-                "up",
-                "minecraft:terminal",
-                "roundtrip",
+        TemplatePool.JigsawConnector jigsaw = new TemplatePool.JigsawConnector(
+                new BlockPosition(1, 1, 0),
+                BlockFace.NORTH,
+                BlockFace.UP,
+                Optional.of(ResourceId.parse("minecraft:terminal")),
                 "minecraft:source",
                 "minecraft:door",
-                "ALIGNED",
-                metadata
+                true,
+                Optional.of(FINAL_STATE),
+                -17,
+                -29
         );
+        Map<String, Object> importedConnector = VillageImporter.connectorJson(jigsaw, "roundtrip");
 
         Map<String, Object> importedPiece = new LinkedHashMap<>();
         importedPiece.put("object", "objects/start");
@@ -118,18 +119,6 @@ public class VillageImporterConnectorRoundTripTest {
                 .setPlaceMode(ObjectPlaceMode.STRUCTURE_PIECE);
         graph.structure.setLoadKey("metadata");
         return graph;
-    }
-
-    private record FakeJigsawBlockInfo(int placementPriority, int selectionPriority) {
-    }
-
-    private record FakeStructureBlockInfo(FakeCompoundTag nbt) {
-    }
-
-    private record FakeCompoundTag(String finalState) {
-        public Optional<String> getString(String key) {
-            return "final_state".equals(key) ? Optional.of(finalState) : Optional.empty();
-        }
     }
 
     private static final class TestGraph implements StructureGraphResolver {

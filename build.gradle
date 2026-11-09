@@ -116,6 +116,8 @@ nmsBindings.each { key, value ->
             compileOnly(rootProject.libs.byteBuddy.core)
             testImplementation('junit:junit:4.13.2')
             testImplementation(project(':core'))
+            // The runtime contract of the host's reflection over template pools runs against this binding's own classes.
+            testImplementation(project(':adapters:bukkit:plugin'))
             testCompileOnly(volmLibCoordinate) {
                 transitive = false
             }

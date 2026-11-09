@@ -67,11 +67,7 @@ art/arcane/iris/core/service/ObjectStudioSaveService.java
 art/arcane/iris/core/service/PackDownloadProgressReporter.java
 art/arcane/iris/core/service/StudioSVC.java
 art/arcane/iris/core/service/TreeSVC.java
-art/arcane/iris/core/structure/BulkStructureImporter.java
 art/arcane/iris/core/structure/FeatureImporter.java
-art/arcane/iris/core/structure/StructureCaptureImporter.java
-art/arcane/iris/core/structure/StructureImporter.java
-art/arcane/iris/core/structure/VillageImporter.java
 art/arcane/iris/core/tools/IrisConverter.java
 art/arcane/iris/core/tools/IrisCreator.java
 art/arcane/iris/core/tools/IrisPackBenchmarking.java

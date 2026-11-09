@@ -47,7 +47,11 @@ import art.arcane.iris.core.runtime.BukkitEnginePlatformHooks;
 import art.arcane.iris.core.runtime.WorldDeletionQueue;
 import art.arcane.iris.core.runtime.WorldRuntimeControlService;
 import art.arcane.iris.core.toolworld.BukkitToolWorldService;
+import art.arcane.iris.core.structure.BukkitJigsawStudioHost;
+import art.arcane.iris.core.structure.BukkitPlatformStructures;
+import art.arcane.iris.core.structure.tooling.JigsawStudioHost;
 import art.arcane.iris.core.tooling.ToolWorldsHost;
+import com.volmit.tooling.PlatformStructures;
 import art.arcane.iris.api.terrain.IrisTerrainService;
 import art.arcane.iris.core.link.IrisPapiInstaller;
 import art.arcane.iris.core.link.IrisPapiListener;
@@ -651,6 +655,8 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             IrisServices.register(serviceType, i);
         }
         IrisServices.register(ToolWorldsHost.class, services.get(BukkitToolWorldService.class));
+        IrisServices.register(PlatformStructures.class, new BukkitPlatformStructures());
+        IrisServices.register(JigsawStudioHost.class, new BukkitJigsawStudioHost());
         IrisServices.register(BlockEditAccess.class, services.get(EditSVC.class));
         IrisServices.register(PreservationRegistry.class, services.get(PreservationSVC.class));
         compat = IrisCompat.configured(getDataFile("compat.json"));

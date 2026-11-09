@@ -28,93 +28,17 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class VillageImporterListPoolElementTest {
     @Test
-    public void plainTemplateElementRemainsUnchanged() throws Exception {
-        FakeSinglePoolElement single = new FakeSinglePoolElement("minecraft:village/plains/houses/plains_small_house_1");
-
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(single);
-
-        assertSame(single, resolution.physicalElement());
-        assertEquals("minecraft:village/plains/houses/plains_small_house_1", resolution.templateLocation());
-        assertEquals(0, resolution.listLevels());
-        assertEquals(0, resolution.omittedElements());
-    }
-
-    @Test
-    public void nestedListsRetainOnlyTheRecursivePrimaryTemplate() throws Exception {
-        FakeSinglePoolElement primary = new FakeSinglePoolElement("minecraft:pillager_outpost/watchtower");
-        FakeSinglePoolElement innerOverlay = new FakeSinglePoolElement("test:inner_overlay");
-        FakeSinglePoolElement outerOverlay = new FakeSinglePoolElement("test:outer_overlay");
-        FakeListPoolElement inner = new FakeListPoolElement(List.of(primary, innerOverlay));
-        FakeListPoolElement outer = new FakeListPoolElement(List.of(inner, outerOverlay));
-
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(outer);
-
-        assertSame(primary, resolution.physicalElement());
-        assertEquals("minecraft:pillager_outpost/watchtower", resolution.templateLocation());
-        assertEquals(2, resolution.listLevels());
-        assertEquals(2, resolution.omittedElements());
-    }
-
-    @Test
-    public void unsupportedPrimaryDoesNotFallThroughToLaterChildren() throws Exception {
-        FakeFeaturePoolElement feature = new FakeFeaturePoolElement();
-        FakeSinglePoolElement fallback = new FakeSinglePoolElement("test:must_not_be_selected");
-        FakeListPoolElement list = new FakeListPoolElement(List.of(feature, fallback));
-
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(list);
-
-        assertSame(feature, resolution.physicalElement());
-        assertNull(resolution.templateLocation());
-        assertEquals(1, resolution.omittedElements());
-    }
-
-    @Test
-    public void emptyListResolvesWithoutIndexingAChild() throws Exception {
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(
-                new FakeListPoolElement(List.of())
-        );
-
-        assertNull(resolution.physicalElement());
-        assertNull(resolution.templateLocation());
-        assertEquals(1, resolution.listLevels());
-        assertEquals(0, resolution.omittedElements());
-    }
-
-    @Test
-    public void outerChoiceProducesOneEntryWithItsOriginalWeight() throws Exception {
-        FakeListPoolElement towers = new FakeListPoolElement(List.of(
-                new FakeSinglePoolElement("minecraft:pillager_outpost/watchtower"),
-                new FakeSinglePoolElement("minecraft:pillager_outpost/watchtower_overgrown")
-        ));
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(towers);
-
-        List<Map<String, Object>> entries = List.of(VillageImporter.piecePoolEntry(
-                "qa/pillager_outpost/piece/minecraft/pillager_outpost/watchtower",
-                7
-        ));
-
-        assertEquals(1, entries.size());
-        assertEquals("minecraft:pillager_outpost/watchtower", resolution.templateLocation());
-        assertEquals(7, entries.getFirst().get("weight"));
-        assertEquals(1, resolution.omittedElements());
-    }
-
-    @Test
     public void omittedCompositeChildrenProduceExplicitFidelityLoss() throws Exception {
-        FakeListPoolElement towers = new FakeListPoolElement(List.of(
-                new FakeSinglePoolElement("minecraft:pillager_outpost/watchtower"),
-                new FakeSinglePoolElement("minecraft:pillager_outpost/watchtower_overgrown")
-        ));
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(towers);
+        int listLevels = 1;
+        int omittedElements = 1;
 
         StructureLoss loss = VillageImporter.listElementFallbackLoss(
-                resolution,
+                listLevels,
+                omittedElements,
                 "minecraft:pillager_outpost/towers"
         );
 
@@ -373,49 +297,4 @@ public class VillageImporterListPoolElementTest {
         assertTrue(imported.emittedCapabilities(omitted).isEmpty());
     }
 
-    private static final class FakeListPoolElement {
-        private final List<Object> elements;
-
-        private FakeListPoolElement(List<?> elements) {
-            this.elements = List.copyOf(elements);
-        }
-
-        public List<Object> getElements() {
-            return elements;
-        }
-    }
-
-    private static final class FakeSinglePoolElement {
-        private final FakeResourceLocation location;
-
-        private FakeSinglePoolElement(String location) {
-            String[] parts = location.split(":", 2);
-            this.location = new FakeResourceLocation(parts[0], parts[1]);
-        }
-
-        public FakeResourceLocation getTemplateLocation() {
-            return location;
-        }
-    }
-
-    private static final class FakeFeaturePoolElement {
-    }
-
-    private static final class FakeResourceLocation {
-        private final String namespace;
-        private final String path;
-
-        private FakeResourceLocation(String namespace, String path) {
-            this.namespace = namespace;
-            this.path = path;
-        }
-
-        public String getNamespace() {
-            return namespace;
-        }
-
-        public String getPath() {
-            return path;
-        }
-    }
 }

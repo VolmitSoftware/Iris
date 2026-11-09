@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.structure;
 
-import org.bukkit.NamespacedKey;
+import com.volmit.resource.ResourceId;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -62,12 +62,12 @@ public class StructureImporterModeTest {
 
     @Test
     public void deriveNameFromNamespacedKeyJoinsNamespaceAndPath() {
-        assertEquals("minecraft_village", StructureImporter.deriveName(NamespacedKey.minecraft("village")));
+        assertEquals("minecraft_village", StructureImporter.deriveName(ResourceId.parse("minecraft:village")));
     }
 
     @Test
     public void deriveNameFromNamespacedKeyNormalizesSlashesInPath() {
-        NamespacedKey key = NamespacedKey.fromString("nova_structures:temple/large");
+        ResourceId key = ResourceId.parse("nova_structures:temple/large");
         assertEquals("nova_structures_temple_large", StructureImporter.deriveName(key));
     }
 

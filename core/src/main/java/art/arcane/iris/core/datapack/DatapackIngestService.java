@@ -20,6 +20,7 @@ package art.arcane.iris.core.datapack;
 
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.core.IrisStartupValidation;
 import art.arcane.iris.core.IrisSettings;
@@ -29,7 +30,11 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.nms.MinecraftVersion;
 import art.arcane.iris.core.project.IrisProject;
 import art.arcane.iris.core.project.IrisCodeWorkspace;
+import art.arcane.iris.core.modules.IrisModuleHost;
 import art.arcane.iris.core.structure.BulkStructureImporter;
+import art.arcane.iris.core.tooling.IrisToolPack;
+import art.arcane.iris.core.tooling.VolmitToolSender;
+import com.volmit.tooling.PlatformStructures;
 import art.arcane.iris.core.structure.StructureImporter;
 import art.arcane.iris.core.structure.authoring.StructureKey;
 import art.arcane.iris.core.structure.authoring.StructureSource;
@@ -3178,9 +3183,10 @@ public final class DatapackIngestService {
             attemptedPacks++;
             try {
                 BulkStructureImporter.Report report = BulkStructureImporter.importManagedDatapackStructures(
-                        data,
+                        new IrisToolPack(data, IrisModuleHost.hostLog()),
+                        IrisServices.get(PlatformStructures.class),
                         StructureImporter.Mode.OVERWRITE,
-                        BukkitPlatform.console(),
+                        new VolmitToolSender(BukkitPlatform.console()),
                         structureKeys,
                         templateKeys
                 );

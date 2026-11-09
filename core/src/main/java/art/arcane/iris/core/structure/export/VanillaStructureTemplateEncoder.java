@@ -5,9 +5,6 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.value.IrisPosition;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.volmlib.util.math.IrisBlockVector;
-import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.nbt.io.NBTUtil;
 import art.arcane.volmlib.util.nbt.io.NamedTag;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
@@ -65,13 +62,8 @@ final class VanillaStructureTemplateEncoder {
 
     private Map<BlockPosition, BlockEntry> objectBlocks(IrisObject object) {
         Map<BlockPosition, BlockEntry> blocks = new LinkedHashMap<>();
-        Vector3i center = object.getCenter();
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.getBlocks()) {
-            IrisBlockVector signed = entry.getKey();
-            BlockPosition position = new BlockPosition(
-                    signed.getBlockX() + center.getX(),
-                    signed.getBlockY() + center.getY(),
-                    signed.getBlockZ() + center.getZ());
+        for (var entry : object.apiContents().blocks().entrySet()) {
+            BlockPosition position = new BlockPosition(entry.getKey().x(), entry.getKey().y(), entry.getKey().z());
             VanillaBlockState state = VanillaBlockState.parse(entry.getValue().key());
             blocks.put(position, new BlockEntry(position, state, null));
         }

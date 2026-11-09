@@ -248,8 +248,7 @@ public class IrisComplex implements DataProvider {
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
         bridgeStream = focusBiome != null ? ProceduralStream.of((x, z) -> focusBiome.getInferredType(),
                 Interpolated.of(a -> 0D, a -> focusBiome.getInferredType())) :
-                engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565), getData())
-                        .bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
+                ContinentGenerator.create(engine.getDimension(), rng, getData()).stream()
                         .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND)
                         .cache2D("bridgeStream", engine, cacheSize);
         ProceduralStream<IrisBiome> proceduralBaseBiomeStream = focusBiome != null ? ProceduralStream.of((x, z) -> implode(focusBiome, x, z),

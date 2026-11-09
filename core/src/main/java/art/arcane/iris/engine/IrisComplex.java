@@ -702,9 +702,19 @@ public class IrisComplex implements DataProvider {
         if (generators.length == 0) {
             return 0D;
         }
+        if (!Double.isFinite(low) || !Double.isFinite(high)) {
+            throw new IllegalStateException("Terrain generator bounds were not finite at " + x + "," + z
+                    + " (generator=" + generators[0].getLoadKey() + ", bounds=" + low + ".." + high + ").");
+        }
         double height = 0D;
         for (IrisGenerator generator : generators) {
-            height += M.lerp(low, high, generator.getHeight(x, z, seed));
+            double noise = generator.getHeight(x, z, seed);
+            if (!Double.isFinite(noise)) {
+                throw new IllegalStateException("Terrain generator noise was not finite at " + x + "," + z
+                        + " (generator=" + generator.getLoadKey() + ", noise=" + noise
+                        + ", bounds=" + low + ".." + high + ").");
+            }
+            height += M.lerp(low, high, noise);
         }
         return height / generators.length;
     }

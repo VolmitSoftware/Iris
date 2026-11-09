@@ -55,6 +55,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -73,6 +74,9 @@ public final class PendingWorldReplacementManager implements Listener {
     private volatile UUID overworldEntryAwaitingVerification;
     private volatile World overworldEntryWorld;
     private volatile boolean paperEntryListenerRegistered;
+    private final Object stagingMonitor = new Object();
+    private boolean stagingAdmissionOpen = true;
+    private StagingAdmission activeStaging;
 
     public PendingWorldReplacementManager(Iris plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
@@ -135,7 +139,7 @@ public final class PendingWorldReplacementManager implements Listener {
                 LifecycleOperationCoordinator.Domain.WORLD_MUTATION,
                 LifecycleOperationCoordinator.OperationKind.WORLD_REPLACE,
                 requiredWorldKey.toString()
-        )) {
+        ); StagingAdmission stagingAdmission = admitStaging(requiredWorldKey)) {
             if (findTransaction(requiredWorldSlotKey) != null) {
                 throw new IOException("A replacement is already pending for " + requiredWorldKey + ".");
             }
@@ -248,6 +252,29 @@ public final class PendingWorldReplacementManager implements Listener {
                 }
                 throw new IOException("Failed to stage replacement for " + requiredWorldKey + ".", failure);
             }
+        }
+    }
+
+    public void awaitStagingForShutdown() {
+        StagingAdmission staging;
+        synchronized (stagingMonitor) {
+            stagingAdmissionOpen = false;
+            staging = activeStaging;
+        }
+        if (staging == null) {
+            return;
+        }
+        Iris.warn("Waiting for the replacement of " + staging.worldKey + " to finish staging before Iris shuts down.");
+        boolean interrupted = false;
+        while (staging.finished.getCount() > 0L) {
+            try {
+                staging.finished.await();
+            } catch (InterruptedException e) {
+                interrupted = true;
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -993,6 +1020,17 @@ public final class PendingWorldReplacementManager implements Listener {
         return plugin.getDataFolder().toPath().toAbsolutePath().normalize();
     }
 
+    StagingAdmission admitStaging(NamespacedKey worldKey) throws IOException {
+        synchronized (stagingMonitor) {
+            if (!stagingAdmissionOpen) {
+                throw new IOException("Iris is shutting down. Run the replacement again after the server starts.");
+            }
+            StagingAdmission staging = new StagingAdmission(worldKey);
+            activeStaging = staging;
+            return staging;
+        }
+    }
+
     private synchronized void loadOverworldEntryGuard() throws IOException {
         ExactWorldSlotPathPolicy.Target target = resolveTarget(OVERWORLD_KEY);
         Optional<WorldReplacementEntryGuard.Entry> loaded = WorldReplacementEntryGuard.load(target.worldDirectory());
@@ -1154,6 +1192,25 @@ public final class PendingWorldReplacementManager implements Listener {
         @Override
         public Location location() {
             return location.clone();
+        }
+    }
+
+    final class StagingAdmission implements AutoCloseable {
+        private final NamespacedKey worldKey;
+        private final CountDownLatch finished = new CountDownLatch(1);
+
+        private StagingAdmission(NamespacedKey worldKey) {
+            this.worldKey = worldKey;
+        }
+
+        @Override
+        public void close() {
+            synchronized (stagingMonitor) {
+                if (activeStaging == this) {
+                    activeStaging = null;
+                }
+            }
+            finished.countDown();
         }
     }
 

@@ -90,9 +90,4 @@ public final class IrisChunk {
     public <T> T state(Class<T> type, Function<Engine, T> create) {
         return engine.getGeneration().state(type, create);
     }
-
-    /** Whether stages backed by the mantle skip this chunk, as maintenance regeneration on Folia requires. */
-    public boolean bypassesMantleStages() {
-        return engine.getGeneration().bypassesMantleStages();
-    }
 }

@@ -37,8 +37,7 @@ import java.util.function.BooleanSupplier;
  * The blocks Iris's mantle holds for chunks to take over, IrisApi's {@link com.volmit.mantle.Mantle#blocks()}: what object
  * and structure placements wrote into the mantle's block slice, read as IrisApi block states over the chunks one
  * invocation may touch. Stages only read them. A dimension that keeps no mantle ({@code useMantle: false}) holds none,
- * even where an older mantle file still has some, as Iris never copied those into chunks; neither does a chunk that
- * generates without its mantle (maintenance regeneration on Folia, {@link art.arcane.iris.engine.framework.EngineGeneration#bypassesMantleStages()}).
+ * even where an older mantle file still has some, as Iris never copied those into chunks.
  */
 final class PlannedBlocks implements MantleLayer<BlockState> {
     private static final int CHUNK_SHIFT = 4;
@@ -64,7 +63,7 @@ final class PlannedBlocks implements MantleLayer<BlockState> {
     /** The planned blocks of {@code engine}'s mantle in {@code bounds}, converted with the invocation's {@code states}. */
     static PlannedBlocks of(Engine engine, BlockBox bounds, IrisModuleMantle.Chunks chunks, PlatformBlockStates states) {
         return new PlannedBlocks(bounds, chunks, states,
-                () -> engine.getDimension().isUseMantle() && !engine.getGeneration().bypassesMantleStages());
+                () -> engine.getDimension().isUseMantle());
     }
 
     /** No planned blocks in {@code bounds}, as in a dimension that keeps no mantle. */

@@ -81,6 +81,8 @@ import java.util.function.Supplier;
 @Data
 public class IrisEngine implements Engine {
     static final long SESSION_DRAIN_TIMEOUT_MILLIS = 15000L;
+    private static final long MAINTENANCE_REFUSAL_WARNING_MILLIS = 5000L;
+    private static final AtomicLong lastMaintenanceRefusalWarning = new AtomicLong();
 
     private final AtomicInteger bud;
     private final AtomicInteger buds;
@@ -632,6 +634,9 @@ public class IrisEngine implements Engine {
     @Override
     public void generate(int x, int z, Hunk<PlatformBlockState> vblocks, Hunk<PlatformBiome> vbiomes, boolean multicore) throws WrongEngineBroException {
         awaitGenerationCacheWarm();
+        if (platformHooks.shouldRefuseGeneration(this)) {
+            refuseMaintenanceGeneration(x >> 4, z >> 4);
+        }
         try (GenerationSessionLease lease = acquireGenerationLease("chunk_generate");
              IrisContext.Scope generationScope = IrisContext.open(this, lease.sessionId(), null)) {
             getEngineData().getStatistics().generatedChunk();
@@ -649,10 +654,7 @@ public class IrisEngine implements Engine {
                 getGeneration().generate(x, z, blocks, vbiomes, multicore, lease.sessionId());
             }
 
-            boolean skipRealFlag = platformHooks.shouldBypassMantleStages(this);
-            if (!skipRealFlag) {
-                getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
-            }
+            getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();
 
@@ -669,6 +671,17 @@ public class IrisEngine implements Engine {
             }
             throw new WrongEngineBroException("Failed to generate chunk at " + x + ", " + z + ".", e);
         }
+    }
+
+    private void refuseMaintenanceGeneration(int chunkX, int chunkZ) throws GenerationSessionException {
+        long now = System.currentTimeMillis();
+        long last = lastMaintenanceRefusalWarning.get();
+        if (now - last >= MAINTENANCE_REFUSAL_WARNING_MILLIS && lastMaintenanceRefusalWarning.compareAndSet(last, now)) {
+            IrisLogging.warn("Iris refused chunk " + chunkX + "," + chunkZ + " in " + getWorld().name()
+                    + ": world maintenance forbids mantle generation, the chunk stays ungenerated");
+        }
+        throw new GenerationSessionException("Iris refused chunk " + chunkX + "," + chunkZ + " in "
+                + getWorld().name() + " during world maintenance.", true);
     }
 
     @Override

@@ -1243,12 +1243,14 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                     if (duplicateActive) {
                         JigsawStudioGraphEditor.duplicatePiece(
                                 packRoot,
+                                studio.generator().getPack().objects(),
                                 request.structureKey(),
                                 sourcePieceKey,
                                 pieceKey);
                     } else {
                         JigsawStudioGraphEditor.createBlankVariant(
                                 packRoot,
+                                studio.generator().getPack().objects(),
                                 request.structureKey(),
                                 sourcePieceKey,
                                 pieceKey);
@@ -1847,6 +1849,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                     JigsawStudioGraphEditor.VariantResizeResult resize =
                             JigsawStudioGraphEditor.resizePieceObject(
                             packRoot,
+                            studio.generator().getPack().objects(),
                             request.structureKey(),
                             variant.pieceKey(),
                             dimensions);

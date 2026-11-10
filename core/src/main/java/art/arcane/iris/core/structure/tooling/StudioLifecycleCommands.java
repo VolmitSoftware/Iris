@@ -44,6 +44,7 @@ import com.volmit.geometry.BlockPosition;
 import com.volmit.resource.ResourceId;
 import com.volmit.tooling.Argument;
 import com.volmit.tooling.Command;
+import com.volmit.tooling.ObjectCodec;
 import com.volmit.tooling.CommandContext;
 import com.volmit.tooling.PlatformStructures;
 import com.volmit.tooling.ToolPack;
@@ -176,7 +177,7 @@ final class StudioLifecycleCommands {
         try {
             JigsawStudioProjectCreator.Options options =
                     new JigsawStudioProjectCreator.Options(structure, studioMode, target, dimensions);
-            outcome = pack.edit(root -> createProject(root, options, structure));
+            outcome = pack.edit(root -> createProject(root, pack.objects(), options, structure));
         } catch (IOException | RuntimeException exception) {
             pack.log().error("Failed to create Jigsaw Studio project '" + structure + "'.", exception);
             use.error("Jigsaw project creation failed: " + exception.getMessage());
@@ -201,9 +202,9 @@ final class StudioLifecycleCommands {
         openProject(use, structure);
     }
 
-    private static CreateOutcome createProject(Path root, JigsawStudioProjectCreator.Options options, String structure)
-            throws IOException {
-        StructureWriteResult result = JigsawStudioProjectCreator.create(root, options);
+    private static CreateOutcome createProject(Path root, ObjectCodec codec, JigsawStudioProjectCreator.Options options,
+                                               String structure) throws IOException {
+        StructureWriteResult result = JigsawStudioProjectCreator.create(root, codec, options);
         if (!result.successful()) {
             return new CreateOutcome(result, null);
         }

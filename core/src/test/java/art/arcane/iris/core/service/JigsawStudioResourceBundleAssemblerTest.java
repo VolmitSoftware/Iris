@@ -90,7 +90,7 @@ public class JigsawStudioResourceBundleAssemblerTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(16, 16, 16));
-        assertTrue(JigsawStudioProjectCreator.create(packRoot, options).successful());
+        assertTrue(JigsawStudioProjectCreator.create(packRoot, new art.arcane.iris.core.tooling.IrisObjectCodec(), options).successful());
         String pieceKey = structureKey + "/end";
         IrisJigsawPiece piece = new Gson().fromJson(
                 Files.readString(
@@ -238,7 +238,7 @@ public class JigsawStudioResourceBundleAssemblerTest {
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(4, 4, 4));
-        StructureWriteResult result = JigsawStudioProjectCreator.create(packRoot, options);
+        StructureWriteResult result = JigsawStudioProjectCreator.create(packRoot, new art.arcane.iris.core.tooling.IrisObjectCodec(), options);
         assertTrue(result.successful());
         return packRoot;
     }

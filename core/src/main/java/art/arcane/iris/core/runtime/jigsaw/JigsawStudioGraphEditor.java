@@ -15,13 +15,13 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawMode;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetype;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.object.BlockEntityData;
+import com.volmit.tooling.ObjectCodec;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -53,6 +53,7 @@ public final class JigsawStudioGraphEditor {
 
     public static StructureWriteResult createPiece(
             Path packRoot,
+            ObjectCodec codec,
             String structureKey,
             String poolKey,
             String pieceKey,
@@ -105,20 +106,22 @@ public final class JigsawStudioGraphEditor {
                         .setFinalState("minecraft:structure_void"));
             }
         }
-        IrisObject object = new IrisObject(dimensions.width(), dimensions.height(), dimensions.depth());
+        JigsawStudioObject object = JigsawStudioObject.empty(dimensions.width(), dimensions.height(), dimensions.depth());
         bundle.textResource(pieceResource, GSON.toJson(piece) + "\n");
-        bundle.resource(objectResource, JigsawStudioProjectCreator.serialize(object));
+        bundle.resource(objectResource, codec.encode(object.toGenerated()));
         return write(graph, bundle.build());
     }
 
     public static StructureWriteResult duplicatePiece(
             Path packRoot,
+            ObjectCodec codec,
             String structureKey,
             String sourcePieceKey,
             String targetPieceKey
     ) throws IOException {
         return createVariantFromPiece(
                 packRoot,
+                codec,
                 structureKey,
                 sourcePieceKey,
                 targetPieceKey,
@@ -127,12 +130,14 @@ public final class JigsawStudioGraphEditor {
 
     public static StructureWriteResult createBlankVariant(
             Path packRoot,
+            ObjectCodec codec,
             String structureKey,
             String sourcePieceKey,
             String targetPieceKey
     ) throws IOException {
         return createVariantFromPiece(
                 packRoot,
+                codec,
                 structureKey,
                 sourcePieceKey,
                 targetPieceKey,
@@ -472,6 +477,7 @@ public final class JigsawStudioGraphEditor {
 
     public static VariantResizeResult resizePieceObject(
             Path packRoot,
+            ObjectCodec codec,
             String structureKey,
             String pieceKey,
             JigsawStudioCellDimensions dimensions
@@ -496,18 +502,17 @@ public final class JigsawStudioGraphEditor {
         }
         requireExclusiveObjectReference(graph, normalizedPiece, objectKey);
         Path objectPath = resolveOwnedResource(graph.root(), objectResource);
-        IrisObject source = new IrisObject();
-        source.read(objectPath.toFile());
+        JigsawStudioObject source = JigsawStudioObject.of(codec.decode(Files.readAllBytes(objectPath)));
         String structureResource = "structures/"
                 + JigsawStudioProjectCreator.Options.requireResourceKey(structureKey) + ".json";
         IrisStructure structure = readStructure(
                 resolveOwnedResource(graph.root(), structureResource),
                 structureResource);
-        IrisObject resizedObject;
+        JigsawStudioObject resizedObject;
         JigsawStudioCellDimensions sourceDimensions = new JigsawStudioCellDimensions(
-                source.getW(),
-                source.getH(),
-                source.getD());
+                source.width(),
+                source.height(),
+                source.depth());
         JigsawStudioCellDimensions previousDimensions;
         int relocatedConnectors = 0;
         if (structure.resolvedMode() == IrisJigsawMode.PLANAR_JIGSAW) {
@@ -545,7 +550,7 @@ public final class JigsawStudioGraphEditor {
         for (String relativePath : graph.manifest().resourceHashes().keySet()) {
             byte[] content;
             if (relativePath.equals(objectResource)) {
-                content = JigsawStudioProjectCreator.serialize(resizedObject);
+                content = codec.encode(resizedObject.toGenerated());
             } else if (relativePath.equals(pieceResource)) {
                 content = (GSON.toJson(piece) + "\n").getBytes(StandardCharsets.UTF_8);
             } else {
@@ -787,6 +792,7 @@ public final class JigsawStudioGraphEditor {
 
     private static StructureWriteResult createVariantFromPiece(
             Path packRoot,
+            ObjectCodec codec,
             String structureKey,
             String sourcePieceKey,
             String targetPieceKey,
@@ -820,11 +826,9 @@ public final class JigsawStudioGraphEditor {
         if (objectMode == VariantObjectMode.COPY_SOURCE) {
             targetObjectContent = Files.readAllBytes(sourceObjectPath);
         } else {
-            IrisBlockVector sourceSize = IrisObject.sampleSize(sourceObjectPath.toFile());
-            targetObjectContent = JigsawStudioProjectCreator.serialize(new IrisObject(
-                    sourceSize.getBlockX(),
-                    sourceSize.getBlockY(),
-                    sourceSize.getBlockZ()));
+            JigsawStudioObject source = JigsawStudioObject.of(codec.decode(Files.readAllBytes(sourceObjectPath)));
+            targetObjectContent = codec.encode(
+                    JigsawStudioObject.empty(source.width(), source.height(), source.depth()).toGenerated());
         }
 
         Map<String, String> targetPieceKeysBySource = Map.of(normalizedSource, normalizedTarget);
@@ -1228,13 +1232,13 @@ public final class JigsawStudioGraphEditor {
     }
 
     static PlanarPieceObjectResize resizePlanarPieceObject(
-            IrisObject source,
+            JigsawStudioObject source,
             IrisJigsawPiece piece,
             JigsawPlanarArchetype archetype,
             JigsawStudioCellDimensions dimensions,
             String pieceKey
     ) throws IOException {
-        IrisObject sourceObject = Objects.requireNonNull(source, "Planar Jigsaw Studio source object");
+        JigsawStudioObject sourceObject = Objects.requireNonNull(source, "Planar Jigsaw Studio source object");
         IrisJigsawPiece targetPiece = Objects.requireNonNull(piece, "Planar Jigsaw Studio piece");
         JigsawPlanarArchetype targetArchetype = Objects.requireNonNull(
                 archetype,
@@ -1247,7 +1251,7 @@ public final class JigsawStudioGraphEditor {
             throw new IllegalArgumentException(
                     "Planar Jigsaw Studio workcell width and depth must each be at least 3 blocks");
         }
-        if (sourceObject.getW() < 1 || sourceObject.getH() < 1 || sourceObject.getD() < 1) {
+        if (sourceObject.width() < 1 || sourceObject.height() < 1 || sourceObject.depth() < 1) {
             throw new IOException("Planar piece '" + targetPieceKey + "' has invalid object dimensions");
         }
         if (IrisJigsawWorkcellArchetype.fromPiece(targetPiece) != targetArchetype.modelArchetype()) {
@@ -1257,11 +1261,11 @@ public final class JigsawStudioGraphEditor {
 
         int quarterTurns = targetArchetype.modelArchetype().sourceToCanonicalQuarterTurns(targetPiece);
         JigsawStudioCellDimensions sourceDimensions = new JigsawStudioCellDimensions(
-                sourceObject.getW(),
-                sourceObject.getH(),
-                sourceObject.getD());
+                sourceObject.width(),
+                sourceObject.height(),
+                sourceObject.depth());
         JigsawStudioCellDimensions canonicalDimensions = canonicalDimensions(sourceDimensions, quarterTurns);
-        IrisObject.ApiContents sourceContents = sourceObject.apiContents();
+        JigsawStudioObject sourceContents = sourceObject;
         Map<LocalPosition, BlockState> canonicalBlocks = canonicalBlocks(
                 sourceObject,
                 sourceContents,
@@ -1287,7 +1291,7 @@ public final class JigsawStudioGraphEditor {
         requireContentInsideTarget(canonicalBlocks, canonicalTiles, targetDimensions, targetPieceKey);
 
         JigsawStudioCellDimensions resizedSourceDimensions = sourceDimensions(targetDimensions, quarterTurns);
-        IrisObject resizedObject = rebuildSourceObject(
+        JigsawStudioObject resizedObject = rebuildSourceObject(
                 sourceContents,
                 canonicalBlocks,
                 canonicalTiles,
@@ -1309,21 +1313,21 @@ public final class JigsawStudioGraphEditor {
     }
 
     private static Map<LocalPosition, BlockState> canonicalBlocks(
-            IrisObject source,
-            IrisObject.ApiContents contents,
+            JigsawStudioObject source,
+            JigsawStudioObject contents,
             int quarterTurns,
             String pieceKey
     ) throws IOException {
         Map<LocalPosition, BlockState> blocks = new LinkedHashMap<>();
         for (Map.Entry<BlockPosition, BlockState> entry : contents.blocks().entrySet()) {
             LocalPosition sourcePosition = LocalPosition.from(entry.getKey());
-            requireInside(sourcePosition, source.getW(), source.getH(), source.getD(),
+            requireInside(sourcePosition, source.width(), source.height(), source.depth(),
                     "stored block", pieceKey);
             BlockState state = entry.getValue();
             LocalPosition canonicalPosition = toCanonical(
                     sourcePosition,
-                    source.getW(),
-                    source.getD(),
+                    source.width(),
+                    source.depth(),
                     quarterTurns);
             if (blocks.putIfAbsent(canonicalPosition, state) != null) {
                 throw new IOException("Planar piece '" + pieceKey
@@ -1334,21 +1338,21 @@ public final class JigsawStudioGraphEditor {
     }
 
     private static Map<LocalPosition, BlockEntityData> canonicalTiles(
-            IrisObject source,
-            IrisObject.ApiContents contents,
+            JigsawStudioObject source,
+            JigsawStudioObject contents,
             int quarterTurns,
             String pieceKey
     ) throws IOException {
         Map<LocalPosition, BlockEntityData> tiles = new LinkedHashMap<>();
         for (Map.Entry<BlockPosition, BlockEntityData> entry : contents.blockEntities().entrySet()) {
             LocalPosition sourcePosition = LocalPosition.from(entry.getKey());
-            requireInside(sourcePosition, source.getW(), source.getH(), source.getD(),
+            requireInside(sourcePosition, source.width(), source.height(), source.depth(),
                     "tile data", pieceKey);
             BlockEntityData tile = entry.getValue();
             LocalPosition canonicalPosition = toCanonical(
                     sourcePosition,
-                    source.getW(),
-                    source.getD(),
+                    source.width(),
+                    source.depth(),
                     quarterTurns);
             if (tiles.putIfAbsent(canonicalPosition, tile) != null) {
                 throw new IOException("Planar piece '" + pieceKey
@@ -1494,8 +1498,8 @@ public final class JigsawStudioGraphEditor {
         }
     }
 
-    private static IrisObject rebuildSourceObject(
-            IrisObject.ApiContents sourceContents,
+    private static JigsawStudioObject rebuildSourceObject(
+            JigsawStudioObject sourceContents,
             Map<LocalPosition, BlockState> canonicalBlocks,
             Map<LocalPosition, BlockEntityData> canonicalTiles,
             JigsawStudioCellDimensions sourceDimensions,
@@ -1518,11 +1522,12 @@ public final class JigsawStudioGraphEditor {
                         + "' maps multiple tile payloads to " + sourcePosition.describe());
             }
         }
-        return IrisObject.fromApiContents(
+        return sourceContents.with(
                 sourceDimensions.width(),
                 sourceDimensions.height(),
                 sourceDimensions.depth(),
-                sourceContents.with(blocks, blockEntities));
+                blocks,
+                blockEntities);
     }
 
     private static JigsawStudioCellDimensions canonicalDimensions(
@@ -1624,17 +1629,17 @@ public final class JigsawStudioGraphEditor {
         }
     }
 
-    static IrisObject resizeObject(
-            IrisObject source,
+    static JigsawStudioObject resizeObject(
+            JigsawStudioObject source,
             JigsawStudioCellDimensions dimensions,
             String pieceKey
     ) throws IOException {
-        IrisObject object = Objects.requireNonNull(source, "Jigsaw Studio source object");
+        JigsawStudioObject object = Objects.requireNonNull(source, "Jigsaw Studio source object");
         JigsawStudioCellDimensions target = Objects.requireNonNull(
                 dimensions,
                 "Jigsaw Studio target object dimensions");
         String normalizedPiece = pieceKey == null || pieceKey.isBlank() ? "unknown" : pieceKey;
-        IrisObject.ApiContents contents = object.apiContents();
+        JigsawStudioObject contents = object;
         for (BlockPosition position : contents.blocks().keySet()) {
             LocalPosition unsigned = LocalPosition.from(position);
             if (!inside(unsigned, target)) {
@@ -1650,7 +1655,7 @@ public final class JigsawStudioGraphEditor {
                         + unsigned.describe() + " that would be cropped by the requested variant size");
             }
         }
-        return IrisObject.fromApiContents(target.width(), target.height(), target.depth(), contents);
+        return contents.with(target.width(), target.height(), target.depth(), contents.blocks(), contents.blockEntities());
     }
 
     private static void requireConnectorsInside(
@@ -1799,7 +1804,7 @@ public final class JigsawStudioGraphEditor {
         EMPTY_SOURCE_SIZE
     }
 
-    record PlanarPieceObjectResize(IrisObject object, int relocatedConnectors) {
+    record PlanarPieceObjectResize(JigsawStudioObject object, int relocatedConnectors) {
         PlanarPieceObjectResize {
             Objects.requireNonNull(object, "Resized planar Jigsaw Studio object");
             if (relocatedConnectors < 0) {

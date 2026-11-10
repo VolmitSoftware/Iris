@@ -20,9 +20,10 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceRules;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcell;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.core.structure.DeclaredObjects;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import com.volmit.geometry.BlockPosition;
+import com.volmit.tooling.ObjectCodec;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -47,14 +48,14 @@ public final class JigsawStudioProjectCreator {
     private JigsawStudioProjectCreator() {
     }
 
-    public static StructureWriteResult create(Path packRoot, Options options) throws IOException {
+    public static StructureWriteResult create(Path packRoot, ObjectCodec codec, Options options) throws IOException {
         Options activeOptions = Objects.requireNonNull(options, "Jigsaw Studio project options");
-        StructureResourceBundle bundle = bundle(activeOptions);
+        StructureResourceBundle bundle = bundle(codec, activeOptions);
         StructureResourceBundleGraphCompiler.requireViable(bundle);
         return new StructureTransactionWriter(packRoot).write(bundle, StructureWriteMode.ADD_ONLY);
     }
 
-    static StructureResourceBundle bundle(Options options) throws IOException {
+    static StructureResourceBundle bundle(ObjectCodec codec, Options options) throws IOException {
         String resourceKey = options.structureKey();
         StructureKey ownershipKey = new StructureKey("iris", resourceKey);
         IrisStructure structure = new IrisStructure()
@@ -79,19 +80,13 @@ public final class JigsawStudioProjectCreator {
                 .capability(StructureCapability.IRIS_PLACEMENT);
         IrisJigsawPool pool = new IrisJigsawPool();
         if (options.mode() == JigsawStudioMode.PLANAR_JIGSAW) {
-            addPlanarDefaults(bundle, structure, pool, options);
+            addPlanarDefaults(bundle, codec, structure, pool, options);
         } else {
-            addSpatialDefaults(bundle, pool, options);
+            addSpatialDefaults(bundle, codec, pool, options);
         }
         bundle.textResource("jigsaw-pools/" + resourceKey + "/start.json", GSON.toJson(pool) + "\n");
         bundle.textResource("structures/" + resourceKey + ".json", GSON.toJson(structure) + "\n");
         return bundle.build();
-    }
-
-    static byte[] serialize(IrisObject object) throws IOException {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        object.write(output);
-        return output.toByteArray();
     }
 
     private static IrisJigsawMode toModelMode(JigsawStudioMode mode) {
@@ -118,6 +113,7 @@ public final class JigsawStudioProjectCreator {
 
     private static void addPlanarDefaults(
             StructureResourceBundle.Builder bundle,
+            ObjectCodec codec,
             IrisStructure structure,
             IrisJigsawPool pool,
             Options options
@@ -153,7 +149,7 @@ public final class JigsawStudioProjectCreator {
                     dimensions.height(),
                     dimensions.depth(),
                     true));
-            bundle.resource("objects/" + key + ".iob", serialize(new IrisObject(
+            bundle.resource("objects/" + key + codec.extension(), codec.encode(DeclaredObjects.empty(
                     dimensions.width(),
                     dimensions.height(),
                     dimensions.depth())));
@@ -166,6 +162,7 @@ public final class JigsawStudioProjectCreator {
 
     private static void addSpatialDefaults(
             StructureResourceBundle.Builder bundle,
+            ObjectCodec codec,
             IrisJigsawPool pool,
             Options options
     ) throws IOException {
@@ -187,7 +184,7 @@ public final class JigsawStudioProjectCreator {
             if (connectorCount > 0) {
                 piecePool.getPieces().add(new IrisJigsawPieceEntry(key, 1));
             }
-            bundle.resource("objects/" + key + ".iob", serialize(new IrisObject(
+            bundle.resource("objects/" + key + codec.extension(), codec.encode(DeclaredObjects.empty(
                     dimensions.width(),
                     dimensions.height(),
                     dimensions.depth())));

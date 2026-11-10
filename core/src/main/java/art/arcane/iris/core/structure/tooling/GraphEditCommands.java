@@ -334,6 +334,7 @@ final class GraphEditCommands {
         runGraphMutation(use, active, () -> {
             JigsawStudioGraphEditor.createPiece(
                     active.request().packRoot(),
+                    use.pack().objects(),
                     active.request().structureKey(),
                     poolKey,
                     pieceKey,

@@ -84,7 +84,7 @@ public final class ValidateModule implements IrisModule {
             return;
         }
         int y = context.output(PlacementStages.Anchor.HEIGHT).y();
-        boolean sampled = placement.requestedY() < 0;
+        boolean sampled = placement.automaticHeight();
         if (sampled && settings.carvingSupport().supportsSurface() && isOnBedrock(context, prepared, y)) {
             warnImplausibleBedrockPlacement(placement, settings, y, context.log());
             context.reject("bedrock-anchor");
@@ -124,7 +124,7 @@ public final class ValidateModule implements IrisModule {
         int rotated = prepared.rotatedCenterY();
         int translated = prepared.translatedCenterY();
         Optional<ObjectRun.Cave> cave = placement.cave();
-        if (placement.requestedY() < 0 && !prepared.mode().has(PlaceTrait.FREE_HEIGHT) && !settings.underwater()
+        if (placement.automaticHeight() && !prepared.mode().has(PlaceTrait.FREE_HEIGHT) && !settings.underwater()
                 && !settings.onwater() && prepared.terrain().isUnderwater(placement.x(), placement.z())) {
             context.reject("underwater-anchor");
         } else if (cave.isPresent()

@@ -127,7 +127,7 @@ public final class BlocksModule implements IrisModule {
         if (settings.meld() && !structurePiece && !world.isSolid(x, y, z)) {
             return;
         }
-        if (data.properties().containsKey(WATERLOGGED) && shouldWaterlog(world, settings, placement.requestedY(), x, y, z)) {
+        if (data.properties().containsKey(WATERLOGGED) && shouldWaterlog(world, settings, placement.automaticHeight(), x, y, z)) {
             data = data.withProperty(WATERLOGGED, TRUE);
         }
         if (world.has(data, BlockTrait.VINE)) {
@@ -185,11 +185,11 @@ public final class BlocksModule implements IrisModule {
     }
 
     /** Whether a waterloggable block lands in water a waterloggable or underwater placement keeps. */
-    static boolean shouldWaterlog(PlacementWorld world, PlacementSettings settings, int requestedY, int x, int y, int z) {
+    static boolean shouldWaterlog(PlacementWorld world, PlacementSettings settings, boolean automaticHeight, int x, int y, int z) {
         if (!(settings.waterloggable() || settings.underwater())) {
             return false;
         }
-        if (requestedY >= 0 && settings.carvingSupport() == CarvingMode.CARVING_ONLY) {
+        if (!automaticHeight && settings.carvingSupport() == CarvingMode.CARVING_ONLY) {
             return false;
         }
         BlockState existing = world.get(x, y, z);

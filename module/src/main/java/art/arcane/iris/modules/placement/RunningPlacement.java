@@ -79,9 +79,14 @@ public final class RunningPlacement {
         return run.x();
     }
 
-    /** The height the caller asked for, negative when the placement samples it. */
+    /** The height the caller asked for; meaningless when {@link #automaticHeight()}. */
     public int requestedY() {
         return run.requestedY();
+    }
+
+    /** Whether the placement samples its height from the terrain instead of placing at {@link #requestedY()}. */
+    public boolean automaticHeight() {
+        return run.automaticHeight();
     }
 
     public int z() {

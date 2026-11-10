@@ -44,7 +44,8 @@ public final class ModuleObjectPlacement {
     }
 
     /**
-     * @param requestedY the height to place at, or a negative value for the placement to sample it
+     * Places the object at {@code requestedY}, which may be below zero in a dimension that reaches down there.
+     *
      * @param listener hears each of the object's own blocks once the placement is written; null for none
      * @param cave the cave the object is placed in, or null outside caves
      */
@@ -52,21 +53,42 @@ public final class ModuleObjectPlacement {
                                               ObjectPlacement config, RNG rng,
                                               BiConsumer<art.arcane.volmlib.util.math.BlockPosition, PlatformBlockState> listener,
                                               CarveResult cave, IrisData data) {
+        ObjectRun run = cave == null
+                ? ObjectRun.of(object, config, x, requestedY, z)
+                : ObjectRun.inCave(object, config, x, requestedY, z, caveOf(cave));
+        return place(run, placer, config, rng, listener, data);
+    }
+
+    /** As {@link #place}, at the height the placement samples from the terrain, or from {@code cave}. */
+    public static ObjectPlacementResult placeAutomatic(IrisObject object, int x, int z, IObjectPlacer placer,
+                                                       ObjectPlacement config, RNG rng,
+                                                       BiConsumer<art.arcane.volmlib.util.math.BlockPosition, PlatformBlockState> listener,
+                                                       CarveResult cave, IrisData data) {
+        ObjectRun run = cave == null
+                ? ObjectRun.automatic(object, config, x, z)
+                : ObjectRun.automaticInCave(object, config, x, z, caveOf(cave));
+        return place(run, placer, config, rng, listener, data);
+    }
+
+    private static ObjectRun.Cave caveOf(CarveResult cave) {
+        return new ObjectRun.Cave(cave.getSurface(), cave.getHeight());
+    }
+
+    private static ObjectPlacementResult place(ObjectRun run, IObjectPlacer placer, ObjectPlacement config, RNG rng,
+                                               BiConsumer<art.arcane.volmlib.util.math.BlockPosition, PlatformBlockState> listener,
+                                               IrisData data) {
         Objects.requireNonNull(placer, "Object placer is required.");
         Objects.requireNonNull(config, "Object placement config is required.");
         Objects.requireNonNull(rng, "Object placement RNG is required.");
         Objects.requireNonNull(data, "Object placement data is required.");
         PlacerTerrain terrain = listener == null ? PlacerTerrain.of(placer, data) : PlacerTerrain.rememberingWrites(placer, data);
-        ObjectRun run = cave == null
-                ? ObjectRun.of(object, config, x, requestedY, z)
-                : ObjectRun.inCave(object, config, x, requestedY, z, new ObjectRun.Cave(cave.getSurface(), cave.getHeight()));
         PlacementOutcome outcome = placeIn(run, terrain, placer.getEngine(), rng, data);
         if (!outcome.isPlaced()) {
             return ObjectPlacementResult.rejected(outcome.rejection().orElseThrow());
         }
         reportObjectBlocks(run, terrain, listener);
         int anchorY = run.anchorY().orElseThrow(() -> new IllegalStateException(
-                "The placement graph placed " + object.name() + " without anchoring it"));
+                "The placement graph placed " + run.object().name() + " without anchoring it"));
         return ObjectPlacementResult.placed(anchorY);
     }
 

@@ -195,7 +195,7 @@ public final class StiltModule implements IrisModule {
             int top = layerY + anchorY;
             int highest = prepared.terrain().highest(x, z, true);
             if (state.properties().containsKey(BlocksModule.WATERLOGGED)
-                    && BlocksModule.shouldWaterlog(world, config, placement.requestedY(), x, highest, z)) {
+                    && BlocksModule.shouldWaterlog(world, config, placement.automaticHeight(), x, highest, z)) {
                 state = state.withProperty(BlocksModule.WATERLOGGED, BlocksModule.TRUE);
             }
             int lowerBound = highest - 1;

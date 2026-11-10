@@ -25,6 +25,7 @@ import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.modules.ModuleObjectPlacement;
+import art.arcane.iris.core.modules.ObjectPlacementResult;
 import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
@@ -60,6 +61,7 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterStructurePOI;
+import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.RNG;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
@@ -68,6 +70,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 /**
  * Places the Iris structures of the dimension, its regions and biomes into the mantle for
@@ -149,26 +152,26 @@ public class StructurePlacing {
             ObjectPlaceMode undergroundMode = mode.placeMode().has(PlaceTrait.CAVE_ANCHORED)
                     ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
             for (PlacedStructurePiece p : pieces) {
-                if (placeObject(writer, structure, p, undergroundMode, p.getY(), rng,
+                if (placeObject(writer, structure, p, undergroundMode, false, rng,
                         foundationColumns, supportNonOccluding) == -1) {
                     failedPieces++;
                 }
             }
         } else if (mode.placeMode().has(PlaceTrait.FREE_HEIGHT)) {
             for (PlacedStructurePiece p : pieces) {
-                if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, p.getY(), rng,
+                if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, false, rng,
                         foundationColumns, supportNonOccluding) == -1) {
                     failedPieces++;
                 }
             }
         } else if (pieces.size() == 1) {
-            if (placeObject(writer, structure, pieces.getFirst(), mode, -1, rng,
+            if (placeObject(writer, structure, pieces.getFirst(), mode, true, rng,
                     foundationColumns, supportNonOccluding) == -1) {
                 failedPieces++;
             }
         } else {
             for (PlacedStructurePiece p : pieces) {
-                if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, p.getY(), rng,
+                if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, false, rng,
                         foundationColumns, supportNonOccluding) == -1) {
                     failedPieces++;
                 }
@@ -561,7 +564,7 @@ public class StructurePlacing {
     }
 
     private int placeObject(MantleWriter writer, IrisStructure structure, PlacedStructurePiece p,
-                            ObjectPlaceMode mode, int y, RNG rng, Long2IntOpenHashMap foundationColumns,
+                            ObjectPlaceMode mode, boolean sampledHeight, RNG rng, Long2IntOpenHashMap foundationColumns,
                             boolean supportNonOccluding) {
         IrisObject object = p.getObject();
         String objectKey = object.getLoadKey();
@@ -573,16 +576,20 @@ public class StructurePlacing {
             builder.forcePlace(true);
         }
         ObjectPlacement config = builder.build();
-        int placeY = (y == -1) ? -1 : y - engine.getMinHeight();
         String marker = structurePlacementMarker(structure, p, objectKey);
-        return ModuleObjectPlacement.place(object, p.getX(), placeY, p.getZ(), writer, config, rng, (position, state) -> {
+        BiConsumer<BlockPosition, PlatformBlockState> listener = (position, state) -> {
             StructureFoundationPlanner.recordBaseCell(
                     foundationColumns, position.getX(), position.getY(), position.getZ(), state,
                     supportNonOccluding);
             if (marker != null && shouldWriteStructureMarker(state)) {
                 writer.setData(position.getX(), position.getY(), position.getZ(), marker);
             }
-        }, null, engine.getData()).heightOrRejected();
+        };
+        ObjectPlacementResult result = sampledHeight
+                ? ModuleObjectPlacement.placeAutomatic(object, p.getX(), p.getZ(), writer, config, rng, listener, null, engine.getData())
+                : ModuleObjectPlacement.place(object, p.getX(), p.getY() - engine.getMinHeight(), p.getZ(), writer, config, rng,
+                listener, null, engine.getData());
+        return result.heightOrRejected();
     }
 
     /** The placement rotation that turns a placed piece the way {@code turn} does. */

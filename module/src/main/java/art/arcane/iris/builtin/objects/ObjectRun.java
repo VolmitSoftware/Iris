@@ -45,6 +45,7 @@ import java.util.OptionalInt;
  */
 public final class ObjectRun {
     private static final int NOT_ANCHORED = Integer.MIN_VALUE;
+    private static final int AUTOMATIC_Y = -1;
     private static final int NEIGHBOR_READ_BLOCKS = 1;
     private static final long X_MULTIPLIER = 0x9E3779B97F4A7C15L;
     private static final long Z_MULTIPLIER = 0xC2B2AE3D27D4EB4FL;
@@ -56,28 +57,41 @@ public final class ObjectRun {
     private final ObjectPlacement settings;
     private final int x;
     private final int requestedY;
+    private final boolean automaticHeight;
     private final int z;
     private final Cave cave;
     private final List<BlockPosition> objectBlocks = new ArrayList<>();
     private int anchorY = NOT_ANCHORED;
 
-    private ObjectRun(PlaceableObject object, ObjectPlacement settings, int x, int requestedY, int z, Cave cave) {
+    private ObjectRun(PlaceableObject object, ObjectPlacement settings, int x, int requestedY, boolean automaticHeight, int z,
+                      Cave cave) {
         this.object = Objects.requireNonNull(object, "object");
         this.settings = Objects.requireNonNull(settings, "settings");
         this.x = x;
         this.requestedY = requestedY;
+        this.automaticHeight = automaticHeight;
         this.z = z;
         this.cave = cave;
     }
 
-    /** @param requestedY the height to place at, or a negative value for the stages to sample it */
+    /** @param requestedY the height to place at, which may be below zero in a dimension that reaches down there */
     public static ObjectRun of(PlaceableObject object, ObjectPlacement settings, int x, int requestedY, int z) {
-        return new ObjectRun(object, settings, x, requestedY, z, null);
+        return new ObjectRun(object, settings, x, requestedY, false, z, null);
     }
 
-    /** A placement inside {@code cave}, which the stages anchor in and keep the object's height within. */
+    /** A placement at the height the stages sample from the terrain. */
+    public static ObjectRun automatic(PlaceableObject object, ObjectPlacement settings, int x, int z) {
+        return new ObjectRun(object, settings, x, AUTOMATIC_Y, true, z, null);
+    }
+
+    /** A placement at {@code requestedY} inside {@code cave}, which the stages anchor in and keep the object's height within. */
     public static ObjectRun inCave(PlaceableObject object, ObjectPlacement settings, int x, int requestedY, int z, Cave cave) {
-        return new ObjectRun(object, settings, x, requestedY, z, Objects.requireNonNull(cave, "cave"));
+        return new ObjectRun(object, settings, x, requestedY, false, z, Objects.requireNonNull(cave, "cave"));
+    }
+
+    /** A placement inside {@code cave} at the height the stages sample from it. */
+    public static ObjectRun automaticInCave(PlaceableObject object, ObjectPlacement settings, int x, int z, Cave cave) {
+        return new ObjectRun(object, settings, x, AUTOMATIC_Y, true, z, Objects.requireNonNull(cave, "cave"));
     }
 
     /**
@@ -127,9 +141,14 @@ public final class ObjectRun {
         return x;
     }
 
-    /** The height the caller asked for, negative when the stages sample it. */
+    /** The height the caller asked for; meaningless when {@link #automaticHeight()}. */
     public int requestedY() {
         return requestedY;
+    }
+
+    /** Whether the stages sample the height from the terrain instead of placing at {@link #requestedY()}. */
+    public boolean automaticHeight() {
+        return automaticHeight;
     }
 
     public int z() {

@@ -53,6 +53,6 @@ record WorldVolume(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
 
     /** Whether each block of the placement follows the surface of its own column. */
     static boolean isPainted(RunningPlacement placement, PreparedPlacement prepared) {
-        return placement.requestedY() < 0 && prepared.mode().anchor() == AnchorSampling.SURFACE;
+        return placement.automaticHeight() && prepared.mode().anchor() == AnchorSampling.SURFACE;
     }
 }

@@ -9,7 +9,7 @@ import { createPatternView, type PatternBlocks, type PatternLayer, type PatternS
 import { BlockColors } from '../scene/blockColors'
 import { BlockModels } from '../scene/blockModels'
 import { BridgeAssets } from '../scene/BridgeAssets'
-import { hexColor } from './colors'
+import { BlockIcon } from './BlockIcon'
 import { EntryBrowser } from './EntryBrowser'
 import { Panel, SidebarPanel } from './Sidebar'
 import { TiledCanvas } from './TiledCanvas'
@@ -18,13 +18,13 @@ const DEFAULT_NAMESPACE_PREFIX = 'minecraft:'
 // A layer thinner than the depth shown, or a palette with no block for the spot.
 const NONE_LABEL = 'nothing at this depth'
 
-/** The blocks the shown layer's tiles placed so far by name, with their colours, and whether some spots got none. */
+/** The blocks the shown layer's tiles placed so far by name, each with one full state for its icon, and whether some spots got none. */
 interface LegendBlocks {
-  colors: Map<string, number>
+  examples: Map<string, string>
   someNone: boolean
 }
 
-const EMPTY_LEGEND: LegendBlocks = { colors: new Map(), someNone: false }
+const EMPTY_LEGEND: LegendBlocks = { examples: new Map(), someNone: false }
 const PILL = 'pointer-events-none absolute rounded-md border border-overlay-border bg-card/90 px-3 py-1.5 text-[12px] text-secondary-text'
 
 interface PatternStudioProps {
@@ -47,7 +47,7 @@ export function PatternStudio({ client, view, packRevision, onSummary, tell }: P
     [view.id, entry, depth, packRevision]
   )
   const [status, setStatus] = useState<PatternStatus | null>(null)
-  const { legend, createView } = usePatternView(client, layer, setStatus, tell)
+  const { legend, blockColors, createView } = usePatternView(client, layer, setStatus, tell)
   const viewRef = useRef<PatternView | null>(null)
 
   useEffect(() => viewRef.current?.show(layer, 'blocks'), [layer])
@@ -89,7 +89,7 @@ export function PatternStudio({ client, view, packRevision, onSummary, tell }: P
       </SidebarPanel>
       <Panel className="w-[250px]">
         <EntryFacts entry={entry} />
-        <Legend blocks={legend} />
+        <Legend blocks={legend} looks={blockColors} />
       </Panel>
     </>
   )
@@ -134,7 +134,7 @@ function usePatternView(
   layer: PatternLayer | null,
   onStatus: (status: PatternStatus) => void,
   tell: (message: string) => void
-): { legend: LegendBlocks; createView(canvas: HTMLCanvasElement): PatternView } {
+): { legend: LegendBlocks; blockColors: BlockColors; createView(canvas: HTMLCanvasElement): PatternView } {
   const blockColors = useMemo(() => {
     const images = new BridgeAssets(client, () => {})
     return new BlockColors(new BlockModels(images), images)
@@ -154,17 +154,17 @@ function usePatternView(
       }),
     [client, blockColors]
   )
-  return { legend, createView }
+  return { legend, blockColors, createView }
 }
 
 /** The legend with the tile's blocks added, one row per block whatever its state; unchanged when it had them all. */
 function withBlocks(shown: LegendBlocks, tile: PatternBlocks): LegendBlocks {
-  const added = [...tile.colors].map(([block, color]) => [shortName(block), color] as const).filter(([name]) => !shown.colors.has(name))
+  const added = [...tile.colors.keys()].map((block) => [shortName(block), block] as const).filter(([name]) => !shown.examples.has(name))
   const someNone = shown.someNone || tile.someNone
   if (added.length === 0 && someNone === shown.someNone) {
     return shown
   }
-  return { colors: new Map([...shown.colors, ...added]), someNone }
+  return { examples: new Map([...added, ...shown.examples]), someNone }
 }
 
 function EntryFacts({ entry }: { entry: PatternEntry | null }): React.JSX.Element | null {
@@ -185,23 +185,23 @@ function EntryFacts({ entry }: { entry: PatternEntry | null }): React.JSX.Elemen
   )
 }
 
-/** The blocks the shown tiles place, each with the colour it is drawn in from afar. */
-function Legend({ blocks }: { blocks: LegendBlocks }): React.JSX.Element {
-  const sorted = [...blocks.colors.entries()].sort(([first], [second]) => first.localeCompare(second))
+/** The blocks the shown tiles place, each with its texture. */
+function Legend({ blocks, looks }: { blocks: LegendBlocks; looks: BlockColors }): React.JSX.Element {
+  const sorted = [...blocks.examples].sort(([first], [second]) => first.localeCompare(second))
   return (
     <section className="flex min-h-0 flex-[3] flex-col">
       <h2 className="px-4 pt-2.5 pb-1.5 text-[11px] font-semibold text-muted-foreground">Blocks</h2>
       <ScrollArea className="min-h-0 flex-1">
         <div className="px-4 pb-2">
-          {sorted.map(([block, color]) => (
+          {sorted.map(([block, example]) => (
             <div key={block} className="flex h-[26px] items-center gap-2">
-              <span className="size-3 shrink-0 rounded-[3px] border border-foreground/25" style={{ background: hexColor(color) }} />
+              <BlockIcon block={example} blocks={looks} />
               <span className="min-w-0 flex-1 truncate">{block}</span>
             </div>
           ))}
           {blocks.someNone && (
             <div className="flex h-[26px] items-center gap-2 text-secondary-text">
-              <span className="size-3 shrink-0 rounded-[3px] border border-foreground/25 bg-map-background" />
+              <span className="size-4 shrink-0 rounded-[2px] border border-foreground/25 bg-map-background" />
               <span className="min-w-0 flex-1 truncate">Nothing at this depth</span>
             </div>
           )}

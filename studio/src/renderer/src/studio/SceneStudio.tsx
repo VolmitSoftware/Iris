@@ -8,6 +8,7 @@ import { parsedText } from '../editor/jsonValues'
 import { nodeDrawingPart, nodeWithPath } from '../editor/nodeLayout'
 import { SuggestionStore } from '../editor/suggestionStore'
 import { useNodeEditor } from '../editor/useNodeEditor'
+import { BlockColors } from '../scene/blockColors'
 import { BlockIndex, blockAtHit, NO_BLOCK } from '../scene/blockPick'
 import { BlockModels } from '../scene/blockModels'
 import { BridgeAssets } from '../scene/BridgeAssets'
@@ -16,6 +17,7 @@ import { blocksInPart, blocksOutsidePart } from '../scene/partFocus'
 import { INTS_PER_BLOCK, type BlockScene } from '../scene/sceneDecoding'
 import { buildSceneMesh, type SceneMesh } from '../scene/sceneMesh'
 import { BakeMeter, useBakeTiming } from './BakeMeter'
+import { BlockIcon } from './BlockIcon'
 import { EntryBrowser } from './EntryBrowser'
 import { useEntryFiles } from './EntryFileDialogs'
 import { NodeInspector } from './NodeInspector'
@@ -45,6 +47,7 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
   const [waiting, setWaiting] = useState<string | null>(null)
   const images = useMemo(() => new BridgeAssets(client, setWaiting), [client])
   const models = useMemo(() => new BlockModels(images), [images])
+  const blockLooks = useMemo(() => new BlockColors(models, images), [models, images])
   const entries = useSceneEntries(client, view.id, packRevision, tell)
   const [chosen, setChosen] = useState<{ key: string; variant: number } | null>(null)
   const entry = entries.find((candidate) => candidate.key === chosen?.key) ?? entries[0] ?? null
@@ -140,7 +143,7 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
         {selected !== null && editor.state !== null ? (
           <NodeInspector key={JSON.stringify(selected.path)} node={selected} state={editor.state} values={values} suggestions={suggestions} onEdit={editor.edit} />
         ) : (
-          <BlockList scene={scene} farLeavesOnly={farLeavesOnly} onFarLeavesOnly={setFarLeavesOnly} />
+          <BlockList scene={scene} blocks={blockLooks} farLeavesOnly={farLeavesOnly} onFarLeavesOnly={setFarLeavesOnly} />
         )}
       </Panel>
     </>
@@ -325,12 +328,13 @@ function disposeMesh(mesh: SceneMesh | null): void {
 
 interface BlockListProps {
   scene: BlockScene | null
+  blocks: BlockColors
   farLeavesOnly: boolean
   onFarLeavesOnly(only: boolean): void
 }
 
 /** The blocks of the scene, most used first, each with its count (v3e ObjectOverviewPanel), and how many leaves are too far from wood. */
-function BlockList({ scene, farLeavesOnly, onFarLeavesOnly }: BlockListProps): React.JSX.Element {
+function BlockList({ scene, blocks, farLeavesOnly, onFarLeavesOnly }: BlockListProps): React.JSX.Element {
   const counts = useMemo(() => (scene === null ? [] : blockCounts(scene)), [scene])
   const farLeaves = useMemo(() => (scene === null ? 0 : countFarLeaves(scene)), [scene])
   return (
@@ -348,9 +352,10 @@ function BlockList({ scene, farLeavesOnly, onFarLeavesOnly }: BlockListProps): R
       )}
       <ScrollArea className="min-h-0 flex-1">
         <div className="px-4 pb-2">
-          {counts.map(([state, count]) => (
-            <div key={state} title={state} className="flex h-[26px] items-center gap-2">
-              <span className="min-w-0 flex-1 truncate">{state.replace(DEFAULT_NAMESPACE_PREFIX, '')}</span>
+          {counts.map(({ material, example, count }) => (
+            <div key={material} title={material} className="flex h-[26px] items-center gap-2">
+              <BlockIcon block={example} blocks={blocks} />
+              <span className="min-w-0 flex-1 truncate">{material.replace(DEFAULT_NAMESPACE_PREFIX, '')}</span>
               <span className="shrink-0 text-[11.5px] text-secondary-text tabular-nums">{NUMBER.format(count)}</span>
             </div>
           ))}
@@ -360,13 +365,25 @@ function BlockList({ scene, farLeavesOnly, onFarLeavesOnly }: BlockListProps): R
   )
 }
 
+interface BlockUse {
+  material: string
+  /** One full state of the block, so its icon has a model to come from. */
+  example: string
+  count: number
+}
+
 // Block states that differ only in how they face count as one block, as a builder reads the list.
-function blockCounts(scene: BlockScene): [string, number][] {
-  const counts = new Map<string, number>()
+function blockCounts(scene: BlockScene): BlockUse[] {
+  const uses = new Map<string, BlockUse>()
   for (let offset = 3; offset < scene.blocks.length; offset += INTS_PER_BLOCK) {
     const state = scene.palette[scene.blocks[offset]]
     const material = state.includes('[') ? state.slice(0, state.indexOf('[')) : state
-    counts.set(material, (counts.get(material) ?? 0) + 1)
+    const use = uses.get(material)
+    if (use === undefined) {
+      uses.set(material, { material, example: state, count: 1 })
+    } else {
+      use.count++
+    }
   }
-  return [...counts.entries()].sort((first, second) => second[1] - first[1])
+  return [...uses.values()].sort((first, second) => second.count - first.count)
 }

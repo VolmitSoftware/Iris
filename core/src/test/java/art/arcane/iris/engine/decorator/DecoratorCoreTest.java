@@ -13,6 +13,8 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -365,6 +367,94 @@ public class DecoratorCoreTest {
     @Test
     public void otherBlocksAreNotFaced() {
         assertSame(STONE, DecoratorCore.fixFacesForHunk(scene(hunk(1, 1, 1)), STONE, 0, 0, 0, 0, 0));
+    }
+
+    @Test
+    public void aCurtainHangsFromTheWallItsTopStrandFaces() {
+        Hunk<BlockState> output = hunk(16, 8, 16);
+        output.set(8, 6, 8, STONE);
+        output.set(8, 5, 7, STONE);
+        output.set(9, 4, 8, STONE);
+
+        placeCurtain(output);
+
+        assertEquals(Set.of("north", "up"), setFaces(output.get(8, 5, 8)));
+        assertEquals(Set.of("north"), setFaces(output.get(8, 4, 8)));
+        assertEquals(Set.of("north"), setFaces(output.get(8, 3, 8)));
+    }
+
+    @Test
+    public void aCurtainHangsUnderAnOpenCeiling() {
+        Hunk<BlockState> output = hunk(16, 8, 16);
+        output.set(8, 6, 8, STONE);
+
+        placeCurtain(output);
+
+        assertEquals(Set.of("north", "up"), setFaces(output.get(8, 5, 8)));
+        assertEquals(Set.of("north"), setFaces(output.get(8, 4, 8)));
+        assertEquals(Set.of("north"), setFaces(output.get(8, 3, 8)));
+    }
+
+    @Test
+    public void anAuthoredSideFaceNothingHoldsIsDroppedAndTheVineReattaches() {
+        Hunk<BlockState> walled = hunk(16, 8, 16);
+        walled.set(9, 3, 8, STONE);
+
+        assertEquals(Set.of("east"), setFaces(DecoratorCore.fixFacesForHunk(scene(walled), authoredVine("north"), 8, 8, 8, 3, 8)));
+        assertEquals(Set.of("up"), setFaces(DecoratorCore.fixFacesForHunk(scene(hunk(16, 8, 16)), authoredVine("north"), 8, 8, 8, 3, 8)));
+    }
+
+    @Test
+    public void anAuthoredSideFaceAWallHoldsKeepsItsDirection() {
+        Hunk<BlockState> output = hunk(16, 8, 16);
+        output.set(8, 3, 7, STONE);
+        output.set(9, 3, 8, STONE);
+
+        assertEquals(Set.of("north"), setFaces(DecoratorCore.fixFacesForHunk(scene(output), authoredVine("north"), 8, 8, 8, 3, 8)));
+    }
+
+    @Test
+    public void aVineWithoutAnAuthoredSideFaceReattachesToEverySturdyNeighbour() {
+        Hunk<BlockState> output = hunk(16, 8, 16);
+        output.set(7, 3, 8, STONE);
+        output.set(8, 3, 9, STONE);
+        output.set(8, 4, 8, STONE);
+
+        BlockState fixed = DecoratorCore.fixFacesForHunk(scene(output), authoredVine("up"), 8, 8, 8, 3, 8);
+
+        assertEquals(Set.of("south", "west", "up"), setFaces(fixed));
+    }
+
+    @Test
+    public void glowLichenSideFaceIsNotHeldByTheLichenAboveIt() {
+        BlockState lichen = BlockState.parse("minecraft:glow_lichen[down=false,east=false,north=true,south=false,up=false,west=false]");
+        Hunk<BlockState> output = hunk(16, 8, 16);
+        output.set(8, 2, 8, STONE);
+        output.set(8, 4, 8, lichen);
+
+        assertEquals(Set.of("down"), setFaces(DecoratorCore.fixFacesForHunk(scene(output), lichen, 8, 8, 8, 3, 8)));
+    }
+
+    private static void placeCurtain(Hunk<BlockState> output) {
+        ResolvedDecorator decorator = mock(ResolvedDecorator.class);
+        BlockState vine = authoredVine("north");
+        when(decorator.stackHeight(anyDouble(), anyDouble())).thenReturn(3);
+        when(decorator.topThreshold()).thenReturn(1.0);
+        when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(vine);
+        when(decorator.pickTopBlock(anyDouble(), anyDouble())).thenReturn(vine);
+
+        DecoratorCore.placeStackDown(decorator, scene(output), 8, 8, 8, 8, 5, 0, 3, new DecoratorCore.PlaceOpts());
+    }
+
+    private static BlockState authoredVine(String face) {
+        return BlockState.parse("minecraft:vine[east=false,north=false,south=false,up=false,west=false]").withProperty(face, "true");
+    }
+
+    private static Set<String> setFaces(BlockState state) {
+        return state.properties().entrySet().stream()
+                .filter(property -> "true".equals(property.getValue()))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
     }
 
     private static BlockState vine() {

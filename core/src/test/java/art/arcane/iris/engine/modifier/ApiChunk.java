@@ -133,7 +133,7 @@ public final class ApiChunk implements GenerationContext {
     private static final Set<String> FOLIAGE = Set.of("minecraft:short_grass", "minecraft:poppy", "minecraft:tall_grass",
             "minecraft:fern");
     private static final Set<String> SOILS = Set.of("minecraft:grass_block", "minecraft:dirt", "minecraft:sand");
-    private static final Set<String> VINES = Set.of("minecraft:vine");
+    private static final Set<String> VINES = Set.of("minecraft:vine", "minecraft:glow_lichen");
     private static final Comparator<BlockPosition> VISIT_ORDER = Comparator.comparingInt(BlockPosition::x)
             .thenComparingInt(BlockPosition::y).thenComparingInt(BlockPosition::z);
 

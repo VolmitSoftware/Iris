@@ -4,8 +4,10 @@ import com.volmit.IrisModule;
 import com.volmit.example.placement.MossModule;
 import com.volmit.example.placement.SnowModule;
 import org.junit.jupiter.api.Test;
+import java.util.Collections;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PackModulesSummaryTest {
     private static DiscoveredModule pack(IrisModule module, String origin) {
@@ -17,38 +19,54 @@ class PackModulesSummaryTest {
     }
 
     @Test
-    void listsNameIdVersionAndJarOfEveryModuleThePackBringsInLoadOrder() {
+    void listsTheVersionAndJarOfEveryModuleThePackBringsInLoadOrder() {
         var modules = List.of(
                 pack(new MossModule(), "modules/moss.jar"),
                 pack(new SnowModule(), "modules/snow.jar"));
 
         assertEquals("""
-                Pack overworld uses 2 modules: all from the pack
-                  Moss (example:moss 1.0.0) from modules/moss.jar
-                  Snow (iris:snow test) from modules/snow.jar""",
+                Pack overworld uses 2 modules:
+                  Pack: Moss 1.0.0 (modules/moss.jar), Snow test (modules/snow.jar)""",
                 PackModulesSummary.describe("overworld", modules));
     }
 
     @Test
-    void hostModulesAreOnlyCounted() {
+    void namesHostModulesWithoutTheirJar() {
         var modules = List.of(
                 bundled(new SnowModule()),
-                DiscoveredModule.builtIn(new SnowModule()));
-
-        assertEquals("Pack overworld uses 2 modules: all from the host",
-                PackModulesSummary.describe("overworld", modules));
-    }
-
-    @Test
-    void aMixedPackCountsBothAndListsOnlyItsOwn() {
-        var modules = List.of(
-                bundled(new SnowModule()),
-                pack(new MossModule(), "modules/moss.jar"));
+                DiscoveredModule.builtIn(new MossModule()));
 
         assertEquals("""
-                Pack overworld uses 2 modules: 1 from the host, 1 from the pack
-                  Moss (example:moss 1.0.0) from modules/moss.jar""",
+                Pack overworld uses 2 modules:
+                  Host: Snow, Moss""",
                 PackModulesSummary.describe("overworld", modules));
+    }
+
+    @Test
+    void groupsHostModulesBeforeThePacksOwn() {
+        var modules = List.of(
+                pack(new MossModule(), "modules/moss.jar"),
+                bundled(new SnowModule()));
+
+        assertEquals("""
+                Pack overworld uses 2 modules:
+                  Host: Snow
+                  Pack: Moss 1.0.0 (modules/moss.jar)""",
+                PackModulesSummary.describe("overworld", modules));
+    }
+
+    @Test
+    void wrapsALongGroupUnderItsFirstEntry() {
+        var modules = Collections.nCopies(20, bundled(new SnowModule()));
+
+        String[] lines = PackModulesSummary.describe("overworld", modules).split("\n");
+
+        assertTrue(lines.length > 2);
+        assertTrue(lines[1].startsWith("  Host: Snow, Snow"));
+        assertTrue(lines[2].startsWith("        Snow"));
+        for (String line : lines) {
+            assertTrue(line.length() <= 100, line);
+        }
     }
 
     @Test
@@ -56,8 +74,8 @@ class PackModulesSummaryTest {
         var modules = List.of(pack(new MossModule(), "modules/moss.jar"));
 
         assertEquals("""
-                Pack overworld uses 1 module: all from the pack
-                  Moss (example:moss 1.0.0) from modules/moss.jar""",
+                Pack overworld uses 1 module:
+                  Pack: Moss 1.0.0 (modules/moss.jar)""",
                 PackModulesSummary.describe("overworld", modules));
     }
 

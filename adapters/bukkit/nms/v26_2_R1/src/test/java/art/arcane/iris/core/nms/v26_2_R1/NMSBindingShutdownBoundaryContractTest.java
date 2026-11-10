@@ -18,6 +18,17 @@ public class NMSBindingShutdownBoundaryContractTest {
         assertTrue(boundary.contains("server.getRunningThread()"));
     }
 
+    @Test
+    public void chunkTaskPollingIsServerThreadOnlyAndSkipsFolia() throws Exception {
+        String source = Files.readString(Path.of(System.getProperty("iris.nmsBindingSource"))).replace("\r\n", "\n");
+        String polling = section(source, "public boolean pollChunkTask", "public void flushChunkIO");
+
+        int foliaGuard = polling.indexOf("J.isFolia()");
+        int ownerGuard = polling.indexOf("level.getServer().getRunningThread()");
+        int poll = polling.indexOf("level.getChunkSource().pollTask()");
+        assertTrue(foliaGuard >= 0 && ownerGuard > foliaGuard && poll > ownerGuard);
+    }
+
     private static String section(String source, String startMarker, String endMarker) {
         int start = source.indexOf(startMarker);
         int end = source.indexOf(endMarker, start);

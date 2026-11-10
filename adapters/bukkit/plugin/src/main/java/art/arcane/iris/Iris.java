@@ -39,6 +39,7 @@ import art.arcane.iris.core.SettingsHotloadWatch;
 import art.arcane.iris.core.ServerConfigurator;
 import art.arcane.iris.core.datapack.DatapackIngestService;
 import art.arcane.iris.core.datapack.DatapackIngestService.StartupValidationOutcome;
+import art.arcane.iris.core.lifecycle.IrisRuntimeStatics;
 import art.arcane.iris.core.lifecycle.ManagedWorldLoader;
 import art.arcane.iris.core.lifecycle.MissingWorldStorageLog;
 import art.arcane.iris.core.lifecycle.PaperLibBootstrap;
@@ -205,16 +206,23 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     private volatile Thread serverLifecycleThread;
 
     public static VolmitSender getSender() {
-        if (sender == null) {
-            sender = new VolmitSender(Bukkit.getConsoleSender());
-            sender.setTag(instance.getTag());
+        VolmitSender current = sender;
+        if (current == null) {
+            Iris plugin = instance;
+            current = new VolmitSender(Bukkit.getConsoleSender());
+            current.setTag(plugin == null ? IrisSafeguard.mode().tag("") : plugin.getTag());
+            sender = current;
         }
-        return sender;
+        return current;
     }
 
     @SuppressWarnings("unchecked")
     public static <T> T service(Class<T> c) {
-        return (T) instance.services.get(c);
+        Iris plugin = instance;
+        if (plugin == null || plugin.services == null) {
+            throw new IllegalStateException("Iris is disabled; " + c.getSimpleName() + " is unavailable");
+        }
+        return (T) plugin.services.get(c);
     }
 
     public static void callEvent(Event e) {
@@ -253,7 +261,11 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     }
 
     public static File getTemp() {
-        return instance.getDataFolder("cache", "temp");
+        Iris plugin = instance;
+        if (plugin == null) {
+            throw new IllegalStateException("Iris is disabled; the temp folder is unavailable");
+        }
+        return plugin.getDataFolder("cache", "temp");
     }
 
     public static void msg(String string) {
@@ -522,11 +534,11 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 Iris::msg,
                 Iris::reportError,
                 (event) -> Iris.callEvent((org.bukkit.event.Event) event),
-                () -> Iris.instance.getDataFolder(),
-                (path) -> Iris.instance.getDataFile(path),
-                () -> Iris.instance.getJarFile(),
-                () -> Iris.instance.getIrisVersion(),
-                () -> Iris.instance.getMCVersion()));
+                this::getDataFolder,
+                this::getDataFile,
+                this::getJarFile,
+                this::getIrisVersion,
+                this::getMCVersion));
         SlimJar.load();
     }
 
@@ -951,8 +963,17 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             J.attempt(MultiBurst.burst::close);
             J.attempt(MultiBurst.ioBurst::close);
             clearQueues();
-            IrisServices.clear();
+            IrisRuntimeStatics.reset();
+            releaseStatics();
         }
+    }
+
+    private static void releaseStatics() {
+        linkMultiverseCore = null;
+        compat = null;
+        tickets = null;
+        sender = null;
+        instance = null;
     }
 
     private void quiesceRuntimeForServerShutdown(String reason) {
@@ -972,7 +993,16 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         StudioBridges.closeAll();
 
         try {
-            PregeneratorJob.shutdownAndWait(SERVER_STOP_PREGEN_TIMEOUT_MILLIS);
+            if (J.isFolia()) {
+                PregeneratorJob.shutdownAndWait(SERVER_STOP_PREGEN_TIMEOUT_MILLIS);
+            } else {
+                List<World> worlds = Bukkit.getWorlds();
+                PregeneratorJob.shutdownAndWait(SERVER_STOP_PREGEN_TIMEOUT_MILLIS, () -> {
+                    for (World world : worlds) {
+                        INMS.get().pollChunkTask(world);
+                    }
+                });
+            }
         } catch (Throwable e) {
             Iris.reportError("Failed to quiesce the Iris pregenerator before server shutdown.", e);
         }
@@ -1067,6 +1097,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             Iris.reportError("Failed to run Iris post-shutdown cleanup.", e);
         } finally {
             IrisPlatforms.unbind();
+            BukkitPlatform.releaseHost();
         }
     }
 
@@ -1248,7 +1279,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     }
 
     public int getIrisVersion() {
-        String input = Iris.instance.getDescription().getVersion();
+        String input = getDescription().getVersion();
         int hyphenIndex = input.indexOf('-');
         if (hyphenIndex != -1) {
             String result = input.substring(0, hyphenIndex);

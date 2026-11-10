@@ -78,6 +78,11 @@ public final class IrisLanguage {
     private IrisLanguage() {
     }
 
+    public static synchronized void shutdown() {
+        dataFolder = null;
+        PLAIN_MEMO.set(null);
+    }
+
     public static boolean initialize() {
         if (!IrisPlatforms.isBound()) {
             return false;

@@ -81,6 +81,11 @@ public class HybridPregenMethod implements PregeneratorMethod {
     }
 
     @Override
+    public void onChunkGenerationFailed(int chunkX, int chunkZ, Throwable failure) {
+        inWorld.onChunkGenerationFailed(chunkX, chunkZ, failure);
+    }
+
+    @Override
     public void onRegionSubmitted(int regionX, int regionZ) {
         inWorld.onRegionSubmitted(regionX, regionZ);
     }

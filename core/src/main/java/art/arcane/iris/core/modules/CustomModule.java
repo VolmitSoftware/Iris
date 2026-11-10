@@ -60,9 +60,6 @@ public final class CustomModule implements IrisModule {
 
     private static void record(ChunkStageContext context) {
         IrisChunk chunk = context.extension(IrisChunk.class).orElseThrow();
-        if (chunk.bypassesMantleStages()) {
-            return;
-        }
         chunk.state(CustomBlockRecording.class, CustomBlockRecording::new).record(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.multicore());
     }
 

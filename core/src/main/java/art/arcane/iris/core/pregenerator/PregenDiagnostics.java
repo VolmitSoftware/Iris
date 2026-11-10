@@ -16,25 +16,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.common.inventorygui;
+package art.arcane.iris.core.pregenerator;
 
-import art.arcane.volmlib.util.inventorygui.WindowDecorator;
+import art.arcane.iris.spi.IrisLogging;
 
-import art.arcane.volmlib.util.inventorygui.Element;
-
-import art.arcane.volmlib.util.data.MaterialBlock;
-import org.bukkit.Material;
-
-@SuppressWarnings("ClassCanBeRecord")
-public class UIStaticDecorator implements WindowDecorator {
-    private final Element element;
-
-    public UIStaticDecorator(Element element) {
-        this.element = element == null ? new art.arcane.volmlib.util.inventorygui.UIElement("bg").setMaterial(new MaterialBlock(Material.AIR)) : element;
+public final class PregenDiagnostics {
+    private PregenDiagnostics() {
     }
 
-    @Override
-    public Element onDecorateBackground(art.arcane.volmlib.util.inventorygui.Window window, int position, int row) {
-        return element;
+    public static void probeFailed(String probe, Throwable failure) {
+        IrisLogging.debug("Pregen probe " + describeProbe(probe) + " failed: " + describeFailure(failure));
+    }
+
+    public static String describeProbe(String probe) {
+        return probe == null || probe.isBlank() ? "unnamed" : probe;
+    }
+
+    public static String describeFailure(Throwable failure) {
+        if (failure == null) {
+            return "no throwable reported";
+        }
+
+        String message = failure.getMessage();
+        return message == null ? failure.getClass().getName() : failure.getClass().getName() + ": " + message;
     }
 }

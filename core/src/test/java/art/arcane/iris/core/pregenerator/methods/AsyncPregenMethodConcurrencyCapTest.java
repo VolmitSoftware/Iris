@@ -90,10 +90,11 @@ public class AsyncPregenMethodConcurrencyCapTest {
         AtomicInteger warnings = new AtomicInteger();
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
-            Future<Boolean> drain = executor.submit(() -> AsyncPregenMethod.awaitDrain(
+            Future<AsyncPregenMethod.Drain> drain = executor.submit(() -> AsyncPregenMethod.awaitDrain(
                     semaphore,
                     2,
                     10L,
+                    5L * 1000L,
                     TimeUnit.MILLISECONDS,
                     warnings::incrementAndGet
             ));
@@ -103,11 +104,34 @@ public class AsyncPregenMethodConcurrencyCapTest {
             }
             semaphore.release(2);
 
-            assertFalse(drain.get(1L, TimeUnit.SECONDS));
+            AsyncPregenMethod.Drain result = drain.get(1L, TimeUnit.SECONDS);
+            assertTrue(result.drained());
+            assertFalse(result.interrupted());
+            assertEquals(0, result.outstanding());
             assertTrue(warnings.get() > 0);
             assertEquals(0, semaphore.availablePermits());
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    @Test
+    public void closeDrainGivesUpAtItsDeadlineWhilePermitsStayHeld() {
+        Semaphore semaphore = new Semaphore(0);
+        AtomicInteger warnings = new AtomicInteger();
+
+        AsyncPregenMethod.Drain result = AsyncPregenMethod.awaitDrain(
+                semaphore,
+                2,
+                5L,
+                80L,
+                TimeUnit.MILLISECONDS,
+                warnings::incrementAndGet
+        );
+
+        assertFalse(result.drained());
+        assertFalse(result.interrupted());
+        assertEquals(2, result.outstanding());
+        assertTrue(warnings.get() > 0);
     }
 }

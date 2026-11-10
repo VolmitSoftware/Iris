@@ -79,6 +79,12 @@ public final class WorldRuntimeControlService {
                 + ", " + backend.describeCapabilities();
     }
 
+    public static void reset() {
+        synchronized (WorldRuntimeControlService.class) {
+            instance = null;
+        }
+    }
+
     public static WorldRuntimeControlService get() {
         WorldRuntimeControlService current = instance;
         if (current != null) {

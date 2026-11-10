@@ -1,6 +1,8 @@
 package art.arcane.iris.engine.framework;
 
-public class GenerationSessionException extends WrongEngineBroException {
+import com.volmit.generation.EngineFailure;
+
+public class GenerationSessionException extends WrongEngineBroException implements EngineFailure {
     private final boolean expectedTeardown;
 
     public GenerationSessionException(String message) {

@@ -174,6 +174,11 @@ public class PregenTask {
         return new int[]{bound.minX(), bound.minZ(), bound.maxX(), bound.maxZ()};
     }
 
+    public long chunkCount() {
+        Bound bound = bounds.chunk();
+        return (long) bound.sizeX() * bound.sizeZ();
+    }
+
     @FunctionalInterface
     public interface InterleavedChunkConsumer {
         boolean on(int regionX, int regionZ, int chunkX, int chunkZ, boolean firstChunkInRegion, boolean lastChunkInRegion);

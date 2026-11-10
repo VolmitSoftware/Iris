@@ -44,6 +44,7 @@ import com.volmit.ModuleLog;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
+import com.volmit.generation.GenerationFailures;
 import com.volmit.hunk.Hunk;
 import com.volmit.mantle.Mantle;
 import com.volmit.resource.ResourceId;
@@ -229,7 +230,7 @@ final class FloatingIslands {
             RNG colRng = rng.nextParallelRNG((int) FloatingIslandSample.columnSeed(world.baseSeed(), wx, wz));
             FloatingDecorator.decorateColumn(scene, decorated, DecorationPart.NONE, xf, zf, wx, wz, topY, max, colRng, NOOP_DECORATION_MISS);
         } catch (Throwable e) {
-            log.error("Failed to decorate the top of a floating island", e);
+            GenerationFailures.skipPlacement(log, e, "decoration", "floating island top", "at " + wx + "," + topY + "," + wz);
         }
     }
 
@@ -263,7 +264,7 @@ final class FloatingIslands {
         try {
             new IrisSeaSurfaceDecorator(scene).decorate(xf, zf, wx, wx + 1, wx - 1, wz, wz + 1, wz - 1, decorated, fluidTopY, chunk.height);
         } catch (Throwable e) {
-            log.error("Failed to decorate the sea surface of a floating island", e);
+            GenerationFailures.skipPlacement(log, e, "decoration", "floating island sea surface", "at " + wx + "," + fluidTopY + "," + wz);
         }
     }
 
@@ -330,7 +331,7 @@ final class FloatingIslands {
                 try {
                     generated.add(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.zoom(), j, (wz - j) / layer.zoom()));
                 } catch (Throwable e) {
-                    log.error("Failed to pick a block of a floating island's palette", e);
+                    GenerationFailures.skipPlacement(log, e, "palette block", "floating island", "at " + wx + "," + wz + " depth " + j);
                 }
             }
 
@@ -427,6 +428,7 @@ final class FloatingIslands {
                 }
             }
         } catch (Throwable e) {
+            GenerationFailures.rethrowEngineFailure(e);
             log.error("Failed to write the sky biomes of a floating island", e);
         }
     }

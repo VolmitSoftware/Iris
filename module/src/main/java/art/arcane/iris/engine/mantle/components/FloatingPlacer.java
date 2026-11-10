@@ -31,6 +31,7 @@ import com.volmit.ModuleLog;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
+import com.volmit.generation.GenerationFailures;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.object.BlockEntityData;
 import com.volmit.object.ObjectBlock;
@@ -112,7 +113,7 @@ final class FloatingPlacer {
         try {
             place(ObjectRun.of(object, floating, worldX, SAMPLED_HEIGHT, worldZ), context.placementTerrain(), object, id);
         } catch (Throwable failure) {
-            log.error("Failed to place a floating object", failure);
+            GenerationFailures.skipPlacement(log, failure, "floating object", object.name(), "at " + worldX + "," + worldZ);
         }
     }
 
@@ -153,7 +154,7 @@ final class FloatingPlacer {
             }
         } catch (Throwable failure) {
             transaction.discard();
-            log.error("Failed to place an " + kind + " floating object", failure);
+            GenerationFailures.skipPlacement(log, failure, kind + " floating object", object.name(), "at " + worldX + "," + y + "," + worldZ);
         }
     }
 

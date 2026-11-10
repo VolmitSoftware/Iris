@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -56,6 +57,39 @@ public class FloatingObjectPlacingBoundaryRadiusTest {
         when(objects.sizeOf(floating)).thenReturn(Optional.of(new BlockBox(0, 0, 0, 1, 1, 1)));
 
         assertEquals(33, FloatingObjectPlacing.reach(pack(new FloatingChildSettings(List.of(floatingChild)), resources), ModuleLogs.discarding()));
+    }
+
+    @Test
+    public void packWithoutFloatingChildrenHasNoReach() {
+        assertEquals(0, FloatingObjectPlacing.reach(pack(new FloatingChildSettings(List.of()), mock(PackResources.class)), ModuleLogs.discarding()));
+    }
+
+    @Test
+    public void floatingChildWithoutObjectsHasNoReach() {
+        FloatingChildBiome floatingChild = TestSettings.with(new FloatingChildBiome(), "inheritObjects", false);
+
+        assertEquals(0, FloatingObjectPlacing.reach(pack(new FloatingChildSettings(List.of(floatingChild)), mock(PackResources.class)), ModuleLogs.discarding()));
+    }
+
+    @Test
+    public void placementOfMissingObjectKeepsTheMinimumReach() {
+        ObjectPlacement placement = TestSettings.of(ObjectPlacement.class, "{\"place\":[\"test/missing\"]}");
+        FloatingChildBiome floatingChild = TestSettings.with(new FloatingChildBiome(), "extraObjects", List.of(placement));
+        PackResources resources = mock(PackResources.class);
+        PackObjects objects = mock(PackObjects.class);
+        when(resources.objects()).thenReturn(objects);
+        when(objects.sizeOf(any())).thenReturn(Optional.empty());
+
+        assertEquals(16, FloatingObjectPlacing.reach(pack(new FloatingChildSettings(List.of(floatingChild)), resources), ModuleLogs.discarding()));
+    }
+
+    @Test
+    public void failedReachScanKeepsTheMinimumReach() {
+        PackSettings failing = mock(PackSettings.class);
+        when(failing.resources()).thenReturn(mock(PackResources.class));
+        when(failing.declared(any())).thenThrow(new IllegalStateException("Unavailable settings"));
+
+        assertEquals(16, FloatingObjectPlacing.reach(failing, ModuleLogs.discarding()));
     }
 
     private static PackSettings pack(FloatingChildSettings declared, PackResources resources) {

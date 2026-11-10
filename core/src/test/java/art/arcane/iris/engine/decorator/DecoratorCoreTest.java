@@ -14,6 +14,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
@@ -22,6 +23,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.mock;
@@ -83,6 +85,27 @@ public class DecoratorCoreTest {
 
         ResolvedDecorator result = DecoratorCore.pickDecorator(new ResolvedDecorator[]{d}, new RNG(2L), 0.0, 0.0, ModuleLogs.discarding());
         assertNull(result);
+    }
+
+    @Test
+    public void pickDecorator_contentFailure_skipsThatDecorator() {
+        ResolvedDecorator broken = mock(ResolvedDecorator.class);
+        when(broken.passesChanceGate(anyDouble(), anyDouble())).thenThrow(new IllegalArgumentException("malformed decorator"));
+        ResolvedDecorator healthy = mock(ResolvedDecorator.class);
+        when(healthy.passesChanceGate(anyDouble(), anyDouble())).thenReturn(true);
+
+        ResolvedDecorator result = DecoratorCore.pickDecorator(new ResolvedDecorator[]{broken, healthy}, new RNG(2L), 0.0, 0.0, ModuleLogs.discarding());
+        assertSame(healthy, result);
+    }
+
+    @Test
+    public void pickDecorator_engineFailure_endsTheChunk() {
+        ResolvedDecorator closed = mock(ResolvedDecorator.class);
+        RejectedExecutionException failure = new RejectedExecutionException("pool shut down");
+        when(closed.passesChanceGate(anyDouble(), anyDouble())).thenThrow(failure);
+
+        assertSame(failure, assertThrows(RejectedExecutionException.class, () ->
+                DecoratorCore.pickDecorator(new ResolvedDecorator[]{closed}, new RNG(2L), 0.0, 0.0, ModuleLogs.discarding())));
     }
 
     @Test

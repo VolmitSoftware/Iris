@@ -81,8 +81,6 @@ art/arcane/volmlib/util/data/base/ComplexCacheBase
 art/arcane/volmlib/util/director/DirectorNodeBase
 art/arcane/volmlib/util/director/DirectorParameterBase
 art/arcane/volmlib/util/director/theme/DirectorThemes
-art/arcane/volmlib/util/interpolation/InterpolationMethod
-art/arcane/volmlib/util/interpolation/IrisInterpolation
 art/arcane/volmlib/util/math/INode
 art/arcane/volmlib/util/math/IrisMathHelper
 art/arcane/volmlib/util/math/KochanekBartelsInterpolation
@@ -92,11 +90,6 @@ art/arcane/volmlib/util/board/BoardManager
 art/arcane/volmlib/util/board/BoardUpdateTask
 art/arcane/volmlib/util/bukkit/Placeholders
 art/arcane/volmlib/util/hunk/HunkFactory
-art/arcane/volmlib/util/hunk/storage/ArrayHunk
-art/arcane/volmlib/util/hunk/storage/AtomicDoubleHunk
-art/arcane/volmlib/util/hunk/storage/AtomicIntegerHunk
-art/arcane/volmlib/util/hunk/storage/AtomicLongHunk
-art/arcane/volmlib/util/hunk/storage/SynchronizedArrayHunk
 art/arcane/volmlib/util/hunk/view/BiomeForceBridge
 art/arcane/volmlib/util/hunk/view/BiomeGridForceSupport
 art/arcane/volmlib/util/hunk/view/BiomeGridHunkHolder

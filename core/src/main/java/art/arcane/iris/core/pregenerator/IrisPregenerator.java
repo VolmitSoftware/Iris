@@ -195,6 +195,10 @@ public class IrisPregenerator {
         shutdown.set(true);
     }
 
+    public void onChunkGenerationFailed(int chunkX, int chunkZ, Throwable failure) {
+        generator.onChunkGenerationFailed(chunkX, chunkZ, failure);
+    }
+
     public void start() {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         boolean completed = false;
@@ -203,7 +207,7 @@ public class IrisPregenerator {
         // fires — leaving a phantom job that suppresses spawns and blocks future pregens.
         try {
             init();
-            task.iterateAllChunks((_a, _b) -> totalChunks.incrementAndGet());
+            totalChunks.set(task.chunkCount());
             long startedAt = M.ms();
             startTime.set(startedAt);
             rateTracker.reset(startedAt, generated.get());

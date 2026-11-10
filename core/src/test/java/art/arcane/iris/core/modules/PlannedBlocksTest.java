@@ -20,7 +20,6 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
@@ -68,7 +67,7 @@ public class PlannedBlocksTest {
     public void placementsBlocksReadInWorldCoordinatesInVisitOrder() {
         plan(20, 10, 33, planks);
         plan(17, 40, 35, planks);
-        PlannedBlocks blocks = planned(true, false);
+        PlannedBlocks blocks = planned(true);
         List<String> visited = new ArrayList<>();
 
         blocks.visit(CHUNK, (x, y, z, block) -> visited.add(x + "," + y + "," + z + " " + block.key()));
@@ -79,20 +78,20 @@ public class PlannedBlocksTest {
     }
 
     @Test
-    public void aDimensionWithoutAMantleOrAChunkWithoutItPlansNothing() {
+    public void aDimensionWithoutAMantlePlansNothing() {
         plan(20, 10, 33, planks);
+        PlannedBlocks blocks = planned(false);
+        List<BlockState> visited = new ArrayList<>();
 
-        for (PlannedBlocks blocks : List.of(planned(false, false), planned(true, true))) {
-            List<BlockState> visited = new ArrayList<>();
-            blocks.visit(CHUNK, (x, y, z, block) -> visited.add(block));
-            assertEquals(List.of(), visited);
-            assertNull(blocks.get(20, 10, 33));
-        }
+        blocks.visit(CHUNK, (x, y, z, block) -> visited.add(block));
+
+        assertEquals(List.of(), visited);
+        assertNull(blocks.get(20, 10, 33));
     }
 
     @Test
     public void stagesCannotPlanBlocks() {
-        MantleLayer<BlockState> blocks = planned(true, false);
+        MantleLayer<BlockState> blocks = planned(true);
         BlockState stone = BlockState.parse("minecraft:stone");
 
         assertThrows(UnsupportedOperationException.class, () -> blocks.set(20, 10, 33, stone));
@@ -106,7 +105,7 @@ public class PlannedBlocksTest {
         PlatformBlockState vanilla = UsableBlockPlatform.block("minecraft:note_block");
         plan(20, 10, 33, custom);
         PlatformBlockStates states = new PlatformBlockStates(key -> vanilla);
-        PlannedBlocks blocks = PlannedBlocks.of(engine(true, false), CHUNK, mantle::chunk, states);
+        PlannedBlocks blocks = PlannedBlocks.of(engine(true), CHUNK, mantle::chunk, states);
         Hunk<PlatformBlockState> chunk = Hunk.newArrayHunk(16, SECTIONS * 16, 16);
         BlockStateHunk hunk = new BlockStateHunk(chunk, states);
 
@@ -121,18 +120,15 @@ public class PlannedBlocksTest {
         mantle.chunk(x >> 4, z >> 4).getOrCreate(y >> 4).slice(PlatformBlockState.class).set(x & 15, y & 15, z & 15, block);
     }
 
-    private PlannedBlocks planned(boolean useMantle, boolean bypass) {
-        return PlannedBlocks.of(engine(useMantle, bypass), CHUNK, mantle::chunk, new PlatformBlockStates(UsableBlockPlatform::block));
+    private PlannedBlocks planned(boolean useMantle) {
+        return PlannedBlocks.of(engine(useMantle), CHUNK, mantle::chunk, new PlatformBlockStates(UsableBlockPlatform::block));
     }
 
-    private static Engine engine(boolean useMantle, boolean bypass) {
+    private static Engine engine(boolean useMantle) {
         IrisDimension dimension = mock(IrisDimension.class);
         when(dimension.isUseMantle()).thenReturn(useMantle);
-        EngineGeneration generation = mock(EngineGeneration.class);
-        when(generation.bypassesMantleStages()).thenReturn(bypass);
         Engine engine = mock(Engine.class);
         when(engine.getDimension()).thenReturn(dimension);
-        when(engine.getGeneration()).thenReturn(generation);
         return engine;
     }
 }

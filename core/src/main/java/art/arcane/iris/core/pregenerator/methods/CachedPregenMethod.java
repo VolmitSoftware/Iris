@@ -176,6 +176,11 @@ public class CachedPregenMethod implements PregeneratorMethod {
     }
 
     @Override
+    public void onChunkGenerationFailed(int chunkX, int chunkZ, Throwable failure) {
+        method.onChunkGenerationFailed(chunkX, chunkZ, failure);
+    }
+
+    @Override
     public void onRegionSubmitted(int regionX, int regionZ) {
         method.onRegionSubmitted(regionX, regionZ);
     }

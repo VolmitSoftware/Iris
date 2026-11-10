@@ -78,7 +78,7 @@ public class ModuleMantleComponentTest {
             assertEquals(List.of(MantleFlag.of(first), MantleFlag.of(first + 1), MantleFlag.of(first + 2), MantleFlag.of(first + 3), MantleFlag.of(first + 4)),
                     components.stream().map(ModuleMantleComponent::getFlag).toList());
             assertEquals(List.of(0, 1, 2, 3, 4), components.stream().map(ModuleMantleComponent::getPriority).toList());
-            assertEquals("a pack without objects or structures: caves 1, floating objects at least 16", List.of(1, 0, 16, 0, MARK_REACH),
+            assertEquals("a pack without objects or structures: caves 1, no floating objects", List.of(1, 0, 0, 0, MARK_REACH),
                     components.stream().map(ModuleMantleComponent::getRadius).toList());
             assertEquals("disabledComponents: [iris:carve/caves] turns the cave pass off", List.of(false, true, true, true, true),
                     components.stream().map(ModuleMantleComponent::isEnabled).toList());

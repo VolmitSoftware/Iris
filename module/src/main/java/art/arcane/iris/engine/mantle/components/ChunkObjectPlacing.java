@@ -41,6 +41,7 @@ import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.Level;
 import com.volmit.config.SettingsStack;
+import com.volmit.generation.GenerationFailures;
 import com.volmit.object.PlaceableObject;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.MantleStageContext;
@@ -245,8 +246,8 @@ final class ChunkObjectPlacing {
                 tally.triggered(scope);
                 placeObject(tally, placement, scope);
             } catch (Throwable failure) {
+                skipObjectPlacement("object", "in " + ownerKind(scope) + " " + ownerName, placement, failure);
                 tally.errors++;
-                logPlacementFailure("Failed to place objects in the following " + ownerKind(scope) + ": " + ownerName, placement, failure);
             }
         }
     }
@@ -283,8 +284,8 @@ final class ChunkObjectPlacing {
             try {
                 placeCaveObject(tally, placement, profile, scope, expectedCaveBiome, anchors);
             } catch (Throwable failure) {
+                skipObjectPlacement("cave object", "in " + ownerKind(scope) + " " + ownerName, placement, failure);
                 tally.errors++;
-                logPlacementFailure("Failed to place cave objects in the following " + ownerKind(scope) + ": " + ownerName, placement, failure);
             }
         }
     }
@@ -293,10 +294,8 @@ final class ChunkObjectPlacing {
         return scope.startsWith("biome") ? "biome" : "region";
     }
 
-    private void logPlacementFailure(String message, ObjectPlacement placement, Throwable failure) {
-        log.error(message, failure);
-        log.error("Object(s) " + String.join(", ", placement.place()) + " (" + failure.getClass().getSimpleName() + ").", null);
-        log.error("Are these objects missing?", null);
+    private void skipObjectPlacement(String kind, String where, ObjectPlacement placement, Throwable failure) {
+        GenerationFailures.skipPlacement(log, failure, kind, String.join(", ", placement.place()), where);
     }
 
     private void placeObject(Tally tally, ObjectPlacement placement, String scope) {
@@ -337,9 +336,9 @@ final class ChunkObjectPlacing {
             }
             traceObjectResult(scope, object, result, x, z, densityIndex, density);
         } catch (Throwable failure) {
+            GenerationFailures.skipPlacement(log, failure, "object", object.name(),
+                    "in chunk " + chunkX + "," + chunkZ + " scope " + scope + " attempt " + densityIndex + "/" + density);
             tally.errors++;
-            log.error("Regen object placement exception: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name()
-                    + " densityIndex=" + densityIndex + " density=" + density + " error=" + failure.getClass().getSimpleName() + ":" + failure.getMessage(), failure);
         }
     }
 
@@ -373,9 +372,9 @@ final class ChunkObjectPlacing {
                         search.minDepthBelowSurface(), tags, null);
                 tallyCave(tally, contained, scope, object, placement, i, density, search, anchor);
             } catch (Throwable failure) {
+                GenerationFailures.skipPlacement(log, failure, "cave object", object.name(),
+                        "in chunk " + chunkX + "," + chunkZ + " scope " + scope + " attempt " + i + "/" + density);
                 tally.errors++;
-                log.error("Regen cave object placement exception: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name()
-                        + " densityIndex=" + i + " density=" + density + " error=" + failure.getClass().getSimpleName() + ":" + failure.getMessage(), failure);
                 CaveRejects.log(log,scope, "EXCEPTION", chunkX, chunkZ, placement, object, i, density, search, anchor.y(), failure);
             }
         }
@@ -430,8 +429,7 @@ final class ChunkObjectPlacing {
             try {
                 placeUpperObject(placement, forcePlace, scope);
             } catch (Throwable failure) {
-                log.error("Failed to place upper-dimension objects in " + kind + " " + ownerKey + ": " + String.join(", ", placement.place())
-                        + " (" + failure.getClass().getSimpleName() + ")", failure);
+                skipObjectPlacement("upper-dimension object", "in " + kind + " " + ownerKey, placement, failure);
             }
         }
     }

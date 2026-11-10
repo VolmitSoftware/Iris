@@ -28,6 +28,7 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
+import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.IrisInterpolator;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -49,6 +50,7 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -80,6 +82,7 @@ public class IrisComplex implements DataProvider {
             Comparator.nullsFirst(Comparator.naturalOrder())
     );
     static final int OVERLAY_GENERATOR_SEED = 571093;
+    private static final int REGION_STYLE_SEED = 883;
     private static final int DEEPEST_CHILD_LEVEL = 3;
     /** How many levels of children a biome can be replaced through, parent first. */
     public static final int CHILD_PICK_LEVELS = DEEPEST_CHILD_LEVEL + 1;
@@ -213,7 +216,7 @@ public class IrisComplex implements DataProvider {
 
             return value;
         });
-        regionStyleStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883), getData()).stream()
+        regionStyleStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(REGION_STYLE_SEED), getData()).stream()
                 .zoom(engine.getDimension().getRegionZoom());
         regionIdentityStream = regionStyleStream.fit(Integer.MIN_VALUE, Integer.MAX_VALUE);
         ProceduralStream<IrisRegion> proceduralRegionStream = focusRegion != null ?
@@ -559,25 +562,45 @@ public class IrisComplex implements DataProvider {
         return preparedInferredBiomeStream(inferredBiomeStreams, region, inferredType);
     }
 
+    private RNG biomeStyleRandom(InferredType type) {
+        return rng.nextParallelRNG(type.ordinal());
+    }
+
+    /**
+     * The dimension's noise styles the world builds from its seed, each with the random it samples with: the region
+     * style and the land, sea, shore and cave biome styles. Expressions under a style share its random.
+     */
+    public List<SeededStyle> seededNoiseStyles(IrisDimension dimension) {
+        List<SeededStyle> styles = new ArrayList<>();
+        styles.add(new SeededStyle(dimension.getRegionStyle(), rng.nextParallelRNG(REGION_STYLE_SEED)));
+        for (InferredType type : INFERRED_BIOME_PREPARATION_ORDER) {
+            styles.add(new SeededStyle(dimension.getBiomeStyle(type), biomeStyleRandom(type)));
+        }
+        return styles;
+    }
+
+    public record SeededStyle(IrisGeneratorStyle style, RNG rng) {
+    }
+
     private ProceduralStream<Double> compileInferredPickNoise(Engine engine, IrisRegion region, InferredType inferredType) {
         IrisDimension dimension = engine.getDimension();
         return switch (inferredType) {
             case CAVE -> dimension.getCaveBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.CAVE.ordinal()), getData()).stream()
+                    .create(biomeStyleRandom(InferredType.CAVE), getData()).stream()
                     .zoom(dimension.getBiomeZoom())
                     .zoom(region.getCaveBiomeZoom());
             case LAND -> dimension.getLandBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
+                    .create(biomeStyleRandom(InferredType.LAND), getData()).stream()
                     .zoom(dimension.getBiomeZoom())
                     .zoom(dimension.getLandZoom())
                     .zoom(region.getLandBiomeZoom());
             case SEA -> dimension.getSeaBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.SEA.ordinal()), getData()).stream()
+                    .create(biomeStyleRandom(InferredType.SEA), getData()).stream()
                     .zoom(dimension.getBiomeZoom())
                     .zoom(dimension.getSeaZoom())
                     .zoom(region.getSeaBiomeZoom());
             case SHORE -> dimension.getShoreBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), getData()).stream()
+                    .create(biomeStyleRandom(InferredType.SHORE), getData()).stream()
                     .zoom(dimension.getBiomeZoom())
                     .zoom(region.getShoreBiomeZoom());
         };

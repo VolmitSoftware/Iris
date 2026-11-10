@@ -130,7 +130,7 @@ public class IrisGeneratorStyle {
     }
 
     /** The random a style is built from: the caller's, or for a seeded style one rolled from its seed and the world seed. */
-    private RNG rollFor(RNG callerRandom, Engine engine) {
+    public RNG rollFor(RNG callerRandom, Engine engine) {
         if (!isSeeded()) {
             return callerRandom;
         }

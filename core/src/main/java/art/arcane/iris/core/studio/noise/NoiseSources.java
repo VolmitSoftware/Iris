@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 /**
@@ -54,7 +55,7 @@ public final class NoiseSources {
         List<Entry> entries = new ArrayList<>();
         addOverlayNoise(engine, entries);
         addPackGenerators(engine.getData(), entries);
-        addPackExpressions(engine.getData(), entries);
+        addPackExpressions(engine, entries);
         addStyles(entries);
         return new NoiseSources(entries);
     }
@@ -106,15 +107,19 @@ public final class NoiseSources {
         }
     }
 
-    private static void addPackExpressions(IrisData data, List<Entry> entries) {
+    // An expression the world uses keeps the random the world gives it, so it lines up with the height map; any other takes the view's seed.
+    private static void addPackExpressions(Engine engine, List<Entry> entries) {
+        IrisData data = engine.getData();
+        Map<String, RNG> worldRandoms = ExpressionSeeds.of(engine);
         for (String key : sortedKeys(data.getExpressionLoader().getPossibleKeys())) {
-            Source source = new Source("expression:" + key, displayName(key), NoiseCategory.PACK_EXPRESSIONS.label(), true, null);
+            RNG worldRandom = worldRandoms.get(key);
+            Source source = new Source("expression:" + key, displayName(key), NoiseCategory.PACK_EXPRESSIONS.label(), worldRandom == null, null);
             entries.add(new Entry(source, NoiseCategory.PACK_EXPRESSIONS, seed -> {
                 IrisExpression expression = data.getExpressionLoader().load(key);
                 if (expression == null) {
                     throw new NoSuchElementException("No pack expression " + key);
                 }
-                RNG rng = new RNG(seed);
+                RNG rng = worldRandom == null ? new RNG(seed) : worldRandom;
                 requireParses(expression, rng);
                 return (x, z) -> expression.evaluate(rng, x, z);
             }));
@@ -156,7 +161,7 @@ public final class NoiseSources {
     /**
      * One noise the view lists.
      *
-     * @param usesSeed   whether the view's seed changes it; the overlay keeps the world's
+     * @param usesSeed   whether the view's seed changes it; the overlay and the expressions the world uses keep the world's
      * @param blockRange where the noise is measured in blocks above the fluid, what it spans; null for noise of 0 to 1
      */
     public record Source(String id, String name, String category, boolean usesSeed, BlockRange blockRange) {

@@ -7,10 +7,12 @@ import { cn } from '@/lib/utils'
 import { BridgeError, STATUS_NOT_FOUND, type BridgeClient } from '../bridge/BridgeClient'
 import type { SavedStart, SavedWorldInfo, WorldInfo } from '../bridge/types'
 import { BlockColors } from '../scene/blockColors'
+import { BlockLooks } from '../scene/blockLooks'
 import { BlockModels } from '../scene/blockModels'
 import { BridgeAssets } from '../scene/BridgeAssets'
 import { SavedTerrain, type ReadSavedTile, type SavedTerrainColoring } from '../scene/savedTerrain'
 import { savedTileSource, type SavedLayer } from '../scene/savedTileSource'
+import { TerrainAtlas } from '../scene/terrainAtlas'
 import { focusAround, type TerrainStyle } from '../scene/terrainStream'
 import { SceneViewport } from './SceneViewport'
 import { useTerrainStream } from './useTerrainStream'
@@ -37,10 +39,13 @@ export function SavedWorldStudio({ client, world, onSummary, tell }: SavedWorldS
   const [coloring, setColoring] = useState<SavedTerrainColoring>('biomes')
   const [readings, setReadings] = useState(0)
   const { start, looking } = useSavedStart(client, chosen?.id ?? null, readings, tell)
-  const tileSource = useMemo(() => {
+  const { tileSource, atlas } = useMemo(() => {
     const images = new BridgeAssets(client, () => {})
-    return savedTileSource(client, new BlockColors(new BlockModels(images), images))
+    const models = new BlockModels(images)
+    const pictures = new TerrainAtlas(images)
+    return { tileSource: savedTileSource(client, new BlockColors(models, images), new BlockLooks(models, pictures)), atlas: pictures }
   }, [client])
+  useEffect(() => () => atlas.dispose(), [atlas])
   const centerX = start?.centerX ?? 0
   const centerZ = start?.centerZ ?? 0
   const lowestGround = start?.lowestGround ?? 0
@@ -53,8 +58,8 @@ export function SavedWorldStudio({ client, world, onSummary, tell }: SavedWorldS
     () =>
       minY === null
         ? null
-        : { surfaceOf: (read, place) => new SavedTerrain(read, place, coloring, seaLevel), floorY: minY, topY: minY + world.height },
-    [minY, seaLevel, coloring, world.height]
+        : { surfaceOf: (read, place) => new SavedTerrain(read, place, coloring, seaLevel, atlas), floorY: minY, topY: minY + world.height },
+    [minY, seaLevel, coloring, world.height, atlas]
   )
   const { content, pending } = useTerrainStream(tileSource, COARSEST_SAVED_LEVEL, focus, layer, style, tell)
   const reading = looking || pending > 0

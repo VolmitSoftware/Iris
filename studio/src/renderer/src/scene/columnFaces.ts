@@ -1,5 +1,6 @@
+import type { BlockLook } from './blockLooks'
 import type { ColumnField } from './columnField'
-import { QuadBatch, type Vec3 } from './quadBatch'
+import { QuadBatch, type Picture, type Vec3 } from './quadBatch'
 import { submergedTint, sunk, tintAt } from './waterTint'
 
 // Light on each face, as Minecraft shades blocks: tops full, north and south sides lighter than east and west.
@@ -7,6 +8,8 @@ const TOP_LIGHT = 1
 const NORTH_SOUTH_LIGHT = 0.8
 const EAST_WEST_LIGHT = 0.6
 const WATER_COLOR = 0
+// Textured sides stop this many blocks under the top of their column; what lies deeper is one quad in the average colour of its picture.
+const MOST_TEXTURED_SIDE_BLOCKS = 16
 
 interface Span {
   bottom: number
@@ -14,6 +17,8 @@ interface Span {
   color: number
   /** The top face of the water the span lies under, or null where it lies in the open. */
   water: number | null
+  /** What the column's block looks like, or null where it shows its colour. */
+  look: BlockLook | null
 }
 
 interface Side {
@@ -37,10 +42,11 @@ const SIDES: readonly Side[] = [
  * it lies.
  */
 export function groundFaces(field: ColumnField, base: number): QuadBatch {
-  const batch = new QuadBatch(true)
+  const batch = new QuadBatch(true, field.pictures?.plain ?? null)
   addTops(field, batch, (column, row) => {
     const top = field.hasGround(column, row) ? field.groundTop[field.indexOf(column, row)] : null
-    return top === null ? null : { bottom: top, top, color: field.color[field.indexOf(column, row)], water: field.waterTopAt(column, row) }
+    const index = field.indexOf(column, row)
+    return top === null ? null : { bottom: top, top, color: field.color[index], water: field.waterTopAt(column, row), look: field.looks[index] }
   })
   addSides(field, batch, (column, row, side) => {
     if (!field.hasGround(column, row)) {
@@ -53,7 +59,8 @@ export function groundFaces(field: ColumnField, base: number): QuadBatch {
       return null
     }
     const water = field.waterTopAt(column, row) ?? field.waterTopAt(nextColumn, nextRow)
-    return { bottom, top, color: field.color[field.indexOf(column, row)], water }
+    const index = field.indexOf(column, row)
+    return { bottom, top, color: field.color[index], water, look: field.looks[index] }
   })
   return batch
 }
@@ -67,7 +74,7 @@ export function waterFaces(field: ColumnField): QuadBatch {
   const batch = new QuadBatch(false)
   addTops(field, batch, (column, row) => {
     const top = field.waterTopAt(column, row)
-    return top === null ? null : { bottom: top, top, color: WATER_COLOR, water: null }
+    return top === null ? null : { bottom: top, top, color: WATER_COLOR, water: null, look: null }
   })
   addSides(field, batch, (column, row, side) => {
     const top = field.waterTopAt(column, row)
@@ -79,7 +86,7 @@ export function waterFaces(field: ColumnField): QuadBatch {
       return null
     }
     const bottom = Math.max(next, field.groundTop[field.indexOf(column, row)])
-    return bottom < top ? { bottom, top, color: WATER_COLOR, water: null } : null
+    return bottom < top ? { bottom, top, color: WATER_COLOR, water: null, look: null } : null
   })
   return batch
 }
@@ -88,7 +95,9 @@ function addTops(field: ColumnField, batch: QuadBatch, spanAt: (column: number, 
   for (let row = 0; row < field.rows; row++) {
     mergeRuns(field.columns, (column) => spanAt(column, row), (first, count, span) => {
       const step = field.blocksPerColumn
-      batch.add([field.originX + first * step, span.top, field.originZ + row * step], [count * step, 0, 0], [0, 0, step], topColor(span))
+      const color = topColor(span)
+      const picture: Picture | null = span.look === null ? null : { cell: span.look.top.cell, standing: false }
+      batch.add([field.originX + first * step, span.top, field.originZ + row * step], [count * step, 0, 0], [0, 0, step], color, color, picture)
     })
   }
 }
@@ -102,8 +111,12 @@ function addSides(field: ColumnField, batch: QuadBatch, spanAt: (column: number,
       const columnOf = (step: number): number => (runsAlongRow ? step : lane)
       const rowOf = (step: number): number => (runsAlongRow ? lane : step)
       mergeRuns(length, (step) => spanAt(columnOf(step), rowOf(step), side), (first, count, span) => {
-        const light = shaded(span.color, side.light)
         for (const part of sideParts(span)) {
+          if (span.look !== null) {
+            addTexturedSide(batch, field, side, columnOf(first), rowOf(first), part, span.look, span.top)
+            continue
+          }
+          const light = shaded(span.color, side.light)
           batch.add(...sideQuad(field, side, columnOf(first), rowOf(first), count, part), sunk(light, part.bottomTint), sunk(light, part.topTint))
         }
       })
@@ -112,7 +125,7 @@ function addSides(field: ColumnField, batch: QuadBatch, spanAt: (column: number,
 }
 
 function topColor(span: Span): Vec3 {
-  const light = shaded(span.color, TOP_LIGHT)
+  const light = shaded(span.look === null ? span.color : span.look.top.tint, TOP_LIGHT)
   return span.water === null ? light : sunk(light, tintAt(span.water - span.top))
 }
 
@@ -135,6 +148,24 @@ function sideParts(span: Span): SidePart[] {
     { ...span, top: water, bottomTint: submergedTint(water - bottom), topTint: submergedTint(0) },
     { ...span, bottom: water, bottomTint: 0, topTint: 0 }
   ]
+}
+
+// One picture to a block: the column's top block in its side's, the blocks under it in theirs. Under the textured depth
+// the rest is a single quad in the colour of the picture.
+function addTexturedSide(batch: QuadBatch, field: ColumnField, side: Side, column: number, row: number, part: SidePart, look: BlockLook, columnTop: number): void {
+  const tintAt = (y: number): number => part.bottomTint + ((part.topTint - part.bottomTint) * (y - part.bottom)) / (part.top - part.bottom)
+  const texturedFloor = Math.max(part.bottom, columnTop - MOST_TEXTURED_SIDE_BLOCKS)
+  for (let top = part.top; top > texturedFloor; top--) {
+    const face = top === columnTop ? look.side : look.below
+    const light = shaded(face.tint, side.light)
+    const picture: Picture = { cell: face.cell, standing: true }
+    batch.add(...sideQuad(field, side, column, row, 1, { ...part, bottom: top - 1, top }), sunk(light, tintAt(top - 1)), sunk(light, tintAt(top)), picture)
+  }
+  const deepTop = Math.min(part.top, texturedFloor)
+  if (deepTop > part.bottom) {
+    const light = shaded(look.below.color, side.light)
+    batch.add(...sideQuad(field, side, column, row, 1, { ...part, top: deepTop }), sunk(light, part.bottomTint), sunk(light, tintAt(deepTop)))
+  }
 }
 
 // The corner a side starts from is the one on its left as seen from outside, so it runs and rises into view.
@@ -174,7 +205,7 @@ function mergeRuns(length: number, spanAt: (index: number) => Span | null, emit:
 }
 
 function sameSpan(span: Span, other: Span | null): boolean {
-  return other !== null && other.top === span.top && other.bottom === span.bottom && other.color === span.color && other.water === span.water
+  return span.look === null && other !== null && other.look === null && other.top === span.top && other.bottom === span.bottom && other.color === span.color && other.water === span.water
 }
 
 function shaded(color: number, light: number): Vec3 {

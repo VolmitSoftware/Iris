@@ -1,3 +1,5 @@
+import type { BlockLook } from './blockLooks'
+import type { TerrainPictures } from './terrainAtlas'
 import type { TerrainSurface } from './terrainMesh'
 import type { ColumnArea } from './terrainTiles'
 
@@ -17,6 +19,10 @@ export class ColumnField {
   readonly groundTop: Float32Array
   readonly waterTop: Float32Array
   readonly color: Int32Array
+  /** What each column's block looks like, or null to show its colour. */
+  readonly looks: (BlockLook | null)[]
+  /** The atlas of the looks, or null where no column has one. */
+  readonly pictures: TerrainPictures | null
 
   constructor(surface: TerrainSurface, holes: readonly ColumnArea[] = []) {
     this.columns = surface.columns
@@ -28,6 +34,9 @@ export class ColumnField {
     this.groundTop = new Float32Array(count).fill(NO_VALUE)
     this.waterTop = new Float32Array(count).fill(NO_VALUE)
     this.color = new Int32Array(count)
+    this.looks = new Array<BlockLook | null>(count).fill(null)
+    const hasPictures = surface.pictures !== undefined
+    let anyLook = false
     const inHole = this.holeMask(holes)
     for (let row = 0; row < this.rows; row++) {
       for (let column = 0; column < this.columns; column++) {
@@ -40,8 +49,12 @@ export class ColumnField {
         this.groundTop[index] = ground + 1
         this.waterTop[index] = water === null ? NO_VALUE : water + 1
         this.color[index] = surface.colorAt(column, row)
+        const look = hasPictures ? (surface.lookAt?.(column, row) ?? null) : null
+        this.looks[index] = look
+        anyLook ||= look !== null
       }
     }
+    this.pictures = anyLook ? (surface.pictures ?? null) : null
   }
 
   indexOf(column: number, row: number): number {

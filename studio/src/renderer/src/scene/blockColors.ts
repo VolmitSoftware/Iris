@@ -81,7 +81,8 @@ function tinted(texture: ImageData, tint: number): ImageData {
   return texture
 }
 
-function averageColor(texture: ImageData): number {
+/** The mean colour of the pixels that are opaque enough, as 0xRRGGBB. */
+export function averageColor(texture: ImageData): number {
   const pixels = texture.data
   let [red, green, blue, counted] = [0, 0, 0, 0]
   for (let offset = 0; offset < pixels.length; offset += 4) {

@@ -1,6 +1,10 @@
 package art.arcane.iris.api.tree;
 
 public interface TreeFellerRunHooks {
+    default boolean requiresSneaking() {
+        return true;
+    }
+
     TreeFellerRunHooks NONE = new TreeFellerRunHooks() {
         @Override
         public void onActivationAccepted() {

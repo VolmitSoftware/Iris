@@ -37,6 +37,7 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.math.Vector3i;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
@@ -583,6 +584,41 @@ public class ObjectPlacementRegressionTest {
         config.mode(ObjectPlaceMode.STRUCTURE_PIECE);
         assertEquals(ANCHOR_Y, place(config, ANCHOR_Y, placer, null).heightOrRejected());
         assertFalse(placer.writes().isEmpty());
+    }
+
+    @Test
+    public void obliqueRotationRejectsNativePiecesBeyondTheUnrotatedRadius() {
+        int reach = 14;
+        when(engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(new KList<>(
+                NativeStructureVolume.of("minecraft:village", reach, ANCHOR_Y, 0, reach, ANCHOR_Y, 0),
+                NativeStructureVolume.of("minecraft:village", -reach, ANCHOR_Y, 0, -reach, ANCHOR_Y, 0),
+                NativeStructureVolume.of("minecraft:village", 0, ANCHOR_Y, reach, 0, ANCHOR_Y, reach),
+                NativeStructureVolume.of("minecraft:village", 0, ANCHOR_Y, -reach, 0, ANCHOR_Y, -reach)));
+        IrisObject object = new IrisObject(21, 1, 21);
+        object.setUnsigned(20, 0, 20, solid);
+        RecordingPlacer placer = new RecordingPlacer(engine);
+
+        ObjectPlacementResult result = ModuleObjectPlacement.place(object, 0, ANCHOR_Y, 0, placer,
+                placement().rotation(ObjectRotation.of(0, 45, 0)).build(), new RNG(2L), null, null, data);
+
+        assertEquals(Optional.of("native-structure"), result.rejection());
+        assertTrue(placer.writes().isEmpty());
+    }
+
+    @Test
+    public void offCenterOriginRejectsNativePiecesAtTheFarEdge() {
+        when(engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(
+                new KList<>(NativeStructureVolume.of("minecraft:village", 8, ANCHOR_Y, 0, 8, ANCHOR_Y, 0)));
+        IrisObject object = new IrisObject(9, 1, 1);
+        object.setCenter(new Vector3i(0, 0, 0));
+        object.setUnsigned(8, 0, 0, solid);
+        RecordingPlacer placer = new RecordingPlacer(engine);
+
+        ObjectPlacementResult result = ModuleObjectPlacement.place(object, 0, ANCHOR_Y, 0, placer,
+                placement().rotation(ObjectRotation.of(0, 0, 0)).build(), new RNG(2L), null, null, data);
+
+        assertEquals(Optional.of("native-structure"), result.rejection());
+        assertTrue(placer.writes().isEmpty());
     }
 
     @Test

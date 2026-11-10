@@ -170,7 +170,8 @@ public final class PregenMantleBackpressure {
 
         try {
             return cancelled.getAsBoolean();
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("pregen cancellation state", e);
             return false;
         }
     }
@@ -178,7 +179,8 @@ public final class PregenMantleBackpressure {
     private Mantle resolveMantle() {
         try {
             return mantleSupplier.get();
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("mantle handle for backpressure", e);
             return null;
         }
     }

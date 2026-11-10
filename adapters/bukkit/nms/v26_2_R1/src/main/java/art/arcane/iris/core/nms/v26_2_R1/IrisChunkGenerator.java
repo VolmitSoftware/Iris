@@ -172,7 +172,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
         if (platformGenerator != null && !platformGenerator.shouldGenerateStructures()) {
             return null;
         }
-        if (level != runtimeLevel || level.getChunkSource().getGenerator() != this) {
+        if (level != runtimeLevel || !isActiveGeneratorOf(level)) {
             return null;
         }
         try (GenerationSessionLease lease = requireGenerationLease("bukkit_nms_structure_locate");
@@ -348,7 +348,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
         if (platformGenerator != null && !platformGenerator.shouldGenerateStructures()) {
             return;
         }
-        if (runtimeLevel.getChunkSource().getGenerator() != this
+        if (!isActiveGeneratorOf(runtimeLevel)
                 || runtimeLevel.getChunkSource().getGeneratorState() != structureState) {
             return;
         }
@@ -599,9 +599,13 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
     private void requireCurrentStructureOwner(ServerLevel level, ChunkMap chunkMap) {
         if (runtimeLevel != level
                 || level.getChunkSource().chunkMap != chunkMap
-                || level.getChunkSource().getGenerator() != this) {
+                || !isActiveGeneratorOf(level)) {
             throw new IllegalStateException("Iris native structure state no longer belongs to the active world runtime.");
         }
+    }
+
+    private boolean isActiveGeneratorOf(ServerLevel level) {
+        return WrappedGenerators.irisGeneratorOf(level.getChunkSource().getGenerator()) == this;
     }
 
     private void publishStructureState(StructureStatePublisher publisher) {
@@ -617,7 +621,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
         if (platformGenerator != null && !platformGenerator.shouldGenerateStructures()) {
             return;
         }
-        if (runtimeLevel.getChunkSource().getGenerator() != this) {
+        if (!isActiveGeneratorOf(runtimeLevel)) {
             return;
         }
         try (BukkitChunkGenerator.GenerationStagePermit stage = requireGenerationStage("bukkit_nms_create_references");

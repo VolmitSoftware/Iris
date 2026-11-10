@@ -33,7 +33,7 @@ public class IrisChunkGeneratorFailureContractTest {
         int reachabilityEnd = source.indexOf("protected MapCodec", reachabilityStart);
         String reachability = source.substring(reachabilityStart, reachabilityEnd);
         int bootstrapGate = locate.indexOf("!platformGenerator.shouldGenerateStructures()");
-        int generatorIdentity = locate.indexOf("level.getChunkSource().getGenerator() != this");
+        int generatorIdentity = locate.indexOf("!isActiveGeneratorOf(level)");
         int lease = locate.indexOf("requireGenerationLease(\"bukkit_nms_structure_locate\")");
         int nativePrediction = locate.indexOf("NativeStructureVanillaLocator.predict(");
 
@@ -97,7 +97,7 @@ public class IrisChunkGeneratorFailureContractTest {
         String references = source.substring(referencesStart, referencesEnd);
 
         int nativeStructureGate = references.indexOf("!platformGenerator.shouldGenerateStructures()");
-        int generatorIdentity = references.indexOf("runtimeLevel.getChunkSource().getGenerator() != this");
+        int generatorIdentity = references.indexOf("!isActiveGeneratorOf(runtimeLevel)");
         int stage = references.indexOf("requireGenerationStage(\"bukkit_nms_create_references\")");
         int lease = references.indexOf("requireGenerationLease(\"bukkit_nms_create_references\")");
         int repair = references.indexOf("NativeStructureReferenceRepair.createReferences(");
@@ -120,7 +120,7 @@ public class IrisChunkGeneratorFailureContractTest {
         String generation = source.substring(generationStart, generationEnd);
         int gate = generation.indexOf("!platformGenerator.shouldGenerateStructures()");
         int currentGenerator = generation.indexOf(
-                "runtimeLevel.getChunkSource().getGenerator() != this");
+                "!isActiveGeneratorOf(runtimeLevel)");
         int stateIdentity = generation.indexOf(
                 "runtimeLevel.getChunkSource().getGeneratorState() != structureState");
         int stage = generation.indexOf(

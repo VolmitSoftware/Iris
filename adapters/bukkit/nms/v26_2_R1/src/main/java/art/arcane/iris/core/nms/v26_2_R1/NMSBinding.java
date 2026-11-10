@@ -1328,8 +1328,8 @@ public class NMSBinding implements INMSBinding {
     @Override
     public void abandonStudioStructureBootstrap(World world) {
         ServerLevel level = ((CraftWorld) world).getHandle();
-        net.minecraft.world.level.chunk.ChunkGenerator generator = level.getChunkSource().getGenerator();
-        if (generator instanceof IrisChunkGenerator irisGenerator) {
+        IrisChunkGenerator irisGenerator = WrappedGenerators.irisGeneratorOf(level.getChunkSource().getGenerator());
+        if (irisGenerator != null) {
             irisGenerator.abandonStudioStructureState();
         }
     }
@@ -1351,7 +1351,8 @@ public class NMSBinding implements INMSBinding {
             ChunkGeneratorStructureState structureState,
             IrisChunkGenerator.StructureStatePublisher publisher
     ) throws IllegalAccessException {
-        if (generator instanceof IrisChunkGenerator irisGenerator) {
+        IrisChunkGenerator irisGenerator = WrappedGenerators.irisGeneratorOf(generator);
+        if (irisGenerator != null) {
             irisGenerator.initializeAndPublishStructureState(structureState, publisher);
             return;
         }
@@ -1362,10 +1363,12 @@ public class NMSBinding implements INMSBinding {
     private IrisChunkGenerator requireIrisGenerator(
             net.minecraft.world.level.chunk.ChunkGenerator generator
     ) {
-        if (generator instanceof IrisChunkGenerator irisGenerator) {
+        IrisChunkGenerator irisGenerator = WrappedGenerators.irisGeneratorOf(generator);
+        if (irisGenerator != null) {
             return irisGenerator;
         }
-        throw new IllegalStateException("Studio native structure state is not owned by the active Iris generator.");
+        throw new IllegalStateException("Studio native structure state is not owned by the active Iris generator; active="
+                + generator.getClass().getName());
     }
 
     private void validateDimensionContract(Engine engine, World world, ServerLevel level) {

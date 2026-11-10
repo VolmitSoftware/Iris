@@ -104,8 +104,8 @@ public class ModulePackValidationTest {
 
     private File minimalPack(String name) throws Exception {
         File pack = temporaryFolder.newFolder(name);
-        write(pack, "dimensions/main.json", "{\"regions\":[\"region\"]}");
-        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack, "dimensions/main.json", "{\"regions\":[{\"region\":\"region\"}]}");
+        write(pack, "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack, "biomes/biome.json", "{\"name\":\"Biome\"}");
         return pack;
     }

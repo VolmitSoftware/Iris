@@ -3,6 +3,7 @@ package art.arcane.iris.engine.object.world;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.TreeOverride;
 import art.arcane.iris.engine.object.world.biome.InferredType;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.core.IrisSettings;
@@ -19,6 +20,8 @@ public class RemovedDeadFieldsTest {
         assertThrows(NoSuchFieldException.class, () -> IrisDimension.class.getDeclaredField("forceConvertTo320Height"));
         assertThrows(NoSuchFieldException.class, () -> IrisDimension.class.getDeclaredField("rockZoom"));
         assertThrows(NoSuchFieldException.class, () -> IrisDimension.class.getDeclaredField("disableExplorerMaps"));
+        assertThrows(NoSuchFieldException.class, () -> IrisRegion.class.getDeclaredField("rarity"));
+        assertThrows(NoSuchFieldException.class, () -> IrisBiome.class.getDeclaredField("rarity"));
         assertThrows(NoSuchFieldException.class, () -> IrisRegion.class.getDeclaredField("riverStyle"));
         assertThrows(NoSuchFieldException.class, () -> IrisRegion.class.getDeclaredField("lakeStyle"));
         assertThrows(NoSuchFieldException.class, () -> IrisRegion.class.getDeclaredField("riverGen"));

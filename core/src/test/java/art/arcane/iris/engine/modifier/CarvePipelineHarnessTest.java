@@ -99,7 +99,7 @@ public class CarvePipelineHarnessTest {
     }
 
     private Result run() {
-        CarveTestWorld world = new CarveTestWorld().biome("cave/lush", 1).biome("plains", 1).carveSeed(SEED).dimension(profile());
+        CarveTestWorld world = new CarveTestWorld().biome("cave/lush").biome("plains").carveSeed(SEED).dimension(profile());
         CarveWorld carveWorld = new CarveWorld(world.resources().noise(), SEED, HEIGHT, FLUID_HEIGHT, LAVA_HEIGHT, CarveTestWorld.MIN_HEIGHT);
         RecordingCaveDressing dressing = new RecordingCaveDressing();
         dressing.fluid = WATER;

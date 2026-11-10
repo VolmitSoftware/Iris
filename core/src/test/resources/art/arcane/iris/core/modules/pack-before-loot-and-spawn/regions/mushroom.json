@@ -1,7 +1,6 @@
 {
     "name": "Mushroom",
     "color": "#F1C3EF",
-    "rarity": 15,
     "objects": [
         {
             "place": [
@@ -53,25 +52,25 @@
         }
     ],
     "landBiomes": [
-        "mushroom/forest",
-        "mushroom/crimson-forest",
-        "mushroom/forest-extended",
-        "mushroom/plains",
-        "mushroom/warped-forest"
+        {"biome": "mushroom/forest", "weight": 1},
+        {"biome": "mushroom/crimson-forest", "weight": 1},
+        {"biome": "mushroom/forest-extended", "weight": 1},
+        {"biome": "mushroom/plains", "weight": 1},
+        {"biome": "mushroom/warped-forest", "weight": 1}
     ],
     "caveBiomes": [
-        "carving/mushroom",
-        "carving/rocky-cavebiome",
-        "carving/drip-lite",
-        "carving/moss-pillars",
-        "carving/crystalized-overgrown"
+        {"biome": "carving/mushroom", "weight": 1},
+        {"biome": "carving/rocky-cavebiome", "weight": 1},
+        {"biome": "carving/drip-lite", "weight": 1},
+        {"biome": "carving/moss-pillars", "weight": 1},
+        {"biome": "carving/crystalized-overgrown", "weight": 1}
     ],
     "shoreBiomes": [
-        "mushroom/shore/beach"
+        {"biome": "mushroom/shore/beach", "weight": 1}
     ],
     "seaBiomes": [
-        "mushroom/sea/ocean",
-        "mushroom/sea/lake"
+        {"biome": "mushroom/sea/ocean", "weight": 1},
+        {"biome": "mushroom/sea/lake", "weight": 1}
     ],
     "blockDrops": [
         {

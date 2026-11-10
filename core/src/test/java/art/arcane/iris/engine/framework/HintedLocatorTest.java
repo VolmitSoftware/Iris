@@ -10,6 +10,7 @@ import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.engine.mantle.components.ObjectModule;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiomeEntry;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.IrisPlatform;
@@ -121,10 +122,10 @@ public class HintedLocatorTest {
         return ObjectPlacement.builder().place(List.of(objectKey)).build();
     }
 
-    private static KList<String> keys(String... values) {
-        KList<String> list = new KList<>();
+    private static KList<IrisBiomeEntry> keys(String... values) {
+        KList<IrisBiomeEntry> list = new KList<>();
         for (String value : values) {
-            list.add(value);
+            list.add(new IrisBiomeEntry(value, 1));
         }
         return list;
     }
@@ -145,7 +146,7 @@ public class HintedLocatorTest {
             regionKeys.add(region.getLoadKey());
         }
         when(dimension.getAllRegions(engine)).thenReturn(list);
-        when(dimension.getRegions()).thenReturn(regionKeys);
+        when(dimension.getRegionKeys()).thenReturn(regionKeys);
     }
 
     private void stubBiome(IrisBiome biome) {

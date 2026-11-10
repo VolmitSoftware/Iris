@@ -345,7 +345,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         if (focusRegion != null) {
             return focusRegion.getLoadKey().equals(region.getLoadKey());
         }
-        return getDimension().getRegions().contains(region.getLoadKey());
+        return getDimension().getRegionKeys().contains(region.getLoadKey());
     }
 
 

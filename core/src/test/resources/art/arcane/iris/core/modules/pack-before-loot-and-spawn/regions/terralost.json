@@ -1,21 +1,20 @@
 {
     "name": "Terralost",
     "color": "#446600",
-    "rarity": 5,
     "landBiomes": [
-        "terralost/amethyst-rainforest",
-        "terralost/ancient-sands",
-        "terralost/amethyst-canyon",
-        "terralost/alpine-grove",
-        "terralost/alpine-highlands",
-        "dev"
+        {"biome": "terralost/amethyst-rainforest", "weight": 1},
+        {"biome": "terralost/ancient-sands", "weight": 1},
+        {"biome": "terralost/amethyst-canyon", "weight": 1},
+        {"biome": "terralost/alpine-grove", "weight": 1},
+        {"biome": "terralost/alpine-highlands", "weight": 1},
+        {"biome": "dev", "weight": 1}
     ],
     "landBiomeZoom": 3,
     "shoreBiomes": [
-        "tundra/shore/beach"
+        {"biome": "tundra/shore/beach", "weight": 1}
     ],
     "seaBiomes": [
-        "mountain/sea/river"
+        {"biome": "mountain/sea/river", "weight": 1}
     ],
     "shoreHeightMin": 2.2,
     "shoreHeightMax": 5.2,
@@ -29,11 +28,11 @@
         ]
     },
     "caveBiomes": [
-        "carving/amethyst",
-        "carving/calcite",
-        "carving/deepslate",
-        "carving/deepravine",
-        "carving/chalk-gardens"
+        {"biome": "carving/amethyst", "weight": 1},
+        {"biome": "carving/calcite", "weight": 1},
+        {"biome": "carving/deepslate", "weight": 1},
+        {"biome": "carving/deepravine", "weight": 1},
+        {"biome": "carving/chalk-gardens", "weight": 1}
     ],
     "caveProfile": {
         "enabled": true,

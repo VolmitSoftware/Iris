@@ -2,6 +2,7 @@ package art.arcane.iris.core.studio.map;
 
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.world.biome.InferredType;
+import com.volmit.world.Weighted;
 import org.junit.Test;
 
 import java.util.List;
@@ -36,7 +37,7 @@ public class MapPickPathTest {
     }
 
     @Test
-    public void aChildStepJoinsNeighbouringSlotsOfOneBiome() {
+    public void aChildStepHasABandForEveryEntryAsWideAsItsWeight() {
         List<MapPickPath.PickBand> bands = explain(MapLayer.of(MapView.BIOMES)).get(2).bands();
 
         assertEquals(2, bands.size());
@@ -73,11 +74,15 @@ public class MapPickPathTest {
     }
 
     @Test
-    public void slotsRoundTheWayTheChildNoiseDoes() {
-        assertEquals(0, ChildPicks.slotIndex(0.24D, 3));
-        assertEquals(1, ChildPicks.slotIndex(0.26D, 3));
-        assertEquals(2, ChildPicks.slotIndex(1.4D, 3));
-        assertEquals(0, ChildPicks.slotIndex(0.9D, 1));
+    public void aBiomeListedTwiceGetsABandForEachOfItsEntries() {
+        List<MapPickPath.PickBand> bands = MapPickPath.weightBands(
+                List.of(new Weighted<>("barren", 5), new Weighted<>("forest", 2), new Weighted<>("barren", 3)),
+                key -> new MapLabel(MapLabel.Kind.BIOME, key, key, 0));
+
+        assertEquals(3, bands.size());
+        assertBand(bands.get(0), "barren", 0D, 0.5D);
+        assertBand(bands.get(1), "forest", 0.5D, 0.7D);
+        assertBand(bands.get(2), "barren", 0.7D, 1D);
     }
 
     private List<MapPickPath.PickStep> explain(MapLayer layer) {

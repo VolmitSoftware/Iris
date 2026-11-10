@@ -25,12 +25,14 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.image.IrisImageMapRuntime;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiomeEntry;
 import art.arcane.iris.engine.object.world.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.IrisInterpolator;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.engine.object.world.region.IrisRegionEntry;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBiome;
@@ -43,6 +45,7 @@ import art.arcane.iris.util.project.interpolation.NoiseBoundsProvider;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.iris.util.project.stream.interpolation.Interpolated;
+import com.volmit.world.Weighted;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -87,6 +90,8 @@ public class IrisComplex implements DataProvider {
     /** How many levels of children a biome can be replaced through, parent first. */
     public static final int CHILD_PICK_LEVELS = DEEPEST_CHILD_LEVEL + 1;
     private static final int CHILD_NOISE_SIGNATURE = 123;
+    /** Noise lying exactly between two children goes to the later one; region and biome lists give it to the earlier. */
+    public static final Weighted.Edge CHILD_EDGE = Weighted.Edge.LATER;
     private static final InferredType[] INFERRED_BIOME_PREPARATION_ORDER = {
             InferredType.LAND,
             InferredType.CAVE,
@@ -137,8 +142,6 @@ public class IrisComplex implements DataProvider {
     // Copy-on-write: reads happen per column on every burst thread; the synchronizedMap
     // monitor was taken on every HIT. Writes are once per biome and bounded, so a fresh map
     // per insert is cheap. Identity keying is load-bearing (IrisBiome is mutable/value-hashed).
-    private volatile IdentityHashMap<IrisBiome, ChildSelectionPlan> childSelectionPlans = new IdentityHashMap<>();
-    private final Object childSelectionPlanLock = new Object();
 
     public IrisComplex(Engine engine) {
         this(engine, false);
@@ -170,7 +173,7 @@ public class IrisComplex implements DataProvider {
             prepareInferredBiomes(focusRegion, regionsToPrepare);
             focusRegion.getAllBiomes(this).forEach(this::registerGenerators);
         } else {
-            engine.getDimension().getRegions().forEach(regionKey -> {
+            engine.getDimension().getRegionKeys().forEach(regionKey -> {
                 IrisRegion region = data.getRegionLoader().load(regionKey);
                 if (region == null) {
                     return;
@@ -223,7 +226,7 @@ public class IrisComplex implements DataProvider {
                 ProceduralStream.of((x, z) -> focusRegion,
                         Interpolated.of(a -> 0D, a -> focusRegion))
                 : regionStyleStream
-                .selectRarity(data.getRegionLoader().loadAll(engine.getDimension().getRegions()))
+                .selectWeighted(IrisRegionEntry.load(engine.getDimension().getRegions(), data.getRegionLoader()))
                 .cache2D("regionStream", engine, cacheSize);
         regionStream = focusRegion != null ? proceduralRegionStream : proceduralRegionStream
                 .convertAware2D((region, x, z) -> {
@@ -378,9 +381,9 @@ public class IrisComplex implements DataProvider {
 
         String key = UUID.randomUUID().toString();
         IrisRegion region = new IrisRegion();
-        region.getLandBiomes().add(focus.getLoadKey());
-        region.getSeaBiomes().add(focus.getLoadKey());
-        region.getShoreBiomes().add(focus.getLoadKey());
+        region.getLandBiomes().add(new IrisBiomeEntry(focus.getLoadKey(), 1));
+        region.getSeaBiomes().add(new IrisBiomeEntry(focus.getLoadKey(), 1));
+        region.getShoreBiomes().add(new IrisBiomeEntry(focus.getLoadKey(), 1));
         region.setLoadKey(key);
         region.setLoader(data);
         region.setLoadFile(new File(data.getDataFolder(), data.getRegionLoader().getFolderName() + "/" + key + ".json"));
@@ -550,10 +553,10 @@ public class IrisComplex implements DataProvider {
     }
 
     private void prepareInferredBiomes(IrisRegion region, KList<IrisRegion> preparedRegions) {
-        loadInferredBiomes(region.getLandBiomes(), InferredType.LAND);
-        loadInferredBiomes(region.getCaveBiomes(), InferredType.CAVE);
-        loadInferredBiomes(region.getSeaBiomes(), InferredType.SEA);
-        loadInferredBiomes(region.getShoreBiomes(), InferredType.SHORE);
+        pickableBiomes(region, InferredType.LAND);
+        pickableBiomes(region, InferredType.CAVE);
+        pickableBiomes(region, InferredType.SEA);
+        pickableBiomes(region, InferredType.SHORE);
         preparedRegions.add(region);
     }
 
@@ -612,7 +615,7 @@ public class IrisComplex implements DataProvider {
             InferredType inferredType,
             IrisBiome emptyBiome
     ) {
-        ProceduralStream<IrisBiome> picked = pickNoise.selectRarity(pickableBiomes(region, inferredType));
+        ProceduralStream<IrisBiome> picked = pickNoise.selectWeighted(pickableBiomes(region, inferredType));
         return inferredType == InferredType.CAVE ? picked.onNull(emptyBiome) : picked;
     }
 
@@ -656,42 +659,38 @@ public class IrisComplex implements DataProvider {
 
     /**
      * The noise that picks one of the region's biomes of this type, from 0 to 1; {@link #pickableBiomes} split it by
-     * rarity. The biome streams pick from this very stream.
+     * weight. The biome streams pick from this very stream.
      */
     public ProceduralStream<Double> biomePickNoise(IrisRegion region, InferredType inferredType) {
         return preparedInferredBiomeStream(inferredPickNoiseStreams, region, inferredType);
     }
 
-    /** The region's biomes of this type, in the order their rarities split {@link #biomePickNoise}. */
-    public KList<IrisBiome> pickableBiomes(IrisRegion region, InferredType inferredType) {
-        KList<String> keys = switch (inferredType) {
+    /** The region's biomes of this type with their weights, in the order they split {@link #biomePickNoise}. */
+    public KList<Weighted<IrisBiome>> pickableBiomes(IrisRegion region, InferredType inferredType) {
+        List<IrisBiomeEntry> entries = switch (inferredType) {
             case CAVE -> region.getCaveBiomes();
             case LAND -> region.getLandBiomes();
             case SEA -> region.getSeaBiomes();
             case SHORE -> region.getShoreBiomes();
         };
-        return loadInferredBiomes(keys, inferredType);
+        KList<Weighted<IrisBiome>> inferred = new KList<>();
+        for (Weighted<IrisBiome> entry : IrisBiomeEntry.load(entries, data.getBiomeLoader())) {
+            inferred.add(new Weighted<>(entry.value().withInferredType(inferredType), entry.weight()));
+        }
+        return inferred;
     }
 
     /**
-     * The slots a biome's child noise picks from, in noise order: its children and itself, each as often as its rarity
-     * allows. Slot {@code i} of {@code n} is picked where {@link #childNoise} rounds to {@code i / (n - 1)}.
+     * What a biome's child noise picks from, with weights, in noise order: its children, and itself where it is listed
+     * among them.
      */
-    public List<IrisBiome> childSlots(IrisBiome parent) {
-        return List.of(resolveChildSelectionPlan(parent).mappedBiomes);
+    public KList<Weighted<IrisBiome>> childOptions(IrisBiome parent) {
+        return parent.getChildOptions(this);
     }
 
-    /** The noise that picks among {@link #childSlots}, read with {@link CNG#noiseFast2D}. */
+    /** The noise that picks among {@link #childOptions}, read with {@link CNG#noiseFast2D}. */
     public CNG childNoise(IrisBiome parent) {
         return parent.getChildrenGenerator(rng, CHILD_NOISE_SIGNATURE, parent.getChildShrinkFactor());
-    }
-
-    private KList<IrisBiome> loadInferredBiomes(KList<String> keys, InferredType type) {
-        KList<IrisBiome> inferred = new KList<>();
-        for (IrisBiome biome : data.getBiomeLoader().loadAll(keys)) {
-            inferred.add(biome.withInferredType(type));
-        }
-        return inferred;
     }
 
     private void registerGenerators(IrisBiome biome) {
@@ -819,39 +818,12 @@ public class IrisComplex implements DataProvider {
             return b;
         }
 
-        CNG childCell = childNoise(b);
-        ChildSelectionPlan childSelectionPlan = resolveChildSelectionPlan(b);
-        IrisBiome biome = childSelectionPlan.select(childCell, x, z).withInferredType(b.getInferredType());
-        return implode(biome, x, z, max - 1);
-    }
-
-    private ChildSelectionPlan resolveChildSelectionPlan(IrisBiome biome) {
-        ChildSelectionPlan cachedPlan = childSelectionPlans.get(biome);
-        if (cachedPlan != null) {
-            return cachedPlan;
+        IrisBiome picked = Weighted.pick(childOptions(b), childNoise(b).noiseFast2D(x, z), CHILD_EDGE);
+        if (picked == null) {
+            return b;
         }
 
-        synchronized (childSelectionPlanLock) {
-            ChildSelectionPlan synchronizedPlan = childSelectionPlans.get(biome);
-            if (synchronizedPlan != null) {
-                return synchronizedPlan;
-            }
-
-            KList<IrisBiome> children = biome.getRealChildren(this);
-            KList<IrisBiome> options = new KList<>();
-            for (IrisBiome child : children) {
-                if (child != null) {
-                    options.add(child);
-                }
-            }
-            options.add(biome);
-
-            ChildSelectionPlan createdPlan = ChildSelectionPlan.create(options);
-            IdentityHashMap<IrisBiome, ChildSelectionPlan> next = new IdentityHashMap<>(childSelectionPlans);
-            next.put(biome, createdPlan);
-            childSelectionPlans = next;
-            return createdPlan;
-        }
+        return implode(picked.withInferredType(b.getInferredType()), x, z, max - 1);
     }
 
     private static class GeneratorBounds {
@@ -1071,78 +1043,6 @@ public class IrisComplex implements DataProvider {
                 return 8;
             }
             return tableSize;
-        }
-    }
-
-    static final class ChildSelectionPlan {
-        private final IrisBiome[] mappedBiomes;
-        private final int maxIndex;
-
-        private ChildSelectionPlan(IrisBiome[] mappedBiomes) {
-            this.mappedBiomes = mappedBiomes;
-            this.maxIndex = mappedBiomes.length - 1;
-        }
-
-        static ChildSelectionPlan create(KList<IrisBiome> options) {
-            if (options.isEmpty()) {
-                return new ChildSelectionPlan(new IrisBiome[0]);
-            }
-
-            int maxRarity = 1;
-            for (IrisBiome biome : options) {
-                if (biome != null && biome.getRarity() > maxRarity) {
-                    maxRarity = biome.getRarity();
-                }
-            }
-
-            int rarityMax = maxRarity + 1;
-            boolean flip = false;
-            KList<IrisBiome> mapped = new KList<>();
-            for (IrisBiome biome : options) {
-                if (biome == null) {
-                    continue;
-                }
-
-                int rarity = Math.max(1, biome.getRarity());
-                int count = rarityMax - rarity;
-                for (int index = 0; index < count; index++) {
-                    flip = !flip;
-                    if (flip) {
-                        mapped.add(biome);
-                    } else {
-                        mapped.add(0, biome);
-                    }
-                }
-            }
-
-            if (mapped.isEmpty()) {
-                IrisBiome[] fallback = new IrisBiome[]{options.get(0)};
-                return new ChildSelectionPlan(fallback);
-            }
-
-            IrisBiome[] mappedBiomes = mapped.toArray(new IrisBiome[0]);
-            return new ChildSelectionPlan(mappedBiomes);
-        }
-
-        IrisBiome select(CNG childCell, double x, double z) {
-            if (mappedBiomes.length == 0) {
-                return null;
-            }
-
-            if (mappedBiomes.length == 1) {
-                return mappedBiomes[0];
-            }
-
-            int selectedIndex = childCell.fit2D(0, maxIndex, x, z);
-            if (selectedIndex < 0) {
-                return mappedBiomes[0];
-            }
-
-            if (selectedIndex > maxIndex) {
-                return mappedBiomes[maxIndex];
-            }
-
-            return mappedBiomes[selectedIndex];
         }
     }
 

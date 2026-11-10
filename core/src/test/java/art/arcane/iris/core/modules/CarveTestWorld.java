@@ -92,9 +92,9 @@ public final class CarveTestWorld implements PackWorld {
         return declare(Level.DIMENSION, "overworld", value);
     }
 
-    public CarveTestWorld biome(String key, int rarity) {
+    public CarveTestWorld biome(String key) {
         ResourceId id = new ResourceId(NAMESPACE, key);
-        biomes.put(id, new PackBiome(id, key, ResourceId.parse("minecraft:plains"), rarity, List.of()));
+        biomes.put(id, new PackBiome(id, key, ResourceId.parse("minecraft:plains"), List.of()));
         return this;
     }
 

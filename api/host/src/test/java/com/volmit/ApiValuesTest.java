@@ -160,24 +160,20 @@ class ApiValuesTest {
 
     @Test
     void packBiomesAndRegionsAreImmutableValues() {
-        var children = new ArrayList<>(List.of(ResourceId.parse("pack:dunes")));
-        var desert = new PackBiome(ResourceId.parse("pack:desert"), "Desert", ResourceId.parse("minecraft:desert"), 2, children);
+        var children = new ArrayList<>(List.of(new Weighted<>(ResourceId.parse("pack:dunes"), 2)));
+        var desert = new PackBiome(ResourceId.parse("pack:desert"), "Desert", ResourceId.parse("minecraft:desert"), children);
         children.clear();
-        assertEquals(List.of(ResourceId.parse("pack:dunes")), desert.children());
+        assertEquals(List.of(new Weighted<>(ResourceId.parse("pack:dunes"), 2)), desert.children());
         assertThrows(UnsupportedOperationException.class, () -> desert.children().clear());
-        assertThrows(IllegalArgumentException.class,
-                () -> new PackBiome(desert.id(), "Desert", desert.platformBiome(), 0, List.of()));
         assertEquals(desert.platformBiome(), desert.vanillaBiome(), "vanilla sees the platform biome unless a pack says otherwise");
         var mesa = new PackBiome(ResourceId.parse("pack:mesa"), "Mesa", ResourceId.parse("minecraft:desert"),
-                ResourceId.parse("minecraft:badlands"), 1, List.of());
+                ResourceId.parse("minecraft:badlands"), List.of());
         assertEquals(ResourceId.parse("minecraft:badlands"), mesa.vanillaBiome());
 
-        var land = List.of(desert.id());
-        var arid = new PackRegion(ResourceId.parse("pack:arid"), "Arid", 1, land, List.of(), List.of(), List.of());
+        var land = List.of(new Weighted<>(desert.id(), 1));
+        var arid = new PackRegion(ResourceId.parse("pack:arid"), "Arid", land, List.of(), List.of(), List.of());
         assertEquals(land, arid.landBiomes());
-        assertThrows(UnsupportedOperationException.class, () -> arid.caveBiomes().add(desert.id()));
-        assertThrows(IllegalArgumentException.class,
-                () -> new PackRegion(arid.id(), "Arid", 0, land, List.of(), List.of(), List.of()));
+        assertThrows(UnsupportedOperationException.class, () -> arid.caveBiomes().add(new Weighted<>(desert.id(), 1)));
     }
 
     static final class Keep {}

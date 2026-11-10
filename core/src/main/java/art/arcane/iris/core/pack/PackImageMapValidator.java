@@ -519,7 +519,7 @@ final class PackImageMapValidator {
             return;
         }
         for (int index = 0; index < values.length(); index++) {
-            if (biomeKey.equals(values.optString(index, null))) {
+            if (biomeKey.equals(PackValidationIo.entryKey(values, index, "biome"))) {
                 roles.add(role);
                 return;
             }
@@ -532,7 +532,7 @@ final class PackImageMapValidator {
     ) {
         Set<String> regionKeys = new TreeSet<>();
         if (dimension.getRegions() != null) {
-            for (String regionKey : dimension.getRegions()) {
+            for (String regionKey : dimension.getRegionKeys()) {
                 String normalized = normalized(regionKey);
                 if (normalized != null) {
                     regionKeys.add(normalized);

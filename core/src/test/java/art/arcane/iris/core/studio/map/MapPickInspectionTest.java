@@ -45,7 +45,7 @@ public class MapPickInspectionTest {
                 dry.spreads().stream().map(MapPickInspection.Spread::title).toList());
         assertRow(dry.spreads().get(0).rows().get(0), "plains", 0.5D, 1D);
         MapPickInspection.Spread plainsChildren = dry.spreads().get(1);
-        assertEquals("meadow's slot and plains' two slots are two bands", 2, plainsChildren.rows().size());
+        assertEquals("meadow and plains are two bands", 2, plainsChildren.rows().size());
         assertRow(plainsChildren.rows().get(0), "meadow", 0.25D, 1D);
     }
 

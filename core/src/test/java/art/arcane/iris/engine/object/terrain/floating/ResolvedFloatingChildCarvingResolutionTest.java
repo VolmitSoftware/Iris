@@ -50,7 +50,7 @@ public class ResolvedFloatingChildCarvingResolutionTest {
         when(resources.idOf(anyString())).thenAnswer(invocation -> ResourceId.ofPackKey(NAMESPACE, invocation.getArgument(0, String.class)));
         when(resources.find(eq(PackResources.BIOMES), any())).thenAnswer(invocation -> {
             ResourceId id = invocation.getArgument(1);
-            return biomes.containsValue(id) ? Optional.of(new PackBiome(id, id.path(), id, 1, List.of())) : Optional.empty();
+            return biomes.containsValue(id) ? Optional.of(new PackBiome(id, id.path(), id, List.of())) : Optional.empty();
         });
         return new FloatingWorld(resources, null, 0L, 0L, 0, dimensionCarving);
     }

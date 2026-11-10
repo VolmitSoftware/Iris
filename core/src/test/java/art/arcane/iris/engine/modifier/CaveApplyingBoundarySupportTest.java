@@ -33,7 +33,7 @@ public class CaveApplyingBoundarySupportTest {
     private static final BlockState STONE = new BlockState("minecraft:stone");
     private static final BlockState SAND = new BlockState("minecraft:sand");
 
-    private final CarveTestWorld world = new CarveTestWorld().biome("custom/floor", 1);
+    private final CarveTestWorld world = new CarveTestWorld().biome("custom/floor");
     private final CaveBlockClasses classes = new CaveBlockClasses(new CarveTestWorld.Blocks());
 
     @Test

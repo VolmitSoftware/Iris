@@ -98,8 +98,8 @@ public class LootResourcesTest {
 
     private Path lootPack(String name) throws Exception {
         File pack = temporaryFolder.newFolder(name);
-        write(pack.toPath(), "dimensions/main.json", "{\"regions\":[\"region\"]}");
-        write(pack.toPath(), "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack.toPath(), "dimensions/main.json", "{\"regions\":[{\"region\":\"region\"}]}");
+        write(pack.toPath(), "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack.toPath(), "biomes/biome.json", "{\"name\":\"Biome\"}");
         write(pack.toPath(), "loot/dungeon/chest.json", "{\"name\":\"Chest\",\"loot\":[{\"type\":\"stick\"}]}");
         BuiltInModulesJar.writeInto(pack.toPath());

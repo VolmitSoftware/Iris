@@ -1,33 +1,32 @@
 {
     "name": "Swamp",
     "color": "#69943C",
-    "rarity": 2,
     "landBiomes": [
-        "swamp/roofed-forest",
-        "swamp/sea/lake",
-        "swamp/roofed-wayward",
-        "swamp/marsh",
-        "swamp/handy-willow-forest",
-        "swamp/cambian-drift",
-        "swamp/swamp-forest",
-        "swamp/willow-forest",
-        "swamp/creaks",
-        "vanilla/mangrove_swamp"
+        {"biome": "swamp/roofed-forest", "weight": 1},
+        {"biome": "swamp/sea/lake", "weight": 1},
+        {"biome": "swamp/roofed-wayward", "weight": 1},
+        {"biome": "swamp/marsh", "weight": 1},
+        {"biome": "swamp/handy-willow-forest", "weight": 1},
+        {"biome": "swamp/cambian-drift", "weight": 1},
+        {"biome": "swamp/swamp-forest", "weight": 1},
+        {"biome": "swamp/willow-forest", "weight": 1},
+        {"biome": "swamp/creaks", "weight": 1},
+        {"biome": "vanilla/mangrove_swamp", "weight": 1}
     ],
     "caveBiomes": [
-        "carving/swamp",
-        "carving/lush",
-        "carving/drip-lite",
-        "carving/drip",
-        "carving/moss-pillars"
+        {"biome": "carving/swamp", "weight": 1},
+        {"biome": "carving/lush", "weight": 1},
+        {"biome": "carving/drip-lite", "weight": 1},
+        {"biome": "carving/drip", "weight": 1},
+        {"biome": "carving/moss-pillars", "weight": 1}
     ],
     "shoreBiomes": [
-        "swamp/shore/beach"
+        {"biome": "swamp/shore/beach", "weight": 1}
     ],
     "seaBiomes": [
-        "swamp/sea/ocean",
-        "swamp/swamp-mangrove-lake",
-        "swamp/sea/ocean-tree"
+        {"biome": "swamp/sea/ocean", "weight": 1},
+        {"biome": "swamp/swamp-mangrove-lake", "weight": 1},
+        {"biome": "swamp/sea/ocean-tree", "weight": 1}
     ],
     "landBiomeZoom": 2,
     "shoreHeightMin": 1.2,

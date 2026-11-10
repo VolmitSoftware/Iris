@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.object.world.region;
 
-import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiomeEntry;
 import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.spi.IrisLogging;
@@ -28,9 +28,7 @@ import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
 import art.arcane.iris.engine.object.annotations.MinNumber;
-import art.arcane.iris.engine.object.annotations.RegistryListResource;
 import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -54,7 +52,7 @@ import java.util.Random;
 @Desc("Represents an iris region")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisRegion extends IrisRegistrant implements IRare {
+public class IrisRegion extends IrisRegistrant {
     private final transient AtomicCache<KList<String>> cacheRidge = new AtomicCache<>();
     private final transient AtomicCache<KList<String>> cacheSpot = new AtomicCache<>();
     private final transient AtomicCache<CNG> shoreHeightGenerator = new AtomicCache<>();
@@ -67,10 +65,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @Required
     @Desc("The name of the region")
     private String name = "A Region";
-    @MinNumber(1)
-    @MaxNumber(128)
-    @Desc("The rarity of the region")
-    private int rarity = 1;
     @MinNumber(0)
     @Desc("The min shore height")
     private double shoreHeightMin = 1.2;
@@ -92,23 +86,19 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @MinNumber(0.0001)
     @Desc("How large cave biomes are in this region")
     private double caveBiomeZoom = 1;
-    @RegistryListResource(IrisBiome.class)
     @Required
-    @ArrayType(min = 1, type = String.class)
-    @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
-    private KList<String> landBiomes = new KList<>();
-    @RegistryListResource(IrisBiome.class)
-    @ArrayType(type = String.class)
-    @Desc("A list of root-level sea biomes in this region. Optional: leave empty for land-only dimensions (flat, island, or fully-land worlds where no ocean is generated). Don't specify child biomes of other biomes here. Just the root parents.")
-    private KList<String> seaBiomes = new KList<>();
-    @RegistryListResource(IrisBiome.class)
-    @ArrayType(type = String.class)
-    @Desc("A list of root-level shore biomes in this region. Optional: leave empty for land-only dimensions (flat, island, or fully-land worlds where no shoreline is generated). Don't specify child biomes of other biomes here. Just the root parents.")
-    private KList<String> shoreBiomes = new KList<>();
-    @RegistryListResource(IrisBiome.class)
-    @ArrayType(min = 1, type = String.class)
-    @Desc("A list of root-level cave biomes in this region, used for carved cave interiors. Don't specify child biomes of other biomes here. Just the root parents.")
-    private KList<String> caveBiomes = new KList<>();
+    @ArrayType(min = 1, type = IrisBiomeEntry.class)
+    @Desc("The root-level land biomes of this region, picked along the list by the biome noise. Don't list child biomes of other biomes here, just the root parents.")
+    private KList<IrisBiomeEntry> landBiomes = new KList<>();
+    @ArrayType(type = IrisBiomeEntry.class)
+    @Desc("The root-level sea biomes of this region, picked along the list by the biome noise. Optional: leave empty for land-only dimensions (flat, island, or fully-land worlds where no ocean is generated). Don't list child biomes of other biomes here, just the root parents.")
+    private KList<IrisBiomeEntry> seaBiomes = new KList<>();
+    @ArrayType(type = IrisBiomeEntry.class)
+    @Desc("The root-level shore biomes of this region, picked along the list by the biome noise. Optional: leave empty for land-only dimensions (flat, island, or fully-land worlds where no shoreline is generated). Don't list child biomes of other biomes here, just the root parents.")
+    private KList<IrisBiomeEntry> shoreBiomes = new KList<>();
+    @ArrayType(min = 1, type = IrisBiomeEntry.class)
+    @Desc("The root-level cave biomes of this region, picked along the list by the cave biome noise and used for carved cave interiors. Don't list child biomes of other biomes here, just the root parents.")
+    private KList<IrisBiomeEntry> caveBiomes = new KList<>();
     @Desc("A color for visualizing this region with a color. I.e. #F13AF5. This will show up on the map.")
     private String color = null;
 
@@ -127,10 +117,10 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
     public KSet<String> getAllBiomeIds() {
         KSet<String> names = new KSet<>();
-        names.addAll(landBiomes);
-        names.addAll(caveBiomes);
-        names.addAll(seaBiomes);
-        names.addAll(shoreBiomes);
+        names.addAll(IrisBiomeEntry.keys(landBiomes));
+        names.addAll(IrisBiomeEntry.keys(caveBiomes));
+        names.addAll(IrisBiomeEntry.keys(seaBiomes));
+        names.addAll(IrisBiomeEntry.keys(shoreBiomes));
 
         return names;
     }
@@ -155,7 +145,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
                 names.addAll(biome.getModuleSettings().treeBiomes(g.getData().getPackResources()));
                 b.put(biome.getLoadKey(), biome);
-                names.addAll(biome.getChildren());
+                names.addAll(biome.getChildKeys());
             }
         }
 
@@ -181,7 +171,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         {
             KList<IrisBiome> realCaveBiomes = new KList<>();
 
-            for (String i : getCaveBiomes()) {
+            for (String i : IrisBiomeEntry.keys(getCaveBiomes())) {
                 realCaveBiomes.add(g.getData().getBiomeLoader().load(i));
             }
 
@@ -194,7 +184,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         {
             KList<IrisBiome> realShoreBiomes = new KList<>();
 
-            for (String i : getShoreBiomes()) {
+            for (String i : IrisBiomeEntry.keys(getShoreBiomes())) {
                 realShoreBiomes.add(g.getData().getBiomeLoader().load(i));
             }
 
@@ -207,7 +197,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         {
             KList<IrisBiome> realSeaBiomes = new KList<>();
 
-            for (String i : getSeaBiomes()) {
+            for (String i : IrisBiomeEntry.keys(getSeaBiomes())) {
                 realSeaBiomes.add(g.getData().getBiomeLoader().load(i));
             }
 
@@ -220,7 +210,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         {
             KList<IrisBiome> realLandBiomes = new KList<>();
 
-            for (String i : getLandBiomes()) {
+            for (String i : IrisBiomeEntry.keys(getLandBiomes())) {
                 realLandBiomes.add(g.getData().getBiomeLoader().load(i));
             }
 
@@ -231,10 +221,10 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     public KList<IrisBiome> getAllAnyBiomes() {
         KMap<String, IrisBiome> b = new KMap<>();
         KSet<String> names = new KSet<>();
-        names.addAll(landBiomes);
-        names.addAll(caveBiomes);
-        names.addAll(seaBiomes);
-        names.addAll(shoreBiomes);
+        names.addAll(IrisBiomeEntry.keys(landBiomes));
+        names.addAll(IrisBiomeEntry.keys(caveBiomes));
+        names.addAll(IrisBiomeEntry.keys(seaBiomes));
+        names.addAll(IrisBiomeEntry.keys(shoreBiomes));
 
         while (!names.isEmpty()) {
             for (String i : new KList<>(names)) {
@@ -252,7 +242,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
                 names.addAll(biome.getModuleSettings().treeBiomes(biome.getLoader().getPackResources()));
                 b.put(biome.getLoadKey(), biome);
-                names.addAll(biome.getChildren());
+                names.addAll(biome.getChildKeys());
             }
         }
 

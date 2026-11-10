@@ -209,7 +209,7 @@ public class PackValidatorStructureGraphTest {
     public void rejectsDuplicatePlacementIdsAcrossResources() throws Exception {
         File pack = pack("\"structures\":[{\"placementId\":\"shared\","
                 + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}]}]");
-        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"],\"structures\":[{\"placementId\":\"shared\","
+        write(pack, "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}],\"structures\":[{\"placementId\":\"shared\","
                 + "\"nativeStructures\":[{\"structure\":\"minecraft:village_plains\"}]}]}");
 
         List<String> errors = blockingErrors(pack);
@@ -220,7 +220,7 @@ public class PackValidatorStructureGraphTest {
     @Test
     public void rejectsCanonicalAnonymousGridDuplicatesAcrossResources() throws Exception {
         File pack = pack("\"structures\":[{\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}]}]");
-        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"],\"structures\":[{"
+        write(pack, "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}],\"structures\":[{"
                 + "\"spacing\":32,\"separation\":8,\"density\":0.02,"
                 + "\"nativeStructures\":[{\"weight\":1,\"structure\":\"minecraft:ancient_city\"}]}]}");
 
@@ -424,10 +424,10 @@ public class PackValidatorStructureGraphTest {
     public void fullPackValidationRejectsReplacementOutsideDimensionEnvelope() throws Exception {
         File pack = replacementPack("full-pack-below", "STRUCTURE_PIECE", true, -80, -80);
         write(pack, "dimensions/main.json", "{\"dimensionHeight\":{\"min\":-64,\"max\":320},"
-                + "\"regions\":[\"region\"],\"structures\":[{\"structures\":[\"city\"],"
+                + "\"regions\":[{\"region\":\"region\"}],\"structures\":[{\"structures\":[\"city\"],"
                 + "\"nativeSuppression\":\"REPLACE_SOURCE\",\"underground\":true,"
                 + "\"minHeight\":-80,\"maxHeight\":-80}]}");
-        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack, "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack, "biomes/biome.json", "{\"name\":\"Biome\"}");
         write(pack, "structures/city.json", "{\"startPool\":\"city/start\","
                 + "\"vanillaSource\":\"minecraft:ancient_city\",\"placeMode\":\"STRUCTURE_PIECE\"}");
@@ -447,8 +447,8 @@ public class PackValidatorStructureGraphTest {
     public void fullPackValidationPreservesMalformedActiveObjectPathAndReason() throws Exception {
         File pack = temporaryFolder.newFolder("malformed-active-object");
         write(pack, "dimensions/main.json", "{\"dimensionHeight\":{\"min\":-64,\"max\":320},"
-                + "\"regions\":[\"region\"],\"structures\":[{\"structures\":[\"castle\"]}]}");
-        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+                + "\"regions\":[{\"region\":\"region\"}],\"structures\":[{\"structures\":[\"castle\"]}]}");
+        write(pack, "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack, "biomes/biome.json", "{\"name\":\"Biome\"}");
         write(pack, "structures/castle.json", "{\"startPool\":\"castle/start\"}");
         write(pack, "jigsaw-pools/castle/start.json",
@@ -478,8 +478,8 @@ public class PackValidatorStructureGraphTest {
     private File pack(String dimensionMembers) throws Exception {
         File pack = temporaryFolder.newFolder("pack");
         String members = dimensionMembers.isEmpty() ? "" : ", " + dimensionMembers;
-        write(pack, "dimensions/main.json", "{\"regions\": [\"region\"]" + members + "}");
-        write(pack, "regions/region.json", "{\"landBiomes\": [\"biome\"]}");
+        write(pack, "dimensions/main.json", "{\"regions\": [{\"region\": \"region\"}]" + members + "}");
+        write(pack, "regions/region.json", "{\"landBiomes\": [{\"biome\": \"biome\"}]}");
         write(pack, "biomes/biome.json", "{\"name\": \"Biome\"}");
         return pack;
     }

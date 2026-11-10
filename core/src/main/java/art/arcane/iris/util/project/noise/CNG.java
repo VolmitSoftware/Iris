@@ -18,7 +18,6 @@
 
 package art.arcane.iris.util.project.noise;
 
-import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.cache.FloatCache;
@@ -427,79 +426,6 @@ public class CNG {
         }
 
         return InjectorMode.CUSTOM;
-    }
-
-    public <T extends IRare> T fitRarity(KList<T> b, double... dim) {
-        if (dim.length == 2) {
-            return fitRarity2D(b, dim[0], dim[1]);
-        }
-
-        if (b.size() == 0) {
-            return null;
-        }
-
-        if (b.size() == 1) {
-            return b.get(0);
-        }
-
-        KList<T> rarityMapped = buildRarityMapped(b);
-
-        if (rarityMapped.size() == 1) {
-            return rarityMapped.get(0);
-        }
-
-        if (rarityMapped.isEmpty()) {
-            throw new RuntimeException("BAD RARITY MAP! RELATED TO: " + b.toString(", or possibly "));
-        }
-
-        return fit(rarityMapped, dim);
-    }
-
-    public <T extends IRare> T fitRarity2D(KList<T> b, double x, double z) {
-        if (b.size() == 0) {
-            return null;
-        }
-
-        if (b.size() == 1) {
-            return b.get(0);
-        }
-
-        KList<T> rarityMapped = buildRarityMapped(b);
-        if (rarityMapped.size() == 1) {
-            return rarityMapped.get(0);
-        }
-
-        if (rarityMapped.isEmpty()) {
-            throw new RuntimeException("BAD RARITY MAP! RELATED TO: " + b.toString(", or possibly "));
-        }
-
-        return fit2D(rarityMapped, x, z);
-    }
-
-    private <T extends IRare> KList<T> buildRarityMapped(KList<T> values) {
-        KList<T> rarityMapped = new KList<>();
-        boolean flip = false;
-        int max = 1;
-        for (T value : values) {
-            if (value.getRarity() > max) {
-                max = value.getRarity();
-            }
-        }
-
-        max++;
-        for (T value : values) {
-            int count = max - value.getRarity();
-            for (int j = 0; j < count; j++) {
-                flip = !flip;
-                if (flip) {
-                    rarityMapped.add(value);
-                } else {
-                    rarityMapped.add(0, value);
-                }
-            }
-        }
-
-        return rarityMapped;
     }
 
     public <T> T fit2D(T[] values, double x, double z) {

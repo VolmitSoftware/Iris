@@ -23,6 +23,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
+import com.volmit.world.Weighted;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -62,13 +63,13 @@ public final class MapPickInspection {
         if (complex.getFocusRegion() != null) {
             return new Inspection("One region is focused", List.of());
         }
-        SpreadCounter regions = new SpreadCounter("Region noise", MapPickPath.regionBands(engine));
+        SpreadCounter regions = new SpreadCounter("Region noise", MapPickPath.regionBands(engine), Weighted.Edge.EARLIER);
         area.forEachSpot((x, z) -> {
             if (complex.getImageMapRuntime().sampleRegion(x, z) == null) {
                 regions.add(complex.getRegionStyleStream().get(x, z));
             }
         });
-        return new Inspection("Region noise by rarity", List.of(new Section(null, 1D, 0, List.of(regions.spread()))));
+        return new Inspection("Region noise by weight", List.of(new Section(null, 1D, 0, List.of(regions.spread()))));
     }
 
     // The previewed region owns every spot, so each spot's biome list is the one its surface needs.
@@ -79,7 +80,7 @@ public final class MapPickInspection {
         }
         RegionSamples samples = new RegionSamples(engine, MapView.REGIONS, region);
         area.forEachSpot((x, z) -> samples.add(complex.surfacePickAsIfIn(region, x, z).list(), x, z));
-        return new Inspection("Biome noise by rarity", List.of(samples.section(1)));
+        return new Inspection("Biome noise by weight", List.of(samples.section(1)));
     }
 
     // Each region picks the base biomes on its ground from the list the continent chose there.
@@ -114,7 +115,7 @@ public final class MapPickInspection {
         area.forEachSpot((x, z) -> children.add(ChildPicks.from(complex, focus, x, z)));
         List<Spread> spreads = children.mostSampledFirst();
         Section section = new Section(MapPickPath.biomeLabel(engine, view, focus), 1D, distinctOptions(spreads), spreads);
-        return new Inspection("Child noise by rarity", List.of(section));
+        return new Inspection("Child noise by weight", List.of(section));
     }
 
     private static int distinctOptions(List<Spread> spreads) {
@@ -172,7 +173,7 @@ public final class MapPickInspection {
         private SpreadCounter listCounter(InferredType list) {
             String name = MapPickPath.listName(list);
             String title = Character.toUpperCase(name.charAt(0)) + name.substring(1) + " biome noise";
-            return new SpreadCounter(title, MapPickPath.biomeBands(engine, view, region, list));
+            return new SpreadCounter(title, MapPickPath.biomeBands(engine, view, region, list), Weighted.Edge.EARLIER);
         }
     }
 
@@ -202,7 +203,8 @@ public final class MapPickInspection {
 
         private SpreadCounter counterOf(ChildPicks.ChildPick pick) {
             return new SpreadCounter(pick.parent().getName() + " child noise",
-                    MapPickPath.slotBands(pick.slots(), slot -> MapPickPath.biomeLabel(engine, view, slot)));
+                    MapPickPath.weightBands(pick.options(), option -> MapPickPath.biomeLabel(engine, view, option)),
+                    IrisComplex.CHILD_EDGE);
         }
     }
 
@@ -210,13 +212,15 @@ public final class MapPickInspection {
     private static final class SpreadCounter {
         private final String title;
         private final List<MapPickPath.PickBand> bands;
+        private final Weighted.Edge edge;
         private final long[] histogram = new long[HISTOGRAM_BINS];
         private final long[] samplesByBand;
         private long samples;
 
-        private SpreadCounter(String title, List<MapPickPath.PickBand> bands) {
+        private SpreadCounter(String title, List<MapPickPath.PickBand> bands, Weighted.Edge edge) {
             this.title = title;
             this.bands = bands;
+            this.edge = edge;
             this.samplesByBand = new long[bands.size()];
         }
 
@@ -248,10 +252,12 @@ public final class MapPickInspection {
             return samples == 0 ? 0D : count / (double) samples;
         }
 
-        // The generator gives values below 0 the first option and values above 1 the last, as these bands do.
+        // The generator gives values below 0 the first option and values above 1 the last, as these bands do; a value
+        // on the edge between two bands goes where the list's edge rule sends it.
         private int bandIndexOf(double noise) {
             for (int index = 0; index < bands.size(); index++) {
-                if (noise <= bands.get(index).to()) {
+                double to = bands.get(index).to();
+                if (edge == Weighted.Edge.EARLIER ? noise <= to : noise < to) {
                     return index;
                 }
             }

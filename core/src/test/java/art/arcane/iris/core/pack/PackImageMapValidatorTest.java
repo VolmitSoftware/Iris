@@ -48,7 +48,7 @@ public class PackImageMapValidatorTest {
     public void acceptsCompiledTypedBindingsThroughPackValidator() throws Exception {
         File pack = createPack("valid", """
                 {
-                  "regions": ["region"],
+                  "regions": [{"region": "region"}],
                   "worldBoundary": {"center": {"x": 0, "z": 0}, "size": 16},
                   "imageMaps": [
                     {
@@ -121,7 +121,7 @@ public class PackImageMapValidatorTest {
     public void reportsBindingReferenceAndApplicationFailuresDeterministically() throws Exception {
         File pack = createPack("bindings", """
                 {
-                  "regions": ["region"],
+                  "regions": [{"region": "region"}],
                   "imageMaps": [
                     {
                       "key": "duplicate",
@@ -174,7 +174,7 @@ public class PackImageMapValidatorTest {
 
     @Test
     public void validatesEveryFirstClassResourceBeforeItIsBound() throws Exception {
-        File pack = createPack("resources", "{\"regions\":[\"region\"]}");
+        File pack = createPack("resources", "{\"regions\":[{\"region\":\"region\"}]}");
         writeGray(pack, "grayscale", 2, 2);
         writeRgb(pack, "not-png", 1, 1, "jpeg");
         Path corrupt = pack.toPath().resolve("images/corrupt.png");
@@ -209,7 +209,7 @@ public class PackImageMapValidatorTest {
     public void validatesLegendFilesMappedRegionRolesAndLiveSurfaceBlocks() throws Exception {
         File pack = createPack("legends", """
                 {
-                  "regions": ["region"],
+                  "regions": [{"region": "region"}],
                   "imageMaps": [
                     {"key": "biome", "map": "biome-map", "application": "BIOME"},
                     {"key": "region", "map": "region-map", "application": "REGION"},
@@ -221,7 +221,7 @@ public class PackImageMapValidatorTest {
         writeRgb(pack, "region-map", 1, 1, "png");
         writeRgb(pack, "surface", 1, 1, "png");
         write(pack, "biomes/mapped-biome.json", "{\"name\":\"Mapped\"}");
-        write(pack, "regions/mapped-region.json", "{\"landBiomes\":[\"mapped-biome\"]}");
+        write(pack, "regions/mapped-region.json", "{\"landBiomes\":[{\"biome\":\"mapped-biome\"}]}");
         write(pack, "image-maps/biome-map.json", colorMap("biome", "mapped-biome"));
         write(pack, "image-maps/region-map.json", colorMap("region-map", "mapped-region"));
         write(pack, "image-maps/surface-map.json", colorMap("surface", "minecraft:not_real"));
@@ -243,7 +243,7 @@ public class PackImageMapValidatorTest {
 
     @Test
     public void validatesReachableGeneratorStyleMapReferences() throws Exception {
-        File missingPack = createPack("generator-style-missing", "{\"regions\":[\"region\"]}");
+        File missingPack = createPack("generator-style-missing", "{\"regions\":[{\"region\":\"region\"}]}");
         write(missingPack, "biomes/biome.json", """
                 {"name":"Biome","generators":[{"generator":"mapped","min":0,"max":1}]}
                 """);
@@ -257,7 +257,7 @@ public class PackImageMapValidatorTest {
                 "generator style references missing image-map resource 'absent'"));
 
         File colorPack = createPack("generator-style-color", """
-                {"regions":["region"],"regionStyle":{"imageMap":"colors"}}
+                {"regions":[{"region":"region"}],"regionStyle":{"imageMap":"colors"}}
                 """);
         writeRgb(colorPack, "colors", 1, 1, "png");
         write(colorPack, "image-maps/colors.json", colorMap("colors", "biome"));
@@ -268,7 +268,7 @@ public class PackImageMapValidatorTest {
                 "must use a scalar map type, not COLOR_MAP"));
 
         File errorPack = createPack("generator-style-error", """
-                {"regions":["region"],"regionStyle":{"imageMap":"height"}}
+                {"regions":[{"region":"region"}],"regionStyle":{"imageMap":"height"}}
                 """);
         writeGray(errorPack, "height", 4, 4);
         write(errorPack, "image-maps/height.json", """
@@ -285,14 +285,14 @@ public class PackImageMapValidatorTest {
     public void validatesUpperDimensionCoverageAgainstParentBoundary() throws Exception {
         File pack = createPack("upper-parent-boundary", """
                 {
-                  "regions": ["region"],
+                  "regions": [{"region": "region"}],
                   "worldBoundary": {"center": {"x": 0, "z": 0}, "size": 16},
                   "upperDimension": "upper"
                 }
                 """);
         write(pack, "dimensions/upper.json", """
                 {
-                  "regions": ["region"],
+                  "regions": [{"region": "region"}],
                   "worldBoundary": {"center": {"x": 0, "z": 0}, "size": 2},
                   "imageMaps": [
                     {"key": "terrain", "map": "upper-terrain", "application": "TERRAIN_HEIGHT"}
@@ -321,14 +321,14 @@ public class PackImageMapValidatorTest {
     public void acceptsUpperDimensionWithoutStandaloneBoundaryWhenParentIsCovered() throws Exception {
         File pack = createPack("upper-parent-only-boundary", """
                 {
-                  "regions": ["region"],
+                  "regions": [{"region": "region"}],
                   "worldBoundary": {"center": {"x": 0, "z": 0}, "size": 4},
                   "upperDimension": "upper"
                 }
                 """);
         write(pack, "dimensions/upper.json", """
                 {
-                  "regions": ["region"],
+                  "regions": [{"region": "region"}],
                   "imageMaps": [
                     {"key": "terrain", "map": "upper-terrain", "application": "TERRAIN_HEIGHT"}
                   ]
@@ -356,14 +356,14 @@ public class PackImageMapValidatorTest {
     public void validatesDeclaredUpperBoundaryAlongsideParentBoundary() throws Exception {
         File pack = createPack("upper-own-and-parent-boundary", """
                 {
-                  "regions": ["region"],
+                  "regions": [{"region": "region"}],
                   "worldBoundary": {"center": {"x": 0, "z": 0}, "size": 4},
                   "upperDimension": "upper"
                 }
                 """);
         write(pack, "dimensions/upper.json", """
                 {
-                  "regions": ["region"],
+                  "regions": [{"region": "region"}],
                   "worldBoundary": {"center": {"x": 0, "z": 0}, "size": 16},
                   "imageMaps": [
                     {"key": "terrain", "map": "upper-terrain", "application": "TERRAIN_HEIGHT"}
@@ -392,7 +392,7 @@ public class PackImageMapValidatorTest {
     public void enforcesTerrainHeightRangeAfterOffsetAndClamp() throws Exception {
         File unclamped = createPack("height-unclamped", """
                 {
-                  "regions": ["region"],
+                  "regions": [{"region": "region"}],
                   "dimensionHeight": {"min": 0, "max": 64},
                   "imageMaps": [
                     {"key": "terrain", "map": "terrain", "application": "TERRAIN_HEIGHT"}
@@ -419,7 +419,7 @@ public class PackImageMapValidatorTest {
 
         File clamped = createPack("height-clamped", """
                 {
-                  "regions": ["region"],
+                  "regions": [{"region": "region"}],
                   "dimensionHeight": {"min": 0, "max": 64},
                   "imageMaps": [
                     {"key": "terrain", "map": "terrain", "application": "TERRAIN_HEIGHT"}
@@ -455,7 +455,7 @@ public class PackImageMapValidatorTest {
     private File createPack(String name, String dimension) throws Exception {
         File pack = temporaryFolder.newFolder(name);
         write(pack, "dimensions/main.json", dimension);
-        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack, "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack, "biomes/biome.json", "{\"name\":\"Biome\"}");
         return pack;
     }
@@ -464,7 +464,7 @@ public class PackImageMapValidatorTest {
         String boundary = boundarySize == null
                 ? ""
                 : ",\"worldBoundary\":{\"center\":{\"x\":0,\"z\":0},\"size\":" + boundarySize + "}";
-        return "{\"regions\":[\"region\"]" + boundary
+        return "{\"regions\":[{\"region\":\"region\"}]" + boundary
                 + ",\"imageMaps\":[{\"key\":\"terrain\",\"map\":\"terrain\","
                 + "\"application\":\"TERRAIN_HEIGHT\"}]}";
     }

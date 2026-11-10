@@ -20,7 +20,6 @@ package art.arcane.iris.engine.object.world.biome;
 
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
-import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.framework.render.RenderType;
@@ -33,10 +32,8 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.DependsOn;
 import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
 import art.arcane.iris.engine.object.annotations.MinNumber;
 import art.arcane.iris.engine.object.annotations.RegistryListBiome;
-import art.arcane.iris.engine.object.annotations.RegistryListResource;
 import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -45,6 +42,7 @@ import art.arcane.iris.util.common.data.DataProvider;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.project.context.IrisContext;
+import com.volmit.world.Weighted;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -71,8 +69,10 @@ import java.util.Objects;
 @Desc("Represents a biome in iris. Biomes are placed inside of regions and hold objects.\nA biome consists of layers (block palletes), decorations, objects & generators.")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisBiome extends IrisRegistrant implements IRare {
+public class IrisBiome extends IrisRegistrant {
     private static final int BIOME_GENERATOR_CACHE_SIZE = 8;
+    // The seed once added the biome's rarity; the 1 keeps biomes that had the default rarity on their old scatter.
+    private static final int BIOME_GENERATOR_SEED = 213949 + 228888 + 1;
     private static final int CHILDREN_SEED_SALT = 2137;
 
     private final transient AtomicCache<KMap<String, IrisBiomeGeneratorLink>> genCache = new AtomicCache<>();
@@ -87,7 +87,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private transient volatile SeededBiomeGenerator recentBiomeGenerator;
-    private final transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
+    private final transient AtomicCache<KList<Weighted<IrisBiome>>> childOptions = new AtomicCache<>();
     private final transient AtomicCache<Biome> derivativeResolved = new AtomicCache<>();
     private final transient AtomicCache<Biome> vanillaDerivativeResolved = new AtomicCache<>();
     private final transient AtomicCache<KList<Biome>> biomeScatterResolved = new AtomicCache<>();
@@ -102,10 +102,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
     @Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen.")
     private IrisGeneratorStyle biomeStyle = NoiseStyle.SIMPLEX.style();
-    @MinNumber(1)
-    @MaxNumber(512)
-    @Desc("The rarity of this biome (integer)")
-    private int rarity = 1;
     @Desc("A color for visualizing this biome with a color. I.e. #F13AF5. This will show up on the map.")
     private String color = null;
     @Required
@@ -130,10 +126,9 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @DependsOn({"children"})
     @Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, How will it be shaped?")
     private IrisGeneratorStyle childStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-    @RegistryListResource(IrisBiome.class)
-    @ArrayType(min = 1, type = String.class)
-    @Desc("List any biome names (file names without.json) here as children. Portions of this biome can sometimes morph into their children. Iris supports cyclic relationships such as A > B > A > B. Iris will stop checking 4 biomes down the tree.")
-    private KList<String> children = new KList<>();
+    @ArrayType(min = 1, type = IrisBiomeEntry.class)
+    @Desc("What portions of this biome turn into: the child noise picks along this list in the order it is written. List this biome itself where it should stay itself; a biome that isn't listed doesn't stay anywhere. Iris supports cyclic relationships such as A > B > A > B, and stops 4 levels down.")
+    private KList<IrisBiomeEntry> children = new KList<>();
     @ArrayType(min = 1, type = IrisBiomeGeneratorLink.class)
     @Desc("Generators for this biome. Multiple generators with different interpolation sizes will mix with other biomes how you would expect. This defines your biome height relative to the fluid height. Use negative for oceans.")
     private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());
@@ -291,7 +286,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     }
 
     private CNG createBiomeGenerator(long seed, IrisData loader) {
-        int signature = 213949 + 228888 + getRarity() + getName().length();
+        int signature = BIOME_GENERATOR_SEED + getName().length();
         return biomeStyle.createNoCache(new RNG(seed).nextParallelRNG(signature), loader);
     }
 
@@ -343,26 +338,29 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return IrisBiomeDerivatives.getCustomBiome(this, rng, engine, x, y, z);
     }
 
-    public KList<IrisBiome> getRealChildren(DataProvider g) {
-        return realChildren.aquire(() ->
-        {
-            KList<IrisBiome> realChildren = new KList<>();
+    /**
+     * The biomes this one turns into, leaving out the entries where it stays itself.
+     */
+    public KList<String> getChildKeys() {
+        KList<String> keys = IrisBiomeEntry.keys(getChildren());
+        keys.removeIf(key -> key.equals(getLoadKey()));
+        return keys;
+    }
 
-            for (String i : getChildren()) {
-                realChildren.add(g.getData().getBiomeLoader().load(i));
-            }
-
-            return realChildren;
-        });
+    /**
+     * What the child noise picks from, with weights, in noise order.
+     */
+    public KList<Weighted<IrisBiome>> getChildOptions(DataProvider g) {
+        return childOptions.aquire(() -> IrisBiomeEntry.load(getChildren(), g.getData().getBiomeLoader()));
     }
 
     public KList<String> getAllChildren(DataProvider g, int limit) {
         KSet<String> m = new KSet<>();
-        m.addAll(getChildren());
+        m.addAll(getChildKeys());
         limit--;
 
         if (limit > 0) {
-            for (String i : getChildren()) {
+            for (String i : getChildKeys()) {
                 IrisBiome b = g.getData().getBiomeLoader().load(i);
                 m.addAll(b.getAllChildren(g, limit));
             }

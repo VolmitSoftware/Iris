@@ -77,8 +77,8 @@ public class PackValidatorImportedStructurePolicyTest {
     /** The blocking errors of a pack whose one dimension declares {@code policy} as its {@code importedStructures}. */
     private List<String> validate(String policy) throws Exception {
         File pack = temporaryFolder.newFolder("pack");
-        write(pack, "dimensions/main.json", "{\"regions\": [\"region\"], \"importedStructures\": " + policy + "}");
-        write(pack, "regions/region.json", "{\"landBiomes\": [\"biome\"]}");
+        write(pack, "dimensions/main.json", "{\"regions\": [{\"region\": \"region\"}], \"importedStructures\": " + policy + "}");
+        write(pack, "regions/region.json", "{\"landBiomes\": [{\"biome\": \"biome\"}]}");
         write(pack, "biomes/biome.json", "{\"name\": \"Biome\"}");
         return PackValidator.validate(pack).getBlockingErrors();
     }

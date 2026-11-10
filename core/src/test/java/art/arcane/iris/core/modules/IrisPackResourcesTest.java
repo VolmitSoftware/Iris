@@ -4,6 +4,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiomeEntry;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.block.BlockState;
@@ -16,6 +17,7 @@ import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 import com.volmit.world.PackBiome;
 import com.volmit.world.PackRegion;
+import com.volmit.world.Weighted;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -70,9 +72,8 @@ public class IrisPackResourcesTest {
 
         IrisBiome dunes = new IrisBiome();
         dunes.setName("Dunes");
-        dunes.setRarity(3);
         dunes.setDerivative("minecraft:desert");
-        dunes.setChildren(new KList<>(List.of("desert/oasis")));
+        dunes.setChildren(new KList<>(List.of(new IrisBiomeEntry("desert/oasis", 4), new IrisBiomeEntry("desert/dunes", 2))));
         when(biomeLoader.getPossibleKeys()).thenReturn(new String[]{"desert/dunes", "desert"});
         when(biomeLoader.load("desert/dunes")).thenReturn(dunes);
         IrisBiome sharedKeyBiome = new IrisBiome();
@@ -82,11 +83,10 @@ public class IrisPackResourcesTest {
 
         IrisRegion desert = new IrisRegion();
         desert.setName("The Desert");
-        desert.setRarity(2);
-        desert.setLandBiomes(new KList<>(List.of("desert/dunes")));
-        desert.setSeaBiomes(new KList<>(List.of("ocean")));
-        desert.setShoreBiomes(new KList<>(List.of("beach")));
-        desert.setCaveBiomes(new KList<>(List.of("caves/dry")));
+        desert.setLandBiomes(new KList<>(List.of(new IrisBiomeEntry("desert/dunes", 3))));
+        desert.setSeaBiomes(new KList<>(List.of(new IrisBiomeEntry("ocean", 1))));
+        desert.setShoreBiomes(new KList<>(List.of(new IrisBiomeEntry("beach", 1))));
+        desert.setCaveBiomes(new KList<>(List.of(new IrisBiomeEntry("caves/dry", 5), new IrisBiomeEntry("caves/lush", 2))));
         when(regionLoader.getPossibleKeys()).thenReturn(new String[]{"desert"});
         when(regionLoader.load("desert")).thenReturn(desert);
 
@@ -119,15 +119,17 @@ public class IrisPackResourcesTest {
     public void aPackBiomeIsBuiltFromTheBiomeFile() {
         PackBiome biome = resources.require(PackResources.BIOMES, id("desert/dunes"));
 
-        assertEquals(new PackBiome(id("desert/dunes"), "Dunes", ResourceId.parse("minecraft:desert"), 3, List.of(id("desert/oasis"))), biome);
+        assertEquals(new PackBiome(id("desert/dunes"), "Dunes", ResourceId.parse("minecraft:desert"),
+                List.of(new Weighted<>(id("desert/oasis"), 4), new Weighted<>(id("desert/dunes"), 2))), biome);
     }
 
     @Test
-    public void aPackRegionIsBuiltFromTheRegionFileWithItsFourBiomeListsAsPackIds() {
+    public void aPackRegionIsBuiltFromTheRegionFileWithItsFourBiomeListsAsWeightedPackIds() {
         PackRegion region = resources.require(PackResources.REGIONS, id("desert"));
 
-        assertEquals(new PackRegion(id("desert"), "The Desert", 2, List.of(id("desert/dunes")), List.of(id("ocean")),
-                List.of(id("beach")), List.of(id("caves/dry"))), region);
+        assertEquals(new PackRegion(id("desert"), "The Desert", List.of(new Weighted<>(id("desert/dunes"), 3)),
+                List.of(new Weighted<>(id("ocean"), 1)), List.of(new Weighted<>(id("beach"), 1)),
+                List.of(new Weighted<>(id("caves/dry"), 5), new Weighted<>(id("caves/lush"), 2))), region);
     }
 
     @Test

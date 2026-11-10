@@ -788,7 +788,7 @@ public final class ModdedStudioCommands {
                 int diameter = radius * 2;
                 int totalTasks = diameter * diameter;
                 KMap<String, AtomicInteger> counts = new KMap<>();
-                engine.getDimension().getRegions().forEach((String key) -> counts.put(key, new AtomicInteger(0)));
+                engine.getDimension().getRegionKeys().forEach((String key) -> counts.put(key, new AtomicInteger(0)));
                 // finally-scoped: a throw mid-scan previously leaked the sampler's whole
                 // ForkJoinPool (close() is the only thing that shuts it down).
                 MultiBurst burst = new MultiBurst("Region Sampler");
@@ -803,9 +803,7 @@ public final class ModdedStudioCommands {
                     burst.close();
                 }
                 server.execute(() -> counts.forEach((String key, AtomicInteger count) -> {
-                    IrisRegion region = engine.getData().getRegionLoader().load(key);
-                    String rarity = region == null ? "?" : String.valueOf(region.getRarity());
-                    IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_RARITY, MessageArgument.untrusted("key", key), MessageArgument.untrusted("rarity", rarity), MessageArgument.untrusted("value", Form.f((double) count.get() / totalTasks * 100, 2))));
+                    IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_RARITY, MessageArgument.untrusted("key", key), MessageArgument.untrusted("rarity", engine.getDimension().getRegionWeight(key)),MessageArgument.untrusted("value", Form.f((double) count.get() / totalTasks * 100, 2))));
                 }));
             } catch (Throwable e) {
                 ModdedIrisLog.error("Iris region sampling failed", e);

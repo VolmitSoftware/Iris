@@ -726,7 +726,7 @@ public class DefaultPackBootstrapProvisionerTest {
     private static byte[] packArchive(String dimensionKey, String biomeId) throws IOException {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();
         files.put("dimensions/" + dimensionKey + ".json", dimensionJson(dimensionKey));
-        files.put("regions/local.json", "{\"name\":\"Local\",\"landBiomes\":[\"local\"]}");
+        files.put("regions/local.json", "{\"name\":\"Local\",\"landBiomes\":[{\"biome\":\"local\"}]}");
         files.put("biomes/local.json", biomeJson(biomeId));
         return zip(files);
     }
@@ -735,7 +735,7 @@ public class DefaultPackBootstrapProvisionerTest {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();
         files.put("dimensions/underworld.json", dimensionJson("underworld"));
         files.put("dimensions/underworld_roof.json", dimensionJson("underworld_roof"));
-        files.put("regions/local.json", "{\"name\":\"Local\",\"landBiomes\":[\"local\"]}");
+        files.put("regions/local.json", "{\"name\":\"Local\",\"landBiomes\":[{\"biome\":\"local\"}]}");
         files.put("biomes/local.json", biomeJson(biomeId));
         return zip(files);
     }
@@ -763,12 +763,12 @@ public class DefaultPackBootstrapProvisionerTest {
         Files.createDirectories(root.resolve("regions"));
         Files.createDirectories(root.resolve("biomes"));
         Files.writeString(root.resolve("dimensions/" + dimensionKey + ".json"), dimensionJson(dimensionKey), StandardCharsets.UTF_8);
-        Files.writeString(root.resolve("regions/local.json"), "{\"name\":\"Local\",\"landBiomes\":[\"local\"]}", StandardCharsets.UTF_8);
+        Files.writeString(root.resolve("regions/local.json"), "{\"name\":\"Local\",\"landBiomes\":[{\"biome\":\"local\"}]}", StandardCharsets.UTF_8);
         Files.writeString(root.resolve("biomes/local.json"), biomeJson(biomeId), StandardCharsets.UTF_8);
     }
 
     private static String dimensionJson(String name) {
-        return "{\"name\":\"" + name + "\",\"regions\":[\"local\"],\"logicalHeight\":256,\"dimensionHeight\":{\"min\":-64,\"max\":320}}";
+        return "{\"name\":\"" + name + "\",\"regions\":[{\"region\":\"local\"}],\"logicalHeight\":256,\"dimensionHeight\":{\"min\":-64,\"max\":320}}";
     }
 
     private static String biomeJson(String biomeId) {

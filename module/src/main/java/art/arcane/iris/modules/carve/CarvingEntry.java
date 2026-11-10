@@ -60,8 +60,8 @@ public final class CarvingEntry {
     @Desc("If this carving entry has child carving entries, this controls the shape pattern used to pick them.")
     private NoiseStyle childStyle = NoiseStyle.of("CELLULAR_IRIS_DOUBLE");
 
-    @Desc("Child carving entry ids. Child ids can point back to parent ids to create cycles; recursion is bounded by childRecursionDepth.")
-    private List<String> children = List.of();
+    @Desc("What portions of this entry turn into: the child noise picks along this list in the order it is written. List this entry's own id where it should stay itself; an entry that is not listed does not stay anywhere. Child ids can point back to parent ids to create cycles; recursion is bounded by childRecursionDepth.")
+    private List<CarvingChild> children = List.of();
 
     @Desc("Maximum recursion depth when resolving child carving entries from this entry.")
     private int childRecursionDepth = DEFAULT_CHILD_RECURSION_DEPTH;
@@ -93,7 +93,7 @@ public final class CarvingEntry {
         return childStyle;
     }
 
-    public List<String> children() {
+    public List<CarvingChild> children() {
         return children == null ? List.of() : Collections.unmodifiableList(children);
     }
 

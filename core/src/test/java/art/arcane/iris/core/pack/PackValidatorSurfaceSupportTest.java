@@ -51,8 +51,8 @@ public class PackValidatorSurfaceSupportTest {
     public void surfaceSupportErrorsBlockFullPackValidation() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
         write(pack, "dimensions/main.json",
-                "{\"regions\":[\"region\"],\"objectSurfaceSupportBuffer\":99}");
-        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+                "{\"regions\":[{\"region\":\"region\"}],\"objectSurfaceSupportBuffer\":99}");
+        write(pack, "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack, "biomes/biome.json", "{\"name\":\"Biome\"}");
 
         PackValidationResult result = PackValidator.validate(pack);

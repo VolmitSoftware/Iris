@@ -24,8 +24,8 @@ public class PackValidatorReadOnlyTest {
     @Test
     public void validationDoesNotMoveOrRewritePackFiles() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
-        write(pack, "dimensions/main.json", "{\"regions\":[\"region\"]}");
-        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack, "dimensions/main.json", "{\"regions\":[{\"region\":\"region\"}]}");
+        write(pack, "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack, "biomes/biome.json", "{\"name\":\"Biome\"}");
         write(pack, "generators/unused.json", "{\"name\":\"Unused\"}");
         Map<String, byte[]> before = snapshot(pack.toPath());

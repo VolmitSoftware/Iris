@@ -526,11 +526,11 @@ public class IrisWorldGeneratorResolverTest {
         Files.createDirectories(packRoot.resolve("biomes"));
         Files.writeString(
                 packRoot.resolve("dimensions/main.json"),
-                "{\"regions\":[\"region\"]}",
+                "{\"regions\":[{\"region\":\"region\"}]}",
                 StandardCharsets.UTF_8);
         Files.writeString(
                 packRoot.resolve("regions/region.json"),
-                "{\"landBiomes\":[\"biome\"]}",
+                "{\"landBiomes\":[{\"biome\":\"biome\"}]}",
                 StandardCharsets.UTF_8);
         Files.writeString(
                 packRoot.resolve("biomes/biome.json"),

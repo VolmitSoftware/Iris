@@ -20,6 +20,7 @@ package art.arcane.iris.core.studio.map;
 
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import com.volmit.world.Weighted;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,13 +36,13 @@ final class ChildPicks {
         List<ChildPick> picks = new ArrayList<>();
         IrisBiome parent = biome;
         for (int level = 0; level < IrisComplex.CHILD_PICK_LEVELS && !parent.getChildren().isEmpty(); level++) {
-            List<IrisBiome> slots = complex.childSlots(parent);
-            if (slots.isEmpty()) {
+            List<Weighted<IrisBiome>> options = complex.childOptions(parent);
+            if (options.isEmpty()) {
                 break;
             }
             double noise = complex.childNoise(parent).noiseFast2D(x, z);
-            IrisBiome picked = slots.get(slotIndex(noise, slots.size())).withInferredType(parent.getInferredType());
-            ChildPick pick = new ChildPick(parent, slots, noise, picked);
+            IrisBiome picked = Weighted.pick(options, noise, IrisComplex.CHILD_EDGE).withInferredType(parent.getInferredType());
+            ChildPick pick = new ChildPick(parent, options, noise, picked);
             picks.add(pick);
             if (pick.kept()) {
                 break;
@@ -57,17 +58,8 @@ final class ChildPicks {
         return picks.isEmpty() ? listNoise : picks.getLast().noise();
     }
 
-    /** The slot the child noise picks, rounded the way {@code CNG.fit2D} rounds. */
-    static int slotIndex(double noise, int slotCount) {
-        if (slotCount == 1) {
-            return 0;
-        }
-        long rounded = Math.round(noise * (slotCount - 1));
-        return (int) Math.clamp(rounded, 0, slotCount - 1);
-    }
-
-    /** One level of children: the parent's slots, the noise that read them, and the biome it picked. */
-    record ChildPick(IrisBiome parent, List<IrisBiome> slots, double noise, IrisBiome picked) {
+    /** One level of children: the parent's weighted list, the noise that read it, and the biome it picked. */
+    record ChildPick(IrisBiome parent, List<Weighted<IrisBiome>> options, double noise, IrisBiome picked) {
         boolean kept() {
             return Objects.equals(picked.getLoadKey(), parent.getLoadKey());
         }

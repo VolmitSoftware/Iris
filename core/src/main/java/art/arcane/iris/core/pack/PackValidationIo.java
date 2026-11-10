@@ -57,6 +57,12 @@ public final class PackValidationIo {
         }
     }
 
+    /** The key the entry at {@code index} of a weighted list names in {@code field}; null when the entry is not an object with one. */
+    static String entryKey(JSONArray entries, int index, String field) {
+        JSONObject entry = entries.optJSONObject(index);
+        return entry == null ? null : entry.optString(field, null);
+    }
+
     static boolean isScannableJsonPath(Path path) {
         String name = path.getFileName().toString();
         if (!name.endsWith(".json")) {

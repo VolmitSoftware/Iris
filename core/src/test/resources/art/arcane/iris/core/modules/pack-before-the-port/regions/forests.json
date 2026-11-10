@@ -1,37 +1,36 @@
 {
     "name": "Forests",
     "color": "#9BEE61",
-    "rarity": 1,
     "landBiomes": [
-        "tundra/forest",
-        "tundra/autumn",
-        "mountain/plains",
-        "temperate/reaching-forest-violet",
-        "temperate/flower-forest",
-        "temperate/birch-tall",
-        "temperate/osaka-red-forest",
-        "mountain/mountain",
-        "temperate/combo-forest",
-        "tundra/redwood-forest",
-        "vanilla/old_growth_birch_forest",
-        "vanilla/old_growth_pine_taiga",
-        "vanilla/windswept_forest"
+        {"biome": "tundra/forest", "weight": 1},
+        {"biome": "tundra/autumn", "weight": 1},
+        {"biome": "mountain/plains", "weight": 1},
+        {"biome": "temperate/reaching-forest-violet", "weight": 1},
+        {"biome": "temperate/flower-forest", "weight": 1},
+        {"biome": "temperate/birch-tall", "weight": 1},
+        {"biome": "temperate/osaka-red-forest", "weight": 1},
+        {"biome": "mountain/mountain", "weight": 1},
+        {"biome": "temperate/combo-forest", "weight": 1},
+        {"biome": "tundra/redwood-forest", "weight": 1},
+        {"biome": "vanilla/old_growth_birch_forest", "weight": 1},
+        {"biome": "vanilla/old_growth_pine_taiga", "weight": 1},
+        {"biome": "vanilla/windswept_forest", "weight": 1}
     ],
     "caveBiomes": [
-        "carving/rocky-cavebiome",
-        "carving/lush",
-        "carving/mountain-caves",
-        "carving/moss-pillars"
+        {"biome": "carving/rocky-cavebiome", "weight": 1},
+        {"biome": "carving/lush", "weight": 1},
+        {"biome": "carving/mountain-caves", "weight": 1},
+        {"biome": "carving/moss-pillars", "weight": 1}
     ],
     "shoreBiomes": [
-        "temperate/shore/beach",
-        "temperate/shore/oak-beach"
+        {"biome": "temperate/shore/beach", "weight": 1},
+        {"biome": "temperate/shore/oak-beach", "weight": 1}
     ],
     "seaBiomeZoom": 6,
     "seaBiomes": [
-        "ocean/deep",
-        "ocean/dark-depth-ocean",
-        "ocean/rich-oceans"
+        {"biome": "ocean/deep", "weight": 1},
+        {"biome": "ocean/dark-depth-ocean", "weight": 1},
+        {"biome": "ocean/rich-oceans", "weight": 1}
     ],
     "shoreBiomeZoom": 0.15,
     "landBiomeZoom": 3.5,

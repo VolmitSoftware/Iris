@@ -449,8 +449,8 @@ public class StudioSVCWorldPackPublishTest {
         Files.createDirectories(packRoot.resolve("dimensions"));
         Files.createDirectories(packRoot.resolve("regions"));
         Files.createDirectories(packRoot.resolve("biomes"));
-        Files.writeString(packRoot.resolve("dimensions/main.json"), "{\"regions\":[\"region\"]}");
-        Files.writeString(packRoot.resolve("regions/region.json"), "{\"landBiomes\":[\"biome\"]}");
+        Files.writeString(packRoot.resolve("dimensions/main.json"), "{\"regions\":[{\"region\":\"region\"}]}");
+        Files.writeString(packRoot.resolve("regions/region.json"), "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         Files.writeString(packRoot.resolve("biomes/biome.json"), "{\"name\":\"Biome\"}");
     }
 }

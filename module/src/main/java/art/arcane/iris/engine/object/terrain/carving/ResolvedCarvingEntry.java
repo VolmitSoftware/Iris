@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.terrain.carving;
 
+import art.arcane.iris.modules.carve.CarvingChild;
 import art.arcane.iris.modules.carve.CarvingEntry;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import com.volmit.ModuleLog;
@@ -64,7 +65,7 @@ public final class ResolvedCarvingEntry {
         return settings.worldYRange();
     }
 
-    public List<String> children() {
+    public List<CarvingChild> children() {
         return settings.children();
     }
 

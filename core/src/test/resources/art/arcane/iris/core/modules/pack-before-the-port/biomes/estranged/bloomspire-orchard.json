@@ -1,7 +1,6 @@
 {
     "name": "Bloomspire Orchard",
     "color": "#F2B6D6",
-    "rarity": 3,
     "derivative": "minecraft:cherry_grove",
     "vanillaDerivative": "minecraft:cherry_grove",
     "customDerivitives": [{

@@ -21,7 +21,7 @@ package art.arcane.iris.util.project.stream;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.value.IRare;
+import com.volmit.world.Weighted;
 import art.arcane.iris.engine.object.noise.IrisStyledRange;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
@@ -356,45 +356,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new SelectionStream<V>(this, types);
     }
 
-    @SuppressWarnings("unchecked")
-    default <V> ProceduralStream<V> selectRarity(V... types) {
-        KList<V> rarityTypes = new KList<>();
-        int totalRarity = 0;
-        for (V i : types) {
-            totalRarity += IRare.get(i);
-        }
-
-        for (V i : types) {
-            rarityTypes.addMultiple(i, totalRarity / IRare.get(i));
-        }
-
-        return new SelectionStream<V>(this, rarityTypes);
-    }
-
-    default <V extends IRare> ProceduralStream<V> selectRarity(List<V> types) {
-        return IRare.stream(this.forceDouble(), types);
-    }
-
-    default <V> ProceduralStream<IRare> selectRarity(List<V> types, Function<V, IRare> loader) {
-        List<IRare> r = new ArrayList<>();
-        for (V f : types) {
-            r.add(loader.apply(f));
-        }
-        return selectRarity(r);
-    }
-
-    default <V> int countPossibilities(List<V> types, Function<V, IRare> loader) {
-        KList<V> rarityTypes = new KList<>();
-        int totalRarity = 0;
-        for (V i : types) {
-            totalRarity += IRare.get(loader.apply(i));
-        }
-
-        for (V i : types) {
-            rarityTypes.addMultiple(i, totalRarity / IRare.get(loader.apply(i)));
-        }
-
-        return rarityTypes.size();
+    default <V> ProceduralStream<V> selectWeighted(List<Weighted<V>> entries) {
+        ProceduralStream<Double> noise = this.forceDouble();
+        return ProceduralStream.of((x, z) -> Weighted.pick(entries, noise.get(x, z), Weighted.Edge.EARLIER),
+                (x, y, z) -> Weighted.pick(entries, noise.get(x, y, z), Weighted.Edge.EARLIER),
+                Interpolated.of(entry -> 0D, value -> null));
     }
 
     default ProceduralStream<T> clamp(double min, double max) {

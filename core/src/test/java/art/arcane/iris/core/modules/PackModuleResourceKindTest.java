@@ -203,8 +203,8 @@ public class PackModuleResourceKindTest {
 
     private Path castlePack(String name) throws Exception {
         File pack = temporaryFolder.newFolder(name);
-        write(pack.toPath(), "dimensions/main.json", "{\"regions\":[\"region\"]}");
-        write(pack.toPath(), "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack.toPath(), "dimensions/main.json", "{\"regions\":[{\"region\":\"region\"}]}");
+        write(pack.toPath(), "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack.toPath(), "biomes/biome.json", "{\"name\":\"Biome\"}");
         PackModuleJar.write(pack.toPath(), "castle.jar", "pack.castle.CastleModule",
                 Map.of("pack.castle.CastleModule", MODULE, "pack.castle.Keep", KEEP, "pack.castle.KeepValidator", VALIDATOR));

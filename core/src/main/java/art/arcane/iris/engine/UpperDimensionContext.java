@@ -6,10 +6,12 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.image.IrisImageMapRuntime;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiomeEntry;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.noise.IrisInterpolator;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.engine.object.world.region.IrisRegionEntry;
 import art.arcane.iris.engine.object.world.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
@@ -19,6 +21,7 @@ import art.arcane.iris.util.project.interpolation.NoiseBounds;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.iris.util.project.stream.interpolation.Interpolated;
+import com.volmit.world.Weighted;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -91,9 +94,7 @@ public class UpperDimensionContext implements DataProvider {
 
         Map<IrisInterpolator, Set<IrisGenerator>> generators = new HashMap<>();
         Set<IrisBiome> allBiomes = Collections.newSetFromMap(new IdentityHashMap<>());
-        Map<IrisBiome, IrisComplex.ChildSelectionPlan> childSelectionPlans =
-                Collections.synchronizedMap(new IdentityHashMap<>());
-        upperDim.getRegions().forEach(regionKey -> {
+        upperDim.getRegionKeys().forEach(regionKey -> {
             IrisRegion region = upperData.getRegionLoader().load(regionKey);
             if (region != null) {
                 region.getAllBiomes(dataProvider).forEach(biome -> registerBiomeGenerators(
@@ -132,7 +133,7 @@ public class UpperDimensionContext implements DataProvider {
                 .create(rng.nextParallelRNG(883), upperData).stream()
                 .zoom(upperDim.getRegionZoom());
         ProceduralStream<IrisRegion> proceduralRegionStream = regionStyleStream
-                .selectRarity(upperData.getRegionLoader().loadAll(upperDim.getRegions()));
+                .selectWeighted(IrisRegionEntry.load(upperDim.getRegions(), upperData.getRegionLoader()));
         ProceduralStream<IrisRegion> regionStream = proceduralRegionStream
                 .convertAware2D((region, x, z) -> mappedRegion(imageMapRuntime, region, x, z))
                 .cache2D("upperImageMappedRegionStream", engine, cacheSize);
@@ -143,7 +144,7 @@ public class UpperDimensionContext implements DataProvider {
                         .zoom(upperDim.getBiomeZoom())
                         .zoom(upperDim.getLandZoom())
                         .zoom(r.getLandBiomeZoom())
-                        .selectRarity(loadInferredBiomes(upperData, r.getLandBiomes(), InferredType.LAND)))
+                        .selectWeighted(loadInferredBiomes(upperData, r.getLandBiomes(), InferredType.LAND)))
                 .convertAware2D(ProceduralStream::get);
         ProceduralStream<IrisBiome> seaBiomeStream = regionStream
                 .convert(r -> upperDim.getSeaBiomeStyle()
@@ -151,14 +152,14 @@ public class UpperDimensionContext implements DataProvider {
                         .zoom(upperDim.getBiomeZoom())
                         .zoom(upperDim.getSeaZoom())
                         .zoom(r.getSeaBiomeZoom())
-                        .selectRarity(loadInferredBiomes(upperData, r.getSeaBiomes(), InferredType.SEA)))
+                        .selectWeighted(loadInferredBiomes(upperData, r.getSeaBiomes(), InferredType.SEA)))
                 .convertAware2D(ProceduralStream::get);
         ProceduralStream<IrisBiome> shoreBiomeStream = regionStream
                 .convert(r -> upperDim.getShoreBiomeStyle()
                         .create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), upperData).stream()
                         .zoom(upperDim.getBiomeZoom())
                         .zoom(r.getShoreBiomeZoom())
-                        .selectRarity(loadInferredBiomes(upperData, r.getShoreBiomes(), InferredType.SHORE)))
+                        .selectWeighted(loadInferredBiomes(upperData, r.getShoreBiomes(), InferredType.SHORE)))
                 .convertAware2D(ProceduralStream::get);
 
         Map<InferredType, ProceduralStream<IrisBiome>> inferredStreams = new HashMap<>();
@@ -175,7 +176,7 @@ public class UpperDimensionContext implements DataProvider {
                     return stream != null ? stream.get(x, z) : inferredStreams.get(InferredType.LAND).get(x, z);
                 })
                 .convertAware2D((biome, x, z) -> implode(
-                        biome, x, z, rng, dataProvider, childSelectionPlans, 3));
+                        biome, x, z, rng, dataProvider, 3));
         ProceduralStream<IrisBiome> baseBiomeStream = proceduralBaseBiomeStream
                 .convertAware2D((biome, x, z) -> mappedBiome(imageMapRuntime, biome, x, z))
                 .cache2D("upperImageMappedBaseBiomeStream", engine, cacheSize);
@@ -268,7 +269,7 @@ public class UpperDimensionContext implements DataProvider {
                     shoreBiomeStream);
             return resolved == baseBiome
                     ? baseBiome
-                    : implode(resolved, x, z, rng, dataProvider, childSelectionPlans, 3);
+                    : implode(resolved, x, z, rng, dataProvider, 3);
         }).cache2D("upperImageMappedFinalBiomeStream", engine, cacheSize);
 
         return new UpperDimensionContext(new ContextState(
@@ -337,10 +338,10 @@ public class UpperDimensionContext implements DataProvider {
         return mappedBlock == null ? proceduralBlock : mappedBlock;
     }
 
-    private static KList<IrisBiome> loadInferredBiomes(IrisData data, KList<String> keys, InferredType type) {
-        KList<IrisBiome> inferred = new KList<>();
-        for (IrisBiome biome : data.getBiomeLoader().loadAll(keys)) {
-            inferred.add(biome.withInferredType(type));
+    private static KList<Weighted<IrisBiome>> loadInferredBiomes(IrisData data, KList<IrisBiomeEntry> entries, InferredType type) {
+        KList<Weighted<IrisBiome>> inferred = new KList<>();
+        for (Weighted<IrisBiome> entry : IrisBiomeEntry.load(entries, data.getBiomeLoader())) {
+            inferred.add(new Weighted<>(entry.value().withInferredType(type), entry.weight()));
         }
         return inferred;
     }
@@ -351,33 +352,15 @@ public class UpperDimensionContext implements DataProvider {
             double z,
             RNG rng,
             DataProvider dataProvider,
-            Map<IrisBiome, IrisComplex.ChildSelectionPlan> childSelectionPlans,
             int remainingDepth
     ) {
         if (biome == null || remainingDepth < 0 || biome.getChildren().isEmpty()) {
             return biome;
         }
 
-        IrisComplex.ChildSelectionPlan selectionPlan = childSelectionPlans.get(biome);
-        if (selectionPlan == null) {
-            synchronized (childSelectionPlans) {
-                selectionPlan = childSelectionPlans.get(biome);
-                if (selectionPlan == null) {
-                    KList<IrisBiome> options = new KList<>();
-                    for (IrisBiome child : biome.getRealChildren(dataProvider)) {
-                        if (child != null) {
-                            options.add(child);
-                        }
-                    }
-                    options.add(biome);
-                    selectionPlan = IrisComplex.ChildSelectionPlan.create(options);
-                    childSelectionPlans.put(biome, selectionPlan);
-                }
-            }
-        }
-
-        IrisBiome selected = selectionPlan.select(
-                biome.getChildrenGenerator(rng, 123, biome.getChildShrinkFactor()), x, z);
+        IrisBiome selected = Weighted.pick(biome.getChildOptions(dataProvider),
+                biome.getChildrenGenerator(rng, 123, biome.getChildShrinkFactor()).noiseFast2D(x, z),
+                IrisComplex.CHILD_EDGE);
         if (selected == null) {
             return biome;
         }
@@ -387,7 +370,6 @@ public class UpperDimensionContext implements DataProvider {
                 z,
                 rng,
                 dataProvider,
-                childSelectionPlans,
                 remainingDepth - 1);
     }
 

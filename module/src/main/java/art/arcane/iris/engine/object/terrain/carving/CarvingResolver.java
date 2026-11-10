@@ -19,14 +19,15 @@
 package art.arcane.iris.engine.object.terrain.carving;
 
 import art.arcane.iris.builtin.IrisSeedPurposes;
+import art.arcane.iris.modules.carve.CarvingChild;
 import art.arcane.iris.modules.carve.CarvingEntry;
 import art.arcane.iris.modules.carve.CarvingSettings;
 import com.volmit.ModuleLog;
 import com.volmit.config.Range;
-import com.volmit.noise.NoiseSampler;
 import com.volmit.resource.PackResources;
 import com.volmit.world.PackBiome;
 import com.volmit.world.PackWorld;
+import com.volmit.world.Weighted;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,6 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * one a noise pattern selects at a column.
  */
 public final class CarvingResolver {
+    private static final Weighted.Edge CHILD_EDGE = Weighted.Edge.LATER;
     private static final int MAX_CHILD_DEPTH = 32;
     private static final long CHILD_SEED_SALT = 0x9E3779B97F4A7C15L;
 
@@ -53,7 +55,7 @@ public final class CarvingResolver {
     private final List<ResolvedCarvingEntry> entries;
     private final Map<String, ResolvedCarvingEntry> index;
     private final Map<Integer, Optional<ResolvedCarvingEntry>> rootEntriesByWorldY = new ConcurrentHashMap<>();
-    private final Map<ResolvedCarvingEntry, ParentSelectionPlan> selectionPlans = new ConcurrentHashMap<>();
+    private final Map<ResolvedCarvingEntry, List<Weighted<ResolvedCarvingEntry>>> childOptions = new ConcurrentHashMap<>();
 
     CarvingResolver(PackWorld world, List<CarvingEntry> declared) {
         this.resources = world.resources();
@@ -88,7 +90,7 @@ public final class CarvingResolver {
         return rootEntryAtWorldY(y + minHeight);
     }
 
-    /** The root entry for a world Y as packs write them; null where no enabled entry with a biome holds it. */
+    /** The root entry for a world Y as packs write it; null where no enabled entry with a biome holds it. */
     public ResolvedCarvingEntry rootEntryAtWorldY(int worldY) {
         return rootEntriesByWorldY.computeIfAbsent(worldY, this::pickRootEntry).orElse(null);
     }
@@ -156,97 +158,32 @@ public final class CarvingResolver {
     }
 
     private ResolvedCarvingEntry selectChild(ResolvedCarvingEntry parent, int worldX, int worldZ) {
-        List<String> children = parent.children();
-        if (children.isEmpty()) {
+        List<Weighted<ResolvedCarvingEntry>> options = childOptions.computeIfAbsent(parent, this::buildChildOptions);
+        if (options.isEmpty()) {
             return parent;
         }
 
-        PackBiome parentBiome = entryBiome(parent);
-        if (parentBiome == null) {
-            return parent;
-        }
-
-        ParentSelectionPlan selectionPlan = selectionPlans.computeIfAbsent(parent, key -> buildSelectionPlan(key, parentBiome));
-        if (selectionPlan.parentOnly) {
-            return parent;
-        }
-
-        NoiseSampler childGenerator = parent.childrenGenerator(childSeed, resources);
-        double sample = childGenerator.sample(worldX, worldZ);
-        int selectedIndex = (int) Math.round(sample * selectionPlan.maxIndex);
-        CarvingChoice selected = selectionPlan.get(selectedIndex);
-        if (selected == null || selected.entry == null) {
-            return parent;
-        }
-
-        return selected.entry;
+        double sample = parent.childrenGenerator(childSeed, resources).sample(worldX, worldZ);
+        return Weighted.pick(options, sample, CHILD_EDGE);
     }
 
-    private ParentSelectionPlan buildSelectionPlan(ResolvedCarvingEntry parent, PackBiome parentBiome) {
-        List<CarvingChoice> options = new ArrayList<>();
-        for (String childId : parent.children()) {
-            if (childId == null || childId.isBlank()) {
-                continue;
+    private List<Weighted<ResolvedCarvingEntry>> buildChildOptions(ResolvedCarvingEntry parent) {
+        List<Weighted<ResolvedCarvingEntry>> options = new ArrayList<>();
+        for (CarvingChild listed : parent.children()) {
+            ResolvedCarvingEntry child = listedEntry(parent, listed.id().trim());
+            if (child != null && child.enabled() && entryBiome(child) != null) {
+                options.add(new Weighted<>(child, listed.weight()));
             }
-
-            ResolvedCarvingEntry child = index.get(childId.trim());
-            if (child == null || !child.enabled()) {
-                continue;
-            }
-
-            PackBiome childBiome = entryBiome(child);
-            if (childBiome == null) {
-                continue;
-            }
-
-            options.add(new CarvingChoice(child, rarity(childBiome)));
         }
-
-        options.add(new CarvingChoice(parent, rarity(parentBiome)));
-        if (options.size() <= 1) {
-            return ParentSelectionPlan.parentOnly();
-        }
-
-        CarvingChoice[] mappedChoices = buildRarityMappedChoices(options);
-        if (mappedChoices.length == 0) {
-            return ParentSelectionPlan.parentOnly();
-        }
-
-        return new ParentSelectionPlan(mappedChoices);
+        return List.copyOf(options);
     }
 
-    private static CarvingChoice[] buildRarityMappedChoices(List<CarvingChoice> choices) {
-        int max = 1;
-        for (CarvingChoice choice : choices) {
-            if (choice.rarity > max) {
-                max = choice.rarity;
-            }
+    private ResolvedCarvingEntry listedEntry(ResolvedCarvingEntry parent, String id) {
+        if (id.isEmpty()) {
+            return null;
         }
 
-        max++;
-        List<CarvingChoice> mapped = new ArrayList<>();
-        boolean flip = false;
-        for (CarvingChoice choice : choices) {
-            int count = max - choice.rarity;
-            for (int index = 0; index < count; index++) {
-                flip = !flip;
-                if (flip) {
-                    mapped.add(choice);
-                } else {
-                    mapped.add(0, choice);
-                }
-            }
-        }
-
-        return mapped.toArray(new CarvingChoice[0]);
-    }
-
-    private static int rarity(PackBiome biome) {
-        if (biome == null) {
-            return 1;
-        }
-
-        return Math.max(biome.rarity(), 1);
+        return id.equals(parent.id().trim()) ? parent : index.get(id);
     }
 
     private static int clampDepth(int depth) {
@@ -265,46 +202,5 @@ public final class CarvingResolver {
             }
         }
         return Map.copyOf(index);
-    }
-
-    private static final class ParentSelectionPlan {
-        private final CarvingChoice[] mappedChoices;
-        private final int maxIndex;
-        private final boolean parentOnly;
-
-        private ParentSelectionPlan(CarvingChoice[] mappedChoices) {
-            this.mappedChoices = mappedChoices;
-            this.maxIndex = mappedChoices.length - 1;
-            this.parentOnly = false;
-        }
-
-        private ParentSelectionPlan() {
-            this.mappedChoices = null;
-            this.maxIndex = -1;
-            this.parentOnly = true;
-        }
-
-        private static ParentSelectionPlan parentOnly() {
-            return new ParentSelectionPlan();
-        }
-
-        private CarvingChoice get(int index) {
-            if (mappedChoices == null || mappedChoices.length == 0) {
-                return null;
-            }
-
-            if (index < 0) {
-                return mappedChoices[0];
-            }
-
-            if (index >= mappedChoices.length) {
-                return mappedChoices[mappedChoices.length - 1];
-            }
-
-            return mappedChoices[index];
-        }
-    }
-
-    private record CarvingChoice(ResolvedCarvingEntry entry, int rarity) {
     }
 }

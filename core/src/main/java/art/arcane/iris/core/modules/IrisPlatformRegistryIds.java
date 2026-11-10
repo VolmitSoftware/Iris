@@ -38,7 +38,7 @@ import java.util.function.Function;
  * The registries of the platform Iris runs on, as validators read them: the same lists studio completes options from.
  * Each registry is read once, when a validator first asks for it.
  */
-final class IrisPlatformRegistryIds implements PlatformRegistries {
+public final class IrisPlatformRegistryIds implements PlatformRegistries {
     private static final String DEFAULT_NAMESPACE = "minecraft:";
 
     private final IrisPlatform platform;
@@ -49,7 +49,7 @@ final class IrisPlatformRegistryIds implements PlatformRegistries {
     }
 
     /** The bound platform's registries; empty when no platform is bound, such as in a build. */
-    static Optional<PlatformRegistries> ofBoundPlatform() {
+    public static Optional<PlatformRegistries> ofBoundPlatform() {
         return IrisPlatforms.isBound() ? Optional.of(new IrisPlatformRegistryIds(IrisPlatforms.get())) : Optional.empty();
     }
 

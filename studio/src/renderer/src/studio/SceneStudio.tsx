@@ -7,6 +7,7 @@ import type { BridgeClient } from '../bridge/BridgeClient'
 import { NO_PART, type JsonPath, type SceneEntry, type SceneViewInfo } from '../bridge/types'
 import { parsedText } from '../editor/jsonValues'
 import { nodeDrawingPart, nodeWithPath } from '../editor/nodeLayout'
+import { SuggestionStore } from '../editor/suggestionStore'
 import { useNodeEditor } from '../editor/useNodeEditor'
 import { BlockIndex, blockAtHit, NO_BLOCK } from '../scene/blockPick'
 import { BlockModels } from '../scene/blockModels'
@@ -60,6 +61,7 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
   const [selectedPath, setSelectedPath] = useState<JsonPath | null>(null)
   const selected = editor.state?.roots != null && selectedPath !== null ? nodeWithPath(editor.state.roots, selectedPath) : null
   const values = useMemo(() => (editor.state === null ? undefined : parsedText(editor.state.text)), [editor.state])
+  const suggestions = useMemo(() => new SuggestionStore((of) => client.suggestions(of)), [client, packRevision])
 
   const [pickedPart, setPickedPart] = useState(NO_PART)
   const highlightedPart = view.parts ? (selected?.partId ?? pickedPart) : NO_PART
@@ -123,7 +125,7 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
         <EntryBrowser className={selected === null ? 'flex-[7]' : 'flex-[3]'} title={view.label} entries={entries} current={entry?.key ?? null} onSelect={(key) => setChosen({ key, variant: 0 })} />
         {view.baked && entry !== null && <BakeMeter timing={bakeTiming} />}
         {selected !== null && editor.state !== null ? (
-          <NodeInspector key={JSON.stringify(selected.path)} node={selected} state={editor.state} values={values} onEdit={editor.edit} />
+          <NodeInspector key={JSON.stringify(selected.path)} node={selected} state={editor.state} values={values} suggestions={suggestions} onEdit={editor.edit} />
         ) : (
           <BlockList scene={scene} farLeavesOnly={farLeavesOnly} onFarLeavesOnly={setFarLeavesOnly} />
         )}

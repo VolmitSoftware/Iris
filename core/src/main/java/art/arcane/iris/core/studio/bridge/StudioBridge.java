@@ -38,6 +38,7 @@ import art.arcane.iris.core.studio.saved.SavedWorlds;
 import art.arcane.iris.core.studio.scene.StudioEditors;
 import art.arcane.iris.core.studio.scene.StudioPatterns;
 import art.arcane.iris.core.studio.scene.StudioScenes;
+import art.arcane.iris.core.studio.scene.StudioSuggestions;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -236,6 +237,7 @@ public final class StudioBridge implements AutoCloseable {
             case "scene-file" -> sendJson(exchange, STATUS_OK, sceneFile(get(exchange).engine(), query));
             case "scene-edit" -> sendJson(exchange, STATUS_OK, sceneEdit(exchange, query));
             case "scene-write" -> sendJson(exchange, STATUS_OK, sceneWrite(exchange, query));
+            case "suggestions" -> sendJson(exchange, STATUS_OK, suggestions(get(exchange).engine(), query));
             case "scene-entries" -> sendJson(exchange, STATUS_OK, sceneEntries(get(exchange).engine(), query));
             case "scene-bake" -> sendJson(exchange, STATUS_OK, sceneBake(get(exchange).engine(), query));
             case "scene" -> sendBytes(exchange, "application/octet-stream", scene(get(exchange).engine(), query));
@@ -398,6 +400,17 @@ public final class StudioBridge implements AutoCloseable {
     private static List<SceneEntryWire> sceneEntries(Engine engine, Query query) {
         try {
             return StudioScenes.of(engine).entries(query.text("view")).stream().map(SceneEntryWire::of).toList();
+        } catch (NoSuchElementException unknown) {
+            throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
+        }
+    }
+
+    // What a setting naming a platform entry (reference) or a pack resource (resource) may be typed as.
+    private static List<String> suggestions(Engine engine, Query query) {
+        try {
+            return query.has("reference")
+                    ? StudioSuggestions.ofReference(query.text("reference"))
+                    : StudioSuggestions.ofResource(engine, query.text("resource"));
         } catch (NoSuchElementException unknown) {
             throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
         }

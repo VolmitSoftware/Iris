@@ -160,6 +160,11 @@ export class BridgeClient {
     return this.json(`scene-write?${new URLSearchParams({ view: viewId, key })}`, { method: 'POST', body: JSON.stringify({ revision, text }) })
   }
 
+  /** What a setting naming an entry of a platform registry (reference) or a resource of the pack (resource) may be typed as, sorted. */
+  suggestions(of: { reference: string } | { resource: string }): Promise<string[]> {
+    return this.json(`suggestions?${new URLSearchParams(of)}`)
+  }
+
   sceneEntries(viewId: string): Promise<SceneEntry[]> {
     return this.json(`scene-entries?${new URLSearchParams({ view: viewId })}`)
   }

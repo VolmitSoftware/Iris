@@ -120,7 +120,7 @@ class LoadedPackTest {
             }
         }
 
-        assertEquals(List.of("INFO Pack " + pack.getFileName() + " uses 1 module:"), log.levelsAndFirstLines());
+        assertEquals(List.of("INFO Pack " + pack.getFileName() + " uses 1 module: all from the pack"), log.levelsAndFirstLines());
     }
 
     @Test

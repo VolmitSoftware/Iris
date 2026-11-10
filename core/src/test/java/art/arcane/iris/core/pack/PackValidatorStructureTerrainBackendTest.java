@@ -25,8 +25,8 @@ public class PackValidatorStructureTerrainBackendTest {
         for (String mode : List.of("VACUUM", "ENCASE")) {
             String packName = "editable-" + mode.toLowerCase(Locale.ROOT);
             File pack = temporaryFolder.newFolder(packName);
-            write(pack, "dimensions/main.json", "{\"regions\":[\"forest\"]," + placement("dimension", "city", false, mode) + "}");
-            write(pack, "regions/forest.json", "{\"landBiomes\":[\"plains\"]," + placement("region", "tower", false, mode) + "}");
+            write(pack, "dimensions/main.json", "{\"regions\":[{\"region\":\"forest\"}]," + placement("dimension", "city", false, mode) + "}");
+            write(pack, "regions/forest.json", "{\"landBiomes\":[{\"biome\":\"plains\"}]," +placement("region", "tower", false, mode) + "}");
             write(pack, "biomes/plains.json", "{\"name\":\"Plains\"," + placement("biome", "farm", false, mode) + "}");
             for (String structure : List.of("city", "tower", "farm")) {
                 write(pack, "structures/" + structure + ".json", "{\"startPool\":\"start\"}");
@@ -67,8 +67,8 @@ public class PackValidatorStructureTerrainBackendTest {
 
     private File singleDimensionPack(String packName, String dimensionMembers) throws Exception {
         File pack = temporaryFolder.newFolder(packName);
-        write(pack, "dimensions/main.json", "{\"regions\":[\"region\"]," + dimensionMembers + "}");
-        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack, "dimensions/main.json", "{\"regions\":[{\"region\":\"region\"}]," + dimensionMembers + "}");
+        write(pack, "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack, "biomes/biome.json", "{\"name\":\"Biome\"}");
         return pack;
     }

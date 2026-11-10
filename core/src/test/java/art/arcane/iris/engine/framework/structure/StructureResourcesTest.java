@@ -169,8 +169,8 @@ public class StructureResourcesTest {
 
     private Path castlePack(String name) throws Exception {
         File pack = temporaryFolder.newFolder(name);
-        write(pack.toPath(), "dimensions/main.json", "{\"regions\":[\"region\"]}");
-        write(pack.toPath(), "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack.toPath(), "dimensions/main.json", "{\"regions\":[{\"region\":\"region\"}]}");
+        write(pack.toPath(), "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack.toPath(), "biomes/biome.json", "{\"name\":\"Biome\"}");
         write(pack.toPath(), "structures/castle.json", "{\"startPool\":\"castle/start\",\"maxDepth\":5}");
         write(pack.toPath(), "jigsaw-pools/castle/start.json", "{\"pieces\":[{\"piece\":\"castle/start\"}]}");

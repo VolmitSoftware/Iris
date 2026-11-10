@@ -110,8 +110,8 @@ public class ModuleResourceClosureTest {
 
     private Path pack() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
-        write(pack, "dimensions/main.json", "{\"regions\":[\"region\"],\"loot\":{\"tables\":[\"global\"]},\"entitySpawners\":[\"camp/zombies\"]}");
-        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"],\"loot\":{\"tables\":[\"regional\"]}}");
+        write(pack, "dimensions/main.json", "{\"regions\":[{\"region\":\"region\"}],\"loot\":{\"tables\":[\"global\"]},\"entitySpawners\":[\"camp/zombies\"]}");
+        write(pack, "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}],\"loot\":{\"tables\":[\"regional\"]}}");
         write(pack, "biomes/biome.json", "{\"name\":\"Biome\",\"entitySpawners\":[\"cave\"],\"blockDrops\":[{\"blocks\":[{\"block\":\"stone\"}],\"drops\":[{\"type\":\"gravel\"}]}],"
                 + "\"objects\":[{\"place\":[\"hut\"],\"loot\":[{\"name\":\"drops\"}],\"markers\":[{\"marker\":\"camp\",\"mark\":[{\"block\":\"stone\"}]}]}]}");
         write(pack, "loot/global.json", "{\"name\":\"Global\",\"loot\":[{\"type\":\"stick\"}]}");

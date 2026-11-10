@@ -24,6 +24,7 @@ import art.arcane.iris.engine.object.world.dimension.IrisDimensionType;
 import art.arcane.iris.engine.object.world.IrisWorldBoundary;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
+import com.volmit.world.Weighted;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -59,7 +60,8 @@ final class PackDimensionValidator {
 
             int resolvedRegions = 0;
             for (int i = 0; i < regionsArray.length(); i++) {
-                String regionKey = regionsArray.optString(i, null);
+                String regionKey = PackValidationIo.entryKey(regionsArray, i, "region");
+                validateWeight(regionsArray.optJSONObject(i), "Dimension '" + dimensionKey + "' regions[" + i + "]", blockingErrors);
                 if (regionKey == null || regionKey.isBlank()) {
                     warnings.add("Dimension '" + dimensionKey + "' has a blank region entry at index " + i + ".");
                     continue;
@@ -78,10 +80,10 @@ final class PackDimensionValidator {
                     continue;
                 }
 
-                int anyBiome = countBiomeRefs(regionJson, "landBiomes", biomesFolder, regionKey, warnings)
-                        + countBiomeRefs(regionJson, "seaBiomes", biomesFolder, regionKey, warnings)
-                        + countBiomeRefs(regionJson, "shoreBiomes", biomesFolder, regionKey, warnings)
-                        + countBiomeRefs(regionJson, "caveBiomes", biomesFolder, regionKey, warnings);
+                int anyBiome = countBiomeRefs(regionJson, "landBiomes", biomesFolder, regionKey, blockingErrors, warnings)
+                        + countBiomeRefs(regionJson, "seaBiomes", biomesFolder, regionKey, blockingErrors, warnings)
+                        + countBiomeRefs(regionJson, "shoreBiomes", biomesFolder, regionKey, blockingErrors, warnings)
+                        + countBiomeRefs(regionJson, "caveBiomes", biomesFolder, regionKey, blockingErrors, warnings);
                 if (anyBiome == 0) {
                     blockingErrors.add("Region '" + regionKey + "' has no resolvable biomes.");
                 }
@@ -94,14 +96,25 @@ final class PackDimensionValidator {
         }
     }
 
-    private static int countBiomeRefs(JSONObject regionJson, String field, File biomesFolder, String regionKey, List<String> warnings) {
+    private static void validateWeight(JSONObject entry, String path, List<String> blockingErrors) {
+        if (entry == null) {
+            return;
+        }
+        Integer weight = PackIntegerChecks.integerField(entry, "weight", Weighted.MIN_WEIGHT, path, blockingErrors);
+        PackIntegerChecks.requireMinimum(path + ".weight", weight, Weighted.MIN_WEIGHT, blockingErrors);
+        PackIntegerChecks.requireMaximum(path + ".weight", weight, Weighted.MAX_WEIGHT, blockingErrors);
+    }
+
+    private static int countBiomeRefs(JSONObject regionJson, String field, File biomesFolder, String regionKey,
+                                      List<String> blockingErrors, List<String> warnings) {
         JSONArray arr = regionJson.optJSONArray(field);
         if (arr == null) {
             return 0;
         }
         int resolved = 0;
         for (int i = 0; i < arr.length(); i++) {
-            String biomeKey = arr.optString(i, null);
+            String biomeKey = PackValidationIo.entryKey(arr, i, "biome");
+            validateWeight(arr.optJSONObject(i), "Region '" + regionKey + "' " + field + "[" + i + "]", blockingErrors);
             if (biomeKey == null || biomeKey.isBlank()) {
                 continue;
             }

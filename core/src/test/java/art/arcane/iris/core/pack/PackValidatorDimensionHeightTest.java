@@ -24,7 +24,7 @@ public class PackValidatorDimensionHeightTest {
 
     @Test
     public void rejectsNonMultipleOfSixteenSpan() throws Exception {
-        PackValidationResult result = validate("{\"regions\":[\"region\"],\"dimensionHeight\":{\"min\":-64,\"max\":300}}");
+        PackValidationResult result = validate("{\"regions\":[{\"region\":\"region\"}],\"dimensionHeight\":{\"min\":-64,\"max\":300}}");
 
         assertFalse(result.isLoadable());
         assertTrue(result.getBlockingErrors().contains(
@@ -33,7 +33,7 @@ public class PackValidatorDimensionHeightTest {
 
     @Test
     public void rejectsMinYNotMultipleOfSixteen() throws Exception {
-        PackValidationResult result = validate("{\"regions\":[\"region\"],\"dimensionHeight\":{\"min\":-60,\"max\":324}}");
+        PackValidationResult result = validate("{\"regions\":[{\"region\":\"region\"}],\"dimensionHeight\":{\"min\":-60,\"max\":324}}");
 
         assertFalse(result.isLoadable());
         assertTrue(result.getBlockingErrors().contains(
@@ -42,17 +42,17 @@ public class PackValidatorDimensionHeightTest {
 
     @Test
     public void rejectsSpanOutsideBounds() throws Exception {
-        assertTrue(validate("{\"regions\":[\"region\"],\"dimensionHeight\":{\"min\":0,\"max\":0}}")
+        assertTrue(validate("{\"regions\":[{\"region\":\"region\"}],\"dimensionHeight\":{\"min\":0,\"max\":0}}")
                 .getBlockingErrors().contains(
                         "Dimension 'main' dimensionHeight span (max - min) is 0; it must be between 16 and 4064."));
-        assertTrue(validate("{\"regions\":[\"region\"],\"dimensionHeight\":{\"min\":-2032,\"max\":2048}}")
+        assertTrue(validate("{\"regions\":[{\"region\":\"region\"}],\"dimensionHeight\":{\"min\":-2032,\"max\":2048}}")
                 .getBlockingErrors().contains(
                         "Dimension 'main' dimensionHeight span (max - min) is 4080; it must be between 16 and 4064."));
     }
 
     @Test
     public void rejectsMinYOutsideBounds() throws Exception {
-        assertTrue(validate("{\"regions\":[\"region\"],\"dimensionHeight\":{\"min\":-2048,\"max\":-1664}}")
+        assertTrue(validate("{\"regions\":[{\"region\":\"region\"}],\"dimensionHeight\":{\"min\":-2048,\"max\":-1664}}")
                 .getBlockingErrors().contains(
                         "Dimension 'main' dimensionHeight.min is -2048; it must be between -2032 and 2031."));
     }
@@ -60,7 +60,7 @@ public class PackValidatorDimensionHeightTest {
     @Test
     public void rejectsLogicalHeightAboveTotalHeight() throws Exception {
         PackValidationResult result = validate(
-                "{\"regions\":[\"region\"],\"logicalHeight\":512,\"dimensionHeight\":{\"min\":-64,\"max\":320}}");
+                "{\"regions\":[{\"region\":\"region\"}],\"logicalHeight\":512,\"dimensionHeight\":{\"min\":-64,\"max\":320}}");
 
         assertFalse(result.isLoadable());
         assertTrue(result.getBlockingErrors().contains(
@@ -70,21 +70,21 @@ public class PackValidatorDimensionHeightTest {
     @Test
     public void acceptsShippingOverworldShape() throws Exception {
         PackValidationResult result = validate(
-                "{\"regions\":[\"region\"],\"logicalHeight\":512,\"dimensionHeight\":{\"min\":-256,\"max\":512}}");
+                "{\"regions\":[{\"region\":\"region\"}],\"logicalHeight\":512,\"dimensionHeight\":{\"min\":-256,\"max\":512}}");
 
         assertTrue(result.getBlockingErrors().toString(), result.isLoadable());
     }
 
     @Test
     public void acceptsDimensionWithoutExplicitHeight() throws Exception {
-        PackValidationResult result = validate("{\"regions\":[\"region\"]}");
+        PackValidationResult result = validate("{\"regions\":[{\"region\":\"region\"}]}");
 
         assertTrue(result.getBlockingErrors().toString(), result.isLoadable());
     }
 
     @Test
     public void resolvesDimensionHeightSnippet() throws Exception {
-        File pack = pack("{\"regions\":[\"region\"],\"dimensionHeight\":\"snippet/range/tall\"}");
+        File pack = pack("{\"regions\":[{\"region\":\"region\"}],\"dimensionHeight\":\"snippet/range/tall\"}");
         write(pack, "snippet/range/tall.json", "{\"min\":-60,\"max\":324}");
 
         PackValidationResult result = PackValidator.validate(pack);
@@ -135,7 +135,7 @@ public class PackValidatorDimensionHeightTest {
     private File pack(String dimensionJson) throws Exception {
         File pack = temporaryFolder.newFolder("pack-" + System.nanoTime());
         write(pack, "dimensions/main.json", dimensionJson);
-        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack, "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack, "biomes/biome.json", "{\"name\":\"Biome\"}");
         return pack;
     }

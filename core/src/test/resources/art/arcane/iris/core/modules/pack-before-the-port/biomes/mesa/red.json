@@ -1,7 +1,6 @@
 {
     "name": "Mesa Red",
     "color": "#963D16",
-    "rarity": 1,
     "derivative": "minecraft:windswept_savanna",
     "vanillaDerivative": "minecraft:badlands",
     "generators": [

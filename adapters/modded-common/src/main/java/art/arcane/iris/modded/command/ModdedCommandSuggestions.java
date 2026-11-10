@@ -91,7 +91,7 @@ final class ModdedCommandSuggestions {
         try {
             Engine engine = IrisModdedCommands.engineFor(context.getSource().getLevel());
             if (engine != null) {
-                return SharedSuggestionProvider.suggest(engine.getDimension().getRegions(), builder);
+                return SharedSuggestionProvider.suggest(engine.getDimension().getRegionKeys(), builder);
             }
         } catch (Throwable e) {
             warnTabFailure("region keys", context.getSource(), e);

@@ -1230,7 +1230,7 @@ public class StudioSVC implements IrisService {
                     {
                       "name": "%s",
                       "version": 1,
-                      "regions": ["starter"],
+                      "regions": [{"region": "starter", "weight": 1}],
                       "logicalHeight": 384,
                       "dimensionHeight": {"min": -64, "max": 320}
                     }
@@ -1238,9 +1238,9 @@ public class StudioSVC implements IrisService {
             Files.writeString(stage.resolve("regions/starter.json"), """
                     {
                       "name": "Starter",
-                      "landBiomes": ["starter"],
-                      "seaBiomes": ["starter"],
-                      "shoreBiomes": ["starter"]
+                      "landBiomes": [{"biome": "starter", "weight": 1}],
+                      "seaBiomes": [{"biome": "starter", "weight": 1}],
+                      "shoreBiomes": [{"biome": "starter", "weight": 1}]
                     }
                     """, StandardCharsets.UTF_8);
             Files.writeString(stage.resolve("biomes/starter.json"), """

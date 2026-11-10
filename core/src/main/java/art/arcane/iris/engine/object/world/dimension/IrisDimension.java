@@ -32,6 +32,7 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.engine.object.world.region.IrisRegionEntry;
 import art.arcane.iris.core.IrisDatapackCompiler.DimensionHeight;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.spi.IrisLogging;
@@ -135,11 +136,10 @@ public class IrisDimension extends IrisRegistrant {
     private IrisGeneratorStyle caveBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
     @Desc("The world environment")
     private IrisEnvironment environment = IrisEnvironment.NORMAL;
-    @RegistryListResource(IrisRegion.class)
     @Required
-    @ArrayType(min = 1, type = String.class)
-    @Desc("Define all of the regions to include in this dimension. Dimensions -> Regions -> Biomes -> Objects etc")
-    private KList<String> regions = new KList<>();
+    @ArrayType(min = 1, type = IrisRegionEntry.class)
+    @Desc("The regions of this dimension, picked along the list by the region noise. Dimensions -> Regions -> Biomes -> Objects etc")
+    private KList<IrisRegionEntry> regions = new KList<>();
     @Required
     @MinNumber(0)
     @MaxNumber(1024)
@@ -164,7 +164,7 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Minimum air gap in blocks between the lower terrain surface and the upper terrain surface.")
     private int upperDimensionGap = 32;
     @RegistryListResource(IrisBiome.class)
-    @Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
+    @Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome and its children. Great for testing.")
     private String focus = "";
     @RegistryListResource(IrisRegion.class)
     @Desc("Keep this either undefined or empty. Setting any region name into this will force iris to only generate the specified region. Great for testing.")
@@ -268,7 +268,7 @@ public class IrisDimension extends IrisRegistrant {
             return regions.v();
         }
 
-        for (String key : getRegions()) {
+        for (String key : getRegionKeys()) {
             IrisRegion region = data.getRegionLoader().load(key);
             if (region != null) {
                 regions.put(key, region);
@@ -293,10 +293,24 @@ public class IrisDimension extends IrisRegistrant {
         return regions.v();
     }
 
+    public KList<String> getRegionKeys() {
+        return IrisRegionEntry.keys(getRegions());
+    }
+
+    /** The weight the region has in the region noise's pick; 0 for a region the dimension does not list. */
+    public int getRegionWeight(String regionKey) {
+        for (IrisRegionEntry entry : regions) {
+            if (entry.getRegion().equals(regionKey)) {
+                return entry.getWeight();
+            }
+        }
+        return 0;
+    }
+
     public KList<IrisRegion> getAllAnyRegions() {
         KList<IrisRegion> r = new KList<>();
 
-        for (String i : getRegions()) {
+        for (String i : getRegionKeys()) {
             r.add(IrisData.loadAnyRegion(i, getLoader()));
         }
 
@@ -366,7 +380,7 @@ public class IrisDimension extends IrisRegistrant {
 
             visited.add(loadKey);
             biomes.put(loadKey, biome);
-            addReachableBiomeKeys(pending, biome.getChildren());
+            addReachableBiomeKeys(pending, biome.getChildKeys());
             addReachableBiomeKeys(pending, biome.getModuleSettings().treeBiomes(data.getPackResources()));
             addReachableBiomeKeys(pending, biome.getModuleSettings().usedBiomes(data.getPackResources(), getModuleSettings(), getLoadKey()));
         }

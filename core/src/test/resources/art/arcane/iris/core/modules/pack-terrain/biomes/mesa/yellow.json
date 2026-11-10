@@ -1,10 +1,11 @@
 {
     "name": "Mesa Yellow",
     "color": "#83300B",
-    "rarity": 1,
     "derivative": "minecraft:windswept_savanna",
     "vanillaDerivative": "minecraft:badlands",
-    "children": ["mesa/dark"],
+    "children": [
+        {"biome": "mesa/yellow", "weight": 1}
+    ],
     "generators": [
         {
             "min": 50,

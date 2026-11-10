@@ -282,7 +282,7 @@
     },
     "caveMinDepthBelowSurface": 10,
     "children": [
-        "carving/amethyst-child"
+        {"biome": "carving/amethyst", "weight": 1}
     ],
     "childStyle": {
         "style": "CELLULAR_IRIS_DOUBLE",

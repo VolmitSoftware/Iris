@@ -6,26 +6,29 @@ import art.arcane.iris.modules.carve.CarvingSettings;
 import art.arcane.iris.core.modules.CarveTestWorld;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.IrisValues;
-import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.util.project.noise.CNG;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.volmit.config.Range;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 
 /**
  * The module's pick of a cave biome band is the pick the band code made with Iris's own generators: the root by world Y, then the
- * child a rarity-weighted draw of the generator's noise selects. The reference below is that code, written out again.
+ * child a weighted walk along the entry's children list selects from the generator's noise. The reference below is that walk,
+ * written out again.
  */
 public class CarvingResolverParityTest {
     private static final int MAX_CHILD_DEPTH = 32;
@@ -35,47 +38,81 @@ public class CarvingResolverParityTest {
     private static final double MIN_CHILD_SCALE = 0.0001D;
 
     @Test
-    public void resolverMatchesLegacyResolverAcrossSampleGrid() {
+    public void resolverMatchesReferenceResolverAcrossSampleGrid() {
         Fixture fixture = createFixture();
 
         for (int worldY = -64; worldY <= 320; worldY += 11) {
-            ResolvedCarvingEntry legacyRoot = fixture.legacyRootEntry(worldY);
+            ResolvedCarvingEntry referenceRoot = fixture.referenceRootEntry(worldY);
             ResolvedCarvingEntry root = fixture.resolver.rootEntryAtWorldY(worldY);
-            assertSame("root mismatch at worldY=" + worldY, legacyRoot, root);
+            assertSame("root mismatch at worldY=" + worldY, referenceRoot, root);
 
             for (int worldX = -384; worldX <= 384; worldX += 29) {
                 for (int worldZ = -384; worldZ <= 384; worldZ += 31) {
-                    ResolvedCarvingEntry legacyResolved = fixture.legacyResolveFromRoot(legacyRoot, worldX, worldZ);
+                    ResolvedCarvingEntry referenceResolved = fixture.referenceResolveFromRoot(referenceRoot, worldX, worldZ);
                     ResolvedCarvingEntry resolved = fixture.resolver.resolveFromRoot(root, worldX, worldZ);
-                    assertSame("entry mismatch at worldY=" + worldY + " worldX=" + worldX + " worldZ=" + worldZ, legacyResolved, resolved);
+                    assertSame("entry mismatch at worldY=" + worldY + " worldX=" + worldX + " worldZ=" + worldZ, referenceResolved, resolved);
                 }
             }
         }
     }
 
     @Test
-    public void resolverMatchesLegacyResolverAcrossMixedDepthGraph() {
+    public void resolverMatchesReferenceResolverAcrossMixedDepthGraph() {
         Fixture fixture = createMixedDepthFixture();
 
         for (int worldY = -64; worldY <= 320; worldY += 17) {
-            ResolvedCarvingEntry legacyRoot = fixture.legacyRootEntry(worldY);
+            ResolvedCarvingEntry referenceRoot = fixture.referenceRootEntry(worldY);
             ResolvedCarvingEntry root = fixture.resolver.rootEntryAtWorldY(worldY);
-            assertSame("mixed root mismatch at worldY=" + worldY, legacyRoot, root);
+            assertSame("mixed root mismatch at worldY=" + worldY, referenceRoot, root);
 
             for (int worldX = -640; worldX <= 640; worldX += 79) {
                 for (int worldZ = -640; worldZ <= 640; worldZ += 83) {
-                    ResolvedCarvingEntry legacyResolved = fixture.legacyResolveFromRoot(legacyRoot, worldX, worldZ);
+                    ResolvedCarvingEntry referenceResolved = fixture.referenceResolveFromRoot(referenceRoot, worldX, worldZ);
                     ResolvedCarvingEntry resolved = fixture.resolver.resolveFromRoot(root, worldX, worldZ);
-                    assertSame("mixed entry mismatch at worldY=" + worldY + " worldX=" + worldX + " worldZ=" + worldZ, legacyResolved, resolved);
+                    assertSame("mixed entry mismatch at worldY=" + worldY + " worldX=" + worldX + " worldZ=" + worldZ, referenceResolved, resolved);
                 }
             }
         }
+    }
+
+    @Test
+    public void aParentLeftOutOfItsChildrenNeverKeepsTheSpot() {
+        CarveTestWorld world = new CarveTestWorld().carveSeed(77_031L).biome("parent").biome("only-child");
+        Fixture fixture = new Fixture(world, List.of(
+                buildEntry("parent", "parent", Range.of(-64, 320), 1, List.of(child("only-child", 1))),
+                buildEntry("only-child", "only-child", Range.of(-4096, -2048), 1, List.of())));
+        ResolvedCarvingEntry root = fixture.resolver.rootEntryAtWorldY(80);
+
+        for (int worldX = -256; worldX <= 256; worldX += 37) {
+            for (int worldZ = -256; worldZ <= 256; worldZ += 41) {
+                assertSame(fixture.resolver.index().get("only-child"), fixture.resolver.resolveFromRoot(root, worldX, worldZ));
+            }
+        }
+    }
+
+    @Test
+    public void aParentListedAmongItsChildrenKeepsTheSpotWhereItsEntryReaches() {
+        CarveTestWorld world = new CarveTestWorld().carveSeed(77_031L).biome("parent").biome("child");
+        Fixture fixture = new Fixture(world, List.of(
+                buildEntry("parent", "parent", Range.of(-64, 320), 1, List.of(child("child", 1), child("parent", 1))),
+                buildEntry("child", "child", Range.of(-4096, -2048), 1, List.of())));
+        ResolvedCarvingEntry root = fixture.resolver.rootEntryAtWorldY(80);
+
+        List<ResolvedCarvingEntry> resolved = new ArrayList<>();
+        for (int worldX = -512; worldX <= 512; worldX += 37) {
+            for (int worldZ = -512; worldZ <= 512; worldZ += 41) {
+                resolved.add(fixture.resolver.resolveFromRoot(root, worldX, worldZ));
+            }
+        }
+
+        assertTrue("some spots stay the parent", resolved.contains(root));
+        assertTrue("some spots become the child", resolved.contains(fixture.resolver.index().get("child")));
     }
 
     @Test
     public void columnAnchoredChunkPlanResolutionIsStableAcrossRepeatedBuilds() {
         Fixture fixture = createMixedDepthFixture();
-        ResolvedCarvingEntry root = fixture.legacyRootEntry(80);
+        ResolvedCarvingEntry root = fixture.referenceRootEntry(80);
 
         for (int chunkX = -24; chunkX <= 24; chunkX += 6) {
             for (int chunkZ = -24; chunkZ <= 24; chunkZ += 6) {
@@ -94,8 +131,8 @@ public class CarvingResolverParityTest {
         Fixture first = createFixture();
         Fixture second = createMixedDepthFixture();
 
-        ResolvedCarvingEntry firstExpected = first.legacyRootEntry(80);
-        ResolvedCarvingEntry secondExpected = second.legacyRootEntry(80);
+        ResolvedCarvingEntry firstExpected = first.referenceRootEntry(80);
+        ResolvedCarvingEntry secondExpected = second.referenceRootEntry(80);
 
         assertSame(firstExpected, first.resolver.rootEntryAtWorldY(80));
         assertSame(secondExpected, second.resolver.rootEntryAtWorldY(80));
@@ -105,7 +142,7 @@ public class CarvingResolverParityTest {
 
     @Test
     public void aWorldReadsItsBandsFromTheDimensionsSettings() {
-        CarveTestWorld world = new CarveTestWorld().biome("root-low", 6)
+        CarveTestWorld world = new CarveTestWorld().biome("root-low")
                 .dimension(new CarvingSettings(List.of(buildEntry("root-low", "root-low", Range.of(-64, 120), 4, List.of()))));
 
         CarvingResolver resolver = CarvingResolver.of(world);
@@ -115,31 +152,41 @@ public class CarvingResolverParityTest {
         assertNull(resolver.rootEntryAtWorldY(121));
     }
 
+    @Test
+    public void childrenKeepTheWeightsTheyAreWrittenWith() {
+        CarvingEntry entry = buildEntry("parent", "parent", Range.of(-64, 320), 1, List.of(child("a", 3), child("parent", 1)));
+
+        assertEquals(2, entry.children().size());
+        assertEquals("a", entry.children().get(0).id());
+        assertEquals(3, entry.children().get(0).weight());
+        assertEquals(1, entry.children().get(1).weight());
+    }
+
     private Fixture createFixture() {
         CarveTestWorld world = new CarveTestWorld().carveSeed(913_531_771L)
-                .biome("root-low", 6).biome("root-high", 4).biome("child-a", 2).biome("child-b", 5).biome("child-c", 1);
+                .biome("root-low").biome("root-high").biome("child-a").biome("child-b").biome("child-c");
         return new Fixture(world, List.of(
-                buildEntry("root-low", "root-low", Range.of(-64, 120), 4, List.of("child-a", "child-b")),
-                buildEntry("root-high", "root-high", Range.of(121, 320), 3, List.of("child-b", "child-c")),
-                buildEntry("child-a", "child-a", Range.of(-2048, -1024), 3, List.of("child-b")),
-                buildEntry("child-b", "child-b", Range.of(-2048, -1024), 2, List.of("child-c", "child-a")),
+                buildEntry("root-low", "root-low", Range.of(-64, 120), 4, List.of(child("child-a", 2), child("child-b", 3), child("root-low", 1))),
+                buildEntry("root-high", "root-high", Range.of(121, 320), 3, List.of(child("child-b", 1), child("child-c", 2), child("root-high", 4))),
+                buildEntry("child-a", "child-a", Range.of(-2048, -1024), 3, List.of(child("child-b", 1), child("child-a", 2))),
+                buildEntry("child-b", "child-b", Range.of(-2048, -1024), 2, List.of(child("child-c", 1), child("child-a", 1), child("child-b", 3))),
                 buildEntry("child-c", "child-c", Range.of(-2048, -1024), 1, List.of())));
     }
 
     private Fixture createMixedDepthFixture() {
         CarveTestWorld world = new CarveTestWorld().carveSeed(4_627_991_643L)
-                .biome("root-low", 7).biome("root-high", 5).biome("child-a", 2).biome("child-b", 3).biome("child-c", 6)
-                .biome("child-d", 1).biome("child-e", 4).biome("child-f", 8).biome("child-g", 2);
+                .biome("root-low").biome("root-high").biome("child-a").biome("child-b").biome("child-c")
+                .biome("child-d").biome("child-e").biome("child-f").biome("child-g");
         return new Fixture(world, List.of(
-                buildEntry("root-low", "root-low", Range.of(-64, 120), 7, List.of("child-a", "child-d", "child-e")),
-                buildEntry("root-high", "root-high", Range.of(121, 320), 6, List.of("child-b", "child-c", "child-f")),
-                buildEntry("child-a", "child-a", Range.of(-4096, 4096), 5, List.of("child-b", "child-g")),
-                buildEntry("child-b", "child-b", Range.of(-4096, 4096), 1, List.of("child-c")),
+                buildEntry("root-low", "root-low", Range.of(-64, 120), 7, List.of(child("child-a", 2), child("child-d", 5), child("child-e", 1), child("root-low", 3))),
+                buildEntry("root-high", "root-high", Range.of(121, 320), 6, List.of(child("child-b", 1), child("child-c", 1), child("child-f", 4), child("root-high", 2))),
+                buildEntry("child-a", "child-a", Range.of(-4096, 4096), 5, List.of(child("child-b", 3), child("child-g", 2), child("child-a", 1))),
+                buildEntry("child-b", "child-b", Range.of(-4096, 4096), 1, List.of(child("child-c", 1), child("child-b", 1))),
                 buildEntry("child-c", "child-c", Range.of(-4096, 4096), 0, List.of()),
-                buildEntry("child-d", "child-d", Range.of(-4096, 4096), 6, List.of("child-e", "child-f")),
-                buildEntry("child-e", "child-e", Range.of(-4096, 4096), 2, List.of("child-a")),
-                buildEntry("child-f", "child-f", Range.of(-4096, 4096), 8, List.of("child-g", "child-c")),
-                buildEntry("child-g", "child-g", Range.of(-4096, 4096), 3, List.of("child-d"))));
+                buildEntry("child-d", "child-d", Range.of(-4096, 4096), 6, List.of(child("child-e", 2), child("child-f", 1))),
+                buildEntry("child-e", "child-e", Range.of(-4096, 4096), 2, List.of(child("child-a", 1), child("child-e", 5))),
+                buildEntry("child-f", "child-f", Range.of(-4096, 4096), 8, List.of(child("child-g", 1), child("child-c", 1), child("child-f", 2))),
+                buildEntry("child-g", "child-g", Range.of(-4096, 4096), 3, List.of(child("child-d", 1)))));
     }
 
     private ResolvedCarvingEntry[] buildColumnPlan(CarvingResolver resolver, ResolvedCarvingEntry rootEntry, int chunkX, int chunkZ) {
@@ -154,7 +201,14 @@ public class CarvingResolverParityTest {
         return plan;
     }
 
-    private static CarvingEntry buildEntry(String id, String biome, Range worldRange, int depth, List<String> children) {
+    private static JsonObject child(String id, int weight) {
+        JsonObject json = new JsonObject();
+        json.addProperty("id", id);
+        json.addProperty("weight", weight);
+        return json;
+    }
+
+    private static CarvingEntry buildEntry(String id, String biome, Range worldRange, int depth, List<JsonObject> children) {
         JsonObject json = new JsonObject();
         json.addProperty("id", id);
         json.addProperty("biome", biome);
@@ -163,7 +217,9 @@ public class CarvingResolverParityTest {
         range.addProperty("max", worldRange.max());
         json.add("worldYRange", range);
         json.addProperty("childRecursionDepth", depth);
-        json.add("children", new Gson().toJsonTree(children));
+        JsonArray listed = new JsonArray();
+        children.forEach(listed::add);
+        json.add("children", listed);
         return new Gson().fromJson(json, CarvingEntry.class);
     }
 
@@ -174,7 +230,7 @@ public class CarvingResolverParityTest {
         return Math.min(depth, MAX_CHILD_DEPTH);
     }
 
-    /** The module's resolver, and the band code as it was, over the same entries and world. */
+    /** The module's resolver, and the band code as a plain walk, over the same entries and world. */
     private static final class Fixture {
         private final CarveTestWorld world;
         private final CarvingResolver resolver;
@@ -186,7 +242,7 @@ public class CarvingResolverParityTest {
             entries.forEach(entry -> settingsById.put(entry.id(), entry));
         }
 
-        private ResolvedCarvingEntry legacyRootEntry(int worldY) {
+        private ResolvedCarvingEntry referenceRootEntry(int worldY) {
             ResolvedCarvingEntry resolved = null;
             for (ResolvedCarvingEntry entry : resolver.entries()) {
                 if (!entry.enabled()) {
@@ -204,7 +260,7 @@ public class CarvingResolverParityTest {
             return resolved;
         }
 
-        private ResolvedCarvingEntry legacyResolveFromRoot(ResolvedCarvingEntry rootEntry, int worldX, int worldZ) {
+        private ResolvedCarvingEntry referenceResolveFromRoot(ResolvedCarvingEntry rootEntry, int worldX, int worldZ) {
             if (rootEntry == null || resolver.entryBiome(rootEntry) == null) {
                 return null;
             }
@@ -217,7 +273,7 @@ public class CarvingResolverParityTest {
             ResolvedCarvingEntry current = rootEntry;
             int depth = remainingDepth;
             while (depth > 0) {
-                ResolvedCarvingEntry selected = legacySelectChild(current, worldX, worldZ);
+                ResolvedCarvingEntry selected = referenceSelectChild(current, worldX, worldZ);
                 if (selected == null || selected == current) {
                     break;
                 }
@@ -233,49 +289,38 @@ public class CarvingResolverParityTest {
             return current;
         }
 
-        private ResolvedCarvingEntry legacySelectChild(ResolvedCarvingEntry parent, int worldX, int worldZ) {
-            List<String> children = parent.children();
-            if (children.isEmpty()) {
-                return parent;
-            }
-            if (resolver.entryBiome(parent) == null) {
-                return parent;
-            }
-
-            KList<LegacyCarvingChoice> options = new KList<>();
-            for (String childId : children) {
-                if (childId == null || childId.isBlank()) {
+        private ResolvedCarvingEntry referenceSelectChild(ResolvedCarvingEntry parent, int worldX, int worldZ) {
+            List<ResolvedCarvingEntry> entries = new ArrayList<>();
+            List<Integer> weights = new ArrayList<>();
+            int totalWeight = 0;
+            for (var listed : parent.children()) {
+                ResolvedCarvingEntry entry = resolver.index().get(listed.id().trim());
+                if (entry == null || !entry.enabled() || resolver.entryBiome(entry) == null) {
                     continue;
                 }
 
-                ResolvedCarvingEntry child = resolver.index().get(childId.trim());
-                if (child == null || !child.enabled() || resolver.entryBiome(child) == null) {
-                    continue;
-                }
-
-                options.add(new LegacyCarvingChoice(child, rarity(child)));
+                entries.add(entry);
+                weights.add(listed.weight());
+                totalWeight += listed.weight();
             }
-
-            options.add(new LegacyCarvingChoice(parent, rarity(parent)));
-            if (options.size() <= 1) {
+            if (entries.isEmpty()) {
                 return parent;
             }
 
             long seed = world.seed(IrisSeedPurposes.CARVE) ^ CHILD_SEED_SALT;
-            LegacyCarvingChoice selected = legacyChildrenGenerator(parent, seed).fitRarity(options, worldX, worldZ);
-            if (selected == null || selected.entry == null) {
-                return parent;
+            double position = referenceChildrenGenerator(parent, seed).noiseFast2D(worldX, worldZ) * totalWeight;
+            int weightUpToHere = 0;
+            for (int index = 0; index < entries.size(); index++) {
+                weightUpToHere += weights.get(index);
+                if (position < weightUpToHere) {
+                    return entries.get(index);
+                }
             }
-
-            return selected.entry;
-        }
-
-        private int rarity(ResolvedCarvingEntry entry) {
-            return Math.max(resolver.entryBiome(entry).rarity(), 1);
+            return entries.getLast();
         }
 
         /** The generator of an entry's children as Iris built it: its style created from the entry's seed, then scaled by the shrink factor. */
-        private CNG legacyChildrenGenerator(ResolvedCarvingEntry parent, long seed) {
+        private CNG referenceChildrenGenerator(ResolvedCarvingEntry parent, long seed) {
             CarvingEntry settings = settingsById.get(parent.id());
             long idHash = settings.id().trim().hashCode();
             long generatorSeed = seed ^ (idHash << 32) ^ CHILD_GENERATOR_SALT;
@@ -283,21 +328,6 @@ public class CarvingResolverParityTest {
             RNG random = new RNG(generatorSeed);
             return IrisValues.generatorStyle(settings.childStyle(), new IrisPackResources(world.data())).createNoCache(random.nextParallelRNG(CHILD_GENERATOR_SIGNATURE), world.data())
                     .bake().scale(scale).bake();
-        }
-    }
-
-    private static final class LegacyCarvingChoice implements IRare {
-        private final ResolvedCarvingEntry entry;
-        private final int rarity;
-
-        private LegacyCarvingChoice(ResolvedCarvingEntry entry, int rarity) {
-            this.entry = entry;
-            this.rarity = rarity;
-        }
-
-        @Override
-        public int getRarity() {
-            return rarity;
         }
     }
 }

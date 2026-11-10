@@ -1,7 +1,6 @@
 {
   "name": "Magnetics Plains",
   "color": "#89C46A",
-  "rarity": 1,
   "derivative": "minecraft:plains",
   "vanillaDerivative": "minecraft:plains",
   "generators": [

@@ -26,6 +26,7 @@ import art.arcane.iris.engine.object.image.IrisImageMap;
 import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiomeEntry;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import com.volmit.block.BlockRegistry;
 import com.volmit.host.ResourceKindRegistration;
@@ -39,6 +40,7 @@ import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 import com.volmit.world.PackBiome;
 import com.volmit.world.PackRegion;
+import com.volmit.world.Weighted;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -247,16 +249,16 @@ public final class IrisPackResources implements PackResources {
 
     private PackBiome biomeOf(ResourceId id, IrisBiome biome) {
         return new PackBiome(id, biome.getName(), ResourceId.parse(biome.getDerivativeKey()), ResourceId.parse(biome.getVanillaDerivativeKey()),
-                biome.getRarity(), idsOf(biome.getChildren()));
+                weightedIdsOf(biome.getChildren()));
     }
 
     private PackRegion regionOf(ResourceId id, IrisRegion region) {
-        return new PackRegion(id, region.getName(), region.getRarity(), idsOf(region.getLandBiomes()), idsOf(region.getSeaBiomes()),
-                idsOf(region.getShoreBiomes()), idsOf(region.getCaveBiomes()));
+        return new PackRegion(id, region.getName(), weightedIdsOf(region.getLandBiomes()), weightedIdsOf(region.getSeaBiomes()),
+                weightedIdsOf(region.getShoreBiomes()), weightedIdsOf(region.getCaveBiomes()));
     }
 
-    private List<ResourceId> idsOf(Collection<String> keys) {
-        return keys.stream().map(ids::of).toList();
+    private List<Weighted<ResourceId>> weightedIdsOf(Collection<IrisBiomeEntry> entries) {
+        return entries.stream().map(entry -> new Weighted<>(ids.of(entry.getBiome()), entry.getWeight())).toList();
     }
 
     /** One kind of pack resource: the keys the pack has, how a key's resource is read, an index from ids to keys and what was read so far. */

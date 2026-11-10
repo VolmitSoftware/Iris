@@ -54,7 +54,7 @@ public class CaveCarvingTest {
     }
 
     private static CarveTestWorld newWorld() {
-        return new CarveTestWorld().biome("cave/lush", 1).biome("plains", 1);
+        return new CarveTestWorld().biome("cave/lush").biome("plains");
     }
 
     @Test

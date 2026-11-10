@@ -21,6 +21,7 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.modules.carve.CarvingBiomeSettings;
 import art.arcane.iris.modules.carve.CarvingEnabledSettings;
+import art.arcane.iris.modules.carve.CarvingChild;
 import art.arcane.iris.modules.carve.CarvingEntry;
 import art.arcane.iris.modules.carve.CarvingSettings;
 import art.arcane.iris.modules.carve.CaveDepthSettings;
@@ -157,7 +158,7 @@ public class CarveSettingsDecodingTest {
         JSONObject json = new JSONObject("""
                 {"carving": [
                   {"id": "deep", "biome": "carving/deep", "worldYRange": {"min": -64, "max": 0}, "childShrinkFactor": 2, "childRecursionDepth": 5,
-                   "children": ["lush", " moss "], "childStyle": {"style": "SIMPLEX", "zoom": 3}},
+                   "children": [{"id": "lush", "weight": 3}, {"id": " moss "}, {"id": "deep", "weight": 2}], "childStyle": {"style": "SIMPLEX", "zoom": 3}},
                   {"id": "off", "enabled": false, "biome": "carving/off"},
                   {}
                 ], "carvingEnabled": false}
@@ -167,7 +168,9 @@ public class CarveSettingsDecodingTest {
 
         List<CarvingEntry> bands = settings.find(CarvingSettings.class).orElseThrow().entries();
         assertEquals(3, bands.size());
-        assertEquals(List.of("lush", " moss "), bands.getFirst().children());
+        assertEquals(List.of("lush", " moss ", "deep"), bands.getFirst().children().stream().map(CarvingChild::id).toList());
+        assertEquals("a child that writes no weight counts once", List.of(3, 1, 2),
+                bands.getFirst().children().stream().map(CarvingChild::weight).toList());
         assertEquals(2, bands.getFirst().childShrinkFactor(), 0);
         assertEquals(5, bands.getFirst().childRecursionDepth());
         assertEquals("SIMPLEX", bands.getFirst().childStyle().style());

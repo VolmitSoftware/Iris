@@ -48,7 +48,7 @@ public class CaveBiomeBandsTest {
     public void declareBands() {
         List<CarvingEntry> entries = new Gson().fromJson(BANDS, new com.google.gson.reflect.TypeToken<List<CarvingEntry>>() { }.getType());
         world = new CarveTestWorld()
-                .biome("band/shallow", 1).biome("band/padded", 1).biome("band/disabled", 1)
+                .biome("band/shallow").biome("band/padded").biome("band/disabled")
                 .dimension(new CarvingSettings(entries))
                 .declare(Level.BIOME, "band/shallow", new CaveDepthSettings(30));
     }

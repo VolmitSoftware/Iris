@@ -334,7 +334,7 @@ public class CommandStudio implements DirectorExecutor {
                     boolean progressShown = false;
                     int c = -1;
                     try {
-                    engine.getDimension().getRegions().forEach(key -> data.put(key, new AtomicInteger(0)));
+                    engine.getDimension().getRegionKeys().forEach(key -> data.put(key, new AtomicInteger(0)));
                     multiBurst = new MultiBurst("Region Sampler");
                     var executor = multiBurst.burst(Math.min(radius * radius, 1 << 20));
                     sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_GENERATING_DATA));
@@ -356,8 +356,7 @@ public class CommandStudio implements DirectorExecutor {
                     executor.complete();
 
                     sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_DONE));
-                    var loader = engine.getData().getRegionLoader();
-                    data.forEach((k, v) -> sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_MESSAGE, MessageArgument.untrusted("k", k), MessageArgument.untrusted("value", loader.load(k).getRarity()), MessageArgument.untrusted("value2", Form.f((double) v.get() / totalTasks * 100, 2)))));
+                    data.forEach((k, v) -> sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_MESSAGE, MessageArgument.untrusted("k", k), MessageArgument.untrusted("value", engine.getDimension().getRegionWeight(k)),MessageArgument.untrusted("value2", Form.f((double) v.get() / totalTasks * 100, 2)))));
                     } catch (Throwable e) {
                         Iris.reportError(e);
                         sender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_REGIONS_SCAN_FAILED,

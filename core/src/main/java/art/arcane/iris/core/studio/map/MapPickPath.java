@@ -21,10 +21,11 @@ package art.arcane.iris.core.studio.map;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.RenderType;
-import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.engine.object.world.region.IrisRegionEntry;
+import com.volmit.world.Weighted;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -93,13 +94,13 @@ public final class MapPickPath {
 
     /** Each of the dimension's regions' share of the region noise. */
     static List<PickBand> regionBands(Engine engine) {
-        List<IrisRegion> regions = engine.getData().getRegionLoader().loadAll(engine.getDimension().getRegions());
-        return rarityBands(regions, region -> MapLabel.of(engine, region));
+        List<Weighted<IrisRegion>> regions = IrisRegionEntry.load(engine.getDimension().getRegions(), engine.getData().getRegionLoader());
+        return weightBands(regions, region -> MapLabel.of(engine, region));
     }
 
     /** Each biome of the region's list of this type's share of the list's noise; empty when the list is. */
     static List<PickBand> biomeBands(Engine engine, MapView view, IrisRegion region, InferredType type) {
-        return rarityBands(engine.getComplex().pickableBiomes(region, type), biome -> biomeLabel(engine, view, biome));
+        return weightBands(engine.getComplex().pickableBiomes(region, type), biome -> biomeLabel(engine, view, biome));
     }
 
     // The base biome: the noise picks from the land or sea list the continent noise chose, then children replace it.
@@ -126,14 +127,14 @@ public final class MapPickPath {
     private static IrisBiome addListStep(List<PickStep> path, Engine engine, MapView view, IrisRegion region,
                                          InferredType type, double x, double z) {
         IrisComplex complex = engine.getComplex();
-        List<IrisBiome> options = complex.pickableBiomes(region, type);
+        List<Weighted<IrisBiome>> options = complex.pickableBiomes(region, type);
         if (options.isEmpty()) {
             return null;
         }
         double noise = complex.biomePickNoise(region, type).get(x, z);
-        IrisBiome picked = IRare.pick(options, noise);
+        IrisBiome picked = Weighted.pick(options, noise, Weighted.Edge.EARLIER);
         path.add(new PickStep(Kind.BIOME, biomeLabel(engine, view, picked), listName(type), null,
-                noise, rarityBands(options, option -> biomeLabel(engine, view, option))));
+                noise, weightBands(options, option -> biomeLabel(engine, view, option))));
         return picked;
     }
 
@@ -141,38 +142,21 @@ public final class MapPickPath {
         for (ChildPicks.ChildPick pick : ChildPicks.from(engine.getComplex(), biome, x, z)) {
             path.add(new PickStep(Kind.CHILD, biomeLabel(engine, view, pick.picked()), null,
                     pick.kept() ? null : pick.parent().getName(), pick.noise(),
-                    slotBands(pick.slots(), option -> biomeLabel(engine, view, option))));
+                    weightBands(pick.options(), option -> biomeLabel(engine, view, option))));
         }
     }
 
-    /** Each option's share of the noise, 1 / rarity wide, in the order {@link IRare#pick} walks them. */
-    static <T> List<PickBand> rarityBands(List<T> options, Function<T, MapLabel> label) {
-        double total = options.stream().mapToDouble(option -> 1D / IRare.get(option)).sum();
+    /** Each entry's share of the noise, as wide as its weight, in the order {@link Weighted#pick} walks them. */
+    static <T> List<PickBand> weightBands(List<Weighted<T>> entries, Function<T, MapLabel> label) {
+        int totalWeight = Weighted.totalWeight(entries);
         List<PickBand> bands = new ArrayList<>();
-        double from = 0D;
-        for (int index = 0; index < options.size(); index++) {
-            T option = options.get(index);
-            double to = index == options.size() - 1 ? 1D : from + 1D / IRare.get(option) / total;
-            bands.add(new PickBand(label.apply(option), from, to));
-            from = to;
-        }
-        return bands;
-    }
-
-    /** Each slot's share of the child noise, neighbouring slots of one biome joined into one band. */
-    static <T> List<PickBand> slotBands(List<T> slots, Function<T, MapLabel> label) {
-        List<PickBand> bands = new ArrayList<>();
-        int last = slots.size() - 1;
-        for (int index = 0; index <= last; index++) {
-            double from = index == 0 ? 0D : (index - 0.5D) / last;
-            double to = index == last ? 1D : (index + 0.5D) / last;
-            MapLabel option = label.apply(slots.get(index));
-            PickBand previous = bands.isEmpty() ? null : bands.getLast();
-            if (previous != null && previous.option().key().equals(option.key())) {
-                bands.set(bands.size() - 1, new PickBand(option, previous.from(), to));
-            } else {
-                bands.add(new PickBand(option, from, to));
-            }
+        int weightBefore = 0;
+        for (int index = 0; index < entries.size(); index++) {
+            Weighted<T> entry = entries.get(index);
+            int weightUpToHere = weightBefore + entry.weight();
+            double to = index == entries.size() - 1 ? 1D : (double) weightUpToHere / totalWeight;
+            bands.add(new PickBand(label.apply(entry.value()), (double) weightBefore / totalWeight, to));
+            weightBefore = weightUpToHere;
         }
         return bands;
     }

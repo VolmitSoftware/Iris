@@ -90,8 +90,8 @@ public class PackGeneratorDuplicateValidatorTest {
     @Test
     public void duplicatesSurfaceAsPackWarningsNotErrors() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
-        write(pack, "dimensions/main.json", "{\"regions\":[\"region\"]}");
-        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack, "dimensions/main.json", "{\"regions\":[{\"region\":\"region\"}]}");
+        write(pack, "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack, "biomes/biome.json", "{\"name\":\"Biome\",\"generators\":[{\"generator\":\"a\"},{\"generator\":\"b\"}]}");
         write(pack, "generators/a.json", "{\"seed\":1}");
         write(pack, "generators/b.json", "{\"seed\":1}");

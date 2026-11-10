@@ -200,8 +200,8 @@ public class ExportClosureComparisonTest {
 
     private Path fixturePack() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
-        write(pack, "dimensions/main.json", "{\"regions\":[\"region\"],\"structures\":[{\"structures\":[\"castle\"]}]}");
-        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack, "dimensions/main.json", "{\"regions\":[{\"region\":\"region\"}],\"structures\":[{\"structures\":[\"castle\"]}]}");
+        write(pack, "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack, "biomes/biome.json", "{\"name\":\"Biome\",\"objects\":[{\"place\":[\"tree\"]}]}");
         write(pack, "structures/castle.json", "{\"startPool\":\"castle/start\",\"loot\":[\"castle/chest\"]}");
         write(pack, "structures/unused.json", "{\"startPool\":\"castle/start\"}");

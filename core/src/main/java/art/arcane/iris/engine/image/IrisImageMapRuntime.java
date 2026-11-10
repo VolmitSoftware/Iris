@@ -3,6 +3,7 @@ package art.arcane.iris.engine.image;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiomeEntry;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.image.IrisImage;
 import art.arcane.iris.engine.object.image.IrisImageMap;
@@ -299,13 +300,13 @@ public final class IrisImageMapRuntime {
             if (region == null) {
                 continue;
             }
-            if (region.getLandBiomes().contains(biomeKey)) {
+            if (IrisBiomeEntry.keys(region.getLandBiomes()).contains(biomeKey)) {
                 types.add(InferredType.LAND);
             }
-            if (region.getSeaBiomes().contains(biomeKey)) {
+            if (IrisBiomeEntry.keys(region.getSeaBiomes()).contains(biomeKey)) {
                 types.add(InferredType.SEA);
             }
-            if (region.getShoreBiomes().contains(biomeKey)) {
+            if (IrisBiomeEntry.keys(region.getShoreBiomes()).contains(biomeKey)) {
                 types.add(InferredType.SHORE);
             }
         }

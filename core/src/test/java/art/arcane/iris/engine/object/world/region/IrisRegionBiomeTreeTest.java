@@ -27,6 +27,7 @@ import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.PackResourceFixture;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiomeEntry;
 import art.arcane.volmlib.util.collection.KList;
 import com.google.gson.Gson;
 import com.volmit.IrisFeature;
@@ -46,10 +47,10 @@ public class IrisRegionBiomeTreeTest {
     @Test
     @SuppressWarnings("unchecked")
     public void aBiomesCarvingBiomeJoinsTheRegionAndAFloatingChildDoesNot() {
-        IrisRegion region = new IrisRegion().setLandBiomes(new KList<>("plains"));
+        IrisRegion region = new IrisRegion().setLandBiomes(new KList<>(new IrisBiomeEntry("plains", 1)));
         FloatingChildBiome floating = new Gson().fromJson("{\"biome\": \"floating/target\", \"carving\": \"carving/pocket\"}", FloatingChildBiome.class);
         IrisBiome plains = biome("plains", new CarvingBiomeSettings("carving/mushroom"), new FloatingChildSettings(List.of(floating)))
-                .setChildren(new KList<>("meadow"));
+                .setChildren(new KList<>(new IrisBiomeEntry("meadow", 1), new IrisBiomeEntry("plains", 1)));
         IrisBiome meadow = biome("meadow");
         IrisBiome mushroom = biome("carving/mushroom", new CarvingBiomeSettings("carving/nested"));
         IrisBiome nested = biome("carving/nested");

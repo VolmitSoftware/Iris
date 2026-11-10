@@ -1,30 +1,29 @@
 {
     "name": "The Magnetics",
     "color": "#7B9EC9",
-    "rarity": 15,
     "landBiomes": [
-        "magnetics/plains",
-        "magnetics/frozen",
-        "magnetics/dunes",
-        "magnetics/mycelium",
-        "magnetics/glass",
-        "magnetics/noise"
+        {"biome": "magnetics/plains", "weight": 1},
+        {"biome": "magnetics/frozen", "weight": 1},
+        {"biome": "magnetics/dunes", "weight": 1},
+        {"biome": "magnetics/mycelium", "weight": 1},
+        {"biome": "magnetics/glass", "weight": 1},
+        {"biome": "magnetics/noise", "weight": 1}
     ],
     "caveBiomes": [
-        "carving/magnetic-hollows",
-        "carving/flux-crystal-caverns",
-        "carving/polarity-grotto"
+        {"biome": "carving/magnetic-hollows", "weight": 1},
+        {"biome": "carving/flux-crystal-caverns", "weight": 1},
+        {"biome": "carving/polarity-grotto", "weight": 1}
     ],
     "shoreBiomes": [
-        "temperate/shore/beach",
-        "ocean/shore/beach"
+        {"biome": "temperate/shore/beach", "weight": 1},
+        {"biome": "ocean/shore/beach", "weight": 1}
     ],
     "seaBiomeZoom": 6,
     "seaBiomes": [
-        "ocean/deep",
-        "ocean/dark-depth-ocean",
-        "temperate/sea/ocean",
-        "temperate/sea/ocean-deep"
+        {"biome": "ocean/deep", "weight": 1},
+        {"biome": "ocean/dark-depth-ocean", "weight": 1},
+        {"biome": "temperate/sea/ocean", "weight": 1},
+        {"biome": "temperate/sea/ocean-deep", "weight": 1}
     ],
     "landBiomeZoom": 3.5,
     "shoreBiomeZoom": 0.15,

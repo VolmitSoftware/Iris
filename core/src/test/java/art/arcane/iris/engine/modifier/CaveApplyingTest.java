@@ -67,7 +67,7 @@ public class CaveApplyingTest {
 
     @Before
     public void setUp() {
-        world = new CarveTestWorld().biome("cave/lush", 1);
+        world = new CarveTestWorld().biome("cave/lush");
         dressing.walls.put(LUSH, WALL);
         dressing.floors.put(LUSH, List.of(FLOOR));
         dressing.ceilings.put(LUSH, List.of(CEILING));

@@ -1,7 +1,6 @@
 {
     "name": "Tropical Volcanoes",
     "color": "#8C1E1E",
-    "rarity": 1,
     "derivative": "minecraft:the_void",
     "vanillaDerivative": "minecraft:the_void",
     "customDerivitives": [{
@@ -12,7 +11,9 @@
         "fogColor": "#DD793C",
         "downfallType": "none"
     }],
-    "children": ["tropical/volcanoes-lava"],
+    "children": [
+        {"biome": "tropical/volcanoes", "weight": 1}
+    ],
     "generators": [{
         "generator": "mountain",
         "max": 180,

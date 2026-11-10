@@ -1,7 +1,6 @@
 {
     "name": "Mountain Beach",
     "color": "#365B8F",
-    "rarity": 1,
     "derivative": "minecraft:old_growth_spruce_taiga",
     "vanillaDerivative": "minecraft:old_growth_spruce_taiga",
     "generators": [{

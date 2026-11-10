@@ -201,12 +201,12 @@ public class PackDownloaderTest {
         Path archive = temp.newFile("direct-pack.zip").toPath();
         Map<String, String> entries = new LinkedHashMap<>();
         entries.put("README.md", "Direct pack");
-        entries.put("wrapped/dimensions/direct_pack.json", "{\"name\":\"Direct\",\"regions\":[\"local\"],"
+        entries.put("wrapped/dimensions/direct_pack.json", "{\"name\":\"Direct\",\"regions\":[{\"region\":\"local\"}],"
                 + "\"structures\":[{\"nativeStructures\":[{\"structure\":\"test:future_structure\"}]}],"
                 + "\"logicalHeight\":256,\"dimensionHeight\":{\"min\":-64,\"max\":320}}");
-        entries.put("wrapped/dimensions/direct_pack_supporting.json", "{\"name\":\"Supporting\",\"regions\":[\"local\"],"
+        entries.put("wrapped/dimensions/direct_pack_supporting.json", "{\"name\":\"Supporting\",\"regions\":[{\"region\":\"local\"}],"
                 + "\"logicalHeight\":256,\"dimensionHeight\":{\"min\":-64,\"max\":320}}");
-        entries.put("wrapped/regions/local.json", "{\"name\":\"Local\",\"landBiomes\":[\"local\"]}");
+        entries.put("wrapped/regions/local.json", "{\"name\":\"Local\",\"landBiomes\":[{\"biome\":\"local\"}]}");
         entries.put("wrapped/biomes/local.json", "{\"name\":\"Local\",\"derivative\":\"minecraft:plains\"}");
         writeArchive(archive, entries);
         byte[] response = Files.readAllBytes(archive);
@@ -917,7 +917,7 @@ public class PackDownloaderTest {
         writeDimension(root, key);
         Files.writeString(
                 root.resolve("regions/local.json"),
-                "{\"name\":\"Local\",\"landBiomes\":[\"local\"]}",
+                "{\"name\":\"Local\",\"landBiomes\":[{\"biome\":\"local\"}]}",
                 StandardCharsets.UTF_8
         );
         Files.writeString(
@@ -939,7 +939,7 @@ public class PackDownloaderTest {
         Files.writeString(
                 root.resolve("dimensions/" + key + ".json"),
                 "{\"name\":\"" + key + "\",\"environment\":\"" + environment.name()
-                        + "\",\"regions\":[\"local\"],\"logicalHeight\":256,"
+                        + "\",\"regions\":[{\"region\":\"local\"}],\"logicalHeight\":256,"
                         + "\"dimensionHeight\":{\"min\":-64,\"max\":320}}",
                 StandardCharsets.UTF_8
         );
@@ -951,10 +951,10 @@ public class PackDownloaderTest {
         LinkedHashMap<String, String> entries = new LinkedHashMap<>();
         entries.put(
                 "wrapped/dimensions/" + key + ".json",
-                "{\"name\":\"" + key + "\",\"regions\":[\"local\"],\"logicalHeight\":256,"
+                "{\"name\":\"" + key + "\",\"regions\":[{\"region\":\"local\"}],\"logicalHeight\":256,"
                         + "\"dimensionHeight\":{\"min\":-64,\"max\":320}}"
         );
-        entries.put("wrapped/regions/local.json", "{\"name\":\"Local\",\"landBiomes\":[\"local\"]}");
+        entries.put("wrapped/regions/local.json", "{\"name\":\"Local\",\"landBiomes\":[{\"biome\":\"local\"}]}");
         entries.put("wrapped/biomes/local.json", "{\"name\":\"Local\",\"derivative\":\"minecraft:plains\"}");
         writeArchive(archive, entries);
         return Files.readAllBytes(archive);
@@ -998,7 +998,7 @@ public class PackDownloaderTest {
     private static void writeDimension(Path root, String key) throws IOException {
         Files.writeString(
                 root.resolve("dimensions/" + key + ".json"),
-                "{\"name\":\"" + key + "\",\"regions\":[\"local\"],\"logicalHeight\":256,"
+                "{\"name\":\"" + key + "\",\"regions\":[{\"region\":\"local\"}],\"logicalHeight\":256,"
                         + "\"dimensionHeight\":{\"min\":-64,\"max\":320}}",
                 StandardCharsets.UTF_8
         );

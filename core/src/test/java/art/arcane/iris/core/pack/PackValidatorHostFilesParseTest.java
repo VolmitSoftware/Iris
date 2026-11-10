@@ -21,7 +21,7 @@ public class PackValidatorHostFilesParseTest {
     public void reportsEachDimensionRegionAndBiomeFileThatIsNotJson() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
         write(pack, "dimensions/main.json", "{");
-        write(pack, "regions/nested/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack, "regions/nested/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack, "biomes/nested/biome.json", "not json");
 
         List<String> errors = PackObjectSurfaceValidator.validateHostFilesParse(pack);

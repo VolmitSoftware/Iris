@@ -22,6 +22,7 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiomeEntry;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.util.common.parallel.BurstExecutor;
 import art.arcane.iris.util.common.parallel.MultiBurst;
@@ -299,21 +300,21 @@ public final class HintedLocator<T> implements Locator<T> {
 
             boolean hosted = false;
 
-            for (String root : region.getLandBiomes()) {
+            for (String root : IrisBiomeEntry.keys(region.getLandBiomes())) {
                 if (source.closureContains(root, biomeKey)) {
                     landHosts.add(root);
                     hosted = true;
                 }
             }
 
-            for (String root : region.getSeaBiomes()) {
+            for (String root : IrisBiomeEntry.keys(region.getSeaBiomes())) {
                 if (source.closureContains(root, biomeKey)) {
                     seaHosts.add(root);
                     hosted = true;
                 }
             }
 
-            for (String root : region.getShoreBiomes()) {
+            for (String root : IrisBiomeEntry.keys(region.getShoreBiomes())) {
                 if (source.closureContains(root, biomeKey)) {
                     shoreHosts.add(root);
                     hosted = true;
@@ -324,7 +325,7 @@ public final class HintedLocator<T> implements Locator<T> {
                 surfaceRegions.add(region.getLoadKey());
             }
 
-            if (region.getCaveBiomes().contains(biomeKey)) {
+            if (IrisBiomeEntry.keys(region.getCaveBiomes()).contains(biomeKey)) {
                 caveRegions.add(region.getLoadKey());
             }
         }
@@ -355,7 +356,7 @@ public final class HintedLocator<T> implements Locator<T> {
         KSet<String> caveRegions = new KSet<>();
 
         for (IrisRegion region : engine.getDimension().getAllRegions(engine)) {
-            if (region != null && region.getCaveBiomes().contains(biomeKey)) {
+            if (region != null && IrisBiomeEntry.keys(region.getCaveBiomes()).contains(biomeKey)) {
                 caveRegions.add(region.getLoadKey());
             }
         }
@@ -372,7 +373,7 @@ public final class HintedLocator<T> implements Locator<T> {
             return SearchPlan.unpruned();
         }
 
-        if (!engine.getDimension().getRegions().contains(regionKey)) {
+        if (!engine.getDimension().getRegionKeys().contains(regionKey)) {
             return SearchPlan.impossible();
         }
 
@@ -410,21 +411,21 @@ public final class HintedLocator<T> implements Locator<T> {
 
             boolean hosted = false;
 
-            for (String root : region.getLandBiomes()) {
+            for (String root : IrisBiomeEntry.keys(region.getLandBiomes())) {
                 if (source.closureContainsAny(root, placers.biomes())) {
                     landHosts.add(root);
                     hosted = true;
                 }
             }
 
-            for (String root : region.getSeaBiomes()) {
+            for (String root : IrisBiomeEntry.keys(region.getSeaBiomes())) {
                 if (source.closureContainsAny(root, placers.biomes())) {
                     seaHosts.add(root);
                     hosted = true;
                 }
             }
 
-            for (String root : region.getShoreBiomes()) {
+            for (String root : IrisBiomeEntry.keys(region.getShoreBiomes())) {
                 if (source.closureContainsAny(root, placers.biomes())) {
                     shoreHosts.add(root);
                     hosted = true;
@@ -559,7 +560,7 @@ public final class HintedLocator<T> implements Locator<T> {
                     continue;
                 }
 
-                for (String child : biome.getChildren()) {
+                for (String child : biome.getChildKeys()) {
                     if (child != null && !visited.contains(child)) {
                         queue.add(child);
                     }
@@ -595,7 +596,7 @@ public final class HintedLocator<T> implements Locator<T> {
                     return true;
                 }
 
-                for (String child : biome.getChildren()) {
+                for (String child : biome.getChildKeys()) {
                     if (child != null && !visited.contains(child)) {
                         queue.add(child);
                     }

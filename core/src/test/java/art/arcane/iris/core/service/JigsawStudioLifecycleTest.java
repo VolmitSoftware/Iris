@@ -46,7 +46,6 @@ public class JigsawStudioLifecycleTest {
         registry.finishOpen(OWNER);
         registry.finishOpen(OTHER_OWNER);
         registry.deactivate("overworld");
-        service.quiesceForServerShutdown();
     }
 
     @Test

@@ -20,6 +20,7 @@ package art.arcane.iris.core.toolworld;
 
 import art.arcane.iris.core.tooling.ToolWorldsHost;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
+import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.plugin.IrisService;
 import com.volmit.tooling.world.ToolPlayer;
 import com.volmit.tooling.world.ToolWorlds;
@@ -27,12 +28,21 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 /**
  * Tool worlds on Bukkit: the platform side of {@code com.volmit.tooling.world}. It keeps the open tool worlds and the
  * tool players, listens for the events that concern them ({@link ToolWorldEvents}), and hands each pack its
  * {@link ToolWorlds} through {@link ToolWorldsHost}, which core reaches it by.
  */
 public final class BukkitToolWorldService implements IrisService, ToolWorldsHost {
+    private static final long CLOSING_WAIT_SECONDS = 30L;
+
     private final OpenToolWorlds worlds = new OpenToolWorlds();
     private final ToolPlayers players = new ToolPlayers(worlds);
     private final ToolWorldEvents events = new ToolWorldEvents(worlds, players);
@@ -45,7 +55,23 @@ public final class BukkitToolWorldService implements IrisService, ToolWorldsHost
     @Override
     public void onDisable() {
         HandlerList.unregisterAll(events);
-        worlds.all().forEach(BukkitToolWorld::unloaded);
+        List<BukkitToolWorld> open = worlds.all();
+        awaitClosing(open);
+        open.forEach(BukkitToolWorld::unloaded);
+    }
+
+    /** Lets every tool hear that its world is closing, as a replacement does, so it can save what it holds before the world is gone. */
+    private static void awaitClosing(List<BukkitToolWorld> open) {
+        CompletableFuture<?>[] closing = open.stream()
+                .map(world -> world.prepareReplacement(Optional.empty()))
+                .toArray(CompletableFuture[]::new);
+        try {
+            CompletableFuture.allOf(closing).get(CLOSING_WAIT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException | TimeoutException notReady) {
+            IrisLogging.reportError("A tool world was not ready to close when Iris stopped.", notReady);
+        }
     }
 
     @Override

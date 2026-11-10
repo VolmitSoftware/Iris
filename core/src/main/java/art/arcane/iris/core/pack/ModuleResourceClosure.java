@@ -18,19 +18,18 @@
 
 package art.arcane.iris.core.pack;
 
-import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.builtin.structure.IrisStructureRef;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.engine.object.annotations.RegistryListResource;
-import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
 import com.volmit.config.ResourceRef;
 import com.volmit.host.ResourceKindRegistration;
 import com.volmit.object.GeneratedObject;
+import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 
 import java.io.File;
@@ -61,24 +60,23 @@ public final class ModuleResourceClosure {
     private static final String JSON_EXTENSION = ".json";
     private static final int PRETTY_INDENT = 4;
 
-    /**
-     * The structure model ships with Iris while the loot kind ships in the built-in modules jar, so the model cannot name
-     * the kind with {@code @ResourceRef} (a pack without the jar could not load it). Until both move into the jar the
-     * closure knows this one reference.
-     */
-    private static final Field STRUCTURE_LOOT_FIELD = structureLootField();
-
     private final IrisData data;
     private final Map<Class<?>, ResourceKind<?>> kindsByType = new HashMap<>();
+    private final Class<?> structureType;
     private final Map<ResourceKind<?>, Map<String, Object>> found = new LinkedHashMap<>();
     private final Set<Object> visited = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<String> objectKeys = new TreeSet<>();
 
     public ModuleResourceClosure(IrisData data) {
         this.data = data;
+        Class<?> structures = null;
         for (ResourceKindRegistration registration : data.getModules().pack().catalog().resourceKinds()) {
             kindsByType.put(registration.kind().type(), registration.kind());
+            if (registration.kind().id().equals(IrisStructureRef.KIND)) {
+                structures = registration.kind().type();
+            }
         }
+        this.structureType = structures;
     }
 
     /** Adds the resources that the module settings of {@code owner} reference, and those they reference. */
@@ -124,6 +122,15 @@ public final class ModuleResourceClosure {
     public List<String> keysOf(Class<?> type) {
         ResourceKind<?> kind = kindsByType.get(type);
         return kind == null || !found.containsKey(kind) ? List.of() : new ArrayList<>(new TreeMap<>(found.get(kind)).keySet());
+    }
+
+    /** The keys of the resources found of the kind {@code kindId}, in key order, for a kind whose class Iris cannot name. */
+    public List<String> keysOf(ResourceId kindId) {
+        return kindsByType.values().stream()
+                .filter(kind -> kind.id().equals(kindId))
+                .findFirst()
+                .map(kind -> found.containsKey(kind) ? new ArrayList<>(new TreeMap<>(found.get(kind)).keySet()) : new ArrayList<String>())
+                .orElseGet(ArrayList::new);
     }
 
     /**
@@ -172,25 +179,14 @@ public final class ModuleResourceClosure {
         }
     }
 
-    private static Field structureLootField() {
-        try {
-            return IrisStructure.class.getDeclaredField("loot");
-        } catch (NoSuchFieldException missing) {
-            throw new IllegalStateException("The structure model has no loot field", missing);
-        }
-    }
-
     /** The class of the resources the field names by key, or null when it names none. */
-    private static Class<?> referencedType(Field field) {
+    private Class<?> referencedType(Field field) {
         ResourceRef reference = field.getAnnotation(ResourceRef.class);
         if (reference != null) {
             return reference.value();
         }
         if (field.isAnnotationPresent(IrisStructureRef.class)) {
-            return IrisStructure.class;
-        }
-        if (field.equals(STRUCTURE_LOOT_FIELD)) {
-            return LootTable.class;
+            return structureType;
         }
         RegistryListResource registry = field.getAnnotation(RegistryListResource.class);
         return registry == null ? null : registry.value();

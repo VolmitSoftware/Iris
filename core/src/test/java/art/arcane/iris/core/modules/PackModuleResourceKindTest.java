@@ -203,6 +203,7 @@ public class PackModuleResourceKindTest {
 
     private Path castlePack(String name) throws Exception {
         File pack = temporaryFolder.newFolder(name);
+        BuiltInModulesJar.installInto(pack.toPath());
         write(pack.toPath(), "dimensions/main.json", "{\"regions\":[\"region\"]}");
         write(pack.toPath(), "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
         write(pack.toPath(), "biomes/biome.json", "{\"name\":\"Biome\"}");

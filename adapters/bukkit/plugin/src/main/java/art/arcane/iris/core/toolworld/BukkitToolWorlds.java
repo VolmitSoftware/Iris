@@ -23,6 +23,7 @@ import art.arcane.iris.core.runtime.StudioPainterSlots;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.spi.IrisServices;
 import com.volmit.tooling.world.ToolWorld;
+import com.volmit.tooling.world.ToolWorldDenied;
 import com.volmit.tooling.world.ToolWorldSpec;
 import com.volmit.tooling.world.ToolWorlds;
 import org.bukkit.World;
@@ -52,6 +53,10 @@ final class BukkitToolWorlds implements ToolWorlds {
 
     @Override
     public CompletableFuture<ToolWorld> open(ToolWorldSpec spec) {
+        Optional<String> denial = StudioSVC.packAdmissionDenial(packName, StudioOpenCoordinator.StudioOpenKind.TOOL);
+        if (denial.isPresent()) {
+            return CompletableFuture.failedFuture(new ToolWorldDenied(denial.get()));
+        }
         PendingBlockEntities pending = new PendingBlockEntities();
         StudioPainterSlots.Slot slot = new StudioPainterSlots.Slot(spec.painter(), pending::add);
         String storageName = STORAGE_NAME_PREFIX + UUID.randomUUID();

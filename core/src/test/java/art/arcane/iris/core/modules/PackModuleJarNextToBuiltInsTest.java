@@ -79,7 +79,7 @@ public class PackModuleJarNextToBuiltInsTest {
 
     @Test
     public void aJarModuleWithTheIdOfACompiledInBuiltInFailsAsADuplicate() throws IOException {
-        String builtInId = new StructureModelModule().info().id().toString();
+        String builtInId = new BiomeModule().info().id().toString();
         Path packFolder = BuiltInPack.newPackFolder(folder);
         PackModuleJar.write(packFolder, "carve.jar", "pack.ported.Ported",
                 Map.of("pack.ported.Ported", module("ported", "Ported", builtInId)));
@@ -88,7 +88,7 @@ public class PackModuleJarNextToBuiltInsTest {
                 () -> BuiltInPack.serve(mock(IrisData.class), folder, packFolder, List.of()));
 
         assertEquals("Duplicate module " + builtInId + " from " + Path.of("modules", "carve.jar") + " (pack.ported.Ported); already loaded from host classpath ("
-                + StructureModelModule.class.getName() + ")", failure.getMessage());
+                + BiomeModule.class.getName() + ")", failure.getMessage());
     }
 
     private static String module(String packageName, String className, String moduleId) {

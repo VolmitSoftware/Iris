@@ -82,24 +82,6 @@ public class JigsawStudioServiceCaptureTest {
     public void stopService() {
         service.registry().finishOpen(OWNER);
         service.registry().deactivate("overworld");
-        service.quiesceForServerShutdown();
-    }
-
-    @Test
-    public void shutdownQuiesceIsIdempotent() throws Exception {
-        Field disableStartedField = JigsawStudioService.class.getDeclaredField("disableStarted");
-        Field enabledField = JigsawStudioService.class.getDeclaredField("enabled");
-        disableStartedField.setAccessible(true);
-        enabledField.setAccessible(true);
-        AtomicBoolean disableStarted = (AtomicBoolean) disableStartedField.get(service);
-        assertFalse(disableStarted.get());
-        assertTrue(enabledField.getBoolean(service));
-
-        service.quiesceForServerShutdown();
-        service.quiesceForServerShutdown();
-
-        assertTrue(disableStarted.get());
-        assertFalse(enabledField.getBoolean(service));
     }
 
     @Test

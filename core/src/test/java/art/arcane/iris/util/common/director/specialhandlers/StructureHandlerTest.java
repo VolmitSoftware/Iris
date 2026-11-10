@@ -4,7 +4,7 @@ import art.arcane.iris.builtin.structure.StructureSettings;
 import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
-import art.arcane.iris.core.modules.StructureModelModule;
+import art.arcane.iris.modules.jigsaw.JigsawModule;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
@@ -105,11 +105,11 @@ public class StructureHandlerTest {
 
         IrisStructure custom = new IrisStructure();
         IrisStructure collision = new IrisStructure();
-        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(data, new JigsawModule(), new StructureModule());
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:custom_definition", custom);
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:collision_definition", collision);
         when(engine.getData()).thenReturn(data);
-        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(data, new JigsawModule(), new StructureModule());
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getWorld()).thenReturn(world);
@@ -173,11 +173,11 @@ public class StructureHandlerTest {
         placements.add(editablePlacement("iris:replacement_definition"));
         placements.add(nativePlacement("minecraft:explicit", StructureDistribution.RANDOM_SPREAD, 1.0));
 
-        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(data, new JigsawModule(), new StructureModule());
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:editable_definition", editable);
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:replacement_definition", replacement);
         when(engine.getData()).thenReturn(data);
-        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(data, new JigsawModule(), new StructureModule());
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getWorld()).thenReturn(world);

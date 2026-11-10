@@ -114,7 +114,6 @@ public class JigsawStudioWorldListenerTest {
     @After
     public void closeStudio() {
         service.registry().deactivate("overworld");
-        service.quiesceForServerShutdown();
     }
 
     @Test

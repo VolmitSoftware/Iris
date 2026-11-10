@@ -38,11 +38,6 @@ public class JigsawStudioMenuControllerTest {
     private static final UUID REQUEST_ID = UUID.fromString("77777777-7777-7777-7777-777777777777");
     private static final JigsawStudioPieceRules RULES = new JigsawStudioPieceRules(1, 12, 2, 8, false);
 
-    @After
-    public void stopScheduler() {
-        scheduler.stop();
-    }
-
     @Test
     public void pagesVariantsAndClampsStalePageIndexes() {
         List<Integer> values = new ArrayList<>();
@@ -541,14 +536,10 @@ public class JigsawStudioMenuControllerTest {
         menuField.setAccessible(true);
         menuField.set(service, menu);
 
-        try {
-            service.playerLeft(player);
+        service.playerLeft(player);
 
-            verify(menu).close(player);
-            assertEquals(1, player.sidebarsHidden);
-        } finally {
-            service.quiesceForServerShutdown();
-        }
+        verify(menu).close(player);
+        assertEquals(1, player.sidebarsHidden);
     }
 
     private JigsawStudioMenuState state(

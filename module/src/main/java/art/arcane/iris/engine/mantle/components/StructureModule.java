@@ -19,24 +19,30 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.builtin.structure.StructureHost;
 import art.arcane.iris.builtin.structure.StructurePlacementSettings;
 import art.arcane.iris.builtin.structure.StructureSettings;
-import art.arcane.iris.engine.framework.structure.StructureResources;
+import art.arcane.iris.core.modules.StructureCommands;
+import art.arcane.iris.engine.framework.structure.StructureLocating;
+import art.arcane.iris.engine.framework.structure.StructureValidator;
+import art.arcane.iris.engine.framework.structure.StructureVanillaStructures;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleLog;
 import com.volmit.ModuleSetup;
-import com.volmit.config.PackSettings;
+import com.volmit.service.StructureLocator;
+import com.volmit.service.VanillaStructures;
 import com.volmit.stage.MantleStageContext;
 
 /**
- * Module {@code iris:structure}: the jigsaw structures, pools and pieces of a pack (its resource kinds), the structure
- * placements a pack declares, and the mantle stage that places the structures starting in each chunk. Iris builds and
- * places the structures ({@link StructureHost}); their validation, the locator and the platform structure answers are
- * Iris's own module {@code iris:structure-model}.
+ * Module {@code iris:structure}: where structures go and how they meet the terrain. It owns the structure placements a
+ * pack declares, the mantle stage that places the structures starting in each chunk, the locator that finds them, the
+ * answers about the platform's own structures ({@link StructureVanillaStructures}: the dimension's
+ * {@code importedStructures} settings disable, move, fit and set them up, and the pack's placements replace them, place
+ * them alongside, start them where their {@code nativeStructures} grids say and fit them into the terrain), the checks of
+ * the placements, and the {@code /iris module structure} commands.
  * <p>
- * It is not in the built-ins jar: Iris registers it with its own modules, because Iris's jigsaw studio, importers and
- * exporters read the resources it registers as the same classes.
+ * It gets the pieces of a structure only from the {@link art.arcane.iris.engine.framework.structure.assembly.StructureAssembly}
+ * providers of the pack's modules, such as {@code iris:jigsaw}, and knows none of them.
  */
 public final class StructureModule implements IrisModule {
     private static final String VERSION = "built-in";
@@ -48,19 +54,19 @@ public final class StructureModule implements IrisModule {
 
     @Override
     public void setup(ModuleSetup setup) {
+        ModuleLog log = setup.log();
         setup.stages().define(IrisStages.Structure.PLACE).softAfter(IrisStages.Objects.PLACE, IrisStages.Floating.OBJECTS)
-                .reach(StructureModule::reach).run(StructureModule::place);
+                .reach(StructurePlacing::reach).run(context -> place(context, log));
         var registry = setup.registry();
-        StructureResources.kinds().forEach(registry::registerResourceKind);
         registry.registerSettings(StructureSettings.class);
         registry.registerSettings(StructurePlacementSettings.class);
+        registry.registerValidator(new StructureValidator());
+        registry.registerService(StructureLocator.class, new StructureLocating());
+        registry.registerService(VanillaStructures.class, new StructureVanillaStructures());
+        setup.tooling().registerCommand(StructureCommands.root());
     }
 
-    private static void place(MantleStageContext context) {
-        context.world().extension(StructureHost.class).orElseThrow().placeChunk(context);
-    }
-
-    private static int reach(PackSettings settings) {
-        return settings.extension(StructureHost.class).orElseThrow().reach();
+    private static void place(MantleStageContext context, ModuleLog log) {
+        context.world().state(StructurePlacing.class, generating -> new StructurePlacing(generating, log)).place(context);
     }
 }

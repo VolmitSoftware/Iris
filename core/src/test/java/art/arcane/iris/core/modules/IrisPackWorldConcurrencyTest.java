@@ -1,6 +1,6 @@
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.structure.StructureHost;
+import art.arcane.iris.builtin.structure.StructureVerifier;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.world.PackWorld;
@@ -32,8 +32,8 @@ public class IrisPackWorldConcurrencyTest {
     }
 
     @Test
-    public void concurrentFirstCallersShareOneStructureHost() throws Exception {
-        assertEveryCallerGetsOneInstance(world -> world.extension(StructureHost.class).orElseThrow());
+    public void concurrentFirstCallersShareOneStructureVerifier() throws Exception {
+        assertEveryCallerGetsOneInstance(world -> world.extension(StructureVerifier.class).orElseThrow());
     }
 
     private static void assertEveryCallerGetsOneInstance(Function<PackWorld, Object> ask) throws Exception {

@@ -47,9 +47,7 @@ import art.arcane.iris.core.runtime.BukkitEnginePlatformHooks;
 import art.arcane.iris.core.runtime.WorldDeletionQueue;
 import art.arcane.iris.core.runtime.WorldRuntimeControlService;
 import art.arcane.iris.core.toolworld.BukkitToolWorldService;
-import art.arcane.iris.core.structure.BukkitJigsawStudioHost;
 import art.arcane.iris.core.structure.BukkitPlatformStructures;
-import art.arcane.iris.core.structure.tooling.JigsawStudioHost;
 import art.arcane.iris.core.tooling.ToolWorldsHost;
 import com.volmit.tooling.PlatformStructures;
 import art.arcane.iris.api.terrain.IrisTerrainService;
@@ -73,8 +71,6 @@ import art.arcane.iris.core.service.IrisEngineSVC;
 import art.arcane.iris.core.service.IrisIntegrationService;
 import art.arcane.iris.core.service.IrisProtocolService;
 import art.arcane.iris.core.service.IrisTerrainSVC;
-import art.arcane.iris.core.modules.IrisModuleHost;
-import art.arcane.iris.core.service.JigsawStudioService;
 import art.arcane.iris.core.service.LogFilterSVC;
 import art.arcane.iris.core.service.MultiverseSVC;
 import art.arcane.iris.core.service.ObjectSVC;
@@ -200,7 +196,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     private volatile IrisPapiListener papiListener;
     private volatile IrisPapiState papiState;
     private KMap<Class<? extends IrisService>, IrisService> services;
-    private volatile JigsawStudioService jigsawStudio;
     // Copy-on-write: mutated on the main thread during enable() and iterated by the JVM
     // shutdown-hook thread during teardown; a plain list would CME and abort the teardown.
     private final List<IrisService> enabledServices = new CopyOnWriteArrayList<>();
@@ -223,11 +218,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     @SuppressWarnings("unchecked")
     public static <T> T service(Class<T> c) {
         return (T) instance.services.get(c);
-    }
-
-    /** The Jigsaw Studio of this plugin instance; there is one, created when the plugin enables. */
-    public static JigsawStudioService jigsawStudio() {
-        return instance.jigsawStudio;
     }
 
     public static void callEvent(Event e) {
@@ -620,7 +610,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         PaperLibBootstrap.install();
         SimdSupport.install();
         services = new KMap<>();
-        jigsawStudio = new JigsawStudioService(IrisModuleHost.hostLog());
         BukkitPlatform.hostHud(new HudActionBar(this), new HudBossBarLane());
         // Explicit, ordered service list: the previous reflective jar scan gave hash-ordered
         // enable/disable and paid a full-jar class sweep at boot. Infrastructure first,
@@ -656,7 +645,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         }
         IrisServices.register(ToolWorldsHost.class, services.get(BukkitToolWorldService.class));
         IrisServices.register(PlatformStructures.class, new BukkitPlatformStructures());
-        IrisServices.register(JigsawStudioHost.class, new BukkitJigsawStudioHost());
         IrisServices.register(BlockEditAccess.class, services.get(EditSVC.class));
         IrisServices.register(PreservationRegistry.class, services.get(PreservationSVC.class));
         compat = IrisCompat.configured(getDataFile("compat.json"));
@@ -952,7 +940,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             if (services != null && servicesDisabled.compareAndSet(false, true)) {
                 // Only services whose onEnable actually completed; disabling a service that
                 // never initialized runs teardown against uninitialized state.
-                quiesceJigsawStudio("Failed to disable Jigsaw Studio.");
                 for (IrisService service : enabledServices) {
                     try {
                         service.onDisable();
@@ -973,21 +960,8 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         }
     }
 
-    private void quiesceJigsawStudio(String failureMessage) {
-        JigsawStudioService studio = jigsawStudio;
-        if (studio == null) {
-            return;
-        }
-        try {
-            studio.quiesceForServerShutdown();
-        } catch (Throwable e) {
-            Iris.reportError(failureMessage, e);
-        }
-    }
-
     private void quiesceRuntimeForServerShutdown(String reason) {
         serverStopTeardownDeferred.set(true);
-        quiesceJigsawStudio("Failed to quiesce Jigsaw Studio before server shutdown.");
         StudioSVC studioService = IrisServices.getOrNull(StudioSVC.class);
         if (studioService != null) {
             studioService.quiesceDownloadsForShutdown();

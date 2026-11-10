@@ -31,11 +31,14 @@ import art.arcane.iris.core.nms.MinecraftVersion;
 import art.arcane.iris.core.project.IrisProject;
 import art.arcane.iris.core.project.IrisCodeWorkspace;
 import art.arcane.iris.core.modules.IrisModuleHost;
-import art.arcane.iris.core.structure.BulkStructureImporter;
+import art.arcane.iris.core.modules.PackServices;
 import art.arcane.iris.core.tooling.IrisToolPack;
 import art.arcane.iris.core.tooling.VolmitToolSender;
+import com.volmit.resource.ResourceId;
+import com.volmit.tooling.DatapackImportReport;
+import com.volmit.tooling.DatapackStructureImport;
 import com.volmit.tooling.PlatformStructures;
-import art.arcane.iris.core.structure.StructureImporter;
+import art.arcane.iris.core.structure.authoring.StructureBundleNames;
 import art.arcane.iris.core.structure.authoring.StructureKey;
 import art.arcane.iris.core.structure.authoring.StructureSource;
 import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
@@ -81,6 +84,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -101,6 +105,7 @@ import java.util.stream.Stream;
 
 public final class DatapackIngestService {
     private static final String USER_AGENT = "VolmitSoftware/Iris (datapack-ingest)";
+    private static final String NO_STRUCTURE_IMPORT_KEY = "datapack-structure-import-missing:";
     private static final String FINDER_METADATA = ".DS_Store";
     private static final String OVERRIDES_STRIPPED_MARKER = ".iris-overrides-stripped";
     private static final String OWNERSHIP_MARKER = ".iris-managed.json";
@@ -3182,20 +3187,30 @@ public final class DatapackIngestService {
             }
             attemptedPacks++;
             try {
-                BulkStructureImporter.Report report = BulkStructureImporter.importManagedDatapackStructures(
+                Optional<DatapackStructureImport> structureImport = PackServices.of(data)
+                        .providers(DatapackStructureImport.class).stream().findFirst();
+                if (structureImport.isEmpty()) {
+                    IrisLogging.warnOnce(NO_STRUCTURE_IMPORT_KEY + data.getDataFolder().getAbsolutePath(),
+                            "Pack '%s' has no module that imports datapack structures; they stay pending until it has one.",
+                            data.getDataFolder().getPath());
+                    failedUrls.addAll(pendingUrls);
+                    reconcileFailedImportInventories(root, manifest, data, targetId, pendingUrls, entriesByUrl);
+                    continue;
+                }
+                DatapackImportReport report = structureImport.get().importAll(
                         new IrisToolPack(data, IrisModuleHost.hostLog()),
                         IrisServices.get(PlatformStructures.class),
-                        StructureImporter.Mode.OVERWRITE,
                         new VolmitToolSender(BukkitPlatform.console()),
-                        structureKeys,
-                        templateKeys
+                        resourceIds(structureKeys),
+                        resourceIds(templateKeys)
                 );
+                Map<String, String> importedBundles = bundleKeys(report);
                 Set<String> successfulPendingUrls = new HashSet<>(pendingUrls);
                 Set<String> incompleteUrls = new HashSet<>();
                 for (String pendingUrl : pendingUrls) {
                     Entry entry = entriesByUrl.get(pendingUrl);
                     Map<String, String> desired = importBundleInventory(entry);
-                    if (!report.successfulBundles().entrySet().containsAll(desired.entrySet())) {
+                    if (!importedBundles.entrySet().containsAll(desired.entrySet())) {
                         successfulPendingUrls.remove(pendingUrl);
                         incompleteUrls.add(pendingUrl);
                         failedUrls.add(pendingUrl);
@@ -3497,13 +3512,23 @@ public final class DatapackIngestService {
         return bundles;
     }
 
+    private static List<ResourceId> resourceIds(Collection<String> keys) {
+        return keys.stream().map(ResourceId::ofPlatformKey).toList();
+    }
+
+    private static Map<String, String> bundleKeys(DatapackImportReport report) {
+        Map<String, String> bundles = new TreeMap<>();
+        report.importedBundles().forEach((bundle, source) -> bundles.put(bundle, source.toString()));
+        return bundles;
+    }
+
     static Map<String, String> importBundleInventory(Entry entry) {
         Map<String, String> bundles = new TreeMap<>();
         for (String structureKey : copyList(entry.structureKeys)) {
-            bundles.put("iris:" + StructureImporter.deriveName(structureKey), structureKey);
+            bundles.put(StructureBundleNames.ofStructure(structureKey), structureKey);
         }
         for (String templateKey : copyList(entry.templateKeys)) {
-            bundles.put("iris:" + BulkStructureImporter.templateNameFor(templateKey), templateKey);
+            bundles.put(StructureBundleNames.ofTemplate(templateKey), templateKey);
         }
         return bundles;
     }

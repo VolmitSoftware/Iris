@@ -23,6 +23,7 @@ import art.arcane.iris.core.ServerConfigurator;
 import art.arcane.iris.core.WorldCreatorCompat;
 import art.arcane.iris.core.lifecycle.LifecycleOperationCoordinator;
 import art.arcane.iris.core.lifecycle.WorldLifecycleService;
+import art.arcane.iris.core.structure.authoring.StructureBundleNames;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.pack.AtomicDirectoryPublisher;
@@ -189,7 +190,7 @@ public final class FeatureImporter {
             if (key.isBlank()) {
                 continue;
             }
-            rows.add(new Row(group, key, BulkStructureImporter.templateNameFor(key)));
+            rows.add(new Row(group, key, StructureBundleNames.templateName(key)));
         }
         rows.sort(Comparator.comparing(r -> r.group() + "/" + r.safeName()));
         return rows;

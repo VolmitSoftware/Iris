@@ -1,6 +1,6 @@
 package art.arcane.iris.core.project;
 
-import art.arcane.iris.core.modules.StructureModelModule;
+import art.arcane.iris.modules.jigsaw.JigsawModule;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.core.loader.IrisData;
@@ -71,7 +71,7 @@ public class IrisImageMapSchemaTest {
         IrisData data = mock(IrisData.class);
         LoadedPack pack = mock(LoadedPack.class);
         PackModuleSet modules = mock(PackModuleSet.class);
-        when(pack.catalog()).thenReturn(ModuleResourceFixture.catalogOf(new StructureModelModule(), new StructureModule()));
+        when(pack.catalog()).thenReturn(ModuleResourceFixture.catalogOf(new JigsawModule(), new StructureModule()));
         when(modules.pack()).thenReturn(pack);
         when(data.getModules()).thenReturn(modules);
         ModuleResourceFixture.serve(data);

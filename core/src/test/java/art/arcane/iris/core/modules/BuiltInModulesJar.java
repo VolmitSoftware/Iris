@@ -45,6 +45,14 @@ public final class BuiltInModulesJar {
         return entryClasses(jar);
     }
 
+    /** {@link #writeInto} unless the pack has the jar already, for a test that writes a pack file by file. */
+    public static void installInto(Path pack) throws IOException {
+        if (Files.exists(pack.resolve("modules").resolve(JAR_NAME))) {
+            return;
+        }
+        writeInto(pack);
+    }
+
     private static List<String> entryClasses(Path jar) throws IOException {
         try (JarFile file = new JarFile(jar.toFile())) {
             String entries = new String(file.getInputStream(file.getJarEntry(SERVICE_ENTRY)).readAllBytes(), StandardCharsets.UTF_8);

@@ -20,7 +20,7 @@ package art.arcane.iris.core.tooling;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.IrisModuleHost;
-import art.arcane.iris.core.structure.StructureIndexService;
+import art.arcane.iris.core.structure.authoring.StructureIndexService;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 import com.volmit.tooling.PlatformStructures;

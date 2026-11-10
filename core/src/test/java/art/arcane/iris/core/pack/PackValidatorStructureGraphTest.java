@@ -569,6 +569,7 @@ public class PackValidatorStructureGraphTest {
     }
 
     private void write(File root, String relative, String content) throws Exception {
+        art.arcane.iris.core.modules.BuiltInModulesJar.installInto(root.toPath());
         Path path = root.toPath().resolve(relative);
         Files.createDirectories(path.getParent());
         Files.writeString(path, content, StandardCharsets.UTF_8);

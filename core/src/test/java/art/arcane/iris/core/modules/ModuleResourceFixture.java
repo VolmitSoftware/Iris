@@ -49,6 +49,7 @@ public final class ModuleResourceFixture {
         IrisPackResources resources = mock(IrisPackResources.class);
         when(data.getPackResources()).thenReturn(resources);
         when(resources.objects()).thenReturn(mock(PackObjects.class));
+        when(resources.services(any())).thenAnswer(invocation -> PackServices.of(data).providers((Class<?>) invocation.getArgument(0)));
         when(resources.idOf(anyString())).thenAnswer(invocation -> idOf(invocation.getArgument(0)));
         when(resources.keyOf(any(ResourceId.class))).thenAnswer(invocation -> keyOf(invocation.getArgument(0)));
         when(resources.keyOf(any(ResourceKind.class), any(ResourceId.class))).thenAnswer(invocation -> keyOf(invocation.getArgument(1)));

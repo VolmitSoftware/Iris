@@ -24,7 +24,7 @@ import com.google.gson.Gson;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
-import art.arcane.iris.core.modules.StructureModelModule;
+import art.arcane.iris.modules.jigsaw.JigsawModule;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.structure.StructureGraphCatalog;
@@ -123,7 +123,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void locatableIndexIncludesAliasesAndSeparatesEditableFromNativePlacements() {
         IrisData data = mock(IrisData.class);
-        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(data, new JigsawModule(), new StructureModule());
         IrisStructure structure = new IrisStructure();
         structure.setVanillaSource("source:city");
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:city_definition", structure);
@@ -153,7 +153,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void nativeStructureReplacementSuppressesOnlyItsRegisteredSource() {
         IrisData data = mock(IrisData.class);
-        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(data, new JigsawModule(), new StructureModule());
         StructurePlacement placement = placement("nativeSuppression", NativeStructureSuppression.REPLACE_SOURCE);
         withAdded(placement, "nativeStructures", nativeSource("minecraft:ancient_city"));
         StructureTestWorld engine = jigsawWorld(data).dimension(placement);
@@ -173,7 +173,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void vanillaSourceRequiresExplicitDimensionSuppression() {
         IrisData data = mock(IrisData.class);
-        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(data, new JigsawModule(), new StructureModule());
         IrisStructure structure = new IrisStructure();
         structure.setVanillaSource("minecraft:ancient_city");
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:city", structure);
@@ -193,7 +193,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void regionReplacementFailsInsteadOfFallingBackToNative() {
         IrisData data = mock(IrisData.class);
-        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(data, new JigsawModule(), new StructureModule());
         IrisStructure structure = new IrisStructure();
         structure.setVanillaSource("minecraft:ancient_city");
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:city", structure);
@@ -212,7 +212,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void geometryFailureFailsInsteadOfFallingBackToNative() {
         IrisData data = mock(IrisData.class);
-        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(data, new JigsawModule(), new StructureModule());
         IrisStructure structure = new IrisStructure()
                 .setStartPool("test:start")
                 .setMaxDepth(1)
@@ -258,7 +258,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void missingVanillaSourceFailsInsteadOfFallingBackToNative() {
         IrisData data = mock(IrisData.class);
-        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(data, new JigsawModule(), new StructureModule());
         IrisStructure structure = new IrisStructure();
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:city", structure);
         registerSinglePieceGraph(data, structure, "test:city");
@@ -274,7 +274,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void missingNonReplacementStructureFailsInsteadOfBeingSkipped() {
         IrisData data = mock(IrisData.class);
-        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(data, new JigsawModule(), new StructureModule());
         ModuleResourceFixture.serve(data);
         StructurePlacement placement = new StructurePlacement();
         withAdded(placement, "structures", "test:missing");
@@ -439,7 +439,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void placementIndexIsKeptPerWorld() {
         IrisData sharedData = mock(IrisData.class);
-        ModuleResourceFixture.serveModules(sharedData, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(sharedData, new JigsawModule(), new StructureModule());
         StructureTestWorld firstWorld = emptyWorld(sharedData);
         StructureTestWorld secondWorld = emptyWorld(sharedData);
         Set<String> firstIndex = IrisStructureLocator.placedKeys(firstWorld);
@@ -717,7 +717,7 @@ public class IrisStructureLocatorContractTest {
     private StructureTestWorld densityWorld(double density, boolean underground, int worldMin, int worldHeight,
                                             int placementMin, int placementMax) {
         IrisData data = mock(IrisData.class);
-        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(data, new JigsawModule(), new StructureModule());
         IrisStructure structure = new IrisStructure();
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:density", structure);
         registerSinglePieceGraph(data, structure, "test:density");

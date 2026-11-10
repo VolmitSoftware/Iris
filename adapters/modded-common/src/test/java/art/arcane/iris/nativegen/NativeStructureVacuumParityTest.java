@@ -1,6 +1,7 @@
 package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.framework.NativeStartMemo;
+import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.framework.nativefit.NativeStructureFitting;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
@@ -55,7 +56,7 @@ public class NativeStructureVacuumParityTest {
         Map<BlockPos, BlockState> blocks = flatTerrain(area);
         Map<BlockPos, BlockState> original = new HashMap<>(blocks);
 
-        NativeStructureFitting.builtInModules().beforePieces(NativeStructureFitBridge.chunk(world(blocks), area,
+        NativeStructureFitting.ofModules(new StructureModule()).beforePieces(NativeStructureFitBridge.chunk(world(blocks), area,
                 List.of(new NativeStructureFitBridge.FitTarget("test:vacuum", start,
                         new NativeStartMemo("{\"terrain\":{\"mode\":\"VACUUM\"}}"))), (x, z) -> SURFACE_Y));
 

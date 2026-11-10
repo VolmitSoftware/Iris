@@ -525,6 +525,23 @@ public class StudioSVC implements IrisService {
             String dimm,
             StudioOpenCoordinator.StudioOpenKind openKind
     ) {
+        PackAdmission admission = admitPack(dimm, openKind);
+        admission.messages().forEach(sender::sendMessage);
+        return admission.failure();
+    }
+
+    /** Why a studio of the pack {@code dimm} may not open, as the lines {@link #reportPackAdmissionFailure} would send; empty when it may. */
+    public static Optional<String> packAdmissionDenial(String dimm, StudioOpenCoordinator.StudioOpenKind openKind) {
+        PackAdmission admission = admitPack(dimm, openKind);
+        return admission.failure() == null ? Optional.empty() : Optional.of(String.join("\n", admission.messages()));
+    }
+
+    /** Whether the pack may open a studio, and the messages that tell its sender so; {@code failure} is null when it may. */
+    private record PackAdmission(BrokenPackException failure, List<String> messages) {
+    }
+
+    private static PackAdmission admitPack(String dimm, StudioOpenCoordinator.StudioOpenKind openKind) {
+        List<String> messages = new ArrayList<>();
         boolean force = openKind == StudioOpenCoordinator.StudioOpenKind.FORCED_STANDARD;
         Optional<String> unforcedStartupDenial = ServerConfigurator.worldCreationDenialReason(false);
         Optional<String> startupDenial = ServerConfigurator.worldCreationDenialReason(force);
@@ -537,20 +554,20 @@ public class StudioSVC implements IrisService {
                 packName, startupDenial, validation);
         if (failure == null) {
             if (force && unforcedStartupDenial.isPresent()) {
-                sender.sendMessage("Force-opening Studio with the currently loaded registry state. The open may fail; restart remains required.");
+                messages.add("Force-opening Studio with the currently loaded registry state. The open may fail; restart remains required.");
             }
-            return null;
+            return new PackAdmission(null, messages);
         }
         if (startupDenial.isPresent()) {
-            sender.sendMessage(startupDenial.get());
-            return failure;
+            messages.add(startupDenial.get());
+            return new PackAdmission(failure, messages);
         }
-        sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_CANNOT_OPEN_STUDIO_PACK_HAS_BLOCKING_ERRORS, MessageArgument.untrusted("dimm", String.valueOf(dimm))));
+        messages.add(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_CANNOT_OPEN_STUDIO_PACK_HAS_BLOCKING_ERRORS, MessageArgument.untrusted("dimm", String.valueOf(dimm))));
         for (String reason : failure.getReasons()) {
-            sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_MESSAGE, MessageArgument.untrusted("reason", String.valueOf(reason))));
+            messages.add(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_MESSAGE, MessageArgument.untrusted("reason", String.valueOf(reason))));
         }
-        sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_FIX_PACK_RUN_IRIS_PACK_VALIDATE_REVALIDATE, MessageArgument.untrusted("dimm", String.valueOf(packName))));
-        return failure;
+        messages.add(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_FIX_PACK_RUN_IRIS_PACK_VALIDATE_REVALIDATE, MessageArgument.untrusted("dimm", String.valueOf(packName))));
+        return new PackAdmission(failure, messages);
     }
 
     static void retainPackRestartRequirement(PackDownloader.PackInstallResult result) {

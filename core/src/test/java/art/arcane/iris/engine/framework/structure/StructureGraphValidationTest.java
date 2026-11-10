@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.framework.structure;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.ClasspathPack;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -62,7 +63,7 @@ public class StructureGraphValidationTest {
         write(pack, "structures/castle.json", "{\"startPool\":\"castle/start\"}");
         write(pack, "jigsaw-pools/castle/start.json",
                 "{\"pieces\":[{\"piece\":\"castle/start\",\"weight\":0}]}");
-        IrisData data = IrisData.openValidation(pack.toFile());
+        IrisData data = ClasspathPack.open(pack.toFile(), temporaryFolder);
         try {
             assertThrows(IllegalStateException.class, () -> data.getPackResources().find(
                     StructureResources.POOLS, data.getPackResources().idOf("castle/start")));
@@ -333,8 +334,8 @@ public class StructureGraphValidationTest {
                         && message.contains("seed 0")));
     }
 
-    private static StructureGraphValidation.Validation validate(Path pack, Set<String> activeStructureKeys) {
-        IrisData data = IrisData.openValidation(pack.toFile());
+    private StructureGraphValidation.Validation validate(Path pack, Set<String> activeStructureKeys) throws Exception {
+        IrisData data = ClasspathPack.open(pack.toFile(), temporaryFolder);
         try {
             return StructureGraphValidation.validate(data.getPackResources(), pack.toFile(), activeStructureKeys);
         } finally {

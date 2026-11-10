@@ -49,7 +49,6 @@ public class StudioSVCJigsawProtectionTest {
     public void clearLifecycle() {
         jigsawService.registry().finishOpen(OWNER);
         jigsawService.registry().deactivate("overworld");
-        jigsawService.quiesceForServerShutdown();
     }
 
     @Test

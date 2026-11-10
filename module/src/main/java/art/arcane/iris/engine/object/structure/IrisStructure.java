@@ -21,6 +21,7 @@ package art.arcane.iris.engine.object.structure;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.blocks.ObjectReplace;
+import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawCompatibility;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawMode;
@@ -94,6 +95,7 @@ public class IrisStructure {
     @Desc("Find-and-replace block edits applied to every piece of this structure, using the exact same syntax as an object's 'edit'. For example, replace stone bricks with obsidian.")
     private List<ObjectReplace> edit = new KList<>();
 
+    @ResourceRef(LootTable.class)
     @Desc("Loot tables applied to containers placed by this structure's pieces.")
     private List<String> loot = new KList<>();
 

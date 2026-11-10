@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.structure.StructureHost;
+import art.arcane.iris.builtin.structure.StructureVerifier;
 import art.arcane.iris.builtin.structure.StructureSeeds;
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.ModuleLog;
@@ -36,7 +36,7 @@ import java.util.function.Function;
  * One Iris world as modules see it: an engine runtime generating with one snapshot of its pack's resources, and the
  * state modules keep for it. {@link ModuleWorlds} makes one when the runtime is built and a new one whenever the
  * pack's resources reload under it. Iris's built-in modules reach what they need of Iris through its
- * {@linkplain #extension extensions}: the structure host.
+ * {@linkplain #extension extensions}: the engine and the structure verifier.
  */
 public final class IrisPackWorld implements PackWorld {
     private final Engine engine;
@@ -45,7 +45,7 @@ public final class IrisPackWorld implements PackWorld {
     private final ModuleLog log;
     private final IrisRunningWorld running;
     private final Placements placements;
-    private final IrisStructureHost structureHost;
+    private final StructureVerifier structureVerifier;
 
     IrisPackWorld(Engine engine) {
         this.engine = engine;
@@ -54,7 +54,7 @@ public final class IrisPackWorld implements PackWorld {
         this.log = IrisApiLogger.hostLog();
         this.placements = new IrisPlacements(engine.getData(), engine, () -> this);
         this.running = new IrisRunningWorld(engine, log);
-        this.structureHost = new IrisStructureHost(engine, log);
+        this.structureVerifier = (context, radiusChunks) -> StructureVerification.run(engine, context, radiusChunks);
     }
 
     @Override
@@ -131,8 +131,8 @@ public final class IrisPackWorld implements PackWorld {
         if (type == Engine.class) {
             return engine;
         }
-        if (type == StructureHost.class) {
-            return structureHost;
+        if (type == StructureVerifier.class) {
+            return structureVerifier;
         }
         return null;
     }

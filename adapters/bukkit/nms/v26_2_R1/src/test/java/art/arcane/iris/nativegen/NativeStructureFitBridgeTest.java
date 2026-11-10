@@ -1,6 +1,7 @@
 package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.framework.NativeStartMemo;
+import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.framework.NativeStructureReach;
 import art.arcane.iris.engine.framework.nativefit.NativeFitPiece;
 import art.arcane.iris.engine.framework.nativefit.NativeStructureFitting;
@@ -1032,7 +1033,7 @@ public class NativeStructureFitBridgeTest {
     }
 
     private static final class BuiltInFitting {
-        private static final NativeStructureFitting FITTING = NativeStructureFitting.builtInModules();
+        private static final NativeStructureFitting FITTING = NativeStructureFitting.ofModules(new StructureModule());
     }
 
     private static PoolElementStructurePiece rigidTemplatePiece(

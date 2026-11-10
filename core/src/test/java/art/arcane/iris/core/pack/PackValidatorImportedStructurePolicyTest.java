@@ -84,6 +84,7 @@ public class PackValidatorImportedStructurePolicyTest {
     }
 
     private void write(File root, String relative, String content) throws Exception {
+        art.arcane.iris.core.modules.BuiltInModulesJar.installInto(root.toPath());
         Path target = new File(root, relative).toPath();
         Files.createDirectories(target.getParent());
         Files.writeString(target, content, StandardCharsets.UTF_8);

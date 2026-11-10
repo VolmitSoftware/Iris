@@ -2,7 +2,7 @@ package art.arcane.iris.core.tooling;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
-import art.arcane.iris.core.modules.StructureModelModule;
+import art.arcane.iris.engine.mantle.components.StructureModule;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
@@ -37,21 +37,21 @@ public class CommandRootCollisionTest {
     @Test
     public void aModuleCannotTakeTheRootNameOfTheStructureModule() {
         var collision = assertThrows(IllegalArgumentException.class, () -> ModuleResourceFixture.catalogOf(
-                new StructureModelModule(), registering("test:rival", Command.named("structure"))));
+                new StructureModule(), registering("test:rival", Command.named("structure"))));
 
         assertTrue(collision.getMessage(), collision.getMessage().contains("Command root structure is registered by module"));
-        assertTrue(collision.getMessage(), collision.getMessage().contains("iris:structure-model"));
+        assertTrue(collision.getMessage(), collision.getMessage().contains("iris:structure"));
         assertTrue(collision.getMessage(), collision.getMessage().contains("test:rival"));
     }
 
     @Test
     public void aModuleCannotTakeAnAliasOfTheStructureModule() {
         var collision = assertThrows(IllegalArgumentException.class, () -> ModuleResourceFixture.catalogOf(
-                registering("test:rival", Command.named("shapes").alias("str")), new StructureModelModule()));
+                registering("test:rival", Command.named("shapes").alias("str")), new StructureModule()));
 
         assertTrue(collision.getMessage(), collision.getMessage().contains("Command root str is registered by module"));
         assertTrue(collision.getMessage(), collision.getMessage().contains("test:rival"));
-        assertTrue(collision.getMessage(), collision.getMessage().contains("iris:structure-model"));
+        assertTrue(collision.getMessage(), collision.getMessage().contains("iris:structure"));
     }
 
     @Test

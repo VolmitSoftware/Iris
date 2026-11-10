@@ -18,17 +18,22 @@
 
 package art.arcane.iris.builtin.structure;
 
+import com.volmit.resource.ResourceId;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Iris extension: says that a text option names structures of Iris's structure model by key, which Iris completes in
- * studio and carries along when it exports the pack. The structure model is Iris's own resource kind, whose class a
- * module cannot see, so {@code @ResourceRef} cannot name it; to another host the option is plain text.
+ * Iris extension: says that a text option names structures of the pack's jigsaw module by key, which Iris completes in
+ * studio and carries along when it exports the pack. It stands for {@code @ResourceRef} of the structure kind, whose class
+ * lives in the module jar and so cannot be named from this exposed package; Iris resolves it by the kind's id, {@link #KIND}.
+ * To another host the option is plain text.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface IrisStructureRef {
+    /** The id of the resource kind of the structures, which {@code iris:jigsaw} registers. */
+    ResourceId KIND = ResourceId.parse("iris:jigsaw/structure");
 }

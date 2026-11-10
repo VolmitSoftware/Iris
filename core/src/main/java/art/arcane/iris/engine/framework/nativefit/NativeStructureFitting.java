@@ -2,6 +2,7 @@ package art.arcane.iris.engine.framework.nativefit;
 
 import art.arcane.iris.core.modules.ModuleStructureFitting;
 import art.arcane.iris.engine.framework.Engine;
+import com.volmit.IrisModule;
 
 /**
  * The pack's modules fitting a chunk's structure starts into the terrain, around the platform placing their pieces:
@@ -17,11 +18,11 @@ public interface NativeStructureFitting {
     }
 
     /**
-     * Iris's built-in modules outside any world, for starts whose fit their memo records and whose fit uses no palette;
+     * Iris's own modules and {@code modules} outside any world, for starts whose fit their memo records and whose fit uses no palette;
      * a fit that needs the world or the pack's resources fails. For tools and tests that drive the platform side alone.
      */
-    static NativeStructureFitting builtInModules() {
-        return ModuleStructureFitting.builtInModules();
+    static NativeStructureFitting ofModules(IrisModule... modules) {
+        return ModuleStructureFitting.ofModules(modules);
     }
 
     /** One chunk's fit, between its starts' placements. */

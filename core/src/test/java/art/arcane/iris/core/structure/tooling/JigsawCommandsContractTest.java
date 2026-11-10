@@ -55,7 +55,7 @@ public class JigsawCommandsContractTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private final Command root = JigsawCommands.root(Optional::empty);
+    private final Command root = JigsawCommands.root(new JigsawStudios());
 
     @Test
     public void theJigsawRootAnswersToItsShortNamesAndHoldsTheWholeTree() {
@@ -456,7 +456,7 @@ public class JigsawCommandsContractTest {
     }
 
     private static String source(String fileName) throws Exception {
-        return Files.readString(Path.of("src/main/java/art/arcane/iris/core/structure/tooling", fileName))
+        return Files.readString(Path.of("../module/src/main/java/art/arcane/iris/core/structure/tooling", fileName))
                 .replace("\r\n", "\n");
     }
 

@@ -333,7 +333,7 @@ public class CommandFind implements DirectorExecutor {
         }
 
         Set<String> configuredImportUrls = normalizedImportUrls(
-                engine.getDimension().getDatapackImports());
+                DatapackIngestService.configuredImports(engine.getDimension()));
         return new StructureExclusionReport(
                 List.copyOf(exclusions), Set.copyOf(registeredKeys.keySet()),
                 configuredImportUrls, registeredExcluded, configuredUnregistered,

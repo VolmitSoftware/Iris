@@ -30,7 +30,9 @@ import art.arcane.iris.util.project.interpolation.Interpolation3D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Geometric transforms for {@link IrisObject}: rotation, scaling and the interpolated upscalers.
@@ -50,14 +52,23 @@ final class IrisObjectTransforms {
         try {
             VectorMap<PlatformBlockState> d = new VectorMap<>();
 
+            Set<IrisBlockVector> omitted = new HashSet<>();
+
             for (var entry : self.blocks) {
-                d.put(turn.rotate(entry.getKey()), BlockStateRotation.rotate(turn, entry.getValue()));
+                PlatformBlockState rotated = BlockStateRotation.rotate(turn, entry.getValue());
+                if (rotated == null) {
+                    omitted.add(entry.getKey());
+                    continue;
+                }
+                d.put(turn.rotate(entry.getKey()), rotated);
             }
 
             VectorMap<TileData> dx = new VectorMap<>();
 
             for (var entry : self.states) {
-                dx.put(turn.rotate(entry.getKey()), entry.getValue());
+                if (!omitted.contains(entry.getKey())) {
+                    dx.put(turn.rotate(entry.getKey()), entry.getValue());
+                }
             }
 
             self.blocks = d;
@@ -79,28 +90,27 @@ final class IrisObjectTransforms {
             scale = scale - 0.0001;
         }
 
-        IrisPosition l1 = self.getAABB().max();
-        IrisPosition l2 = self.getAABB().min();
         VectorMap<PlatformBlockState> placeBlock = new VectorMap<>();
-
-        IrisVector center = new IrisVector(self.getCenter().getX(), self.getCenter().getY(), self.getCenter().getZ());
-        if (self.getH() == 2) {
-            center = center.setY(center.getBlockY() + 0.5);
-        }
-        if (self.getW() == 2) {
-            center = center.setX(center.getBlockX() + 0.5);
-        }
-        if (self.getD() == 2) {
-            center = center.setZ(center.getBlockZ() + 0.5);
-        }
-
-        IrisObject oo = new IrisObject((int) Math.ceil((self.w * scale) + (scale * 2)), (int) Math.ceil((self.h * scale) + (scale * 2)), (int) Math.ceil((self.d * scale) + (scale * 2)));
-        oo.setLoadKey(self.getLoadKey());
-        oo.setLoader(self.getLoader());
-        oo.setLoadFile(self.getLoadFile());
+        IrisVector center;
+        IrisObject oo;
 
         self.readLock.lock();
         try {
+            center = new IrisVector(self.getCenter().getX(), self.getCenter().getY(), self.getCenter().getZ());
+            if (self.getH() == 2) {
+                center = center.setY(center.getBlockY() + 0.5);
+            }
+            if (self.getW() == 2) {
+                center = center.setX(center.getBlockX() + 0.5);
+            }
+            if (self.getD() == 2) {
+                center = center.setZ(center.getBlockZ() + 0.5);
+            }
+
+            oo = new IrisObject((int) Math.ceil((self.w * scale) + (scale * 2)), (int) Math.ceil((self.h * scale) + (scale * 2)), (int) Math.ceil((self.d * scale) + (scale * 2)));
+            oo.setLoadKey(self.getLoadKey());
+            oo.setLoader(self.getLoader());
+            oo.setLoadFile(self.getLoadFile());
             for (var entry : self.blocks) {
                 PlatformBlockState bd = entry.getValue();
                 placeBlock.put(entry.getKey().clone().add(IrisObject.HALF).subtract(center)

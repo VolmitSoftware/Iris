@@ -135,17 +135,22 @@ public class IrisObject extends IrisRegistrant implements PlaceableObject {
         return aabb.aquire(() -> getAABBFor(new IrisBlockVector(w, h, d)));
     }
 
-    public synchronized IrisObject copy() {
-        IrisObject o = new IrisObject(w, h, d);
-        o.setLoadKey(getLoadKey());
-        o.setLoader(getLoader());
-        o.setLoadFile(getLoadFile());
-        o.setCenter(getCenter().clone());
+    public IrisObject copy() {
+        readLock.lock();
+        try {
+            IrisObject o = new IrisObject(w, h, d);
+            o.setLoadKey(getLoadKey());
+            o.setLoader(getLoader());
+            o.setLoadFile(getLoadFile());
+            o.setCenter(getCenter().clone());
 
-        blocks.forEach((i, v) -> o.blocks.put(i.clone(), v));
-        states.forEach((i, v) -> o.states.put(i.clone(), v.clone()));
+            blocks.forEach((i, v) -> o.blocks.put(i.clone(), v));
+            states.forEach((i, v) -> o.states.put(i.clone(), v.clone()));
 
-        return o;
+            return o;
+        } finally {
+            readLock.unlock();
+        }
     }
 
     public void readLegacy(InputStream in) throws IOException {

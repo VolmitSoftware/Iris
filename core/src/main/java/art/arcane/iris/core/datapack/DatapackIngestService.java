@@ -103,6 +103,7 @@ public final class DatapackIngestService {
     private static final String TRANSACTION_JOURNAL = "journal.json";
     private static final String TRANSACTION_JOURNAL_NEXT = "journal.next.json";
     private static final String STARTUP_VALIDATION_CACHE = "startup-validation.json";
+    private static final String LOCAL_IMPORT_DIRECTORY = "imports";
     private static final int OWNERSHIP_SCHEMA = 1;
     private static final int TRANSACTION_SCHEMA = 2;
     private static final int STARTUP_VALIDATION_SCHEMA = 1;
@@ -159,7 +160,7 @@ public final class DatapackIngestService {
             StartupValidationCache cached = readStartupValidationCache(cacheFile);
             if (startupValidationContextMatches(
                     cached, mcVersion, irisVersion, autoIngest, stripOverrides, urls)) {
-                String localFingerprint = startupValidationFingerprint(root, worldFolders);
+                String localFingerprint = startupValidationFingerprint(root, worldFolders, urls);
                 if (startupValidationCacheMatches(
                         cached,
                         mcVersion,
@@ -244,7 +245,7 @@ public final class DatapackIngestService {
                     autoIngest,
                     stripOverrides,
                     urls,
-                    startupValidationFingerprint(root, worldFolders));
+                    startupValidationFingerprint(root, worldFolders, urls));
             writeStartupValidationCache(cacheFile, cache);
             return cache;
         } catch (IOException | RuntimeException exception) {
@@ -302,7 +303,7 @@ public final class DatapackIngestService {
                 validated.autoIngest,
                 validated.stripOverrides,
                 validated.urls,
-                startupValidationFingerprint(root, worldFolders));
+                startupValidationFingerprint(root, worldFolders, validated.urls));
     }
 
     private static StartupValidationCache createStartupValidationCache(
@@ -412,6 +413,14 @@ public final class DatapackIngestService {
     }
 
     static String startupValidationFingerprint(File root, KList<File> worldFolders) throws IOException {
+        return startupValidationFingerprint(root, worldFolders, List.of());
+    }
+
+    static String startupValidationFingerprint(
+            File root,
+            KList<File> worldFolders,
+            Iterable<String> sources
+    ) throws IOException {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             Path manifestPath = new File(root, "manifest.json").toPath();
@@ -457,9 +466,58 @@ public final class DatapackIngestService {
                             new File(worldFolder, entry.id));
                 }
             }
+            updateLocalSourceFingerprint(digest, sources);
             return hex(digest.digest());
         } catch (NoSuchAlgorithmException exception) {
             throw new IOException("SHA-256 algorithm unavailable", exception);
+        }
+    }
+
+    private static void updateLocalSourceFingerprint(
+            MessageDigest digest,
+            Iterable<String> sources
+    ) throws IOException {
+        if (sources == null) {
+            return;
+        }
+        List<String> localSources = new ArrayList<>();
+        for (String source : sources) {
+            URI uri = parseSourceUri(source);
+            if (uri != null && "file".equalsIgnoreCase(uri.getScheme())) {
+                localSources.add(uri.normalize().toASCIIString());
+            }
+        }
+        localSources.sort(String::compareTo);
+        byte[] buffer = new byte[HASH_BUFFER_BYTES];
+        for (String source : localSources) {
+            Path path = requireLocalDatapackPath(parseSourceUri(source));
+            updateFingerprintValue(digest, "local-source:" + source);
+            try (InputStream input = Files.newInputStream(
+                    path,
+                    StandardOpenOption.READ,
+                    LinkOption.NOFOLLOW_LINKS)) {
+                long bytes = 0;
+                int length;
+                while ((length = input.read(buffer)) > 0) {
+                    bytes += length;
+                    if (bytes > MAX_DOWNLOAD_BYTES) {
+                        throw new IOException("Local datapack exceeds " + MAX_DOWNLOAD_BYTES + " bytes: " + path);
+                    }
+                    digest.update(buffer, 0, length);
+                }
+                updateDigestLong(digest, bytes);
+            }
+        }
+    }
+
+    private static URI parseSourceUri(String source) throws IOException {
+        if (source == null || source.isBlank()) {
+            return null;
+        }
+        try {
+            return new URI(source.trim());
+        } catch (URISyntaxException exception) {
+            throw new IOException("Invalid datapack URL " + source, exception);
         }
     }
 
@@ -575,7 +633,7 @@ public final class DatapackIngestService {
     private static Report ingestLocked(VolmitSender sender, KList<String> urls, boolean restart) {
         Report report = new Report();
         if (urls == null || urls.isEmpty()) {
-            message(sender, C.YELLOW + "No datapackImports configured in any loaded pack. Add Modrinth URLs to a dimension's 'datapackImports' list, then run /iris datapack ingest.");
+            message(sender, C.YELLOW + "No external datapacks found. Add a Modrinth, HTTP(S) or file URL to a dimension's 'datapackImports', or place a ZIP in Iris/datapacks/imports, then run /iris datapack ingest.");
             return report;
         }
 
@@ -677,7 +735,7 @@ public final class DatapackIngestService {
 
         if (report.changed()) {
             message(sender, C.YELLOW + "New datapack structures were installed. A server restart is required for them to register and generate.");
-            message(sender, C.GRAY + "After the restart they generate natively only in Iris dimensions that declare their source URL - no import needed. To get editable Iris copies (jigsaw pools, pieces & objects written into the pack) run /iris structure import <dimension>, or set general.autoImportDatapackStructures=true to do it on every ingest. Place any registered key directly with a 'structures' placement using nativeStructures.");
+            message(sender, C.GRAY + "After the restart they generate natively in Iris dimensions that declare their source URL; ZIPs from Iris/datapacks/imports are enabled for every Iris dimension. To get editable Iris copies (jigsaw pools, pieces & objects written into the pack) run /iris structure import <dimension>, or set general.autoImportDatapackStructures=true to do it on every ingest. Place any registered key directly with a 'structures' placement using nativeStructures.");
             message(sender, C.GRAY + "Datapacks replace matching vanilla structure keys by default. Set 'importedStructures.datapackOverrides' to false to keep minecraft-namespaced structure definitions untouched; deny non-minecraft datapack and mod structure families with importedStructures.disabled or complete keys with importedStructures.disabledExact.");
             if (!restart) {
                 message(sender, C.GRAY + "Run with restart=true to restart now, or restart manually. After restart, run /iris module structure list to see the new keys.");
@@ -1435,13 +1493,72 @@ public final class DatapackIngestService {
     }
 
     public static KList<String> collectConfiguredImports() {
-        LinkedHashSet<String> urls = new LinkedHashSet<>();
+        LinkedHashSet<String> sources = new LinkedHashSet<>();
         try (Stream<IrisData> stream = ServerConfigurator.allPacks()) {
-            stream.forEach(data -> collectImports(data, urls));
+            stream.forEach(data -> collectImports(data, sources));
         }
+        sources.addAll(localDatapackImports());
         KList<String> result = new KList<>();
-        result.addAll(urls);
+        result.addAll(sources);
         return result;
+    }
+
+    public static Set<String> configuredImports(IrisDimension dimension) {
+        Iterable<String> explicit = dimension == null ? List.of() : dimension.getDatapackImports();
+        return mergeConfiguredImports(explicit, localDatapackImports());
+    }
+
+    static Set<String> mergeConfiguredImports(
+            Iterable<String> explicit,
+            Iterable<String> discovered
+    ) {
+        LinkedHashSet<String> sources = new LinkedHashSet<>();
+        if (explicit != null) {
+            addImports(explicit, sources);
+        }
+        if (discovered != null) {
+            addImports(discovered, sources);
+        }
+        return sources.isEmpty() ? Set.of() : Set.copyOf(sources);
+    }
+
+    static List<String> discoverLocalDatapackImports(File directory) throws IOException {
+        Path root = directory.toPath().toAbsolutePath().normalize();
+        if (Files.notExists(root, LinkOption.NOFOLLOW_LINKS)) {
+            Files.createDirectories(root);
+        }
+        if (Files.isSymbolicLink(root)
+                || !Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IOException("Local datapack import path is not a safe directory: " + root);
+        }
+        try (Stream<Path> stream = Files.list(root)) {
+            return stream
+                    .filter(path -> !Files.isSymbolicLink(path))
+                    .filter(path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
+                    .filter(DatapackIngestService::isLocalDatapackArchive)
+                    .sorted(Comparator.comparing(
+                                    (Path path) -> path.getFileName().toString(),
+                                    String.CASE_INSENSITIVE_ORDER)
+                            .thenComparing((Path path) -> path.getFileName().toString()))
+                    .map(path -> path.toAbsolutePath().normalize().toUri().toASCIIString())
+                    .toList();
+        }
+    }
+
+    private static boolean isLocalDatapackArchive(Path path) {
+        String name = path.getFileName().toString();
+        return !name.startsWith(".") && name.toLowerCase(Locale.ROOT).endsWith(".zip");
+    }
+
+    private static List<String> localDatapackImports() {
+        File directory = IrisPlatforms.get().dataFolder("datapacks", LOCAL_IMPORT_DIRECTORY);
+        try {
+            return discoverLocalDatapackImports(directory);
+        } catch (IOException exception) {
+            IrisLogging.reportError("Could not discover local datapack imports under "
+                    + directory.getPath() + ".", exception);
+            return List.of();
+        }
     }
 
     public static List<Entry> installed() {
@@ -1884,34 +2001,39 @@ public final class DatapackIngestService {
             if (imports == null) {
                 continue;
             }
-            for (String url : imports) {
-                if (url != null && !url.isBlank()) {
-                    urls.add(url.trim());
-                }
+            addImports(imports, urls);
+        }
+    }
+
+    private static void addImports(Iterable<String> imports, LinkedHashSet<String> sources) {
+        for (String source : imports) {
+            if (source != null && !source.isBlank()) {
+                sources.add(normalizeConfiguredSource(source));
             }
         }
+    }
+
+    static String normalizeConfiguredSource(String source) {
+        String normalized = source.trim();
+        try {
+            URI uri = new URI(normalized);
+            if ("file".equalsIgnoreCase(uri.getScheme())) {
+                return Path.of(uri).toAbsolutePath().normalize().toUri().toASCIIString();
+            }
+        } catch (IllegalArgumentException | URISyntaxException ignored) {
+        }
+        return normalized;
     }
 
     private static Set<String> configuredImports(IrisData data) {
         LinkedHashSet<String> urls = new LinkedHashSet<>();
         collectImports(data, urls);
+        urls.addAll(localDatapackImports());
         return urls;
     }
 
     private static boolean hasImports(IrisData data) {
-        if (data.getDimensionLoader() == null) {
-            return false;
-        }
-        for (IrisDimension dimension : data.getDimensionLoader().loadAll(data.getDimensionLoader().getPossibleKeys())) {
-            if (dimension == null) {
-                continue;
-            }
-            KList<String> imports = dimension.getDatapackImports();
-            if (imports != null && !imports.isEmpty()) {
-                return true;
-            }
-        }
-        return false;
+        return !configuredImports(data).isEmpty();
     }
 
     static InstallResult install(File stagedDir, KList<File> worldFolders, Entry entry, boolean stripOverrides) throws IOException {
@@ -3542,11 +3664,12 @@ public final class DatapackIngestService {
     }
 
     static DownloadResult download(String url, File dest, String etag, String lastModified) throws IOException {
-        URI current;
-        try {
-            current = new URI(url);
-        } catch (URISyntaxException e) {
-            throw new IOException("Invalid datapack URL " + url, e);
+        URI current = parseSourceUri(url);
+        if (current == null) {
+            throw new IOException("Empty datapack URL");
+        }
+        if ("file".equalsIgnoreCase(current.getScheme())) {
+            return copyLocalDatapack(current, dest);
         }
         for (int attempt = 0; attempt < MAX_REDIRECTS; attempt++) {
             if (!"http".equalsIgnoreCase(current.getScheme()) && !"https".equalsIgnoreCase(current.getScheme())) {
@@ -3622,6 +3745,84 @@ public final class DatapackIngestService {
             }
         }
         throw new IOException("Too many redirects downloading " + url);
+    }
+
+    private static DownloadResult copyLocalDatapack(URI source, File destination) throws IOException {
+        Path sourcePath = requireLocalDatapackPath(source);
+        Path destinationPath = destination.toPath().toAbsolutePath().normalize();
+        if (Files.exists(destinationPath, LinkOption.NOFOLLOW_LINKS)
+                && Files.isSameFile(sourcePath, destinationPath)) {
+            throw new IOException("Local datapack source and cache destination are the same file: " + sourcePath);
+        }
+        Path parent = destinationPath.getParent();
+        if (parent == null) {
+            throw new IOException("Local datapack cache destination has no parent: " + destinationPath);
+        }
+        ensureScratchDirectory(parent.toFile(), "datapack download cache");
+        BasicFileAttributes before = Files.readAttributes(
+                sourcePath,
+                BasicFileAttributes.class,
+                LinkOption.NOFOLLOW_LINKS);
+        Path temporary = Files.createTempFile(parent, destination.getName() + "-", ".part");
+        try {
+            long copied = 0;
+            try (InputStream input = Files.newInputStream(
+                    sourcePath,
+                    StandardOpenOption.READ,
+                    LinkOption.NOFOLLOW_LINKS);
+                 OutputStream output = Files.newOutputStream(temporary)) {
+                byte[] buffer = new byte[HASH_BUFFER_BYTES];
+                int length;
+                while ((length = input.read(buffer)) > 0) {
+                    copied += length;
+                    if (copied > MAX_DOWNLOAD_BYTES) {
+                        throw new IOException("Local datapack exceeds " + MAX_DOWNLOAD_BYTES + " bytes: " + sourcePath);
+                    }
+                    output.write(buffer, 0, length);
+                }
+            }
+            BasicFileAttributes after = Files.readAttributes(
+                    sourcePath,
+                    BasicFileAttributes.class,
+                    LinkOption.NOFOLLOW_LINKS);
+            if (!after.isRegularFile()
+                    || before.size() != after.size()
+                    || !before.lastModifiedTime().equals(after.lastModifiedTime())
+                    || !Objects.equals(before.fileKey(), after.fileKey())
+                    || copied != after.size()) {
+                throw new IOException("Local datapack changed while Iris was copying it: " + sourcePath);
+            }
+            move(temporary, destinationPath);
+            return new DownloadResult(false, null, null);
+        } finally {
+            Files.deleteIfExists(temporary);
+        }
+    }
+
+    private static Path requireLocalDatapackPath(URI source) throws IOException {
+        if (source == null
+                || !"file".equalsIgnoreCase(source.getScheme())
+                || source.isOpaque()
+                || source.getRawAuthority() != null
+                || source.getRawQuery() != null
+                || source.getRawFragment() != null) {
+            throw new IOException("Datapack file URL must be an absolute local file URI without authority, query, or fragment: " + source);
+        }
+        Path path;
+        try {
+            path = Path.of(source).toAbsolutePath().normalize();
+        } catch (IllegalArgumentException exception) {
+            throw new IOException("Invalid local datapack file URL: " + source, exception);
+        }
+        if (Files.isSymbolicLink(path)
+                || !Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IOException("Local datapack is not a regular non-symbolic-link file: " + path);
+        }
+        long size = Files.size(path);
+        if (size > MAX_DOWNLOAD_BYTES) {
+            throw new IOException("Local datapack exceeds " + MAX_DOWNLOAD_BYTES + " bytes: " + path);
+        }
+        return path;
     }
 
     private static String headerOrFallback(HttpURLConnection connection, String name, String fallback) {

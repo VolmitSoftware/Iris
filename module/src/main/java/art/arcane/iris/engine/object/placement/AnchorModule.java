@@ -66,7 +66,7 @@ public final class AnchorModule implements IrisModule {
         PreparedPlacement prepared = context.output(PlacementStages.Prepare.TRANSFORMS);
         PlacementSettings settings = prepared.settings();
         boolean structurePiece = prepared.mode().has(PlaceTrait.RAW_STAMP);
-        if (!settings.fromBottom() && placement.requestedY() < 0) {
+        if (!settings.fromBottom() && placement.automaticHeight()) {
             return new AnchorHeight(sampled(context, placement, prepared));
         }
         ObjectShape object = placement.object();
@@ -75,7 +75,7 @@ public final class AnchorModule implements IrisModule {
             context.reject(CARVING_ANCHOR);
             return null;
         }
-        if (placement.requestedY() < 0 || !settings.bottom() || structurePiece) {
+        if (placement.automaticHeight() || !settings.bottom() || structurePiece) {
             return new AnchorHeight(y);
         }
         y += Math.floorDiv(object.height(), 2);

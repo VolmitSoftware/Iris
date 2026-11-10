@@ -526,8 +526,17 @@ final class TreeFellingRunner {
     private boolean isRunControlActive(FellingRun run, Player player) {
         return player.isOnline()
                 && player.getGameMode() == GameMode.SURVIVAL
-                && player.isSneaking()
+                && (!requiresSneaking(run) || player.isSneaking())
                 && player.getWorld().equals(run.candidate.world());
+    }
+
+    private boolean requiresSneaking(FellingRun run) {
+        try {
+            return run.runHooks.requiresSneaking();
+        } catch (RuntimeException error) {
+            IrisLogging.reportError("An Iris tree-feller integration sneak requirement check failed.", error);
+            return true;
+        }
     }
 
     private boolean reserveLogCost(FellingRun run) {
@@ -611,11 +620,22 @@ final class TreeFellingRunner {
     }
 
     void finishRuns(UUID playerId) {
+        finishRuns(playerId, false);
+    }
+
+    void finishSneakRuns(UUID playerId) {
+        finishRuns(playerId, true);
+    }
+
+    private void finishRuns(UUID playerId, boolean onlySneakRuns) {
         Set<FellingRun> runs = service.activeRuns.get(playerId);
         if (runs == null) {
             return;
         }
         for (FellingRun run : List.copyOf(runs)) {
+            if (onlySneakRuns && !requiresSneaking(run)) {
+                continue;
+            }
             if (run.abortReason == null) {
                 run.abortReason = "halted";
             }

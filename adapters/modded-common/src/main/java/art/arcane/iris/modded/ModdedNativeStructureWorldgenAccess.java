@@ -1,5 +1,6 @@
 package art.arcane.iris.modded;
 
+import art.arcane.iris.engine.mantle.DeferredPlacementRecords.WrittenBlocks;
 import art.arcane.iris.nativegen.WorldgenTerrainHeightmaps;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -70,6 +71,7 @@ final class ModdedNativeStructureWorldgenAccess implements WorldGenLevel {
     private final LevelTickAccess<Fluid> fluidTicks;
     private final Long2LongOpenHashMap terrainHeights;
     private final Long2ObjectOpenHashMap<ChunkAccess> outsideChunks;
+    private final WrittenBlocks writtenBlocks = new WrittenBlocks();
 
     private ModdedNativeStructureWorldgenAccess(WorldGenLevel delegate, Boundary boundary) {
         this.delegate = Objects.requireNonNull(delegate, "Native structure world access requires a delegate");
@@ -405,17 +407,28 @@ final class ModdedNativeStructureWorldgenAccess implements WorldGenLevel {
 
     @Override
     public boolean setBlock(BlockPos position, BlockState state, int updateFlags, int updateLimit) {
-        return isWritable(position) && delegate.setBlock(position, state, updateFlags, updateLimit);
+        return recordWrite(position, isWritable(position) && delegate.setBlock(position, state, updateFlags, updateLimit));
     }
 
     @Override
     public boolean removeBlock(BlockPos position, boolean move) {
-        return isWritable(position) && delegate.removeBlock(position, move);
+        return recordWrite(position, isWritable(position) && delegate.removeBlock(position, move));
     }
 
     @Override
     public boolean destroyBlock(BlockPos position, boolean drop, Entity source, int updateLimit) {
-        return isWritable(position) && delegate.destroyBlock(position, drop, source, updateLimit);
+        return recordWrite(position, isWritable(position) && delegate.destroyBlock(position, drop, source, updateLimit));
+    }
+
+    WrittenBlocks writtenBlocks() {
+        return writtenBlocks;
+    }
+
+    private boolean recordWrite(BlockPos position, boolean written) {
+        if (written) {
+            writtenBlocks.add(position.getX(), position.getY(), position.getZ());
+        }
+        return written;
     }
 
     @Override

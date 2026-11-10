@@ -22,7 +22,7 @@ import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.objects.ObjectRun;
 import art.arcane.iris.builtin.terrain.BedrockSettings;
-import art.arcane.iris.modules.placement.ObjectShape;
+import art.arcane.iris.builtin.prepare.TransformedBounds;
 import art.arcane.iris.modules.placement.PlacementSettings;
 import art.arcane.iris.modules.placement.PlacementStages;
 import art.arcane.iris.modules.placement.PreparedPlacement;
@@ -84,7 +84,7 @@ public final class ValidateModule implements IrisModule {
             return;
         }
         int y = context.output(PlacementStages.Anchor.HEIGHT).y();
-        boolean sampled = placement.requestedY() < 0;
+        boolean sampled = placement.automaticHeight();
         if (sampled && settings.carvingSupport().supportsSurface() && isOnBedrock(context, prepared, y)) {
             warnImplausibleBedrockPlacement(placement, settings, y, context.log());
             context.reject("bedrock-anchor");
@@ -124,7 +124,7 @@ public final class ValidateModule implements IrisModule {
         int rotated = prepared.rotatedCenterY();
         int translated = prepared.translatedCenterY();
         Optional<ObjectRun.Cave> cave = placement.cave();
-        if (placement.requestedY() < 0 && !prepared.mode().has(PlaceTrait.FREE_HEIGHT) && !settings.underwater()
+        if (placement.automaticHeight() && !prepared.mode().has(PlaceTrait.FREE_HEIGHT) && !settings.underwater()
                 && !settings.onwater() && prepared.terrain().isUnderwater(placement.x(), placement.z())) {
             context.reject("underwater-anchor");
         } else if (cave.isPresent()
@@ -156,15 +156,19 @@ public final class ValidateModule implements IrisModule {
         }
         int x = placement.x();
         int z = placement.z();
-        int margin = nativeStructureMargin(placement.object(), prepared);
-        StructureVolumes volumes = terrain.structureVolumes(x - margin, z - margin, x + margin, z + margin);
+        TransformedBounds bounds = prepared.bounds();
+        int minX = x + bounds.minX();
+        int maxX = x + bounds.maxX();
+        int minZ = z + bounds.minZ();
+        int maxZ = z + bounds.maxZ();
+        StructureVolumes volumes = terrain.structureVolumes(minX, minZ, maxX, maxZ);
         if (volumes.isEmpty()) {
             return false;
         }
         boolean painted = WorldVolume.isPainted(placement, prepared);
-        int envelopeMinY = painted ? Integer.MIN_VALUE : y - margin;
-        int envelopeMaxY = painted ? Integer.MAX_VALUE : y + margin;
-        if (!volumes.intersects(x - margin, envelopeMinY, z - margin, x + margin, envelopeMaxY, z + margin)) {
+        int envelopeMinY = painted ? Integer.MIN_VALUE : y + bounds.minY() - prepared.warpMargin();
+        int envelopeMaxY = painted ? Integer.MAX_VALUE : y + bounds.maxY() + prepared.warpMargin();
+        if (!volumes.intersects(minX, envelopeMinY, minZ, maxX, envelopeMaxY, maxZ)) {
             return false;
         }
         for (ObjectBlock block : context.request().object().blocks()) {
@@ -183,16 +187,6 @@ public final class ValidateModule implements IrisModule {
             }
         }
         return false;
-    }
-
-    /** How far around the anchor any block of the transformed object can reach. */
-    private static int nativeStructureMargin(ObjectShape object, PreparedPlacement prepared) {
-        int margin = (Math.max(object.width(), Math.max(object.height(), object.depth())) / 2) + 1 + prepared.warpMargin();
-        if (prepared.translation() == null) {
-            return margin;
-        }
-        return margin + Math.max(Math.abs(prepared.translation().getBlockX()),
-                Math.max(Math.abs(prepared.translation().getBlockY()), Math.abs(prepared.translation().getBlockZ())));
     }
 
     private static boolean isAir(BlockState state) {

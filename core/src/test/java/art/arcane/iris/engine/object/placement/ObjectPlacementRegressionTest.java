@@ -37,6 +37,7 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.math.Vector3i;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
@@ -203,7 +204,7 @@ public class ObjectPlacementRegressionTest {
         placement.mode(ObjectPlaceMode.MAX_HEIGHT);
         placement.rotation(ObjectRotation.of(0, 45, 0));
 
-        placed(boxObject(5, 1, 3), 0, -1, 0, placer, placement.build(), new RNG(2L), data);
+        placedAutomatic(boxObject(5, 1, 3), 0, 0, placer, placement.build(), new RNG(2L), data);
 
         assertTrue(placer.sampledColumns().contains("-2:-2"));
         assertTrue(placer.sampledColumns().contains("2:2"));
@@ -334,7 +335,7 @@ public class ObjectPlacementRegressionTest {
         RecordingPlacer placer = new RecordingPlacer(null);
         ObjectPlacement.Builder config = placement();
         config.mode(ObjectPlaceMode.ERODE_STILT);
-        assertEquals(ANCHOR_Y, placed(lineObject(1), 0, -1, 0, placer, config.build(), new RNG(2L), data));
+        assertEquals(ANCHOR_Y, placedAutomatic(lineObject(1), 0, 0, placer, config.build(), new RNG(2L), data));
         assertFalse(placer.writes().isEmpty());
     }
 
@@ -528,11 +529,35 @@ public class ObjectPlacementRegressionTest {
     }
 
     @Test
+    public void explicitHeightBelowZeroIsPlacedWhereAsked() {
+        for (int requestedY : new int[]{-1, -3}) {
+            RecordingPlacer placer = new RecordingPlacer(null);
+            ObjectPlacementResult result = ModuleObjectPlacement.place(lineObject(1), 0, requestedY, 0, placer,
+                    placement().build(), new RNG(2L), null, null, data);
+            assertTrue(result.isPlaced());
+            assertEquals(requestedY, result.height());
+            assertFalse(placer.writes().isEmpty());
+            assertTrue(placer.writes().stream().allMatch(write -> write.y() == requestedY));
+            assertTrue(placer.sampledColumns().isEmpty());
+        }
+    }
+
+    @Test
+    public void automaticHeightSamplesTheTerrain() {
+        RecordingPlacer placer = new RecordingPlacer(null);
+        ObjectPlacementResult result = ModuleObjectPlacement.placeAutomatic(lineObject(1), 0, 0, placer,
+                placement().build(), new RNG(2L), null, null, data);
+        assertTrue(result.isPlaced());
+        assertEquals(ANCHOR_Y, result.height());
+        assertFalse(placer.sampledColumns().isEmpty());
+    }
+
+    @Test
     public void fromBottomKeepsItsAnchorWithoutSamplingTerrain() {
         RecordingPlacer placer = new RecordingPlacer(null);
         ObjectPlacement.Builder config = placement();
         config.fromBottom(true);
-        assertEquals(2, placed(lineObject(1), 0, -1, 0, placer, config.build(), new RNG(2L), data));
+        assertEquals(2, placedAutomatic(lineObject(1), 0, 0, placer, config.build(), new RNG(2L), data));
         assertTrue(placer.sampledColumns().isEmpty());
     }
 
@@ -542,7 +567,7 @@ public class ObjectPlacementRegressionTest {
             RecordingPlacer placer = new RecordingPlacer(null);
             ObjectPlacement.Builder config = placement().bore(true).snow(0.1);
             CarveResult cave = null;
-            int anchor = ANCHOR_Y;
+            boolean automatic = false;
             switch (reason) {
                 case "carving-anchor" -> {
                     placer.carved = true;
@@ -550,7 +575,7 @@ public class ObjectPlacementRegressionTest {
                 }
                 case "underwater-anchor" -> {
                     placer.underwater = true;
-                    anchor = -1;
+                    automatic = true;
                 }
                 case "cave-clearance" -> cave = new CarveResult(ANCHOR_Y, ANCHOR_Y + 1);
                 case "fluid-height" -> {
@@ -559,13 +584,13 @@ public class ObjectPlacementRegressionTest {
                 }
                 case "height-clamp" -> config.clamp(TestSettings.of(ObjectLimit.class, "{\"maximumHeight\":" + (ANCHOR_Y - 1) + "}"));
             }
-            ObjectPlacementResult result = place(config, anchor, placer, cave);
+            ObjectPlacementResult result = place(config, automatic, placer, cave);
             assertEquals(Optional.of(reason), result.rejection());
             assertEquals(-1, result.heightOrRejected());
             assertTrue(reason, placer.writes().isEmpty());
 
             config.forcePlace(true);
-            assertTrue(reason, place(config, anchor, placer, cave).isPlaced());
+            assertTrue(reason, place(config, automatic, placer, cave).isPlaced());
             assertFalse(reason, placer.writes().isEmpty());
         }
     }
@@ -583,6 +608,41 @@ public class ObjectPlacementRegressionTest {
         config.mode(ObjectPlaceMode.STRUCTURE_PIECE);
         assertEquals(ANCHOR_Y, place(config, ANCHOR_Y, placer, null).heightOrRejected());
         assertFalse(placer.writes().isEmpty());
+    }
+
+    @Test
+    public void obliqueRotationRejectsNativePiecesBeyondTheUnrotatedRadius() {
+        int reach = 14;
+        when(engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(new KList<>(
+                NativeStructureVolume.of("minecraft:village", reach, ANCHOR_Y, 0, reach, ANCHOR_Y, 0),
+                NativeStructureVolume.of("minecraft:village", -reach, ANCHOR_Y, 0, -reach, ANCHOR_Y, 0),
+                NativeStructureVolume.of("minecraft:village", 0, ANCHOR_Y, reach, 0, ANCHOR_Y, reach),
+                NativeStructureVolume.of("minecraft:village", 0, ANCHOR_Y, -reach, 0, ANCHOR_Y, -reach)));
+        IrisObject object = new IrisObject(21, 1, 21);
+        object.setUnsigned(20, 0, 20, solid);
+        RecordingPlacer placer = new RecordingPlacer(engine);
+
+        ObjectPlacementResult result = ModuleObjectPlacement.place(object, 0, ANCHOR_Y, 0, placer,
+                placement().rotation(ObjectRotation.of(0, 45, 0)).build(), new RNG(2L), null, null, data);
+
+        assertEquals(Optional.of("native-structure"), result.rejection());
+        assertTrue(placer.writes().isEmpty());
+    }
+
+    @Test
+    public void offCenterOriginRejectsNativePiecesAtTheFarEdge() {
+        when(engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(
+                new KList<>(NativeStructureVolume.of("minecraft:village", 8, ANCHOR_Y, 0, 8, ANCHOR_Y, 0)));
+        IrisObject object = new IrisObject(9, 1, 1);
+        object.setCenter(new Vector3i(0, 0, 0));
+        object.setUnsigned(8, 0, 0, solid);
+        RecordingPlacer placer = new RecordingPlacer(engine);
+
+        ObjectPlacementResult result = ModuleObjectPlacement.place(object, 0, ANCHOR_Y, 0, placer,
+                placement().rotation(ObjectRotation.of(0, 0, 0)).build(), new RNG(2L), null, null, data);
+
+        assertEquals(Optional.of("native-structure"), result.rejection());
+        assertTrue(placer.writes().isEmpty());
     }
 
     @Test
@@ -675,8 +735,19 @@ public class ObjectPlacementRegressionTest {
     }
 
     /** The height {@code object} was placed at, or -1 when the placement rejected it. */
+    private static int placedAutomatic(IrisObject object, int x, int z, IObjectPlacer placer, ObjectPlacement config, RNG rng, IrisData data) {
+        return ModuleObjectPlacement.placeAutomatic(object, x, z, placer, config, rng, null, null, data).heightOrRejected();
+    }
+
     private static int placed(IrisObject object, int x, int y, int z, IObjectPlacer placer, ObjectPlacement config, RNG rng, IrisData data) {
         return ModuleObjectPlacement.place(object, x, y, z, placer, config, rng, null, null, data).heightOrRejected();
+    }
+
+    private ObjectPlacementResult place(ObjectPlacement.Builder config, boolean automatic, RecordingPlacer placer, CarveResult cave) {
+        if (automatic) {
+            return ModuleObjectPlacement.placeAutomatic(lineObject(1), 0, 0, placer, config.build(), new RNG(2L), null, cave, data);
+        }
+        return place(config, ANCHOR_Y, placer, cave);
     }
 
     private ObjectPlacementResult place(ObjectPlacement.Builder config, int y, RecordingPlacer placer, CarveResult cave) {

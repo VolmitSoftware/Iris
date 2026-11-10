@@ -21,6 +21,7 @@ package art.arcane.iris.modded;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
+import art.arcane.iris.engine.mantle.DeferredPlacementRecords;
 import art.arcane.iris.engine.framework.NativeStructureLayouts;
 import art.arcane.iris.engine.framework.nativefit.NativeStructureFitting;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
@@ -278,16 +279,6 @@ final class ModdedNativeStructureStage {
     }
 
     void placeVanillaStructures(WorldGenLevel world, ChunkAccess chunk, StructureManager structureManager) {
-        if (!structureManager.shouldGenerateStructures()) {
-            ChunkPos disabledChunk = chunk.getPos();
-            throw new IllegalStateException("Iris cannot generate native structures in chunk "
-                    + disabledChunk.x() + "," + disabledChunk.z()
-                    + " because generate-structures=false disables them outside the pack. That flag is fixed when "
-                    + "the world is created (server.properties generate-structures, or the Generate Structures "
-                    + "toggle in singleplayer), so it cannot be changed for this world: create a new world with "
-                    + "structures enabled, then deny families through importedStructures.disabled or complete keys "
-                    + "through importedStructures.disabledExact");
-        }
         ChunkPos chunkPos = chunk.getPos();
         SectionPos sectionPos = SectionPos.of(chunkPos, world.getMinSectionY());
         BlockPos origin = sectionPos.origin();
@@ -411,7 +402,7 @@ final class ModdedNativeStructureStage {
                                        String structureId, NativePlacement placement) {
         Engine current = generator.engine();
         int runtimeMinY = world.getMinY();
-        WorldGenLevel boundedWorld = ModdedNativeStructureWorldgenAccess.create(
+        ModdedNativeStructureWorldgenAccess boundedWorld = ModdedNativeStructureWorldgenAccess.create(
                 world, chunkPos,
                 worldgenSurfaceHeight(current, runtimeMinY),
                 worldgenFloorHeight(current, runtimeMinY));
@@ -423,6 +414,7 @@ final class ModdedNativeStructureStage {
                     generator.getSeaLevel(), area.minY(), area.maxY() + 1);
             start.placeInChunk(boundedWorld, structureManager, generator, random, area, chunkPos);
         } finally {
+            DeferredPlacementRecords.clearWritten(current, boundedWorld.writtenBlocks());
             world.setCurrentlyGenerating(null);
         }
     }

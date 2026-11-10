@@ -48,7 +48,6 @@ import com.volmit.world.PackWorld;
  */
 final class ObjectChunk {
     private static final int REJECTED = -1;
-    private static final int SAMPLED_HEIGHT = -1;
 
     private final PackWorld world;
     private final PlacementTerrain terrain;
@@ -85,7 +84,7 @@ final class ObjectChunk {
     int placeOnSurface(PlaceableObject object, int x, int z, ObjectPlacement placement, PlacementChanges changes,
                        PlacementTags tags, String goldenTag) {
         PlacementTerrain placer = proceduralTerrain(terrain, object, goldenTag);
-        return place(ObjectRun.of(object, EffectiveSettings.withChanges(placement, changes), x, SAMPLED_HEIGHT, z), placer, tags);
+        return place(ObjectRun.automatic(object, EffectiveSettings.withChanges(placement, changes), x, z), placer, tags);
     }
 
     /**

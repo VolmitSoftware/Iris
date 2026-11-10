@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.object.placement;
 
+import com.volmit.block.BlockState;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -16,6 +17,16 @@ public class IrisObjectStructurePieceAirTest {
     public void ordinaryObjectAirRemainsNondestructive() {
         assertFalse(BlocksModule.shouldPlaceObjectBlock(false, true, false));
         assertTrue(BlocksModule.shouldPlaceObjectBlock(false, false, false));
+    }
+
+    @Test
+    public void aBlockTurnedIntoAirHadNoValidOrientationAndIsDropped() {
+        BlockState torch = new BlockState("minecraft:wall_torch");
+        BlockState air = new BlockState("minecraft:air");
+
+        assertTrue(BlocksModule.isDroppedByRotation(torch, air));
+        assertFalse(BlocksModule.isDroppedByRotation(torch, torch));
+        assertFalse(BlocksModule.isDroppedByRotation(air, air));
     }
 
     @Test

@@ -12,7 +12,6 @@ import java.nio.file.Path;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class NativeStructureFailureContractTest {
@@ -42,18 +41,13 @@ public class NativeStructureFailureContractTest {
     }
 
     @Test
-    public void globalStructureDisableRefusesGeneratorBinding() {
-        IrisModdedChunkGenerator.requireGlobalStructureGeneration(true, "overworld:overworld");
+    public void disabledGlobalStructuresNeitherRefuseBindingNorFailPlacement() throws IOException {
+        String generator = moddedSource("IrisModdedChunkGenerator.java");
+        String stage = moddedSource("ModdedNativeStructureStage.java");
 
-        IllegalStateException error = assertThrows(
-                IllegalStateException.class,
-                () -> IrisModdedChunkGenerator.requireGlobalStructureGeneration(
-                        false, "overworld:overworld"));
-
-        assertTrue(error.getMessage().contains("overworld:overworld"));
-        assertTrue(error.getMessage().contains("generate-structures=false"));
-        assertTrue(error.getMessage().contains("importedStructures.disabled"));
-        assertTrue(error.getMessage().contains("importedStructures.disabledExact"));
+        assertFalse(generator.contains("generateStructures()"));
+        assertFalse(generator.contains("requireGlobalStructureGeneration"));
+        assertFalse(stage.contains("shouldGenerateStructures()"));
     }
 
     @Test

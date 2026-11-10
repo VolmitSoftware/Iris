@@ -190,7 +190,7 @@ public class NativeStructureObjectVetoTest {
         volumes(volume(-64, -64, -64, 64, 320, 64));
         ObjectPlacement placement = placement().toBuilder().forcePlace(true).build();
 
-        assertEquals(-1, placed(0, -1, placer, placement));
+        assertEquals(-1, placedAutomatic(0, placer, placement));
         assertTrue(placer.written().isEmpty());
     }
 
@@ -229,7 +229,11 @@ public class NativeStructureObjectVetoTest {
     }
 
     private int place(RecordingPlacer placer) {
-        return placed(0, -1, placer, placement());
+        return placedAutomatic(0, placer, placement());
+    }
+
+    private int placedAutomatic(int x, RecordingPlacer placer, ObjectPlacement config) {
+        return ModuleObjectPlacement.placeAutomatic(tree(), x, 0, placer, config, new RNG(1234L), null, null, data).heightOrRejected();
     }
 
     private int placed(int x, int y, RecordingPlacer placer, ObjectPlacement config) {

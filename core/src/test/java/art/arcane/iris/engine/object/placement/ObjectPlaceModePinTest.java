@@ -33,6 +33,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -108,9 +109,14 @@ public class ObjectPlaceModePinTest {
                 .translate(ObjectTranslate.of(0, mode == ObjectPlaceMode.FLOATING ? 140 : 2, 0, 0))
                 .build();
         CarveResult cave = isCaveMode(mode) ? new CarveResult(CAVE_FLOOR_Y, CEILING_Y) : null;
-        int requestedY = requestedY(mode);
-        ModuleObjectPlacement.place(pinnedObject(), OBJECT_X, requestedY, OBJECT_Z, placer, config,
-                new RNG(PLACEMENT_SEED), null, cave, data);
+        OptionalInt requestedY = requestedY(mode);
+        if (requestedY.isPresent()) {
+            ModuleObjectPlacement.place(pinnedObject(), OBJECT_X, requestedY.getAsInt(), OBJECT_Z, placer, config,
+                    new RNG(PLACEMENT_SEED), null, cave, data);
+        } else {
+            ModuleObjectPlacement.placeAutomatic(pinnedObject(), OBJECT_X, OBJECT_Z, placer, config,
+                    new RNG(PLACEMENT_SEED), null, cave, data);
+        }
         return placer.writes();
     }
 
@@ -119,12 +125,12 @@ public class ObjectPlaceModePinTest {
     }
 
     /** Cave modes and structure pieces are placed at a height, the way their callers place them; the rest sample. */
-    private static int requestedY(ObjectPlaceMode mode) {
+    private static OptionalInt requestedY(ObjectPlaceMode mode) {
         return switch (mode) {
-            case CEILING_HANG -> CEILING_Y - 9;
-            case ORGANIC_STILT -> CAVE_FLOOR_Y + 12;
-            case STRUCTURE_PIECE -> 90;
-            default -> -1;
+            case CEILING_HANG -> OptionalInt.of(CEILING_Y - 9);
+            case ORGANIC_STILT -> OptionalInt.of(CAVE_FLOOR_Y + 12);
+            case STRUCTURE_PIECE -> OptionalInt.of(90);
+            default -> OptionalInt.empty();
         };
     }
 

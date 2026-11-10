@@ -112,6 +112,6 @@ public final class DatapackStructureScopeSVC implements IrisService {
             return Set.of();
         }
         return scopeIndex.declaredSources(
-                generator.getTarget().getDimension().getDatapackImports());
+                DatapackIngestService.configuredImports(generator.getTarget().getDimension()));
     }
 }

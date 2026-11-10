@@ -113,21 +113,22 @@ final class PlacementReach {
     }
 
     static int of(ObjectSize size, ObjectPlacement placement) {
-        return of(size, placement.mode().placeMode(), placement.scale().maxScale(), placement.rotation(), placement.translate(),
-                placement.warp() == null || placement.warp().isFlat() ? 0 : placement.warp().multiplier(),
+        return of(size, placement.mode().placeMode(), placement.scale().maxScale(), placement.rotation(), placement.rotateTowardsSlope(),
+                placement.translate(), placement.warp() == null || placement.warp().isFlat() ? 0 : placement.warp().multiplier(),
                 placement.vacuumSettings().orElse(null));
     }
 
-    private static int of(ObjectSize size, PlaceMode mode, Double maxScale, ObjectRotation rotation, ObjectTranslate translate,
-                          Double warpMultiplier, VacuumSettings vacuum) {
+    private static int of(ObjectSize size, PlaceMode mode, Double maxScale, ObjectRotation rotation, boolean rotatesTowardsSlope,
+                          ObjectTranslate translate, Double warpMultiplier, VacuumSettings vacuum) {
         double scale = maxScale == null ? 1D : Math.max(1D, maxScale);
         int width = scaledDimension(size.width(), scale);
         int height = scaledDimension(size.height(), scale);
         int depth = scaledDimension(size.depth(), scale);
         boolean rotateX = rotation != null && rotation.enabled() && rotation.xAxis() != null && rotation.xAxis().enabled();
         boolean rotateZ = rotation != null && rotation.enabled() && rotation.zAxis() != null && rotation.zAxis().enabled();
-        int footprint = rotateX || rotateZ ? Math.max(width, Math.max(height, depth)) : Math.max(width, depth);
-        int translation = translationReach(translate, rotation, rotateX || rotateZ);
+        boolean tiltsVertically = rotatesTowardsSlope || rotateX || rotateZ;
+        int footprint = tiltsVertically ? Math.max(width, Math.max(height, depth)) : Math.max(width, depth);
+        int translation = translationReach(translate, rotation, tiltsVertically);
         int warp = warpMultiplier == null ? 0 : (int) Math.ceil(Math.abs(warpMultiplier) / 2D);
         int vacuumReach = mode.bendsTerrain() ? 2 * vacuumRadius(mode, vacuum) : 0;
         long reach = (long) footprint + translation + warp + vacuumReach;

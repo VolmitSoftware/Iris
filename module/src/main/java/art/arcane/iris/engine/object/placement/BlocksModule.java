@@ -107,7 +107,11 @@ public final class BlocksModule implements IrisModule {
             data = edited.data();
             blockEntity = edited.blockEntity();
         }
-        data = prepared.rotate(data);
+        BlockState rotated = prepared.rotate(data);
+        if (isDroppedByRotation(data, rotated)) {
+            return;
+        }
+        data = rotated;
         int x = placement.x() + offset.x();
         int y = anchorY + offset.y();
         int z = placement.z() + offset.z();
@@ -123,7 +127,7 @@ public final class BlocksModule implements IrisModule {
         if (settings.meld() && !structurePiece && !world.isSolid(x, y, z)) {
             return;
         }
-        if (data.properties().containsKey(WATERLOGGED) && shouldWaterlog(world, settings, placement.requestedY(), x, y, z)) {
+        if (data.properties().containsKey(WATERLOGGED) && shouldWaterlog(world, settings, placement.automaticHeight(), x, y, z)) {
             data = data.withProperty(WATERLOGGED, TRUE);
         }
         if (world.has(data, BlockTrait.VINE)) {
@@ -152,6 +156,11 @@ public final class BlocksModule implements IrisModule {
         return data;
     }
 
+    /** A block that turned into air had no valid orientation: it is left out with its block entity, even for structure pieces that write air. */
+    static boolean isDroppedByRotation(BlockState source, BlockState rotated) {
+        return !AIR_MATERIALS.contains(source.material().toString()) && AIR_MATERIALS.contains(rotated.material().toString());
+    }
+
     private static boolean shouldWrite(PlacementWorld world, BlockState data, int x, int y, int z, boolean structurePiece) {
         if (world.has(data, BlockTrait.CUSTOM)) {
             return true;
@@ -176,11 +185,11 @@ public final class BlocksModule implements IrisModule {
     }
 
     /** Whether a waterloggable block lands in water a waterloggable or underwater placement keeps. */
-    static boolean shouldWaterlog(PlacementWorld world, PlacementSettings settings, int requestedY, int x, int y, int z) {
+    static boolean shouldWaterlog(PlacementWorld world, PlacementSettings settings, boolean automaticHeight, int x, int y, int z) {
         if (!(settings.waterloggable() || settings.underwater())) {
             return false;
         }
-        if (requestedY >= 0 && settings.carvingSupport() == CarvingMode.CARVING_ONLY) {
+        if (!automaticHeight && settings.carvingSupport() == CarvingMode.CARVING_ONLY) {
             return false;
         }
         BlockState existing = world.get(x, y, z);

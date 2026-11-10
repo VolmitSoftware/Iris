@@ -10,6 +10,7 @@ import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.NativeStructureLayouts;
 import art.arcane.iris.engine.framework.nativefit.NativeStructureFitting;
 import art.arcane.iris.engine.IrisEngine;
+import art.arcane.iris.engine.mantle.DeferredPlacementRecords;
 import art.arcane.iris.engine.platform.BukkitChunkGenerator;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.nativegen.NativeStructureFitBridge;
@@ -906,7 +907,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
     private void placeVanillaStructure(WorldGenLevel world, StructureManager structureManager, WorldgenRandom random,
                                        BoundingBox area, ChunkPos chunkPos, String structureId,
                                        NativePlacement placement) {
-        WorldGenLevel boundedWorld = NativeStructureWorldgenAccess.create(
+        NativeStructureWorldgenAccess boundedWorld = NativeStructureWorldgenAccess.create(
                 world, chunkPos, worldgenSurfaceHeight(), worldgenFloorHeight());
         world.setCurrentlyGenerating(() -> "Iris native structure " + structureId);
         try {
@@ -916,6 +917,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
                     getSeaLevel(), area.minY(), area.maxY() + 1);
             start.placeInChunk(boundedWorld, structureManager, this, random, area, chunkPos);
         } finally {
+            DeferredPlacementRecords.clearWritten(engine, boundedWorld.writtenBlocks());
             world.setCurrentlyGenerating(null);
         }
     }

@@ -358,6 +358,111 @@ public class DatapackIngestServiceTest {
     }
 
     @Test
+    public void downloadCopiesLocalFileUrl() throws Exception {
+        Path source = temporaryFolder.newFile("local source.zip").toPath();
+        Files.writeString(source, "local-archive", StandardCharsets.UTF_8);
+        File destination = new File(temporaryFolder.newFolder("local-download"), "pack.zip");
+
+        DatapackIngestService.DownloadResult result = DatapackIngestService.download(
+                source.toUri().toASCIIString(),
+                destination,
+                null,
+                null
+        );
+
+        assertFalse(result.notModified());
+        assertEquals("local-archive", Files.readString(destination.toPath(), StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void failedLocalDownloadPreservesExistingDestination() throws Exception {
+        Path missing = temporaryFolder.getRoot().toPath().resolve("missing.zip");
+        File destination = new File(temporaryFolder.newFolder("local-download-existing"), "pack.zip");
+        Files.writeString(destination.toPath(), "existing", StandardCharsets.UTF_8);
+
+        try {
+            DatapackIngestService.download(
+                    missing.toUri().toASCIIString(),
+                    destination,
+                    null,
+                    null
+            );
+            fail("Expected missing local source rejection");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains("regular non-symbolic-link file"));
+        }
+
+        assertEquals("existing", Files.readString(destination.toPath(), StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void localDropFolderDiscoversOnlyTopLevelZipFilesInStableOrder() throws Exception {
+        File imports = temporaryFolder.newFolder("local-imports");
+        Path first = new File(imports, "Alpha Pack.ZIP").toPath();
+        Path second = new File(imports, "bravo.zip").toPath();
+        Files.writeString(first, "alpha", StandardCharsets.UTF_8);
+        Files.writeString(second, "bravo", StandardCharsets.UTF_8);
+        Files.writeString(new File(imports, "ignored.txt").toPath(), "ignored", StandardCharsets.UTF_8);
+        Path nested = new File(imports, "nested/hidden.zip").toPath();
+        Files.createDirectories(nested.getParent());
+        Files.writeString(nested, "nested", StandardCharsets.UTF_8);
+
+        List<String> discovered = DatapackIngestService.discoverLocalDatapackImports(imports);
+
+        assertEquals(List.of(
+                first.toAbsolutePath().normalize().toUri().toASCIIString(),
+                second.toAbsolutePath().normalize().toUri().toASCIIString()
+        ), discovered);
+    }
+
+    @Test
+    public void localDropFolderSkipsSymbolicLinkArchives() throws Exception {
+        File imports = temporaryFolder.newFolder("local-imports-links");
+        Path real = temporaryFolder.newFile("linked-target.zip").toPath();
+        Path link = new File(imports, "linked.zip").toPath();
+        try {
+            Files.createSymbolicLink(link, real);
+        } catch (UnsupportedOperationException | IOException unsupported) {
+            return;
+        }
+
+        assertTrue(DatapackIngestService.discoverLocalDatapackImports(imports).isEmpty());
+    }
+
+    @Test
+    public void configuredFileSourceNormalizesToTheDiscoveredArchiveUri() throws Exception {
+        Path source = temporaryFolder.newFile("normalized-local.zip").toPath();
+        String discovered = source.toAbsolutePath().normalize().toUri().toASCIIString();
+        String alternate = discovered.replace("file:///", "file:/");
+
+        assertEquals(discovered, DatapackIngestService.normalizeConfiguredSource(alternate));
+        assertEquals(
+                Set.of("https://example.test/dimension.zip", discovered),
+                DatapackIngestService.mergeConfiguredImports(
+                        List.of("https://example.test/dimension.zip", alternate),
+                        List.of(discovered)));
+    }
+
+    @Test
+    public void startupValidationFingerprintChangesWithLocalSourceBytes() throws Exception {
+        File root = temporaryFolder.newFolder("startup-local-source-fingerprint");
+        Path source = temporaryFolder.newFile("startup-local.zip").toPath();
+        KList<File> worldFolders = new KList<>();
+        String sourceUrl = source.toUri().toASCIIString();
+        Files.writeString(source, "alpha", StandardCharsets.UTF_8);
+        String before = DatapackIngestService.startupValidationFingerprint(
+                root, worldFolders, List.of(sourceUrl));
+
+        FileTime originalTime = Files.getLastModifiedTime(source);
+        Files.writeString(source, "bravo", StandardCharsets.UTF_8);
+        Files.setLastModifiedTime(source, originalTime);
+        String after = DatapackIngestService.startupValidationFingerprint(
+                root, worldFolders, List.of(sourceUrl));
+
+        assertFalse(before.equals(after));
+    }
+
+    @Test
     public void removalRequiresMatchingIrisOwnership() throws Exception {
         File unmanaged = datapackDirectory("unmanaged");
         try {

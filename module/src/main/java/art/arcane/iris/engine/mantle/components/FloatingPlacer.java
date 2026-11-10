@@ -54,7 +54,6 @@ import java.util.Set;
  */
 final class FloatingPlacer {
     private static final ObjectRotation NO_ROTATION = ObjectRotation.of(0, 0, 0);
-    private static final int SAMPLED_HEIGHT = -1;
     private static final Set<String> AIR_MATERIALS = Set.of("minecraft:air", "minecraft:cave_air");
 
     private final PackWorld world;
@@ -111,7 +110,7 @@ final class FloatingPlacer {
         ObjectPlacement floating = placement.toBuilder().place(List.of(object.name())).build();
         int id = random.i(0, Integer.MAX_VALUE);
         try {
-            place(ObjectRun.of(object, floating, worldX, SAMPLED_HEIGHT, worldZ), context.placementTerrain(), object, id);
+            place(ObjectRun.automatic(object, floating, worldX, worldZ), context.placementTerrain(), object, id);
         } catch (Throwable failure) {
             GenerationFailures.skipPlacement(log, failure, "floating object", object.name(), "at " + worldX + "," + worldZ);
         }

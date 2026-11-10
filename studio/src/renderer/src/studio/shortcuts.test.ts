@@ -75,7 +75,8 @@ describe('shortcuts', () => {
   it('shows the first key of a shortcut', () => {
     expect(keyTextOf('redo', {})).toBe('Ctrl+Y')
     expect(keyTextOf('redo', { redo: ['ctrl+shift+z'] })).toBe('Ctrl+Shift+Z')
-    expect(keyTextOf(viewShortcutId('noise'), {})).toBe('')
+    expect(keyTextOf(viewShortcutId('noise'), {})).toBe('N')
+    expect(keyTextOf(viewShortcutId('some:module/view'), {})).toBe('')
   })
 
   it('matches the node editor keys by the live bindings', () => {

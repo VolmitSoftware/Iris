@@ -16,6 +16,7 @@ import { savedTileSource, type SavedLayer } from '../scene/savedTileSource'
 import { TerrainAtlas } from '../scene/terrainAtlas'
 import { focusAround, type TerrainStyle } from '../scene/terrainStream'
 import { SceneViewport } from './SceneViewport'
+import { SidebarPanel } from './Sidebar'
 import { useTerrainStream } from './useTerrainStream'
 
 const NUMBER = new Intl.NumberFormat('en-US')
@@ -85,7 +86,7 @@ export function SavedWorldStudio({ client, world, onSummary, onProgress, tell }:
 
   return (
     <>
-      <div className="relative min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg">
         <SceneViewport content={content} framing={content} />
         <div className="absolute top-3 left-3 flex items-center gap-2">
           <ToggleGroup
@@ -113,7 +114,7 @@ export function SavedWorldStudio({ client, world, onSummary, onProgress, tell }:
         {reading && chosen !== null && <div className={PILL}>Reading {chosen.name}</div>}
         {!reading && chosen !== null && start === null && <div className={PILL}>Nothing finished is saved in {chosen.name}</div>}
       </div>
-      <aside className="flex w-[250px] shrink-0 flex-col border-l bg-card">
+      <SidebarPanel className="flex-1">
         <header className="px-4 pt-2.5 pb-2.5">
           <h2 className="text-[13px] font-semibold">Saved worlds</h2>
           <p className="text-[11.5px] text-secondary-text">{NUMBER.format(worlds.length)} on the server</p>
@@ -121,7 +122,7 @@ export function SavedWorldStudio({ client, world, onSummary, onProgress, tell }:
         <ScrollArea className="min-h-0 flex-1 border-t">
           <WorldList worlds={worlds} current={chosen?.id ?? null} onSelect={setChosenId} />
         </ScrollArea>
-      </aside>
+      </SidebarPanel>
     </>
   )
 }

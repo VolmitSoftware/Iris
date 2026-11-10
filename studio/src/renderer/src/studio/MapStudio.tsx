@@ -18,6 +18,7 @@ import { SceneStudio } from './SceneStudio'
 import { WorldStudio3D } from './WorldStudio3D'
 import { isTypingInto, shortcutRows, viewOfShortcutId, windowShortcutFor, type ShortcutAction } from './shortcuts'
 import { ShortcutSettings } from './ShortcutSettings'
+import { Panel, SidebarPanel, SidebarSlot } from './Sidebar'
 import { StatusBar } from './StatusBar'
 import { StudioToolbar } from './StudioToolbar'
 import { useBindings } from './useBindings'
@@ -66,6 +67,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   const [packRevision, setPackRevision] = useState(0)
   const [sceneSummary, setSceneSummary] = useState<string | null>(null)
   const [sceneProgress, setSceneProgress] = useState<number | null>(null)
+  const [sidebarSlot, setSidebarSlot] = useState<HTMLElement | null>(null)
   const loadSceneViews = useCallback(() => client.sceneViews(), [client])
   const loadPatternViews = useCallback(() => client.patternViews(), [client])
   const sceneViews = useModuleViews(loadSceneViews, packRevision)
@@ -225,10 +227,14 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         onSettings={() => setSettingsOpen(true)}
         onDisconnect={onDisconnect}
       />
-      <div className="flex min-h-0 flex-1">
-        <ViewList views={views} current={viewId} onSelect={selectView}>
-          {viewId === 'regions' && regions.length > 1 && <RegionPreviewList regions={regions} current={layer.preview} onSelect={selectPreview} />}
-        </ViewList>
+      <SidebarSlot.Provider value={sidebarSlot}>
+      <div className="flex min-h-0 flex-1 gap-1.5 p-1.5">
+        <ViewList views={views} current={viewId} onSelect={selectView} slotRef={setSidebarSlot} />
+        {viewId === 'regions' && regions.length > 1 && (
+          <SidebarPanel className="flex-1 overflow-y-auto p-1.5">
+            <RegionPreviewList regions={regions} current={layer.preview} onSelect={selectPreview} />
+          </SidebarPanel>
+        )}
         {sceneView !== null ? (
           <SceneStudio client={client} view={sceneView} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : patternView !== null ? (
@@ -241,7 +247,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
           <NoiseStudio client={client} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : (
           <>
-        <div className="relative min-w-0 flex-1">
+        <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg">
           <MapCanvas
             client={client}
             world={world}
@@ -273,7 +279,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
             </div>
           )}
         </div>
-        <aside className="flex w-[250px] shrink-0 flex-col border-l bg-card">
+        <Panel className="w-[250px]">
           {inspectsPicks && (
             <PickInspector
               title={previewName ?? view.label}
@@ -287,10 +293,11 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
             shares={shares}
             selection={{ highlight, onSelect: (subject) => setHighlight((current) => (sameSubject(current, subject) ? null : subject)) }}
           />
-        </aside>
+        </Panel>
           </>
         )}
       </div>
+      </SidebarSlot.Provider>
       <StatusBar viewLabel={statusLabel(view.label, previewName, showsMap ? null : sceneSummary)} status={showsMap ? status : null} notice={notice} usage={usage} progress={showsMap ? null : sceneProgress} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} views={views} />
       <ShortcutSettings open={settingsOpen} onOpenChange={setSettingsOpen} views={views} />

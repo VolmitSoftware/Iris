@@ -15,6 +15,7 @@ import { focusAround, type TerrainStyle } from '../scene/terrainStream'
 import { hexColor } from './colors'
 import { SceneViewport } from './SceneViewport'
 import { TiledCanvas } from './TiledCanvas'
+import { Panel, SidebarPanel } from './Sidebar'
 import { useTerrainStream } from './useTerrainStream'
 
 type NoiseDisplay = 'flat' | 'terrain'
@@ -83,7 +84,7 @@ export function NoiseStudio({ client, packRevision, onSummary, tell }: NoiseStud
 
   return (
     <>
-      <div className="relative min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg">
         <TiledCanvas
           create={createView}
           viewRef={controllerRef}
@@ -110,15 +111,17 @@ export function NoiseStudio({ client, packRevision, onSummary, tell }: NoiseStud
         </div>
         {display === 'flat' && status !== null && source !== null && <div className={cn(PILL, 'right-3 bottom-3 tabular-nums')}>{readout(status, source)}</div>}
       </div>
-      <aside className="flex w-[250px] shrink-0 flex-col border-l bg-card">
+      <SidebarPanel className="flex-1">
         <header className="px-4 pt-2.5 pb-2.5">
           <h2 className="text-[13px] font-semibold">Noise</h2>
           <p className="text-[11.5px] text-secondary-text">{NUMBER.format(sources.length)} sources</p>
         </header>
+        <SourceList sources={sources} current={source?.id ?? null} onSelect={setChosenId} />
+      </SidebarPanel>
+      <Panel className="w-[250px]">
         <SeedField seed={seed} usesSeed={source?.usesSeed ?? true} onChange={setSeed} />
         <PaletteList current={paletteId} source={source} scale={scale} onSelect={setPaletteId} />
-        <SourceList sources={sources} current={source?.id ?? null} onSelect={setChosenId} />
-      </aside>
+      </Panel>
     </>
   )
 }

@@ -23,7 +23,7 @@ export function NodePane({ editor, entryKey, selected, onSelect }: NodePaneProps
   useEditorKeys(editor, selected, locked, showAllRef, onSelect)
 
   return (
-    <section className="flex min-h-0 flex-[9] flex-col border-t">
+    <section className="flex min-h-0 flex-[9] flex-col overflow-hidden rounded-lg bg-card">
       <header className="flex h-9 shrink-0 items-center gap-2 border-b bg-card px-3">
         <h2 className="text-[12px] font-semibold">Nodes</h2>
         <span className="min-w-0 truncate text-[11.5px] text-secondary-text">{state?.file ?? entryKey}</span>

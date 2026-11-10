@@ -64,14 +64,20 @@ export const SHORTCUTS: ShortcutDefinition[] = [
   { id: 'showAllNodes', label: 'Show every node', group: 'Node editor', chords: ['f', 'Home'] }
 ]
 
-/** The key of each view; 4 stays free for the 3D world, as in v3e. */
+/** The key of each view, as in v3e. */
 const VIEW_KEYS: Record<string, Chord> = {
   biomes: '1',
   regions: '2',
   height: '3',
+  world3d: '4',
   landBiomes: '5',
   seaBiomes: '6',
-  caveBiomes: '7'
+  caveBiomes: '7',
+  'iris:terrain/palettes': 'p',
+  'iris:objects': 'o',
+  'iris:objects/procedural': 't',
+  noise: 'n',
+  savedWorld: 'w'
 }
 
 export const MOUSE_HINTS: { gesture: string; label: string }[] = [

@@ -78,7 +78,7 @@ export function EntryBrowser({ title, entries, current, onSelect, fileActions, c
     </div>
   )
   return (
-    <section data-entry-browser className={cn('flex min-h-0 flex-col border-b', className)}>
+    <section data-entry-browser className={cn('flex min-h-0 flex-col', className)}>
       <header className="px-4 pt-2.5 pb-2.5">
         <div className="flex items-center gap-1">
           <h2 className="min-w-0 flex-1 truncate text-[13px] font-semibold">{title}</h2>

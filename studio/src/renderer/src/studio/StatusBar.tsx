@@ -20,7 +20,7 @@ const NUMBER = new Intl.NumberFormat('en-US')
 export function StatusBar({ viewLabel, status, notice, usage, progress }: StatusBarProps): React.JSX.Element {
   const drawing = status !== null && status.tilesReady < status.tilesTotal
   return (
-    <footer className="flex h-6 shrink-0 items-center gap-6 border-t bg-card px-3 text-[11.5px] text-secondary-text tabular-nums">
+    <footer className="flex h-6 shrink-0 items-center gap-6 px-3 text-[11.5px] text-secondary-text tabular-nums">
       <span className="truncate">
         {viewLabel}
         {status !== null && (

@@ -12,6 +12,7 @@ import { Legend } from './Legend'
 import { PickInspector } from './PickInspector'
 import { SceneViewport } from './SceneViewport'
 import { usePickInspection } from './usePickInspection'
+import { Panel } from './Sidebar'
 import { useGroundInView, useTerrainStream } from './useTerrainStream'
 
 const NUMBER = new Intl.NumberFormat('en-US')
@@ -67,7 +68,7 @@ export function WorldStudio3D({ client, world, mapArea, packRevision, onSummary,
 
   return (
     <>
-      <div className="relative min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg">
         <SceneViewport content={content} framing={content} />
         <ToggleGroup
           type="single"
@@ -93,13 +94,13 @@ export function WorldStudio3D({ client, world, mapArea, packRevision, onSummary,
           </div>
         )}
       </div>
-      <aside className="flex w-[250px] shrink-0 flex-col border-l bg-card">
+      <Panel className="w-[250px]">
         {inspectsPicks ? (
           <PickInspector title={coloring === 'regions' ? 'Regions' : 'Biomes'} inspection={inspection} />
         ) : (
           <Legend title="Heights in view" shares={heightShares} emptyText="Looking at the ground…" className="flex-1" />
         )}
-      </aside>
+      </Panel>
     </>
   )
 }

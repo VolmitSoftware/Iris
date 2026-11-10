@@ -29,10 +29,11 @@ interface StudioToolbarProps {
 
 const THEME_ICONS: Record<ThemeChoice, ReactNode> = { system: <Monitor />, light: <Sun />, dark: <Moon /> }
 const THEME_NAMES: Record<ThemeChoice, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
+const TEXT_BUTTON = "h-7 gap-1.5 px-2 text-[12.5px] font-normal [&_svg:not([class*='size-'])]:size-3.5"
 
 export function StudioToolbar(props: StudioToolbarProps): React.JSX.Element {
   return (
-    <header className="flex h-10 shrink-0 items-center gap-1 border-b bg-card px-2">
+    <header className="flex h-10 shrink-0 items-center gap-1 px-2">
       <span className="px-1.5 pr-3 text-[14px] font-semibold">{props.title}</span>
       {props.mapTools && <MapTools {...props} />}
 
@@ -41,16 +42,16 @@ export function StudioToolbar(props: StudioToolbarProps): React.JSX.Element {
         {props.world.world}
       </span>
       <IconHint hint={THEME_NAMES[props.theme.choice]}>
-        <Button variant="ghost" size="icon-sm" onClick={props.theme.next}>
-          {THEME_ICONS[props.theme.choice]}
+        <Button variant="ghost" size="sm" className={TEXT_BUTTON} onClick={props.theme.next}>
+          {THEME_ICONS[props.theme.choice]} Theme
         </Button>
       </IconHint>
       <ToolButton action="help" hint="Show every mouse and key shortcut" onClick={props.onHelp}>
         <CircleHelp />
       </ToolButton>
       <IconHint hint="Change the studio's keys">
-        <Button variant="ghost" size="icon-sm" onClick={props.onSettings}>
-          <Settings />
+        <Button variant="ghost" size="sm" className={TEXT_BUTTON} onClick={props.onSettings}>
+          <Settings /> Settings
         </Button>
       </IconHint>
       <IconHint hint="Back to the world list">

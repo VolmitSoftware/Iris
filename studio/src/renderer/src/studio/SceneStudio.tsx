@@ -2,7 +2,6 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn } from '@/lib/utils'
 import type { BridgeClient } from '../bridge/BridgeClient'
 import { NO_PART, type JsonPath, type SceneEntry, type SceneViewInfo } from '../bridge/types'
 import { parsedText } from '../editor/jsonValues'
@@ -21,6 +20,7 @@ import { EntryBrowser } from './EntryBrowser'
 import { useEntryFiles } from './EntryFileDialogs'
 import { NodeInspector } from './NodeInspector'
 import { NodePane } from './NodePane'
+import { Panel, SidebarPanel } from './Sidebar'
 import { SceneViewport, type PickedSurface } from './SceneViewport'
 
 const NUMBER = new Intl.NumberFormat('en-US')
@@ -103,7 +103,18 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
 
   return (
     <>
-      <div className="flex min-w-0 flex-1 flex-col">
+      <SidebarPanel className="flex-1">
+        <EntryBrowser
+          className="flex-1"
+          title={view.label}
+          entries={entries}
+          current={entry?.key ?? null}
+          onSelect={(key) => setChosen({ key, variant: 0 })}
+          fileActions={view.creatable ? files.actions : undefined}
+        />
+        {files.dialogs}
+      </SidebarPanel>
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <SceneArea
           entry={entry}
           variant={variant}
@@ -124,23 +135,14 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
           />
         )}
       </div>
-      <aside className={cn('flex shrink-0 flex-col border-l bg-card', view.editable ? 'w-[300px]' : 'w-[250px]')}>
-        <EntryBrowser
-          className={selected === null ? 'flex-[7]' : 'flex-[3]'}
-          title={view.label}
-          entries={entries}
-          current={entry?.key ?? null}
-          onSelect={(key) => setChosen({ key, variant: 0 })}
-          fileActions={view.creatable ? files.actions : undefined}
-        />
-        {files.dialogs}
+      <Panel className={view.editable ? 'w-[300px]' : 'w-[250px]'}>
         {view.baked && entry !== null && <BakeMeter timing={bakeTiming} />}
         {selected !== null && editor.state !== null ? (
           <NodeInspector key={JSON.stringify(selected.path)} node={selected} state={editor.state} values={values} suggestions={suggestions} onEdit={editor.edit} />
         ) : (
           <BlockList scene={scene} farLeavesOnly={farLeavesOnly} onFarLeavesOnly={setFarLeavesOnly} />
         )}
-      </aside>
+      </Panel>
     </>
   )
 }
@@ -158,7 +160,7 @@ interface SceneAreaProps {
 
 function SceneArea({ entry, variant, shown, status, onVariant, onPick }: SceneAreaProps): React.JSX.Element {
   return (
-    <div className="relative min-h-0 flex-[11]">
+    <div className="relative min-h-0 flex-[11] overflow-hidden rounded-lg">
       <SceneViewport content={shown?.mesh.content ?? null} framing={shown?.scene} onPick={onPick} />
         {entry !== null && entry.variants > 1 && (
           <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card/90 p-1 text-[12px] tabular-nums">

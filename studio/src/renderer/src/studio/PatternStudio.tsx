@@ -11,6 +11,7 @@ import { BlockModels } from '../scene/blockModels'
 import { BridgeAssets } from '../scene/BridgeAssets'
 import { hexColor } from './colors'
 import { EntryBrowser } from './EntryBrowser'
+import { Panel, SidebarPanel } from './Sidebar'
 import { TiledCanvas } from './TiledCanvas'
 
 const DEFAULT_NAMESPACE_PREFIX = 'minecraft:'
@@ -61,7 +62,7 @@ export function PatternStudio({ client, view, packRevision, onSummary, tell }: P
 
   return (
     <>
-      <div className="relative min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg">
         <TiledCanvas create={createView} viewRef={viewRef} className="absolute inset-0 size-full cursor-grab active:cursor-grabbing" />
         <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card/90 p-1 text-[12px] tabular-nums">
           {entry !== null && entry.depths > 1 && (
@@ -83,11 +84,13 @@ export function PatternStudio({ client, view, packRevision, onSummary, tell }: P
         </div>
         {status !== null && entry !== null && <div className={cn(PILL, 'right-3 bottom-3 tabular-nums')}>{readout(status)}</div>}
       </div>
-      <aside className="flex w-[250px] shrink-0 flex-col border-l bg-card">
-        <EntryBrowser className="flex-[6]" title={view.label} entries={entries} current={entry?.key ?? null} onSelect={(key) => setChosen({ key, depth: 0 })} />
+      <SidebarPanel className="flex-1">
+        <EntryBrowser className="flex-1" title={view.label} entries={entries} current={entry?.key ?? null} onSelect={(key) => setChosen({ key, depth: 0 })} />
+      </SidebarPanel>
+      <Panel className="w-[250px]">
         <EntryFacts entry={entry} />
         <Legend blocks={legend} />
-      </aside>
+      </Panel>
     </>
   )
 }

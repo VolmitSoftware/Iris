@@ -72,6 +72,7 @@ export class TerrainStream<Tile, Layer> {
     this.content = {
       object: this.group,
       bounds: options.focus,
+      isGround: true,
       surfaceAlong: (ray, reach) => marchOntoSurface(ray, reach, (this.style?.topY ?? 0) + ABOVE_TOP_BLOCKS, (x, z) => this.finestTopOver(x, z, (field) => field.surfaceTopOver(x, z))),
       follow: (camera) => this.follow(camera)
     }
@@ -168,7 +169,8 @@ export class TerrainStream<Tile, Layer> {
     const deadline = performance.now() + MESH_BUILD_BUDGET_MILLISECONDS
     const stillDrawn = new Set<string>()
     let behind = false
-    for (const draw of cover.draws) {
+    // Finer tiles are built before the coarser ones get their holes, so running out of time leaves ground drawn twice, never a gap.
+    for (const draw of [...cover.draws].sort((first, second) => first.tile.level - second.tile.level)) {
       const key = tileKey(draw.tile)
       stillDrawn.add(key)
       const data = this.dataOf(draw.tile, layer)
@@ -181,14 +183,15 @@ export class TerrainStream<Tile, Layer> {
       }
       this.show(key, draw, data, style)
     }
+    this.camera?.redraw()
+    if (behind) {
+      this.continueLater()
+      return
+    }
     for (const [key, drawn] of [...this.drawn]) {
       if (!stillDrawn.has(key)) {
         this.hide(key, drawn)
       }
-    }
-    this.camera?.redraw()
-    if (behind) {
-      this.continueLater()
     }
   }
 

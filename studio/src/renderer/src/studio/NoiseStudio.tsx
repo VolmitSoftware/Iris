@@ -16,7 +16,7 @@ import { hexColor } from './colors'
 import { SceneViewport } from './SceneViewport'
 import { TiledCanvas } from './TiledCanvas'
 import { Panel, SidebarPanel } from './Sidebar'
-import { useTerrainStream } from './useTerrainStream'
+import { useLongPending, useTerrainStream } from './useTerrainStream'
 
 type NoiseDisplay = 'flat' | 'terrain'
 
@@ -307,10 +307,11 @@ function NoiseTerrainView({
     [source, scale, reliefBlocks]
   )
   const { content, pending } = useTerrainStream(tileSource, COARSEST_NOISE_LEVEL, focus, layer, style, tell)
+  const sampling = useLongPending(pending)
   return (
     <div className="absolute inset-0">
       <SceneViewport content={content} framing={content} />
-      {pending > 0 && <div className={cn(PILL, 'top-3 left-1/2 -translate-x-1/2')}>Sampling {source.name}</div>}
+      {sampling && <div className={cn(PILL, 'top-3 left-1/2 -translate-x-1/2')}>Sampling {source.name}</div>}
     </div>
   )
 }

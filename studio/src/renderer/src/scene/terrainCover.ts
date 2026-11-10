@@ -31,6 +31,8 @@ const MOST_COLUMN_PIXELS = 1
 // A little above one, as tiles in sight stick out past the view's edges; beyond it, columns only add faces no one can tell apart.
 const MOST_COLUMNS_PER_PIXEL = 1.25
 const MOST_TILES_IN_SIGHT = 64
+// The backdrop reaches to the horizon, where a few coarse tiles do; the rest of the tiles go to ground that is near.
+const MOST_BACKDROP_TILES = 16
 const DETAIL_MARGIN = 0.15
 const BACKDROP_MARGIN = 0.5
 const PREVIEW_LEVELS_ABOVE_DETAIL = 1
@@ -51,8 +53,8 @@ type StateOf = (tile: TerrainTile) => TileState
 export function planCover(sight: CameraSight, stateOf: StateOf, coarsestLevel: number): Cover {
   const backdropLevel = backdropLevelFor(sight, coarsestLevel)
   const finestLevel = Math.max(0, backdropLevel - MOST_LEVELS_FINER)
-  const backdrop = sight.tilesAt(backdropLevel, BACKDROP_MARGIN).sort(nearestFirst(sight)).slice(0, MOST_TILES_IN_SIGHT)
-  const detail = detailTiles(sight, backdrop, backdropLevel, finestLevel)
+  const backdrop = sight.tilesAt(backdropLevel, BACKDROP_MARGIN).sort(nearestFirst(sight)).slice(0, MOST_BACKDROP_TILES)
+  const detail = detailTiles(sight, backdrop, finestLevel)
   const ready = candidatesOf(backdrop, detail, backdropLevel, finestLevel, stateOf).filter((tile) => stateOf(tile) !== 'none')
   return {
     draws: ready.map((tile) => ({ tile, holes: ready.filter((finer) => isInside(finer, tile)).map((finer) => columnsUnder(tile, finer)) })),
@@ -64,34 +66,32 @@ export function planCover(sight: CameraSight, stateOf: StateOf, coarsestLevel: n
 function backdropLevelFor(sight: CameraSight, coarsestLevel: number): number {
   const wanted = Math.ceil(Math.log2(Math.max(1, (sight.orbitDistance * BACKDROP_TILE_BLOCKS_PER_ORBIT_BLOCK) / TILE_COLUMNS)))
   let level = Math.min(coarsestLevel, Math.max(0, wanted))
-  while (level < coarsestLevel && sight.tilesAt(level, BACKDROP_MARGIN).length > MOST_TILES_IN_SIGHT) {
+  while (level < coarsestLevel && sight.tilesAt(level, BACKDROP_MARGIN).length > MOST_BACKDROP_TILES) {
     level++
   }
   return level
 }
 
-// Each backdrop tile is split into finer tiles while their columns would look wider than the threshold, and the
-// threshold is raised until there are no more columns than the view has pixels to show.
-function detailTiles(sight: CameraSight, backdrop: TerrainTile[], backdropLevel: number, finestLevel: number): TerrainTile[] {
-  const mostColumns = Math.min(sight.pixelsWithin(DETAIL_MARGIN) * MOST_COLUMNS_PER_PIXEL, MOST_TILES_IN_SIGHT * COLUMNS_PER_TILE)
-  let threshold = MOST_COLUMN_PIXELS
+// The tile whose columns look widest is split into finer ones, again and again, until no column looks wider than a
+// pixel or the view has as many tiles as it may. A camera that moves a little so changes a tile or two, not all of them.
+function detailTiles(sight: CameraSight, backdrop: TerrainTile[], finestLevel: number): TerrainTile[] {
+  const tilesThePixelsCanShow = Math.floor((sight.pixelsWithin(DETAIL_MARGIN) * MOST_COLUMNS_PER_PIXEL) / COLUMNS_PER_TILE)
+  const mostTiles = Math.min(MOST_TILES_IN_SIGHT, Math.max(backdrop.length, tilesThePixelsCanShow))
+  const detail = backdrop.map((tile) => ({ tile, columnPixels: sight.columnPixels(tile) }))
   for (;;) {
-    const detail = backdrop.flatMap((tile) => splitWhileCoarse(sight, tile, threshold, finestLevel))
-    const nothingToCoarsen = detail.every((tile) => tile.level === backdropLevel)
-    if (nothingToCoarsen || (detail.length * COLUMNS_PER_TILE <= mostColumns && detail.length <= MOST_TILES_IN_SIGHT)) {
-      return detail
+    const widest = detail
+      .filter((entry) => entry.tile.level > finestLevel && entry.columnPixels > MOST_COLUMN_PIXELS)
+      .reduce<(typeof detail)[number] | null>((most, entry) => (most === null || entry.columnPixels > most.columnPixels ? entry : most), null)
+    if (widest === null) {
+      break
     }
-    threshold *= 2
+    const finer = childrenOf(widest.tile).filter((child) => sight.sees(child, DETAIL_MARGIN))
+    if (detail.length - 1 + finer.length > mostTiles) {
+      break
+    }
+    detail.splice(detail.indexOf(widest), 1, ...finer.map((tile) => ({ tile, columnPixels: sight.columnPixels(tile) })))
   }
-}
-
-function splitWhileCoarse(sight: CameraSight, tile: TerrainTile, threshold: number, finestLevel: number): TerrainTile[] {
-  if (tile.level <= finestLevel || sight.columnPixels(tile) <= threshold) {
-    return [tile]
-  }
-  return childrenOf(tile)
-    .filter((child) => sight.sees(child, DETAIL_MARGIN))
-    .flatMap((child) => splitWhileCoarse(sight, child, threshold, finestLevel))
+  return detail.map((entry) => entry.tile)
 }
 
 // Everything that may be drawn for the view: the backdrop, the detail and the levels between that happen to be there,

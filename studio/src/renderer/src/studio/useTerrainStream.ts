@@ -46,6 +46,24 @@ export function useTerrainStream<Tile, Layer>(
   return { content: stream?.content ?? null, pending, stream }
 }
 
+// Moving the camera a little samples a tile or two, which is over before it is worth a word.
+const WORTH_TELLING_MILLIS = 700
+
+/** Whether tiles have been on their way for long enough to say so. */
+export function useLongPending(pending: number): boolean {
+  const waiting = pending > 0
+  const [long, setLong] = useState(false)
+  useEffect(() => {
+    if (!waiting) {
+      setLong(false)
+      return
+    }
+    const timer = window.setTimeout(() => setLong(true), WORTH_TELLING_MILLIS)
+    return () => window.clearTimeout(timer)
+  }, [waiting])
+  return long
+}
+
 // The camera drifts and tiles arrive in bursts; the ground it sees is read once they have rested this long.
 const GROUND_REST_MILLIS = 250
 

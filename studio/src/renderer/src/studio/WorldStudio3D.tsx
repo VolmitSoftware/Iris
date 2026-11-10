@@ -13,7 +13,7 @@ import { PickInspector } from './PickInspector'
 import { SceneViewport } from './SceneViewport'
 import { usePickInspection } from './usePickInspection'
 import { Panel } from './Sidebar'
-import { useGroundInView, useTerrainStream } from './useTerrainStream'
+import { useGroundInView, useLongPending, useTerrainStream } from './useTerrainStream'
 
 const NUMBER = new Intl.NumberFormat('en-US')
 // The map's coarsest tiles are 4096 blocks a pixel, which is level 12.
@@ -54,6 +54,7 @@ export function WorldStudio3D({ client, world, mapArea, packRevision, onSummary,
     [coloring, world.fluidHeight, world.minY, world.height]
   )
   const { content, pending, stream } = useTerrainStream(source, COARSEST_LEVEL, focus, layer, style, tell)
+  const sampling = useLongPending(pending)
   const ground = useGroundInView(stream)
   const heightShares = useMemo(() => heightBandShares(ground?.heights ?? [], world.fluidHeight), [ground, world.fluidHeight])
   const inspectsPicks = coloring !== 'height'
@@ -88,7 +89,7 @@ export function WorldStudio3D({ client, world, mapArea, packRevision, onSummary,
             Height
           </ToggleGroupItem>
         </ToggleGroup>
-        {pending > 0 && (
+        {sampling && (
           <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card/90 px-3 py-1.5 text-[12px] text-secondary-text">
             Sampling the terrain
           </div>

@@ -17,7 +17,12 @@ const FAR_CLIP_PER_ORBIT_DISTANCE = 20
 // A press that moves further than this between pressing and releasing is a drag, not a click.
 const CLICK_SLOP_PIXELS = 4
 
-function turnsView(event: PointerEvent): boolean {
+// Ground is looked at from above: the camera stops a little over the horizon instead of going under it.
+const LOWEST_OVER_GROUND_RADIANS = Math.PI / 2 - 0.05
+const TURNS_ON_DRAG = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN }
+const MOVES_ON_DRAG = { LEFT: MOUSE.PAN, MIDDLE: MOUSE.ROTATE, RIGHT: MOUSE.ROTATE }
+
+function picks(event: PointerEvent): boolean {
   return event.button === 0 && !event.shiftKey && !event.ctrlKey && !event.metaKey
 }
 
@@ -35,6 +40,8 @@ export interface CameraLink {
 export interface ViewportContent {
   object: Object3D
   bounds: Box3
+  /** Ground to travel over: a drag moves it as the map does and a right drag turns the view; anything else turns on a drag. */
+  isGround?: boolean
   /** Where a ray first meets what is drawn within {@code reach}, or null; without it the viewport casts the ray at the object's meshes. */
   surfaceAlong?(ray: Ray, reach: number): Vector3 | null
   /** Called when the content is shown, so it can follow the camera; returns how to stop following when it goes. */
@@ -52,7 +59,11 @@ interface SceneViewportProps {
   onPick?(picked: PickedSurface): void
 }
 
-/** Something in 3D: drag to turn around what is in the middle, right drag to move, scroll to come closer to the cursor. Drawn only when it changes. */
+/**
+ * Something in 3D. An object turns on a drag and moves on a right drag; ground moves on a drag, as the map does, and
+ * turns on a right drag. Either turns around what is in the middle, and scrolling comes closer to the cursor. The
+ * camera stops with the mouse, and the view is drawn only when it changes.
+ */
 export function SceneViewport({ content, framing, onPick }: SceneViewportProps): React.JSX.Element {
   const host = useRef<HTMLDivElement>(null)
   const stage = useRef<Stage | null>(null)
@@ -94,12 +105,11 @@ class Stage {
     this.renderer.setClearAlpha(0)
     host.appendChild(this.renderer.domElement)
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
-    this.controls.enableDamping = true
     this.controls.zoomToCursor = true
-    this.controls.mouseButtons = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN }
+    this.navigateAs(false)
     this.renderer.domElement.addEventListener('pointerdown', (event) => {
-      this.pressedAt = turnsView(event) ? { x: event.clientX, y: event.clientY } : null
-      this.pivotOnSurfaceInMiddle(event)
+      this.pressedAt = picks(event) ? { x: event.clientX, y: event.clientY } : null
+      this.pivotOnSurfaceInMiddle()
     })
     this.renderer.domElement.addEventListener('pointerup', (event) => this.pickIfClicked(event))
     this.controls.addEventListener('change', () => {
@@ -117,12 +127,20 @@ class Stage {
     this.shown = content
     if (content !== null) {
       this.scene.add(content.object)
+      this.navigateAs(content.isGround === true)
       if (!this.framed) {
         this.frameShown()
       }
       this.stopFollowing = content.follow?.(this.cameraLink()) ?? null
     }
     this.requestFrame()
+  }
+
+  private navigateAs(ground: boolean): void {
+    this.controls.mouseButtons = ground ? MOVES_ON_DRAG : TURNS_ON_DRAG
+    // Ground moves along itself, so dragging up brings what is further away closer instead of lifting the camera.
+    this.controls.screenSpacePanning = !ground
+    this.controls.maxPolarAngle = ground ? LOWEST_OVER_GROUND_RADIANS : Math.PI
   }
 
   private removeShown(): void {
@@ -196,9 +214,10 @@ class Stage {
     this.pickListener(point === null ? null : { point, direction: caster.ray.direction.clone() })
   }
 
-  // The pivot slides along the line of sight, so the picture stays put while turning now goes around what is there.
-  private pivotOnSurfaceInMiddle(event: PointerEvent): void {
-    if (!turnsView(event) || this.shown === null) {
+  // The pivot slides along the line of sight, so the picture stays put while turning now goes around what is there,
+  // and moving keeps pace with it.
+  private pivotOnSurfaceInMiddle(): void {
+    if (this.shown === null) {
       return
     }
     const ray = new Ray(this.camera.getWorldPosition(new Vector3()), this.camera.getWorldDirection(new Vector3()))
@@ -244,8 +263,6 @@ class Stage {
     this.frameRequested = true
     requestAnimationFrame(() => {
       this.frameRequested = false
-      // Damping keeps turning the camera for a moment after a drag, and asks for frames until it stops.
-      this.controls.update()
       this.renderer.render(this.scene, this.camera)
     })
   }

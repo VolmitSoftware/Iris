@@ -228,8 +228,8 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         onDisconnect={onDisconnect}
       />
       <SidebarSlot.Provider value={sidebarSlot}>
-      <div className="relative flex min-h-0 flex-1 gap-1.5 p-1.5">
-        <ViewList views={views} current={viewId} onSelect={selectView} slotRef={setSidebarSlot} floating={showsMap} />
+      <div className="flex min-h-0 flex-1 gap-1.5 p-1.5">
+        <ViewList views={views} current={viewId} onSelect={selectView} slotRef={setSidebarSlot} />
         {viewId === 'regions' && regions.length > 1 && (
           <SidebarPanel className="flex-1 overflow-y-auto p-1.5">
             <RegionPreviewList regions={regions} current={layer.preview} onSelect={selectPreview} />
@@ -279,21 +279,25 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
             </div>
           )}
         </div>
-        <Panel className="w-[250px]">
+        <div className="flex w-[250px] shrink-0 flex-col gap-1.5">
           {inspectsPicks && (
-            <PickInspector
-              title={previewName ?? view.label}
-              inspection={inspection}
-              display={{ picksLabel: viewId === 'regions' && layer.preview === null ? 'Regions' : 'Biomes', value: pickDisplay, onChange: setPickDisplay }}
-            />
+            <Panel className="min-h-0 flex-[7]">
+              <PickInspector
+                title={previewName ?? view.label}
+                inspection={inspection}
+                display={{ picksLabel: viewId === 'regions' && layer.preview === null ? 'Regions' : 'Biomes', value: pickDisplay, onChange: setPickDisplay }}
+              />
+            </Panel>
           )}
-          <Legend
-            className={inspectsPicks ? 'flex-[3]' : 'flex-1'}
-            title={legendTitle(layer)}
-            shares={shares}
-            selection={{ highlight, onSelect: (subject) => setHighlight((current) => (sameSubject(current, subject) ? null : subject)) }}
-          />
-        </Panel>
+          <Panel className="min-h-0 flex-[3]">
+            <Legend
+              className="flex-1"
+              title={legendTitle(layer)}
+              shares={shares}
+              selection={{ highlight, onSelect: (subject) => setHighlight((current) => (sameSubject(current, subject) ? null : subject)) }}
+            />
+          </Panel>
+        </div>
           </>
         )}
       </div>

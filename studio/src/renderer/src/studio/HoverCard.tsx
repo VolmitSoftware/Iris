@@ -52,9 +52,10 @@ export function HoverCard({ hover, point, viewId, previewing, detailed, minY }: 
   return (
     <div
       ref={card}
-      className="pointer-events-none absolute z-10 w-80 rounded-[10px] border border-overlay-border bg-popover px-3.5 py-3 text-popover-foreground shadow-xl backdrop-blur-sm"
+      className="pointer-events-none absolute z-10 w-80 overflow-hidden rounded-lg border border-overlay-border bg-popover text-popover-foreground shadow-lg"
       style={position}
     >
+      <div className="px-3.5 pt-3 pb-2.5">
       <Header subject={subject} region={labelsRegions ? null : hover.region} />
       {parent !== null && <p className="mt-0.5 truncate text-[12px] text-secondary-text">child of {parent}</p>}
       <p className="mt-0.5 truncate text-[12px] text-secondary-text tabular-nums">{ground(hover, minY)}</p>
@@ -72,7 +73,8 @@ export function HoverCard({ hover, point, viewId, previewing, detailed, minY }: 
           </dl>
         </section>
       ))}
-      <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 border-t bg-background/40 px-3.5 py-1.5 text-[11px] text-secondary-text">
         {!detailed && <Hint keyText="Shift" label="More" />}
         {highlightKey !== '' && <Hint keyText={highlightKey} label="Highlight" />}
         <Hint keyText="Alt+Click" label="Open file" />

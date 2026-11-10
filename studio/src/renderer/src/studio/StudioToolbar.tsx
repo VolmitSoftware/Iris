@@ -49,8 +49,8 @@ export function StudioToolbar(props: StudioToolbarProps): React.JSX.Element {
         <IdeIcon name="help" />
       </ToolButton>
       <IconHint hint="Change the studio's keys">
-        <Button variant="ghost" size="sm" className={TEXT_BUTTON} onClick={props.onSettings}>
-          Settings
+        <Button variant="ghost" size="icon-sm" onClick={props.onSettings}>
+          <IdeIcon name="settings" />
         </Button>
       </IconHint>
       <IconHint hint="Back to the world list">

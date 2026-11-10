@@ -23,7 +23,7 @@ const NUMBER = new Intl.NumberFormat('en-US')
 // Saved tiles are read at up to 16 blocks a pixel, which is level 4.
 const COARSEST_SAVED_LEVEL = 4
 const COLORING_ITEM = 'h-7 px-3 text-[12px] data-[state=on]:bg-selection data-[state=on]:text-foreground'
-const PILL = 'pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card/90 px-3 py-1.5 text-[12px] text-secondary-text'
+const PILL = 'pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card px-3 py-1.5 text-[12px] text-secondary-text'
 
 interface SavedWorldStudioProps {
   client: BridgeClient
@@ -93,7 +93,7 @@ export function SavedWorldStudio({ client, world, onSummary, onProgress, tell }:
             type="single"
             variant="outline"
             size="sm"
-            className="bg-card/90"
+            className="bg-card"
             value={coloring}
             onValueChange={(value) => value !== '' && setColoring(value as SavedTerrainColoring)}
           >
@@ -107,7 +107,7 @@ export function SavedWorldStudio({ client, world, onSummary, onProgress, tell }:
               Height
             </ToggleGroupItem>
           </ToggleGroup>
-          <Button variant="outline" size="icon-sm" className="bg-card/90" title="Read again" disabled={reading} onClick={() => setReadings((count) => count + 1)}>
+          <Button variant="outline" size="icon-sm" className="bg-card" title="Read again" disabled={reading} onClick={() => setReadings((count) => count + 1)}>
             <IdeIcon name="refresh" />
           </Button>
         </div>

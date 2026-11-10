@@ -27,7 +27,7 @@ export function Legend({ title, shares, selection, emptyText = 'Drawing the mapâ
   const sharedNames = namesUsedMoreThanOnce(shares)
   return (
     <section className={cn('flex min-h-0 flex-col', className)}>
-      <h2 className="px-4 pt-2.5 pb-1.5 text-[11px] font-semibold text-muted-foreground">{title}</h2>
+      <h2 className="truncate px-4 pt-2.5 pb-2 text-[13px] font-semibold">{title}</h2>
       <ScrollArea className="min-h-0 flex-1">
         <ul className="px-1.5 pb-1">
           {shares.length === 0 && <li className="px-2.5 py-1 text-muted-foreground">{emptyText}</li>}

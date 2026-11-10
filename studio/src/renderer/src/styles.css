@@ -8,7 +8,7 @@
   --foreground: #000000;
   --card: #f7f8fa;
   --card-foreground: #000000;
-  --popover: rgb(255 255 255 / 0.94);
+  --popover: #ffffff;
   --popover-foreground: #000000;
   --primary: #3574f0;
   --primary-foreground: #ffffff;
@@ -37,7 +37,7 @@
   --foreground: #dfe1e5;
   --card: #2b2d30;
   --card-foreground: #dfe1e5;
-  --popover: rgb(43 45 48 / 0.93);
+  --popover: #2b2d30;
   --popover-foreground: #dfe1e5;
   --primary: #3574f0;
   --primary-foreground: #ffffff;
@@ -53,7 +53,7 @@
   --warning: #f2c55c;
   --success: #5fb865;
   --link: #548af7;
-  --border: #1e1f22;
+  --border: #393b40;
   --input: #4e5157;
   --ring: #3574f0;
   --overlay-border: #43454a;

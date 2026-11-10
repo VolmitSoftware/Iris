@@ -31,7 +31,7 @@ const DEFAULT_RELIEF_BLOCKS = 64
 const RELIEF_STEPS = 1000
 const SWATCH_STEPS = 24
 const TOGGLE_ITEM = 'h-7 px-3 text-[12px] data-[state=on]:bg-selection data-[state=on]:text-foreground'
-const PILL = 'pointer-events-none absolute rounded-md border border-overlay-border bg-card/90 px-3 py-1.5 text-[12px] text-secondary-text'
+const PILL = 'pointer-events-none absolute rounded-md border border-overlay-border bg-card px-3 py-1.5 text-[12px] text-secondary-text'
 
 interface NoiseStudioProps {
   client: BridgeClient
@@ -94,7 +94,7 @@ export function NoiseStudio({ client, packRevision, onSummary, tell }: NoiseStud
           <NoiseTerrainView client={client} source={source} seed={seed} revision={packRevision} framing={terrainFraming} scale={scale} reliefBlocks={reliefBlocks} tell={tell} />
         )}
         <div className="absolute top-3 left-3 flex items-center gap-2">
-          <ToggleGroup type="single" variant="outline" size="sm" className="bg-card/90" value={display} onValueChange={(value) => value !== '' && showAs(value as NoiseDisplay)}>
+          <ToggleGroup type="single" variant="outline" size="sm" className="bg-card" value={display} onValueChange={(value) => value !== '' && showAs(value as NoiseDisplay)}>
             <ToggleGroupItem value="flat" className={TOGGLE_ITEM} title="The noise from above, coloured by value">
               2D
             </ToggleGroupItem>
@@ -103,7 +103,7 @@ export function NoiseStudio({ client, packRevision, onSummary, tell }: NoiseStud
             </ToggleGroupItem>
           </ToggleGroup>
           {display === 'flat' && (
-            <Button variant="outline" size="icon-sm" className="bg-card/90" title="Back to 0, 0" onClick={() => controllerRef.current?.resetView()}>
+            <Button variant="outline" size="icon-sm" className="bg-card" title="Back to 0, 0" onClick={() => controllerRef.current?.resetView()}>
               <IdeIcon name="reset" />
             </Button>
           )}
@@ -261,7 +261,7 @@ function ReliefControl({ blocks, onChange }: { blocks: number; onChange(blocks: 
   const span = Math.log(TALLEST_RELIEF_BLOCKS) - Math.log(LOWEST_RELIEF_BLOCKS)
   const step = Math.round(((Math.log(blocks) - Math.log(LOWEST_RELIEF_BLOCKS)) / span) * RELIEF_STEPS)
   return (
-    <label className="flex h-8 items-center gap-2 rounded-md border bg-card/90 px-3 text-[12px] text-secondary-text" title="How many blocks the highest noise rises above the lowest">
+    <label className="flex h-8 items-center gap-2 rounded-md border bg-card px-3 text-[12px] text-secondary-text" title="How many blocks the highest noise rises above the lowest">
       Relief
       <input
         type="range"

@@ -75,7 +75,7 @@ export function WorldStudio3D({ client, world, mapArea, packRevision, onSummary,
           type="single"
           variant="outline"
           size="sm"
-          className="absolute top-3 left-3 bg-card/90"
+          className="absolute top-3 left-3 bg-card"
           value={coloring}
           onValueChange={(value) => value !== '' && setColoring(value as MapTerrainColoring)}
         >
@@ -90,7 +90,7 @@ export function WorldStudio3D({ client, world, mapArea, packRevision, onSummary,
           </ToggleGroupItem>
         </ToggleGroup>
         {sampling && (
-          <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card/90 px-3 py-1.5 text-[12px] text-secondary-text">
+          <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card px-3 py-1.5 text-[12px] text-secondary-text">
             Sampling the terrain
           </div>
         )}

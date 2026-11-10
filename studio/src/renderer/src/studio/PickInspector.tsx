@@ -32,7 +32,7 @@ interface PickInspectorProps {
  */
 export function PickInspector({ title, inspection, display }: PickInspectorProps): React.JSX.Element {
   return (
-    <section className="flex min-h-0 flex-[7] flex-col border-b">
+    <section className="flex min-h-0 flex-1 flex-col">
       <header className="px-4 pt-2.5 pb-2.5">
         <h2 className="truncate text-[13px] font-semibold">{title}</h2>
         <p className="truncate text-[11.5px] text-secondary-text">{inspection?.detail ?? 'Measuring what is in view…'}</p>

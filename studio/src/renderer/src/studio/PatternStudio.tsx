@@ -25,7 +25,7 @@ interface LegendBlocks {
 }
 
 const EMPTY_LEGEND: LegendBlocks = { examples: new Map(), someNone: false }
-const PILL = 'pointer-events-none absolute rounded-md border border-overlay-border bg-card/90 px-3 py-1.5 text-[12px] text-secondary-text'
+const PILL = 'pointer-events-none absolute rounded-md border border-overlay-border bg-card px-3 py-1.5 text-[12px] text-secondary-text'
 
 interface PatternStudioProps {
   client: BridgeClient
@@ -64,7 +64,7 @@ export function PatternStudio({ client, view, packRevision, onSummary, tell }: P
     <>
       <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg">
         <TiledCanvas create={createView} viewRef={viewRef} className="absolute inset-0 size-full cursor-grab active:cursor-grabbing" />
-        <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card/90 p-1 text-[12px] tabular-nums">
+        <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card p-1 text-[12px] tabular-nums">
           {entry !== null && entry.depths > 1 && (
             <>
               <Button variant="ghost" size="icon-sm" title="Higher" onClick={() => chooseDepth(depth - 1)}>

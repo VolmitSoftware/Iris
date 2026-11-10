@@ -166,7 +166,7 @@ function SceneArea({ entry, variant, shown, status, onVariant, onPick }: SceneAr
     <div className="relative min-h-0 flex-[11] overflow-hidden rounded-lg">
       <SceneViewport content={shown?.mesh.content ?? null} framing={shown?.scene} onPick={onPick} />
         {entry !== null && entry.variants > 1 && (
-          <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card/90 p-1 text-[12px] tabular-nums">
+          <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card p-1 text-[12px] tabular-nums">
             <Button variant="ghost" size="icon-sm" title="Previous variant" onClick={() => onVariant(variant - 1)}>
               <IdeIcon name="chevronLeft" />
             </Button>
@@ -179,7 +179,7 @@ function SceneArea({ entry, variant, shown, status, onVariant, onPick }: SceneAr
           </div>
         )}
         {status !== null && (
-          <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card/90 px-3 py-1.5 text-[12px] text-secondary-text">
+          <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card px-3 py-1.5 text-[12px] text-secondary-text">
             {status}
           </div>
         )}

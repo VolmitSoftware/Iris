@@ -85,7 +85,7 @@ public class IrisPapiLifecycleTest {
         String source = source();
 
         assertTrue("onDisable must tear the expansion down",
-                source.contains("public void onDisable() {\n        teardownPapi();"));
+                source.contains("public void onDisable() {\n        pendingWorldReplacements.awaitStagingForShutdown();\n        teardownPapi();"));
         assertTrue("the BileTools pre-unload hook must tear the expansion down",
                 source.contains("public void onPreUnload(ReloadAware.PreUnloadReason reason) {\n        teardownPapi();"));
     }

@@ -65,7 +65,6 @@ public final class ModdedDimensionManager {
     private static final ConcurrentHashMap<String, Handle> HANDLES = new ConcurrentHashMap<>();
     private static final TicketType TELEPORT_WARM_TICKET = new TicketType(TicketType.NO_TIMEOUT,
             TicketType.FLAG_LOADING | TicketType.FLAG_KEEP_DIMENSION_ACTIVE);
-    private static final long TELEPORT_TIMEOUT_SECONDS = 10L;
     private static volatile ModdedServerAccess access;
 
     private ModdedDimensionManager() {
@@ -263,18 +262,6 @@ public final class ModdedDimensionManager {
             ModdedIrisLog.error("Iris failed to restore the engine for retained runtime dimension '{}'",
                     key.identifier(), rollbackFailure);
         }
-    }
-
-    public static CompletableFuture<Boolean> teleportAsync(
-            ServerPlayer player,
-            MinecraftServer server,
-            String dimensionId,
-            double x,
-            double y,
-            double z
-    ) {
-        return teleportAsync(player, server, dimensionId, x, y, z,
-                System.nanoTime() + TimeUnit.SECONDS.toNanos(TELEPORT_TIMEOUT_SECONDS));
     }
 
     public static CompletableFuture<Boolean> teleportAsync(
@@ -513,7 +500,7 @@ public final class ModdedDimensionManager {
         return new TimeoutException("Teleport into " + level.dimension().identifier()
                 + " at " + ModdedTeleportBounds.blockCoordinate(x) + ","
                 + ModdedTeleportBounds.blockCoordinate(z)
-                + " exceeded " + TELEPORT_TIMEOUT_SECONDS + " seconds.");
+                + " did not finish before its deadline.");
     }
 
     private static void runOnServer(MinecraftServer server, Runnable task) {

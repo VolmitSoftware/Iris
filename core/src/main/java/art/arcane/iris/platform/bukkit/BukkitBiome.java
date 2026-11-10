@@ -19,43 +19,33 @@
 package art.arcane.iris.platform.bukkit;
 
 import art.arcane.iris.spi.PlatformBiome;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Biome;
-
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Interned Bukkit adapter for a neutral biome handle.
  */
 public final class BukkitBiome implements PlatformBiome {
-    private static final ConcurrentHashMap<String, BukkitBiome> CACHE = new ConcurrentHashMap<>();
+    private static final Cache<Biome, BukkitBiome> CACHE = Caffeine.newBuilder()
+            .weakKeys()
+            .maximumSize(4_096)
+            .build();
 
     private final Biome biome;
     private final String key;
     private final String namespace;
 
-    private BukkitBiome(Biome biome, String key) {
+    private BukkitBiome(Biome biome) {
         this.biome = biome;
-        this.key = key;
-        int colon = key.indexOf(':');
-        this.namespace = colon >= 0 ? key.substring(0, colon) : "minecraft";
+        NamespacedKey biomeKey = biome.getKey();
+        this.key = biomeKey.toString();
+        this.namespace = biomeKey.getNamespace();
     }
 
     public static BukkitBiome of(Biome biome) {
-        String key = biomeKey(biome);
-        return CACHE.computeIfAbsent(key, (String k) -> new BukkitBiome(biome, k));
-    }
-
-    private static String biomeKey(Biome biome) {
-        for (String method : new String[]{"getKeyOrNull", "getKeyOrThrow", "getKey"}) {
-            try {
-                Object key = Biome.class.getMethod(method).invoke(biome);
-                if (key != null) {
-                    return key.toString();
-                }
-            } catch (Throwable ignored) {
-            }
-        }
-        return biome.toString();
+        return CACHE.get(biome, BukkitBiome::new);
     }
 
     @Override

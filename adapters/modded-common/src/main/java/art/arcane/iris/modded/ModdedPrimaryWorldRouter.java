@@ -101,7 +101,8 @@ public final class ModdedPrimaryWorldRouter {
                         primary,
                         player.getX(),
                         Double.MIN_VALUE,
-                        player.getZ());
+                        player.getZ(),
+                        ModdedTeleportDeadline.fromNow());
                 teleport.whenComplete((success, failure) -> {
                     inFlight.remove(id);
                     if (Boolean.TRUE.equals(success) && failure == null) {

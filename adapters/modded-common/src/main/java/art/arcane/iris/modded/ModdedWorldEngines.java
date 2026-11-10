@@ -225,9 +225,9 @@ public final class ModdedWorldEngines {
             Engine engine = entry.getValue();
             try {
                 // Latch the generator's unloading flag BEFORE closing (unbindEngine sets it,
-                // then evicts): chunk-system drain work running after this stage would
-                // otherwise see a closed engine and silently rebuild a fresh engine + Mantle
-                // that no teardown stage ever closes, writing plates after the final save.
+                // then evicts): late chunk work would otherwise see a closed engine and
+                // silently rebuild a fresh engine + Mantle that no teardown stage ever
+                // closes, writing plates after the final save.
                 if (level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator generator) {
                     generator.unbindEngine(level);
                 } else {

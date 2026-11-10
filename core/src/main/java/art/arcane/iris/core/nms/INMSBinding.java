@@ -230,6 +230,9 @@ public interface INMSBinding {
     default void flushChunkIO(World world) {
     }
 
+    default void reconcileNativeStructurePois(Chunk chunk) {
+    }
+
     void injectBiomesFromMantle(Chunk e, Mantle<Matter> mantle);
 
     ItemStack applyCustomNbt(ItemStack itemStack, KMap<String, Object> customNbt) throws IllegalArgumentException;

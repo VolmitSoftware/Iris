@@ -53,6 +53,7 @@ import art.arcane.iris.core.link.IrisPapiListener;
 import art.arcane.iris.core.link.IrisPapiState;
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.link.MultiverseCoreLink;
+import art.arcane.iris.core.agent.AttachSignal;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.gui.BukkitGuiHost;
 import art.arcane.iris.core.gui.PregeneratorJob;
@@ -203,7 +204,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     private final PendingWorldDeleteQueue pendingWorldDeletes = new PendingWorldDeleteQueue(this);
     private final PendingWorldReplacementManager pendingWorldReplacements = new PendingWorldReplacementManager(this);
     private volatile SettingsHotloadWatch settingsHotloadWatch;
-    private volatile Thread serverLifecycleThread;
 
     public static VolmitSender getSender() {
         VolmitSender current = sender;
@@ -540,6 +540,17 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 this::getIrisVersion,
                 this::getMCVersion));
         SlimJar.load();
+        restoreAttachSignal();
+    }
+
+    private static void restoreAttachSignal() {
+        try {
+            if (AttachSignal.restoreJvmHandler()) {
+                info("Restored the JVM SIGQUIT handler that the server console replaced");
+            }
+        } catch (RuntimeException failure) {
+            reportError("Could not restore the JVM SIGQUIT handler; the Iris agent may fail to attach.", failure);
+        }
     }
 
     private static void bridgeLog(LogLevel level, String message) {
@@ -746,7 +757,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
 
     public void addShutdownHook() {
         removeShutdownHook();
-        serverLifecycleThread = Thread.currentThread();
         shutdownHook = new Thread(this::runShutdownHook, "Iris-ShutdownHook");
         try {
             Runtime.getRuntime().addShutdownHook(shutdownHook);
@@ -877,6 +887,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     }
 
     public void onDisable() {
+        pendingWorldReplacements.awaitStagingForShutdown();
         teardownPapi();
         boolean serverStopping = IrisToolbelt.isServerStopping();
         boolean restartingAtStartupBoundary = startupBoundaryRestart.get();
@@ -1012,7 +1023,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             if (generator == null) {
                 continue;
             }
-            IrisToolbelt.beginWorldMaintenance(world, reason, true);
+            IrisToolbelt.beginWorldMaintenance(world, reason);
             if (!deferredShutdownGenerators.contains(generator)) {
                 deferredShutdownGenerators.add(generator);
             }
@@ -1024,34 +1035,10 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         if (!postStopFinisherStarted.compareAndSet(false, true)) {
             return;
         }
-        Thread activeServerThread = serverLifecycleThread;
-        if (activeServerThread == null) {
-            Iris.warn("Iris could not start its post-stop runtime finisher because the server lifecycle thread is unavailable.");
-            return;
-        }
-
-        Thread finisher = new Thread(() -> {
-            if (!awaitServerThreadTermination(activeServerThread)) {
-                return;
-            }
-            finishDeferredRuntimeTeardown("post-server-stop", 30L);
-        }, "Iris-PostStop-Finisher");
+        Thread finisher = new Thread(() -> finishRuntimeAfterServerShutdown("post-server-stop"),
+                "Iris-PostStop-Finisher");
         finisher.setDaemon(false);
         finisher.start();
-    }
-
-    static boolean awaitServerThreadTermination(Thread serverThread) {
-        if (serverThread == null || serverThread == Thread.currentThread()) {
-            return false;
-        }
-        try {
-            serverThread.join();
-            return true;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            Iris.reportError("Iris post-stop runtime finisher was interrupted.", e);
-            return false;
-        }
     }
 
     private void runShutdownHook() {
@@ -1059,16 +1046,20 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             finishDeferredRuntimeTeardown("startup-boundary-restart-hook", 30L);
             return;
         }
+        finishRuntimeAfterServerShutdown("shutdown-hook");
+    }
+
+    private void finishRuntimeAfterServerShutdown(String reason) {
         if (!awaitServerShutdownBoundary()) {
-            Iris.warn("Iris skipped JVM-hook runtime teardown because Paper did not reach its post-world-close boundary.");
+            Iris.warn("Iris retained its runtime and plugin class loader because the server did not reach its post-world-close boundary.");
             return;
         }
-        finishDeferredRuntimeTeardown("shutdown-hook", 30L);
+        finishDeferredRuntimeTeardown(reason, 30L);
     }
 
     private boolean awaitServerShutdownBoundary() {
         if (!INMS.isBound()) {
-            return true;
+            return false;
         }
         try {
             return INMS.get().awaitServerShutdownBoundary(
@@ -1281,12 +1272,15 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     public int getIrisVersion() {
         String input = getDescription().getVersion();
         int hyphenIndex = input.indexOf('-');
-        if (hyphenIndex != -1) {
-            String result = input.substring(0, hyphenIndex);
-            result = result.replaceAll("\\.", "");
-            return Integer.parseInt(result);
+        String release = hyphenIndex < 0 ? input : input.substring(0, hyphenIndex);
+        if (!release.matches("[0-9]+(?:\\.[0-9]+)*")) {
+            return -1;
         }
-        return -1;
+        try {
+            return Integer.parseInt(release.replace(".", ""));
+        } catch (NumberFormatException invalid) {
+            return -1;
+        }
     }
 
     public int getMCVersion() {

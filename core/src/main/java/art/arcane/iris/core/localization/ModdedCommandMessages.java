@@ -21,7 +21,10 @@ public final class ModdedCommandMessages {
     public static final TextKey IRIS_MODDED_COMMANDS_CONSOLE_MUST_NAME_PLAYER_IRIS_TP_DIMENSION_PLAYER = text("iris.modded.irismoddedcommands.console_must_name_player_iris_tp_dimension_player");
     public static final TextKey IRIS_MODDED_COMMANDS_IS_NOT_GENERATED_BY_IRIS = text("iris.modded.irismoddedcommands.is_not_generated_by_iris");
     public static final TextKey IRIS_MODDED_COMMANDS_TELEPORT_FAILED_DIMENSION_IS_NOT_LOADED = text("iris.modded.irismoddedcommands.teleport_failed_dimension_is_not_loaded");
-    public static final TextKey IRIS_MODDED_COMMANDS_TELEPORTING = text("iris.modded.irismoddedcommands.teleporting");
+    public static final TextKey IRIS_MODDED_COMMANDS_TELEPORT_FAILED_REASON = text("iris.modded.irismoddedcommands.teleport_failed_reason");
+    public static final TextKey IRIS_MODDED_COMMANDS_TELEPORT_CANCELLED_PLAYER_OFFLINE = text("iris.modded.irismoddedcommands.teleport_cancelled_player_offline");
+    public static final TextKey IRIS_MODDED_COMMANDS_TELEPORT_REFUSED = text("iris.modded.irismoddedcommands.teleport_refused");
+    public static final TextKey IRIS_MODDED_COMMANDS_TELEPORTING =text("iris.modded.irismoddedcommands.teleporting");
     public static final TextKey IRIS_MODDED_COMMANDS_IS_NOT_GENERATED_BY_IRIS_2 = text("iris.modded.irismoddedcommands.is_not_generated_by_iris_2");
     public static final TextKey IRIS_MODDED_COMMANDS_CANNOT_EVACUATE_PRIMARY_WORLD_THERE_IS_NOWHERE_SEND_PLAYERS = text("iris.modded.irismoddedcommands.cannot_evacuate_primary_world_there_is_nowhere_send_players");
     public static final TextKey IRIS_MODDED_COMMANDS_EVACUATED_PLAYER_S_FROM = text("iris.modded.irismoddedcommands.evacuated_player_s_from");

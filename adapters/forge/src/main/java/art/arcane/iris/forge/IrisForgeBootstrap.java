@@ -41,6 +41,7 @@ import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.loot.IGlobalLootModifier;
@@ -82,6 +83,7 @@ public final class IrisForgeBootstrap {
         ServerStartingEvent.BUS.addListener((ServerStartingEvent event) -> ModdedEngineBootstrap.start(event.getServer()));
         ServerStartedEvent.BUS.addListener((ServerStartedEvent event) -> ModdedEngineBootstrap.serverStarted(event.getServer()));
         ServerStoppingEvent.BUS.addListener((ServerStoppingEvent event) -> ModdedEngineBootstrap.stop());
+        ServerStoppedEvent.BUS.addListener((ServerStoppedEvent event) -> ModdedEngineBootstrap.stopped());
         LevelEvent.Load.BUS.addListener((LevelEvent.Load event) -> {
             if (event.getLevel() instanceof ServerLevel level) {
                 ModdedEngineBootstrap.levelLoaded(level);

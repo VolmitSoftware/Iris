@@ -1,18 +1,22 @@
+import org.apache.commons.compress.archivers.zip.ExtraFieldUtils;
+import org.apache.commons.compress.archivers.zip.Zip64Mode;
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.gradle.api.GradleException;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
+import java.util.zip.ZipFile;
 
 public final class JarCompactor {
     private static final int BUFFER_BYTES = 64 * 1024;
@@ -45,31 +49,50 @@ public final class JarCompactor {
 
     private static void rewrite(Path source, Path destination) throws IOException {
         byte[] buffer = new byte[BUFFER_BYTES];
-        try (InputStream rawInput = new BufferedInputStream(Files.newInputStream(source));
-             ZipInputStream input = new ZipInputStream(rawInput);
-             OutputStream rawOutput = new BufferedOutputStream(Files.newOutputStream(destination));
-             ZipOutputStream output = new ZipOutputStream(rawOutput)) {
+        try (ZipFile input = new ZipFile(source.toFile());
+             ZipArchiveOutputStream output = new ZipArchiveOutputStream(destination)) {
+            if (!output.isSeekable()) {
+                throw new IOException("Jar compaction requires seekable output.");
+            }
             output.setLevel(9);
-            ZipEntry entry;
-            while ((entry = input.getNextEntry()) != null) {
+            output.setUseZip64(Zip64Mode.Never);
+            output.setCreateUnicodeExtraFields(ZipArchiveOutputStream.UnicodeExtraFieldPolicy.NEVER);
+            Set<String> names = new HashSet<>();
+            Enumeration<? extends ZipEntry> entries = input.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
                 if (entry.isDirectory()) {
                     continue;
                 }
-                ZipEntry compacted = copyMetadata(entry);
-                output.putNextEntry(compacted);
-                int read;
-                while ((read = input.read(buffer)) >= 0) {
-                    if (read > 0) {
-                        output.write(buffer, 0, read);
-                    }
+                if (!names.add(entry.getName())) {
+                    throw new IOException("Duplicate jar entry: " + entry.getName());
                 }
-                output.closeEntry();
+                output.putArchiveEntry(copyMetadata(entry));
+                copyEntry(input, output, entry, buffer);
+                output.closeArchiveEntry();
             }
         }
     }
 
-    private static ZipEntry copyMetadata(ZipEntry source) {
-        ZipEntry target = new ZipEntry(source.getName());
+    private static void copyEntry(ZipFile input, ZipArchiveOutputStream output, ZipEntry entry, byte[] buffer)
+            throws IOException {
+        CRC32 crc = new CRC32();
+        long size = 0L;
+        try (InputStream content = input.getInputStream(entry)) {
+            int read;
+            while ((read = content.read(buffer)) != -1) {
+                output.write(buffer, 0, read);
+                crc.update(buffer, 0, read);
+                size += read;
+            }
+        }
+        if (size != entry.getSize() || crc.getValue() != entry.getCrc()) {
+            throw new IOException("Jar entry failed size or CRC verification: " + entry.getName());
+        }
+    }
+
+    private static ZipArchiveEntry copyMetadata(ZipEntry source) throws IOException {
+        ZipArchiveEntry target = new ZipArchiveEntry(source.getName());
         target.setMethod(ZipEntry.DEFLATED);
         if (source.getTime() >= 0L) {
             target.setTime(source.getTime());
@@ -78,7 +101,8 @@ public final class JarCompactor {
             target.setComment(source.getComment());
         }
         if (source.getExtra() != null) {
-            target.setExtra(source.getExtra());
+            target.setExtraFields(ExtraFieldUtils.parse(source.getExtra(), true,
+                    ZipArchiveEntry.ExtraFieldParsingMode.BEST_EFFORT));
         }
         return target;
     }

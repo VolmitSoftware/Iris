@@ -33,6 +33,7 @@ import art.arcane.iris.modded.api.ModdedBlockData;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.project.matter.TileWrapper;
+import art.arcane.volmlib.util.function.Consumer3;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -40,6 +41,7 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterUpdate;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -60,6 +62,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 public final class ModdedChunkUpdateService implements ModdedTickableService {
     private static final long PASS_PERIOD_MILLIS = 3_000L;
@@ -154,7 +157,7 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
             int centerZ = player.blockPosition().getZ() >> 4;
             for (int dx = -PLAYER_CHUNK_RADIUS; dx <= PLAYER_CHUNK_RADIUS; dx++) {
                 for (int dz = -PLAYER_CHUNK_RADIUS; dz <= PLAYER_CHUNK_RADIUS; dz++) {
-                    updateChunk(engine, level, centerX + dx, centerZ + dz);
+                    updatePassChunk(engine, level, centerX + dx, centerZ + dz);
                 }
             }
         }
@@ -162,7 +165,7 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
 
     private void updateForcedChunks(Engine engine, ServerLevel level) {
         for (long chunkKey : level.getForceLoadedChunks()) {
-            updateChunk(engine, level, ChunkPos.getX(chunkKey), ChunkPos.getZ(chunkKey));
+            updatePassChunk(engine, level, ChunkPos.getX(chunkKey), ChunkPos.getZ(chunkKey));
         }
     }
 
@@ -170,8 +173,30 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
         updateChunk(engine, level, chunkX, chunkZ, false);
     }
 
-    private void updateChunk(Engine engine, ServerLevel level, int chunkX, int chunkZ) {
-        updateChunk(engine, level, chunkX, chunkZ, true);
+    private void updatePassChunk(Engine engine, ServerLevel level, int chunkX, int chunkZ) {
+        isolateChunkFailure(
+                () -> updateChunk(engine, level, chunkX, chunkZ, true),
+                () -> engine.isClosed() || engine.getMantle().getMantle().isClosed(),
+                String.valueOf(level.dimension().identifier()),
+                chunkX,
+                chunkZ);
+    }
+
+    static void isolateChunkFailure(Runnable chunkUpdate, BooleanSupplier passEnded, String levelName, int chunkX, int chunkZ) {
+        try {
+            chunkUpdate.run();
+        } catch (RuntimeException failure) {
+            if (passEnded.getAsBoolean()) {
+                throw failure;
+            }
+            boolean firstFailure = IrisLogging.errorOnce(
+                    "chunk-update:" + levelName + ":" + chunkX + "," + chunkZ + ":" + failure,
+                    "Iris chunk update failed at %s,%s in %s, retrying each pass: %s",
+                    chunkX, chunkZ, levelName, failure);
+            if (firstFailure) {
+                IrisLogging.reportError(failure);
+            }
+        }
     }
 
     private void updateChunk(Engine engine, ServerLevel level, int chunkX, int chunkZ, boolean requireNeighbors) {
@@ -354,13 +379,47 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
             }
         }
 
-        chunk.iterate(MatterUpdate.class, (Integer x, Integer yf, Integer z, MatterUpdate v) -> {
-            if (v != null && v.isUpdate()) {
-                update(engine, level, x, yf + minHeight, z, baseX, baseZ, chunk);
-            }
-        });
-        chunk.deleteSlices(MatterUpdate.class);
+        applyQueuedUpdates(chunk, (Integer x, Integer yf, Integer z) ->
+                update(engine, level, x, yf + minHeight, z, baseX, baseZ, chunk));
         engine.getMetrics().getUpdates().put(stopwatch.getMilliseconds());
+    }
+
+    static void applyQueuedUpdates(MantleChunk<Matter> chunk, Consumer3<Integer, Integer, Integer> update) {
+        IntArrayList completed = new IntArrayList();
+        try {
+            chunk.iterate(MatterUpdate.class, (Integer x, Integer yf, Integer z, MatterUpdate v) -> {
+                if (v != null && v.isUpdate()) {
+                    update.accept(x, yf, z);
+                    completed.add(packUpdatePosition(x, yf, z));
+                }
+            });
+        } catch (RuntimeException | Error failure) {
+            forgetCompletedUpdates(chunk, completed, failure);
+            throw failure;
+        }
+        chunk.deleteSlices(MatterUpdate.class);
+    }
+
+    private static int packUpdatePosition(int x, int yf, int z) {
+        return (yf << 8) | ((x & 15) << 4) | (z & 15);
+    }
+
+    private static void forgetCompletedUpdates(MantleChunk<Matter> chunk, IntArrayList completed, Throwable failure) {
+        try {
+            for (int index = 0; index < completed.size(); index++) {
+                int position = completed.getInt(index);
+                int yf = position >>> 8;
+                Matter section = chunk.get(yf >> 4);
+                if (section != null && section.hasSlice(MatterUpdate.class)) {
+                    section.<MatterUpdate>getSlice(MatterUpdate.class)
+                            .set((position >> 4) & 15, yf & 15, position & 15, null);
+                }
+            }
+        } catch (RuntimeException | Error cleanupFailure) {
+            if (cleanupFailure != failure) {
+                failure.addSuppressed(cleanupFailure);
+            }
+        }
     }
 
     private void update(Engine engine, ServerLevel level, int x, int y, int z, int baseX, int baseZ, MantleChunk<Matter> chunk) {

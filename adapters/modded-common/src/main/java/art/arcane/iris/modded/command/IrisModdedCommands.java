@@ -36,6 +36,7 @@ import art.arcane.iris.modded.ModdedForcedDatapack;
 import art.arcane.iris.modded.ModdedLoader;
 import art.arcane.iris.modded.ModdedScheduler;
 import art.arcane.iris.modded.ModdedServerLevels;
+import art.arcane.iris.modded.ModdedTeleportDeadline;
 import art.arcane.iris.modded.ModdedWorldgenIds;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KMap;
@@ -58,6 +59,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
 import art.arcane.volmlib.util.localization.MessageArgument;
@@ -135,7 +137,8 @@ public final class IrisModdedCommands {
                 dimensionId,
                 8.5D,
                 Double.MIN_VALUE,
-                8.5D);
+                8.5D,
+                ModdedTeleportDeadline.fromNow());
         teleport.whenComplete((success, failure) -> {
             if (Boolean.TRUE.equals(success) && failure == null) {
                 return;
@@ -144,12 +147,41 @@ public final class IrisModdedCommands {
                 ModdedIrisLog.error("Iris teleport into '{}' failed for {}",
                         dimensionId, player.getUUID(), failure);
             }
-            server.execute(() -> fail(source, IrisLanguage.plain(
-                    ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORT_FAILED_DIMENSION_IS_NOT_LOADED,
-                    MessageArgument.untrusted("dimensionId", dimensionId))));
+            server.execute(() -> fail(source, teleportFailure(dimensionId, player.getScoreboardName(), failure,
+                    ModdedDimensionManager.level(server, dimensionId) != null,
+                    server.getPlayerList().getPlayer(player.getUUID()) != null)));
         });
         ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORTING, MessageArgument.untrusted("value", player.getScoreboardName()), MessageArgument.untrusted("dimensionId", dimensionId)));
         return 1;
+    }
+
+    static String teleportFailure(String dimensionId, String playerName, Throwable failure,
+                                  boolean dimensionLoaded, boolean playerOnline) {
+        if (failure != null) {
+            return IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORT_FAILED_REASON,
+                    MessageArgument.untrusted("dimensionId", dimensionId),
+                    MessageArgument.untrusted("reason", failureReason(failure)));
+        }
+        if (!dimensionLoaded) {
+            return IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORT_FAILED_DIMENSION_IS_NOT_LOADED,
+                    MessageArgument.untrusted("dimensionId", dimensionId));
+        }
+        if (!playerOnline) {
+            return IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORT_CANCELLED_PLAYER_OFFLINE,
+                    MessageArgument.untrusted("dimensionId", dimensionId),
+                    MessageArgument.untrusted("value", playerName));
+        }
+        return IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORT_REFUSED,
+                MessageArgument.untrusted("dimensionId", dimensionId));
+    }
+
+    private static String failureReason(Throwable failure) {
+        Throwable cause = failure;
+        while (cause instanceof CompletionException && cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        String message = cause.getMessage();
+        return message == null || message.isBlank() ? cause.getClass().getSimpleName() : message;
     }
 
     static int evacuate(CommandSourceStack source, ServerLevel target) {
@@ -262,20 +294,7 @@ public final class IrisModdedCommands {
                     && !irisGenerator.dimensionKey().contains(filter)) {
                 continue;
             }
-            Engine engine = irisGenerator.engineIfBound();
-            if (engine == null) {
-                lines.add(irisIdentity + ": pack=" + irisGenerator.dimensionKey()
-                        + " world=" + dimensionId + " (engine not started yet)");
-                continue;
-            }
-            String featureStatus = irisGenerator.importedFeaturesStatus();
-            lines.add(irisIdentity + ": pack=" + engine.getDimension().getLoadKey()
-                    + " world=" + dimensionId
-                    + (showSeed ? " seed=" + level.getSeed() : "")
-                    + " height=" + engine.getMinHeight() + ".." + engine.getMaxHeight()
-                    + " generated=" + engine.getGenerated()
-                    + (featureStatus == null ? "" : " importedFeatures=" + featureStatus)
-                    + " data=" + engine.getData().getDataFolder().getName());
+            lines.add(worldRow(dimensionId, irisGenerator.dimensionKey(), irisGenerator.engineIfBound(), showSeed, irisGenerator.importedFeaturesStatus()));
         }
         ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_LOADED_DIMENSIONS_IRIS, MessageArgument.untrusted("total", total), MessageArgument.untrusted("iris", iris)));
         if (lines.isEmpty()) {
@@ -292,6 +311,26 @@ public final class IrisModdedCommands {
         return 1;
     }
 
+    record WorldRow(String dimensionId, String packKey, long seed, int minHeight, int maxHeight, int generated, String dataName) {
+        String format(boolean showSeed, String featureStatus) {
+            return dimensionId + ": pack=" + packKey
+                    + (showSeed ? " seed=" + seed : "")
+                    + " height=" + minHeight + ".." + maxHeight
+                    + " generated=" + generated
+                    + (featureStatus == null ? "" : " importedFeatures=" + featureStatus)
+                    + " data=" + dataName;
+        }
+    }
+
+    static String worldRow(String dimensionId, String dimensionKey, Engine engine, boolean showSeed, String featureStatus) {
+        if (engine == null) {
+            return dimensionId + ": pack=" + dimensionKey + " (engine not started yet)";
+        }
+        return new WorldRow(dimensionId, engine.getDimension().getLoadKey(), engine.getWorld().getRawWorldSeed(),
+                engine.getMinHeight(), engine.getMaxHeight(), engine.getEngineData().getStatistics().getChunksGenerated(),
+                engine.getData().getDataFolder().getName()).format(showSeed, featureStatus);
+    }
+
     static int seed(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
         Engine engine = engineFor(level);
@@ -299,7 +338,7 @@ public final class IrisModdedCommands {
             fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_14));
             return 0;
         }
-        ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_WORLD_SEED, MessageArgument.untrusted("value", level.getSeed())));
+        ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_WORLD_SEED, MessageArgument.untrusted("value", engine.getWorld().getRawWorldSeed())));
         ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_ENGINE_SEED_MIXED, MessageArgument.untrusted("value", engine.getSeedManager().getSeed()), MessageArgument.untrusted("value2", engine.getSeedManager().getFullMixedSeed())));
         return 1;
     }

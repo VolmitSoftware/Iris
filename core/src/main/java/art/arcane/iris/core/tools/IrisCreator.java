@@ -313,6 +313,8 @@ public class IrisCreator {
                         .thenCompose(Function.identity())
                         .get(WORLD_CREATE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 if (!studio && !benchmark) {
+                    World createdWorld = world;
+                    J.sfut(() -> createdWorld.save()).get(WORLD_CREATE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                     awaitInitialSpawnPreparation(access, name);
                 }
             } catch (Throwable e) {
@@ -745,12 +747,15 @@ public class IrisCreator {
             }
         }
         if (activeWorld != null) {
-            IrisToolbelt.beginWorldMaintenance(activeWorld, "world-create-rollback", true);
+            boolean maintenanceEntered = false;
             try {
                 PlatformChunkGenerator generator = IrisToolbelt.access(activeWorld);
                 boolean evacuated = Boolean.TRUE.equals(IrisToolbelt.evacuateAsync(activeWorld)
                         .get(ROLLBACK_PHASE_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-                if (!evacuated) {
+                if (evacuated) {
+                    IrisToolbelt.beginWorldMaintenance(activeWorld, "world-create-rollback", true);
+                    maintenanceEntered = true;
+                } else {
                     safeToDelete = false;
                     failure.addSuppressed(new IllegalStateException(
                             "Rollback could not evacuate world \"" + name + "\"."));
@@ -778,7 +783,9 @@ public class IrisCreator {
                     ServerConfigurator.restart("World creation rollback timed out for \"" + name + "\".");
                 }
             } finally {
-                IrisToolbelt.endWorldMaintenance(activeWorld, "world-create-rollback", true);
+                if (maintenanceEntered) {
+                    IrisToolbelt.endWorldMaintenance(activeWorld, "world-create-rollback", true);
+                }
             }
         }
 

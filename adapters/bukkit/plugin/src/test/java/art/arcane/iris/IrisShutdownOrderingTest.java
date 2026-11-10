@@ -24,9 +24,10 @@ public class IrisShutdownOrderingTest {
         String source = Files.readString(Path.of(System.getProperty("iris.startupSource")));
         String onDisable = section(source, "public void onDisable()", "public void onPreUnload");
         String quiesce = section(source, "private void quiesceRuntimeForServerShutdown", "private void startPostStopFinisher");
-        String shutdownHook = section(source, "private void runShutdownHook()", "private boolean awaitServerShutdownBoundary");
-        String finisher = section(source, "private void startPostStopFinisher()", "static boolean awaitServerThreadTermination");
-        String serverJoin = section(source, "static boolean awaitServerThreadTermination", "private void runShutdownHook");
+        String shutdownHook = section(source, "private void runShutdownHook()", "private void finishRuntimeAfterServerShutdown");
+        String boundaryFinish = section(source, "private void finishRuntimeAfterServerShutdown", "private boolean awaitServerShutdownBoundary");
+        String boundaryAwait = section(source, "private boolean awaitServerShutdownBoundary", "private void finishDeferredRuntimeTeardown");
+        String finisher = section(source, "private void startPostStopFinisher()", "private void runShutdownHook");
         String generatorSource = Files.readString(Path.of(System.getProperty("iris.bukkitChunkGeneratorSource")));
         String generatorQuiesce = section(generatorSource,
                 "public void quiesceForServerShutdown()", "public boolean isStudio()");
@@ -43,17 +44,19 @@ public class IrisShutdownOrderingTest {
                 "startupBoundaryRestart.get()",
                 "finishDeferredRuntimeTeardown(\"startup-boundary-restart-hook\", 30L)",
                 "return;",
-                "awaitServerShutdownBoundary()",
-                "finishDeferredRuntimeTeardown(\"shutdown-hook\", 30L)");
+                "finishRuntimeAfterServerShutdown(\"shutdown-hook\")");
         assertOrdered(finisher,
+                "finishRuntimeAfterServerShutdown(\"post-server-stop\")",
                 "finisher.setDaemon(false)",
                 "finisher.start()");
-        assertOrdered(finisher,
-                "awaitServerThreadTermination(activeServerThread)",
-                "finishDeferredRuntimeTeardown(\"post-server-stop\", 30L)");
-        assertOrdered(serverJoin,
-                "serverThread == Thread.currentThread()",
-                "serverThread.join()");
+        assertOrdered(boundaryFinish,
+                "awaitServerShutdownBoundary()",
+                "return;",
+                "finishDeferredRuntimeTeardown(reason, 30L)");
+        assertTrue("A missing shutdown boundary must retain the runtime",
+                boundaryAwait.contains("if (!INMS.isBound()) {\n            return false;"));
+        assertFalse("Runtime cleanup must wait for the shutdown boundary, not the server thread",
+                source.contains("serverThread.join()") || source.contains("serverLifecycleThread"));
         assertTrue("Server-stop quiescence must leave queued Paper generation admitted",
                 quiesce.contains("generator.quiesceForServerShutdown()"));
         assertOrdered(quiesce,
@@ -63,6 +66,12 @@ public class IrisShutdownOrderingTest {
         assertOrdered(onDisable,
                 "quiesceRuntimeForServerShutdown(\"onDisable\")",
                 "super.onDisable()");
+        assertTrue("Server-stop quiescence must keep queued generation running its mantle stages",
+                quiesce.contains("IrisToolbelt.beginWorldMaintenance(world, reason);"));
+        assertTrue("Disable must wait for a replacement that is staging before it tears anything down",
+                onDisable.indexOf("pendingWorldReplacements.awaitStagingForShutdown()") >= 0
+                        && onDisable.indexOf("pendingWorldReplacements.awaitStagingForShutdown()")
+                        < onDisable.indexOf("teardownPapi()"));
         assertFalse("Server-stop quiescence must not begin generator close before Paper's boundary",
                 generatorQuiesce.contains("closing = true"));
         assertFalse("Server-stop quiescence must not dispatch generator close before Paper's boundary",

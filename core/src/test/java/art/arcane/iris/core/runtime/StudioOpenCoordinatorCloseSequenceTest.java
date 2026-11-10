@@ -22,12 +22,37 @@ public class StudioOpenCoordinatorCloseSequenceTest {
 
         StudioOpenCoordinator.sequenceStudioClose(
                 () -> phase(phases, "evacuate"),
+                () -> phases.add("maintenance"),
                 () -> phase(phases, "unload"),
                 () -> phase(phases, "close-generator"),
                 () -> phase(phases, "delete-folders")
         ).join();
 
-        assertEquals(List.of("evacuate", "unload", "close-generator", "delete-folders"), phases);
+        assertEquals(List.of("evacuate", "maintenance", "unload", "close-generator", "delete-folders"), phases);
+    }
+
+    @Test
+    public void evacuationFailureNeverEntersMaintenance() {
+        ArrayList<String> phases = new ArrayList<>();
+        IllegalStateException failure = new IllegalStateException("evacuation failed");
+
+        try {
+            StudioOpenCoordinator.sequenceStudioClose(
+                    () -> {
+                        phases.add("evacuate");
+                        return CompletableFuture.failedFuture(failure);
+                    },
+                    () -> phases.add("maintenance"),
+                    () -> phase(phases, "unload"),
+                    () -> phase(phases, "close-generator"),
+                    () -> phase(phases, "delete-folders")
+            ).join();
+            fail("Expected evacuation failure");
+        } catch (CompletionException exception) {
+            assertSame(failure, exception.getCause());
+        }
+
+        assertEquals(List.of("evacuate"), phases);
     }
 
     @Test
@@ -38,6 +63,7 @@ public class StudioOpenCoordinatorCloseSequenceTest {
         try {
             StudioOpenCoordinator.sequenceStudioClose(
                     () -> phase(phases, "evacuate"),
+                    () -> phases.add("maintenance"),
                     () -> {
                         phases.add("unload");
                         return CompletableFuture.failedFuture(failure);
@@ -50,7 +76,7 @@ public class StudioOpenCoordinatorCloseSequenceTest {
             assertSame(failure, exception.getCause());
         }
 
-        assertEquals(List.of("evacuate", "unload"), phases);
+        assertEquals(List.of("evacuate", "maintenance", "unload"), phases);
     }
 
     @Test
@@ -61,6 +87,7 @@ public class StudioOpenCoordinatorCloseSequenceTest {
         try {
             StudioOpenCoordinator.sequenceStudioClose(
                     () -> phase(phases, "evacuate"),
+                    () -> phases.add("maintenance"),
                     () -> phase(phases, "unload"),
                     () -> {
                         phases.add("close-generator");
@@ -73,7 +100,7 @@ public class StudioOpenCoordinatorCloseSequenceTest {
             assertSame(failure, exception.getCause());
         }
 
-        assertEquals(List.of("evacuate", "unload", "close-generator"), phases);
+        assertEquals(List.of("evacuate", "maintenance", "unload", "close-generator"), phases);
     }
 
     @Test
@@ -84,6 +111,7 @@ public class StudioOpenCoordinatorCloseSequenceTest {
 
         CompletableFuture<Void> close = StudioOpenCoordinator.sequenceStudioClose(
                 () -> phase(phases, "evacuate"),
+                () -> phases.add("maintenance"),
                 () -> {
                     phases.add("unload");
                     return unload;
@@ -100,7 +128,7 @@ public class StudioOpenCoordinatorCloseSequenceTest {
         } catch (CompletionException exception) {
             assertEquals("Studio close stopped after its terminal timeout.", exception.getCause().getMessage());
         }
-        assertEquals(List.of("evacuate", "unload"), phases);
+        assertEquals(List.of("evacuate", "maintenance", "unload"), phases);
     }
 
     @Test

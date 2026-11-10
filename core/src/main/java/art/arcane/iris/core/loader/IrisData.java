@@ -22,6 +22,7 @@ import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.Strictness;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
@@ -727,10 +728,12 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                     return null;
                 }
 
+                String path = reader.getPath();
+                JsonElement value = gson.getAdapter(JsonElement.class).read(reader);
                 try {
-                    return adapter.read(reader);
+                    return adapter.fromJsonTree(value);
                 } catch (Throwable e) {
-                    IrisLogging.error("Failed to read " + typeToken.getRawType().getCanonicalName() + "... faking objects a little to load the file at least.");
+                    IrisLogging.error("Failed to read %s at %s (%s), using defaults", typeToken.getRawType().getSimpleName(), path, e.getMessage());
                     IrisLogging.reportError(e);
                     try {
                         return (T) typeToken.getRawType().getConstructor().newInstance();

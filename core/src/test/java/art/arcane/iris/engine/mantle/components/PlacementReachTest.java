@@ -61,6 +61,18 @@ public class PlacementReachTest {
     }
 
     @Test
+    public void slopeTiltReachesAsFarAsAVerticalRotationEvenWhenTheRotationIsDisabled() {
+        String disabledRotation = "\"rotation\":{\"enabled\":false}";
+        ObjectPlacement flat = TestSettings.of(ObjectPlacement.class, "{" + disabledRotation + ",\"translate\":{\"x\":3,\"y\":4}}");
+        ObjectPlacement tilted = TestSettings.of(ObjectPlacement.class,
+                "{" + disabledRotation + ",\"rotateTowardsSlope\":true,\"translate\":{\"x\":3,\"y\":4}}");
+        ObjectSize tallObject = new ObjectSize(5, 48, 7);
+
+        assertEquals(10, PlacementReach.of(tallObject, flat));
+        assertEquals(53, PlacementReach.of(tallObject, tilted));
+    }
+
+    @Test
     public void scaleWarpAndVacuumExpandPlacementReach() {
         ObjectPlacement placement = TestSettings.of(ObjectPlacement.class,
                 "{\"scale\":{\"size\":2},\"warp\":{\"style\":\"SIMPLEX\",\"multiplier\":10},\"mode\":\"VACUUM\","

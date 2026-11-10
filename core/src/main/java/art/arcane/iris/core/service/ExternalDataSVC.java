@@ -43,10 +43,12 @@ import org.bukkit.entity.Entity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.PluginEnableEvent;
+import org.bukkit.event.server.ServerLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.MissingResourceException;
@@ -73,6 +75,8 @@ public class ExternalDataSVC implements IrisService, CustomBlockSource {
     private final KList<ExternalDataProvider> providers = new KList<>();
     private final KList<ExternalDataProvider> activeProviders = new KList<>();
     private final AtomicBoolean placeholdersHandedOut = new AtomicBoolean();
+    private final List<Runnable> actionsAwaitingProviderContent = new ArrayList<>();
+    private volatile boolean serverLoaded;
 
     /**
      * Whether a key that no provider claims may still belong to a provider that has not loaded its
@@ -87,8 +91,40 @@ public class ExternalDataSVC implements IrisService, CustomBlockSource {
         placeholdersHandedOut.set(true);
     }
 
+    /**
+     * Runs {@code action} on the main thread once the server has started and every provider has loaded its blocks and
+     * items, so whatever it checks against the block registry sees them.
+     */
+    public void afterProviderContentLoads(Runnable action) {
+        synchronized (actionsAwaitingProviderContent) {
+            actionsAwaitingProviderContent.add(action);
+        }
+        runActionsIfProviderContentLoaded();
+    }
+
+    @EventHandler
+    public void onServerLoad(ServerLoadEvent event) {
+        serverLoaded = true;
+        runActionsIfProviderContentLoaded();
+    }
+
+    private void runActionsIfProviderContentLoaded() {
+        if (!serverLoaded || isAwaitingProviderContent()) {
+            return;
+        }
+        List<Runnable> actions;
+        synchronized (actionsAwaitingProviderContent) {
+            actions = List.copyOf(actionsAwaitingProviderContent);
+            actionsAwaitingProviderContent.clear();
+        }
+        if (!actions.isEmpty()) {
+            J.s(() -> actions.forEach(Runnable::run));
+        }
+    }
+
     /** Reloads the Iris worlds that resolved a block while a provider was still loading, now that it has loaded. */
     public void onProviderContentLoaded(ExternalDataProvider provider) {
+        runActionsIfProviderContentLoaded();
         if (isAwaitingProviderContent() || !placeholdersHandedOut.getAndSet(false)) {
             return;
         }

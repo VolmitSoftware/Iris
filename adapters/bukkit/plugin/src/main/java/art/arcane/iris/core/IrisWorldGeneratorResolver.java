@@ -28,8 +28,10 @@ import art.arcane.iris.core.pack.PackValidationCache;
 import art.arcane.iris.core.pack.PackValidationRegistry;
 import art.arcane.iris.core.pack.PackValidationResult;
 import art.arcane.iris.core.pack.PackValidator;
+import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.engine.platform.BukkitChunkGenerator;
@@ -60,6 +62,8 @@ import java.util.function.Supplier;
  */
 public final class IrisWorldGeneratorResolver {
     private static final int VALIDATION_STABILITY_ATTEMPTS = 2;
+    private static final String STARTUP_CACHE_FILE = "pack-validation.json";
+    private static final String PLUGIN_CONTENT_CACHE_FILE = "pack-validation-with-plugin-content.json";
     private static final Object SNAPSHOT_VALIDATION_LOCK = new Object();
     private static final String IRIS_DIMENSION_NAMESPACE = "iris";
     private static final String PLOT_SQUARED_DISCOVERY_WORLD = "CheckingPlotSquaredGenerator";
@@ -70,12 +74,71 @@ public final class IrisWorldGeneratorResolver {
         this.plugin = plugin;
     }
 
+    /**
+     * Validates every pack before worlds load, so a broken pack refuses its worlds. Block plugins like CraftEngine
+     * register their blocks only after that, so the warnings wait for them: once they have loaded, a pack is validated
+     * again when the registry changed, and only then does it report the keys that are still unknown.
+     */
     public void validateAllPacks() {
+        PackValidationRun startupRun = validateAndPublish(STARTUP_CACHE_FILE);
+        reportBlockingErrors(startupRun.results());
+        IrisStartupValidation.markPacksReady();
+        IrisServices.get(ExternalDataSVC.class).afterProviderContentLoads(() -> reportWarningsWithPluginContent(startupRun));
+    }
+
+    private void reportWarningsWithPluginContent(PackValidationRun startupRun) {
+        if (safeContextFingerprint().equals(startupRun.contextFingerprint())) {
+            reportWarnings(startupRun);
+            return;
+        }
+        reportWarnings(validateAndPublish(PLUGIN_CONTENT_CACHE_FILE));
+    }
+
+    private static String safeContextFingerprint() {
+        try {
+            return PackValidationCache.contextFingerprint();
+        } catch (RuntimeException exception) {
+            Iris.reportError("Could not fingerprint the pack-validation context", exception);
+            return "";
+        }
+    }
+
+    private static void reportBlockingErrors(List<PackValidationResult> results) {
+        for (PackValidationResult result : results) {
+            if (result.isLoadable()) {
+                continue;
+            }
+            Iris.error("Pack '" + result.getPackName()
+                    + "' FAILED validation - world and Studio creation with this pack will be refused. Reasons:");
+            for (String reason : result.getBlockingErrors()) {
+                Iris.error("  - " + reason);
+            }
+        }
+    }
+
+    private static void reportWarnings(PackValidationRun run) {
+        for (PackValidationResult result : run.results()) {
+            if (!result.isLoadable()) {
+                continue;
+            }
+            if (!result.getWarnings().isEmpty()) {
+                Iris.info("Pack '" + result.getPackName() + "' validated ("
+                        + result.getWarnings().size() + " warning(s)).");
+                for (String warning : result.getWarnings()) {
+                    Iris.warn("  [" + result.getPackName() + "] " + warning);
+                }
+            } else if (!run.fromCache()) {
+                Iris.success("Pack '" + result.getPackName() + "' validated.");
+            }
+        }
+    }
+
+    private PackValidationRun validateAndPublish(String cacheFileName) {
         File packsRoot = plugin.getDataFolder("packs");
         List<File> packDirs = PackDirectoryResolver.listVisiblePackDirectories(packsRoot);
         PackValidationRegistry.clear();
         List<String> packNames = packDirs.stream().map(File::getName).sorted().toList();
-        Path cacheFile = IrisPlatforms.get().dataFile("cache", "pack-validation.json").toPath();
+        Path cacheFile = IrisPlatforms.get().dataFile("cache", cacheFileName).toPath();
         ServerConfigurator.PackContentSnapshot contentSnapshot =
                 new ServerConfigurator.PackContentSnapshot("", Map.of());
         String contextFingerprint = "";
@@ -123,23 +186,8 @@ public final class IrisWorldGeneratorResolver {
             if (packDirectory != null && packFingerprint != null && !packFingerprint.isBlank()) {
                 PackValidationRegistry.publish(packDirectory.toPath(), result, packFingerprint);
             }
-            if (!result.isLoadable()) {
-                Iris.error("Pack '" + result.getPackName()
-                        + "' FAILED validation - world and Studio creation with this pack will be refused. Reasons:");
-                for (String reason : result.getBlockingErrors()) {
-                    Iris.error("  - " + reason);
-                }
-            } else if (!result.getWarnings().isEmpty()) {
-                Iris.info("Pack '" + result.getPackName() + "' validated ("
-                        + result.getWarnings().size() + " warning(s)).");
-                for (String warning : result.getWarnings()) {
-                    Iris.warn("  [" + result.getPackName() + "] " + warning);
-                }
-            } else if (cached.isEmpty()) {
-                Iris.success("Pack '" + result.getPackName() + "' validated.");
-            }
         }
-        IrisStartupValidation.markPacksReady();
+        return new PackValidationRun(results, contextFingerprint, cached.isPresent());
     }
 
     private static FreshValidation validateStablePacks(
@@ -493,6 +541,9 @@ public final class IrisWorldGeneratorResolver {
         Iris.debug("Generator Config: " + world);
 
         return new BukkitChunkGenerator(world, false, snapshotRoot, dimension.getLoadKey());
+    }
+
+    private record PackValidationRun(List<PackValidationResult> results, String contextFingerprint, boolean fromCache) {
     }
 
     private record FreshValidation(

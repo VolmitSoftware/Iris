@@ -132,6 +132,7 @@ public final class BukkitRegistries implements PlatformRegistries {
                 keys.add(material.getKey().toString());
             }
         }
+        keys.addAll(externalKeys(DataType.BLOCK));
         return keys;
     }
 
@@ -157,13 +158,16 @@ public final class BukkitRegistries implements PlatformRegistries {
                 keys.add(material.getKey().toString());
             }
         }
-        ExternalDataSVC external = IrisServices.getOrNull(ExternalDataSVC.class);
-        if (external != null) {
-            for (Identifier identifier : external.getAllIdentifiers(DataType.ITEM)) {
-                keys.add(identifier.toString());
-            }
-        }
+        keys.addAll(externalKeys(DataType.ITEM));
         return keys;
+    }
+
+    private static List<String> externalKeys(DataType type) {
+        ExternalDataSVC external = IrisServices.getOrNull(ExternalDataSVC.class);
+        if (external == null) {
+            return List.of();
+        }
+        return external.getAllIdentifiers(type).stream().map(Identifier::toString).toList();
     }
 
     @Override

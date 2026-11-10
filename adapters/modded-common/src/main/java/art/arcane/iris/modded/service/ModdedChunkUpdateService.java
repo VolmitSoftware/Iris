@@ -29,6 +29,7 @@ import art.arcane.iris.modded.ModdedBlockResolution;
 import art.arcane.iris.modded.ModdedLootApplier;
 import art.arcane.iris.modded.ModdedServerLevels;
 import art.arcane.iris.modded.ModdedTileData;
+import art.arcane.iris.modded.api.ModdedBlockData;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.project.matter.TileWrapper;
@@ -50,6 +51,9 @@ import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -216,10 +220,11 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
                 }));
     }
 
-    private void runCustomPass(Engine engine, ServerLevel level, int chunkX, int chunkZ, MantleChunk<Matter> chunk) {
+    void runCustomPass(Engine engine, ServerLevel level, int chunkX, int chunkZ, MantleChunk<Matter> chunk) {
         int baseX = chunkX << 4;
         int baseZ = chunkZ << 4;
         int minHeight = engine.getWorld().minHeight();
+        StaleCarriers stale = new StaleCarriers();
         materializeDeferredSlice(chunk, Identifier.class, () ->
                 chunk.iterate(Identifier.class, (Integer x, Integer yf, Integer z, Identifier identifier) -> {
                     int y = yf + minHeight;
@@ -227,8 +232,13 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
                         return;
                     }
                     BlockPos position = new BlockPos(baseX + (x & 15), y, baseZ + (z & 15));
-                    ModdedCustomContentRegistry.processBlockPlacement(engine, level, position, identifier.toString());
+                    String key = identifier.toString();
+                    if (stale.carrierReplaced(key, level.getBlockState(position))) {
+                        return;
+                    }
+                    ModdedCustomContentRegistry.processBlockPlacement(engine, level, position, key);
                 }));
+        stale.report(level.dimension().identifier().toString(), chunkX, chunkZ);
     }
 
     static void materializeDeferredSlice(MantleChunk<Matter> chunk, Class<?> sliceType, Runnable materializer) {
@@ -372,6 +382,36 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
         } else {
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), SILENT_FLAGS);
             level.setBlock(pos, state, Block.UPDATE_ALL);
+        }
+    }
+
+    private static final class StaleCarriers {
+        private final Map<String, Optional<Block>> carriers = new HashMap<>();
+        private int skipped;
+
+        private boolean carrierReplaced(String key, BlockState live) {
+            Optional<Block> carrier = carriers.computeIfAbsent(key, StaleCarriers::carrierBlock);
+            if (carrier.isEmpty() || carrier.get() == live.getBlock()) {
+                return false;
+            }
+            skipped++;
+            return true;
+        }
+
+        private void report(String levelName, int chunkX, int chunkZ) {
+            if (skipped == 0) {
+                return;
+            }
+            IrisLogging.debug("Skipped %d stale custom block records at chunk %d,%d in %s",
+                    skipped, chunkX, chunkZ, levelName);
+        }
+
+        private static Optional<Block> carrierBlock(String key) {
+            ModdedBlockData resolved = ModdedCustomContentRegistry.resolveBlock(key);
+            if (resolved == null || resolved.state().isAir()) {
+                return Optional.empty();
+            }
+            return Optional.of(resolved.state().getBlock());
         }
     }
 }

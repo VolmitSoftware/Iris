@@ -143,14 +143,21 @@ public class IrisCodeWorkspaceTest {
         JSONArray schemas = assertWorkspaceSchemasMaterialized(pack, canonicalWorkspace);
         assertTrue("Studio open must give Zed the same schemas",
                 Files.readString(pack.toPath().resolve(".zed/settings.json"), StandardCharsets.UTF_8).contains(schemas.getJSONObject(0).getString("url")));
+        String firstSchemaHash = zedSchemaHash(pack);
         String firstSchemaPath = schemas.getJSONObject(0).getString("url").substring(2);
         Files.writeString(canonicalWorkspace.toPath(), "{\"settings\":{\"json.schemas\":[]}}", StandardCharsets.UTF_8);
         Files.delete(new File(pack, firstSchemaPath).toPath());
 
         workspace.prepareAndOpenEditor();
         assertWorkspaceSchemasMaterialized(pack, canonicalWorkspace);
+        assertEquals("Regenerating identical schemas must keep Zed's schema hash", firstSchemaHash, zedSchemaHash(pack));
         assertEquals("Studio open must target only the canonical workspace", "unrelated",
                 Files.readString(unrelatedWorkspace.toPath(), StandardCharsets.UTF_8));
+    }
+
+    private static String zedSchemaHash(File pack) throws Exception {
+        JSONObject settings = new JSONObject(Files.readString(pack.toPath().resolve(".zed/settings.json"), StandardCharsets.UTF_8));
+        return settings.getJSONObject("lsp").getJSONObject("json-language-server").getJSONObject("settings").getString("irisSchemaHash");
     }
 
     private static JSONArray assertWorkspaceSchemasMaterialized(File pack, File canonicalWorkspace) throws Exception {

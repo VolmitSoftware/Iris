@@ -17,16 +17,24 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
 
 /**
  * Keeps the JSON schema mappings in a pack's Zed project settings in sync with the VSCode workspace.
  * The file belongs to the user, so Iris only replaces {@code lsp.json-language-server.settings.json.schemas}
- * and makes sure {@code file_types.JSONC} contains {@code json}.
+ * and {@code lsp.json-language-server.settings.irisSchemaHash}, and makes sure {@code file_types.JSONC} contains {@code json}.
  */
 public final class ZedProjectSettings {
+    private static final List<String> JSON_SERVER_SETTINGS_PATH = List.of("lsp", "json-language-server", "settings");
     private static final List<String> SCHEMAS_PARENT_PATH = List.of("lsp", "json-language-server", "settings", "json");
     private static final String SCHEMAS_KEY = "schemas";
+    // Zed's JSON server caches schema files until its configuration changes, and Zed never reports schema file edits.
+    // Carrying a hash of the schema contents in the configuration makes regenerated schemas reach the editor.
+    private static final String SCHEMA_HASH_KEY = "irisSchemaHash";
+    private static final int SCHEMA_HASH_HEX_LENGTH = 16;
     private static final List<String> FILE_TYPES_PATH = List.of("file_types");
     // Pack files may contain comments; Zed's JSONC language keeps schema support but stops flagging them.
     private static final String JSONC_LANGUAGE = "JSONC";
@@ -48,7 +56,7 @@ public final class ZedProjectSettings {
         return settingsFile;
     }
 
-    public void writeIrisSettings(JSONArray schemas) throws IOException {
+    public void writeIrisSettings(JSONArray schemas, List<String> schemaTexts) throws IOException {
         String existing = Files.isRegularFile(settingsFile) ? Files.readString(settingsFile, StandardCharsets.UTF_8) : null;
         JsonObject settings = parseOrNull(existing);
         if (settings == null) {
@@ -56,7 +64,7 @@ public final class ZedProjectSettings {
             return;
         }
 
-        if (!mergeSchemas(settings, schemas) || !mergeJsoncFileType(settings)) {
+        if (!mergeSchemas(settings, schemas) || !mergeSchemaHash(settings, schemaTexts) || !mergeJsoncFileType(settings)) {
             IrisLogging.warn("Could not merge Iris settings into " + settingsFile + ": " + String.join(".", SCHEMAS_PARENT_PATH)
                     + " must be an object and " + String.join(".", FILE_TYPES_PATH) + "." + JSONC_LANGUAGE + " a list; leaving it untouched.");
             return;
@@ -84,6 +92,32 @@ public final class ZedProjectSettings {
         }
         schemasParent.add(SCHEMAS_KEY, JsonParser.parseString(schemas.toString()));
         return true;
+    }
+
+    private static boolean mergeSchemaHash(JsonObject settings, List<String> schemaTexts) {
+        JsonObject jsonServerSettings = findOrCreateObject(settings, JSON_SERVER_SETTINGS_PATH);
+        if (jsonServerSettings == null) {
+            return false;
+        }
+        jsonServerSettings.addProperty(SCHEMA_HASH_KEY, hashSchemaTexts(schemaTexts));
+        return true;
+    }
+
+    private static String hashSchemaTexts(List<String> schemaTexts) {
+        MessageDigest digest = sha256();
+        for (String schemaText : schemaTexts) {
+            digest.update(schemaText.getBytes(StandardCharsets.UTF_8));
+            digest.update((byte) 0);
+        }
+        return HexFormat.of().formatHex(digest.digest()).substring(0, SCHEMA_HASH_HEX_LENGTH);
+    }
+
+    private static MessageDigest sha256() {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Every Java runtime must provide SHA-256", e);
+        }
     }
 
     private static boolean mergeJsoncFileType(JsonObject settings) {

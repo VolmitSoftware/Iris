@@ -38,12 +38,12 @@ import org.dom4j.Element;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings("ALL")
 public class IrisCodeWorkspace {
@@ -179,12 +179,12 @@ public class IrisCodeWorkspace {
         settings.put("json.maxItemsComputed", 30000);
         JSONArray schemas = new JSONArray();
         List<JSONObject> schemaEntries = new ArrayList<>();
+        List<CompletableFuture<String>> schemaWrites = new ArrayList<>();
         IrisData dm = IrisData.get(project.getPath());
         for (ResourceLoader<?> resourceLoader : dm.getLoaders().v()) {
             if (resourceLoader.supportsSchemas()) {
-                schemaEntries.add(immediateSchemas
-                        ? resourceLoader.buildSchemaImmediately()
-                        : resourceLoader.buildSchema());
+                schemaEntries.add(resourceLoader.schemaMapping());
+                schemaWrites.add(resourceLoader.writeSchemaFile(immediateSchemas));
             }
         }
 
@@ -193,18 +193,7 @@ public class IrisCodeWorkspace {
                 String snipType = snippetClass.getDeclaredAnnotation(Snippet.class).value();
                 schemaEntries.add(snippetSchemaEntry(snipType));
                 File schemaFile = new File(dm.getDataFolder(), SNIPPET_SCHEMA_FOLDER + snipType + SCHEMA_SUFFIX);
-                if (immediateSchemas) {
-                    IO.writeAll(schemaFile, new SchemaBuilder(snippetClass, dm).constructSnippet().toString(4));
-                } else {
-                    IrisData snippetData = dm;
-                    J.attemptAsync(() -> {
-                        try {
-                            IO.writeAll(schemaFile, new SchemaBuilder(snippetClass, snippetData).constructSnippet().toString(4));
-                        } catch (Throwable e) {
-                            IrisLogging.reportError(e);
-                        }
-                    });
-                }
+                schemaWrites.add(SchemaFiles.write(schemaFile, () -> new SchemaBuilder(snippetClass, dm).constructSnippet().toString(4), immediateSchemas));
             } catch (Throwable e) {
                 if (immediateSchemas) {
                     throw new IllegalStateException("Could not write snippet schema for " + snippetClass.getName(), e);
@@ -217,9 +206,9 @@ public class IrisCodeWorkspace {
             if (IrisValues.irisClassOf(type.name()).isPresent()) {
                 continue;
             }
-            schemaEntries.add(moduleSnippetSchema(dm, type, immediateSchemas));
+            schemaEntries.add(moduleSnippetSchema(dm, type, immediateSchemas, schemaWrites));
         }
-        schemaEntries.addAll(ModuleResourceSchemas.entries(dm, immediateSchemas));
+        schemaEntries.addAll(ModuleResourceSchemas.entries(dm, immediateSchemas, schemaWrites));
 
         schemaEntries.sort(Comparator.comparing(entry -> entry.getString("url")));
         for (JSONObject entry : schemaEntries) {
@@ -236,7 +225,7 @@ public class IrisCodeWorkspace {
             IrisLogging.warn("Could not update IntelliJ schema mappings for " + project.getPath().getAbsolutePath() + "; VSCode workspace generation will continue.");
         }
         try {
-            new ZedProjectSettings(project.getPath()).writeIrisSettings(schemas);
+            new ZedProjectSettings(project.getPath()).writeIrisSettings(schemas, SchemaFiles.awaitTexts(schemaWrites));
         } catch (Throwable e) {
             IrisLogging.reportError(e);
             IrisLogging.warn("Could not update Zed schema mappings for " + project.getPath().getAbsolutePath() + "; VSCode workspace generation will continue.");
@@ -249,16 +238,11 @@ public class IrisCodeWorkspace {
      * A module's snippet type gets its own schema for the files under {@code snippet/<name>/}, as Iris's snippets do. IrisApi's
      * value types share their snippet folders with the Iris classes that read the same JSON, whose schemas Iris writes.
      */
-    private static JSONObject moduleSnippetSchema(IrisData data, ObjectType type, boolean immediate) {
+    private static JSONObject moduleSnippetSchema(IrisData data, ObjectType type, boolean immediate, List<CompletableFuture<String>> schemaWrites) {
         String name = type.snippet().orElseThrow();
-        JSONObject entry = snippetSchemaEntry(name);
         File schemaFile = new File(data.getDataFolder(), SNIPPET_SCHEMA_FOLDER + name + SCHEMA_SUFFIX);
-        if (immediate) {
-            writeSchema(schemaFile, SchemaBuilder.moduleSnippet(type, data));
-        } else {
-            J.attemptAsync(() -> writeSchema(schemaFile, SchemaBuilder.moduleSnippet(type, data)));
-        }
-        return entry;
+        schemaWrites.add(SchemaFiles.write(schemaFile, () -> SchemaBuilder.moduleSnippet(type, data).toString(4), immediate));
+        return snippetSchemaEntry(name);
     }
 
     private static JSONObject snippetSchemaEntry(String snippetFolder) {
@@ -270,14 +254,6 @@ public class IrisCodeWorkspace {
         entry.put("fileMatch", new JSONArray(fileMatches.toArray()));
         entry.put("url", "./" + SNIPPET_SCHEMA_FOLDER + snippetFolder + SCHEMA_SUFFIX);
         return entry;
-    }
-
-    private static void writeSchema(File schemaFile, JSONObject schema) {
-        try {
-            IO.writeAll(schemaFile, schema.toString(4));
-        } catch (IOException failure) {
-            throw new UncheckedIOException("Could not write schema " + schemaFile.getAbsolutePath(), failure);
-        }
     }
 
     private void updateIntelliJSchemaMappings(JSONArray schemas) {

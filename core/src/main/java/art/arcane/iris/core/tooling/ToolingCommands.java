@@ -119,11 +119,16 @@ public final class ToolingCommands {
         }
         String partial = words.getLast();
         if (partial.startsWith(CommandLine.PACK_OPTION)) {
-            return packs.names().stream().map(name -> CommandLine.PACK_OPTION + name).filter(option -> option.startsWith(partial)).toList();
+            return packOptions(partial);
         }
         try {
             CommandLine typed = CommandLine.of(words.subList(0, words.size() - 1));
-            ResolvedPack pack = resolvePack(sender, typed.packName());
+            ResolvedPack pack;
+            try {
+                pack = resolvePack(sender, typed.packName());
+            } catch (CommandFailure noPackInReach) {
+                return packOptions(partial);
+            }
             List<CommandRegistration> roots = rootsOf(pack.served());
             if (typed.words().isEmpty()) {
                 return roots.stream()
@@ -140,6 +145,10 @@ public final class ToolingCommands {
         } catch (CommandFailure | RuntimeException cannotComplete) {
             return List.of();
         }
+    }
+
+    private List<String> packOptions(String partial) {
+        return packs.names().stream().map(name -> CommandLine.PACK_OPTION + name).filter(option -> option.startsWith(partial)).toList();
     }
 
     private boolean run(ToolingSender sender, List<String> tokens, boolean onlyIfOpenToEveryone) {

@@ -451,6 +451,15 @@ public class ToolingCommandsTest {
     }
 
     @Test
+    public void withoutAPackInReachCompletionOffersThePackOption() {
+        packWith("alpha", recording("give"));
+        packWith("beta", recording("take"));
+
+        assertEquals(List.of("pack=alpha", "pack=beta"), complete(""));
+        assertEquals(List.of("give"), complete("pack=alpha "));
+    }
+
+    @Test
     public void completionNeverThrows() {
         assertEquals(List.of(), complete("tools "));
         assertEquals(List.of(), dispatcher.complete(sender, List.of()));

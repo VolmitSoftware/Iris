@@ -520,21 +520,19 @@ public class CommandObject implements DirectorExecutor {
                 return;
             }
 
-            if (WandSVC.isHoldingIrisWand(player)) {
-                Location[] g = WandSVC.getCuboid(player);
+            Location[] g = WandSVC.getCuboid(player);
 
-                if (g == null) {
-                    return;
-                }
-
-                if (!here) {
-                    // TODO: WARNING HEIGHT
-                    g[0] = player.getTargetBlock(null, 256).getLocation().clone();
-                } else {
-                    g[0] = player.getLocation().getBlock().getLocation().clone().add(0, -1, 0);
-                }
-                player.getInventory().setItemInMainHand(WandSVC.createWand(g[0], g[1]));
+            if (g == null) {
+                return;
             }
+
+            if (!here) {
+                // TODO: WARNING HEIGHT
+                g[0] = player.getTargetBlock(null, 256).getLocation().clone();
+            } else {
+                g[0] = player.getLocation().getBlock().getLocation().clone().add(0, -1, 0);
+            }
+            player.getInventory().setItemInMainHand(WandSVC.createWand(g[0], g[1]));
         });
     }
 

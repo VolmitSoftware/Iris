@@ -27,11 +27,9 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import art.arcane.iris.Iris;
-import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.localization.RuntimeUiMessages;
 import art.arcane.iris.core.edit.DustRevealer;
-import art.arcane.iris.core.link.WorldEditLink;
 import art.arcane.iris.core.wand.WandSelection;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.util.project.matter.WorldMatter;
@@ -333,26 +331,14 @@ public class WandSVC implements IrisService {
     }
 
     public static Location[] getCuboid(Player p) {
-        if (isHoldingIrisWand(p)) {
+        if (isHoldingWand(p)) {
             return getCuboidFromItem(p.getInventory().getItemInMainHand());
-        }
-
-        if (IrisSettings.get().getWorld().worldEditWandCUI) {
-            Cuboid c = WorldEditLink.getSelection(p);
-
-            if (c != null) {
-                return new Location[]{c.getLowerNE(), c.getUpperSW()};
-            }
         }
 
         return null;
     }
 
     public static boolean isHoldingWand(Player p) {
-        return isHoldingIrisWand(p) || (IrisSettings.get().getWorld().worldEditWandCUI && WorldEditLink.getSelection(p) != null);
-    }
-
-    public static boolean isHoldingIrisWand(Player p) {
         ItemStack is = p.getInventory().getItemInMainHand();
         return is != null && isWand(is);
     }
@@ -567,7 +553,7 @@ public class WandSVC implements IrisService {
         if (e.getHand() != EquipmentSlot.HAND)
             return;
         try {
-            if (isHoldingIrisWand(e.getPlayer())) {
+            if (isHoldingWand(e.getPlayer())) {
                 activePlayers.put(e.getPlayer().getUniqueId(), e.getPlayer());
                 if (e.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
                     e.setCancelled(true);

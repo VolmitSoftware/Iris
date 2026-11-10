@@ -21,6 +21,7 @@ repositories {
 dependencies {
     implementation(gradleApi())
     implementation('org.ow2.asm:asm:9.10.1')
+    implementation('org.apache.commons:commons-compress:1.28.0')
     implementation('com.github.VolmitSoftware:NMSTools:c88961416f')
     implementation('io.papermc.paperweight:paperweight-userdev:2.0.0-beta.21')
     testImplementation('junit:junit:4.13.2')

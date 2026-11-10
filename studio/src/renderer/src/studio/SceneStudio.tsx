@@ -10,6 +10,7 @@ import { nodeWithPath } from '../editor/nodeLayout'
 import { useNodeEditor } from '../editor/useNodeEditor'
 import { BlockModels } from '../scene/blockModels'
 import { BridgeAssets } from '../scene/BridgeAssets'
+import { countFarLeaves } from '../scene/farLeaves'
 import { INTS_PER_BLOCK, type BlockScene } from '../scene/sceneDecoding'
 import { buildSceneMesh, type SceneMesh } from '../scene/sceneMesh'
 import { BakeMeter, useBakeTiming } from './BakeMeter'
@@ -20,6 +21,7 @@ import { SceneViewport } from './SceneViewport'
 
 const NUMBER = new Intl.NumberFormat('en-US')
 const DEFAULT_NAMESPACE_PREFIX = 'minecraft:'
+const FAR_LEAVES_HINT = 'Leaves more than 6 blocks from wood. Vanilla would let them decay, so they are made persistent.'
 
 interface SceneStudioProps {
   client: BridgeClient
@@ -43,7 +45,8 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
   const [chosen, setChosen] = useState<{ key: string; variant: number } | null>(null)
   const entry = entries.find((candidate) => candidate.key === chosen?.key) ?? entries[0] ?? null
   const variant = entry !== null && chosen?.key === entry.key ? Math.min(chosen.variant, entry.variants - 1) : 0
-  const { scene, mesh, building } = useSceneMesh(client, view.id, entry, variant, packRevision, models, images, tell)
+  const [farLeavesOnly, setFarLeavesOnly] = useState(false)
+  const { scene, shown, building } = useSceneMesh(client, view.id, entry, variant, packRevision, models, images, farLeavesOnly, tell)
   const chooseVariant = (next: number): void => {
     if (entry !== null) {
       setChosen({ key: entry.key, variant: (next + entry.variants) % entry.variants })
@@ -67,7 +70,7 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
         <SceneArea
           entry={entry}
           variant={variant}
-          mesh={mesh}
+          shown={shown}
           status={building && entry !== null ? (waiting ?? `Building ${entry.name}`) : null}
           onVariant={chooseVariant}
         />
@@ -81,7 +84,7 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
         {selected !== null && editor.state !== null ? (
           <NodeInspector key={JSON.stringify(selected.path)} node={selected} state={editor.state} values={values} onEdit={editor.edit} />
         ) : (
-          <BlockList scene={scene} />
+          <BlockList scene={scene} farLeavesOnly={farLeavesOnly} onFarLeavesOnly={setFarLeavesOnly} />
         )}
       </aside>
     </>
@@ -91,16 +94,16 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
 interface SceneAreaProps {
   entry: SceneEntry | null
   variant: number
-  mesh: SceneMesh | null
+  shown: ShownScene | null
   /** What is being built, or null when nothing is. */
   status: string | null
   onVariant(variant: number): void
 }
 
-function SceneArea({ entry, variant, mesh, status, onVariant }: SceneAreaProps): React.JSX.Element {
+function SceneArea({ entry, variant, shown, status, onVariant }: SceneAreaProps): React.JSX.Element {
   return (
     <div className="relative min-h-0 flex-[11]">
-      <SceneViewport content={mesh?.content ?? null} framing={mesh} />
+      <SceneViewport content={shown?.mesh.content ?? null} framing={shown?.scene} />
         {entry !== null && entry.variants > 1 && (
           <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card/90 p-1 text-[12px] tabular-nums">
             <Button variant="ghost" size="icon-sm" title="Previous variant" onClick={() => onVariant(variant - 1)}>
@@ -144,7 +147,15 @@ function useSceneEntries(client: BridgeClient, viewId: string, packRevision: num
   return entries
 }
 
-/** The chosen entry's scene and its mesh; a newer choice abandons an older one, and a replaced mesh is freed. */
+interface ShownScene {
+  scene: BlockScene
+  mesh: SceneMesh
+}
+
+/**
+ * The chosen entry's scene, and its mesh, with only the far leaves drawn when asked; a newer choice abandons an older
+ * one, and a replaced mesh is freed. Asking for the far leaves builds the mesh again from the scene already read.
+ */
 function useSceneMesh(
   client: BridgeClient,
   viewId: string,
@@ -153,10 +164,11 @@ function useSceneMesh(
   packRevision: number,
   models: BlockModels,
   images: BridgeAssets,
+  farLeavesOnly: boolean,
   tell: (message: string) => void
-): { scene: BlockScene | null; mesh: SceneMesh | null; building: boolean } {
+): { scene: BlockScene | null; shown: ShownScene | null; building: boolean } {
   const [scene, setScene] = useState<BlockScene | null>(null)
-  const [mesh, setMesh] = useState<SceneMesh | null>(null)
+  const [shown, setShown] = useState<ShownScene | null>(null)
   const [building, setBuilding] = useState(false)
   const key = entry?.key ?? null
 
@@ -168,38 +180,71 @@ function useSceneMesh(
     setBuilding(true)
     client
       .scene(viewId, key, variant, stop.signal)
-      .then(async (found) => {
-        const built = await buildSceneMesh(found, models, images)
+      .then((found) => !stop.signal.aborted && setScene(found))
+      .catch((failure: Error) => {
+        if (stop.signal.aborted) {
+          return
+        }
+        tell(failure.message)
+        setBuilding(false)
+      })
+    return () => stop.abort()
+  }, [client, viewId, key, variant, packRevision, tell])
+
+  useEffect(() => {
+    if (scene === null) {
+      return
+    }
+    const stop = new AbortController()
+    setBuilding(true)
+    buildSceneMesh(scene, models, images, farLeavesOnly)
+      .then((built) => {
         if (stop.signal.aborted) {
           disposeMesh(built)
           return
         }
-        setScene(found)
-        setMesh(built)
-        if (built.unknownStates.length > 0) {
+        setShown({ scene, mesh: built })
+        if (!farLeavesOnly && built.unknownStates.length > 0) {
           tell(`No model for ${built.unknownStates.length === 1 ? built.unknownStates[0] : `${built.unknownStates.length} block states`}`)
         }
       })
       .catch((failure: Error) => !stop.signal.aborted && tell(failure.message))
       .finally(() => !stop.signal.aborted && setBuilding(false))
     return () => stop.abort()
-  }, [client, viewId, key, variant, packRevision, models, images, tell])
+  }, [scene, farLeavesOnly, models, images, tell])
 
-  useEffect(() => () => disposeMesh(mesh), [mesh])
+  useEffect(() => () => disposeMesh(shown?.mesh ?? null), [shown])
 
-  return { scene, mesh, building }
+  return { scene, shown, building }
 }
 
 function disposeMesh(mesh: SceneMesh | null): void {
   mesh?.dispose()
 }
 
-/** The blocks of the scene, most used first, each with its count (v3e ObjectOverviewPanel). */
-function BlockList({ scene }: { scene: BlockScene | null }): React.JSX.Element {
+interface BlockListProps {
+  scene: BlockScene | null
+  farLeavesOnly: boolean
+  onFarLeavesOnly(only: boolean): void
+}
+
+/** The blocks of the scene, most used first, each with its count (v3e ObjectOverviewPanel), and how many leaves are too far from wood. */
+function BlockList({ scene, farLeavesOnly, onFarLeavesOnly }: BlockListProps): React.JSX.Element {
   const counts = useMemo(() => (scene === null ? [] : blockCounts(scene)), [scene])
+  const farLeaves = useMemo(() => (scene === null ? 0 : countFarLeaves(scene)), [scene])
   return (
     <section className="flex min-h-0 flex-[3] flex-col">
       <h2 className="px-4 pt-2.5 pb-1.5 text-[11px] font-semibold text-muted-foreground">Blocks</h2>
+      {farLeaves > 0 && (
+        <div className="flex h-[26px] shrink-0 items-center gap-2 px-4 text-[11.5px]" title={FAR_LEAVES_HINT}>
+          <span className="min-w-0 flex-1 truncate">
+            {NUMBER.format(farLeaves)} {farLeaves === 1 ? 'leaf' : 'leaves'} too far from wood
+          </span>
+          <Button variant="link" size="xs" className="h-auto p-0 text-[11.5px]" title="Draw only the far leaves" onClick={() => onFarLeavesOnly(!farLeavesOnly)}>
+            {farLeavesOnly ? 'Show all' : 'Show only'}
+          </Button>
+        </div>
+      )}
       <ScrollArea className="min-h-0 flex-1">
         <div className="px-4 pb-2">
           {counts.map(([state, count]) => (

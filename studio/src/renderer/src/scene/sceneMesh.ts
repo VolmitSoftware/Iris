@@ -2,6 +2,7 @@ import { Box3, BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial } from '
 import type { ViewportContent } from '../studio/SceneViewport'
 import { cubeModel, parseState, type BlockModels, type BlockModel, type Direction, type Quad } from './blockModels'
 import { blockTint } from './blockTints'
+import { countFarLeaves, isFarLeaf } from './farLeaves'
 import { INTS_PER_BLOCK, type BlockScene } from './sceneDecoding'
 import { TextureAtlas, type ImageSource } from './textureAtlas'
 
@@ -35,10 +36,16 @@ interface PaletteEntry {
   properties: Record<string, string>
   /** Hides the faces of its neighbours that touch it. */
   solid: boolean
+  /** Whether its blocks are drawn at all. */
+  shown: boolean
 }
 
-/** One geometry for the whole scene, its faces against solid neighbours left out, textured from one atlas. */
-export async function buildSceneMesh(scene: BlockScene, models: BlockModels, images: ImageSource): Promise<SceneMesh> {
+/**
+ * One geometry for the whole scene, its faces against solid neighbours left out, textured from one atlas. With
+ * `farLeavesOnly` and far leaves in the scene, nothing but them is drawn.
+ */
+export async function buildSceneMesh(scene: BlockScene, models: BlockModels, images: ImageSource, farLeavesOnly = false): Promise<SceneMesh> {
+  const singlingOutFarLeaves = farLeavesOnly && countFarLeaves(scene) > 0
   const resolved = await Promise.all(scene.palette.map((state) => models.model(state)))
   const unknownStates = scene.palette.filter((_, index) => resolved[index] === null)
   const drawn = resolved.map((model) => drawnModel(model))
@@ -48,8 +55,9 @@ export async function buildSceneMesh(scene: BlockScene, models: BlockModels, ima
   )
   const palette = drawn.map((model, index): PaletteEntry => {
     const state = parseState(scene.palette[index])
-    const solid = model.fullCube && model.quads.every((quad) => atlas.cell(quad.texture).solid)
-    return { model, name: state.name, properties: state.properties, solid }
+    const shown = !singlingOutFarLeaves || isFarLeaf(scene.palette[index])
+    const solid = shown && model.fullCube && model.quads.every((quad) => atlas.cell(quad.texture).solid)
+    return { model, name: state.name, properties: state.properties, solid, shown }
   })
   const geometry = geometryOf(scene, palette, atlas)
   const material = new MeshBasicMaterial({ map: atlas.texture, vertexColors: true, alphaTest: CUTOUT_ALPHA })
@@ -83,6 +91,9 @@ function geometryOf(scene: BlockScene, palette: PaletteEntry[], atlas: TextureAt
   for (let offset = 0; offset < blocks.length; offset += INTS_PER_BLOCK) {
     const [x, y, z, paletteIndex] = [blocks[offset], blocks[offset + 1], blocks[offset + 2], blocks[offset + 3]]
     const entry = palette[paletteIndex]
+    if (!entry.shown) {
+      continue
+    }
     for (const quad of entry.model.quads) {
       if (quad.cullFace !== null && solids.besides(x, y, z, quad.cullFace)) {
         continue

@@ -40,7 +40,10 @@ public final class IrisProceduralBlocks {
     private IrisProceduralBlocks() {
     }
 
-    /** Whether {@code state} is a leaf baked with no wood near enough for vanilla to keep it. */
+    /**
+     * Whether {@code state} is a leaf baked with no wood near enough for vanilla to keep it. The studio counts these
+     * in {@code scene/farLeaves.ts} with the same rule; change both together.
+     */
     public static boolean isLeafTooFarFromWood(BlockState state) {
         return hasProperty(state, "persistent") && String.valueOf(UNREACHED_LEAF_DISTANCE).equals(propertyValue(state, "distance"));
     }

@@ -1,4 +1,4 @@
-import { Box3, BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial } from 'three'
+import { Box3, BufferAttribute, BufferGeometry, Group, Mesh, MeshBasicMaterial } from 'three'
 import type { ViewportContent } from '../studio/SceneViewport'
 import { cubeModel, parseState, type BlockModels, type BlockModel, type Direction, type Quad } from './blockModels'
 import { blockTint } from './blockTints'
@@ -15,6 +15,8 @@ export interface SceneMesh {
 }
 
 const CUTOUT_ALPHA = 0.1
+/** How much of a faint block shows, from 0 for none to 1 for all. */
+const FAINT_OPACITY = 0.12
 
 /** The light Minecraft gives each side of a block without shadows: the top brightest, the bottom darkest. */
 const FACE_LIGHT: Record<Direction, number> = { up: 1, down: 0.5, north: 0.8, south: 0.8, west: 0.6, east: 0.6 }
@@ -40,11 +42,26 @@ interface PaletteEntry {
   shown: boolean
 }
 
+interface PlacedQuad {
+  quad: Quad
+  entry: PaletteEntry
+  x: number
+  y: number
+  z: number
+}
+
 /**
  * One geometry for the whole scene, its faces against solid neighbours left out, textured from one atlas. With
- * `farLeavesOnly` and far leaves in the scene, nothing but them is drawn.
+ * `farLeavesOnly` and far leaves in the scene, nothing but them is drawn. Blocks `faint` flags, one per block in the
+ * scene's order, are drawn through a faint geometry of their own that hides nothing behind it.
  */
-export async function buildSceneMesh(scene: BlockScene, models: BlockModels, images: ImageSource, farLeavesOnly = false): Promise<SceneMesh> {
+export async function buildSceneMesh(
+  scene: BlockScene,
+  models: BlockModels,
+  images: ImageSource,
+  farLeavesOnly = false,
+  faint: Uint8Array | null = null
+): Promise<SceneMesh> {
   const singlingOutFarLeaves = farLeavesOnly && countFarLeaves(scene) > 0
   const resolved = await Promise.all(scene.palette.map((state) => models.model(state)))
   const unknownStates = scene.palette.filter((_, index) => resolved[index] === null)
@@ -59,15 +76,30 @@ export async function buildSceneMesh(scene: BlockScene, models: BlockModels, ima
     const solid = shown && model.fullCube && model.quads.every((quad) => atlas.cell(quad.texture).solid)
     return { model, name: state.name, properties: state.properties, solid, shown }
   })
-  const geometry = geometryOf(scene, palette, atlas)
-  const material = new MeshBasicMaterial({ map: atlas.texture, vertexColors: true, alphaTest: CUTOUT_ALPHA })
-  const bounds = new Box3().setFromBufferAttribute(geometry.getAttribute('position') as BufferAttribute)
+  const { solid: solidQuads, faint: faintQuads } = visibleQuads(scene, palette, faint)
+  const solidGeometry = geometryOf(solidQuads, atlas)
+  const faintGeometry = geometryOf(faintQuads, atlas)
+  const solidMaterial = new MeshBasicMaterial({ map: atlas.texture, vertexColors: true, alphaTest: CUTOUT_ALPHA })
+  const faintMaterial = new MeshBasicMaterial({ map: atlas.texture, vertexColors: true, alphaTest: CUTOUT_ALPHA * FAINT_OPACITY, transparent: true, opacity: FAINT_OPACITY, depthWrite: false })
+  const object = new Group()
+  const bounds = new Box3()
+  for (const [quads, geometry, material] of [
+    [solidQuads, solidGeometry, solidMaterial],
+    [faintQuads, faintGeometry, faintMaterial]
+  ] as const) {
+    if (quads.length > 0) {
+      object.add(new Mesh(geometry, material))
+      bounds.union(new Box3().setFromBufferAttribute(geometry.getAttribute('position') as BufferAttribute))
+    }
+  }
   return {
-    content: { object: new Mesh(geometry, material), bounds },
+    content: { object, bounds },
     unknownStates,
     dispose: () => {
-      geometry.dispose()
-      material.dispose()
+      solidGeometry.dispose()
+      faintGeometry.dispose()
+      solidMaterial.dispose()
+      faintMaterial.dispose()
       atlas.dispose()
     }
   }
@@ -84,9 +116,10 @@ function drawnModel(model: BlockModel | null): BlockModel {
   return model
 }
 
-function geometryOf(scene: BlockScene, palette: PaletteEntry[], atlas: TextureAtlas): BufferGeometry {
-  const solids = new SolidBlocks(scene, palette)
-  const visible: { quad: Quad; entry: PaletteEntry; x: number; y: number; z: number }[] = []
+// A faint block hides no face of a neighbour, so what stands behind it is drawn whole.
+function visibleQuads(scene: BlockScene, palette: PaletteEntry[], faint: Uint8Array | null): { solid: PlacedQuad[]; faint: PlacedQuad[] } {
+  const solids = new SolidBlocks(scene, palette, faint)
+  const quads = { solid: [] as PlacedQuad[], faint: [] as PlacedQuad[] }
   const blocks = scene.blocks
   for (let offset = 0; offset < blocks.length; offset += INTS_PER_BLOCK) {
     const [x, y, z, paletteIndex] = [blocks[offset], blocks[offset + 1], blocks[offset + 2], blocks[offset + 3]]
@@ -94,13 +127,18 @@ function geometryOf(scene: BlockScene, palette: PaletteEntry[], atlas: TextureAt
     if (!entry.shown) {
       continue
     }
+    const drawnIn = faint !== null && faint[offset / INTS_PER_BLOCK] === 1 ? quads.faint : quads.solid
     for (const quad of entry.model.quads) {
       if (quad.cullFace !== null && solids.besides(x, y, z, quad.cullFace)) {
         continue
       }
-      visible.push({ quad, entry, x, y, z })
+      drawnIn.push({ quad, entry, x, y, z })
     }
   }
+  return quads
+}
+
+function geometryOf(visible: PlacedQuad[], atlas: TextureAtlas): BufferGeometry {
   const positions = new Float32Array(visible.length * CORNERS_PER_QUAD * 3)
   const uvs = new Float32Array(visible.length * CORNERS_PER_QUAD * 2)
   const colors = new Float32Array(visible.length * CORNERS_PER_QUAD * 3)
@@ -136,12 +174,13 @@ class SolidBlocks {
   private readonly sizeY: number
   private readonly sizeZ: number
 
-  constructor(private readonly scene: BlockScene, palette: PaletteEntry[]) {
+  constructor(private readonly scene: BlockScene, palette: PaletteEntry[], faint: Uint8Array | null) {
     ;[this.sizeX, this.sizeY, this.sizeZ] = [0, 1, 2].map((axis) => scene.max[axis] - scene.min[axis])
     this.solid = new Uint8Array(this.sizeX * this.sizeY * this.sizeZ)
     const blocks = scene.blocks
     for (let offset = 0; offset < blocks.length; offset += INTS_PER_BLOCK) {
-      if (palette[blocks[offset + 3]].solid) {
+      const isFaint = faint !== null && faint[offset / INTS_PER_BLOCK] === 1
+      if (palette[blocks[offset + 3]].solid && !isFaint) {
         this.solid[this.indexOf(blocks[offset], blocks[offset + 1], blocks[offset + 2])] = 1
       }
     }

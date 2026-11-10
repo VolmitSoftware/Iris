@@ -49,6 +49,23 @@ export function nodeWithPath(roots: GraphNode[], path: JsonPath): GraphNode | nu
   return null
 }
 
+/** The first node, going down each tree in turn, that draws {@code part}, or null when none does. */
+export function nodeDrawingPart(roots: GraphNode[], part: number): GraphNode | null {
+  for (const root of roots) {
+    if (root.partId === part) {
+      return root
+    }
+    const found = nodeDrawingPart(
+      root.children.map((link) => link.node),
+      part
+    )
+    if (found !== null) {
+      return found
+    }
+  }
+  return null
+}
+
 /** Whether {@code path} is {@code ancestor} or sits inside it. */
 export function isWithin(path: JsonPath, ancestor: JsonPath): boolean {
   return ancestor.length <= path.length && ancestor.every((step, index) => path[index] === step)

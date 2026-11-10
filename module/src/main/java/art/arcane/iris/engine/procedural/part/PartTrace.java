@@ -32,6 +32,11 @@ public final class PartTrace {
         this.partsByBlock = partsByBlock;
     }
 
+    /** How many blocks a part placed. */
+    public int blockCount() {
+        return partsByBlock.size();
+    }
+
     /** The {@link PartOutline} id of the part that placed the block, or {@link PartOutline#NO_PART}. */
     public int partAt(int x, int y, int z) {
         return partsByBlock.getOrDefault(PartCanvas.key(x, y, z), PartOutline.NO_PART);

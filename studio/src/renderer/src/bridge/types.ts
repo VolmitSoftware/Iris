@@ -33,10 +33,11 @@ export interface SceneEntry {
   variants: number
 }
 
-/** A scene view as the server lists it; `editable` when its entries can be edited as nodes, `baked` when their bake can be timed. */
+/** A scene view as the server lists it; `editable` when its entries can be edited as nodes, `baked` when their bake can be timed, `parts` when a block can be traced to the part that placed it. */
 export interface SceneViewInfo extends ModuleViewInfo {
   editable: boolean
   baked: boolean
+  parts: boolean
 }
 
 /** One timed bake of a scene entry (IrisApi BakeRun): a time per step, added up over every variant. */

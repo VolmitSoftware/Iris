@@ -521,6 +521,10 @@ final class RuinScenes implements SceneView {
 - A `SceneView` whose entries are baked from settings says so (`isBaked`) and times a bake on request (`timeBake`, a
   `BakeRun` with a time per stage). One call is one run; the studio asks five times off the server's threads and keeps
   the median.
+- A `SceneView` whose entries are built from parts says so (`hasParts`) and tells which part placed each block of a
+  scene (`parts`, a `BlockParts` keyed by the block's position in the scene). Parts are numbered as `GraphNode.part()`
+  numbers the nodes that draw them, so the studio lights up a node's blocks when it is chosen and chooses a node when
+  its block is clicked.
 - A view's id is the module's id or starts with it and `/`. A second view with an id already registered fails the
   pack load, naming both modules.
 - The studio asks from its own threads, several at once, for a world of the pack it shows. A view keeps what it

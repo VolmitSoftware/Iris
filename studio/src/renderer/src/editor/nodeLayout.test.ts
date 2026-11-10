@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { GraphNode, JsonPath } from '../bridge/types'
 import { NO_PART } from '../bridge/types'
-import { isWithin, layoutNodes, NODE_WIDTH } from './nodeLayout'
+import { isWithin, layoutNodes, nodeDrawingPart, NODE_WIDTH } from './nodeLayout'
 
 function node(path: JsonPath, children: GraphNode[] = []): GraphNode {
   return {
@@ -35,6 +35,27 @@ describe('layoutNodes', () => {
 
     expect(material.x).toBe(0)
     expect(material.y).toBeGreaterThan(Math.max(...layout.nodes.filter((placed) => placed !== material).map((placed) => placed.y)))
+  })
+})
+
+describe('nodeDrawingPart', () => {
+  const drawing = (path: JsonPath, partId: number, children: GraphNode[] = []): GraphNode => ({ ...node(path, children), partId })
+
+  it('finds the node that draws the part, whichever tree and depth it is in', () => {
+    const roots = [drawing([], 0, [drawing(['parts', 0], 1)]), drawing(['materials', 0], NO_PART, [drawing(['materials', 0, 'parts', 0], 2)])]
+
+    expect(nodeDrawingPart(roots, 1)?.path).toEqual(['parts', 0])
+    expect(nodeDrawingPart(roots, 2)?.path).toEqual(['materials', 0, 'parts', 0])
+  })
+
+  it('takes the outer node when a node and the one it copies draw the same part', () => {
+    const roots = [drawing([], 3, [drawing(['branches', 'part'], 3)])]
+
+    expect(nodeDrawingPart(roots, 3)?.path).toEqual([])
+  })
+
+  it('finds none for a part no node draws', () => {
+    expect(nodeDrawingPart([drawing([], 0)], 5)).toBeNull()
   })
 })
 

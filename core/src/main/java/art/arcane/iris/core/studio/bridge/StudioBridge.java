@@ -54,6 +54,7 @@ import com.volmit.tooling.BlockPattern;
 import com.volmit.tooling.PatternArea;
 import com.volmit.tooling.PatternEntry;
 import com.volmit.tooling.BakeRun;
+import com.volmit.tooling.BlockParts;
 import com.volmit.tooling.SceneEntry;
 
 import java.io.IOException;
@@ -238,6 +239,7 @@ public final class StudioBridge implements AutoCloseable {
             case "scene-entries" -> sendJson(exchange, STATUS_OK, sceneEntries(get(exchange).engine(), query));
             case "scene-bake" -> sendJson(exchange, STATUS_OK, sceneBake(get(exchange).engine(), query));
             case "scene" -> sendBytes(exchange, "application/octet-stream", scene(get(exchange).engine(), query));
+            case "scene-parts" -> sendBytes(exchange, "application/octet-stream", sceneParts(get(exchange).engine(), query));
             case "saved-worlds" -> sendJson(exchange, STATUS_OK, savedWorlds(exchange));
             case "saved-start" -> sendJson(exchange, STATUS_OK, savedStart(exchange, query));
             case "saved-tile" -> sendBytes(exchange, "application/octet-stream", savedTile(get(exchange).engine(), query));
@@ -339,7 +341,7 @@ public final class StudioBridge implements AutoCloseable {
         StudioEditors editors = StudioEditors.of(engine);
         StudioScenes scenes = StudioScenes.of(engine);
         return scenes.views().stream()
-                .map(view -> new SceneViewInfo(view.id(), view.label(), view.description(), editors.edits(view.id()), scenes.isBaked(view.id())))
+                .map(view -> new SceneViewInfo(view.id(), view.label(), view.description(), editors.edits(view.id()), scenes.isBaked(view.id()), scenes.hasParts(view.id())))
                 .toList();
     }
 
@@ -420,6 +422,21 @@ public final class StudioBridge implements AutoCloseable {
             throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
         }
         return SceneEncoding.encode(scene.orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No scene " + key)), gson);
+    }
+
+    private static byte[] sceneParts(Engine engine, Query query) {
+        String key = query.text("key");
+        int variant = query.whole("variant", 0);
+        try {
+            StudioScenes scenes = StudioScenes.of(engine);
+            GeneratedObject scene = scenes.scene(query.text("view"), key, variant)
+                    .orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No scene " + key));
+            BlockParts parts = scenes.parts(query.text("view"), key, variant)
+                    .orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No parts for " + key));
+            return SceneEncoding.encodeParts(scene, parts);
+        } catch (NoSuchElementException unknown) {
+            throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
+        }
     }
 
     private static List<PatternEntryWire> patternEntries(Engine engine, Query query) {
@@ -751,8 +768,8 @@ public final class StudioBridge implements AutoCloseable {
     private record ErrorBody(String error) {
     }
 
-    /** A scene view as the studio lists it; {@code editable} when its entries can be edited as nodes, {@code baked} when their bake can be timed. */
-    private record SceneViewInfo(String id, String label, String description, boolean editable, boolean baked) {
+    /** A scene view as the studio lists it; {@code editable} when its entries can be edited as nodes, {@code baked} when their bake can be timed, {@code parts} when the blocks of a scene can be told by the part that placed them. */
+    private record SceneViewInfo(String id, String label, String description, boolean editable, boolean baked, boolean parts) {
     }
 
     /** A {@link SceneEntry} as the studio reads it, with a blank group for none. */

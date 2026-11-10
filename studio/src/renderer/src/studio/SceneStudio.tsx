@@ -1,23 +1,25 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import type { BridgeClient } from '../bridge/BridgeClient'
-import type { JsonPath, SceneEntry, SceneViewInfo } from '../bridge/types'
+import { NO_PART, type JsonPath, type SceneEntry, type SceneViewInfo } from '../bridge/types'
 import { parsedText } from '../editor/jsonValues'
-import { nodeWithPath } from '../editor/nodeLayout'
+import { nodeDrawingPart, nodeWithPath } from '../editor/nodeLayout'
 import { useNodeEditor } from '../editor/useNodeEditor'
+import { BlockIndex, blockAtHit, NO_BLOCK } from '../scene/blockPick'
 import { BlockModels } from '../scene/blockModels'
 import { BridgeAssets } from '../scene/BridgeAssets'
 import { countFarLeaves } from '../scene/farLeaves'
+import { blocksInPart, blocksOutsidePart } from '../scene/partFocus'
 import { INTS_PER_BLOCK, type BlockScene } from '../scene/sceneDecoding'
 import { buildSceneMesh, type SceneMesh } from '../scene/sceneMesh'
 import { BakeMeter, useBakeTiming } from './BakeMeter'
 import { EntryBrowser } from './EntryBrowser'
 import { NodeInspector } from './NodeInspector'
 import { NodePane } from './NodePane'
-import { SceneViewport } from './SceneViewport'
+import { SceneViewport, type PickedSurface } from './SceneViewport'
 
 const NUMBER = new Intl.NumberFormat('en-US')
 const DEFAULT_NAMESPACE_PREFIX = 'minecraft:'
@@ -46,7 +48,6 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
   const entry = entries.find((candidate) => candidate.key === chosen?.key) ?? entries[0] ?? null
   const variant = entry !== null && chosen?.key === entry.key ? Math.min(chosen.variant, entry.variants - 1) : 0
   const [farLeavesOnly, setFarLeavesOnly] = useState(false)
-  const { scene, shown, building } = useSceneMesh(client, view.id, entry, variant, packRevision, models, images, farLeavesOnly, tell)
   const chooseVariant = (next: number): void => {
     if (entry !== null) {
       setChosen({ key: entry.key, variant: (next + entry.variants) % entry.variants })
@@ -60,9 +61,40 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
   const selected = editor.state?.roots != null && selectedPath !== null ? nodeWithPath(editor.state.roots, selectedPath) : null
   const values = useMemo(() => (editor.state === null ? undefined : parsedText(editor.state.text)), [editor.state])
 
-  useEffect(() => onSummary(entry === null || scene === null ? null : summaryOf(entry, scene)), [entry, scene, onSummary])
+  const [pickedPart, setPickedPart] = useState(NO_PART)
+  const highlightedPart = view.parts ? (selected?.partId ?? pickedPart) : NO_PART
+  const { scene, shown, sceneParts, building } = useSceneMesh(client, view, entry, variant, packRevision, models, images, farLeavesOnly, highlightedPart, tell)
+  const shownScene = shown?.scene ?? null
+  const blockIndex = useMemo(() => (shownScene === null ? null : new BlockIndex(shownScene)), [shownScene])
+  const shownParts = partsOf(sceneParts, shownScene)
+  const pickPart = (picked: PickedSurface): void => {
+    const choose = (part: number): void => {
+      setPickedPart(part)
+      setSelectedPath(part === NO_PART || editor.state?.roots == null ? null : (nodeDrawingPart(editor.state.roots, part)?.path ?? null))
+    }
+    const block = picked === null || blockIndex === null ? NO_BLOCK : blockAtHit(blockIndex, picked.point, picked.direction)
+    if (block === NO_BLOCK) {
+      choose(NO_PART)
+    } else if (shownParts === null) {
+      tell('Still finding which part placed each block')
+    } else if (shownParts[block] === NO_PART) {
+      choose(NO_PART)
+      tell('That block belongs to no part')
+    } else {
+      choose(shownParts[block])
+    }
+  }
+
+  const summaryParts = partsOf(sceneParts, scene)
+  useEffect(
+    () => onSummary(entry === null || scene === null ? null : summaryOf(entry, scene, summaryParts === null ? '' : partNote(summaryParts, highlightedPart))),
+    [entry, scene, summaryParts, highlightedPart, onSummary]
+  )
   useEffect(() => () => onSummary(null), [onSummary])
-  useEffect(() => setSelectedPath(null), [entry?.key])
+  useEffect(() => {
+    setSelectedPath(null)
+    setPickedPart(NO_PART)
+  }, [entry?.key])
 
   return (
     <>
@@ -73,9 +105,18 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
           shown={shown}
           status={building && entry !== null ? (waiting ?? `Building ${entry.name}`) : null}
           onVariant={chooseVariant}
+          onPick={view.parts ? pickPart : undefined}
         />
         {view.editable && entry !== null && (
-          <NodePane editor={editor} entryKey={entry.key} selected={selected} onSelect={(node) => setSelectedPath(node?.path ?? null)} />
+          <NodePane
+            editor={editor}
+            entryKey={entry.key}
+            selected={selected}
+            onSelect={(node) => {
+              setSelectedPath(node?.path ?? null)
+              setPickedPart(NO_PART)
+            }}
+          />
         )}
       </div>
       <aside className={cn('flex shrink-0 flex-col border-l bg-card', view.editable ? 'w-[300px]' : 'w-[250px]')}>
@@ -98,12 +139,14 @@ interface SceneAreaProps {
   /** What is being built, or null when nothing is. */
   status: string | null
   onVariant(variant: number): void
+  /** Called when a block is clicked; absent when the scene has no parts to pick. */
+  onPick?(picked: PickedSurface): void
 }
 
-function SceneArea({ entry, variant, shown, status, onVariant }: SceneAreaProps): React.JSX.Element {
+function SceneArea({ entry, variant, shown, status, onVariant, onPick }: SceneAreaProps): React.JSX.Element {
   return (
     <div className="relative min-h-0 flex-[11]">
-      <SceneViewport content={shown?.mesh.content ?? null} framing={shown?.scene} />
+      <SceneViewport content={shown?.mesh.content ?? null} framing={shown?.scene} onPick={onPick} />
         {entry !== null && entry.variants > 1 && (
           <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card/90 p-1 text-[12px] tabular-nums">
             <Button variant="ghost" size="icon-sm" title="Previous variant" onClick={() => onVariant(variant - 1)}>
@@ -126,10 +169,19 @@ function SceneArea({ entry, variant, shown, status, onVariant }: SceneAreaProps)
   )
 }
 
-function summaryOf(entry: SceneEntry, scene: BlockScene): string {
+function summaryOf(entry: SceneEntry, scene: BlockScene, partNote: string): string {
   const [width, height, depth] = [0, 1, 2].map((axis) => scene.max[axis] - scene.min[axis])
   const blocks = scene.blocks.length / INTS_PER_BLOCK
-  return `${entry.key} · ${NUMBER.format(blocks)} blocks · ${width} × ${height} × ${depth}`
+  return `${entry.key} · ${NUMBER.format(blocks)} blocks${partNote} · ${width} × ${height} × ${depth}`
+}
+
+// A part that only carves has no blocks of its own, which is why nothing lights up.
+function partNote(parts: Int32Array, part: number): string {
+  if (part === NO_PART) {
+    return ''
+  }
+  const blocks = blocksInPart(parts, part)
+  return blocks === 0 ? ' · part has no blocks here' : ` · part has ${NUMBER.format(blocks)}`
 }
 
 function useSceneEntries(client: BridgeClient, viewId: string, packRevision: number, tell: (message: string) => void): SceneEntry[] {
@@ -152,25 +204,42 @@ interface ShownScene {
   mesh: SceneMesh
 }
 
+/** The part of each block of {@code scene}, when the parts were read for that scene. */
+interface SceneParts {
+  scene: BlockScene
+  parts: Int32Array
+}
+
+function partsOf(sceneParts: SceneParts | null, scene: BlockScene | null): Int32Array | null {
+  return sceneParts !== null && sceneParts.scene === scene ? sceneParts.parts : null
+}
+
 /**
- * The chosen entry's scene, and its mesh, with only the far leaves drawn when asked; a newer choice abandons an older
- * one, and a replaced mesh is freed. Asking for the far leaves builds the mesh again from the scene already read.
+ * The chosen entry's scene, and its mesh, with only the far leaves drawn when asked and every block outside the
+ * highlighted part drawn faintly; a newer choice abandons an older one, and a replaced mesh is freed. Asking for the
+ * far leaves or another part builds the mesh again from the scene already read. A view with parts also reads which
+ * part placed each block, once the scene is in.
  */
 function useSceneMesh(
   client: BridgeClient,
-  viewId: string,
+  view: SceneViewInfo,
   entry: SceneEntry | null,
   variant: number,
   packRevision: number,
   models: BlockModels,
   images: BridgeAssets,
   farLeavesOnly: boolean,
+  highlightedPart: number,
   tell: (message: string) => void
-): { scene: BlockScene | null; shown: ShownScene | null; building: boolean } {
+): { scene: BlockScene | null; shown: ShownScene | null; sceneParts: SceneParts | null; building: boolean } {
   const [scene, setScene] = useState<BlockScene | null>(null)
+  const [sceneParts, setSceneParts] = useState<SceneParts | null>(null)
   const [shown, setShown] = useState<ShownScene | null>(null)
   const [building, setBuilding] = useState(false)
+  const unknownStatesTold = useRef<BlockScene | null>(null)
   const key = entry?.key ?? null
+  const viewId = view.id
+  const hasParts = view.parts
 
   useEffect(() => {
     if (key === null) {
@@ -180,7 +249,18 @@ function useSceneMesh(
     setBuilding(true)
     client
       .scene(viewId, key, variant, stop.signal)
-      .then((found) => !stop.signal.aborted && setScene(found))
+      .then((found) => {
+        if (stop.signal.aborted) {
+          return
+        }
+        setScene(found)
+        if (hasParts) {
+          client
+            .sceneParts(viewId, key, variant, stop.signal)
+            .then((parts) => !stop.signal.aborted && setSceneParts({ scene: found, parts }))
+            .catch((failure: Error) => !stop.signal.aborted && tell(failure.message))
+        }
+      })
       .catch((failure: Error) => {
         if (stop.signal.aborted) {
           return
@@ -189,7 +269,12 @@ function useSceneMesh(
         setBuilding(false)
       })
     return () => stop.abort()
-  }, [client, viewId, key, variant, packRevision, tell])
+  }, [client, viewId, hasParts, key, variant, packRevision, tell])
+
+  const faint = useMemo(() => {
+    const parts = partsOf(sceneParts, scene)
+    return parts === null ? null : blocksOutsidePart(parts, highlightedPart)
+  }, [sceneParts, scene, highlightedPart])
 
   useEffect(() => {
     if (scene === null) {
@@ -197,25 +282,26 @@ function useSceneMesh(
     }
     const stop = new AbortController()
     setBuilding(true)
-    buildSceneMesh(scene, models, images, farLeavesOnly)
+    buildSceneMesh(scene, models, images, farLeavesOnly, faint)
       .then((built) => {
         if (stop.signal.aborted) {
           disposeMesh(built)
           return
         }
         setShown({ scene, mesh: built })
-        if (!farLeavesOnly && built.unknownStates.length > 0) {
+        if (!farLeavesOnly && built.unknownStates.length > 0 && unknownStatesTold.current !== scene) {
+          unknownStatesTold.current = scene
           tell(`No model for ${built.unknownStates.length === 1 ? built.unknownStates[0] : `${built.unknownStates.length} block states`}`)
         }
       })
       .catch((failure: Error) => !stop.signal.aborted && tell(failure.message))
       .finally(() => !stop.signal.aborted && setBuilding(false))
     return () => stop.abort()
-  }, [scene, farLeavesOnly, models, images, tell])
+  }, [scene, farLeavesOnly, faint, models, images, tell])
 
   useEffect(() => () => disposeMesh(shown?.mesh ?? null), [shown])
 
-  return { scene, shown, building }
+  return { scene, shown, sceneParts, building }
 }
 
 function disposeMesh(mesh: SceneMesh | null): void {

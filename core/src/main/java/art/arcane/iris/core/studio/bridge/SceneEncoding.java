@@ -24,6 +24,7 @@ import com.volmit.geometry.BlockBox;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
+import com.volmit.tooling.BlockParts;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -76,6 +77,19 @@ final class SceneEncoding {
             for (int value : block) {
                 buffer.putInt(value);
             }
+        }
+        return buffer.array();
+    }
+
+    /**
+     * The part of each block {@link #encode} writes, in the same order, as little endian i32 numbers; a block no part
+     * placed is {@link BlockParts#NO_PART}.
+     */
+    static byte[] encodeParts(GeneratedObject scene, BlockParts parts) {
+        List<ObjectBlock> drawn = scene.blocks().stream().filter(block -> !isAir(block.state())).toList();
+        ByteBuffer buffer = ByteBuffer.allocate(drawn.size() * Integer.BYTES).order(ByteOrder.LITTLE_ENDIAN);
+        for (ObjectBlock block : drawn) {
+            buffer.putInt(parts.partAt(block.position()));
         }
         return buffer.array();
     }

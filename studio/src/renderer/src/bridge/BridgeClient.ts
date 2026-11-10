@@ -174,6 +174,12 @@ export class BridgeClient {
     return decodeScene(await response.arrayBuffer())
   }
 
+  /** The part that placed each block of {@link scene}, in the same order, or NO_PART; baked again on the server to find out. */
+  async sceneParts(viewId: string, key: string, variant: number, signal?: AbortSignal): Promise<Int32Array> {
+    const response = await this.fetch(`scene-parts?${new URLSearchParams({ view: viewId, key, variant: String(variant) })}`, { signal })
+    return new Int32Array(await response.arrayBuffer())
+  }
+
   /** The pattern views the pack's modules show, such as its palettes. */
   patternViews(): Promise<ModuleViewInfo[]> {
     return this.json('patterns')

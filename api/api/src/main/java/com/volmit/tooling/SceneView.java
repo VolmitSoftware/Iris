@@ -22,6 +22,20 @@ public non-sealed interface SceneView extends StudioView {
      */
     Optional<GeneratedObject> scene(PackWorld world, String key, int variant);
 
+    /** Whether the entries are built from parts the studio can pick out of the scene, which {@link #parts} tells apart. */
+    default boolean hasParts() {
+        return false;
+    }
+
+    /**
+     * Which part placed each block of the scene {@link #scene} gives for the same arguments, found the way that scene
+     * was built. Asked off the server's threads; empty when the view has no parts, the pack has no such entry, or the
+     * entry has fewer variants.
+     */
+    default Optional<BlockParts> parts(PackWorld world, String key, int variant) {
+        return Optional.empty();
+    }
+
     /** Whether the entries are baked from settings, which costs generation time {@link #timeBake} can measure. */
     default boolean isBaked() {
         return false;

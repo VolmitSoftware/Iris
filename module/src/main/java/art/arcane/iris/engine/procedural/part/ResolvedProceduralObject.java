@@ -22,8 +22,14 @@ import art.arcane.iris.engine.procedural.ProceduralShape;
 import art.arcane.iris.engine.procedural.ProceduralVariants;
 import art.arcane.iris.modules.objects.ObjectBuilder;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.object.ObjectBlock;
 import com.volmit.object.PlaceableObject;
 import com.volmit.resource.PackResources;
+import com.volmit.tooling.BlockParts;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /** The variants of a procedural object, baked by {@link ObjectBaker}. */
 public final class ResolvedProceduralObject extends ProceduralVariants {
@@ -43,6 +49,20 @@ public final class ResolvedProceduralObject extends ProceduralVariants {
 
     public PartOutline outline() {
         return outline;
+    }
+
+    /** The part of each block of {@code variant} that has one, in the positions of its geometry; empty when it is not one of these. */
+    public BlockParts parts(PlaceableObject variant) {
+        PartTrace trace = trace(variant);
+        Map<BlockPosition, Integer> partsByBlock = new HashMap<>();
+        for (ObjectBlock block : variant.geometry().blocks()) {
+            BlockPosition position = block.position();
+            int part = trace.partAt(position.x(), position.y(), position.z());
+            if (part != PartOutline.NO_PART) {
+                partsByBlock.put(position, part);
+            }
+        }
+        return new BlockParts(partsByBlock);
     }
 
     /** Which part placed each block of {@code variant}, baked again to find out; empty when it is not one of these. */

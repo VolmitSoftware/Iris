@@ -22,10 +22,12 @@ import art.arcane.iris.engine.procedural.BakeProfile;
 import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
 import art.arcane.iris.engine.procedural.ProceduralVariants;
 import art.arcane.iris.engine.procedural.part.ProceduralObject;
+import art.arcane.iris.engine.procedural.part.ResolvedProceduralObject;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.PlaceableObject;
 import com.volmit.resource.ResourceId;
 import com.volmit.tooling.BakeRun;
+import com.volmit.tooling.BlockParts;
 import com.volmit.tooling.EditableSceneView;
 import com.volmit.tooling.JsonText;
 import com.volmit.tooling.NodeGraph;
@@ -74,6 +76,19 @@ public final class ProceduralObjectScenes implements EditableSceneView {
         return ProceduralObjectCatalog.of(world).variants(ProceduralObjectCatalog.KEY_PREFIX + key)
                 .flatMap(variants -> variants.variant(variant))
                 .map(PlaceableObject::geometry);
+    }
+
+    @Override
+    public boolean hasParts() {
+        return true;
+    }
+
+    @Override
+    public Optional<BlockParts> parts(PackWorld world, String key, int variant) {
+        return ProceduralObjectCatalog.of(world).variants(ProceduralObjectCatalog.KEY_PREFIX + key)
+                .filter(ResolvedProceduralObject.class::isInstance)
+                .map(ResolvedProceduralObject.class::cast)
+                .flatMap(resolved -> resolved.variant(variant).map(resolved::parts));
     }
 
     @Override

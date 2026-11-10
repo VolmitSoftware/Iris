@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Box3, MOUSE, PerspectiveCamera, Ray, Scene, Sphere, Vector3, WebGLRenderer, type Object3D } from 'three'
+import { Box3, MOUSE, PerspectiveCamera, Ray, Raycaster, Scene, Sphere, Vector2, Vector3, WebGLRenderer, type Object3D } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { SightView } from '../scene/cameraSight'
 import { surfaceAlong } from '../scene/surfacePick'
@@ -13,6 +13,13 @@ const NEAREST_CLIP = 0.05
 const NEAR_CLIP_PER_ORBIT_DISTANCE = 0.01
 // The far plane keeps up with zooming out, so ground reaching to the horizon stays in view.
 const FAR_CLIP_PER_ORBIT_DISTANCE = 20
+
+// A press that moves further than this between pressing and releasing is a drag, not a click.
+const CLICK_SLOP_PIXELS = 4
+
+function turnsView(event: PointerEvent): boolean {
+  return event.button === 0 && !event.shiftKey && !event.ctrlKey && !event.metaKey
+}
 
 /** The camera of a viewport, for content that draws only what the camera looks at. */
 export interface CameraLink {
@@ -34,14 +41,19 @@ export interface ViewportContent {
   follow?(camera: CameraLink): () => void
 }
 
+/** Where a click met the content, and the way it was looking; null when the click met nothing. */
+export type PickedSurface = { point: Vector3; direction: Vector3 } | null
+
 interface SceneViewportProps {
   content: ViewportContent | null
   /** Changes when the camera should frame the content again; the same content keeps the camera where it is. */
   framing?: unknown
+  /** Called when the content is clicked, not dragged. */
+  onPick?(picked: PickedSurface): void
 }
 
 /** Something in 3D: drag to turn around what is in the middle, right drag to move, scroll to come closer to the cursor. Drawn only when it changes. */
-export function SceneViewport({ content, framing }: SceneViewportProps): React.JSX.Element {
+export function SceneViewport({ content, framing, onPick }: SceneViewportProps): React.JSX.Element {
   const host = useRef<HTMLDivElement>(null)
   const stage = useRef<Stage | null>(null)
 
@@ -56,6 +68,7 @@ export function SceneViewport({ content, framing }: SceneViewportProps): React.J
 
   useEffect(() => stage.current?.show(content), [content])
   useEffect(() => stage.current?.frameShown(), [framing])
+  useEffect(() => stage.current?.onPick(onPick ?? null), [onPick])
 
   return <div ref={host} className="absolute inset-0 bg-map-background" />
 }
@@ -73,6 +86,8 @@ class Stage {
   private framed = false
   private framedFar = this.camera.far
   private frameRequested = false
+  private pickListener: ((picked: PickedSurface) => void) | null = null
+  private pressedAt: { x: number; y: number } | null = null
 
   constructor(private readonly host: HTMLDivElement) {
     this.renderer.setPixelRatio(window.devicePixelRatio)
@@ -82,7 +97,11 @@ class Stage {
     this.controls.enableDamping = true
     this.controls.zoomToCursor = true
     this.controls.mouseButtons = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN }
-    this.renderer.domElement.addEventListener('pointerdown', (event) => this.pivotOnSurfaceInMiddle(event))
+    this.renderer.domElement.addEventListener('pointerdown', (event) => {
+      this.pressedAt = turnsView(event) ? { x: event.clientX, y: event.clientY } : null
+      this.pivotOnSurfaceInMiddle(event)
+    })
+    this.renderer.domElement.addEventListener('pointerup', (event) => this.pickIfClicked(event))
     this.controls.addEventListener('change', () => {
       this.fitClipToOrbit()
       this.notifyMoved()
@@ -154,10 +173,32 @@ class Stage {
     this.requestFrame()
   }
 
+  onPick(listener: ((picked: PickedSurface) => void) | null): void {
+    this.pickListener = listener
+  }
+
+  // A press that stays where it was is a click; one that moved turned the view.
+  private pickIfClicked(event: PointerEvent): void {
+    const pressed = this.pressedAt
+    this.pressedAt = null
+    if (pressed === null || this.shown === null || this.pickListener === null) {
+      return
+    }
+    if (Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > CLICK_SLOP_PIXELS) {
+      return
+    }
+    const bounds = this.renderer.domElement.getBoundingClientRect()
+    const pointer = new Vector2(((event.clientX - bounds.left) / bounds.width) * 2 - 1, -((event.clientY - bounds.top) / bounds.height) * 2 + 1)
+    const caster = new Raycaster()
+    this.camera.updateMatrixWorld()
+    caster.setFromCamera(pointer, this.camera)
+    const point = surfaceAlong(this.shown, caster.ray, this.camera.far)
+    this.pickListener(point === null ? null : { point, direction: caster.ray.direction.clone() })
+  }
+
   // The pivot slides along the line of sight, so the picture stays put while turning now goes around what is there.
   private pivotOnSurfaceInMiddle(event: PointerEvent): void {
-    const turns = event.button === 0 && !event.shiftKey && !event.ctrlKey && !event.metaKey
-    if (!turns || this.shown === null) {
+    if (!turnsView(event) || this.shown === null) {
       return
     }
     const ray = new Ray(this.camera.getWorldPosition(new Vector3()), this.camera.getWorldDirection(new Vector3()))

@@ -21,6 +21,7 @@ package art.arcane.iris.core.studio.scene;
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.object.GeneratedObject;
 import com.volmit.tooling.BakeRun;
+import com.volmit.tooling.BlockParts;
 import com.volmit.tooling.SceneEntry;
 import com.volmit.tooling.SceneView;
 
@@ -56,6 +57,21 @@ public final class StudioScenes {
      */
     public Optional<GeneratedObject> scene(String viewId, String key, int variant) {
         return views.ask(viewId, "build " + key, view -> view.scene(views.world(), key, variant));
+    }
+
+    /** @throws NoSuchElementException when no module registered a scene view {@code viewId} */
+    public boolean hasParts(String viewId) {
+        return views.ask(viewId, "say whether it has parts", SceneView::hasParts);
+    }
+
+    /**
+     * Which part placed each block of the scene {@link #scene} gives for the same arguments; empty when the view has no
+     * such entry or variant, or no parts.
+     *
+     * @throws NoSuchElementException when no module registered a scene view {@code viewId}
+     */
+    public Optional<BlockParts> parts(String viewId, String key, int variant) {
+        return views.ask(viewId, "find the parts of " + key, view -> view.parts(views.world(), key, variant));
     }
 
     /** @throws NoSuchElementException when no module registered a scene view {@code viewId} */

@@ -72,7 +72,9 @@ public final class ModdedBlockResolution {
             "pink_shulker_box", "gray_shulker_box", "light_gray_shulker_box", "cyan_shulker_box",
             "purple_shulker_box", "blue_shulker_box", "brown_shulker_box", "green_shulker_box",
             "red_shulker_box", "black_shulker_box", "barrel", "dispenser", "dropper", "hopper", "furnace",
-            "blast_furnace");
+            "blast_furnace", "copper_chest", "exposed_copper_chest", "weathered_copper_chest",
+            "oxidized_copper_chest", "waxed_copper_chest", "waxed_exposed_copper_chest",
+            "waxed_weathered_copper_chest", "waxed_oxidized_copper_chest");
     private static final Set<Block> STORAGE_CHEST = storageChestSet();
     private static final Set<Block> DEEPSLATE = blockSet(
             "deepslate", "deepslate_bricks", "deepslate_brick_slab", "deepslate_brick_stairs",

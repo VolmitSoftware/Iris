@@ -9,7 +9,7 @@ import { SceneViewport } from './SceneViewport'
 const NUMBER = new Intl.NumberFormat('en-US')
 const TILES_PER_SIDE = 4
 const TILE_PIXELS = 128
-const BLOCKS_PER_PIXEL = 2
+const BLOCKS_PER_PIXEL = 1
 const TILE_BLOCKS = TILE_PIXELS * BLOCKS_PER_PIXEL
 const COLORING_ITEM = 'h-7 px-3 text-[12px] data-[state=on]:bg-selection data-[state=on]:text-foreground'
 

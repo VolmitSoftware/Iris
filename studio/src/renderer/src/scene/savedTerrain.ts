@@ -4,10 +4,10 @@ import type { TerrainSurface } from './terrainMesh'
 
 export type SavedTerrainColoring = 'biomes' | 'blocks' | 'height'
 
-/** A square of saved tiles, row by row from the north west. */
+/** A square of saved tiles at one block a pixel, row by row from the north west. */
 export interface SavedTerrainArea {
   tiles: SavedTile[][]
-  /** The world spot of the first tile's first pixel. */
+  /** The world block of the first tile's first pixel. */
   originX: number
   originZ: number
 }
@@ -17,14 +17,14 @@ const VANILLA_SEA_LEVEL = 63
 const UNKNOWN_BLOCK_COLOR = 0x7f7f7f
 
 /**
- * The saved columns as one surface. Heights are the tops of the blocks, one above their Y, so ground and water sit
- * where a player stands on them.
+ * The saved columns as one surface, a column to a pixel, so each is the block it was read from.
  */
 export class SavedTerrain implements TerrainSurface {
   readonly columns: number
   readonly rows: number
+  readonly originX: number
+  readonly originZ: number
   private readonly size: number
-  private readonly blocksPerPixel: number
 
   constructor(
     private readonly area: SavedTerrainArea,
@@ -32,31 +32,23 @@ export class SavedTerrain implements TerrainSurface {
     private readonly seaLevel: number | null,
     private readonly blockColors: Map<string, number>
   ) {
-    const first = area.tiles[0][0]
-    this.size = first.size
-    this.blocksPerPixel = first.blocksPerPixel
+    this.size = area.tiles[0][0].size
+    this.originX = area.originX
+    this.originZ = area.originZ
     this.columns = area.tiles[0].length * this.size
     this.rows = area.tiles.length * this.size
-  }
-
-  worldX(column: number): number {
-    return this.area.originX + column * this.blocksPerPixel
-  }
-
-  worldZ(row: number): number {
-    return this.area.originZ + row * this.blocksPerPixel
   }
 
   groundAt(column: number, row: number): number | null {
     const { tile, pixel } = this.pixelAt(column, row)
     const ground = tile.groundY[pixel]
-    return ground === tile.noGround ? null : ground + 1
+    return ground === tile.noGround ? null : ground
   }
 
   waterAt(column: number, row: number): number | null {
     const { tile, pixel } = this.pixelAt(column, row)
     const water = tile.waterSurfaceY[pixel]
-    return water === tile.noWater ? null : water + 1
+    return water === tile.noWater ? null : water
   }
 
   colorAt(column: number, row: number): number {

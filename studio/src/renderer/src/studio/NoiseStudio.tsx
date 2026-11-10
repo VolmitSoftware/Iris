@@ -21,6 +21,7 @@ type NoiseDisplay = 'flat' | 'terrain'
 const NUMBER = new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 })
 const DEFAULT_SEED = '12345'
 const TERRAIN_TILES_PER_SIDE = 4
+const TERRAIN_BLOCKS_PER_VALUE = 1
 const LOWEST_RELIEF_BLOCKS = 1
 const TALLEST_RELIEF_BLOCKS = 4064
 const DEFAULT_RELIEF_BLOCKS = 64
@@ -298,7 +299,7 @@ function NoiseTerrainView({
   )
 }
 
-/** The square of tiles around where the 2D view looked, at the scale it drew; every tile arrives before it is shown. */
+/** The square of tiles around where the 2D view looked, one block a value; every tile arrives before it is shown. */
 function useNoiseArea(
   client: BridgeClient,
   sourceId: string,
@@ -310,21 +311,19 @@ function useNoiseArea(
   const [area, setArea] = useState<NoiseArea | null>(null)
   useEffect(() => {
     const stop = new AbortController()
-    const tileBlocks = NOISE_TILE_PIXELS * framing.renderScale
+    const tileBlocks = NOISE_TILE_PIXELS * TERRAIN_BLOCKS_PER_VALUE
     const firstTileX = Math.floor(framing.centerX / tileBlocks - TERRAIN_TILES_PER_SIDE / 2)
     const firstTileZ = Math.floor(framing.centerZ / tileBlocks - TERRAIN_TILES_PER_SIDE / 2)
     const rows = Array.from({ length: TERRAIN_TILES_PER_SIDE }, (_, row) =>
       Promise.all(
         Array.from({ length: TERRAIN_TILES_PER_SIDE }, (_, column) =>
-          client.noiseTile(sourceId, seed, firstTileX + column, firstTileZ + row, framing.renderScale, NOISE_TILE_PIXELS, stop.signal)
+          client.noiseTile(sourceId, seed, firstTileX + column, firstTileZ + row, TERRAIN_BLOCKS_PER_VALUE, NOISE_TILE_PIXELS, stop.signal)
         )
       )
     )
     setArea(null)
     Promise.all(rows)
-      .then((tiles: NoiseTile[][]) =>
-        setArea({ tiles, originX: firstTileX * tileBlocks, originZ: firstTileZ * tileBlocks, blocksPerValue: framing.renderScale })
-      )
+      .then((tiles: NoiseTile[][]) => setArea({ tiles, originX: firstTileX * tileBlocks, originZ: firstTileZ * tileBlocks }))
       .catch((failure: Error) => !stop.signal.aborted && tell(failure.message))
     return () => stop.abort()
   }, [client, sourceId, seed, revision, framing, tell])

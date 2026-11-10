@@ -2,12 +2,11 @@ import type { NoiseSource, NoiseTile } from '../bridge/types'
 import type { TerrainSurface } from '../scene/terrainMesh'
 import type { NoiseScale } from './noiseScale'
 
-/** A square of noise tiles, row by row from the north west, and the block its first value is taken at. */
+/** A square of noise tiles at one block a value, row by row from the north west, and the block its first value is taken at. */
 export interface NoiseArea {
   tiles: NoiseTile[][]
   originX: number
   originZ: number
-  blocksPerValue: number
 }
 
 // The fluid of noise measured in blocks lies at its zero, as the world adds the overlay above its fluid height.
@@ -20,6 +19,8 @@ const FLUID_BLOCKS = 0
 export class NoiseTerrain implements TerrainSurface {
   readonly columns: number
   readonly rows: number
+  readonly originX: number
+  readonly originZ: number
   private readonly tileSize: number
 
   constructor(
@@ -29,21 +30,15 @@ export class NoiseTerrain implements TerrainSurface {
     private readonly reliefBlocks: number
   ) {
     this.tileSize = area.tiles[0][0].size
+    this.originX = area.originX
+    this.originZ = area.originZ
     this.rows = area.tiles.length * this.tileSize
     this.columns = area.tiles[0].length * this.tileSize
   }
 
-  worldX(column: number): number {
-    return this.area.originX + column * this.area.blocksPerValue
-  }
-
-  worldZ(row: number): number {
-    return this.area.originZ + row * this.area.blocksPerValue
-  }
-
   groundAt(column: number, row: number): number | null {
     const value = this.valueAt(column, row)
-    return Number.isFinite(value) ? this.heightOf(value) : null
+    return Number.isFinite(value) ? Math.floor(this.heightOf(value)) : null
   }
 
   waterAt(column: number, row: number): number | null {

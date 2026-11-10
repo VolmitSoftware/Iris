@@ -56,6 +56,9 @@ public class IrisGenerator extends IrisRegistrant {
     @Desc("Multiply the compsites instead of adding them")
     private boolean multiplicitive = false;
     @MinNumber(0.001)
+    @Desc("Curves the combined composite value (0-1) as value^exponent before opacity. Above 1 flattens lows and sharpens peaks, below 1 does the opposite. Unlike the exponent on a single noise generator, this acts on the combined result of all composites.")
+    private double exponent = 1;
+    @MinNumber(0.001)
     @Desc("The size of the cell fractures")
     private double cellFractureZoom = 1D;
     @MinNumber(0)
@@ -195,7 +198,8 @@ public class IrisGenerator extends IrisRegistrant {
             }
         }
 
-        double v = multiplicitive ? h * opacity : (h / tp) * opacity;
+        double combined = multiplicitive ? h : h / tp;
+        double v = applyExponent(combined) * opacity;
 
         if (Double.isNaN(v)) {
             v = 0;
@@ -205,6 +209,14 @@ public class IrisGenerator extends IrisRegistrant {
         v = hasCellCracks() ? cell(rx, rz, v, superSeed + 48622 + hc) : v;
 
         return v;
+    }
+
+    private double applyExponent(double value) {
+        if (exponent == 1) {
+            return value;
+        }
+
+        return value < 0 ? -Math.pow(-value, exponent) : Math.pow(value, exponent);
     }
 
     public double cell(double rx, double rz, double v, double superSeed) {

@@ -273,8 +273,8 @@ public final class BiomeLayers {
         }
 
         for (int i = 0; i < maxDepth; i++) {
-            int offset = (LOCKED_LAYERS_REFERENCE_HEIGHT - height) - i;
-            locked.add(stacked.get(Math.max(offset % stacked.size(), 0)));
+            long offset = (long) LOCKED_LAYERS_REFERENCE_HEIGHT - height - i;
+            locked.add(stacked.get(Math.floorMod(offset, stacked.size())));
         }
 
         return locked;

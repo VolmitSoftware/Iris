@@ -60,6 +60,7 @@ public final class IrisFabricBootstrap implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTING.register((MinecraftServer server) -> ModdedEngineBootstrap.start(server));
         ServerLifecycleEvents.SERVER_STARTED.register((MinecraftServer server) -> ModdedEngineBootstrap.serverStarted(server));
         ServerLifecycleEvents.SERVER_STOPPING.register((MinecraftServer server) -> ModdedEngineBootstrap.stop());
+        ServerLifecycleEvents.SERVER_STOPPED.register((MinecraftServer server) -> ModdedEngineBootstrap.stopped());
         ServerLevelEvents.LOAD.register((MinecraftServer server, ServerLevel level) -> ModdedEngineBootstrap.levelLoaded(level));
         ServerLevelEvents.UNLOAD.register((MinecraftServer server, ServerLevel level) -> ModdedEngineBootstrap.levelUnloaded(level));
         CommandRegistrationCallback.EVENT.register((CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext buildContext, Commands.CommandSelection selection) -> IrisModdedCommands.register(dispatcher));

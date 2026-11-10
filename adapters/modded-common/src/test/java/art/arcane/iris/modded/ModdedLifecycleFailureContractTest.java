@@ -141,21 +141,27 @@ public class ModdedLifecycleFailureContractTest {
     @Test
     public void engineBootstrapResetsStartupExactlyOnceDuringStop() throws IOException {
         String source = source("ModdedEngineBootstrap.java");
-        String stop = method(source, "public static void stop(");
+        String stopped = method(source, "private static void closeStoppedServer(");
 
-        assertEquals(1, occurrences(stop, "ModdedStartup::reset"));
+        assertEquals(1, occurrences(source, "ModdedStartup::reset"));
+        assertEquals(1, occurrences(stopped, "ModdedStartup::reset"));
     }
 
     @Test
     public void engineBootstrapAttemptsEveryShutdownStageAndAggregatesFailures() throws IOException {
         String source = source("ModdedEngineBootstrap.java");
         String stop = method(source, "public static void stop(");
+        String stopped = method(source, "private static void closeStoppedServer(");
 
-        assertBefore(stop, "\"services\"", "\"world engines\"");
-        assertBefore(stop, "\"world engines\"", "\"dimension manager\"");
-        assertBefore(stop, "\"server state\"", "if (failure != null)");
+        assertTrue(stop.contains("\"services\""));
+        assertFalse(stop.contains("\"world engines\""));
+        assertBefore(stopped, "\"world engines\"", "\"dimension manager\"");
+        assertBefore(stopped, "\"server state\"", "reportStopFailure(\"stopped\", failure);");
+        assertBefore(stop, "\"services\"", "reportStopFailure(\"stopping\", failure);");
         assertFalse(stop.contains("throw"));
-        assertTrue(stop.contains("ModdedIrisLog.error(\"Iris modded shutdown completed with failures\", failure);"));
+        assertFalse(stopped.contains("throw"));
+        String report = method(source, "private static void reportStopFailure(");
+        assertTrue(report.contains("ModdedIrisLog.error(\"Iris modded shutdown ({}) completed with failures\", phase, failure);"));
 
         String runStage = method(source, "private static Throwable runStopStage(");
         assertTrue(runStage.contains("catch (Throwable stageFailure)"));
@@ -206,12 +212,12 @@ public class ModdedLifecycleFailureContractTest {
     }
 
     @Test
-    public void loaderUnloadSurfacesCloseFailureAndDynamicRemovalUsesStrictEviction() throws IOException {
+    public void loaderUnloadLogsCloseFailureAndDynamicRemovalUsesStrictEviction() throws IOException {
         String bootstrapSource = source("ModdedEngineBootstrap.java");
         String unload = method(bootstrapSource, "public static void levelUnloaded(ServerLevel level)");
         String failure = catchBlock(unload);
         assertTrue(failure.contains("ModdedIrisLog.error("));
-        assertTrue(failure.contains("throw "));
+        assertFalse(failure.contains("throw "));
 
         String managerSource = source("ModdedDimensionManager.java");
         String remove = method(managerSource, "public static boolean remove(MinecraftServer server, String dimensionId, boolean wipeStorage)");

@@ -52,6 +52,7 @@ import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -84,6 +85,7 @@ public final class IrisNeoForgeBootstrap {
         NeoForge.EVENT_BUS.addListener((ServerStartingEvent event) -> ModdedEngineBootstrap.start(event.getServer()));
         NeoForge.EVENT_BUS.addListener((ServerStartedEvent event) -> ModdedEngineBootstrap.serverStarted(event.getServer()));
         NeoForge.EVENT_BUS.addListener((ServerStoppingEvent event) -> ModdedEngineBootstrap.stop());
+        NeoForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> ModdedEngineBootstrap.stopped());
         NeoForge.EVENT_BUS.addListener((LevelEvent.Load event) -> {
             if (event.getLevel() instanceof ServerLevel level) {
                 ModdedEngineBootstrap.levelLoaded(level);

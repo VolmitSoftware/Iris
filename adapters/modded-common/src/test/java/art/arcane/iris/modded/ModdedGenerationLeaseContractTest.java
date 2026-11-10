@@ -120,10 +120,10 @@ public class ModdedGenerationLeaseContractTest {
 
         String bootstrap = source("art/arcane/iris/modded/ModdedEngineBootstrap.java");
         String stop = method(bootstrap, "public static void stop()");
-        int downloads = stop.indexOf("IrisModdedCommands::shutdownDownloads");
-        int scheduler = stop.indexOf("scheduler::shutdown");
-        assertTrue(downloads >= 0);
-        assertTrue(scheduler > downloads);
+        assertTrue(stop.contains("IrisModdedCommands::shutdownDownloads"));
+        assertFalse(stop.contains("scheduler::shutdown"));
+        String stopped = method(bootstrap, "private static void closeStoppedServer()");
+        assertTrue(stopped.contains("scheduler::shutdown"));
     }
 
     @Test

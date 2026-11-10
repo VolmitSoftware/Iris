@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.studio.map;
 
+import art.arcane.iris.core.studio.noise.CatmullRom;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 
 /**
@@ -78,17 +79,8 @@ final class HeightLattice {
         double[] rows = new double[CURVE_POINTS];
         for (int row = 0; row < CURVE_POINTS; row++) {
             int offset = (baseZ - 1 + row) * pointsPerSide + baseX - 1;
-            rows[row] = catmullRom(points[offset], points[offset + 1], points[offset + 2], points[offset + 3], fractionX);
+            rows[row] = CatmullRom.between(points[offset], points[offset + 1], points[offset + 2], points[offset + 3], fractionX);
         }
-        return catmullRom(rows[0], rows[1], rows[2], rows[3], fractionZ);
-    }
-
-    private static double catmullRom(double before, double start, double end, double after, double fraction) {
-        double squared = fraction * fraction;
-        double cubed = squared * fraction;
-        return 0.5D * (2D * start
-                + (end - before) * fraction
-                + (2D * before - 5D * start + 4D * end - after) * squared
-                + (3D * start - before - 3D * end + after) * cubed);
+        return CatmullRom.between(rows[0], rows[1], rows[2], rows[3], fractionZ);
     }
 }

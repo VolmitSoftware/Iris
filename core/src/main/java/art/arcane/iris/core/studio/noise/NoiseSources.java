@@ -74,12 +74,19 @@ public final class NoiseSources {
 
     /** The noise of a listed source at a seed, which sources that keep the world's seed ignore. */
     public NoiseProvider sampler(String id, long seed) {
+        return entryOf(id).factory().create(seed);
+    }
+
+    /** Whether tiles of a listed source are drawn from samples on a lattice, smoothly in between, because sampling every pixel is too slow. */
+    public boolean isSmooth(String id) {
+        return entryOf(id).source().smooth();
+    }
+
+    private Entry entryOf(String id) {
         return entries.stream()
                 .filter(entry -> entry.source().id().equals(id))
                 .findFirst()
-                .orElseThrow(() -> new NoSuchElementException("No noise " + id))
-                .factory()
-                .create(seed);
+                .orElseThrow(() -> new NoSuchElementException("No noise " + id));
     }
 
     // The overlay is summed the way the world adds it, with the world's seed, in blocks above the fluid.
@@ -91,7 +98,7 @@ public final class NoiseSources {
         BlockRange blocks = new BlockRange(
                 overlay.stream().mapToInt(IrisBiomeGeneratorLink::getMin).sum(),
                 overlay.stream().mapToInt(IrisBiomeGeneratorLink::getMax).sum());
-        Source source = new Source(OVERLAY_NOISE_ID, "Overlay noise", NoiseCategory.PACK_GENERATORS.label(), false, blocks);
+        Source source = new Source(OVERLAY_NOISE_ID, "Overlay noise", NoiseCategory.PACK_GENERATORS.label(), false, false, blocks);
         entries.add(new Entry(source, NoiseCategory.PACK_GENERATORS, seed -> engine.getComplex().getOverlayStream()::get));
     }
 
@@ -99,14 +106,14 @@ public final class NoiseSources {
     private static void addTerrainHeight(Engine engine, List<Entry> entries) {
         double fluidHeight = engine.getComplex().getFluidHeight();
         BlockRange blocks = new BlockRange(-fluidHeight, engine.getHeight() - fluidHeight);
-        Source source = new Source(TERRAIN_HEIGHT_ID, "Terrain height", NoiseCategory.PACK_GENERATORS.label(), false, blocks);
+        Source source = new Source(TERRAIN_HEIGHT_ID, "Terrain height", NoiseCategory.PACK_GENERATORS.label(), false, true, blocks);
         entries.add(new Entry(source, NoiseCategory.PACK_GENERATORS,
                 seed -> (x, z) -> engine.getComplex().getHeightStream().getDouble(x, z) - fluidHeight));
     }
 
     private static void addPackGenerators(IrisData data, List<Entry> entries) {
         for (String key : sortedKeys(data.getGeneratorLoader().getPossibleKeys())) {
-            Source source = new Source("pack:" + key, displayName(key), NoiseCategory.PACK_GENERATORS.label(), true, null);
+            Source source = new Source("pack:" + key, displayName(key), NoiseCategory.PACK_GENERATORS.label(), true, false, null);
             entries.add(new Entry(source, NoiseCategory.PACK_GENERATORS, seed -> {
                 IrisGenerator generator = data.getGeneratorLoader().load(key);
                 if (generator == null) {
@@ -124,7 +131,7 @@ public final class NoiseSources {
         Map<String, RNG> worldRandoms = ExpressionSeeds.of(engine);
         for (String key : sortedKeys(data.getExpressionLoader().getPossibleKeys())) {
             RNG worldRandom = worldRandoms.get(key);
-            Source source = new Source("expression:" + key, displayName(key), NoiseCategory.PACK_EXPRESSIONS.label(), worldRandom == null, null);
+            Source source = new Source("expression:" + key, displayName(key), NoiseCategory.PACK_EXPRESSIONS.label(), worldRandom == null, false, null);
             entries.add(new Entry(source, NoiseCategory.PACK_EXPRESSIONS, seed -> {
                 IrisExpression expression = data.getExpressionLoader().load(key);
                 if (expression == null) {
@@ -149,7 +156,7 @@ public final class NoiseSources {
     private static void addStyles(List<Entry> entries) {
         for (NoiseStyle style : NoiseStyle.values()) {
             NoiseCategory category = NoiseCategory.of(style);
-            Source source = new Source("style:" + style.name(), displayName(style.name()), category.label(), true, null);
+            Source source = new Source("style:" + style.name(), displayName(style.name()), category.label(), true, false, null);
             entries.add(new Entry(source, category, seed -> {
                 CNG noise = style.create(new RNG(seed));
                 return noise::noiseFast2D;
@@ -173,9 +180,10 @@ public final class NoiseSources {
      * One noise the view lists.
      *
      * @param usesSeed   whether the view's seed changes it; the overlay and the expressions the world uses keep the world's
+     * @param smooth     whether tiles are sampled on a world-fixed lattice and smoothed between its points, for noise too slow to ask at every pixel
      * @param blockRange where the noise is measured in blocks above the fluid, what it spans; null for noise of 0 to 1
      */
-    public record Source(String id, String name, String category, boolean usesSeed, BlockRange blockRange) {
+    public record Source(String id, String name, String category, boolean usesSeed, boolean smooth, BlockRange blockRange) {
     }
 
     public record BlockRange(double lowest, double highest) {

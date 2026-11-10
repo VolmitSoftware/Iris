@@ -33,6 +33,7 @@ public class NoiseSourcesTest {
         assertEquals("Simplex", simplex.name());
         assertEquals("Simplex", simplex.category());
         assertTrue(simplex.usesSeed());
+        assertFalse(simplex.smooth());
     }
 
     @Test
@@ -53,8 +54,8 @@ public class NoiseSourcesTest {
     @Test
     public void tilesStartAtTheirCornerAndMeetTheirNeighbours() {
         NoiseProvider position = (x, z) -> x * 1000 + z;
-        NoiseTile west = NoiseTile.sample(position, 0, 1, 0.5, 4, () -> false);
-        NoiseTile east = NoiseTile.sample(position, 1, 1, 0.5, 4, () -> false);
+        NoiseTile west = NoiseTile.sample(position, 0, 1, 0.5, 4, false, () -> false);
+        NoiseTile east = NoiseTile.sample(position, 1, 1, 0.5, 4, false, () -> false);
         assertEquals(position.noise(0, 2), west.values()[0], EXACT);
         assertEquals(position.noise(1.5, 2.5), west.values()[4 + 3], EXACT);
         assertEquals(position.noise(2, 2), east.values()[0], EXACT);
@@ -69,6 +70,6 @@ public class NoiseSourcesTest {
 
     @Test
     public void stopsWhenNoLongerWanted() {
-        assertThrows(CancellationException.class, () -> NoiseTile.sample((x, z) -> 0, 0, 0, 1, 4, () -> true));
+        assertThrows(CancellationException.class, () -> NoiseTile.sample((x, z) -> 0, 0, 0, 1, 4, false, () -> true));
     }
 }

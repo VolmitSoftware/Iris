@@ -30,22 +30,30 @@ import java.util.function.BooleanSupplier;
  * starts at block (0, 0), so tiles at one scale meet without a seam.
  */
 public record NoiseTile(int size, float[] values) {
+    /** @param smooth whether to sample a lattice and fill in between, for noise too slow to ask at every pixel */
     public static NoiseTile sample(NoiseProvider noise, int tileX, int tileZ, double blocksPerPixel, int size,
-                                   BooleanSupplier cancelled) {
+                                   boolean smooth, BooleanSupplier cancelled) {
         double tileBlocks = size * blocksPerPixel;
         double originX = tileX * tileBlocks;
         double originZ = tileZ * tileBlocks;
+        if (smooth) {
+            return new NoiseTile(size, NoiseLattice.values(noise, originX, originZ, blocksPerPixel, size, cancelled));
+        }
         float[] values = new float[size * size];
         for (int row = 0; row < size; row++) {
-            if (cancelled.getAsBoolean()) {
-                throw new CancellationException("Noise tile no longer wanted");
-            }
+            requireWanted(cancelled);
             double z = originZ + row * blocksPerPixel;
             for (int column = 0; column < size; column++) {
                 values[row * size + column] = (float) noise.noise(originX + column * blocksPerPixel, z);
             }
         }
         return new NoiseTile(size, values);
+    }
+
+    static void requireWanted(BooleanSupplier cancelled) {
+        if (cancelled.getAsBoolean()) {
+            throw new CancellationException("Noise tile no longer wanted");
+        }
     }
 
     /** The values as little endian 32 bit floats, an unsampleable value as NaN. */

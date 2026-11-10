@@ -501,15 +501,17 @@ public final class StudioBridge implements AutoCloseable {
         if (!(blocksPerPixel >= SMALLEST_NOISE_BLOCKS_PER_PIXEL && blocksPerPixel <= LARGEST_BLOCKS_PER_PIXEL)) {
             throw new RequestError(STATUS_BAD_REQUEST, "The scale is " + SMALLEST_NOISE_BLOCKS_PER_PIXEL + " to " + LARGEST_BLOCKS_PER_PIXEL + " blocks per pixel");
         }
-        NoiseProvider noise = noiseSampler(engine, query.text("source"), query.longNumber("seed"));
-        return NoiseTile.sample(noise, query.whole("x", 0), query.whole("z", 0), blocksPerPixel, size,
+        NoiseSources sources = NoiseSources.of(engine);
+        String source = query.text("source");
+        NoiseProvider noise = noiseSampler(sources, source, query.longNumber("seed"));
+        return NoiseTile.sample(noise, query.whole("x", 0), query.whole("z", 0), blocksPerPixel, size, sources.isSmooth(source),
                 () -> closed || engine.isClosing() || engine.isClosed()).encode();
     }
 
     // A source that can't be sampled fails every tile alike, so it is told once to the studio rather than logged per tile.
-    private static NoiseProvider noiseSampler(Engine engine, String source, long seed) {
+    private static NoiseProvider noiseSampler(NoiseSources sources, String source, long seed) {
         try {
-            return NoiseSources.of(engine).sampler(source, seed);
+            return sources.sampler(source, seed);
         } catch (NoSuchElementException unknown) {
             throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
         } catch (IllegalStateException unsampleable) {

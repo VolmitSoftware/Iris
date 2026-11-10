@@ -13,6 +13,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -58,6 +59,7 @@ public class TerrainHeightSourceTest {
 
         assertEquals("Terrain height", terrain.name());
         assertFalse(terrain.usesSeed());
+        assertTrue(terrain.smooth());
         assertEquals(-FLUID_HEIGHT, terrain.blockRange().lowest(), EXACT);
         assertEquals(WORLD_HEIGHT - FLUID_HEIGHT, terrain.blockRange().highest(), EXACT);
     }

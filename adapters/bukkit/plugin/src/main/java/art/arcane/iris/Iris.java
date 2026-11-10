@@ -52,6 +52,7 @@ import art.arcane.iris.core.link.IrisPapiListener;
 import art.arcane.iris.core.link.IrisPapiState;
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.link.MultiverseCoreLink;
+import art.arcane.iris.core.agent.AttachSignal;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.gui.BukkitGuiHost;
 import art.arcane.iris.core.gui.PregeneratorJob;
@@ -527,6 +528,17 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 () -> Iris.instance.getIrisVersion(),
                 () -> Iris.instance.getMCVersion()));
         SlimJar.load();
+        restoreAttachSignal();
+    }
+
+    private static void restoreAttachSignal() {
+        try {
+            if (AttachSignal.restoreJvmHandler()) {
+                info("Restored the JVM SIGQUIT handler that the server console replaced");
+            }
+        } catch (RuntimeException failure) {
+            reportError("Could not restore the JVM SIGQUIT handler; the Iris agent may fail to attach.", failure);
+        }
     }
 
     private static void bridgeLog(LogLevel level, String message) {

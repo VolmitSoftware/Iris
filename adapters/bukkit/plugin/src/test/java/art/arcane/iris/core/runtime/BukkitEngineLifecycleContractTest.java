@@ -32,7 +32,7 @@ public class BukkitEngineLifecycleContractTest {
         assertTrue(baseHeight.contains("IrisContext.open(currentEngine, lease.sessionId(), null)"));
         assertTrue(baseHeight.contains("catch (GenerationSessionException e)"));
 
-        String generation = method(source, "public void generateNoise(");
+        String generation = method(source, "private void generateNoiseChunk(");
         assertTrue(generation.contains("throw new IllegalStateException"));
         assertTrue(generation.contains("engine.acquireGenerationLease(\"bukkit_terrain_stage\")"));
         assertTrue(generation.contains("IrisContext.open(engine, lease.sessionId(), null)"));

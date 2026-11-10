@@ -109,6 +109,9 @@ nmsBindings.each { key, value ->
 
         dependencies {
             compileOnly(project(':core'))
+            // GenerationSessionException carries the API's EngineFailure marker; core shades the API.
+            compileOnly('com.volmit:iris-api')
+            testCompileOnly('com.volmit:iris-api')
             compileOnly(volmLibCoordinate) {
                 transitive = false
             }
@@ -550,6 +553,9 @@ tasks.register('moddedTest', Exec) {
     mustRunAfter(tasks.named('jar'))
     mustRunAfter(project(':core').tasks.named('check'))
     mustRunAfter(project(':spi').tasks.named('jar'))
+    // The NMS convert tasks rewrite adapters/minecraft-common/src, which is one of the shared inputs;
+    // under `check` the jar task that otherwise orders them first is not in the graph.
+    mustRunAfter(subprojects.collect { Project nmsCandidate -> nmsCandidate.tasks.matching { it.name == 'convert' } })
 }
 
 tasks.named('fabricJar').configure {

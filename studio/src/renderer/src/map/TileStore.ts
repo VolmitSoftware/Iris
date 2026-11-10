@@ -7,8 +7,9 @@ export interface TileSource<Tile, Layer, Style> {
   layerKey(layer: Layer): string
   fetch(address: TileAddress, layer: Layer, signal: AbortSignal): Promise<Tile>
   bytesOf(tile: Tile): number
-  styleKey(style: Style): string
-  pixels(tile: Tile, style: Style): ImageData
+  /** Only for sources whose tiles are drawn as pictures. */
+  styleKey?(style: Style): string
+  pixels?(tile: Tile, style: Style): ImageData
 }
 
 interface StoredTile<Tile> {
@@ -56,10 +57,15 @@ export class TileStore<Tile, Layer, Style> {
     return stored.tile
   }
 
+  /** Whether the tile has arrived; unlike {@link get}, asking does not count as using it. */
+  has(address: TileAddress, layer: Layer): boolean {
+    return this.tiles.has(this.key(address, layer))
+  }
+
   /** The tile drawn in {@code style}; restyled only when the style changed since it was last drawn. */
   picture(address: TileAddress, layer: Layer, style: Style): HTMLCanvasElement | null {
     const stored = this.tiles.get(this.key(address, layer))
-    if (stored === undefined) {
+    if (stored === undefined || this.source.styleKey === undefined || this.source.pixels === undefined) {
       return null
     }
     stored.lastUsed = ++this.useClock

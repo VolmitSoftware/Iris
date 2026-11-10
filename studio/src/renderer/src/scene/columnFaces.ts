@@ -52,7 +52,8 @@ export function groundFaces(field: ColumnField, base: number): QuadBatch {
 
 /**
  * The water over the ground: its top where a column holds some, and the sides where it stands above what lies next
- * to it, down to its own ground. Drawn without colour; the water has one.
+ * to it, down to its own ground. Water at the edge of the field or beside columns where nothing is known has no side,
+ * as it goes on in the field next to it. Drawn without colour; the water has one.
  */
 export function waterFaces(field: ColumnField): QuadBatch {
   const batch = new QuadBatch(false)
@@ -73,7 +74,10 @@ export function waterFaces(field: ColumnField): QuadBatch {
       return null
     }
     const next = field.surfaceTop(column + side.columnStep, row + side.rowStep)
-    const bottom = Math.max(next ?? -Infinity, field.groundTop[field.indexOf(column, row)])
+    if (next === null) {
+      return null
+    }
+    const bottom = Math.max(next, field.groundTop[field.indexOf(column, row)])
     return bottom < top ? { bottom, top, color: WATER_COLOR } : null
   })
   return batch
@@ -82,7 +86,8 @@ export function waterFaces(field: ColumnField): QuadBatch {
 function addTops(field: ColumnField, batch: QuadBatch, spanAt: (column: number, row: number) => Span | null): void {
   for (let row = 0; row < field.rows; row++) {
     mergeRuns(field.columns, (column) => spanAt(column, row), (first, count, span) => {
-      batch.add([field.originX + first, span.top, field.originZ + row], [count, 0, 0], [0, 0, 1], shaded(span.color, TOP_LIGHT))
+      const step = field.blocksPerColumn
+      batch.add([field.originX + first * step, span.top, field.originZ + row * step], [count * step, 0, 0], [0, 0, step], shaded(span.color, TOP_LIGHT))
     })
   }
 }
@@ -104,19 +109,21 @@ function addSides(field: ColumnField, batch: QuadBatch, spanAt: (column: number,
 
 // The corner a side starts from is the one on its left as seen from outside, so it runs and rises into view.
 function sideQuad(field: ColumnField, side: Side, column: number, row: number, count: number, span: Span): [Vec3, Vec3, Vec3] {
-  const x = field.originX + column
-  const z = field.originZ + row
+  const step = field.blocksPerColumn
+  const x = field.originX + column * step
+  const z = field.originZ + row * step
+  const length = count * step
   const up: Vec3 = [0, span.top - span.bottom, 0]
   if (side.rowStep < 0) {
-    return [[x, span.bottom, z], [count, 0, 0], up]
+    return [[x, span.bottom, z], [length, 0, 0], up]
   }
   if (side.rowStep > 0) {
-    return [[x + count, span.bottom, z + 1], [-count, 0, 0], up]
+    return [[x + length, span.bottom, z + step], [-length, 0, 0], up]
   }
   if (side.columnStep < 0) {
-    return [[x, span.bottom, z + count], [0, 0, -count], up]
+    return [[x, span.bottom, z + length], [0, 0, -length], up]
   }
-  return [[x + 1, span.bottom, z], [0, 0, count], up]
+  return [[x + step, span.bottom, z], [0, 0, length], up]
 }
 
 function mergeRuns(length: number, spanAt: (index: number) => Span | null, emit: (first: number, count: number, span: Span) => void): void {

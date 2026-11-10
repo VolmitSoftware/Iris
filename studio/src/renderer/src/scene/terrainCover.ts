@@ -1,0 +1,138 @@
+import type { CameraSight } from './cameraSight'
+import {
+  ancestorAt,
+  childrenOf,
+  columnsUnder,
+  isInside,
+  MOST_LEVELS_FINER,
+  TILE_COLUMNS,
+  tileKey,
+  type ColumnArea,
+  type TerrainTile
+} from './terrainTiles'
+
+/** What is known of a tile: its ground, ground left over from before the layer changed that stands in until it is sampled anew, or nothing. */
+export type TileState = 'none' | 'standIn' | 'fresh'
+
+export interface DrawnTile {
+  tile: TerrainTile
+  /** The columns finer tiles draw instead. */
+  holes: ColumnArea[]
+}
+
+export interface Cover {
+  draws: DrawnTile[]
+  /** What to sample, most needed first: the backdrop, then a level finer than the detail, then the detail. */
+  wanted: TerrainTile[]
+}
+
+// A column is drawn at most this many pixels wide, as wider ones show their blockiness; coarser ones only where there are too many.
+const MOST_COLUMN_PIXELS = 1
+// A little above one, as tiles in sight stick out past the view's edges; beyond it, columns only add faces no one can tell apart.
+const MOST_COLUMNS_PER_PIXEL = 1.25
+const MOST_TILES_IN_SIGHT = 64
+const DETAIL_MARGIN = 0.15
+const BACKDROP_MARGIN = 0.5
+const PREVIEW_LEVELS_ABOVE_DETAIL = 1
+const MOST_LEVELS_FINER_LEFT_OVER = 2
+const BACKDROP_TILE_BLOCKS_PER_ORBIT_BLOCK = 1
+const COLUMNS_PER_TILE = TILE_COLUMNS * TILE_COLUMNS
+
+type StateOf = (tile: TerrainTile) => TileState
+
+/**
+ * What to draw for one camera, and which tiles it still needs. Detail tiles in sight have columns about a pixel wide,
+ * nearer ground finer than far ground; backdrop tiles cover the view and more with coarser columns. Until detail is
+ * sampled the nearest sampled tile of a coarser level stands in, with holes where finer tiles are ready, and detail
+ * left over from before zooming out stands in for the coarser tile that is not sampled yet.
+ *
+ * @param coarsestLevel the coarsest level the source can sample
+ */
+export function planCover(sight: CameraSight, stateOf: StateOf, coarsestLevel: number): Cover {
+  const backdropLevel = backdropLevelFor(sight, coarsestLevel)
+  const finestLevel = Math.max(0, backdropLevel - MOST_LEVELS_FINER)
+  const backdrop = sight.tilesAt(backdropLevel, BACKDROP_MARGIN).sort(nearestFirst(sight)).slice(0, MOST_TILES_IN_SIGHT)
+  const detail = detailTiles(sight, backdrop, backdropLevel, finestLevel)
+  const ready = candidatesOf(backdrop, detail, backdropLevel, finestLevel, stateOf).filter((tile) => stateOf(tile) !== 'none')
+  return {
+    draws: ready.map((tile) => ({ tile, holes: ready.filter((finer) => isInside(finer, tile)).map((finer) => columnsUnder(tile, finer)) })),
+    wanted: wantedInOrder(sight, backdrop, detail, backdropLevel, stateOf)
+  }
+}
+
+// The backdrop tiles are about as wide as the camera is far from what is in the middle, which puts a few of them in sight.
+function backdropLevelFor(sight: CameraSight, coarsestLevel: number): number {
+  const wanted = Math.ceil(Math.log2(Math.max(1, (sight.orbitDistance * BACKDROP_TILE_BLOCKS_PER_ORBIT_BLOCK) / TILE_COLUMNS)))
+  let level = Math.min(coarsestLevel, Math.max(0, wanted))
+  while (level < coarsestLevel && sight.tilesAt(level, BACKDROP_MARGIN).length > MOST_TILES_IN_SIGHT) {
+    level++
+  }
+  return level
+}
+
+// Each backdrop tile is split into finer tiles while their columns would look wider than the threshold, and the
+// threshold is raised until there are no more columns than the view has pixels to show.
+function detailTiles(sight: CameraSight, backdrop: TerrainTile[], backdropLevel: number, finestLevel: number): TerrainTile[] {
+  const mostColumns = Math.min(sight.pixelsWithin(DETAIL_MARGIN) * MOST_COLUMNS_PER_PIXEL, MOST_TILES_IN_SIGHT * COLUMNS_PER_TILE)
+  let threshold = MOST_COLUMN_PIXELS
+  for (;;) {
+    const detail = backdrop.flatMap((tile) => splitWhileCoarse(sight, tile, threshold, finestLevel))
+    const nothingToCoarsen = detail.every((tile) => tile.level === backdropLevel)
+    if (nothingToCoarsen || (detail.length * COLUMNS_PER_TILE <= mostColumns && detail.length <= MOST_TILES_IN_SIGHT)) {
+      return detail
+    }
+    threshold *= 2
+  }
+}
+
+function splitWhileCoarse(sight: CameraSight, tile: TerrainTile, threshold: number, finestLevel: number): TerrainTile[] {
+  if (tile.level <= finestLevel || sight.columnPixels(tile) <= threshold) {
+    return [tile]
+  }
+  return childrenOf(tile)
+    .filter((child) => sight.sees(child, DETAIL_MARGIN))
+    .flatMap((child) => splitWhileCoarse(sight, child, threshold, finestLevel))
+}
+
+// Everything that may be drawn for the view: the backdrop, the detail and the levels between that happen to be there,
+// and, where detail is missing, finer tiles left over from before. None is finer than a backdrop tile can be cut a hole for.
+function candidatesOf(backdrop: TerrainTile[], detail: TerrainTile[], backdropLevel: number, finestLevel: number, stateOf: StateOf): TerrainTile[] {
+  const candidates = new Map<string, TerrainTile>()
+  const add = (tile: TerrainTile): void => void candidates.set(tileKey(tile), tile)
+  backdrop.forEach(add)
+  for (const tile of detail) {
+    add(tile)
+    for (let level = tile.level + 1; level <= backdropLevel; level++) {
+      add(ancestorAt(tile, level))
+    }
+    if (stateOf(tile) === 'none') {
+      finerLeftOver(tile, finestLevel, stateOf, MOST_LEVELS_FINER_LEFT_OVER).forEach(add)
+    }
+  }
+  return [...candidates.values()]
+}
+
+function finerLeftOver(tile: TerrainTile, finestLevel: number, stateOf: StateOf, levels: number): TerrainTile[] {
+  if (levels === 0 || tile.level <= finestLevel) {
+    return []
+  }
+  return childrenOf(tile).flatMap((child) => [...(stateOf(child) === 'none' ? [] : [child]), ...finerLeftOver(child, finestLevel, stateOf, levels - 1)])
+}
+
+function wantedInOrder(sight: CameraSight, backdrop: TerrainTile[], detail: TerrainTile[], backdropLevel: number, stateOf: StateOf): TerrainTile[] {
+  const previews = detail
+    .filter((tile) => tile.level + PREVIEW_LEVELS_ABOVE_DETAIL < backdropLevel)
+    .map((tile) => ancestorAt(tile, tile.level + PREVIEW_LEVELS_ABOVE_DETAIL))
+  const wanted = new Map<string, TerrainTile>()
+  for (const group of [backdrop, previews, detail]) {
+    group
+      .filter((tile) => stateOf(tile) !== 'fresh')
+      .sort(nearestFirst(sight))
+      .forEach((tile) => wanted.set(tileKey(tile), wanted.get(tileKey(tile)) ?? tile))
+  }
+  return [...wanted.values()]
+}
+
+function nearestFirst(sight: CameraSight): (first: TerrainTile, second: TerrainTile) => number {
+  return (first, second) => sight.distanceFromMiddle(first) - sight.distanceFromMiddle(second)
+}

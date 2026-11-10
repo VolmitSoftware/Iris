@@ -1,4 +1,4 @@
-import { Ray, Vector3, type BufferGeometry, type Mesh } from 'three'
+import { Vector3, type BufferGeometry, type Mesh } from 'three'
 import { describe, expect, it } from 'vitest'
 import { buildTerrainMesh, type TerrainSurface } from './terrainMesh'
 
@@ -6,6 +6,7 @@ const GROUND = 10
 const POND_GROUND = 7
 const WATER = 9
 const BASE_DEPTH = 8
+const BASE = POND_GROUND + 1 - BASE_DEPTH
 const GREY = 0x808080
 const RED = 0xff0000
 
@@ -16,6 +17,7 @@ function surfaceOf(colorAt: TerrainSurface['colorAt'] = () => GREY): TerrainSurf
     rows: 3,
     originX: 100,
     originZ: 200,
+    blocksPerColumn: 1,
     groundAt: (column, row) => {
       if (column === 0 && row === 0) {
         return null
@@ -30,7 +32,7 @@ function surfaceOf(colorAt: TerrainSurface['colorAt'] = () => GREY): TerrainSurf
 const surface = surfaceOf()
 
 function meshes(terrain: TerrainSurface = surface): { ground: Mesh; water: Mesh } {
-  const [ground, water] = buildTerrainMesh(terrain).content.object.children as Mesh[]
+  const [ground, water] = buildTerrainMesh(terrain, BASE).object.children as Mesh[]
   return { ground, water }
 }
 
@@ -90,52 +92,45 @@ describe('terrain mesh', () => {
     expect([...lights].sort()).toEqual([0.6, 0.8, 1])
   })
 
-  it('frames the known columns from below their sides to the highest water or ground', () => {
-    const bounds = buildTerrainMesh(surface).content.bounds
-    expect(bounds.min.toArray()).toEqual([100, POND_GROUND + 1 - BASE_DEPTH, 200])
-    expect(bounds.max.toArray()).toEqual([103, GROUND + 1, 203])
-  })
-
   it('draws the water of a column as its top, and no side where the ground beside it stands higher', () => {
     const { water } = meshes()
     expect(quads(water)).toBe(1)
     expect(faces(water.geometry)[0].middle.toArray()).toEqual([101.5, WATER + 1, 201.5])
   })
 
-  it('draws a water side where the water stands above what lies beside it', () => {
-    const lake = { ...surface, groundAt: (column: number, row: number) => (column === 1 && row === 1 ? POND_GROUND : column === 0 && row === 0 ? null : WATER - 3) }
+  it('draws a water side where the water stands above what lies beside it, but not beside nothing known', () => {
+    const lake = { ...surface, groundAt: (column: number, row: number) => (column === 1 && row === 1 ? POND_GROUND : column === 0 && row === 1 ? null : WATER - 3) }
     const sides = faces(meshes(lake).water.geometry).filter((face) => face.normal.y === 0)
-    expect(sides).toHaveLength(4)
+    expect(sides).toHaveLength(3)
     expect(sides.every((side) => side.middle.y === (POND_GROUND + 1 + WATER + 1) / 2)).toBe(true)
   })
-})
 
-describe('terrain surface picking', () => {
-  const content = buildTerrainMesh(surface).content
-  const pick = (origin: Vector3, direction: Vector3): Vector3 | null => content.surfaceAlong!(new Ray(origin, direction.normalize()))
-
-  it('finds the water over the pond and the top of the ground beside it', () => {
-    const water = pick(new Vector3(101.5, 30, 201.5), new Vector3(0, -1, 0))!
-    expect(water.x).toBeCloseTo(101.5, 3)
-    expect(water.y).toBeCloseTo(WATER + 1, 3)
-    expect(water.z).toBeCloseTo(201.5, 3)
-    expect(pick(new Vector3(102.5, 30, 201.5), new Vector3(0, -1, 0))!.y).toBeCloseTo(GROUND + 1, 3)
+  it('draws no water side at the edge of the field, where the water goes on in the next one', () => {
+    const shore = { ...surface, groundAt: () => WATER - 3, waterAt: () => WATER }
+    const sides = faces(meshes(shore).water.geometry).filter((face) => face.normal.y === 0)
+    expect(sides).toHaveLength(0)
   })
 
-  it('finds where a slanted ray meets the side of a column', () => {
-    const hit = pick(new Vector3(95, GROUND, 202.5), new Vector3(1, -0.01, 0))!
-    expect(hit.x).toBeCloseTo(100, 1)
+  it('spreads columns over as many blocks as they are wide', () => {
+    const coarse = { ...surface, blocksPerColumn: 4 }
+    const tops = faces(meshes(coarse).ground.geometry).filter((face) => face.normal.y === 1)
+    const xs = tops.map((top) => top.middle.x)
+    expect(Math.min(...xs)).toBeGreaterThanOrEqual(100)
+    expect(Math.max(...xs)).toBeLessThanOrEqual(112)
+    expect(faces(meshes(coarse).water.geometry)[0].middle.toArray()).toEqual([106, WATER + 1, 206])
   })
 
-  it('finds nothing over an unknown column, beside the field, or from below the ground', () => {
-    expect(pick(new Vector3(100.5, 30, 200.5), new Vector3(0, -1, 0))).toBeNull()
-    expect(pick(new Vector3(300, 30, 202.5), new Vector3(0, -1, 0))).toBeNull()
-    expect(pick(new Vector3(102.5, GROUND - 2, 202.5), new Vector3(0, 1, 0))).toBeNull()
+  it('leaves out the columns of a hole and walls what stands beside it', () => {
+    const holed = buildTerrainMesh(surface, BASE, [{ fromColumn: 2, fromRow: 2, toColumn: 3, toRow: 3 }])
+    const [ground] = holed.object.children as Mesh[]
+    const tops = faces(ground.geometry).filter((face) => face.normal.y === 1)
+    expect(tops.every((top) => !(top.middle.x === 102.5 && top.middle.z === 202.5))).toBe(true)
+    expect(holed.field.surfaceTop(2, 2)).toBeNull()
+    expect(faces(ground.geometry).filter((face) => face.normal.y === 0 && face.middle.x === 102.5 && face.middle.z === 202)).toHaveLength(1)
   })
 
-  it('meets the side where a ray comes in from the side below the rim', () => {
-    const hit = pick(new Vector3(90, GROUND - 1, 202.5), new Vector3(1, 0, 0))!
-    expect(hit.x).toBeCloseTo(100, 3)
-    expect(hit.y).toBeCloseTo(GROUND - 1, 3)
+  it('has no mesh where no column has ground', () => {
+    const nothing = buildTerrainMesh({ ...surface, groundAt: () => null }, BASE)
+    expect(nothing.object.children).toHaveLength(0)
   })
 })

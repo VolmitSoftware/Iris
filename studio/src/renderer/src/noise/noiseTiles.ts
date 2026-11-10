@@ -53,7 +53,7 @@ function valueAt(view: NoiseView, worldX: number, worldZ: number): number | null
   return spot === null ? null : spot.tile.values[spot.pixelZ * spot.tile.size + spot.pixelX]
 }
 
-function noiseTileSource(client: BridgeClient): TileSource<NoiseTile, NoiseLayer, NoiseStyle> {
+export function noiseTileSource(client: BridgeClient): TileSource<NoiseTile, NoiseLayer, NoiseStyle> {
   return {
     layerKey: (layer) => `${layer.revision}/${layer.sourceId}/${layer.seed}`,
     fetch: (address, layer, signal) =>

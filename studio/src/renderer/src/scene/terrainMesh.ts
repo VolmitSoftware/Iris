@@ -1,12 +1,12 @@
 import { DoubleSide, FrontSide, Group, Mesh, MeshBasicMaterial } from 'three'
-import type { ViewportContent } from '../studio/SceneViewport'
 import { groundFaces, waterFaces } from './columnFaces'
 import { ColumnField } from './columnField'
+import type { ColumnArea } from './terrainTiles'
 
 /**
- * Terrain to draw as columns, one block each, row by row from the north west: the ground, the water over it, and the
- * ground's colour. Heights are the Y of the top block, so a column of 64 has its top face at 65. Where nothing is
- * known, the ground is null and the column is left out.
+ * Terrain to draw as columns, row by row from the north west: the ground, the water over it, and the ground's colour.
+ * Heights are the Y of the top block, so a column of 64 has its top face at 65. Where nothing is known, the ground is
+ * null and the column is left out.
  */
 export interface TerrainSurface {
   readonly columns: number
@@ -14,6 +14,8 @@ export interface TerrainSurface {
   /** The world block of the first column and of the first row. */
   readonly originX: number
   readonly originZ: number
+  /** How many blocks wide and deep a column is. */
+  readonly blocksPerColumn: number
   groundAt(column: number, row: number): number | null
   /** The Y of the water's top block over the column, or null where it is dry. */
   waterAt(column: number, row: number): number | null
@@ -21,31 +23,33 @@ export interface TerrainSurface {
 }
 
 export interface TerrainMesh {
-  content: ViewportContent
+  object: Group
+  field: ColumnField
   dispose(): void
 }
 
 const WATER_COLOR = 0x3f76e4
 const WATER_OPACITY = 0.55
-const BASE_DEPTH_BLOCKS = 8
 
 /**
- * The surface as block columns with their faces merged where neighbours show the same one, flat-shaded as Minecraft
- * shades blocks, with see-through water over them. Sides on the rim reach down to below the lowest ground, so the
- * square reads as a solid block cut from the world.
+ * The surface as columns with their faces merged where neighbours show the same one, flat-shaded as Minecraft shades
+ * blocks, with see-through water over them. Sides on the edge reach down to {@code base}, so tiles of ground next to
+ * each other leave no cracks. The columns in {@code holes} are left out, for finer ground to fill.
  */
-export function buildTerrainMesh(surface: TerrainSurface): TerrainMesh {
-  const field = new ColumnField(surface)
-  const base = field.lowestTop() - BASE_DEPTH_BLOCKS
+export function buildTerrainMesh(surface: TerrainSurface, base: number, holes: readonly ColumnArea[] = []): TerrainMesh {
+  const field = new ColumnField(surface, holes)
+  const group = new Group()
+  if (!field.hasAnyGround()) {
+    return { object: group, field, dispose: () => {} }
+  }
   const ground = groundFaces(field, base).geometry()
   const water = waterFaces(field).geometry()
   const groundMaterial = new MeshBasicMaterial({ vertexColors: true, side: FrontSide })
   const waterMaterial = new MeshBasicMaterial({ color: WATER_COLOR, transparent: true, opacity: WATER_OPACITY, depthWrite: false, side: DoubleSide })
-  const group = new Group()
   group.add(new Mesh(ground, groundMaterial), new Mesh(water, waterMaterial))
-  const bounds = field.bounds(base)
   return {
-    content: { object: group, bounds, surfaceAlong: (ray) => field.surfaceAlong(ray, bounds) },
+    object: group,
+    field,
     dispose: () => {
       ground.dispose()
       water.dispose()

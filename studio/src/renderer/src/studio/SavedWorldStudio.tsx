@@ -5,20 +5,19 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 import { BridgeError, STATUS_NOT_FOUND, type BridgeClient } from '../bridge/BridgeClient'
-import type { SavedStart, SavedTile, SavedWorldInfo, WorldInfo } from '../bridge/types'
+import type { SavedStart, SavedWorldInfo, WorldInfo } from '../bridge/types'
 import { BlockColors } from '../scene/blockColors'
 import { BlockModels } from '../scene/blockModels'
 import { BridgeAssets } from '../scene/BridgeAssets'
-import { SavedTerrain, type SavedTerrainArea, type SavedTerrainColoring } from '../scene/savedTerrain'
-import { buildTerrainMesh } from '../scene/terrainMesh'
+import { SavedTerrain, type ReadSavedTile, type SavedTerrainColoring } from '../scene/savedTerrain'
+import { savedTileSource, type SavedLayer } from '../scene/savedTileSource'
+import { focusAround, type TerrainStyle } from '../scene/terrainStream'
 import { SceneViewport } from './SceneViewport'
+import { useTerrainStream } from './useTerrainStream'
 
 const NUMBER = new Intl.NumberFormat('en-US')
-const TILES_PER_SIDE = 4
-const TILE_PIXELS = 128
-const BLOCKS_PER_PIXEL = 1
-const TILE_BLOCKS = TILE_PIXELS * BLOCKS_PER_PIXEL
-const NO_COLORS = new Map<string, number>()
+// Saved tiles are read at up to 16 blocks a pixel, which is level 4.
+const COARSEST_SAVED_LEVEL = 4
 const COLORING_ITEM = 'h-7 px-3 text-[12px] data-[state=on]:bg-selection data-[state=on]:text-foreground'
 const PILL = 'pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card/90 px-3 py-1.5 text-[12px] text-secondary-text'
 
@@ -37,30 +36,42 @@ export function SavedWorldStudio({ client, world, onSummary, tell }: SavedWorldS
   const chosen = worlds.find((candidate) => candidate.id === chosenId) ?? ownWorldAmong(worlds, world) ?? worlds[0] ?? null
   const [coloring, setColoring] = useState<SavedTerrainColoring>('biomes')
   const [readings, setReadings] = useState(0)
-  const { start, area, reading } = useSavedArea(client, chosen?.id ?? null, readings, tell)
-  const blockColors = useBlockColors(client, coloring === 'blocks' ? area : null)
-  const mesh = useMemo(() => {
-    if (area === null || start === null || (coloring === 'blocks' && blockColors === null)) {
-      return null
-    }
-    return buildTerrainMesh(new SavedTerrain(area, coloring, start.seaLevel, blockColors ?? NO_COLORS))
-  }, [area, start, coloring, blockColors])
+  const { start, looking } = useSavedStart(client, chosen?.id ?? null, readings, tell)
+  const tileSource = useMemo(() => {
+    const images = new BridgeAssets(client, () => {})
+    return savedTileSource(client, new BlockColors(new BlockModels(images), images))
+  }, [client])
+  const centerX = start?.centerX ?? 0
+  const centerZ = start?.centerZ ?? 0
+  const lowestGround = start?.lowestGround ?? 0
+  const highestGround = start?.highestGround ?? 0
+  const focus = useMemo(() => focusAround(centerX, centerZ, lowestGround, highestGround), [centerX, centerZ, lowestGround, highestGround])
+  const layer = useMemo<SavedLayer | null>(() => (start === null || chosen === null ? null : { worldId: chosen.id, readings }), [start, chosen, readings])
+  const seaLevel = start?.seaLevel ?? null
+  const minY = start?.minY ?? null
+  const style = useMemo<TerrainStyle<ReadSavedTile> | null>(
+    () =>
+      minY === null
+        ? null
+        : { surfaceOf: (read, place) => new SavedTerrain(read, place, coloring, seaLevel), floorY: minY, topY: minY + world.height },
+    [minY, seaLevel, coloring, world.height]
+  )
+  const { content, pending } = useTerrainStream(tileSource, COARSEST_SAVED_LEVEL, focus, layer, style, tell)
+  const reading = looking || pending > 0
 
-  useEffect(() => () => mesh?.dispose(), [mesh])
   useEffect(() => {
     if (chosen === null || start === null) {
       onSummary(null)
       return
     }
-    const side = NUMBER.format(TILES_PER_SIDE * TILE_BLOCKS)
-    onSummary(`${chosen.name} · ${side} × ${side} blocks around ${NUMBER.format(start.centerX)}, ${NUMBER.format(start.centerZ)}`)
+    onSummary(`${chosen.name} · around ${NUMBER.format(start.centerX)}, ${NUMBER.format(start.centerZ)}`)
   }, [chosen, start, onSummary])
   useEffect(() => () => onSummary(null), [onSummary])
 
   return (
     <>
       <div className="relative min-w-0 flex-1">
-        <SceneViewport content={mesh?.content ?? null} framing={area} />
+        <SceneViewport content={content} framing={content} />
         <div className="absolute top-3 left-3 flex items-center gap-2">
           <ToggleGroup
             type="single"
@@ -146,78 +157,35 @@ function useSavedWorlds(client: BridgeClient, tell: (message: string) => void): 
   return worlds
 }
 
-/** Where the chosen world's view opens and the square of tiles around it; every tile arrives before it is shown. */
-function useSavedArea(
-  client: BridgeClient,
-  worldId: string | null,
-  readings: number,
-  tell: (message: string) => void
-): { start: SavedStart | null; area: SavedTerrainArea | null; reading: boolean } {
+/**
+ * Where the chosen world's view opens, null while it is looked up and where nothing finished is saved. Reading again
+ * keeps the old start until the new one arrives, so the ground drawn stays.
+ */
+function useSavedStart(client: BridgeClient, worldId: string | null, readings: number, tell: (message: string) => void): { start: SavedStart | null; looking: boolean } {
   const [start, setStart] = useState<SavedStart | null>(null)
-  const [area, setArea] = useState<SavedTerrainArea | null>(null)
-  const [reading, setReading] = useState(false)
+  const [looking, setLooking] = useState(false)
+  useEffect(() => setStart(null), [worldId])
   useEffect(() => {
     if (worldId === null) {
       return
     }
     const stop = new AbortController()
-    setReading(true)
-    setStart(null)
-    setArea(null)
-    readSavedArea(client, worldId, stop.signal)
-      .then((found) => {
-        setStart(found?.start ?? null)
-        setArea(found?.area ?? null)
+    setLooking(true)
+    client
+      .savedStart(worldId, stop.signal)
+      .then(setStart)
+      .catch((failure: unknown) => {
+        if (stop.signal.aborted) {
+          return
+        }
+        if (failure instanceof BridgeError && failure.status === STATUS_NOT_FOUND) {
+          setStart(null)
+          return
+        }
+        tell(failure instanceof Error ? failure.message : 'The server did not answer')
       })
-      .catch((failure: Error) => !stop.signal.aborted && tell(failure.message))
-      .finally(() => !stop.signal.aborted && setReading(false))
+      .finally(() => !stop.signal.aborted && setLooking(false))
     return () => stop.abort()
   }, [client, worldId, readings, tell])
-  return { start, area, reading }
-}
-
-async function readSavedArea(client: BridgeClient, worldId: string, signal: AbortSignal): Promise<{ start: SavedStart; area: SavedTerrainArea } | null> {
-  let start: SavedStart
-  try {
-    start = await client.savedStart(worldId, signal)
-  } catch (failure) {
-    if (failure instanceof BridgeError && failure.status === STATUS_NOT_FOUND) {
-      return null
-    }
-    throw failure
-  }
-  const firstTileX = Math.floor(start.centerX / TILE_BLOCKS - TILES_PER_SIDE / 2)
-  const firstTileZ = Math.floor(start.centerZ / TILE_BLOCKS - TILES_PER_SIDE / 2)
-  const tiles: SavedTile[][] = await Promise.all(
-    Array.from({ length: TILES_PER_SIDE }, (_, row) =>
-      Promise.all(
-        Array.from({ length: TILES_PER_SIDE }, (_, column) =>
-          client.savedTile(worldId, firstTileX + column, firstTileZ + row, BLOCKS_PER_PIXEL, TILE_PIXELS, signal)
-        )
-      )
-    )
-  )
-  return { start, area: { tiles, originX: firstTileX * TILE_BLOCKS, originZ: firstTileZ * TILE_BLOCKS } }
-}
-
-/** The colour of every block in the area, read from the client's textures, or null until they are read. */
-function useBlockColors(client: BridgeClient, area: SavedTerrainArea | null): Map<string, number> | null {
-  const colors = useMemo(() => {
-    const images = new BridgeAssets(client, () => {})
-    return new BlockColors(new BlockModels(images), images)
-  }, [client])
-  const [read, setRead] = useState<Map<string, number> | null>(null)
-  useEffect(() => {
-    setRead(null)
-    if (area === null) {
-      return
-    }
-    let active = true
-    const blocks = area.tiles.flat().flatMap((tile) => tile.blockNames)
-    colors.colorsOf(blocks).then((found) => active && setRead(found))
-    return () => {
-      active = false
-    }
-  }, [colors, area])
-  return read
+  return { start, looking }
 }

@@ -1,39 +1,34 @@
 import type { NoiseSource, NoiseTile } from '../bridge/types'
 import type { TerrainSurface } from '../scene/terrainMesh'
+import { blocksPerColumn, originXOf, originZOf, type TerrainTile } from '../scene/terrainTiles'
 import type { NoiseScale } from './noiseScale'
-
-/** A square of noise tiles at one block a value, row by row from the north west, and the block its first value is taken at. */
-export interface NoiseArea {
-  tiles: NoiseTile[][]
-  originX: number
-  originZ: number
-}
 
 // The fluid of noise measured in blocks lies at its zero, as the world adds the overlay above its fluid height.
 const FLUID_BLOCKS = 0
 
 /**
- * Noise as terrain (v3e's 3D noise): noise measured in blocks stands at its own height with water at the fluid;
- * other noise rises from its scale's minimum to {@code reliefBlocks} at its maximum, with no water.
+ * One tile of noise as terrain (v3e's 3D noise): noise measured in blocks stands at its own height with water at the
+ * fluid; other noise rises from its scale's minimum to {@code reliefBlocks} at its maximum, with no water.
  */
 export class NoiseTerrain implements TerrainSurface {
   readonly columns: number
   readonly rows: number
   readonly originX: number
   readonly originZ: number
-  private readonly tileSize: number
+  readonly blocksPerColumn: number
 
   constructor(
-    private readonly area: NoiseArea,
+    private readonly tile: NoiseTile,
+    place: TerrainTile,
     private readonly source: NoiseSource,
     private readonly scale: NoiseScale,
     private readonly reliefBlocks: number
   ) {
-    this.tileSize = area.tiles[0][0].size
-    this.originX = area.originX
-    this.originZ = area.originZ
-    this.rows = area.tiles.length * this.tileSize
-    this.columns = area.tiles[0].length * this.tileSize
+    this.columns = tile.size
+    this.rows = tile.size
+    this.originX = originXOf(place)
+    this.originZ = originZOf(place)
+    this.blocksPerColumn = blocksPerColumn(place.level)
   }
 
   groundAt(column: number, row: number): number | null {
@@ -62,7 +57,6 @@ export class NoiseTerrain implements TerrainSurface {
   }
 
   private valueAt(column: number, row: number): number {
-    const tile = this.area.tiles[Math.floor(row / this.tileSize)][Math.floor(column / this.tileSize)]
-    return tile.values[(row % this.tileSize) * tile.size + (column % this.tileSize)]
+    return this.tile.values[row * this.tile.size + column]
   }
 }

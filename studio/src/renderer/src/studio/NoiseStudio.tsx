@@ -9,19 +9,21 @@ import type { BridgeClient } from '../bridge/BridgeClient'
 import type { NoiseSource, NoiseTile } from '../bridge/types'
 import type { TiledFraming as TerrainFraming } from '../map/TiledView'
 import { NOISE_PALETTES, noiseScale, type NoisePaletteId, type NoiseScale } from '../noise/noiseScale'
-import { NoiseTerrain, type NoiseArea } from '../noise/noiseTerrain'
-import { createNoiseView, NOISE_TILE_PIXELS, type NoiseStatus, type NoiseView } from '../noise/noiseTiles'
-import { buildTerrainMesh } from '../scene/terrainMesh'
+import { NoiseTerrain } from '../noise/noiseTerrain'
+import { createNoiseView, noiseTileSource, type NoiseLayer, type NoiseStatus, type NoiseView } from '../noise/noiseTiles'
+import { focusAround, type TerrainStyle } from '../scene/terrainStream'
 import { hexColor } from './colors'
 import { SceneViewport } from './SceneViewport'
 import { TiledCanvas } from './TiledCanvas'
+import { useTerrainStream } from './useTerrainStream'
 
 type NoiseDisplay = 'flat' | 'terrain'
 
 const NUMBER = new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 })
 const DEFAULT_SEED = '12345'
-const TERRAIN_TILES_PER_SIDE = 4
-const TERRAIN_BLOCKS_PER_VALUE = 1
+// Noise tiles are asked for down to 4096 blocks a value, which is level 12.
+const COARSEST_NOISE_LEVEL = 12
+const LOWEST_FOCUS_BLOCKS = -32
 const LOWEST_RELIEF_BLOCKS = 1
 const TALLEST_RELIEF_BLOCKS = 4064
 const DEFAULT_RELIEF_BLOCKS = 64
@@ -288,46 +290,24 @@ function NoiseTerrainView({
   reliefBlocks: number
   tell(message: string): void
 }): React.JSX.Element {
-  const area = useNoiseArea(client, source.id, seed, revision, framing, tell)
-  const mesh = useMemo(() => (area === null ? null : buildTerrainMesh(new NoiseTerrain(area, source, scale, reliefBlocks))), [area, source, scale, reliefBlocks])
-  useEffect(() => () => mesh?.dispose(), [mesh])
+  const tileSource = useMemo(() => noiseTileSource(client), [client])
+  const focus = useMemo(() => focusAround(framing.centerX, framing.centerZ, LOWEST_FOCUS_BLOCKS, DEFAULT_RELIEF_BLOCKS), [framing])
+  const layer = useMemo<NoiseLayer>(() => ({ sourceId: source.id, seed, revision }), [source.id, seed, revision])
+  const style = useMemo<TerrainStyle<NoiseTile>>(
+    () => ({
+      surfaceOf: (tile, place) => new NoiseTerrain(tile, place, source, scale, reliefBlocks),
+      floorY: source.blockRange?.lowest ?? 0,
+      topY: source.blockRange?.highest ?? reliefBlocks
+    }),
+    [source, scale, reliefBlocks]
+  )
+  const { content, pending } = useTerrainStream(tileSource, COARSEST_NOISE_LEVEL, focus, layer, style, tell)
   return (
     <div className="absolute inset-0">
-      <SceneViewport content={mesh?.content ?? null} framing={area} />
-      {area === null && <div className={cn(PILL, 'top-3 left-1/2 -translate-x-1/2')}>Sampling {source.name}</div>}
+      <SceneViewport content={content} framing={content} />
+      {pending > 0 && <div className={cn(PILL, 'top-3 left-1/2 -translate-x-1/2')}>Sampling {source.name}</div>}
     </div>
   )
-}
-
-/** The square of tiles around where the 2D view looked, one block a value; every tile arrives before it is shown. */
-function useNoiseArea(
-  client: BridgeClient,
-  sourceId: string,
-  seed: string,
-  revision: number,
-  framing: TerrainFraming,
-  tell: (message: string) => void
-): NoiseArea | null {
-  const [area, setArea] = useState<NoiseArea | null>(null)
-  useEffect(() => {
-    const stop = new AbortController()
-    const tileBlocks = NOISE_TILE_PIXELS * TERRAIN_BLOCKS_PER_VALUE
-    const firstTileX = Math.floor(framing.centerX / tileBlocks - TERRAIN_TILES_PER_SIDE / 2)
-    const firstTileZ = Math.floor(framing.centerZ / tileBlocks - TERRAIN_TILES_PER_SIDE / 2)
-    const rows = Array.from({ length: TERRAIN_TILES_PER_SIDE }, (_, row) =>
-      Promise.all(
-        Array.from({ length: TERRAIN_TILES_PER_SIDE }, (_, column) =>
-          client.noiseTile(sourceId, seed, firstTileX + column, firstTileZ + row, TERRAIN_BLOCKS_PER_VALUE, NOISE_TILE_PIXELS, stop.signal)
-        )
-      )
-    )
-    setArea(null)
-    Promise.all(rows)
-      .then((tiles: NoiseTile[][]) => setArea({ tiles, originX: firstTileX * tileBlocks, originZ: firstTileZ * tileBlocks }))
-      .catch((failure: Error) => !stop.signal.aborted && tell(failure.message))
-    return () => stop.abort()
-  }, [client, sourceId, seed, revision, framing, tell])
-  return area
 }
 
 function useNoiseSources(client: BridgeClient, packRevision: number, tell: (message: string) => void): NoiseSource[] {

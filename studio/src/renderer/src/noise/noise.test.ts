@@ -30,24 +30,29 @@ describe('noise scale', () => {
 })
 
 describe('noise terrain', () => {
-  const area = (values: number[]) => ({ tiles: [[{ size: 2, values: Float32Array.from(values) }]], originX: 10, originZ: 20 })
+  const tile = (values: number[]) => ({ size: 2, values: Float32Array.from(values) })
+  const place = { level: 1, tileX: 1, tileZ: -2 }
 
   it('raises noise of 0 to 1 to the relief, without water', () => {
-    const terrain = new NoiseTerrain(area([0, 0.5, 1, Number.NaN]), UNIT_NOISE, noiseScale('terrain', UNIT_NOISE), 64)
+    const terrain = new NoiseTerrain(tile([0, 0.5, 1, Number.NaN]), place, UNIT_NOISE, noiseScale('terrain', UNIT_NOISE), 64)
     expect([terrain.groundAt(0, 0), terrain.groundAt(1, 0), terrain.groundAt(0, 1), terrain.groundAt(1, 1)]).toEqual([0, 32, 64, null])
     expect(terrain.waterAt(0, 0)).toBeNull()
-    expect([terrain.originX, terrain.originZ]).toEqual([10, 20])
+  })
+
+  it('places its columns where the tile lies, as wide as its level', () => {
+    const terrain = new NoiseTerrain(tile([0, 0, 0, 0]), place, UNIT_NOISE, noiseScale('terrain', UNIT_NOISE), 64)
+    expect([terrain.originX, terrain.originZ, terrain.blocksPerColumn]).toEqual([256, -512, 2])
   })
 
   it('stands noise in blocks at its own height, under water below the fluid', () => {
-    const terrain = new NoiseTerrain(area([-5, 12, 0, 3]), BLOCK_NOISE, noiseScale('height', BLOCK_NOISE), 64)
+    const terrain = new NoiseTerrain(tile([-5, 12, 0, 3]), place, BLOCK_NOISE, noiseScale('height', BLOCK_NOISE), 64)
     expect(terrain.groundAt(0, 0)).toBe(-5)
     expect(terrain.waterAt(0, 0)).toBe(0)
     expect(terrain.waterAt(1, 0)).toBeNull()
   })
 
   it('fills each column up to the block its noise reaches into', () => {
-    const terrain = new NoiseTerrain(area([-0.5, 12.9, 0.4, 3]), BLOCK_NOISE, noiseScale('height', BLOCK_NOISE), 64)
+    const terrain = new NoiseTerrain(tile([-0.5, 12.9, 0.4, 3]), place, BLOCK_NOISE, noiseScale('height', BLOCK_NOISE), 64)
     expect([terrain.groundAt(0, 0), terrain.groundAt(1, 0), terrain.groundAt(0, 1)]).toEqual([-1, 12, 0])
     expect(terrain.waterAt(0, 0)).toBe(0)
     expect(terrain.waterAt(0, 1)).toBeNull()

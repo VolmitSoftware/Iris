@@ -53,6 +53,7 @@ import com.volmit.object.GeneratedObject;
 import com.volmit.tooling.BlockPattern;
 import com.volmit.tooling.PatternArea;
 import com.volmit.tooling.PatternEntry;
+import com.volmit.tooling.BakeRun;
 import com.volmit.tooling.SceneEntry;
 
 import java.io.IOException;
@@ -235,6 +236,7 @@ public final class StudioBridge implements AutoCloseable {
             case "scene-edit" -> sendJson(exchange, STATUS_OK, sceneEdit(exchange, query));
             case "scene-write" -> sendJson(exchange, STATUS_OK, sceneWrite(exchange, query));
             case "scene-entries" -> sendJson(exchange, STATUS_OK, sceneEntries(get(exchange).engine(), query));
+            case "scene-bake" -> sendJson(exchange, STATUS_OK, sceneBake(get(exchange).engine(), query));
             case "scene" -> sendBytes(exchange, "application/octet-stream", scene(get(exchange).engine(), query));
             case "saved-worlds" -> sendJson(exchange, STATUS_OK, savedWorlds(exchange));
             case "saved-start" -> sendJson(exchange, STATUS_OK, savedStart(exchange, query));
@@ -335,8 +337,9 @@ public final class StudioBridge implements AutoCloseable {
 
     private static List<SceneViewInfo> sceneViews(Engine engine) {
         StudioEditors editors = StudioEditors.of(engine);
-        return StudioScenes.of(engine).views().stream()
-                .map(view -> new SceneViewInfo(view.id(), view.label(), view.description(), editors.edits(view.id())))
+        StudioScenes scenes = StudioScenes.of(engine);
+        return scenes.views().stream()
+                .map(view -> new SceneViewInfo(view.id(), view.label(), view.description(), editors.edits(view.id()), scenes.isBaked(view.id())))
                 .toList();
     }
 
@@ -393,6 +396,16 @@ public final class StudioBridge implements AutoCloseable {
     private static List<SceneEntryWire> sceneEntries(Engine engine, Query query) {
         try {
             return StudioScenes.of(engine).entries(query.text("view")).stream().map(SceneEntryWire::of).toList();
+        } catch (NoSuchElementException unknown) {
+            throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
+        }
+    }
+
+    private static BakeRun sceneBake(Engine engine, Query query) {
+        String key = query.text("key");
+        try {
+            return StudioScenes.of(engine).timeBake(query.text("view"), key)
+                    .orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No bake to time for " + key));
         } catch (NoSuchElementException unknown) {
             throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
         }
@@ -738,8 +751,8 @@ public final class StudioBridge implements AutoCloseable {
     private record ErrorBody(String error) {
     }
 
-    /** A scene view as the studio lists it; {@code editable} when its entries can be edited as nodes. */
-    private record SceneViewInfo(String id, String label, String description, boolean editable) {
+    /** A scene view as the studio lists it; {@code editable} when its entries can be edited as nodes, {@code baked} when their bake can be timed. */
+    private record SceneViewInfo(String id, String label, String description, boolean editable, boolean baked) {
     }
 
     /** A {@link SceneEntry} as the studio reads it, with a blank group for none. */

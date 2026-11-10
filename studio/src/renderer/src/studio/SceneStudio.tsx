@@ -12,6 +12,7 @@ import { BlockModels } from '../scene/blockModels'
 import { BridgeAssets } from '../scene/BridgeAssets'
 import { INTS_PER_BLOCK, type BlockScene } from '../scene/sceneDecoding'
 import { buildSceneMesh, type SceneMesh } from '../scene/sceneMesh'
+import { BakeMeter, useBakeTiming } from './BakeMeter'
 import { EntryBrowser } from './EntryBrowser'
 import { NodeInspector } from './NodeInspector'
 import { NodePane } from './NodePane'
@@ -49,6 +50,8 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
     }
   }
 
+  const bakeTiming = useBakeTiming(client, view.id, entry?.key ?? null, view.baked, packRevision, tell)
+
   const editor = useNodeEditor(client, view.id, view.editable ? (entry?.key ?? null) : null, packRevision, tell)
   const [selectedPath, setSelectedPath] = useState<JsonPath | null>(null)
   const selected = editor.state?.roots != null && selectedPath !== null ? nodeWithPath(editor.state.roots, selectedPath) : null
@@ -74,6 +77,7 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
       </div>
       <aside className={cn('flex shrink-0 flex-col border-l bg-card', view.editable ? 'w-[300px]' : 'w-[250px]')}>
         <EntryBrowser className={selected === null ? 'flex-[7]' : 'flex-[3]'} title={view.label} entries={entries} current={entry?.key ?? null} onSelect={(key) => setChosen({ key, variant: 0 })} />
+        {view.baked && entry !== null && <BakeMeter timing={bakeTiming} />}
         {selected !== null && editor.state !== null ? (
           <NodeInspector key={JSON.stringify(selected.path)} node={selected} state={editor.state} values={values} onEdit={editor.edit} />
         ) : (

@@ -18,12 +18,14 @@
 
 package art.arcane.iris.modules.objects;
 
+import art.arcane.iris.engine.procedural.BakeProfile;
 import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
 import art.arcane.iris.engine.procedural.ProceduralVariants;
 import art.arcane.iris.engine.procedural.part.ProceduralObject;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.PlaceableObject;
 import com.volmit.resource.ResourceId;
+import com.volmit.tooling.BakeRun;
 import com.volmit.tooling.EditableSceneView;
 import com.volmit.tooling.JsonText;
 import com.volmit.tooling.NodeGraph;
@@ -31,6 +33,7 @@ import com.volmit.tooling.SceneEntry;
 import com.volmit.tooling.SceneFile;
 import com.volmit.world.PackWorld;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -74,6 +77,18 @@ public final class ProceduralObjectScenes implements EditableSceneView {
     }
 
     @Override
+    public boolean isBaked() {
+        return true;
+    }
+
+    @Override
+    public Optional<BakeRun> timeBake(PackWorld world, String key) {
+        return ProceduralObjectCatalog.of(world).variants(ProceduralObjectCatalog.KEY_PREFIX + key)
+                .map(ProceduralVariants::profileBake)
+                .map(ProceduralObjectScenes::runOf);
+    }
+
+    @Override
     public Optional<SceneFile> fileOf(PackWorld world, String key) {
         ResourceId id = world.resources().idOf(key);
         return world.resources().ids(ProceduralObjectCatalog.DEFINITIONS).contains(id)
@@ -87,6 +102,13 @@ public final class ProceduralObjectScenes implements EditableSceneView {
         ProceduralObject read = world.resources().find(ProceduralObjectCatalog.DEFINITIONS, world.resources().idOf(key))
                 .orElseGet(ProceduralObject::new);
         return ProceduralObjectGraph.of(key.substring(key.lastIndexOf(FOLDER_SEPARATOR) + 1), text, read);
+    }
+
+    private static BakeRun runOf(BakeProfile profile) {
+        List<BakeRun.Stage> stages = Arrays.stream(BakeProfile.Stage.values())
+                .map(stage -> new BakeRun.Stage(stage.label(), profile.nanos(stage)))
+                .toList();
+        return new BakeRun(profile.variantCount(), stages);
     }
 
     private static SceneEntry entryOf(ProceduralVariants variants) {

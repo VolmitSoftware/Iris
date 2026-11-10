@@ -518,6 +518,9 @@ final class RuinScenes implements SceneView {
 - A `SceneView` lists entries (`SceneEntry`) and gives each variant's blocks as a `GeneratedObject`, drawn in 3D. A
   `PatternView` lists entries (`PatternEntry`) and gives the blocks one lays over a `PatternArea` at a depth as a
   `BlockPattern`, drawn from above. `StudioView` is sealed to these two kinds: the studio draws nothing else.
+- A `SceneView` whose entries are baked from settings says so (`isBaked`) and times a bake on request (`timeBake`, a
+  `BakeRun` with a time per stage). One call is one run; the studio asks five times off the server's threads and keeps
+  the median.
 - A view's id is the module's id or starts with it and `/`. A second view with an id already registered fails the
   pack load, naming both modules.
 - The studio asks from its own threads, several at once, for a world of the pack it shows. A view keeps what it

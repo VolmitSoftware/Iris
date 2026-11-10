@@ -4,6 +4,7 @@ import { decodePattern } from './patternDecoding'
 import { decodeSavedTile } from './savedTileDecoding'
 import { decodeTile } from './tileDecoding'
 import type {
+  BakeRun,
   EditorState,
   GraphEdit,
   MapHover,
@@ -159,6 +160,11 @@ export class BridgeClient {
 
   sceneEntries(viewId: string): Promise<SceneEntry[]> {
     return this.json(`scene-entries?${new URLSearchParams({ view: viewId })}`)
+  }
+
+  /** Bakes the entry once more and times each step; one run of the median the studio shows. */
+  sceneBake(viewId: string, key: string, signal?: AbortSignal): Promise<BakeRun> {
+    return this.json(`scene-bake?${new URLSearchParams({ view: viewId, key })}`, { signal })
   }
 
   async scene(viewId: string, key: string, variant: number, signal?: AbortSignal): Promise<BlockScene> {

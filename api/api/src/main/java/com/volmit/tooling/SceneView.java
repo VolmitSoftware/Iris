@@ -21,4 +21,18 @@ public non-sealed interface SceneView extends StudioView {
      * @param variant from 0 to the entry's {@link SceneEntry#variants()}, exclusive
      */
     Optional<GeneratedObject> scene(PackWorld world, String key, int variant);
+
+    /** Whether the entries are baked from settings, which costs generation time {@link #timeBake} can measure. */
+    default boolean isBaked() {
+        return false;
+    }
+
+    /**
+     * Bakes the entry named {@code key} once more the way generation does, without keeping the result, and times each
+     * step. The studio asks several times and keeps the median, so one call is one run. Asked off the server's threads;
+     * empty when the pack has no such entry or the view does not bake.
+     */
+    default Optional<BakeRun> timeBake(PackWorld world, String key) {
+        return Optional.empty();
+    }
 }

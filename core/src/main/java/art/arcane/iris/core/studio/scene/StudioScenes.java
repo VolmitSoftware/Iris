@@ -20,6 +20,7 @@ package art.arcane.iris.core.studio.scene;
 
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.object.GeneratedObject;
+import com.volmit.tooling.BakeRun;
 import com.volmit.tooling.SceneEntry;
 import com.volmit.tooling.SceneView;
 
@@ -55,5 +56,19 @@ public final class StudioScenes {
      */
     public Optional<GeneratedObject> scene(String viewId, String key, int variant) {
         return views.ask(viewId, "build " + key, view -> view.scene(views.world(), key, variant));
+    }
+
+    /** @throws NoSuchElementException when no module registered a scene view {@code viewId} */
+    public boolean isBaked(String viewId) {
+        return views.ask(viewId, "say whether it bakes", SceneView::isBaked);
+    }
+
+    /**
+     * One timed bake of an entry; empty when the view has no such entry or does not bake.
+     *
+     * @throws NoSuchElementException when no module registered a scene view {@code viewId}
+     */
+    public Optional<BakeRun> timeBake(String viewId, String key) {
+        return views.ask(viewId, "time the bake of " + key, view -> view.timeBake(views.world(), key));
     }
 }

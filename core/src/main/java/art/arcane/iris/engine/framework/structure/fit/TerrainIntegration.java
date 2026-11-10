@@ -23,10 +23,11 @@ import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.builtin.structure.StructureTerrainMode;
 import art.arcane.iris.engine.mantle.components.StructureCarveEnvelope;
 import art.arcane.iris.engine.mantle.components.StructureCarvingFootprint;
-import art.arcane.iris.util.project.noise.CNG;
-import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockState;
 import com.volmit.block.PaletteSpec;
+import com.volmit.noise.NoiseFactory;
+import com.volmit.noise.NoiseSampler;
+import com.volmit.noise.NoiseStyle;
 import com.volmit.resource.ResourceId;
 import com.volmit.vanilla.TerrainAdaptation;
 import com.volmit.geometry.BlockPosition;
@@ -49,6 +50,9 @@ final class TerrainIntegration {
     private static final long CARVE_CEILING_ROLL_SIGNATURE = 0x2A17L;
     private static final long CARVE_FLOOR_ROLL_SIGNATURE = 0x5B3DL;
     private static final long CARVE_LOBE_SIGNATURE = 0x7C41L;
+    private static final NoiseStyle SIGNATURE_NOISE = NoiseStyle.of("IRIS");
+    /** The lobes want a plain single octave channel: the fractured signature noise has no usable low frequency band. */
+    private static final NoiseStyle SINGLE_OCTAVE_NOISE = NoiseStyle.of("SIMPLEX");
     private static final long CARVE_IDENTITY_X = 341873128712L;
     private static final long CARVE_IDENTITY_Z = 132897987541L;
     private static final int SOURCE_BURY_HORIZONTAL_RADIUS = 6;
@@ -83,14 +87,14 @@ final class TerrainIntegration {
      * Integrates the terrain of every start, then clears the legacy template air of those that replay their own
      * adaptation or are encased. The natural material SOURCE fills with is read once for all starts, before any fill.
      */
-    static void prepareTerrain(FitBlocks blocks, Box area, List<FitStart> starts, long seed,
+    static void prepareTerrain(FitBlocks blocks, Box area, List<FitStart> starts, long seed, NoiseFactory noise,
                                IntFunction<BlockState> naturalBlock, FitPalettes palettes) {
         if (starts.isEmpty()) {
             return;
         }
         SourceTerrainSnapshot sourceTerrain = captureSourceTerrain(blocks, area, starts);
         for (FitStart start : starts) {
-            integrateTerrain(blocks, area, start, seed, naturalBlock, palettes, sourceTerrain);
+            integrateTerrain(blocks, area, start, seed, noise, naturalBlock, palettes, sourceTerrain);
         }
         for (FitStart start : starts) {
             if (clearsLegacyTemplateAir(start)) {
@@ -99,7 +103,7 @@ final class TerrainIntegration {
         }
     }
 
-    static void integrateTerrain(FitBlocks blocks, Box area, FitStart start, long seed,
+    static void integrateTerrain(FitBlocks blocks, Box area, FitStart start, long seed, NoiseFactory noise,
                                  IntFunction<BlockState> naturalBlock, FitPalettes palettes,
                                  SourceTerrainSnapshot sourceTerrain) {
         StructureTerrain terrain = start.terrain();
@@ -109,11 +113,12 @@ final class TerrainIntegration {
             case PRESERVE, VACUUM -> {
             }
             case ENCASE -> encasePieces(blocks, area, start, terrain, seed, naturalBlock, palettes);
-            case BORE, FORCE_CARVE -> carve(blocks, area, start, terrain, seed);
+            case BORE, FORCE_CARVE -> carve(blocks, area, start, terrain, seed, noise);
         }
     }
 
-    private static void carve(FitBlocks blocks, Box area, FitStart start, StructureTerrain terrain, long seed) {
+    private static void carve(FitBlocks blocks, Box area, FitStart start, StructureTerrain terrain, long seed,
+                              NoiseFactory noise) {
         StructureCarveShape shape = terrain.resolvedMode() == StructureTerrainMode.BORE
                 ? StructureCarveShape.BOX : terrain.resolvedShape();
         if (shape == StructureCarveShape.BOX) {
@@ -122,7 +127,7 @@ final class TerrainIntegration {
         }
         carveOrganicColumns(blocks, area, organicCarve(
                 CarveFootprints.of(start, Math.max(0, terrain.horizontalPadding())),
-                terrain, shape, carveNoiseIdentity(seed, start)));
+                terrain, shape, carveNoiseIdentity(seed, start), noise));
     }
 
     static SourceTerrainSnapshot captureSourceTerrain(FitBlocks blocks, Box area, List<FitStart> starts) {
@@ -404,22 +409,20 @@ final class TerrainIntegration {
     }
 
     static OrganicCarve organicCarve(StructureCarvingFootprint footprint, StructureTerrain terrain,
-                                     StructureCarveShape shape, long identity) {
+                                     StructureCarveShape shape, long identity, NoiseFactory noise) {
         double strength = terrain.resolvedErosionStrength();
         double lobeStrength = terrain.resolvedLobeStrength();
-        RNG noiseRng = new RNG(identity);
-        CNG blob = null;
-        CNG ceilingRoll = null;
-        CNG floorRoll = null;
-        CNG lobe = null;
+        NoiseSampler blob = null;
+        NoiseSampler ceilingRoll = null;
+        NoiseSampler floorRoll = null;
+        NoiseSampler lobe = null;
         if (shape == StructureCarveShape.ERODED && strength > 0D) {
-            blob = CNG.signature(noiseRng);
-            ceilingRoll = CNG.signature(noiseRng.nextParallelRNG(CARVE_CEILING_ROLL_SIGNATURE));
-            floorRoll = CNG.signature(noiseRng.nextParallelRNG(CARVE_FLOOR_ROLL_SIGNATURE));
+            blob = noise.sampler(SIGNATURE_NOISE, identity);
+            ceilingRoll = noise.sampler(SIGNATURE_NOISE, identity + CARVE_CEILING_ROLL_SIGNATURE);
+            floorRoll = noise.sampler(SIGNATURE_NOISE, identity + CARVE_FLOOR_ROLL_SIGNATURE);
         }
         if (shape == StructureCarveShape.ERODED && lobeStrength > 0D) {
-            // A plain single octave channel: the fractured signature noise has no usable low frequency band.
-            lobe = new CNG(noiseRng.nextParallelRNG(CARVE_LOBE_SIGNATURE), 1D, 1);
+            lobe = noise.sampler(SINGLE_OCTAVE_NOISE, identity + CARVE_LOBE_SIGNATURE);
         }
         return new OrganicCarve(footprint, shape,
                 Math.max(0, terrain.horizontalPadding()),
@@ -474,10 +477,10 @@ final class TerrainIntegration {
                         continue;
                     }
                     if (distanceSquared > 0D && eroded) {
-                        double noise = carve.blob().fitDouble(0D, 1D,
+                        double blobSample = carve.blob().sample(
                                 x * carve.frequency(), y * carve.frequency(), z * carve.frequency());
                         if (!StructureCarveEnvelope.shouldCarveOverboreCell(
-                                carve.shape(), distanceSquared, noise, carve.strength())) {
+                                carve.shape(), distanceSquared, blobSample, carve.strength())) {
                             continue;
                         }
                     }
@@ -627,7 +630,7 @@ final class TerrainIntegration {
 
     record OrganicCarve(StructureCarvingFootprint footprint, StructureCarveShape shape,
                         int horizontalPadding, int ceilingPadding, int floorPadding,
-                        double strength, double frequency, CNG blob, CNG ceilingRoll, CNG floorRoll,
-                        CNG lobe, double lobeFrequency, double lobeStrength) {
+                        double strength, double frequency, NoiseSampler blob,
+                        NoiseSampler ceilingRoll, NoiseSampler floorRoll, NoiseSampler lobe, double lobeFrequency, double lobeStrength) {
     }
 }

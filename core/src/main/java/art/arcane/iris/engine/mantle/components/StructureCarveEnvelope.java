@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.structure.StructureCarveShape;
-import art.arcane.iris.util.project.noise.CNG;
+import com.volmit.noise.NoiseSampler;
 
 /**
  * Carve envelope math shared by the Iris-assembled structure path and the native (vanilla template)
@@ -44,7 +44,7 @@ public final class StructureCarveEnvelope {
      * stays inside the footprint bounds the carve was sized against and never falls below
      * {@code horizontalPadding * (1 - lobeStrength)}.
      */
-    public static double lobedSideReach(CNG lobe, double lobeFrequency, double lobeStrength,
+    public static double lobedSideReach(NoiseSampler lobe, double lobeFrequency, double lobeStrength,
                                         int x, int z, int horizontalPadding) {
         if (horizontalPadding <= 0) {
             return 0D;
@@ -56,7 +56,7 @@ public final class StructureCarveEnvelope {
      * Ceiling counterpart of {@link #lobedSideReach}, deliberately half as strong so the roof swells
      * with the same lobes without collapsing onto the pieces.
      */
-    public static double lobedUpReach(CNG lobe, double lobeFrequency, double lobeStrength,
+    public static double lobedUpReach(NoiseSampler lobe, double lobeFrequency, double lobeStrength,
                                       int x, int z, double upReach) {
         if (upReach <= 0D) {
             return upReach;
@@ -65,19 +65,18 @@ public final class StructureCarveEnvelope {
                 * lobeFactor(lobe, lobeFrequency, lobeStrength * CEILING_LOBE_RATIO, x, z));
     }
 
-    private static double lobeFactor(CNG lobe, double lobeFrequency, double lobeStrength,
+    private static double lobeFactor(NoiseSampler lobe, double lobeFrequency, double lobeStrength,
                                      int x, int z) {
         double clampedStrength = Math.max(0D, Math.min(1D, lobeStrength));
         if (lobe == null || clampedStrength <= 0D) {
             return 1D;
         }
         double scaledFrequency = lobeFrequency * LOBE_FREQUENCY_SCALE;
-        double sample = Math.max(0D, Math.min(1D, lobe.fitDouble(
-                0D, 1D, x * scaledFrequency, z * scaledFrequency)));
+        double sample = Math.max(0D, Math.min(1D, lobe.sample(x * scaledFrequency, z * scaledFrequency)));
         return 1D - clampedStrength * (1D - sample);
     }
 
-    public static double erodedUpReach(CNG roll, double frequency, double strength, int x, int z, int head) {
+    public static double erodedUpReach(NoiseSampler roll, double frequency, double strength, int x, int z, int head) {
         if (head <= 0) {
             return 0D;
         }
@@ -86,8 +85,8 @@ public final class StructureCarveEnvelope {
             return Math.max(1D, head);
         }
         double rollFrequency = frequency * CEILING_ROLL_FREQUENCY_RATIO;
-        double sample = roll.fitDouble(0D, 1D, x * rollFrequency, z * rollFrequency) * 0.7D
-                + roll.fitDouble(0D, 1D, x * rollFrequency * 3D, z * rollFrequency * 3D) * 0.3D;
+        double sample = roll.sample(x * rollFrequency, z * rollFrequency) * 0.7D
+                + roll.sample(x * rollFrequency * 3D, z * rollFrequency * 3D) * 0.3D;
         double contrast = Math.max(0D, Math.min(1D, (sample - 0.5D) * 2.6D + 0.5D));
         double roundedReach = Math.max(1D, head);
         double erodedReach = Math.max(1D, head * (0.4D + 1.4D * contrast));
@@ -99,7 +98,7 @@ public final class StructureCarveEnvelope {
      * never exceeds the configured floor padding, so a padding of zero leaves every column standing on
      * its own supporting block instead of undermining the structure.
      */
-    public static double erodedDownReach(CNG roll, double frequency, double strength, int x, int z, int floorCut) {
+    public static double erodedDownReach(NoiseSampler roll, double frequency, double strength, int x, int z, int floorCut) {
         if (floorCut <= 0) {
             return 0D;
         }
@@ -108,7 +107,7 @@ public final class StructureCarveEnvelope {
             return floorCut;
         }
         double rollFrequency = frequency * FLOOR_ROLL_FREQUENCY_RATIO;
-        double sample = roll.fitDouble(0D, 1D, x * rollFrequency, z * rollFrequency);
+        double sample = roll.sample(x * rollFrequency, z * rollFrequency);
         return floorCut * (1D - clampedStrength * FLOOR_ROLL_AMPLITUDE * (1D - sample));
     }
 

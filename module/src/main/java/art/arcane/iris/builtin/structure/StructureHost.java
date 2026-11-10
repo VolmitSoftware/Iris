@@ -17,7 +17,7 @@
  */
 package art.arcane.iris.builtin.structure;
 
-import com.volmit.generation.InvocationContext;
+import com.volmit.stage.MantleStageContext;
 import com.volmit.resource.ResourceId;
 
 import java.util.List;
@@ -31,7 +31,7 @@ import java.util.Optional;
  */
 public interface StructureHost {
     /** Places the structures that start in the chunk whose mantle the mantle invocation {@code context} generates. */
-    void placeChunk(InvocationContext context);
+    void placeChunk(MantleStageContext context);
 
     /** How far, in blocks along X and Z, a structure may write beyond the chunk it starts in. */
     int reach();

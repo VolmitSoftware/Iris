@@ -175,6 +175,10 @@ final class CarvedVoids implements MantleLayer<CarvedVoid> {
     }
 
     private CarvedVoid toApi(MatterCavern cavern) {
+        return toApi(cavern, ids);
+    }
+
+    static CarvedVoid toApi(MatterCavern cavern, PackResourceIds ids) {
         CarvedVoid plain = switch (cavern.getLiquid()) {
             case LIQUID_FLUID -> CarvedVoid.FLUID;
             case LIQUID_LAVA -> CarvedVoid.LAVA;

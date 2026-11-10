@@ -19,11 +19,13 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.structure.StructureHost;
+import art.arcane.iris.builtin.structure.StructureSeeds;
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.host.WorldStates;
 import com.volmit.placement.Placements;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
 import java.util.List;
@@ -70,6 +72,14 @@ public final class IrisPackWorld implements PackWorld {
         return engine.getSeedManager().getSeed();
     }
 
+    @Override
+    public long seed(ResourceId purpose) {
+        if (StructureSeeds.PLACEMENT.equals(purpose)) {
+            return engine.getSeedManager().getMantle();
+        }
+        return PackWorld.super.seed(purpose);
+    }
+
 
     @Override
     public IrisPackResources resources() {
@@ -78,7 +88,7 @@ public final class IrisPackWorld implements PackWorld {
 
     @Override
     public int minWorldY() {
-        return engine.getWorld().minHeight();
+        return engine.getMinHeight();
     }
 
     @Override

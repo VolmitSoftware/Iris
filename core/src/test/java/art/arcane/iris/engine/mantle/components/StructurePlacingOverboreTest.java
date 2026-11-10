@@ -1,6 +1,10 @@
 package art.arcane.iris.engine.mantle.components;
 
+import com.volmit.placement.PlacementRecord;
+import com.volmit.resource.ResourceId;
 import org.junit.Test;
+
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -9,10 +13,11 @@ import static org.junit.Assert.assertTrue;
 public class StructurePlacingOverboreTest {
     @Test
     public void ordinaryMarkersAreSeparatedFromStructureMarkers() {
-        assertTrue(StructurePlacing.isOrdinaryObjectMarker("trees/oak@42"));
-        assertFalse(StructurePlacing.isOrdinaryObjectMarker(
-                "@iris-structure:v1:dHJlZXMvb2Fr:42:bWluZWNyYWZ0Om1hbnNpb24"));
-        assertFalse(StructurePlacing.isOrdinaryObjectMarker("not-a-marker"));
+        ResourceId oak = new ResourceId("test", "trees/oak");
+        assertTrue(StructurePlacing.isOrdinaryObjectRecord(Optional.of(PlacementRecord.of(oak, 42))));
+        assertFalse(StructurePlacing.isOrdinaryObjectRecord(
+                Optional.of(PlacementRecord.ofPiece(oak, 42, new ResourceId("minecraft", "mansion")))));
+        assertFalse(StructurePlacing.isOrdinaryObjectRecord(Optional.empty()));
     }
 
     @Test

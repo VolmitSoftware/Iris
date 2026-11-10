@@ -1,7 +1,9 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.engine.framework.structure.ColumnHeights;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -10,29 +12,40 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class StructureFoundationPlannerTest {
+    private static final BlockState SOLID = new BlockState("minecraft:stone");
+    private static final BlockState NON_OCCLUDING_SOLID = new BlockState("minecraft:glass");
+    private static final BlockState DECORATION = new BlockState("minecraft:poppy");
+    private static final BlockState FLUID = new BlockState("minecraft:water");
+    private static final BlockRegistry BLOCKS = blocks();
+
+    private static BlockRegistry blocks() {
+        BlockRegistry registry = mock(BlockRegistry.class);
+        when(registry.hasTrait(any(), any())).thenAnswer(call -> {
+            BlockState state = call.getArgument(0);
+            BlockTrait trait = call.getArgument(1);
+            if (trait == BlockTrait.SOLID) {
+                return state.equals(SOLID) || state.equals(NON_OCCLUDING_SOLID);
+            }
+            return trait == BlockTrait.OCCLUDING && state.equals(SOLID);
+        });
+        return registry;
+    }
+
     @Test
     public void recordsLowestPlacedOccludingCellByDefault() {
-        PlatformBlockState solid = mock(PlatformBlockState.class);
-        when(solid.isOccluding()).thenReturn(true);
-        when(solid.isSolid()).thenReturn(true);
-        PlatformBlockState nonOccludingSolid = mock(PlatformBlockState.class);
-        when(nonOccludingSolid.isSolid()).thenReturn(true);
-        when(nonOccludingSolid.isOccluding()).thenReturn(false);
-        PlatformBlockState decoration = mock(PlatformBlockState.class);
-        when(decoration.isOccluding()).thenReturn(false);
-
         ColumnHeights columns = new ColumnHeights(0);
-        StructureFoundationPlanner.recordBaseCell(columns, 100, 48, 200, decoration, false);
-        StructureFoundationPlanner.recordBaseCell(columns, 100, 49, 200, solid, false);
-        StructureFoundationPlanner.recordBaseCell(columns, 100, 50, 200, solid, false);
-        StructureFoundationPlanner.recordBaseCell(columns, 100, 45, 200, solid, false);
-        StructureFoundationPlanner.recordBaseCell(columns, -17, 60, -33, solid, false);
-        StructureFoundationPlanner.recordBaseCell(columns, 12, 41, 44, solid, false);
-        StructureFoundationPlanner.recordBaseCell(columns, 12, 36, 44, nonOccludingSolid, false);
+        StructureFoundationPlanner.recordBaseCell(columns, 100, 48, 200, DECORATION, BLOCKS, false);
+        StructureFoundationPlanner.recordBaseCell(columns, 100, 49, 200, SOLID, BLOCKS, false);
+        StructureFoundationPlanner.recordBaseCell(columns, 100, 50, 200, SOLID, BLOCKS, false);
+        StructureFoundationPlanner.recordBaseCell(columns, 100, 45, 200, SOLID, BLOCKS, false);
+        StructureFoundationPlanner.recordBaseCell(columns, -17, 60, -33, SOLID, BLOCKS, false);
+        StructureFoundationPlanner.recordBaseCell(columns, 12, 41, 44, SOLID, BLOCKS, false);
+        StructureFoundationPlanner.recordBaseCell(columns, 12, 36, 44, NON_OCCLUDING_SOLID, BLOCKS, false);
 
         assertEquals(3, columns.size());
         assertEquals(45, columns.get(StructureFoundationPlanner.pack(100, 200)));
@@ -44,18 +57,9 @@ public class StructureFoundationPlannerTest {
 
     @Test
     public void recordsSolidNonOccludingBaseWhenEnabled() {
-        PlatformBlockState partialStructureBlock = mock(PlatformBlockState.class);
-        when(partialStructureBlock.isSolid()).thenReturn(true);
-        when(partialStructureBlock.isOccluding()).thenReturn(false);
-        PlatformBlockState fullStructureBlock = mock(PlatformBlockState.class);
-        when(fullStructureBlock.isSolid()).thenReturn(true);
-        when(fullStructureBlock.isOccluding()).thenReturn(true);
-
         ColumnHeights columns = new ColumnHeights(0);
-        StructureFoundationPlanner.recordBaseCell(
-                columns, 12, 41, 44, fullStructureBlock, true);
-        StructureFoundationPlanner.recordBaseCell(
-                columns, 12, 36, 44, partialStructureBlock, true);
+        StructureFoundationPlanner.recordBaseCell(columns, 12, 41, 44, SOLID, BLOCKS, true);
+        StructureFoundationPlanner.recordBaseCell(columns, 12, 36, 44, NON_OCCLUDING_SOLID, BLOCKS, true);
 
         assertEquals(1, columns.size());
         assertEquals(36, columns.get(StructureFoundationPlanner.pack(12, 44)));
@@ -72,30 +76,20 @@ public class StructureFoundationPlannerTest {
 
     @Test
     public void compositeGroundUsesOverlayThenCarvingThenTerrain() {
-        PlatformBlockState solid = mock(PlatformBlockState.class);
-        when(solid.isSolid()).thenReturn(true);
-        PlatformBlockState fluid = mock(PlatformBlockState.class);
-        when(fluid.isSolid()).thenReturn(false);
-
-        assertTrue(StructureFoundationPlanner.isGroundSolid(solid, true, 12, 20));
-        assertFalse(StructureFoundationPlanner.isGroundSolid(fluid, false, 12, 20));
-        assertFalse(StructureFoundationPlanner.isGroundSolid(null, true, 12, 20));
-        assertTrue(StructureFoundationPlanner.isGroundSolid(null, false, 12, 20));
-        assertFalse(StructureFoundationPlanner.isGroundSolid(null, false, 21, 20));
-        assertTrue(StructureFoundationPlanner.isGroundSolid(null, true, 0, -20));
+        assertTrue(StructureFoundationPlanner.isGroundSolid(SOLID, BLOCKS, true, 12, 20));
+        assertFalse(StructureFoundationPlanner.isGroundSolid(FLUID, BLOCKS, false, 12, 20));
+        assertFalse(StructureFoundationPlanner.isGroundSolid(null, BLOCKS, true, 12, 20));
+        assertTrue(StructureFoundationPlanner.isGroundSolid(null, BLOCKS, false, 12, 20));
+        assertFalse(StructureFoundationPlanner.isGroundSolid(null, BLOCKS, false, 21, 20));
+        assertTrue(StructureFoundationPlanner.isGroundSolid(null, BLOCKS, true, 0, -20));
     }
 
     @Test
     public void surfaceSupportStopsAtCarvedCaveBoundary() {
-        PlatformBlockState solid = mock(PlatformBlockState.class);
-        when(solid.isSolid()).thenReturn(true);
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        when(air.isSolid()).thenReturn(false);
-
-        assertTrue(StructureFoundationPlanner.isSurfaceSupportBoundary(null, true, 18, 24));
-        assertTrue(StructureFoundationPlanner.isSurfaceSupportBoundary(solid, false, 30, 24));
-        assertFalse(StructureFoundationPlanner.isSurfaceSupportBoundary(air, false, 30, 24));
-        assertTrue(StructureFoundationPlanner.isSurfaceSupportBoundary(null, false, 24, 24));
+        assertTrue(StructureFoundationPlanner.isSurfaceSupportBoundary(null, BLOCKS, true, 18, 24));
+        assertTrue(StructureFoundationPlanner.isSurfaceSupportBoundary(SOLID, BLOCKS, false, 30, 24));
+        assertFalse(StructureFoundationPlanner.isSurfaceSupportBoundary(FLUID, BLOCKS, false, 30, 24));
+        assertTrue(StructureFoundationPlanner.isSurfaceSupportBoundary(null, BLOCKS, false, 24, 24));
     }
 
     @Test

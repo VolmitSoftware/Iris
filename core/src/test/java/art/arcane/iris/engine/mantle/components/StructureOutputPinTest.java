@@ -16,8 +16,7 @@ import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.structure.assembly.AssembledPiece;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.framework.StructurePlacementScope;
-import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.mantle.MantleWriter;
+import art.arcane.iris.engine.framework.StructureTestWorld;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.structure.IrisStructure;
@@ -37,9 +36,40 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.mantle.runtime.Mantle;
-import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.volmlib.util.matter.MatterCavern;
+import art.arcane.iris.core.modules.IrisPackResources;
+import art.arcane.iris.core.modules.PlacementMarkers;
+import com.volmit.IrisFeature;
+import com.volmit.block.BlockState;
+import com.volmit.config.FeatureSettings;
+import com.volmit.config.Level;
+import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
+import com.volmit.data.SavedKey;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.mantle.CarvedVoid;
+import com.volmit.mantle.Mantle;
+import com.volmit.mantle.MantleEdit;
+import com.volmit.mantle.MantleLayer;
+import com.volmit.mantle.MantleVisitor;
+import com.volmit.object.BlockEntityData;
+import com.volmit.placement.PlacedMarker;
+import com.volmit.placement.PlacementRecord;
+import com.volmit.placement.PlacementTerrain;
+import com.volmit.placement.Placements;
+import com.volmit.placement.StructureVolumes;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
+import com.volmit.stage.MantleStageContext;
+import com.volmit.world.BiomeKind;
+import com.volmit.world.BiomeSample;
+import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
+import com.volmit.world.TerrainSample;
+import com.volmit.world.TerrainSampler;
+import com.volmit.world.UpperDimension;
+import com.volmit.ModuleLog;
+import com.volmit.config.FeatureSettings.Entry;
 import com.google.gson.Gson;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleLogs;
@@ -64,6 +94,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -90,6 +121,7 @@ public class StructureOutputPinTest {
     private static final int WORLD_HEIGHT = 320;
     private static final int FLUID_HEIGHT = 63;
     private static final int GRID_RADIUS_CHUNKS = 40;
+    private static final int GRID_BLOCKS = 1_000_000;
     private static final int CAVE_FLOOR_MANTLE_Y = 50;
     private static final int CAVE_CEILING_MANTLE_Y = 78;
 
@@ -130,6 +162,7 @@ public class StructureOutputPinTest {
         art.arcane.iris.core.loader.ResourceLoader<IrisObject> objectLoader = mock(art.arcane.iris.core.loader.ResourceLoader.class);
         when(objectLoader.getPossibleKeys()).thenAnswer(invocation -> objects.keySet().toArray(String[]::new));
         when(objectLoader.findFile(anyString())).thenAnswer(invocation -> objectFile(invocation.getArgument(0)));
+        when(objectLoader.load(anyString())).thenAnswer(invocation -> objects.get((String) invocation.getArgument(0)));
         when(data.getObjectLoader()).thenReturn(objectLoader);
         when(data.load(eq(IrisObject.class), anyString(), anyBoolean()))
                 .thenAnswer(invocation -> objects.get((String) invocation.getArgument(1)));
@@ -233,14 +266,23 @@ public class StructureOutputPinTest {
 
     private Outcome run(StructurePlacement placement) {
         Engine engine = engineWith(placement);
-        WriterLog log = new WriterLog();
-        MantleWriter writer = recordingWriter(log, engine);
+        StructureTestWorld world = new StructureTestWorld()
+                .hostedBy(engine.getGeneration().world())
+                .worldSeed(WORLD_SEED)
+                .placementSeed(new SeedManager(WORLD_SEED).getMantle())
+                .minY(MIN_HEIGHT)
+                .height(WORLD_HEIGHT)
+                .fluidHeight(FLUID_HEIGHT)
+                .highest(StructureOutputPinTest::terrainHeight)
+                .carved((x, mantleY, z) -> caveAt(mantleY))
+                .dimension(placement);
+        WriterLog log = new WriterLog(world);
         Outcome outcome = new Outcome();
-        StructurePlacing placing = new StructurePlacing(engine, ModuleLogs.discarding());
+        StructurePlacing placing = new StructurePlacing(world, ModuleLogs.discarding());
         for (int chunkX = -GRID_RADIUS_CHUNKS; chunkX < GRID_RADIUS_CHUNKS; chunkX++) {
             for (int chunkZ = -GRID_RADIUS_CHUNKS; chunkZ < GRID_RADIUS_CHUNKS; chunkZ++) {
-                for (StructurePlacement scoped : StructurePlacementScope.placementsAt(engine, chunkX, chunkZ)) {
-                    IrisStructureLocator.ResolvedPlacement resolved = IrisStructureLocator.resolvePlacement(engine, scoped, chunkX, chunkZ);
+                for (StructurePlacement scoped : StructurePlacementScope.placementsAt(world, chunkX, chunkZ)) {
+                    IrisStructureLocator.ResolvedPlacement resolved = IrisStructureLocator.resolvePlacement(world, scoped, chunkX, chunkZ);
                     if (resolved == null) {
                         continue;
                     }
@@ -251,7 +293,7 @@ public class StructureOutputPinTest {
                         outcome.pieces.add(describe(piece));
                     }
                 }
-                placing.place(writer, chunkX, chunkZ, null);
+                placing.place(log.contextOf(chunkX, chunkZ));
             }
         }
         outcome.writes.addAll(log.lines);
@@ -268,10 +310,12 @@ public class StructureOutputPinTest {
     private Engine engineWith(StructurePlacement placement) {
         Engine engine = mock(Engine.class, withSettings().stubOnly());
         IrisDimension dimension = mock(IrisDimension.class, withSettings().stubOnly());
-        EngineMantle engineMantle = mock(EngineMantle.class, withSettings().stubOnly());
+        art.arcane.iris.engine.mantle.EngineMantle engineMantle = mock(art.arcane.iris.engine.mantle.EngineMantle.class, withSettings().stubOnly());
         @SuppressWarnings("unchecked")
-        Mantle<Matter> mantle = mock(Mantle.class, withSettings().stubOnly());
-        when(mantle.get(anyInt(), anyInt(), anyInt(), eq(MatterCavern.class))).thenAnswer(invocation -> caveAt(invocation.getArgument(1)));
+        art.arcane.volmlib.util.mantle.runtime.Mantle<art.arcane.volmlib.util.matter.Matter> mantle =
+                mock(art.arcane.volmlib.util.mantle.runtime.Mantle.class, withSettings().stubOnly());
+        when(mantle.get(anyInt(), anyInt(), anyInt(), eq(art.arcane.volmlib.util.matter.MatterCavern.class)))
+                .thenAnswer(invocation -> caveAt(invocation.getArgument(1)).map(ignored -> new art.arcane.volmlib.util.matter.MatterCavern(true, "", (byte) 3)).orElse(null));
         when(engineMantle.getMantle()).thenReturn(mantle);
         when(engineMantle.trueHeight(anyInt(), anyInt())).thenAnswer(invocation -> terrainHeight(invocation.getArgument(0), invocation.getArgument(1)));
         when(engine.getMantle()).thenReturn(engineMantle);
@@ -299,95 +343,293 @@ public class StructureOutputPinTest {
         return 128 + Math.floorMod(x * 3 + z * 5, 9) + Math.floorMod(x / 7 - z / 5, 4);
     }
 
-    private static MatterCavern caveAt(int mantleY) {
-        return mantleY >= CAVE_FLOOR_MANTLE_Y && mantleY <= CAVE_CEILING_MANTLE_Y ? new MatterCavern(true, "", (byte) 3) : null;
+    private static Optional<CarvedVoid> caveAt(int mantleY) {
+        return mantleY >= CAVE_FLOOR_MANTLE_Y && mantleY <= CAVE_CEILING_MANTLE_Y ? Optional.of(CarvedVoid.AIR) : Optional.empty();
     }
 
-    private static MantleWriter recordingWriter(WriterLog log, Engine engine) {
-        return mock(MantleWriter.class, withSettings().stubOnly().defaultAnswer(invocation -> log.answer(invocation, engine)));
-    }
-
+    /**
+     * The mantle placement writes into, as the api shows it: it records every write as one line, in the order the writes
+     * come, and reads back what was written.
+     */
     private final class WriterLog {
-        private final Map<String, PlatformBlockState> written = new HashMap<>();
+        private final Map<String, BlockState> written = new HashMap<>();
         private final List<String> lines = new ArrayList<>();
-        private final ReturnsEmptyValues empty = new ReturnsEmptyValues();
+        private final StructureTestWorld world;
+        private final PlacementTerrain terrain = new RecordingTerrain();
+        private final Mantle mantle = new RecordingMantle();
+        private final MutableContext context = new MutableContext();
 
-        Object answer(InvocationOnMock invocation, Engine engine) throws Throwable {
-            Object[] arguments = invocation.getArguments();
-            switch (invocation.getMethod().getName()) {
-                case "getEngine":
-                    return engine;
-                case "getHighest":
-                    return terrainHeight((Integer) arguments[0], (Integer) arguments[1]);
-                case "get":
-                    return stateAt((Integer) arguments[0], (Integer) arguments[1], (Integer) arguments[2]);
-                case "set":
-                    return set(arguments);
-                case "setData":
-                    lines.add("D " + position(arguments) + "=" + describeData(arguments[3]));
-                    return null;
-                case "setTile":
-                    lines.add("T " + position(arguments));
-                    return null;
-                case "setForcedCarve":
-                    lines.add("C " + position(arguments));
-                    written.remove(position(arguments));
-                    return null;
-                case "clearBlock":
-                    lines.add("X " + position(arguments));
-                    written.remove(position(arguments));
-                    return null;
-                case "clearData":
-                    lines.add("R " + position(arguments) + "=" + ((Class<?>) arguments[3]).getSimpleName());
-                    return null;
-                case "getDataIfPresent":
-                case "getData":
-                    return dataAt(arguments);
-                case "isSolid":
-                    return stateAt((Integer) arguments[0], (Integer) arguments[1], (Integer) arguments[2]).isSolid();
-                case "isSurfaceSolid":
-                    return true;
-                case "getFluidHeight":
-                    return FLUID_HEIGHT - MIN_HEIGHT;
-                case "acquireChunk":
-                    return null;
-                default:
-                    return empty.answer(invocation);
-            }
+        WriterLog(StructureTestWorld world) {
+            this.world = world;
         }
 
-        private Object set(Object[] arguments) {
-            if (arguments.length != 4 || !(arguments[3] instanceof PlatformBlockState state)) {
-                return null;
-            }
-            lines.add("S " + position(arguments) + "=" + state.key());
-            written.put(position(arguments), state);
-            return null;
+        MantleStageContext contextOf(int chunkX, int chunkZ) {
+            context.chunkX = chunkX;
+            context.chunkZ = chunkZ;
+            return context;
         }
 
-        private Object dataAt(Object[] arguments) {
-            Class<?> type = (Class<?>) arguments[3];
-            if (type == PlatformBlockState.class) {
-                return written.get(position(arguments));
-            }
-            return null;
-        }
-
-        private PlatformBlockState stateAt(int x, int y, int z) {
-            PlatformBlockState state = written.get(x + "," + y + "," + z);
+        private BlockState stateAt(int x, int y, int z) {
+            BlockState state = written.get(position(x, y, z));
             if (state != null) {
                 return state;
             }
-            boolean ground = y <= terrainHeight(x, z) && (caveAt(y) == null);
-            return registryState(ground ? "minecraft:stone" : "minecraft:air");
+            boolean ground = y <= terrainHeight(x, z) && caveAt(y).isEmpty();
+            return new BlockState(ground ? "minecraft:stone" : "minecraft:air");
         }
 
-        private static String position(Object[] arguments) {
-            return arguments[0] + "," + arguments[1] + "," + arguments[2];
+        private static String position(int x, int y, int z) {
+            return x + "," + y + "," + z;
         }
 
-        private static String describeData(Object value) {
-            return value instanceof String text ? "String:" + text : value == null ? "null" : value.getClass().getSimpleName();
+        private final class MutableContext implements MantleStageContext {
+            private int chunkX;
+            private int chunkZ;
+
+            @Override
+            public int chunkX() {
+                return chunkX;
+            }
+
+            @Override
+            public int chunkZ() {
+                return chunkZ;
+            }
+
+            @Override
+            public int originX() {
+                return chunkX << 4;
+            }
+
+            @Override
+            public int originZ() {
+                return chunkZ << 4;
+            }
+
+            @Override
+            public PackWorld world() {
+                return world;
+            }
+
+            @Override
+            public TerrainSampler terrain() {
+                return world.running().orElseThrow().layout();
+            }
+
+            @Override
+            public FeatureSettings settings() {
+                return world.running().orElseThrow().settings();
+            }
+
+            @Override
+            public Mantle mantle() {
+                return mantle;
+            }
+
+            @Override
+            public PlacementTerrain placementTerrain() {
+                return terrain;
+            }
+
+            @Override
+            public com.volmit.random.WorldRandom random() {
+                throw new UnsupportedOperationException("No random here");
+            }
+
+            @Override
+            public <O> O output(com.volmit.stage.Stage<O> stage) {
+                throw new UnsupportedOperationException("No stage outputs here");
+            }
+
+            @Override
+            public <S extends IrisFeature> SettingsStack<S> configured(Class<S> settingsType) {
+                throw new UnsupportedOperationException("No stage settings here");
+            }
+        }
+
+        private final class RecordingTerrain implements PlacementTerrain {
+            @Override
+            public int highest(int x, int z, boolean ignoreFluid) {
+                return terrainHeight(x, z);
+            }
+
+            @Override
+            public BlockState get(int x, int y, int z) {
+                return stateAt(x, y, z);
+            }
+
+            @Override
+            public void set(int x, int y, int z, BlockState state) {
+                lines.add("S " + position(x, y, z) + "=" + state.key());
+                written.put(position(x, y, z), state);
+            }
+
+            @Override
+            public void set(int x, int y, int z, BlockState state, BlockEntityData blockEntity) {
+                set(x, y, z, state);
+                lines.add("T " + position(x, y, z));
+            }
+
+            @Override
+            public void clearBlock(int x, int y, int z) {
+                written.remove(position(x, y, z));
+            }
+
+            @Override
+            public void clearAttached(int x, int y, int z) {
+            }
+
+            @Override
+            public boolean isCarved(int x, int y, int z) {
+                return false;
+            }
+
+            @Override
+            public boolean isSurfaceSolid(int x, int y, int z) {
+                return true;
+            }
+
+            @Override
+            public boolean isUnderwater(int x, int z) {
+                return false;
+            }
+
+            @Override
+            public int fluidHeight() {
+                return FLUID_HEIGHT - MIN_HEIGHT;
+            }
+
+            @Override
+            public boolean preventsDecay() {
+                return false;
+            }
+
+            @Override
+            public void recordPlacement(int x, int y, int z, PlacementRecord placement) {
+                IrisPackResources resources = (IrisPackResources) world.resources();
+                lines.add("D " + position(x, y, z) + "=String:" + PlacementMarkers.encode(placement, resources));
+            }
+
+            @Override
+            public Optional<PlacementRecord> placementAt(int x, int y, int z) {
+                return Optional.empty();
+            }
+
+            @Override
+            public StructureVolumes structureVolumes(int minX, int minZ, int maxX, int maxZ) {
+                return new StructureVolumes() {
+                    @Override
+                    public boolean isEmpty() {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean intersects(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean containsWithin(int x, int y, int z, int margin) {
+                        return false;
+                    }
+                };
+            }
+
+            @Override
+            public void mark(PlacedMarker marker) {
+                BlockPosition at = marker.position();
+                String kind = switch (marker) {
+                    case PlacedMarker.TreeMaterial ignored -> "TreeBlockMaterial";
+                    case PlacedMarker.BuriedTreasure ignored -> "MatterStructurePOI";
+                    case PlacedMarker.PackMarker ignored -> "MatterMarker";
+                };
+                lines.add("D " + position(at.x(), at.y(), at.z()) + "=" + kind);
+            }
+        }
+
+        private final class RecordingMantle implements Mantle {
+            private final MantleLayer<BlockState> blocks = new MantleLayer<>() {
+                @Override
+                public BlockState get(int x, int y, int z) {
+                    return written.get(position(x, y, z));
+                }
+
+                @Override
+                public void set(int x, int y, int z, BlockState value) {
+                    throw new UnsupportedOperationException("Blocks are written through placements");
+                }
+
+                @Override
+                public void remove(int x, int y, int z) {
+                    throw new UnsupportedOperationException("Blocks are written through placements");
+                }
+
+                @Override
+                public void visit(BlockBox area, MantleVisitor<BlockState> visitor) {
+                    throw new UnsupportedOperationException("No visits here");
+                }
+
+                @Override
+                public void clear(BlockBox area) {
+                    throw new UnsupportedOperationException("No clears here");
+                }
+            };
+            private final MantleLayer<CarvedVoid> carved = new MantleLayer<>() {
+                @Override
+                public CarvedVoid get(int x, int y, int z) {
+                    return null;
+                }
+
+                @Override
+                public void set(int x, int y, int z, CarvedVoid value) {
+                    lines.add("C " + position(x, y, z));
+                }
+
+                @Override
+                public void remove(int x, int y, int z) {
+                    lines.add("R " + position(x, y, z) + "=MatterCavern");
+                }
+
+                @Override
+                public void visit(BlockBox area, MantleVisitor<CarvedVoid> visitor) {
+                    throw new UnsupportedOperationException("No visits here");
+                }
+
+                @Override
+                public void clear(BlockBox area) {
+                    throw new UnsupportedOperationException("No clears here");
+                }
+            };
+
+            @Override
+            public BlockBox bounds() {
+                return new BlockBox(-GRID_BLOCKS, 0, -GRID_BLOCKS, GRID_BLOCKS, WORLD_HEIGHT, GRID_BLOCKS);
+            }
+
+            @Override
+            public <T> MantleLayer<T> layer(com.volmit.mantle.MantleKey<T> key) {
+                throw new UnsupportedOperationException("No module layers here");
+            }
+
+            @Override
+            public MantleLayer<BlockState> blocks() {
+                return blocks;
+            }
+
+            @Override
+            public MantleLayer<CarvedVoid> carved() {
+                return carved;
+            }
+
+            @Override
+            public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
+                throw new UnsupportedOperationException("No biomes here");
+            }
+
+            @Override
+            public MantleEdit edit() {
+                throw new UnsupportedOperationException("No edits here");
+            }
         }
     }
 

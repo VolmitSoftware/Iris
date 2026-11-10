@@ -49,6 +49,11 @@ final class IrisNoiseFactory implements NoiseFactory {
         this.resources = resources;
     }
 
+    /** Noise with no pack behind it: the plain styles, but no expressions and no image maps. */
+    static IrisNoiseFactory standalone() {
+        return new IrisNoiseFactory(null, null);
+    }
+
     @Override
     public NoiseSampler sampler(NoiseStyle style, long seed) {
         IrisGeneratorStyle iris = styles.computeIfAbsent(style, unbuilt -> IrisValues.generatorStyle(unbuilt, resources));

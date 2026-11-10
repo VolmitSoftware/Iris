@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
@@ -52,43 +51,41 @@ public final class StructureLocating implements StructureLocator {
 
     @Override
     public Set<ResourceId> locatable(PackWorld world) {
-        return idsOf(world.resources(), IrisStructureLocator.locatableEditableKeys(engine(world)));
+        return idsOf(world.resources(), IrisStructureLocator.locatableEditableKeys(world));
     }
 
     @Override
     public Set<ResourceId> placed(PackWorld world) {
-        return idsOf(world.resources(), IrisStructureLocator.placedKeysAndAliases(engine(world)));
+        return idsOf(world.resources(), IrisStructureLocator.placedKeysAndAliases(world));
     }
 
     @Override
     public LocateResult locate(PackWorld world, ResourceId structure, int fromX, int fromZ, int maxRadiusChunks) {
-        Engine engine = engine(world);
-        String key = keyOf(world.resources(), IrisStructureLocator.placedKeysAndAliases(engine), structure);
-        return apiResult(engine, IrisStructureLocator.locate(engine, key, fromX, fromZ, maxRadiusChunks));
+        String key = keyOf(world.resources(), IrisStructureLocator.placedKeysAndAliases(world), structure);
+        return apiResult(world, IrisStructureLocator.locate(world, key, fromX, fromZ, maxRadiusChunks));
     }
 
     @Override
     public Set<ResourceId> startedStructures(PackWorld world) {
-        return platformIds(IrisStructureLocator.nativeKeys(engine(world)));
+        return platformIds(IrisStructureLocator.nativeKeys(world));
     }
 
     @Override
     public Set<ResourceId> locatableStarts(PackWorld world) {
-        return platformIds(IrisStructureLocator.locatableNativeKeys(engine(world)));
+        return platformIds(IrisStructureLocator.locatableNativeKeys(world));
     }
 
     /** Searches the rings of the placements that start {@code structure} natively, as the platform's own locate does. */
     @Override
     public LocateResult locateStart(PackWorld world, ResourceId structure, int fromX, int fromZ, int maxRings,
                                     ChunkFilter accepts) {
-        Engine engine = engine(world);
-        return apiResult(engine, IrisStructureLocator.locateInPlacementRings(
-                engine, structure.toString(), fromX, fromZ, maxRings, accepts::accepts));
+        return apiResult(world, IrisStructureLocator.locateInPlacementRings(
+                world, structure.toString(), fromX, fromZ, maxRings, accepts::accepts));
     }
 
-    private static LocateResult apiResult(Engine engine, IrisStructureLocator.LocateResult result) {
+    private static LocateResult apiResult(PackWorld world, IrisStructureLocator.LocateResult result) {
         return switch (result.status()) {
-            case FOUND -> LocateResult.found(new BlockPosition(result.originX(), result.baseY() - engine.getMinHeight(), result.originZ()));
+            case FOUND -> LocateResult.found(new BlockPosition(result.originX(), result.baseY() - world.minWorldY(), result.originZ()));
             case NOT_FOUND -> LocateResult.NOT_FOUND;
             case SEARCH_LIMIT_REACHED -> LocateResult.SEARCH_LIMIT_REACHED;
         };
@@ -100,10 +97,6 @@ public final class StructureLocating implements StructureLocator {
             ids.add(ResourceId.parse(key.toLowerCase(Locale.ROOT)));
         }
         return ids;
-    }
-
-    private static Engine engine(PackWorld world) {
-        return world.extension(Engine.class).orElseThrow();
     }
 
     private static Set<ResourceId> idsOf(PackResources pack, Collection<String> keys) {

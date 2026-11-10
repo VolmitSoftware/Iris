@@ -1,16 +1,19 @@
 package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.builtin.structure.StructureAnchorMode;
 import art.arcane.iris.builtin.structure.StructurePlacement;
+import art.arcane.iris.engine.framework.structure.StructureWorld;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.volmlib.util.matter.MatterCavern;
+import com.volmit.mantle.CarvedVoid;
+import com.volmit.resource.ResourceId;
+import com.volmit.world.PackWorld;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.IntPredicate;
 
 public final class StructureCaveAnchorResolver {
@@ -19,22 +22,21 @@ public final class StructureCaveAnchorResolver {
     private static final int MAX_SCAN_STEP = 16;
     private static final int MAX_CLEARANCE = 64;
     private static final int MAX_GENERIC_CENTER_SEARCH = 4096;
-    private static final byte LIQUID_FORCED_AIR = 3;
 
     private StructureCaveAnchorResolver() {
     }
 
-    public static Anchor resolve(Engine engine, StructurePlacement placement, int chunkX, int chunkZ, RNG rng) {
-        Objects.requireNonNull(engine, "Cave structure anchor requires an engine");
+    public static Anchor resolve(PackWorld world, StructurePlacement placement, int chunkX, int chunkZ, RNG rng) {
+        Objects.requireNonNull(world, "Cave structure anchor requires a world");
         Objects.requireNonNull(placement, "Cave structure anchor requires a placement");
         Objects.requireNonNull(rng, "Cave structure anchor requires a random source");
         StructureAnchorMode mode = placement.resolvedAnchor();
-        if (!mode.isCave() || engine.getMantle() == null || engine.getMantle().getMantle() == null) {
+        if (!mode.isCave() || world.running().isEmpty()) {
             return null;
         }
 
-        int worldMin = engine.getMinHeight() + 1;
-        int worldMax = engine.getMinHeight() + engine.getHeight() - 2;
+        int worldMin = world.minWorldY() + 1;
+        int worldMax = world.minWorldY() + StructureWorld.height(world) - 2;
         int minimumY = Math.max(worldMin, Math.min(placement.minHeight(), placement.maxHeight()));
         int maximumY = Math.min(worldMax, Math.max(placement.minHeight(), placement.maxHeight()));
         if (minimumY > maximumY) {
@@ -51,7 +53,7 @@ public final class StructureCaveAnchorResolver {
             int blockX = chunkMinX + (candidateColumn & 15);
             int blockZ = chunkMinZ + (candidateColumn >>> 4);
             List<Integer> anchors = anchorsInColumn(
-                    engine, placement, mode, blockX, blockZ,
+                    world, placement, mode, blockX, blockZ,
                     minimumY, maximumY, scanStep, clearance);
             if (!anchors.isEmpty()) {
                 return new Anchor(blockX, anchors.get(rng.nextInt(anchors.size())), blockZ);
@@ -73,7 +75,7 @@ public final class StructureCaveAnchorResolver {
     }
 
     static List<Integer> anchorsInColumn(
-            Engine engine,
+            PackWorld world,
             StructurePlacement placement,
             StructureAnchorMode mode,
             int blockX,
@@ -85,20 +87,20 @@ public final class StructureCaveAnchorResolver {
     ) {
         if (mode == StructureAnchorMode.CAVE_CENTER) {
             return centerAnchorsInColumn(
-                    engine, placement, blockX, blockZ,
+                    world, placement, blockX, blockZ,
                     minimumY, maximumY, scanStep, clearance);
         }
         List<Integer> anchors = new ArrayList<>();
         int step = Math.max(1, scanStep);
         for (int worldY = minimumY; worldY <= maximumY; worldY += step) {
-            int mantleY = toMantleY(worldY, engine.getMinHeight());
-            if (!matchesGeometry(engine, mode, blockX, mantleY, blockZ, clearance)) {
+            int mantleY = toMantleY(worldY, world.minWorldY());
+            if (!matchesGeometry(world, mode, blockX, mantleY, blockZ, clearance)) {
                 continue;
             }
-            if (!matchesAnchorFluid(engine, placement, blockX, mantleY, blockZ)) {
+            if (!matchesAnchorFluid(world, placement, blockX, mantleY, blockZ)) {
                 continue;
             }
-            if (!matchesBiome(engine, placement, blockX, mantleY, blockZ)) {
+            if (!matchesBiome(world, placement, blockX, mantleY, blockZ)) {
                 continue;
             }
             anchors.add(worldY);
@@ -107,7 +109,7 @@ public final class StructureCaveAnchorResolver {
     }
 
     private static List<Integer> centerAnchorsInColumn(
-            Engine engine,
+            PackWorld world,
             StructurePlacement placement,
             int blockX,
             int blockZ,
@@ -118,11 +120,11 @@ public final class StructureCaveAnchorResolver {
     ) {
         List<Integer> anchors = new ArrayList<>();
         int step = Math.max(1, scanStep);
-        int worldOffset = engine.getMinHeight();
+        int worldOffset = world.minWorldY();
         int minimumMantleY = 0;
-        int maximumMantleY = engine.getHeight() - 1;
+        int maximumMantleY = StructureWorld.height(world) - 1;
         int processedThroughWorldY = Integer.MIN_VALUE;
-        IntPredicate carved = y -> isCarved(engine, blockX, y, blockZ);
+        IntPredicate carved = y -> isCarved(world, blockX, y, blockZ);
         for (int worldY = minimumY; worldY <= maximumY; worldY += step) {
             if (worldY <= processedThroughWorldY) {
                 continue;
@@ -139,12 +141,12 @@ public final class StructureCaveAnchorResolver {
             }
             int lowerCenterWorldY = lower + Math.floorDiv(upper - lower, 2) + worldOffset;
             addCenterAnchor(
-                    anchors, engine, placement, blockX, blockZ,
+                    anchors, world, placement, blockX, blockZ,
                     lowerCenterWorldY, minimumY, maximumY);
             int upperCenterWorldY = lower + Math.ceilDiv(upper - lower, 2) + worldOffset;
             if (upperCenterWorldY != lowerCenterWorldY) {
                 addCenterAnchor(
-                        anchors, engine, placement, blockX, blockZ,
+                        anchors, world, placement, blockX, blockZ,
                         upperCenterWorldY, minimumY, maximumY);
             }
         }
@@ -153,7 +155,7 @@ public final class StructureCaveAnchorResolver {
 
     private static void addCenterAnchor(
             List<Integer> anchors,
-            Engine engine,
+            PackWorld world,
             StructurePlacement placement,
             int blockX,
             int blockZ,
@@ -164,25 +166,25 @@ public final class StructureCaveAnchorResolver {
         if (worldY < minimumY || worldY > maximumY) {
             return;
         }
-        int mantleY = toMantleY(worldY, engine.getMinHeight());
-        if (matchesAnchorFluid(engine, placement, blockX, mantleY, blockZ)
-                && matchesBiome(engine, placement, blockX, mantleY, blockZ)) {
+        int mantleY = toMantleY(worldY, world.minWorldY());
+        if (matchesAnchorFluid(world, placement, blockX, mantleY, blockZ)
+                && matchesBiome(world, placement, blockX, mantleY, blockZ)) {
             anchors.add(worldY);
         }
     }
 
     static boolean matchesGeometry(
-            Engine engine,
+            PackWorld world,
             StructureAnchorMode mode,
             int blockX,
             int mantleY,
             int blockZ,
             int clearance
     ) {
-        IntPredicate carved = y -> isCarved(engine, blockX, y, blockZ);
+        IntPredicate carved = y -> isCarved(world, blockX, y, blockZ);
         if (mode == StructureAnchorMode.CAVE_CENTER) {
             return matchesCenterGeometry(
-                    carved, mantleY, Math.max(1, clearance), 0, engine.getHeight() - 1);
+                    carved, mantleY, Math.max(1, clearance), 0, StructureWorld.height(world) - 1);
         }
         return matchesGeometry(carved, mode, mantleY, clearance);
     }
@@ -272,49 +274,49 @@ public final class StructureCaveAnchorResolver {
         return true;
     }
 
-    private static boolean isCarved(Engine engine, int blockX, int mantleY, int blockZ) {
-        if (mantleY < 0 || mantleY >= engine.getHeight()) {
+    private static boolean isCarved(PackWorld world, int blockX, int mantleY, int blockZ) {
+        if (mantleY < 0 || mantleY >= StructureWorld.height(world)) {
             return false;
         }
-        MatterCavern cavern = cavernAt(engine, blockX, mantleY, blockZ);
-        return cavern != null && cavern.isCavern();
+        return carvedAt(world, blockX, mantleY, blockZ).isPresent();
     }
 
     private static boolean matchesAnchorFluid(
-            Engine engine,
+            PackWorld world,
             StructurePlacement placement,
             int blockX,
             int mantleY,
             int blockZ
     ) {
-        MatterCavern cavern = cavernAt(engine, blockX, mantleY, blockZ);
+        int lavaHeight = StructureWorld.running(world).settings().at(CaveLavaHeightSettings.class, blockX, blockZ)
+                .dimension().map(CaveLavaHeightSettings::height).orElse(CaveLavaHeightSettings.DEFAULT_HEIGHT);
         return acceptsAnchorFluid(
                 placement.underwater(),
-                cavern,
+                carvedAt(world, blockX, mantleY, blockZ).orElse(null),
                 mantleY,
-                engine.getDimension().getModuleSettings().find(CaveLavaHeightSettings.class).map(CaveLavaHeightSettings::height).orElse(CaveLavaHeightSettings.DEFAULT_HEIGHT));
+                lavaHeight);
     }
 
     static boolean acceptsAnchorFluid(
             boolean underwater,
-            MatterCavern cavern,
+            CarvedVoid carved,
             int mantleY,
             int defaultLavaHeight
     ) {
-        if (cavern == null || !cavern.isCavern()) {
+        if (carved == null) {
             return false;
         }
         if (underwater) {
             return true;
         }
-        if (cavern.getLiquid() == LIQUID_FORCED_AIR) {
+        if (carved.fill() == CarvedVoid.Fill.AIR) {
             return true;
         }
-        return cavern.isAir() && mantleY > defaultLavaHeight;
+        return carved.fill() == CarvedVoid.Fill.OPEN && mantleY > defaultLavaHeight;
     }
 
-    private static MatterCavern cavernAt(Engine engine, int blockX, int mantleY, int blockZ) {
-        return engine.getMantle().getMantle().get(blockX, mantleY, blockZ, MatterCavern.class);
+    private static Optional<CarvedVoid> carvedAt(PackWorld world, int blockX, int mantleY, int blockZ) {
+        return StructureWorld.running(world).carvedAt(blockX, mantleY, blockZ);
     }
 
     static int toMantleY(int worldY, int worldMinHeight) {
@@ -322,7 +324,7 @@ public final class StructureCaveAnchorResolver {
     }
 
     private static boolean matchesBiome(
-            Engine engine,
+            PackWorld world,
             StructurePlacement placement,
             int blockX,
             int mantleY,
@@ -331,17 +333,26 @@ public final class StructureCaveAnchorResolver {
         if (placement.caveBiomes().isEmpty()) {
             return true;
         }
-        IrisBiome biome = engine.getCaveOrMantleBiome(blockX, mantleY, blockZ);
-        if (biome == null || biome.getLoadKey() == null) {
+        Optional<ResourceId> biome = caveOrCarvedBiome(world, blockX, mantleY, blockZ);
+        if (biome.isEmpty()) {
             return false;
         }
-        String actual = biome.getLoadKey().toLowerCase(Locale.ROOT);
+        String actual = StructureWorld.keyOf(world, biome.get()).toLowerCase(Locale.ROOT);
         for (String allowed : placement.caveBiomes()) {
             if (matchesBiomeKey(actual, allowed)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /** The biome the carver gave the void at the block, else the cave biome of the column at that height. */
+    private static Optional<ResourceId> caveOrCarvedBiome(PackWorld world, int blockX, int mantleY, int blockZ) {
+        Optional<ResourceId> carvedBiome = carvedAt(world, blockX, mantleY, blockZ).flatMap(CarvedVoid::biome);
+        if (carvedBiome.isPresent()) {
+            return carvedBiome;
+        }
+        return StructureWorld.running(world).layout().caveBiome(blockX, mantleY, blockZ);
     }
 
     static boolean matchesBiomeKey(String actual, String allowed) {

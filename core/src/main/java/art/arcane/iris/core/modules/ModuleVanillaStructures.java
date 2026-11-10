@@ -54,6 +54,7 @@ import java.util.OptionalInt;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * What the pack's modules want for the platform's own structures, asked through their {@link VanillaStructures}
@@ -77,7 +78,8 @@ public final class ModuleVanillaStructures {
     private ModuleVanillaStructures(Engine engine, PackResources snapshot) {
         this.snapshot = snapshot;
         this.providers = providersOf(engine.getData());
-        this.world = new World(snapshot, new IrisPackSettings(engine));
+        this.world = new World(snapshot, new IrisPackSettings(engine),
+                () -> Optional.of(engine.getGeneration().world()));
     }
 
     /** The combined rule of the pack's modules for the platform structure {@code structureKey} in {@code engine}'s world. */
@@ -139,7 +141,7 @@ public final class ModuleVanillaStructures {
 
     /** The combined setup of the pack's modules for {@code dimension} of the pack {@code data} serves, before any world exists. */
     public static VanillaStructureSetup setupFor(IrisData data, IrisDimension dimension) {
-        VanillaStructureContext context = new World(data.getPackResources(), new DimensionSettings(data, dimension));
+        VanillaStructureContext context = new World(data.getPackResources(), new DimensionSettings(data, dimension), Optional::empty);
         VanillaStructureSetup combined = VanillaStructureSetup.UNCHANGED;
         for (ServiceRegistration registration : providersOf(data)) {
             combined = combined.and(ask(registration, "setting up the vanilla structures of dimension " + dimension.getLoadKey(),
@@ -241,7 +243,12 @@ public final class ModuleVanillaStructures {
     }
 
     /** The world the providers decide for: the engine's pack snapshot and the settings its dimension reaches. */
-    private record World(PackResources resources, PackSettings settings) implements VanillaStructureContext {
+    private record World(PackResources resources, PackSettings settings, Supplier<Optional<PackWorld>> worldSource)
+            implements VanillaStructureContext {
+        @Override
+        public Optional<PackWorld> world() {
+            return worldSource.get();
+        }
     }
 
     private record StartContext(PackWorld world, TerrainSampler terrain) implements VanillaStructureStartContext {

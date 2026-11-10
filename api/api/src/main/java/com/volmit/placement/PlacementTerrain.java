@@ -48,6 +48,26 @@ public interface PlacementTerrain {
      */
     void recordPlacement(int x, int y, int z, PlacementRecord placement);
 
+    /**
+     * Takes back the block written at the position, so the terrain shows through there. The block entity, placement
+     * record and markers kept beside it stay ({@link #clearAttached}).
+     *
+     * @throws UnsupportedOperationException when this terrain cannot take blocks back
+     */
+    default void clearBlock(int x, int y, int z) {
+        throw new UnsupportedOperationException("This terrain cannot take blocks back");
+    }
+
+    /**
+     * Takes back the block entity, placement record and markers the host kept beside the block, whether or not a block
+     * is still written there.
+     *
+     * @throws UnsupportedOperationException when this terrain cannot take them back
+     */
+    default void clearAttached(int x, int y, int z) {
+        throw new UnsupportedOperationException("This terrain cannot take what is kept beside a block back");
+    }
+
     /** The placement recorded at the block ({@link #recordPlacement}); empty when none is. */
     Optional<PlacementRecord> placementAt(int x, int y, int z);
 

@@ -96,10 +96,8 @@ public final class ModuleStructureFitting implements NativeStructureFitting {
     public static NativeStructureFitting builtInModules() {
         ModuleRegistry registry = new ModuleRegistry();
         IrisModuleHost.builtInModules().forEach(module -> ModuleSetups.run(DiscoveredModule.builtIn(module), new StageGraphBuilder(), registry));
-        return new ModuleStructureFitting(registry.freeze().registrations(VanillaStructures.class), () -> {
-            throw new IllegalStateException("The built-in modules fit outside a world here: a start needs its memo"
-                    + " and a fit without palettes");
-        });
+        FitlessWorld fitless = new FitlessWorld();
+        return new ModuleStructureFitting(registry.freeze().registrations(VanillaStructures.class), () -> fitless);
     }
 
     @Override

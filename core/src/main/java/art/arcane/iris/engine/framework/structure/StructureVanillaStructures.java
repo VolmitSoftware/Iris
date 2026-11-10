@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.structure.fit.StartLayouts;
 import art.arcane.iris.engine.framework.structure.fit.StructureFitting;
@@ -56,20 +55,20 @@ public final class StructureVanillaStructures implements VanillaStructures {
      */
     @Override
     public VanillaStructureRule rule(ResourceId structure, VanillaStructureContext context) {
-        Engine engine = context.settings().extension(Engine.class).orElseThrow();
+        PackWorld world = context.world().orElseThrow();
         String key = structure.toString();
-        boolean replaced = IrisStructureLocator.suppressesVanilla(engine, key);
+        boolean replaced = IrisStructureLocator.suppressesVanilla(world, key);
         boolean blocked = replaced || ImportedStructures.of(context.settings()).disables(key);
-        boolean placed = replaced || IrisStructureLocator.isPlaced(engine, key);
+        boolean placed = replaced || IrisStructureLocator.isPlaced(world, key);
         VanillaStructureRule rule = blocked ? VanillaStructureRule.BLOCK : VanillaStructureRule.GENERATE;
         return placed ? rule.and(VanillaStructureRule.ALSO_PLACE) : rule;
     }
 
     @Override
     public List<VanillaStructureStart> starts(int chunkX, int chunkZ, VanillaStructureStartContext context) {
-        Engine engine = engine(context.world());
-        return NativeStartPlanner.plansAt(engine, chunkX, chunkZ).stream()
-                .map(plan -> start(plan, engine.getMinHeight()))
+        PackWorld world = context.world();
+        return NativeStartPlanner.plansAt(world, chunkX, chunkZ).stream()
+                .map(plan -> start(plan, world.minWorldY()))
                 .toList();
     }
 
@@ -100,10 +99,6 @@ public final class StructureVanillaStructures implements VanillaStructures {
     @Override
     public VanillaStructureSetup setup(VanillaStructureContext context) {
         return ImportedStructures.of(context.settings()).setup();
-    }
-
-    private static Engine engine(PackWorld world) {
-        return world.extension(Engine.class).orElseThrow();
     }
 
     /** {@code plan} as the start the platform generates: heights above the bottom and the placement's fit. */

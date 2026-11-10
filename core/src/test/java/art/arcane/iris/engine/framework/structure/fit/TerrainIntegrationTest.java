@@ -1,12 +1,14 @@
 package art.arcane.iris.engine.framework.structure.fit;
 
 import art.arcane.iris.builtin.structure.StructureCarveShape;
+import art.arcane.iris.core.modules.IrisTestNoise;
 import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.builtin.structure.StructureTerrainMode;
 import art.arcane.iris.engine.framework.structure.NativeStructureFit;
 import art.arcane.iris.engine.mantle.components.StructureCarvingFootprint;
 import com.google.gson.Gson;
 import com.volmit.block.BlockState;
+import com.volmit.noise.NoiseFactory;
 import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.PieceKind;
 import com.volmit.vanilla.StartMemo;
@@ -40,6 +42,7 @@ import static org.junit.Assert.assertTrue;
 public class TerrainIntegrationTest {
     private static final long SEED = 1234L;
     private static final long CARVE_SEED = 8675309L;
+    private static final NoiseFactory NOISE = IrisTestNoise.factory();
     private static final int SLAB_DEPTH = 128;
     private static final int SLAB_MIN_Y = 64;
     private static final int SLAB_PADDING = 14;
@@ -92,7 +95,7 @@ public class TerrainIntegrationTest {
         FitStart start = start("{\"mode\":\"ENCASE\",\"encasePalette\":{\"palette\":[{\"block\":\"tuff\"}]}}",
                 TerrainAdaptation.BURY, FitFixture.Piece.fixed(PYRAMID));
 
-        TerrainIntegration.integrateTerrain(world.fitBlocks(), PYRAMID, start, SEED, NATURAL, tuff, null);
+        TerrainIntegration.integrateTerrain(world.fitBlocks(), PYRAMID, start, SEED, NOISE, NATURAL, tuff, null);
 
         assertEquals(state("tuff"), world.at(0, 64, 0));
         assertEquals(SEED ^ "test:structure".hashCode(), (long) seeds.getFirst());
@@ -415,7 +418,7 @@ public class TerrainIntegrationTest {
     }
 
     private static void integrate(FitFixture.World world, Box area, FitStart start) {
-        TerrainIntegration.prepareTerrain(world.fitBlocks(), area, List.of(start), SEED, NATURAL, NO_PALETTES);
+        TerrainIntegration.prepareTerrain(world.fitBlocks(), area, List.of(start), SEED, NOISE, NATURAL, NO_PALETTES);
     }
 
     private static FitStart start(String terrainJson, TerrainAdaptation adaptation, FitFixture.Piece... pieces) {
@@ -444,7 +447,7 @@ public class TerrainIntegrationTest {
         StructureTerrain terrain = erodedTerrain(horizontalPadding, lobeStrength);
         FitStart start = start(JSON.toJson(terrain), TerrainAdaptation.NONE, FitFixture.Piece.fixed(PYRAMID));
         return TerrainIntegration.organicCarve(CarveFootprints.of(start, horizontalPadding), terrain,
-                StructureCarveShape.ERODED, CARVE_SEED);
+                StructureCarveShape.ERODED, CARVE_SEED, NOISE);
     }
 
     private static StructureTerrain erodedTerrain(int horizontalPadding, double lobeStrength) {
@@ -471,7 +474,7 @@ public class TerrainIntegrationTest {
         FitFixture.World world = filled(area);
 
         TerrainIntegration.carveOrganicColumns(world.fitBlocks(), area, TerrainIntegration.organicCarve(
-                footprint, erodedTerrain(SLAB_PADDING, lobeStrength), StructureCarveShape.ERODED, CARVE_SEED));
+                footprint, erodedTerrain(SLAB_PADDING, lobeStrength), StructureCarveShape.ERODED, CARVE_SEED, NOISE));
 
         int[] depths = new int[SLAB_DEPTH];
         for (int z = 0; z < SLAB_DEPTH; z++) {

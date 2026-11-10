@@ -1,10 +1,8 @@
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.framework.StructurePlacementGrid;
+import art.arcane.iris.engine.framework.StructureTestWorld;
 import art.arcane.iris.builtin.structure.StructureStilts;
 import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.builtin.structure.StructureTerrainMode;
@@ -44,7 +42,7 @@ import static org.mockito.Mockito.when;
 public class NativeStartPlannerTest {
     @Test
     public void undergroundPlanIsDeterministicAndUsesConfiguredBand() {
-        Engine engine = engine(982374L, -64, 384, 90);
+        StructureTestWorld engine = engine(982374L, -64, 384, 90);
         StructurePlacement placement = TestSettings.with(nativePlacement(), "underground", true, "minHeight", -45, "maxHeight", -20);
 
         NativeStartPlanner.Plan first = NativeStartPlanner.planAt(engine, placement, 12, -7);
@@ -60,7 +58,7 @@ public class NativeStartPlannerTest {
 
     @Test
     public void undergroundBandOutsideWorldBoundsSkipsTheCandidate() {
-        Engine engine = engine(982374L, -64, 384, 90);
+        StructureTestWorld engine = engine(982374L, -64, 384, 90);
         StructurePlacement placement = TestSettings.with(nativePlacement(), "underground", true, "minHeight", 500, "maxHeight", 600);
 
         assertNull(NativeStartPlanner.planAt(engine, placement, 12, -7));
@@ -68,7 +66,7 @@ public class NativeStartPlannerTest {
 
     @Test
     public void surfacePlanUsesIrisTerrainAndHonorsHeightGate() {
-        Engine engine = engine(77L, -64, 384, 150);
+        StructureTestWorld engine = engine(77L, -64, 384, 150);
         StructurePlacement placement = TestSettings.with(nativePlacement(), "minHeight", 80, "maxHeight", 90);
 
         NativeStartPlanner.Plan plan = NativeStartPlanner.planAt(engine, placement, 0, 0);
@@ -107,7 +105,7 @@ public class NativeStartPlannerTest {
 
     @Test
     public void underwaterFlagRejectsSubmergedColumnsForSurfaceAndUndergroundPlans() {
-        Engine engine = engine(77L, -64, 384, 63);
+        StructureTestWorld engine = engine(77L, -64, 384, 63);
         StructurePlacement placement = nativePlacement();
 
         assertNull(NativeStartPlanner.planAt(engine, placement, 0, 0));
@@ -121,7 +119,7 @@ public class NativeStartPlannerTest {
 
     @Test
     public void fluidHeightBoundaryIsShoreForPlannerAndLocator() {
-        Engine engine = engine(77L, -64, 384, 64);
+        StructureTestWorld engine = engine(77L, -64, 384, 64);
         StructurePlacement placement = nativePlacement();
 
         assertTrue(!NativeStartPlanner.isSubmerged(engine, 8, 8));
@@ -133,7 +131,7 @@ public class NativeStartPlannerTest {
 
     @Test
     public void duplicateSelectedStructureUsesOneDeterministicPlan() {
-        Engine engine = engine(77L, -64, 384, 150);
+        StructureTestWorld engine = engine(77L, -64, 384, 150);
         StructurePlacement first = TestSettings.with(nativePlacement(), "placementId", "first");
         StructurePlacement second = TestSettings.with(nativePlacement(), "placementId", "second");
         bindPlacements(engine, first, second);
@@ -189,27 +187,17 @@ public class NativeStartPlannerTest {
         return placement;
     }
 
-    private Engine engine(long seed, int minHeight, int height, int terrainHeight) {
-        Engine engine = mock(Engine.class);
-        when(engine.getSeedManager()).thenReturn(new SeedManager(seed));
-        when(engine.getMinHeight()).thenReturn(minHeight);
-        when(engine.getHeight()).thenReturn(height);
-        when(engine.getHeight(org.mockito.ArgumentMatchers.anyInt(),
-                org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.eq(true)))
-                .thenReturn(terrainHeight);
-        IrisDimension dimension = mock(IrisDimension.class);
-        when(dimension.getFluidHeight()).thenReturn(64);
-        when(engine.getDimension()).thenReturn(dimension);
-        return engine;
+    private StructureTestWorld engine(long seed, int minHeight, int height, int terrainHeight) {
+        return new StructureTestWorld()
+                .placementSeed(new SeedManager(seed).getMantle())
+                .minY(minHeight)
+                .height(height)
+                .highest((x, z) -> terrainHeight)
+                .fluidHeight(64);
     }
 
-    private void bindPlacements(Engine engine, StructurePlacement... placements) {
-        IrisDimension dimension = engine.getDimension();
-        when(engine.getData()).thenReturn(mock(IrisData.class));
-        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
-        when(dimension.getModuleSettings()).thenReturn(declaring(placements));
-        when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
-        when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
+    private void bindPlacements(StructureTestWorld engine, StructurePlacement... placements) {
+        engine.dimension(placements);
     }
 
     private void assertInvalid(StructurePlacement placement) {

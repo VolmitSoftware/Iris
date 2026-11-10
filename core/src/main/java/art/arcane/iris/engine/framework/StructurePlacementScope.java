@@ -2,16 +2,20 @@ package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.builtin.structure.StructurePlacement;
 import art.arcane.iris.builtin.structure.StructurePlacementSettings;
-import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.engine.framework.structure.StructureWorld;
+import com.volmit.config.FeatureSettings;
+import com.volmit.config.Level;
+import com.volmit.config.SettingsStack;
+import com.volmit.resource.ResourceId;
+import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
+import com.volmit.world.TerrainSampler;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -20,79 +24,78 @@ import java.util.Set;
  * region lookups a pack never needs.
  */
 public final class StructurePlacementScope {
+    private static final int CHUNK_CENTER_OFFSET_BLOCKS = 8;
+
     private StructurePlacementScope() {
     }
 
-    /** The placements {@code owner} declares in its {@code "structures"} settings; empty for none. */
-    public static List<StructurePlacement> placementsOf(IrisRegistrant owner) {
-        if (owner == null) {
-            return List.of();
-        }
-        return owner.getModuleSettings().find(StructurePlacementSettings.class)
-                .map(StructurePlacementSettings::placements)
-                .orElse(List.of());
+    /** The placements {@code settings} declare; empty for none. */
+    public static List<StructurePlacement> placementsOf(Optional<StructurePlacementSettings> settings) {
+        return settings.map(StructurePlacementSettings::placements).orElse(List.of());
     }
 
-    public static KList<StructurePlacement> placementsAt(Engine engine, int chunkX, int chunkZ) {
-        Engine activeEngine = Objects.requireNonNull(engine, "Structure placement scope requires an engine");
-        IrisComplex complex = activeEngine.getComplex();
-        int blockX = (chunkX << 4) + 8;
-        int blockZ = (chunkZ << 4) + 8;
-        KList<StructurePlacement> placements = new KList<>();
+    public static List<StructurePlacement> placementsAt(PackWorld world, int chunkX, int chunkZ) {
+        RunningWorld running = StructureWorld.running(world);
+        int blockX = (chunkX << 4) + CHUNK_CENTER_OFFSET_BLOCKS;
+        int blockZ = (chunkZ << 4) + CHUNK_CENTER_OFFSET_BLOCKS;
+        List<StructurePlacement> placements = new ArrayList<>();
         Set<StructurePlacement> seen = Collections.newSetFromMap(new IdentityHashMap<>());
-        ScopeIndex index = scopeIndex(activeEngine);
-        if (complex != null) {
-            if (index.biome()) {
-                IrisBiome biome = complex.getTrueBiomeStream().get(blockX, blockZ);
-                addUnique(placements, seen, placementsOf(biome));
-            }
-            if (index.caveBiome()) {
-                IrisBiome caveBiome = complex.getCaveBiomeStream().get(blockX, blockZ);
-                addCaveUnique(placements, seen, placementsOf(caveBiome));
-            }
-            if (index.region()) {
-                IrisRegion region = complex.getRegionStream().get(blockX, blockZ);
-                addUnique(placements, seen, placementsOf(region));
-            }
+        ScopeIndex index = world.state(ScopeIndex.class, StructurePlacementScope::buildScopeIndex);
+        if (index.declaresBelowDimension()) {
+            addColumnPlacements(placements, seen, running, index, blockX, blockZ);
         }
-        if (index.dimension()) {
-            addUnique(placements, seen, placementsOf(activeEngine.getDimension()));
-        }
+        addUnique(placements, seen, index.dimensionPlacements());
         return placements;
     }
 
-    private static ScopeIndex scopeIndex(Engine engine) {
-        return engine.getGeneration().state(ScopeIndex.class, StructurePlacementScope::buildScopeIndex);
+    private static void addColumnPlacements(List<StructurePlacement> placements, Set<StructurePlacement> seen,
+                                            RunningWorld running, ScopeIndex index, int blockX, int blockZ) {
+        SettingsStack<StructurePlacementSettings> declared = running.settings().at(StructurePlacementSettings.class, blockX, blockZ);
+        if (index.biome()) {
+            addUnique(placements, seen, placementsOf(declared.level(Level.BIOME)));
+        }
+        if (index.caveBiome()) {
+            addCaveUnique(placements, seen, placementsOf(caveBiomeSettings(running, blockX, blockZ)));
+        }
+        if (index.region()) {
+            addUnique(placements, seen, placementsOf(declared.level(Level.REGION)));
+        }
     }
 
-    private static ScopeIndex buildScopeIndex(Engine engine) {
+    private static Optional<StructurePlacementSettings> caveBiomeSettings(RunningWorld running, int blockX, int blockZ) {
+        TerrainSampler layout = running.layout();
+        ResourceId surfaceBiome = layout.surfaceBiome(blockX, blockZ);
+        Optional<ResourceId> caveBiome = layout.caveBiome(blockX, layout.bounds().minY(), blockZ)
+                .filter(cave -> !cave.equals(surfaceBiome));
+        FeatureSettings settings = running.settings();
+        return caveBiome.flatMap(cave -> settings.declaredBy(cave, StructurePlacementSettings.class));
+    }
+
+    private static ScopeIndex buildScopeIndex(PackWorld world) {
         boolean biome = false;
         boolean caveBiome = false;
-        KList<IrisBiome> allBiomes = engine.getAllBiomes();
-        if (allBiomes == null) {
-            biome = true;
-            caveBiome = true;
-        } else {
-            for (IrisBiome candidate : allBiomes) {
-                List<StructurePlacement> structures = placementsOf(candidate);
-                if (structures.isEmpty()) {
-                    continue;
+        boolean region = false;
+        List<StructurePlacement> dimensionPlacements = List.of();
+        for (var entry : world.settings().declared(StructurePlacementSettings.class)) {
+            List<StructurePlacement> placements = entry.value().placements();
+            if (placements.isEmpty()) {
+                continue;
+            }
+            switch (entry.level()) {
+                case BIOME -> {
+                    biome = true;
+                    caveBiome |= placements.stream().anyMatch(placement -> placement.resolvedAnchor().isCave());
                 }
-                biome = true;
-                caveBiome |= structures.stream().anyMatch(placement -> placement.resolvedAnchor().isCave());
+                case REGION -> region = true;
+                case DIMENSION -> dimensionPlacements = placements;
+                default -> {
+                }
             }
         }
-        boolean region = false;
-        if (engine.getDimension() != null) {
-            KList<IrisRegion> allRegions = engine.getDimension().getAllRegions(engine);
-            region = allRegions == null
-                    || allRegions.stream().anyMatch(candidate -> !placementsOf(candidate).isEmpty());
-        }
-        boolean dimension = !placementsOf(engine.getDimension()).isEmpty();
-        return new ScopeIndex(biome, caveBiome, region, dimension);
+        return new ScopeIndex(biome, caveBiome, region, dimensionPlacements);
     }
 
-    private static void addUnique(KList<StructurePlacement> destination, Set<StructurePlacement> seen,
+    private static void addUnique(List<StructurePlacement> destination, Set<StructurePlacement> seen,
                                   List<StructurePlacement> source) {
         for (StructurePlacement placement : source) {
             if (placement != null && seen.add(placement)) {
@@ -101,7 +104,7 @@ public final class StructurePlacementScope {
         }
     }
 
-    private static void addCaveUnique(KList<StructurePlacement> destination, Set<StructurePlacement> seen,
+    private static void addCaveUnique(List<StructurePlacement> destination, Set<StructurePlacement> seen,
                                       List<StructurePlacement> source) {
         for (StructurePlacement placement : source) {
             if (placement != null && placement.resolvedAnchor().isCave() && seen.add(placement)) {
@@ -110,6 +113,9 @@ public final class StructurePlacementScope {
         }
     }
 
-    private record ScopeIndex(boolean biome, boolean caveBiome, boolean region, boolean dimension) {
+    record ScopeIndex(boolean biome, boolean caveBiome, boolean region, List<StructurePlacement> dimensionPlacements) {
+        boolean declaresBelowDimension() {
+            return biome || caveBiome || region;
+        }
     }
 }

@@ -21,26 +21,28 @@ package art.arcane.iris.engine.framework;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.engine.framework.structure.ColumnHeights;
 import art.arcane.iris.engine.framework.structure.NativeStartPlanner;
+import art.arcane.iris.engine.framework.structure.StructureWorld;
 import art.arcane.iris.engine.framework.structure.assembly.AssembledPiece;
 import art.arcane.iris.engine.framework.structure.assembly.Assembly;
 import art.arcane.iris.engine.framework.structure.assembly.StructureAssembly;
 import art.arcane.iris.engine.framework.structure.assembly.StructureStamp;
 import art.arcane.iris.engine.framework.structure.assembly.Viability;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.builtin.structure.NativeStructureSource;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.builtin.structure.StructureAnchorMode;
 import art.arcane.iris.builtin.structure.StructureCarveShape;
 import art.arcane.iris.builtin.structure.StructurePlacement;
+import art.arcane.iris.builtin.structure.StructurePlacementSettings;
 import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.builtin.structure.StructureTerrainMode;
 import art.arcane.iris.builtin.structure.NativeStructureSuppression;
 import art.arcane.iris.builtin.structure.StructureDistribution;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.config.Level;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
+import com.volmit.world.PackWorld;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -86,139 +88,139 @@ public final class IrisStructureLocator {
     }
 
     /** Structure keys referenced by any Iris assembly or native jigsaw placement. */
-    public static Set<String> placedKeys(Engine engine) {
-        if (engine == null) {
+    public static Set<String> placedKeys(PackWorld world) {
+        if (world == null) {
             return Collections.emptySet();
         }
-        return index(engine).loadKeys;
+        return index(world).loadKeys;
     }
 
     /**
      * Every key under which a structure the engine's placements place can be found: the placed keys and the platform
      * structures Iris structures stand in for ({@code vanillaSource}), the latter in lower case.
      */
-    public static Set<String> placedKeysAndAliases(Engine engine) {
-        if (engine == null) {
+    public static Set<String> placedKeysAndAliases(PackWorld world) {
+        if (world == null) {
             return Collections.emptySet();
         }
-        PlacementIndex placementIndex = index(engine);
+        PlacementIndex placementIndex = index(world);
         Set<String> keys = new LinkedHashSet<>(placementIndex.loadKeys);
         keys.addAll(placementIndex.vanillaAliases);
         return Collections.unmodifiableSet(keys);
     }
 
     /** The platform structures the engine's placements start natively ({@code nativeStructures}), in lower case. */
-    public static Set<String> nativeKeys(Engine engine) {
-        if (engine == null) {
+    public static Set<String> nativeKeys(PackWorld world) {
+        if (world == null) {
             return Collections.emptySet();
         }
-        return index(engine).nativeKeys;
+        return index(world).nativeKeys;
     }
 
-    public static boolean isPlaced(Engine engine, String key) {
-        if (engine == null || key == null || key.isEmpty()) {
+    public static boolean isPlaced(PackWorld world, String key) {
+        if (world == null || key == null || key.isEmpty()) {
             return false;
         }
-        PlacementIndex placementIndex = index(engine);
+        PlacementIndex placementIndex = index(world);
         String normalizedKey = normalize(key);
         return placementIndex.normalizedLoadKeys.contains(normalizedKey)
                 || placementIndex.vanillaAliases.contains(normalizedKey);
     }
 
-    public static boolean hasLocatablePlacement(Engine engine, String key) {
-        if (engine == null || key == null || key.isBlank()) {
+    public static boolean hasLocatablePlacement(PackWorld world, String key) {
+        if (world == null || key == null || key.isBlank()) {
             return false;
         }
-        return locatableIndex(engine).normalizedKeys().contains(normalize(key));
+        return locatableIndex(world).normalizedKeys().contains(normalize(key));
     }
 
-    public static boolean hasLocatableEditablePlacement(Engine engine, String key) {
-        if (engine == null || key == null || key.isBlank()) {
+    public static boolean hasLocatableEditablePlacement(PackWorld world, String key) {
+        if (world == null || key == null || key.isBlank()) {
             return false;
         }
-        return locatableIndex(engine).normalizedEditableKeys().contains(normalize(key));
+        return locatableIndex(world).normalizedEditableKeys().contains(normalize(key));
     }
 
-    public static boolean hasLocatableNativePlacement(Engine engine, String key) {
-        if (engine == null || key == null || key.isBlank()) {
+    public static boolean hasLocatableNativePlacement(PackWorld world, String key) {
+        if (world == null || key == null || key.isBlank()) {
             return false;
         }
-        return locatableIndex(engine).normalizedNativeKeys().contains(normalize(key));
+        return locatableIndex(world).normalizedNativeKeys().contains(normalize(key));
     }
 
-    public static Set<String> locatableKeys(Engine engine) {
-        return locatableIndex(engine).keys();
+    public static Set<String> locatableKeys(PackWorld world) {
+        return locatableIndex(world).keys();
     }
 
-    public static Set<String> locatableEditableKeys(Engine engine) {
-        return locatableIndex(engine).editableKeys();
+    public static Set<String> locatableEditableKeys(PackWorld world) {
+        return locatableIndex(world).editableKeys();
     }
 
-    public static Set<String> locatableNativeKeys(Engine engine) {
-        return locatableIndex(engine).nativeKeys();
+    public static Set<String> locatableNativeKeys(PackWorld world) {
+        return locatableIndex(world).nativeKeys();
     }
 
-    public static boolean hasNativePlacement(Engine engine, String key) {
-        if (engine == null || key == null || key.isBlank()) {
+    public static boolean hasNativePlacement(PackWorld world, String key) {
+        if (world == null || key == null || key.isBlank()) {
             return false;
         }
-        return index(engine).nativeKeys.contains(normalize(key));
+        return index(world).nativeKeys.contains(normalize(key));
     }
 
-    public static boolean hasEditablePlacement(Engine engine, String key) {
-        if (engine == null || key == null || key.isBlank()) {
+    public static boolean hasEditablePlacement(PackWorld world, String key) {
+        if (world == null || key == null || key.isBlank()) {
             return false;
         }
-        for (StructurePlacement placement : index(engine).placements) {
-            if (placement.hasIrisStructures() && matches(placement, key, engine)) {
+        for (StructurePlacement placement : index(world).placements) {
+            if (placement.hasIrisStructures() && matches(placement, key, world)) {
                 return true;
             }
         }
         return false;
     }
 
-    public static boolean suppressesVanilla(Engine engine, String vanillaKey) {
-        if (engine == null || vanillaKey == null || vanillaKey.isEmpty()) {
+    public static boolean suppressesVanilla(PackWorld world, String vanillaKey) {
+        if (world == null || vanillaKey == null || vanillaKey.isEmpty()) {
             return false;
         }
-        return index(engine).suppressedVanillaSources.contains(normalize(vanillaKey));
+        return index(world).suppressedVanillaSources.contains(normalize(vanillaKey));
     }
 
-    public static boolean startsInChunk(Engine engine, String key, int cx, int cz) {
-        if (!isPlaced(engine, key)) {
+    public static boolean startsInChunk(PackWorld world, String key, int cx, int cz) {
+        if (!isPlaced(world, key)) {
             return false;
         }
-        return resolveInChunk(engine, key, cx, cz) != null;
+        return resolveInChunk(world, key, cx, cz) != null;
     }
 
-    public static LocateResult locate(Engine engine, String key, int fromBlockX, int fromBlockZ, int maxRadiusChunks) {
-        return locate(engine, key, fromBlockX, fromBlockZ, maxRadiusChunks, (chunkX, chunkZ) -> true);
+    public static LocateResult locate(PackWorld world, String key, int fromBlockX, int fromBlockZ, int maxRadiusChunks) {
+        return locate(world, key, fromBlockX, fromBlockZ, maxRadiusChunks, (chunkX, chunkZ) -> true);
     }
 
-    public static LocateResult locate(Engine engine, String key, int fromBlockX, int fromBlockZ,
+    public static LocateResult locate(PackWorld world, String key, int fromBlockX, int fromBlockZ,
                                       int maxRadiusChunks, CandidateFilter candidateFilter) {
         try {
-            return locateFiltered(engine, key, fromBlockX, fromBlockZ, maxRadiusChunks, candidateFilter);
+            return locateFiltered(world, key, fromBlockX, fromBlockZ, maxRadiusChunks, candidateFilter);
         } catch (CandidateSearchLimitException ignored) {
             return SEARCH_LIMIT_RESULT;
         }
     }
 
     public static LocateResult locateInPlacementRings(
-            Engine engine, String key, int fromBlockX, int fromBlockZ,
+            PackWorld world, String key, int fromBlockX, int fromBlockZ,
             int maxSearchRadius, CandidateFilter candidateFilter) {
         try {
             return locateInPlacementRingsFiltered(
-                    engine, key, fromBlockX, fromBlockZ, maxSearchRadius, candidateFilter);
+                    world, key, fromBlockX, fromBlockZ, maxSearchRadius, candidateFilter);
         } catch (CandidateSearchLimitException ignored) {
             return SEARCH_LIMIT_RESULT;
         }
     }
 
     private static LocateResult locateInPlacementRingsFiltered(
-            Engine engine, String key, int fromBlockX, int fromBlockZ,
+            PackWorld world, String key, int fromBlockX, int fromBlockZ,
             int maxSearchRadius, CandidateFilter candidateFilter) {
-        if (!isPlaced(engine, key)) {
+        if (!isPlaced(world, key)) {
             return NOT_FOUND_RESULT;
         }
         CandidateFilter activeFilter = Objects.requireNonNull(
@@ -226,26 +228,21 @@ public final class IrisStructureLocator {
         int maximumRing = Math.max(0, Math.min(maxSearchRadius, 2048));
         int centerChunkX = fromBlockX >> 4;
         int centerChunkZ = fromBlockZ >> 4;
-        PlacementCatalog catalog = collectPlacementCatalog(engine, key);
+        PlacementCatalog catalog = collectPlacementCatalog(world, key);
         if (catalog.randomSpread().isEmpty()
                 && catalog.concentricRings().isEmpty() && !catalog.hasDensity()) {
             return NOT_FOUND_RESULT;
         }
-        SeedManager seedManager = engine.getSeedManager();
-        if (seedManager == null) {
-            throw new IllegalStateException(
-                    "Iris structure locate requires a bound seed manager for '" + key + "'");
-        }
-        long seed = seedManager.getMantle();
+        long seed = StructureWorld.placementSeed(world);
         CandidateBudget candidateBudget = new CandidateBudget();
         LocatedCandidate best = nearestConcentricCandidate(
-                engine, key, fromBlockX, fromBlockZ, seed, catalog, activeFilter, candidateBudget);
+                world, key, fromBlockX, fromBlockZ, seed, catalog, activeFilter, candidateBudget);
 
         for (int ring = 0; ring <= maximumRing; ring++) {
             boolean foundInRing = false;
             for (RandomSpreadParameters parameters : catalog.randomSpread()) {
                 LocatedCandidate candidate = firstRandomSpreadCandidateInRing(
-                        engine, key, fromBlockX, fromBlockZ,
+                        world, key, fromBlockX, fromBlockZ,
                         centerChunkX, centerChunkZ, ring, seed,
                         parameters, activeFilter, candidateBudget);
                 if (candidate == null) {
@@ -258,7 +255,7 @@ public final class IrisStructureLocator {
             }
             if (catalog.hasDensity()) {
                 LocatedCandidate candidate = firstDensityCandidateInRing(
-                        engine, key, fromBlockX, fromBlockZ,
+                        world, key, fromBlockX, fromBlockZ,
                         centerChunkX, centerChunkZ, ring,
                         activeFilter, candidateBudget);
                 if (candidate != null) {
@@ -276,7 +273,7 @@ public final class IrisStructureLocator {
     }
 
     private static LocatedCandidate nearestConcentricCandidate(
-            Engine engine, String key, int fromBlockX, int fromBlockZ,
+            PackWorld world, String key, int fromBlockX, int fromBlockZ,
             long seed, PlacementCatalog catalog, CandidateFilter candidateFilter,
             CandidateBudget candidateBudget) {
         LocatedCandidate best = null;
@@ -290,7 +287,7 @@ public final class IrisStructureLocator {
                 if (candidate == null || !checkedChunks.add(chunkKey(candidate[0], candidate[1]))) {
                     continue;
                 }
-                ResolvedStart resolved = resolveInChunk(engine, key, candidate[0], candidate[1]);
+                ResolvedStart resolved = resolveInChunk(world, key, candidate[0], candidate[1]);
                 if (resolved == null || !candidateFilter.accept(candidate[0], candidate[1])) {
                     continue;
                 }
@@ -305,7 +302,7 @@ public final class IrisStructureLocator {
     }
 
     private static LocatedCandidate firstRandomSpreadCandidateInRing(
-            Engine engine, String key, int fromBlockX, int fromBlockZ,
+            PackWorld world, String key, int fromBlockX, int fromBlockZ,
             int centerChunkX, int centerChunkZ, int ring, long seed,
             RandomSpreadParameters parameters, CandidateFilter candidateFilter,
             CandidateBudget candidateBudget) {
@@ -323,7 +320,7 @@ public final class IrisStructureLocator {
                 int[] candidate = StructurePlacementGrid.randomSpreadCellChunk(
                         centerCellX + offsetX, centerCellZ + offsetZ,
                         spacing, parameters.separation(), parameters.salt(), seed);
-                ResolvedStart resolved = resolveInChunk(engine, key, candidate[0], candidate[1]);
+                ResolvedStart resolved = resolveInChunk(world, key, candidate[0], candidate[1]);
                 if (resolved != null && candidateFilter.accept(candidate[0], candidate[1])) {
                     return new LocatedCandidate(
                             resolved, blockDistanceSquared(resolved, fromBlockX, fromBlockZ));
@@ -334,7 +331,7 @@ public final class IrisStructureLocator {
     }
 
     private static LocatedCandidate firstDensityCandidateInRing(
-            Engine engine, String key, int fromBlockX, int fromBlockZ,
+            PackWorld world, String key, int fromBlockX, int fromBlockZ,
             int centerChunkX, int centerChunkZ, int ring,
             CandidateFilter candidateFilter, CandidateBudget candidateBudget) {
         for (int offsetX = -ring; offsetX <= ring; offsetX++) {
@@ -347,7 +344,7 @@ public final class IrisStructureLocator {
                 int chunkX = centerChunkX + offsetX;
                 int chunkZ = centerChunkZ + offsetZ;
                 candidateBudget.claim();
-                ResolvedStart resolved = resolveInChunk(engine, key, chunkX, chunkZ);
+                ResolvedStart resolved = resolveInChunk(world, key, chunkX, chunkZ);
                 if (resolved != null && candidateFilter.accept(chunkX, chunkZ)) {
                     return new LocatedCandidate(
                             resolved, blockDistanceSquared(resolved, fromBlockX, fromBlockZ));
@@ -357,9 +354,9 @@ public final class IrisStructureLocator {
         return null;
     }
 
-    private static LocateResult locateFiltered(Engine engine, String key, int fromBlockX, int fromBlockZ,
+    private static LocateResult locateFiltered(PackWorld world, String key, int fromBlockX, int fromBlockZ,
                                                int maxRadiusChunks, CandidateFilter candidateFilter) {
-        if (!isPlaced(engine, key)) {
+        if (!isPlaced(world, key)) {
             return NOT_FOUND_RESULT;
         }
         CandidateFilter activeFilter = Objects.requireNonNull(candidateFilter, "Structure locate filter must not be null");
@@ -367,15 +364,11 @@ public final class IrisStructureLocator {
         int pcx = fromBlockX >> 4;
         int pcz = fromBlockZ >> 4;
         LocatedCandidate best = null;
-        PlacementCatalog catalog = collectPlacementCatalog(engine, key);
+        PlacementCatalog catalog = collectPlacementCatalog(world, key);
         if (catalog.randomSpread().isEmpty() && catalog.concentricRings().isEmpty() && !catalog.hasDensity()) {
             return NOT_FOUND_RESULT;
         }
-        SeedManager seedManager = engine.getSeedManager();
-        if (seedManager == null) {
-            throw new IllegalStateException("Iris structure locate requires a bound seed manager for '" + key + "'");
-        }
-        long seed = seedManager.getMantle();
+        long seed = StructureWorld.placementSeed(world);
         CandidateBudget candidateBudget = new CandidateBudget();
 
         for (RandomSpreadParameters parameters : catalog.randomSpread) {
@@ -406,7 +399,7 @@ public final class IrisStructureLocator {
                                 cx, cz, fromBlockX, fromBlockZ) >= best.distanceSquared()) {
                             continue;
                         }
-                        ResolvedStart resolved = resolveInChunk(engine, key, cx, cz);
+                        ResolvedStart resolved = resolveInChunk(world, key, cx, cz);
                         if (resolved != null && activeFilter.accept(cx, cz)) {
                             long distanceSquared = blockDistanceSquared(
                                     resolved, fromBlockX, fromBlockZ);
@@ -433,7 +426,7 @@ public final class IrisStructureLocator {
                         candidate[0], candidate[1], fromBlockX, fromBlockZ) >= best.distanceSquared()) {
                     continue;
                 }
-                ResolvedStart resolved = resolveInChunk(engine, key, candidate[0], candidate[1]);
+                ResolvedStart resolved = resolveInChunk(world, key, candidate[0], candidate[1]);
                 if (resolved != null && activeFilter.accept(candidate[0], candidate[1])) {
                     long distanceSquared = blockDistanceSquared(
                             resolved, fromBlockX, fromBlockZ);
@@ -462,7 +455,7 @@ public final class IrisStructureLocator {
                             continue;
                         }
                         candidateBudget.claim();
-                        ResolvedStart resolved = resolveInChunk(engine, key, cx, cz);
+                        ResolvedStart resolved = resolveInChunk(world, key, cx, cz);
                         if (resolved != null && activeFilter.accept(cx, cz)) {
                             long distanceSquared = blockDistanceSquared(
                                     resolved, fromBlockX, fromBlockZ);
@@ -487,15 +480,15 @@ public final class IrisStructureLocator {
                 && Math.abs((long) chunkZ - centerChunkZ) <= radius;
     }
 
-    public static ResolvedPlacement resolvePlacement(Engine engine, StructurePlacement placement, int cx, int cz) {
-        if (engine == null || engine.getData() == null || engine.getSeedManager() == null) {
-            throw new IllegalStateException("Iris structure placement requires a fully bound engine");
+    public static ResolvedPlacement resolvePlacement(PackWorld world, StructurePlacement placement, int cx, int cz) {
+        if (world == null) {
+            throw new IllegalStateException("Iris structure placement requires a world");
         }
         NativeStartPlanner.validateBackend(placement);
         if (!placement.hasIrisStructures()) {
             throw new IllegalStateException("Iris structure placement is missing its structure list");
         }
-        long seed = engine.getSeedManager().getMantle();
+        long seed = StructureWorld.placementSeed(world);
         if (!StructurePlacementGrid.startsInChunk(placement, cx, cz, seed)) {
             return null;
         }
@@ -503,7 +496,7 @@ public final class IrisStructureLocator {
         RNG rng = StructurePlacementGrid.placementRng(placement, cx, cz, seed);
         int originX = (cx << 4) + rng.nextInt(16);
         int originZ = (cz << 4) + rng.nextInt(16);
-        PlacementAnchor anchor = resolveAnchor(engine, placement, cx, cz, originX, originZ, rng);
+        PlacementAnchor anchor = resolveAnchor(world, placement, cx, cz, originX, originZ, rng);
         if (anchor == null) {
             return null;
         }
@@ -515,9 +508,9 @@ public final class IrisStructureLocator {
         if (selectedKey == null || selectedKey.isBlank()) {
             throw new IllegalStateException("Iris structure placement selected a blank structure key");
         }
-        PackResources pack = engine.getData().getPackResources();
+        PackResources pack = world.resources();
         ResourceId structureId = pack.idOf(selectedKey);
-        StructureAssembly provider = providerOf(engine, structureId);
+        StructureAssembly provider = providerOf(world, structureId);
         if (provider == null) {
             throw new IllegalStateException("Iris structure placement references missing structure '"
                     + selectedKey + "'");
@@ -543,8 +536,8 @@ public final class IrisStructureLocator {
         }
         boolean exactY = hasExactY(placement, stamp, pieces);
 
-        int worldMin = engine.getMinHeight() + 1;
-        int worldMax = engine.getMinHeight() + engine.getHeight() - 1;
+        int worldMin = world.minWorldY() + 1;
+        int worldMax = world.minWorldY() + StructureWorld.height(world) - 1;
         if (exactY) {
             Integer verticalShift = resolveVerticalShift(pieces, placement, baseY, worldMin, worldMax);
             if (!requirePlacementOutput(placement, selectedKey, cx, cz, verticalShift != null,
@@ -558,7 +551,7 @@ public final class IrisStructureLocator {
         }
         if (placement.isAnchoredUnderground() && !placement.resolvedAnchor().isCave()) {
             Integer burialShift = resolveUndergroundBurialShift(
-                    engine, pieces, placement, baseY, worldMin, worldMax);
+                    world, pieces, placement, baseY, worldMin, worldMax);
             if (!requirePlacementOutput(placement, selectedKey, cx, cz, burialShift != null,
                     "assembled pieces and carving envelope cannot remain fully buried beneath terrain")) {
                 return null;
@@ -584,9 +577,9 @@ public final class IrisStructureLocator {
      * The first provider of {@link StructureAssembly} among the modules of the engine's pack that knows {@code structure};
      * null when none does.
      */
-    public static StructureAssembly providerOf(Engine engine, ResourceId structure) {
-        PackResources pack = engine.getData().getPackResources();
-        for (StructureAssembly provider : engine.getGeneration().world().services(StructureAssembly.class)) {
+    public static StructureAssembly providerOf(PackWorld world, ResourceId structure) {
+        PackResources pack = world.resources();
+        for (StructureAssembly provider : world.services(StructureAssembly.class)) {
             if (provider.knows(pack, structure)) {
                 return provider;
             }
@@ -595,10 +588,10 @@ public final class IrisStructureLocator {
     }
 
     /** How the pieces of the pack structure {@code key} are stamped; null when no module knows the structure. */
-    public static StructureStamp stampOf(Engine engine, String key) {
-        PackResources pack = engine.getData().getPackResources();
+    public static StructureStamp stampOf(PackWorld world, String key) {
+        PackResources pack = world.resources();
         ResourceId structure = pack.idOf(key);
-        StructureAssembly provider = providerOf(engine, structure);
+        StructureAssembly provider = providerOf(world, structure);
         return provider == null ? null : provider.stamp(pack, structure).orElse(null);
     }
 
@@ -631,24 +624,24 @@ public final class IrisStructureLocator {
                 && fitsHorizontalBounds(bounds, originX, originZ, structureRadius);
     }
 
-    private static ResolvedStart resolveInChunk(Engine engine, String key, int cx, int cz) {
+    private static ResolvedStart resolveInChunk(PackWorld world, String key, int cx, int cz) {
         String normalizedKey = normalize(key);
-        if (hasNativePlacement(engine, key)) {
-            for (NativeStartPlanner.Plan plan : NativeStartPlanner.plansAt(engine, cx, cz)) {
+        if (hasNativePlacement(world, key)) {
+            for (NativeStartPlanner.Plan plan : NativeStartPlanner.plansAt(world, cx, cz)) {
                 if (normalize(plan.source().structure()).equals(normalizedKey)) {
                     return new ResolvedStart(cx << 4, plan.baseY(), cz << 4);
                 }
             }
         }
-        KList<StructurePlacement> placements = StructurePlacementScope.placementsAt(engine, cx, cz);
+        List<StructurePlacement> placements = StructurePlacementScope.placementsAt(world, cx, cz);
         for (StructurePlacement placement : placements) {
-            if (!matches(placement, key, engine)) {
+            if (!matches(placement, key, world)) {
                 continue;
             }
             if (placement.hasNativeStructures()) {
                 continue;
             }
-            ResolvedPlacement resolved = resolvePlacement(engine, placement, cx, cz);
+            ResolvedPlacement resolved = resolvePlacement(world, placement, cx, cz);
             if (resolved != null && matchesResolved(resolved, key)) {
                 return new ResolvedStart(
                         resolved.originX(), resolved.baseY(), resolved.originZ());
@@ -658,7 +651,7 @@ public final class IrisStructureLocator {
     }
 
     private static PlacementAnchor resolveAnchor(
-            Engine engine,
+            PackWorld world,
             StructurePlacement placement,
             int chunkX,
             int chunkZ,
@@ -668,25 +661,25 @@ public final class IrisStructureLocator {
     ) {
         if (placement.resolvedAnchor().isCave()) {
             StructureCaveAnchorResolver.Anchor caveAnchor = StructureCaveAnchorResolver.resolve(
-                    engine, placement, chunkX, chunkZ, rng.nextParallelRNG(CAVE_ANCHOR_DOMAIN));
+                    world, placement, chunkX, chunkZ, rng.nextParallelRNG(CAVE_ANCHOR_DOMAIN));
             return caveAnchor == null ? null : new PlacementAnchor(caveAnchor.x(), caveAnchor.y(), caveAnchor.z());
         }
-        Integer baseY = resolveBaseY(engine, placement, originX, originZ, rng);
+        Integer baseY = resolveBaseY(world, placement, originX, originZ, rng);
         return baseY == null ? null : new PlacementAnchor(originX, baseY, originZ);
     }
 
-    private static Integer resolveBaseY(Engine engine, StructurePlacement placement, int originX, int originZ, RNG rng) {
-        int worldMin = engine.getMinHeight() + 1;
-        int worldMax = engine.getMinHeight() + engine.getHeight() - 1;
+    private static Integer resolveBaseY(PackWorld world, StructurePlacement placement, int originX, int originZ, RNG rng) {
+        int worldMin = world.minWorldY() + 1;
+        int worldMax = world.minWorldY() + StructureWorld.height(world) - 1;
         if (worldMin > worldMax) {
             return null;
         }
         if (!placement.underwater()
-                && NativeStartPlanner.isSubmerged(engine, originX, originZ)) {
+                && NativeStartPlanner.isSubmerged(world, originX, originZ)) {
             return null;
         }
         if (placement.resolvedAnchor() == StructureAnchorMode.SURFACE) {
-            int surfaceY = engine.getHeight(originX, originZ, true) + engine.getMinHeight();
+            int surfaceY = StructureWorld.highest(world, originX, originZ);
             return surfaceY < placement.minHeight() || surfaceY > placement.maxHeight() ? null : surfaceY;
         }
         int bandMin = Math.max(worldMin, Math.min(placement.minHeight(), placement.maxHeight()));
@@ -722,11 +715,11 @@ public final class IrisStructureLocator {
         return 0;
     }
 
-    static Integer resolveUndergroundBurialShift(Engine engine, KList<AssembledPiece> pieces,
+    static Integer resolveUndergroundBurialShift(PackWorld world, KList<AssembledPiece> pieces,
                                                   StructurePlacement placement, int baseY,
                                                   int worldMin, int worldMax) {
         int[] bounds = computeBounds(pieces);
-        if (engine == null || bounds == null || placement == null || !placement.isAnchoredUnderground()
+        if (world == null || bounds == null || placement == null || !placement.isAnchoredUnderground()
                 || placement.resolvedAnchor().isCave()) {
             return null;
         }
@@ -753,7 +746,7 @@ public final class IrisStructureLocator {
         ColumnHeights surfaceHeights = new ColumnHeights(Integer.MIN_VALUE);
         if (bore || forceCarve && carveShape == StructureCarveShape.BOX) {
             maximumShift = resolveBurialEnvelopeShift(
-                    engine,
+                    world,
                     bounds[0] - sideExtension,
                     bounds[3] + sideExtension,
                     bounds[2] - sideExtension,
@@ -768,7 +761,7 @@ public final class IrisStructureLocator {
         } else {
             for (AssembledPiece piece : pieces) {
                 maximumShift = resolveBurialEnvelopeShift(
-                        engine,
+                        world,
                         piece.minX() - sideExtension,
                         piece.maxX() + sideExtension,
                         piece.minZ() - sideExtension,
@@ -785,7 +778,7 @@ public final class IrisStructureLocator {
         return minimumShift > maximumShift ? null : maximumShift;
     }
 
-    private static int resolveBurialEnvelopeShift(Engine engine, int minX, int maxX, int minZ, int maxZ,
+    private static int resolveBurialEnvelopeShift(PackWorld world, int minX, int maxX, int minZ, int maxZ,
                                                    int envelopeTopY, int maximumShift,
                                                    ColumnHeights surfaceHeights) {
         for (int x = minX; x <= maxX; x++) {
@@ -796,7 +789,7 @@ public final class IrisStructureLocator {
                     if (surfaceHeights.size() >= MAX_BURIAL_COLUMNS) {
                         return Integer.MIN_VALUE;
                     }
-                    surfaceY = engine.getHeight(x, z, true) + engine.getMinHeight();
+                    surfaceY = StructureWorld.highest(world, x, z);
                     surfaceHeights.put(columnKey, surfaceY);
                 }
                 int allowedTopY = surfaceY - UNDERGROUND_SURFACE_CLEARANCE;
@@ -908,13 +901,13 @@ public final class IrisStructureLocator {
         return minimum + rng.nextInt((maximum - minimum) + 1);
     }
 
-    private static PlacementCatalog collectPlacementCatalog(Engine engine, String key) {
+    private static PlacementCatalog collectPlacementCatalog(PackWorld world, String key) {
         Set<RandomSpreadParameters> randomSpread = new LinkedHashSet<>();
         List<StructurePlacement> concentricRings = new ArrayList<>();
         boolean hasDensity = false;
-        for (StructurePlacement placement : index(engine).placements) {
-            if (!isSearchablePlacement(engine, placement)
-                    || !matches(placement, key, engine)) {
+        for (StructurePlacement placement : index(world).placements) {
+            if (!isSearchablePlacement(world, placement)
+                    || !matches(placement, key, world)) {
                 continue;
             }
             if (placement.distribution() == StructureDistribution.RANDOM_SPREAD) {
@@ -930,22 +923,22 @@ public final class IrisStructureLocator {
         return new PlacementCatalog(List.copyOf(randomSpread), List.copyOf(concentricRings), hasDensity);
     }
 
-    static boolean isSearchableDensityPlacement(Engine engine, StructurePlacement placement) {
+    static boolean isSearchableDensityPlacement(PackWorld world, StructurePlacement placement) {
         return placement != null
                 && placement.distribution() == StructureDistribution.DENSITY
-                && isSearchablePlacement(engine, placement);
+                && isSearchablePlacement(world, placement);
     }
 
-    static boolean isSearchablePlacement(Engine engine, StructurePlacement placement) {
-        if (engine == null || placement == null || engine.getHeight() <= 0) {
+    static boolean isSearchablePlacement(PackWorld world, StructurePlacement placement) {
+        if (world == null || placement == null || StructureWorld.height(world) <= 0) {
             return false;
         }
         if (placement.distribution() == StructureDistribution.DENSITY
                 && !(placement.density() > 0.0)) {
             return false;
         }
-        long worldMin = (long) engine.getMinHeight() + (placement.isAnchoredUnderground() ? 1L : 0L);
-        long worldMax = (long) engine.getMinHeight() + engine.getHeight()
+        long worldMin = (long) world.minWorldY() + (placement.isAnchoredUnderground() ? 1L : 0L);
+        long worldMax = (long) world.minWorldY() + StructureWorld.height(world)
                 - (placement.resolvedAnchor().isCave() ? 2L : 1L);
         if (worldMin > worldMax) {
             return false;
@@ -1033,8 +1026,8 @@ public final class IrisStructureLocator {
     private record PlacementAnchor(int x, int y, int z) {
     }
 
-    private static boolean matches(StructurePlacement placement, String key, Engine engine) {
-        if (placement == null || key == null || engine == null || engine.getData() == null) {
+    private static boolean matches(StructurePlacement placement, String key, PackWorld world) {
+        if (placement == null || key == null || world == null) {
             return false;
         }
         String normalizedKey = normalize(key);
@@ -1047,7 +1040,7 @@ public final class IrisStructureLocator {
             if (structureKey == null || structureKey.isBlank()) {
                 continue;
             }
-            StructureStamp stamp = stampOf(engine, structureKey);
+            StructureStamp stamp = stampOf(world, structureKey);
             if (stamp == null) {
                 continue;
             }
@@ -1069,32 +1062,29 @@ public final class IrisStructureLocator {
         return key == null ? "" : key.toLowerCase(Locale.ROOT);
     }
 
-    private static PlacementIndex index(Engine engine) {
-        if (engine == null) {
+    private static PlacementIndex index(PackWorld world) {
+        if (world == null) {
             return EMPTY_INDEX;
         }
-        if (engine.getData() == null || engine.getDimension() == null) {
-            throw new IllegalStateException("Iris structure index requires a fully bound engine and dimension");
-        }
-        return engine.getGeneration().state(PlacementIndex.class, IrisStructureLocator::build);
+        return world.state(PlacementIndex.class, IrisStructureLocator::build);
     }
 
-    private static LocatableIndex locatableIndex(Engine engine) {
-        if (engine == null) {
+    private static LocatableIndex locatableIndex(PackWorld world) {
+        if (world == null) {
             return EMPTY_LOCATABLE_INDEX;
         }
-        return engine.getGeneration().state(LocatableIndex.class, IrisStructureLocator::buildLocatableIndex);
+        return world.state(LocatableIndex.class, IrisStructureLocator::buildLocatableIndex);
     }
 
-    private static LocatableIndex buildLocatableIndex(Engine engine) {
+    private static LocatableIndex buildLocatableIndex(PackWorld world) {
         Set<String> keys = new LinkedHashSet<>();
         Set<String> normalizedKeys = new LinkedHashSet<>();
         Set<String> editableKeys = new LinkedHashSet<>();
         Set<String> normalizedEditableKeys = new LinkedHashSet<>();
         Set<String> nativeKeys = new LinkedHashSet<>();
         Set<String> normalizedNativeKeys = new LinkedHashSet<>();
-        for (StructurePlacement placement : index(engine).placements) {
-            if (!isSearchablePlacement(engine, placement)) {
+        for (StructurePlacement placement : index(world).placements) {
+            if (!isSearchablePlacement(world, placement)) {
                 continue;
             }
             if (placement.hasNativeStructures()) {
@@ -1105,7 +1095,7 @@ public final class IrisStructureLocator {
                 continue;
             }
             for (String structureKey : placement.structures()) {
-                StructureStamp stamp = stampOf(engine, structureKey);
+                StructureStamp stamp = stampOf(world, structureKey);
                 if (stamp == null) {
                     throw new IllegalStateException(
                             "Iris structure placement references missing structure '" + structureKey + "'");
@@ -1134,29 +1124,15 @@ public final class IrisStructureLocator {
         normalizedKeys.add(normalize(trimmedKey));
     }
 
-    private static PlacementIndex build(Engine engine) {
+    private static PlacementIndex build(PackWorld world) {
         Set<String> loadKeys = new LinkedHashSet<>();
         Set<String> normalizedLoadKeys = new LinkedHashSet<>();
         Set<String> vanillaAliases = new LinkedHashSet<>();
         Set<String> suppressedVanillaSources = new LinkedHashSet<>();
         List<StructurePlacement> placements = new ArrayList<>();
-        collect(StructurePlacementScope.placementsOf(engine.getDimension()), engine, loadKeys, normalizedLoadKeys, vanillaAliases,
-                suppressedVanillaSources, placements, true);
-        KList<IrisRegion> regions = engine.getDimension().getAllRegions(engine);
-        if (regions != null) {
-            for (IrisRegion region : regions) {
-                collect(StructurePlacementScope.placementsOf(region), engine,
-                        loadKeys, normalizedLoadKeys, vanillaAliases,
-                        suppressedVanillaSources, placements, false);
-            }
-        }
-        KList<IrisBiome> biomes = engine.getDimension().getReachableBiomes(engine);
-        if (biomes != null) {
-            for (IrisBiome biome : biomes) {
-                collect(StructurePlacementScope.placementsOf(biome), engine,
-                        loadKeys, normalizedLoadKeys, vanillaAliases,
-                        suppressedVanillaSources, placements, false);
-            }
+        for (var declared : world.settings().declared(StructurePlacementSettings.class)) {
+            collect(declared.value().placements(), world, loadKeys, normalizedLoadKeys, vanillaAliases,
+                    suppressedVanillaSources, placements, declared.level() == Level.DIMENSION);
         }
         return new PlacementIndex(
                 Collections.unmodifiableSet(loadKeys),
@@ -1182,7 +1158,7 @@ public final class IrisStructureLocator {
         return Collections.unmodifiableSet(nativeKeys);
     }
 
-    private static void collect(List<StructurePlacement> source, Engine engine, Set<String> loadKeys,
+    private static void collect(List<StructurePlacement> source, PackWorld world, Set<String> loadKeys,
                                 Set<String> normalizedLoadKeys, Set<String> vanillaAliases,
                                 Set<String> suppressedVanillaSources,
                                 List<StructurePlacement> placements, boolean allowNativeSuppression) {
@@ -1219,7 +1195,7 @@ public final class IrisStructureLocator {
                             ? "REPLACE_SOURCE contains a blank Iris structure reference"
                             : "Iris structure placement contains a blank structure reference");
                 }
-                StructureStamp stamp = stampOf(engine, structureKey);
+                StructureStamp stamp = stampOf(world, structureKey);
                 if (stamp == null) {
                     throw new IllegalStateException((replacesNative
                             ? "REPLACE_SOURCE references missing Iris structure '"
@@ -1237,9 +1213,9 @@ public final class IrisStructureLocator {
                         throw new IllegalStateException("REPLACE_SOURCE structure '" + structureKey
                                 + "' must declare a valid namespaced vanillaSource");
                     }
-                    PackResources pack = engine.getData().getPackResources();
+                    PackResources pack = world.resources();
                     ResourceId structureId = pack.idOf(structureKey);
-                    if (providerOf(engine, structureId).viability(pack, structureId) != Viability.GUARANTEED) {
+                    if (providerOf(world, structureId).viability(pack, structureId) != Viability.GUARANTEED) {
                         throw new IllegalStateException("REPLACE_SOURCE structure '" + structureKey
                                 + "' is not runtime-viable; native generation will not be used as a fallback");
                     }

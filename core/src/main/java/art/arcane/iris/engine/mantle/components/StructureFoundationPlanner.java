@@ -1,7 +1,9 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.engine.framework.structure.ColumnHeights;
-import art.arcane.iris.spi.PlatformBlockState;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
 
 import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
@@ -13,9 +15,9 @@ final class StructureFoundationPlanner {
     }
 
     static void recordBaseCell(ColumnHeights columns, int x, int y, int z,
-                               PlatformBlockState state, boolean supportNonOccluding) {
+                               BlockState state, BlockRegistry blocks, boolean supportNonOccluding) {
         if (columns == null || state == null
-                || !(supportNonOccluding ? state.isSolid() : state.isOccluding())) {
+                || !blocks.hasTrait(state, supportNonOccluding ? BlockTrait.SOLID : BlockTrait.OCCLUDING)) {
             return;
         }
         long columnKey = pack(x, z);
@@ -38,19 +40,20 @@ final class StructureFoundationPlanner {
         return NO_GROUND;
     }
 
-    static boolean isGroundSolid(PlatformBlockState overlay, boolean carved, int mantleY, int terrainHeight) {
+    static boolean isGroundSolid(BlockState overlay, BlockRegistry blocks, boolean carved, int mantleY,
+                                 int terrainHeight) {
         if (mantleY <= 0) {
             return true;
         }
         if (overlay != null) {
-            return overlay.isSolid();
+            return blocks.hasTrait(overlay, BlockTrait.SOLID);
         }
         return !carved && mantleY <= terrainHeight;
     }
 
-    static boolean isSurfaceSupportBoundary(PlatformBlockState overlay, boolean carved,
+    static boolean isSurfaceSupportBoundary(BlockState overlay, BlockRegistry blocks, boolean carved,
                                             int mantleY, int terrainHeight) {
-        return carved || isGroundSolid(overlay, false, mantleY, terrainHeight);
+        return carved || isGroundSolid(overlay, blocks, false, mantleY, terrainHeight);
     }
 
     static int fillSupportColumn(int foundationY, int groundY, IntConsumer supportAtY) {

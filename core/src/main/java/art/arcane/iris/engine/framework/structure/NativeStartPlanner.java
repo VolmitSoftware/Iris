@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.StructurePlacementGrid;
 import art.arcane.iris.engine.framework.StructurePlacementScope;
+import com.volmit.world.PackWorld;
 import art.arcane.iris.builtin.structure.StructureAnchorMode;
 import art.arcane.iris.builtin.structure.StructurePlacement;
 import art.arcane.iris.builtin.structure.NativeStructureSource;
@@ -48,10 +48,10 @@ public final class NativeStartPlanner {
     public record Plan(StructurePlacement placement, NativeStructureSource source, int chunkX, int chunkZ, int baseY) {
     }
 
-    public static List<Plan> plansAt(Engine engine, int chunkX, int chunkZ) {
+    public static List<Plan> plansAt(PackWorld world, int chunkX, int chunkZ) {
         Map<String, Plan> plansByStructure = new LinkedHashMap<>();
-        for (StructurePlacement placement : StructurePlacementScope.placementsAt(engine, chunkX, chunkZ)) {
-            Plan plan = planAt(engine, placement, chunkX, chunkZ);
+        for (StructurePlacement placement : StructurePlacementScope.placementsAt(world, chunkX, chunkZ)) {
+            Plan plan = planAt(world, placement, chunkX, chunkZ);
             if (plan == null) {
                 continue;
             }
@@ -64,23 +64,20 @@ public final class NativeStartPlanner {
         return List.copyOf(plansByStructure.values());
     }
 
-    public static Plan planAt(Engine engine, StructurePlacement placement, int chunkX, int chunkZ) {
+    public static Plan planAt(PackWorld world, StructurePlacement placement, int chunkX, int chunkZ) {
         validateBackend(placement);
         if (!placement.hasNativeStructures()) {
             return null;
         }
-        Engine activeEngine = Objects.requireNonNull(engine, "Native structure planner requires an engine");
-        if (activeEngine.getSeedManager() == null) {
-            throw new IllegalStateException("Native structure planner requires a bound seed manager");
-        }
-        long mantleSeed = activeEngine.getSeedManager().getMantle();
+        Objects.requireNonNull(world, "Native structure planner requires a world");
+        long mantleSeed = StructureWorld.placementSeed(world);
         if (!StructurePlacementGrid.startsInChunk(placement, chunkX, chunkZ, mantleSeed)) {
             return null;
         }
         RNG placementRng = StructurePlacementGrid.placementRng(
                 placement, chunkX, chunkZ, mantleSeed).nextParallelRNG(NATIVE_SELECTION_DOMAIN);
         NativeStructureSource source = selectSource(placement.nativeStructures(), placementRng);
-        Integer baseY = resolveBaseY(activeEngine, placement, chunkX, chunkZ, placementRng);
+        Integer baseY = resolveBaseY(world, placement, chunkX, chunkZ, placementRng);
         if (baseY == null) {
             return null;
         }
@@ -102,8 +99,8 @@ public final class NativeStartPlanner {
         }
     }
 
-    public static boolean isSubmerged(Engine engine, int blockX, int blockZ) {
-        return engine.getHeight(blockX, blockZ, true) < engine.getDimension().getFluidHeight();
+    public static boolean isSubmerged(PackWorld world, int blockX, int blockZ) {
+        return StructureWorld.highestAboveBottom(world, blockX, blockZ) < StructureWorld.fluidHeightAboveBottom(world);
     }
 
     static NativeStructureSource selectSource(List<NativeStructureSource> sources, RNG rng) {
@@ -133,20 +130,20 @@ public final class NativeStartPlanner {
         throw new IllegalStateException("Native structure source selection produced no result");
     }
 
-    private static Integer resolveBaseY(Engine engine, StructurePlacement placement,
+    private static Integer resolveBaseY(PackWorld world, StructurePlacement placement,
                                         int chunkX, int chunkZ, RNG rng) {
-        int worldMin = engine.getMinHeight() + 1;
-        int worldMax = engine.getMinHeight() + engine.getHeight() - 1;
+        int worldMin = world.minWorldY() + 1;
+        int worldMax = world.minWorldY() + StructureWorld.height(world) - 1;
         if (worldMin > worldMax) {
             throw new IllegalStateException("Native structure placement has invalid world height bounds");
         }
         int blockX = (chunkX << 4) + 8;
         int blockZ = (chunkZ << 4) + 8;
-        if (!placement.underwater() && isSubmerged(engine, blockX, blockZ)) {
+        if (!placement.underwater() && isSubmerged(world, blockX, blockZ)) {
             return null;
         }
         if (!placement.underground()) {
-            int surfaceY = engine.getHeight(blockX, blockZ, true) + engine.getMinHeight();
+            int surfaceY = StructureWorld.highest(world, blockX, blockZ);
             if (surfaceY < placement.minHeight() || surfaceY > placement.maxHeight()) {
                 return null;
             }

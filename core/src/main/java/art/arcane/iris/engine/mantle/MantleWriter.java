@@ -41,6 +41,8 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterSlice;
+import art.arcane.volmlib.util.matter.MatterStructurePOI;
+import art.arcane.iris.engine.framework.TreeBlockMaterial;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.common.scheduling.J;
 import lombok.AccessLevel;
@@ -371,6 +373,14 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
             return;
         }
         matter.getSlice(type).set(x & 15, y & 15, z & 15, null);
+    }
+
+    /** Takes back the placement marker, tree material, block entity and point of interest kept beside the block. */
+    public void clearAttached(int x, int y, int z) {
+        clearData(x, y, z, String.class);
+        clearData(x, y, z, TreeBlockMaterial.class);
+        clearData(x, y, z, TileWrapper.class);
+        clearData(x, y, z, MatterStructurePOI.class);
     }
 
     private static void clearDeferredPlacement(Matter matter, int x, int y, int z) {

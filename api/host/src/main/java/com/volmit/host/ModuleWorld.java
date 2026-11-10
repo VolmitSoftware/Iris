@@ -4,6 +4,7 @@ import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.placement.Placements;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
 import java.util.List;
@@ -35,6 +36,11 @@ final class ModuleWorld implements PackWorld {
     @Override
     public long seed() {
         return world.seed();
+    }
+
+    @Override
+    public long seed(ResourceId purpose) {
+        return world.seed(purpose);
     }
 
     @Override

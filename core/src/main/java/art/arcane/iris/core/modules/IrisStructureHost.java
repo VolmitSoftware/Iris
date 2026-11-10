@@ -24,8 +24,8 @@ import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.mantle.components.StructurePlacing;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import com.volmit.ModuleLog;
-import com.volmit.generation.InvocationContext;
 import com.volmit.resource.ResourceId;
+import com.volmit.stage.MantleStageContext;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,9 +41,8 @@ final class IrisStructureHost implements StructureHost {
     }
 
     @Override
-    public void placeChunk(InvocationContext context) {
-        IrisMantleChunk chunk = context.extension(IrisMantleChunk.class).orElseThrow();
-        placing().place(chunk.writer(), chunk.chunkX(), chunk.chunkZ(), chunk.context());
+    public void placeChunk(MantleStageContext context) {
+        placing().place(context);
     }
 
     @Override
@@ -65,6 +64,6 @@ final class IrisStructureHost implements StructureHost {
     }
 
     private StructurePlacing placing() {
-        return engine.getGeneration().state(StructurePlacing.class, generating -> new StructurePlacing(generating, log));
+        return engine.getGeneration().world().state(StructurePlacing.class, generating -> new StructurePlacing(generating, log));
     }
 }

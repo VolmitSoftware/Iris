@@ -58,4 +58,12 @@ public interface IObjectPlacer {
     <T> @Nullable T getData(int xx, int yy, int zz, Class<T> t);
 
     Engine getEngine();
+
+    default void clearBlock(int x, int y, int z) {
+        throw new UnsupportedOperationException("This placer cannot take blocks back");
+    }
+
+    default void clearAttached(int x, int y, int z) {
+        throw new UnsupportedOperationException("This placer cannot take what is kept beside a block back");
+    }
 }

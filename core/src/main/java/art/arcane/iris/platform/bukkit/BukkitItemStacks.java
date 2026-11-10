@@ -29,6 +29,7 @@ import art.arcane.volmlib.util.format.Form;
 import com.volmit.item.ItemAttribute;
 import com.volmit.item.ItemDrop;
 import com.volmit.item.ItemEnchantment;
+import com.volmit.resource.ContentKey;
 import com.volmit.resource.ResourceId;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
@@ -96,12 +97,17 @@ public final class BukkitItemStacks {
             stack.setAmount(drop.amount());
             return stack;
         }
-        Material material = Material.matchMaterial(drop.item().toString());
+        Material material = materialOf(drop.item());
         if (material == null) {
             IrisLogging.warnOnce("loot:material:" + drop.item(), "Unknown Material: %s", drop.item());
             return null;
         }
         return new ItemStack(material, drop.amount());
+    }
+
+    /** The vanilla material a platform item key such as {@code minecraft:coal} names; null when none does. */
+    static Material materialOf(ContentKey item) {
+        return Material.matchMaterial(item.toString());
     }
 
     private static KMap<String, Object> customNbtOf(ItemDrop drop) {

@@ -56,7 +56,7 @@ import java.util.Map;
 /**
  * Bukkit adapter resolving namespaced keys against the live Bukkit registries.
  */
-public final class BukkitRegistries implements PlatformRegistries {
+public class BukkitRegistries implements PlatformRegistries {
     @Override
     public PlatformBlockState block(String key) {
         BlockData data = BukkitBlockResolution.get(key);
@@ -126,13 +126,18 @@ public final class BukkitRegistries implements PlatformRegistries {
 
     @Override
     public List<String> blockKeys() {
+        List<String> keys = new ArrayList<>(vanillaBlockKeys());
+        keys.addAll(externalKeys(DataType.BLOCK));
+        return keys;
+    }
+
+    List<String> vanillaBlockKeys() {
         List<String> keys = new ArrayList<>();
         for (Material material : Registry.MATERIAL) {
             if (material.isBlock()) {
                 keys.add(material.getKey().toString());
             }
         }
-        keys.addAll(externalKeys(DataType.BLOCK));
         return keys;
     }
 

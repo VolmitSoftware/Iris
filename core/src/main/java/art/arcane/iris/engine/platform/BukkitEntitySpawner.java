@@ -83,6 +83,7 @@ import static art.arcane.iris.util.common.data.registry.Particles.ITEM;
  */
 public final class BukkitEntitySpawner {
     private static final long RISE_START_DEPTH_BLOCKS = 5;
+    private static final int CHUNK_SHIFT = 4;
     private static final int RISE_MAX_TICKS = 100;
     private static final int RISE_NO_DAMAGE_TICKS = 100000;
     private static final double RISE_STEP_BLOCKS = 0.1;
@@ -173,10 +174,10 @@ public final class BukkitEntitySpawner {
     }
 
     /** Players watching an entity that rises out of the ground see it start five blocks below the spot. */
-    private static Location startBelowGroundWhenWatched(Location at) {
+    static Location startBelowGroundWhenWatched(Location at) {
         AtomicReference<Location> start = new AtomicReference<>(at);
         try {
-            J.sfut(() -> {
+            J.runRegionFuture(at.getWorld(), at.getBlockX() >> CHUNK_SHIFT, at.getBlockZ() >> CHUNK_SHIFT, () -> {
                 if (Chunks.hasPlayersNearby(start.get())) {
                     Location b = start.get().clone();
                     start.set(new Location(b.getWorld(), b.getX(), b.getY() - RISE_START_DEPTH_BLOCKS, b.getZ()));

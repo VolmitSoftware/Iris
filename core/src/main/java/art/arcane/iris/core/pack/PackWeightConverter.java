@@ -55,7 +55,7 @@ import java.util.stream.Stream;
  * a weight above {@link Weighted#MAX_WEIGHT} stops the conversion. A pack with lists already converted and lists not yet
  * converted cannot be told apart from rarity 1 and is refused.
  * <p>
- * Usage: {@code PackWeightConverter [--dry-run] <pack folder>...}
+ * {@code PackWeightConverterCli} in the test sources runs it from the command line.
  */
 public final class PackWeightConverter {
     private static final String INDENT_STEP = "    ";
@@ -116,35 +116,6 @@ public final class PackWeightConverter {
             }
         }
         return new Result(changed, List.copyOf(converter.warnings));
-    }
-
-    public static void main(String[] arguments) throws IOException {
-        boolean dryRun = false;
-        List<Path> packs = new ArrayList<>();
-        for (String argument : arguments) {
-            if (argument.equals("--dry-run")) {
-                dryRun = true;
-            } else {
-                packs.add(Path.of(argument));
-            }
-        }
-
-        if (packs.isEmpty()) {
-            System.err.println("Usage: PackWeightConverter [--dry-run] <pack folder>...");
-            System.exit(2);
-        }
-
-        for (Path folder : packs) {
-            try {
-                Result result = convert(folder, dryRun);
-                result.changedFiles().forEach(System.out::println);
-                result.warnings().forEach(warning -> System.out.println("warning: " + warning));
-                System.out.println(folder + ": " + result.changedFiles().size() + " files " + (dryRun ? "would change" : "changed"));
-            } catch (ConversionException refusal) {
-                System.err.println(folder + ": " + refusal.getMessage());
-                System.exit(1);
-            }
-        }
     }
 
     /** The converted text of the file; null when nothing in it changes. */

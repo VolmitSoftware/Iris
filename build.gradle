@@ -290,9 +290,10 @@ tasks.register('buildBukkit', Copy) {
     }
 }
 
-// The three loader jars come out of nested standalone Gradle builds driven through Exec. Their own
-// Gradle builds own the complete incremental model, so always launch them instead of allowing an
-// incomplete outer input inventory to publish stale jars.
+// The three loader jars come out of nested standalone Gradle builds driven through Exec. The outer
+// task therefore has to carry the full inventory of what those builds read: every shared source tree,
+// every build script and version file they load, and the local VolmLib checkout when the composite
+// resolves one. Anything missing from that list publishes a stale jar.
 Closure<File> resolveLocalVolmLibDirectory = { ->
     String configured = localVolmLibDirectory != null && !localVolmLibDirectory.isBlank()
         ? localVolmLibDirectory
@@ -325,25 +326,48 @@ List<Object> moddedSharedInputs = []
     'adapters/client-common/src',
     'core/src/main',
     'core/build.gradle',
+    'core/volmlib-left-out-of-bukkit-jar.txt',
+    'core/agent/src',
+    'core/agent/build.gradle',
+    'api/api/src',
+    'api/api/build.gradle.kts',
+    'api/host/src',
+    'api/host/build.gradle.kts',
+    'api/build.gradle.kts',
+    'api/settings.gradle.kts',
     'module/src/main',
     'module/build.gradle.kts',
     'module/settings.gradle.kts',
+    'module/gradle.properties',
+    'module/lombok.config',
     'module/builtin-modules.txt',
     'spi/src/main',
     'spi/build.gradle',
     'build.gradle',
     'settings.gradle',
     'gradle.properties',
+    'lombok.config',
     'gradle/libs.versions.toml',
-    'gradle/volmlib-resolution.settings.gradle'
+    'gradle/volmlib-resolution.settings.gradle',
+    'gradle/irisapi-resolution.settings.gradle'
 ].each { String path -> moddedSharedInputs.add(layout.projectDirectory.file(path).asFile) }
 File localVolmLibCheckout = useLocalVolmLib.equalsIgnoreCase('true') ? resolveLocalVolmLibDirectory() : null
 if (localVolmLibCheckout != null) {
     moddedSharedInputs.add(new File(localVolmLibCheckout, 'shared/src/main'))
 }
 
+// The published VolmLib snapshot is resolved inside the nested build, so no outer input changes when it
+// moves. Without a local checkout the Exec tasks always run and the nested build decides what is stale.
+Closure<Void> rerunWhenVolmLibIsPublished = { Exec task ->
+    if (localVolmLibCheckout == null) {
+        task.outputs.upToDateWhen { false }
+    }
+    return null
+}
+
 Closure<Void> declareModdedJarIo = { Exec task, String adapter, String artifactName, Map<String, String> versions ->
     task.inputs.files(moddedSharedInputs).withPropertyName('moddedSharedSources')
+        .withPathSensitivity(PathSensitivity.RELATIVE)
     task.inputs.files(
         layout.projectDirectory.file("adapters/${adapter}/src").asFile,
         layout.projectDirectory.file("adapters/${adapter}/build.gradle").asFile,
@@ -352,10 +376,8 @@ Closure<Void> declareModdedJarIo = { Exec task, String adapter, String artifactN
     versions.each { String key, String value -> task.inputs.property(key, value) }
     task.inputs.property('useLocalVolmLib', useLocalVolmLib)
     task.inputs.property('volmLibCoordinate', volmLibCoordinate)
-    task.inputs.property('localVolmLibCheckout', localVolmLibCheckout == null ? '' : localVolmLibCheckout.absolutePath)
     task.outputs.file(layout.projectDirectory.file("adapters/${adapter}/build/libs/${artifactName}"))
-    task.outputs.upToDateWhen { false }
-    task.outputs.cacheIf { false }
+    rerunWhenVolmLibIsPublished(task)
     return null
 }
 
@@ -373,8 +395,8 @@ tasks.register('fabricJar', Exec) {
         "-PuseLocalVolmLib=${useLocalVolmLib}",
         "-PvolmLibCoordinate=${volmLibCoordinate}"
     ]
-    if (localVolmLibDirectory != null && !localVolmLibDirectory.isBlank()) {
-        command.add("-PlocalVolmLibDirectory=${localVolmLibDirectory}")
+    if (localVolmLibCheckout != null) {
+        environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
     }
     commandLine(command)
     declareModdedJarIo(it, 'fabric', fabricArtifactName, [
@@ -411,8 +433,8 @@ tasks.register('forgeJar', Exec) {
         "-PuseLocalVolmLib=${useLocalVolmLib}",
         "-PvolmLibCoordinate=${volmLibCoordinate}"
     ]
-    if (localVolmLibDirectory != null && !localVolmLibDirectory.isBlank()) {
-        command.add("-PlocalVolmLibDirectory=${localVolmLibDirectory}")
+    if (localVolmLibCheckout != null) {
+        environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
     }
     commandLine(command)
     declareModdedJarIo(it, 'forge', forgeArtifactName, [
@@ -449,8 +471,8 @@ tasks.register('neoforgeJar', Exec) {
         "-PuseLocalVolmLib=${useLocalVolmLib}",
         "-PvolmLibCoordinate=${volmLibCoordinate}"
     ]
-    if (localVolmLibDirectory != null && !localVolmLibDirectory.isBlank()) {
-        command.add("-PlocalVolmLibDirectory=${localVolmLibDirectory}")
+    if (localVolmLibCheckout != null) {
+        environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
     }
     commandLine(command)
     declareModdedJarIo(it, 'neoforge', neoForgeArtifactName, [
@@ -507,11 +529,12 @@ tasks.register('moddedTest', Exec) {
         "-PuseLocalVolmLib=${useLocalVolmLib}",
         "-PvolmLibCoordinate=${volmLibCoordinate}"
     ]
-    if (localVolmLibDirectory != null && !localVolmLibDirectory.isBlank()) {
-        command.add("-PlocalVolmLibDirectory=${localVolmLibDirectory}")
+    if (localVolmLibCheckout != null) {
+        environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
     }
     commandLine(command)
     inputs.files(moddedSharedInputs).withPropertyName('moddedSharedSources')
+        .withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.files(
         layout.projectDirectory.file('adapters/fabric/src').asFile,
         layout.projectDirectory.file('adapters/fabric/build.gradle').asFile,
@@ -522,8 +545,8 @@ tasks.register('moddedTest', Exec) {
     inputs.property('fabricLoaderVersion', fabricLoaderVersion)
     inputs.property('useLocalVolmLib', useLocalVolmLib)
     inputs.property('volmLibCoordinate', volmLibCoordinate)
-    inputs.property('localVolmLibCheckout', localVolmLibCheckout == null ? '' : localVolmLibCheckout.absolutePath)
     outputs.dir(layout.projectDirectory.dir('adapters/fabric/build/test-results/test'))
+    rerunWhenVolmLibIsPublished(it)
     mustRunAfter(tasks.named('jar'))
     mustRunAfter(project(':core').tasks.named('check'))
     mustRunAfter(project(':spi').tasks.named('jar'))

@@ -25,7 +25,9 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
+import art.arcane.iris.builtin.spawn.SpawnGroup;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
+import art.arcane.iris.builtin.spawn.SpawnSurface;
 import art.arcane.iris.builtin.spawn.Spawner;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.world.IrisWorld;
@@ -141,6 +143,53 @@ public class EntitySpawningTest {
             assertFalse(attempt.checkSurface());
             assertEquals(vanilla("zombie"), attempt.entity().type());
         }
+    }
+
+    @Test
+    public void aMarkerSpawnOfAFluidEntityStillChecksItsSurface() {
+        Spawner spawner = TestSettings.of(Spawner.class, "{\"spawns\": [{\"entity\": \"cod\", \"minSpawns\": 1, \"maxSpawns\": 1}]}");
+        fixture.resource(SpawnResources.SPAWNERS, "reef/fish", spawner);
+        fixture.resource(SpawnResources.MARKERS, "reef", TestSettings.of(SpawnMarker.class, "{}"));
+        fixture.resource(SpawnResources.ENTITIES, "cod", TestSettings.of(EntityDefinition.class, "{\"type\": \"minecraft:cod\", \"surface\": \"WATER\"}"));
+        when(engine.getMinHeight()).thenReturn(-64);
+
+        EntitySpawns.Plan plan = new EntitySpawning()
+                .plan(world, new EntitySpawns.Marker(MARKER_BLOCK, world.resources().idOf("reef"), world.resources().idOf("reef/fish"), false))
+                .orElseThrow();
+
+        assertEquals(1, plan.attempts().size());
+        assertTrue(plan.attempts().get(0).checkSurface());
+        assertEquals(EntitySpawns.Surface.WATER, plan.attempts().get(0).surface());
+    }
+
+    @Test
+    public void landEntitiesStandOnTheTopWhileFluidEntitiesSpawnWithinTheFluid() {
+        assertEquals(Integer.valueOf(79), EntitySpawning.surfaceSpawnY(SpawnGroup.NORMAL, SpawnSurface.LAND, 77, 78));
+        assertEquals(Integer.valueOf(78), EntitySpawning.surfaceSpawnY(SpawnGroup.NORMAL, SpawnSurface.WATER, 77, 78));
+        assertEquals(Integer.valueOf(78), EntitySpawning.surfaceSpawnY(SpawnGroup.NORMAL, SpawnSurface.LAVA, 77, 78));
+    }
+
+    @Test
+    public void aColumnWithoutFluidHasNoPlaceForAFluidEntity() {
+        assertNull(EntitySpawning.surfaceSpawnY(SpawnGroup.NORMAL, SpawnSurface.WATER, 78, 78));
+        assertNull(EntitySpawning.surfaceSpawnY(SpawnGroup.UNDERWATER, SpawnSurface.WATER, 78, 78));
+        assertNull(EntitySpawning.surfaceSpawnY(SpawnGroup.BEACH, SpawnSurface.LAND, 78, 78));
+    }
+
+    @Test
+    public void underwaterAndBeachEntitiesSpawnBetweenTheFloorAndTheTop() {
+        for (SpawnGroup group : List.of(SpawnGroup.UNDERWATER, SpawnGroup.BEACH)) {
+            for (int i = 0; i < 50; i++) {
+                int y = EntitySpawning.surfaceSpawnY(group, SpawnSurface.WATER, 60, 64);
+                assertTrue(y >= 61 && y <= 64);
+            }
+        }
+    }
+
+    @Test
+    public void caveEntitiesNeverTakeAColumnHeight() {
+        assertNull(EntitySpawning.surfaceSpawnY(SpawnGroup.CAVE, SpawnSurface.LAND, 60, 64));
+        assertNull(EntitySpawning.surfaceSpawnY(SpawnGroup.CAVE, SpawnSurface.WATER, 60, 64));
     }
 
     @Test

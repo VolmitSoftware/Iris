@@ -368,12 +368,38 @@ final class WorldEntitySpawner {
     }
 
     private static boolean surfaceAllows(Location l, EntitySpawns.Attempt attempt) {
-        if (!BukkitSurfaces.matches(attempt.surface(), l.clone().subtract(0, 1, 0).getBlock())) {
+        EntitySpawns.Surface surface = attempt.surface();
+        boolean fluid = surface.isFluid();
+        if (!BukkitSurfaces.matches(surface, l.clone().subtract(0, fluid ? 0 : 1, 0).getBlock())) {
             return false;
         }
 
         Vector3d boundingBox = BukkitPlatform.entityBoundingBox(BukkitEntitySpawner.bukkitType(attempt.entity()));
-        return boundingBox == null || isAreaClearForSpawn(l, boundingBox);
+        if (boundingBox == null) {
+            return true;
+        }
+        return fluid ? isFluidAreaClearForSpawn(l, boundingBox, surface) : isAreaClearForSpawn(l, boundingBox);
+    }
+
+    private static boolean isFluidAreaClearForSpawn(Location center, Vector3d boundingBox, EntitySpawns.Surface surface) {
+        World world = center.getWorld();
+        int startX = (int) Math.floor(center.getX() + 0.5 - boundingBox.x / 2);
+        int endX = (int) Math.floor(Math.nextDown(center.getX() + 0.5 + boundingBox.x / 2));
+        int startY = center.getBlockY();
+        int endY = (int) Math.floor(Math.nextDown(center.getY() + 0.5 + boundingBox.y));
+        int startZ = (int) Math.floor(center.getZ() + 0.5 - boundingBox.z / 2);
+        int endZ = (int) Math.floor(Math.nextDown(center.getZ() + 0.5 + boundingBox.z / 2));
+
+        for (int x = startX; x <= endX; x++) {
+            for (int y = startY; y <= endY; y++) {
+                for (int z = startZ; z <= endZ; z++) {
+                    if (!BukkitSurfaces.matches(surface, world.getBlockAt(x, y, z))) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     private static boolean isAreaClearForSpawn(Location center, Vector3d boundingBox) {

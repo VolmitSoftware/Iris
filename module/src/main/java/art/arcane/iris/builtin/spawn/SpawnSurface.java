@@ -36,5 +36,9 @@ public enum SpawnSurface {
     OVERWORLD,
 
     @Desc("Within lava")
-    LAVA
+    LAVA;
+
+    public boolean isFluid() {
+        return this == WATER || this == LAVA;
+    }
 }

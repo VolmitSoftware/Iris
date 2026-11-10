@@ -30,7 +30,11 @@ public final class ContentSpawns {
 
     /** The ground or fluid an entity spawns on. */
     public enum Surface {
-        LAND, ANIMAL, WATER, OVERWORLD, LAVA
+        LAND, ANIMAL, WATER, OVERWORLD, LAVA;
+
+        public boolean isFluid() {
+            return this == WATER || this == LAVA;
+        }
     }
 
     /**

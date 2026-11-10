@@ -485,12 +485,17 @@ public final class StudioOpenCoordinator {
         AtomicBoolean unloadStarted = new AtomicBoolean(false);
         AtomicBoolean folderDeleted = new AtomicBoolean(!deleteFolder);
         AtomicBoolean terminalTimeout = new AtomicBoolean(false);
-        if (world != null) {
-            IrisToolbelt.beginWorldMaintenance(world, "studio-close", true);
-        }
+        AtomicBoolean maintenanceEntered = new AtomicBoolean(false);
 
         CompletableFuture<Void> sequence = sequenceStudioClose(
                 () -> evacuateWorldFamily(worldName, world),
+                () -> {
+                    if (world == null) {
+                        return;
+                    }
+                    IrisToolbelt.beginWorldMaintenance(world, "studio-close", true);
+                    maintenanceEntered.set(true);
+                },
                 () -> {
                     unloadStarted.set(true);
                     return unloadWorldFamily(worldName, world).thenRun(() -> {
@@ -535,7 +540,7 @@ public final class StudioOpenCoordinator {
                     );
                 });
         return operation.whenComplete((result, throwable) -> {
-            if (world != null) {
+            if (maintenanceEntered.get()) {
                 IrisToolbelt.endWorldMaintenance(world, "studio-close", true);
             }
         });
@@ -549,22 +554,27 @@ public final class StudioOpenCoordinator {
 
     static CompletableFuture<Void> sequenceStudioClose(
             Supplier<CompletableFuture<Void>> evacuate,
+            Runnable enterMaintenance,
             Supplier<CompletableFuture<Void>> unload,
             Supplier<CompletableFuture<Void>> closeGenerator,
             Supplier<CompletableFuture<Void>> deleteFolders
     ) {
-        return sequenceStudioClose(evacuate, unload, closeGenerator, deleteFolders, () -> false);
+        return sequenceStudioClose(evacuate, enterMaintenance, unload, closeGenerator, deleteFolders, () -> false);
     }
 
     static CompletableFuture<Void> sequenceStudioClose(
             Supplier<CompletableFuture<Void>> evacuate,
+            Runnable enterMaintenance,
             Supplier<CompletableFuture<Void>> unload,
             Supplier<CompletableFuture<Void>> closeGenerator,
             Supplier<CompletableFuture<Void>> deleteFolders,
             BooleanSupplier terminalTimeout
     ) {
         return invokePhase(evacuate)
-                .thenCompose(ignored -> invokePhaseUnlessTimedOut(unload, terminalTimeout))
+                .thenCompose(ignored -> invokePhaseUnlessTimedOut(() -> {
+                    enterMaintenance.run();
+                    return unload.get();
+                }, terminalTimeout))
                 .thenCompose(ignored -> invokePhaseUnlessTimedOut(closeGenerator, terminalTimeout))
                 .thenCompose(ignored -> invokePhaseUnlessTimedOut(deleteFolders, terminalTimeout));
     }

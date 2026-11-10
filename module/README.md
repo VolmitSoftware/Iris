@@ -29,24 +29,24 @@ service or hook, `setup.log()` during setup), which labels each line with the mo
 use `IrisLogging`. Classes of the host's object model (the host-classes list) and code that only has an engine or pack
 data still log as Iris itself.
 
-Modules also own pack resources and checks of their own. `iris:structure` (`StructureModule`) reads structures, jigsaw
-pools and jigsaw pieces as resource kinds (`StructureResources`, `iris:structure/structure`, `/pool`, `/piece`), from the
-folders and files packs have always used, and declares the structure placement settings and the mantle stage. Its
-definitions (`IrisStructure`, `IrisJigsawPiece`, `IrisJigsawPool` and their parts in `engine/object/structure`) live
-here and build against the API. It is not in the built-ins jar: Iris registers it with its own modules, because Iris's
-jigsaw studio, importers and exporters read the structures it registers as the same classes, which a jar's own copy of
-a class is not. Iris's own module `iris:structure-model` (core `StructureModelModule`) checks them with its validator
-(`StructureValidator`: assembly samples and vanilla structure replacement) wherever Iris validates a pack. The
-assembler, locator, fitting and placing are still Iris's, and `iris:structure` places through the `StructureHost`
-facade (`art.arcane.iris.builtin.structure`).
+Structures are two modules of the built-ins jar. `iris:structure` (`StructureModule`) is where structures go and how they
+meet the terrain: it declares the structure placement settings and the mantle stage, validates the placements
+(`StructureValidator`), provides `StructureLocator` and `VanillaStructures`, and brings the `/iris module structure`
+commands. It gets the pieces of a structure only from the `StructureAssembly` providers of the pack's modules and knows
+none of them. `iris:jigsaw` (`JigsawModule`) is what a structure is made of: it reads structures, jigsaw pools and jigsaw
+pieces as resource kinds (`StructureResources`, from the folders and files packs have always used), validates them
+(`JigsawValidator`), provides `StructureAssembly` (`JigsawStructureAssembly`), and brings the tools that make them: the
+importers of the platform's structures and of a datapack's (`DatapackStructureImport`) and the `/iris module jigsaw`
+commands with the in-world Jigsaw Studio. The studio runs only on IrisApi's tool world api and `PlatformStructures`, so
+it runs on every platform that implements them.
 
 Built-in modules answer Iris through IrisApi services instead of Iris reading their features: `iris:objects`
-provides `ObjectsAt` (the objects a chunk would get, for the object search and studio tools) and `iris:structure-model`
+provides `ObjectsAt` (the objects a chunk would get, for the object search and studio tools) and `iris:structure`
 provides `StructureLocator` (`StructureLocating`: the pack's structure keys for Iris's structure index, the ones a
 world places, and their nearest start for the find commands). A world's structure index lives in the world's state
 (`engine.getGeneration().state(...)`), so every reload of the pack's structure files, which starts a new world, builds
 it again.
-`iris:structure-model` also provides `VanillaStructures` (`StructureVanillaStructures`) for the platform's own structures:
+`iris:structure` also provides `VanillaStructures` (`StructureVanillaStructures`) for the platform's own structures:
 which ones its placements replace or the dimension's `importedStructures` disables, the starts its `nativeStructures`
 placements make (`startedStructures`, `locatableStarts`, `locateStart`), the shift and band of the platform's starts, and the whole terrain fit of every start (SOURCE,
 PRESERVE, VACUUM, ENCASE, BORE, FORCE_CARVE, stilts) in `engine/framework/structure/fit`, written against IrisApi's
@@ -164,9 +164,8 @@ compiled these sources itself.
 Iris includes this build (`includeBuild('module')` in its `settings.gradle`) and depends on its classes: Iris
 core and its adapters still name many of them (the cut-over that ends this comes later). Classes that need Iris itself
 are Iris's and live in Iris core: the layout model (`IrisBiome`, `IrisRegion`, `IrisDimension`, generators, noise
-styles, expressions, images), the pack's objects and blocks, the structure assembler, locator, fitting and placer
-(behind `StructureHost`), and the placement service behind `PackWorld.placements()`. A module this build holds
-but the jar does not, such as `iris:structure`, is one Iris registers with its own modules (`IrisModuleHost`): its
+styles, expressions, images), the pack's objects and blocks, and the placement service behind `PackWorld.placements()`.
+A module this build holds but the jar does not is one Iris registers with its own modules (`IrisModuleHost`): its
 classes are then the ones Iris's own code sees.
 
 `./gradlew check` compiles every source and builds the built-ins jar below, which runs the pack class checks.
@@ -187,7 +186,7 @@ packages fails the task naming the class and what it uses. Iris checks the jar o
 VolmLib classes its Bukkit jar strips (`core/volmlib-left-out-of-bukkit-jar.txt`), which only Iris knows.
 
 The jar holds `iris:post`, `iris:perfection`, `iris:matter`, `iris:loot`, `iris:spawn`, `iris:vanilla-features` and
-`iris:carve`, and the object placement stages `iris:prepare`, `iris:anchor`, `iris:validate`, `iris:bore`, `iris:blocks`, `iris:stilt`, `iris:vacuum` and `iris:snow`. They are
+`iris:carve`, `iris:structure`, `iris:jigsaw`, and the object placement stages `iris:prepare`, `iris:anchor`, `iris:validate`, `iris:bore`, `iris:blocks`, `iris:stilt`, `iris:vacuum` and `iris:snow`. They are
 written against IrisApi and `art.arcane.iris.builtin` alone: the chunk's `BlockState` hunk, the block registry's traits and
 `canPlaceOn`, the terrain sampler (heights around the chunk, slope, fluid height, where the upper dimension begins) and the
 mantle's planned blocks; the placement stages read the placement being run through the `ObjectPlacement` facade, and the loot and
@@ -201,7 +200,7 @@ none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, which a test keeps e
 
 `art.arcane.iris.builtin` also holds what the compiled-in built-ins and the jar must share, because each sees its own copy of
 every other class. The facades among them are interfaces Iris implements and offers through IrisApi's extension point, never
-through the thread or a cast: a module asks `world.extension(X.class)` for what belongs to a world (`StructureHost`),
+through the thread or a cast: a module asks `world.extension(X.class)` for what belongs to a world,
 `context.extension(X.class)` for what belongs to one invocation (`IrisChunk` in a chunk stage, `IrisMantleChunk` in a mantle stage) and
 `settings.extension(X.class)` for a reach worked out
 before any world exists, each with `.orElseThrow()`, since a built-in runs only where Iris offers them. Iris's per-feature world seeds are

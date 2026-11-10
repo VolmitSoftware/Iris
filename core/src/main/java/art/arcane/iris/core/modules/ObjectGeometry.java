@@ -56,6 +56,24 @@ public final class ObjectGeometry {
         }
     }
 
+    /**
+     * Like {@link #of}, but the bounds are the size the object file declares around its center, not the box of its blocks,
+     * so the file can be written again at the size it had.
+     */
+    public static GeneratedObject ofDeclared(IrisObject object) {
+        object.readLock.lock();
+        try {
+            int centerX = object.w / 2;
+            int centerY = object.h / 2;
+            int centerZ = object.d / 2;
+            BlockBox declared = new BlockBox(-centerX, -centerY, -centerZ,
+                    object.w - centerX, object.h - centerY, object.d - centerZ);
+            return new GeneratedObject(declared, CENTER, blocksOf(object), List.of());
+        } finally {
+            object.readLock.unlock();
+        }
+    }
+
     private static List<ObjectBlock> blocksOf(IrisObject object) {
         Map<BlockPosition, ObjectBlock> blocks = new LinkedHashMap<>();
         for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.blocks) {

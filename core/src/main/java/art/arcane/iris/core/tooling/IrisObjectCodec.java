@@ -62,7 +62,7 @@ public final class IrisObjectCodec implements ObjectCodec {
         } catch (Throwable failure) {
             throw new IOException("Cannot read an " + EXTENSION + " object: " + failure.getMessage(), failure);
         }
-        return ObjectGeometry.of(object);
+        return ObjectGeometry.ofDeclared(object);
     }
 
     /** Iris keys an object's blocks by their offset from its center, so the local positions are the keys. */

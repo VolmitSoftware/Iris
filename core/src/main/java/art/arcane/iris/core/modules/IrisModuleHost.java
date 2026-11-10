@@ -50,12 +50,20 @@ public final class IrisModuleHost {
      * Libraries pack modules may call besides the IrisApi, each with its subpackages: VolmLib, which Iris shades unrelocated,
      * and Gson, which every platform Iris runs on provides.
      */
-    public static final List<String> SHARED_LIBRARY_PACKAGES = List.of("art.arcane.volmlib", "com.google.gson");
+    public static final List<String> SHARED_LIBRARY_PACKAGES = List.of("art.arcane.volmlib", platformGsonPackage());
     /**
      * The structure file transactions Iris's datapack ingest and the jigsaw module's tools both run, which each would
      * otherwise see as a copy of its own; exposed with its subpackages.
      */
     public static final String STRUCTURE_FILES_PACKAGE = "art.arcane.iris.core.structure.authoring";
+    /**
+     * Assembled at run time: the Bukkit jar relocates Iris's own Gson, and that relocation rewrites every string constant
+     * naming the package, which would expose Iris's copy instead of the platform's.
+     */
+    private static String platformGsonPackage() {
+        return String.join(".", "com", "google", "gson");
+    }
+
     /** Every package pack modules may use besides the IrisApi. {@code exposedHostPackages} in IrisModule's build lists the same. */
     public static final List<String> EXPOSED_PACKAGES = Stream.concat(Stream.of(BUILT_IN_API_PACKAGE, STRUCTURE_FILES_PACKAGE),
             SHARED_LIBRARY_PACKAGES.stream()).toList();

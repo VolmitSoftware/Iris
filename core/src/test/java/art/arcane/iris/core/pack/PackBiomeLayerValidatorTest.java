@@ -89,6 +89,18 @@ public class PackBiomeLayerValidatorTest {
     }
 
     @Test
+    public void checksEveryEntryOfADecoratorSnippetHoldingSeveral() throws Exception {
+        File pack = temporaryFolder.newFolder("pack");
+        write(pack, "snippet/iris/decorant/decorator/several.json",
+                "[{\"palette\":[{\"block\":\"minecraft:magma_block\"}]}, {\"chance\":0.5}]");
+
+        assertEquals(List.of(
+                "Decorator snippet 'several'[1] must declare a non-empty palette."
+        ), PackBiomeLayerValidator.validateDecoratorPalettes(
+                new File(pack, "biomes"), new File(pack, "snippet/iris/decorant/decorator")));
+    }
+
+    @Test
     public void acceptsDecoratorPalettesAndSnippetReferences() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
         write(pack, "biomes/ok.json",

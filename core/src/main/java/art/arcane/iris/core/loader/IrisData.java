@@ -22,7 +22,10 @@ import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonParser;
 import com.google.gson.Strictness;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
@@ -72,9 +75,12 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -90,6 +96,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Data
 public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
+    private static final String SNIPPET_PREFIX = "snippet/";
     private static final Map<File, IrisData> dataLoaders = new ConcurrentHashMap<>();
     // Loaders (cached or detached) that currently have registered engines; see hasActiveEngines.
     // Identity-keyed on purpose: Lombok's @Data hashCode over this class's mutable loader state
@@ -690,12 +697,17 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     @Override
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> typeToken) {
+        String listedSnippetFolder = snippetFolderListedBy(typeToken);
+        if (listedSnippetFolder != null) {
+            return snippetListAdapter(gson, typeToken, SNIPPET_PREFIX + listedSnippetFolder + "/");
+        }
+
         String snippetType = snippetFolder(typeToken.getRawType());
         if (snippetType == null) {
             return null;
         }
 
-        String snippedBase = "snippet/" + snippetType + "/";
+        String snippetBase = SNIPPET_PREFIX + snippetType + "/";
 
         return new TypeAdapter<>() {
             @Override
@@ -708,24 +720,24 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                 TypeAdapter<T> adapter = gson.getDelegateAdapter(IrisData.this, typeToken);
 
                 if (reader.peek().equals(JsonToken.STRING)) {
-                    String r = reader.nextString();
-                    if (!r.startsWith("snippet/"))
+                    String path = reader.getPath();
+                    String reference = reader.nextString();
+                    JsonElement snippet = readSnippetFile(reference, snippetBase, path);
+                    if (snippet == null) {
                         return null;
-                    if (!r.startsWith(snippedBase))
-                        r = snippedBase + r.substring(8);
-
-                    File f = new File(getDataFolder(), r + ".json");
-                    if (f.exists()) {
-                        try (JsonReader snippetReader = new JsonReader(new FileReader(f))){
-                            return adapter.read(snippetReader);
-                        } catch (Throwable e) {
-                            IrisLogging.error("Couldn't read snippet " + r + " in " + reader.getPath() + " (" + e.getMessage() + ")");
-                        }
-                    } else {
-                        IrisLogging.error("Couldn't find snippet " + r + " in " + reader.getPath());
                     }
 
-                    return null;
+                    if (snippet.isJsonArray()) {
+                        IrisLogging.error("Snippet " + reference + " in " + path + " holds several entries, which only a list can take");
+                        return null;
+                    }
+
+                    try {
+                        return adapter.fromJsonTree(snippet);
+                    } catch (Throwable e) {
+                        IrisLogging.error("Couldn't read snippet " + reference + " in " + path + " (" + e.getMessage() + ")");
+                        return null;
+                    }
                 }
 
                 String path = reader.getPath();
@@ -755,6 +767,99 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             return type.getDeclaredAnnotation(com.volmit.config.Snippet.class).value();
         }
         return null;
+    }
+
+    private static @Nullable String snippetFolderListedBy(TypeToken<?> typeToken) {
+        if (!Collection.class.isAssignableFrom(typeToken.getRawType())
+                || !(typeToken.getType() instanceof ParameterizedType listType)) {
+            return null;
+        }
+
+        Type[] elementTypes = listType.getActualTypeArguments();
+        if (elementTypes.length != 1 || !(elementTypes[0] instanceof Class<?> elementType)) {
+            return null;
+        }
+
+        return snippetFolder(elementType);
+    }
+
+    /** A snippet file holding a JSON array stands for all of its entries, so inside a list it becomes that many items. */
+    private <T> TypeAdapter<T> snippetListAdapter(Gson gson, TypeToken<T> listType, String snippetBase) {
+        TypeAdapter<T> listAdapter = gson.getDelegateAdapter(this, listType);
+
+        return new TypeAdapter<>() {
+            @Override
+            public void write(JsonWriter writer, T list) throws IOException {
+                listAdapter.write(writer, list);
+            }
+
+            @Override
+            public T read(JsonReader reader) throws IOException {
+                if (reader.peek() != JsonToken.BEGIN_ARRAY) {
+                    return listAdapter.read(reader);
+                }
+
+                String path = reader.getPath();
+                JsonArray entries = gson.getAdapter(JsonArray.class).read(reader);
+                return listAdapter.fromJsonTree(withSnippetsInlined(entries, snippetBase, path));
+            }
+        };
+    }
+
+    /** A snippet that can't be read keeps its slot as null, the way a single snippet reference loads. */
+    private JsonArray withSnippetsInlined(JsonArray entries, String snippetBase, String path) {
+        JsonArray inlined = new JsonArray();
+        for (int index = 0; index < entries.size(); index++) {
+            JsonElement entry = entries.get(index);
+            if (!isSnippetReference(entry)) {
+                inlined.add(entry);
+                continue;
+            }
+
+            JsonElement snippet = readSnippetFile(entry.getAsString(), snippetBase, path + "[" + index + "]");
+            if (snippet == null) {
+                inlined.add(JsonNull.INSTANCE);
+            } else if (snippet.isJsonArray()) {
+                entriesOfSnippet(snippet.getAsJsonArray()).forEach(inlined::add);
+            } else {
+                inlined.add(snippet);
+            }
+        }
+
+        return inlined;
+    }
+
+    /** The entries a snippet file holding a list stands for. Lenient parsing reads a trailing comma as a null entry. */
+    public static List<JsonElement> entriesOfSnippet(JsonArray snippet) {
+        return snippet.asList().stream().filter(entry -> !entry.isJsonNull()).toList();
+    }
+
+    private static boolean isSnippetReference(JsonElement entry) {
+        return entry.isJsonPrimitive()
+                && entry.getAsJsonPrimitive().isString()
+                && entry.getAsString().startsWith(SNIPPET_PREFIX);
+    }
+
+    /** The parsed snippet file, or null when the reference isn't a snippet or the file can't be read. */
+    private @Nullable JsonElement readSnippetFile(String reference, String snippetBase, String path) {
+        if (!reference.startsWith(SNIPPET_PREFIX)) {
+            return null;
+        }
+
+        String key = reference.startsWith(snippetBase) ? reference : snippetBase + reference.substring(SNIPPET_PREFIX.length());
+        File file = new File(getDataFolder(), key + ".json");
+        if (!file.exists()) {
+            IrisLogging.error("Couldn't find snippet " + key + " in " + path);
+            return null;
+        }
+
+        try (JsonReader snippetReader = new JsonReader(new FileReader(file))) {
+            snippetReader.setStrictness(Strictness.LENIENT);
+            return JsonParser.parseReader(snippetReader);
+        } catch (Throwable e) {
+            IrisLogging.error("Couldn't read snippet " + key + " in " + path + " (" + e.getMessage() + ")");
+            return null;
+        }
     }
 
     public KList<String> getPossibleSnippets(String f) {

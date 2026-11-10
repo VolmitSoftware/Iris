@@ -78,13 +78,33 @@ final class PackBiomeLayerValidator {
             snippetFiles.sort(Comparator.comparing(File::getPath));
             for (File snippetFile : snippetFiles) {
                 String snippetKey = PackValidationIo.deriveKey(decoratorSnippetsFolder, snippetFile);
+                String snippetPath = "Decorator snippet '" + snippetKey + "'";
                 JSONObject snippet = PackValidationIo.readJson(snippetFile);
                 if (snippet != null) {
-                    validateDecoratorPalette(snippet, "Decorator snippet '" + snippetKey + "'", blockingErrors);
+                    validateDecoratorPalette(snippet, snippetPath, blockingErrors);
+                    continue;
+                }
+                JSONArray snippetEntries = PackValidationIo.readJsonArray(snippetFile);
+                if (snippetEntries != null) {
+                    validateDecoratorSnippetEntries(snippetEntries, snippetPath, blockingErrors);
                 }
             }
         }
         return blockingErrors;
+    }
+
+    private static void validateDecoratorSnippetEntries(JSONArray entries, String path, List<String> blockingErrors) {
+        for (int index = 0; index < entries.length(); index++) {
+            Object entry = entries.opt(index);
+            if (JSONObject.NULL.equals(entry)) {
+                continue;
+            }
+            if (!(entry instanceof JSONObject decorator)) {
+                blockingErrors.add(path + "[" + index + "] must be an object.");
+                continue;
+            }
+            validateDecoratorPalette(decorator, path + "[" + index + "]", blockingErrors);
+        }
     }
 
     private static void validateDecoratorArray(JSONArray decorators, String path, List<String> blockingErrors) {

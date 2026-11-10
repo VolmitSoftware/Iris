@@ -194,12 +194,12 @@ public class IrisCodeWorkspace {
                 schemaEntries.add(snippetSchemaEntry(snipType));
                 File schemaFile = new File(dm.getDataFolder(), SNIPPET_SCHEMA_FOLDER + snipType + SCHEMA_SUFFIX);
                 if (immediateSchemas) {
-                    IO.writeAll(schemaFile, new SchemaBuilder(snippetClass, dm).construct().toString(4));
+                    IO.writeAll(schemaFile, new SchemaBuilder(snippetClass, dm).constructSnippet().toString(4));
                 } else {
                     IrisData snippetData = dm;
                     J.attemptAsync(() -> {
                         try {
-                            IO.writeAll(schemaFile, new SchemaBuilder(snippetClass, snippetData).construct().toString(4));
+                            IO.writeAll(schemaFile, new SchemaBuilder(snippetClass, snippetData).constructSnippet().toString(4));
                         } catch (Throwable e) {
                             IrisLogging.reportError(e);
                         }

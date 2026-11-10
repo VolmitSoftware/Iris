@@ -115,9 +115,30 @@ public class SchemaBuilder {
         this.root = root;
     }
 
-    /** The schema of a module snippet file, which holds one object of {@code type}. */
+    /** The schema of a module snippet file, which holds one object of {@code type} or a list of them. */
     public static JSONObject moduleSnippet(ObjectType type, IrisData data) {
-        return new SchemaBuilder(type.getClass(), data).moduleSchemas().fileSchema(type);
+        return singleOrList(new SchemaBuilder(type.getClass(), data).moduleSchemas().fileSchema(type));
+    }
+
+    /** The schema of an Iris snippet file, which holds one object of the root class or a list of them. */
+    public JSONObject constructSnippet() {
+        return singleOrList(construct());
+    }
+
+    /** A list referencing the snippet takes the entries of a snippet file holding a list, in place. */
+    private static JSONObject singleOrList(JSONObject entry) {
+        JSONObject schema = new JSONObject();
+        for (String key : List.of("$schema", "$id", "definitions")) {
+            if (entry.has(key)) {
+                schema.put(key, entry.remove(key));
+            }
+        }
+
+        JSONObject entryList = new JSONObject();
+        entryList.put("type", "array");
+        entryList.put("items", entry);
+        schema.put("anyOf", new JSONArray().put(entry).put(entryList));
+        return schema;
     }
 
     /**

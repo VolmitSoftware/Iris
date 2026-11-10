@@ -23,6 +23,7 @@ import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.volmlib.util.json.JSONTokener;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
@@ -43,8 +44,12 @@ import com.volmit.host.FeatureDescriptor;
 import com.volmit.host.OptionsMetadata;
 import com.volmit.resource.ResourceId;
 
+import art.arcane.iris.core.loader.IrisData;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -336,10 +341,17 @@ public final class ModuleSettingsDecoder {
         }
     }
 
-    /** Lets a {@link Snippet} type be written as a reference to a snippet file. */
+    /**
+     * Lets a {@link Snippet} type be written as a reference to a snippet file. A list of such a type takes a snippet file
+     * holding a JSON array as all of its entries, in place; a single value takes only a file holding one entry.
+     */
     private final class SnippetReferences implements TypeAdapterFactory {
         @Override
         public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
+            Snippet listedSnippet = snippetListedBy(type);
+            if (listedSnippet != null) {
+                return listAdapter(gson, type, listedSnippet);
+            }
             Snippet snippet = type.getRawType().getAnnotation(Snippet.class);
             if (snippet == null) {
                 return null;
@@ -356,10 +368,62 @@ public final class ModuleSettingsDecoder {
                     if (in.peek() != JsonToken.STRING) {
                         return delegate.read(in);
                     }
-                    return delegate.fromJson(readSnippet(snippet.value(), in.nextString()));
+                    String reference = in.nextString();
+                    JsonElement entry = readSnippet(snippet.value(), reference);
+                    if (entry.isJsonArray()) {
+                        throw new JsonParseException("Snippet " + reference + " holds several entries, which only a list can take");
+                    }
+                    return delegate.fromJsonTree(entry);
                 }
             };
         }
+
+        private <T> TypeAdapter<T> listAdapter(Gson gson, TypeToken<T> listType, Snippet snippet) {
+            TypeAdapter<T> delegate = gson.getDelegateAdapter(this, listType);
+            return new TypeAdapter<T>() {
+                @Override
+                public void write(JsonWriter out, T value) throws IOException {
+                    delegate.write(out, value);
+                }
+
+                @Override
+                public T read(JsonReader in) throws IOException {
+                    if (in.peek() != JsonToken.BEGIN_ARRAY) {
+                        return delegate.read(in);
+                    }
+                    JsonArray entries = gson.getAdapter(JsonArray.class).read(in);
+                    return delegate.fromJsonTree(withSnippetsInlined(entries, snippet.value()));
+                }
+            };
+        }
+    }
+
+    private static Snippet snippetListedBy(TypeToken<?> type) {
+        if (!Collection.class.isAssignableFrom(type.getRawType()) || !(type.getType() instanceof ParameterizedType listType)) {
+            return null;
+        }
+        Type[] elementTypes = listType.getActualTypeArguments();
+        if (elementTypes.length != 1 || !(elementTypes[0] instanceof Class<?> elementType)) {
+            return null;
+        }
+        return elementType.getAnnotation(Snippet.class);
+    }
+
+    private JsonArray withSnippetsInlined(JsonArray entries, String snippetFolder) {
+        JsonArray inlined = new JsonArray();
+        for (JsonElement entry : entries) {
+            if (!entry.isJsonPrimitive() || !entry.getAsJsonPrimitive().isString()) {
+                inlined.add(entry);
+                continue;
+            }
+            JsonElement snippet = readSnippet(snippetFolder, entry.getAsString());
+            if (snippet.isJsonArray()) {
+                IrisData.entriesOfSnippet(snippet.getAsJsonArray()).forEach(inlined::add);
+            } else {
+                inlined.add(snippet);
+            }
+        }
+        return inlined;
     }
 
     /** The file name below the snippet folder: {@code snippet/<name>} and {@code snippet/<snippet folder>/<name>} name the same file. */
@@ -369,7 +433,7 @@ public final class ModuleSettingsDecoder {
         return name.startsWith(folderPrefix) ? name.substring(folderPrefix.length()) : name;
     }
 
-    private String readSnippet(String snippetFolder, String reference) {
+    private JsonElement readSnippet(String snippetFolder, String reference) {
         if (!reference.startsWith(SNIPPET_PREFIX)) {
             throw new JsonParseException("\"" + reference + "\" is neither an object nor a snippet reference; write the object,"
                     + " or snippet/<name> for the file " + SNIPPET_FOLDER + "/" + snippetFolder + "/<name>" + JSON_EXTENSION);
@@ -381,7 +445,7 @@ public final class ModuleSettingsDecoder {
                     + "; a snippet reference names a file below " + SNIPPET_FOLDER + "/" + snippetFolder + "/");
         }
         try {
-            return Files.readString(file);
+            return JsonParser.parseString(Files.readString(file));
         } catch (IOException failure) {
             throw new UncheckedIOException("Cannot read snippet " + packFolder.relativize(file), failure);
         }

@@ -76,6 +76,7 @@ public class ModuleSettingsDecoderTest {
         private BlockState block = new BlockState("minecraft:moss_block");
         private ResourceId palette = ResourceId.parse("iris:moss/default");
         private Patch patch = new Patch();
+        private List<Patch> patches = List.of();
     }
 
     @Snippet("moss-patch")
@@ -193,6 +194,38 @@ public class ModuleSettingsDecoderTest {
         Files.writeString(snippets.resolve("wide.json"), "{\"size\": 9}");
 
         assertEquals(9, moss("{\"moss\": {\"patch\": \"snippet/moss-patch/wide\"}}").patch.size);
+    }
+
+    @Test
+    public void aListTakesASnippetHoldingSeveralEntriesInPlace() throws IOException {
+        Path snippets = Files.createDirectories(packFolder.resolve("snippet/moss-patch"));
+        Files.writeString(snippets.resolve("pair.json"), "[{\"size\": 4}, {\"size\": 5},]");
+        Files.writeString(snippets.resolve("wide.json"), "{\"size\": 9}");
+
+        List<Integer> sizes = moss("{\"moss\": {\"patches\": [{\"size\": 2}, \"snippet/pair\", \"snippet/moss-patch/wide\"]}}")
+                .patches.stream().map(patch -> patch.size).toList();
+
+        assertEquals(List.of(2, 4, 5, 9), sizes);
+    }
+
+    @Test
+    public void aSingleValueReferencingASnippetHoldingSeveralEntriesIsAnError() throws IOException {
+        Path snippets = Files.createDirectories(packFolder.resolve("snippet/moss-patch"));
+        Files.writeString(snippets.resolve("pair.json"), "[{\"size\": 4}, {\"size\": 5}]");
+
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> moss("{\"moss\": {\"patch\": \"snippet/pair\"}}"));
+
+        assertTrue(failure.getMessage(), failure.getMessage().contains(
+                "Snippet snippet/pair holds several entries, which only a list can take"));
+    }
+
+    @Test
+    public void aMissingSnippetInAListIsAnErrorNamingTheFile() {
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> moss("{\"moss\": {\"patches\": [\"snippet/absent\"]}}"));
+
+        assertTrue(failure.getMessage(), failure.getMessage().contains("Snippet snippet/absent has no file snippet/moss-patch/absent.json"));
     }
 
     @Test

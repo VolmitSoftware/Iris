@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.pack;
 
+import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
@@ -43,6 +44,15 @@ public final class PackValidationIo {
             // Every folder scanned through readJson is also scanned by a readGraphJson pass
             // (validateHostFilesParse / validateStructureStartPools), which records the
             // parse failure as a blocking error. Reporting here too would duplicate it per scan.
+            return null;
+        }
+    }
+
+    /** The JSON array {@code file} holds, or null when it holds something else or cannot be read or parsed. */
+    static JSONArray readJsonArray(File file) {
+        try {
+            return new JSONArray(Files.readString(file.toPath(), StandardCharsets.UTF_8));
+        } catch (IOException | RuntimeException parseFailure) {
             return null;
         }
     }

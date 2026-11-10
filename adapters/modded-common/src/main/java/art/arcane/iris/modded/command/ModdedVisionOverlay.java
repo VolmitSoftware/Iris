@@ -58,7 +58,7 @@ public final class ModdedVisionOverlay implements GuiOverlay {
         List<GuiMarker> markers = new ArrayList<>();
         for (ServerPlayer player : level.players()) {
             Vec3 position = player.position();
-            markers.add(GuiMarker.player(player.getScoreboardName(), position.x(), position.z()));
+            markers.add(GuiMarker.player(player.getScoreboardName(), position.x(), position.z(), player.getYRot()));
         }
         return markers;
     }

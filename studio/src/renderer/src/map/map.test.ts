@@ -3,6 +3,7 @@ import { decodeTile, gridIndex } from '../bridge/tileDecoding'
 import type { MapLabel, MapTile } from '../bridge/types'
 import { countShares } from './census'
 import { bandIndexOf, HEIGHT_BANDS, heightColor } from './heightColors'
+import { arrowCorners } from './playerArrow'
 import { stylePixels, type TileStyle } from './tileStyle'
 import { coarserTile, previewsFor, renderBlocksPerPixel, screenToWorldX, visibleTiles, worldToScreenX, type Viewport } from './viewport'
 
@@ -212,5 +213,29 @@ describe('census', () => {
 
     expect(shares).toHaveLength(1)
     expect(shares[0].subject).toMatchObject({ kind: 'HEIGHT', name: '0–8 above sea' })
+  })
+})
+
+describe('player arrow', () => {
+  const tipAt = (yaw: number) => arrowCorners(yaw, 10, 7, 3)[0]
+
+  it('points the tip south, down the map, at yaw 0', () => {
+    expect(tipAt(0).x).toBeCloseTo(0)
+    expect(tipAt(0).z).toBeCloseTo(10)
+  })
+
+  it('points west at 90, north at 180 and east at 270', () => {
+    expect(tipAt(90).x).toBeCloseTo(-10)
+    expect(tipAt(90).z).toBeCloseTo(0)
+    expect(tipAt(180).z).toBeCloseTo(-10)
+    expect(tipAt(270).x).toBeCloseTo(10)
+  })
+
+  it('keeps its shape while turning', () => {
+    const [tip, right, notch, left] = arrowCorners(37, 10, 7, 3)
+
+    expect(Math.hypot(tip.x, tip.z)).toBeCloseTo(10)
+    expect(Math.hypot(right.x - left.x, right.z - left.z)).toBeCloseTo(14)
+    expect(Math.hypot(notch.x, notch.z)).toBeCloseTo(7)
   })
 })

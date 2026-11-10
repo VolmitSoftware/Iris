@@ -298,6 +298,8 @@ export interface Marker {
   worldX: number
   worldY: number
   worldZ: number
+  /** The way it faces, in Minecraft's degrees: 0 is south, 90 is west; 0 for entities. */
+  yaw: number
   health: number
   maxHealth: number
 }

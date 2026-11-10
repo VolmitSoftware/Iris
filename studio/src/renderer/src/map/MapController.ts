@@ -4,6 +4,7 @@ import { NO_LABEL, type MapLabel, type MapTile, type Marker, type PickDisplay, t
 import { countShares, type PlacedTile, type Share } from './census'
 import { bandIndexOf, HEIGHT_BANDS } from './heightColors'
 import { mapTileSource, type TileLayer } from './mapTileSource'
+import { drawPlayerArrow } from './playerArrow'
 import { drawVisibleTiles } from './tileDrawing'
 import type { Highlight, TileStyle } from './tileStyle'
 import { TileStore } from './TileStore'
@@ -58,10 +59,8 @@ const REGION_BLOCKS = 512
 const SMALLEST_GRID_GAP_PIXELS = 8
 const CHUNK_LINE = 'rgba(255, 255, 255, 0.14)'
 const REGION_LINE = 'rgba(255, 255, 255, 0.38)'
-const PLAYER_FILL = '#3574f0'
 const ENTITY_FILL = '#f75464'
 const MARKER_OUTLINE = '#ffffff'
-const PLAYER_RADIUS_PIXELS = 6
 const ENTITY_RADIUS_PIXELS = 3
 
 /**
@@ -303,34 +302,22 @@ export class MapController {
 
   private drawMarkers(): void {
     for (const entity of this.entities) {
-      this.drawMarker(entity, ENTITY_FILL, ENTITY_RADIUS_PIXELS, false)
+      this.drawEntity(entity)
     }
     for (const player of this.players) {
-      this.drawMarker(player, PLAYER_FILL, PLAYER_RADIUS_PIXELS, true)
+      drawPlayerArrow(this.context, worldToScreenX(this.view, player.worldX), worldToScreenZ(this.view, player.worldZ), player.yaw, player.label)
     }
   }
 
-  private drawMarker(marker: Marker, fill: string, radius: number, named: boolean): void {
+  private drawEntity(entity: Marker): void {
     const context = this.context
-    const x = worldToScreenX(this.view, marker.worldX)
-    const z = worldToScreenZ(this.view, marker.worldZ)
     context.beginPath()
-    context.arc(x, z, radius, 0, Math.PI * 2)
-    context.fillStyle = fill
+    context.arc(worldToScreenX(this.view, entity.worldX), worldToScreenZ(this.view, entity.worldZ), ENTITY_RADIUS_PIXELS, 0, Math.PI * 2)
+    context.fillStyle = ENTITY_FILL
     context.fill()
     context.lineWidth = 2
     context.strokeStyle = MARKER_OUTLINE
     context.stroke()
-    if (!named) {
-      return
-    }
-    context.font = '600 12px Inter, "Segoe UI", system-ui, sans-serif'
-    context.textAlign = 'center'
-    context.lineWidth = 3
-    context.strokeStyle = 'rgba(0, 0, 0, 0.7)'
-    context.strokeText(marker.label, x, z - radius - 6)
-    context.fillStyle = MARKER_OUTLINE
-    context.fillText(marker.label, x, z - radius - 6)
   }
 
   private lastReady = 0

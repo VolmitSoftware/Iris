@@ -81,7 +81,7 @@ public final class BukkitVisionOverlay implements GuiOverlay {
                 List<GuiMarker> markers = new ArrayList<>();
                 for (Player player : BukkitWorldBinding.players(engine.getWorld())) {
                     Location at = player.getLocation();
-                    markers.add(GuiMarker.player(player.getName(), at.getX(), at.getZ()));
+                    markers.add(GuiMarker.player(player.getName(), at.getX(), at.getZ(), at.getYaw()));
                 }
                 playerMarkers = List.copyOf(markers);
             } finally {

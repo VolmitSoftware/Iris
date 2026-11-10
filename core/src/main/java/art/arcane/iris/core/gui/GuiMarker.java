@@ -18,12 +18,18 @@
 
 package art.arcane.iris.core.gui;
 
-public record GuiMarker(String label, double worldX, double worldY, double worldZ, double health, double maxHealth) {
-    public static GuiMarker player(String name, double worldX, double worldZ) {
-        return new GuiMarker(name, worldX, 0, worldZ, 0, 0);
+/**
+ * @param yaw the way it faces, in Minecraft's degrees: 0 is south, 90 is west
+ */
+public record GuiMarker(String label, double worldX, double worldY, double worldZ, float yaw, double health, double maxHealth) {
+    static final float YAW_STEP_DEGREES = 5F;
+
+    /** The yaw is rounded to {@link #YAW_STEP_DEGREES}, so a turning head does not resend the player every poll. */
+    public static GuiMarker player(String name, double worldX, double worldZ, float yaw) {
+        return new GuiMarker(name, worldX, 0, worldZ, Math.round(yaw / YAW_STEP_DEGREES) * YAW_STEP_DEGREES, 0, 0);
     }
 
     public static GuiMarker entity(String label, double worldX, double worldY, double worldZ, double health, double maxHealth) {
-        return new GuiMarker(label, worldX, worldY, worldZ, health, maxHealth);
+        return new GuiMarker(label, worldX, worldY, worldZ, 0F, health, maxHealth);
     }
 }

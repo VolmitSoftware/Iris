@@ -22,7 +22,6 @@ import art.arcane.iris.engine.object.image.IrisImageMap;
 import art.arcane.iris.engine.object.image.IrisImageMapApplication;
 import art.arcane.iris.engine.object.image.IrisImageMapBinding;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
-import art.arcane.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.runtime.StudioMode;
 import art.arcane.iris.engine.object.value.IrisRange;
@@ -30,6 +29,7 @@ import art.arcane.iris.engine.object.world.IrisEnvironment;
 import art.arcane.iris.engine.object.world.IrisWorldBoundary;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.core.IrisDatapackCompiler.DimensionHeight;
@@ -205,9 +205,9 @@ public class IrisDimension extends IrisRegistrant {
     private boolean useMantle = true;
     @Desc("Prevent Leaf decay as if placed in creative mode")
     private boolean preventLeafDecay = false;
-    @ArrayType(min = 1, type = IrisShapedGeneratorStyle.class)
-    @Desc("Overlay additional noise on top of the interoplated terrain.")
-    private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
+    @ArrayType(min = 1, type = IrisBiomeGeneratorLink.class)
+    @Desc("Generators whose heights (min to max blocks) are added on top of the interpolated terrain. The generator's interpolator is not used.")
+    private KList<IrisBiomeGeneratorLink> overlayNoise = new KList<>();
     @ArrayType(type = String.class, min = 1)
     @Desc("External Modrinth, HTTP(S) or file URL datapack sources owned by this dimension. Bukkit registers their resources server-wide, but Iris excludes their structure sets and definitions from generation and locate state in vanilla worlds and Iris dimensions that do not declare the same source. Local ZIPs under Iris/datapacks/imports are discovered automatically and enabled for every Iris dimension. Editable auto-import is limited to resources supplied by configured or discovered sources. Any registered datapack structure can be placed directly through nativeStructures without conversion. Replacing native generation requires a dimension-level structure placement with nativeSuppression set to REPLACE_SOURCE; provenance alone never disables native structures.")
     private KList<String> datapackImports = new KList<>();

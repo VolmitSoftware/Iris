@@ -20,7 +20,7 @@ package art.arcane.iris.core.studio.noise;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.noise.IrisShapedGeneratorStyle;
+import art.arcane.iris.engine.object.world.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
@@ -81,13 +81,13 @@ public final class NoiseSources {
 
     // The overlay is summed the way the world adds it, with the world's seed, in blocks above the fluid.
     private static void addOverlayNoise(Engine engine, List<Entry> entries) {
-        List<IrisShapedGeneratorStyle> overlay = engine.getDimension().getOverlayNoise();
+        List<IrisBiomeGeneratorLink> overlay = engine.getDimension().getOverlayNoise();
         if (overlay.isEmpty()) {
             return;
         }
         BlockRange blocks = new BlockRange(
-                overlay.stream().mapToInt(IrisShapedGeneratorStyle::getMin).sum(),
-                overlay.stream().mapToInt(IrisShapedGeneratorStyle::getMax).sum());
+                overlay.stream().mapToInt(IrisBiomeGeneratorLink::getMin).sum(),
+                overlay.stream().mapToInt(IrisBiomeGeneratorLink::getMax).sum());
         Source source = new Source(OVERLAY_NOISE_ID, "Overlay noise", NoiseCategory.PACK_GENERATORS.label(), false, blocks);
         entries.add(new Entry(source, NoiseCategory.PACK_GENERATORS, seed -> engine.getComplex().getOverlayStream()::get));
     }

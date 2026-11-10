@@ -114,6 +114,7 @@ public class IrisPackageCompiler {
         dimension.getReachableBiomes(() -> dm).forEach((biome) -> addIfPresent(biomes, biome));
         regions.forEach(moduleResources::followSettingsOf);
         biomes.forEach((i) -> i.getGenerators().forEach((j) -> addIfPresent(generators, j.getCachedGenerator(() -> dm))));
+        dimension.getOverlayNoise().forEach((j) -> addIfPresent(generators, j.getCachedGenerator(() -> dm)));
         biomes.forEach(moduleResources::followSettingsOf);
         KList<ObjectPlacement> allPlacements = new KList<>();
         regions.forEach((r) -> allPlacements.addAll(ObjectPlacements.all(r)));

@@ -10,7 +10,7 @@ import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.noise.IrisInterpolator;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.noise.IrisShapedGeneratorStyle;
+import art.arcane.iris.engine.object.world.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.common.data.DataProvider;
@@ -180,18 +180,18 @@ public class UpperDimensionContext implements DataProvider {
                 .convertAware2D((biome, x, z) -> mappedBiome(imageMapRuntime, biome, x, z))
                 .cache2D("upperImageMappedBaseBiomeStream", engine, cacheSize);
 
-        KList<IrisShapedGeneratorStyle> overlayNoise = upperDim.getOverlayNoise();
+        long heightSeed = engine.getSeedManager().getHeight() ^ seedOffset;
+        long overlaySeed = heightSeed + IrisComplex.OVERLAY_GENERATOR_SEED;
+        KList<IrisBiomeGeneratorLink> overlayNoise = upperDim.getOverlayNoise();
         ProceduralStream<Double> overlayStream = overlayNoise.isEmpty()
                 ? ProceduralStream.ofDouble((x, z) -> 0.0D)
                 : ProceduralStream.ofDouble((x, z) -> {
             double value = 0D;
-            for (IrisShapedGeneratorStyle style : overlayNoise) {
-                value += style.get(rng, upperData, x, z);
+            for (IrisBiomeGeneratorLink link : overlayNoise) {
+                value += link.getHeight(dataProvider, x, z, overlaySeed);
             }
             return value;
         });
-
-        long heightSeed = engine.getSeedManager().getHeight() ^ seedOffset;
 
         ProceduralStream<Double> heightStream = ProceduralStream.of((x, z) -> {
             IrisBiome b = baseBiomeStream.get(x, z);

@@ -25,11 +25,11 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.image.IrisImageMapRuntime;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.noise.IrisInterpolator;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBiome;
@@ -79,6 +79,7 @@ public class IrisComplex implements DataProvider {
             IrisGenerator::getLoadKey,
             Comparator.nullsFirst(Comparator.naturalOrder())
     );
+    static final int OVERLAY_GENERATOR_SEED = 571093;
     private static final int DEEPEST_CHILD_LEVEL = 3;
     /** How many levels of children a biome can be replaced through, parent first. */
     public static final int CHILD_PICK_LEVELS = DEEPEST_CHILD_LEVEL + 1;
@@ -199,14 +200,15 @@ public class IrisComplex implements DataProvider {
             frozenGenerators[frozenIndex] = generatorGroups[frozenIndex].generators();
         }
         generatorBounds = buildGeneratorBounds(engine);
-        KList<IrisShapedGeneratorStyle> overlayNoise = engine.getDimension().getOverlayNoise();
+        KList<IrisBiomeGeneratorLink> overlayNoise = engine.getDimension().getOverlayNoise();
+        long overlaySeed = engine.getSeedManager().getHeight() + OVERLAY_GENERATOR_SEED;
         overlayStream = overlayNoise.isEmpty()
                 ? ProceduralStream.ofDouble((x, z) -> 0.0D)
                 : ProceduralStream.ofDouble((x, z) -> {
             double value = 0D;
 
-            for (IrisShapedGeneratorStyle style : overlayNoise) {
-                value += style.get(rng, getData(), x, z);
+            for (IrisBiomeGeneratorLink link : overlayNoise) {
+                value += link.getHeight(this, x, z, overlaySeed);
             }
 
             return value;

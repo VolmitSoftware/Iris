@@ -741,7 +741,7 @@
     "iris.director.commandstudio.param.dimension_pack_import_vanilla_content_into": "El pack de dimensión en el que se importará el contenido vanilla",
     "iris.director.commandstudio.param.how_many_variants_capture_per_tree_object_feature": "Número de variantes que se capturarán por cada función de árbol u objeto",
     "iris.director.commandstudio.director.open_editor_dimension": "Abrir VSCode/Zed para una dimensión",
-    "iris.director.commandstudio.param.dimension_open_editor": "La dimensión para la que se abrirá VSCode/Zed",
+    "iris.director.commandstudio.param.dimension_open_editor": "La dimensión para la que se abrirá VSCode/Zed (por defecto, la de Studio abierto; si no, el tipo de mundo predeterminado)",
     "iris.director.commandstudio.director.close_open_studio_project": "Cerrar un proyecto de Studio abierto",
     "iris.director.commandstudio.director.toggle_your_studio_debug_scoreboard": "Mostrar u ocultar tu marcador de depuración de Studio",
     "iris.director.commandstudio.director.create_new_studio_project": "Crear un proyecto de Studio nuevo",

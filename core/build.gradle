@@ -265,9 +265,7 @@ if (runningOnlyTestTasks) {
 // the reference graph over the shipped jar and fails on any dangling reference, so an exclude that stops being dead is a
 // build failure rather than a runtime crash.
 List<String> irisPackagesLeftOut = [
-    'art/arcane/iris/core/report/**',
-    'art/arcane/iris/util/common/inventorygui/**',
-    'art/arcane/iris/util/common/board/**'
+    'art/arcane/iris/core/report/**'
 ]
 
 List<String> irisClassesLeftOut = [
@@ -280,7 +278,6 @@ List<String> irisClassesLeftOut = [
     'art/arcane/iris/engine/object/placement/IPostBlockAccess',
     'art/arcane/iris/engine/object/entity/IrisPotionEffect',
     'art/arcane/iris/engine/platform/DummyChunkGenerator',
-    'art/arcane/iris/util/common/math/VectorMath',
     'art/arcane/iris/util/common/parallel/GridLock',
     'art/arcane/iris/util/common/reflect/W',
     'art/arcane/iris/util/slimjar/BuildConstants',

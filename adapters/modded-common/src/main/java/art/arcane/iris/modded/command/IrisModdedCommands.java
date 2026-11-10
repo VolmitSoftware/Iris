@@ -294,20 +294,7 @@ public final class IrisModdedCommands {
                     && !irisGenerator.dimensionKey().contains(filter)) {
                 continue;
             }
-            Engine engine = irisGenerator.engineIfBound();
-            if (engine == null) {
-                lines.add(irisIdentity + ": pack=" + irisGenerator.dimensionKey()
-                        + " world=" + dimensionId + " (engine not started yet)");
-                continue;
-            }
-            String featureStatus = irisGenerator.importedFeaturesStatus();
-            lines.add(irisIdentity + ": pack=" + engine.getDimension().getLoadKey()
-                    + " world=" + dimensionId
-                    + (showSeed ? " seed=" + level.getSeed() : "")
-                    + " height=" + engine.getMinHeight() + ".." + engine.getMaxHeight()
-                    + " generated=" + engine.getGenerated()
-                    + (featureStatus == null ? "" : " importedFeatures=" + featureStatus)
-                    + " data=" + engine.getData().getDataFolder().getName());
+            lines.add(worldRow(dimensionId, irisGenerator.dimensionKey(), irisGenerator.engineIfBound(), showSeed, irisGenerator.importedFeaturesStatus()));
         }
         ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_LOADED_DIMENSIONS_IRIS, MessageArgument.untrusted("total", total), MessageArgument.untrusted("iris", iris)));
         if (lines.isEmpty()) {
@@ -324,6 +311,26 @@ public final class IrisModdedCommands {
         return 1;
     }
 
+    record WorldRow(String dimensionId, String packKey, long seed, int minHeight, int maxHeight, int generated, String dataName) {
+        String format(boolean showSeed, String featureStatus) {
+            return dimensionId + ": pack=" + packKey
+                    + (showSeed ? " seed=" + seed : "")
+                    + " height=" + minHeight + ".." + maxHeight
+                    + " generated=" + generated
+                    + (featureStatus == null ? "" : " importedFeatures=" + featureStatus)
+                    + " data=" + dataName;
+        }
+    }
+
+    static String worldRow(String dimensionId, String dimensionKey, Engine engine, boolean showSeed, String featureStatus) {
+        if (engine == null) {
+            return dimensionId + ": pack=" + dimensionKey + " (engine not started yet)";
+        }
+        return new WorldRow(dimensionId, engine.getDimension().getLoadKey(), engine.getWorld().getRawWorldSeed(),
+                engine.getMinHeight(), engine.getMaxHeight(), engine.getEngineData().getStatistics().getChunksGenerated(),
+                engine.getData().getDataFolder().getName()).format(showSeed, featureStatus);
+    }
+
     static int seed(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
         Engine engine = engineFor(level);
@@ -331,7 +338,7 @@ public final class IrisModdedCommands {
             fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_14));
             return 0;
         }
-        ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_WORLD_SEED, MessageArgument.untrusted("value", level.getSeed())));
+        ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_WORLD_SEED, MessageArgument.untrusted("value", engine.getWorld().getRawWorldSeed())));
         ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_ENGINE_SEED_MIXED, MessageArgument.untrusted("value", engine.getSeedManager().getSeed()), MessageArgument.untrusted("value2", engine.getSeedManager().getFullMixedSeed())));
         return 1;
     }

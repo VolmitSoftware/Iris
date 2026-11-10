@@ -57,6 +57,7 @@ public final class BiomeLayers {
     private final ModuleLog log;
     private final Map<PaletteLayer, ResolvedLayer> resolved = new ConcurrentHashMap<>();
     private final Map<LayersSettings, AtomicCache<KList<LayerNoise>>> surfaceHeights = new ConcurrentHashMap<>();
+    private final Map<CaveCeilingLayersSettings, AtomicCache<KList<LayerNoise>>> ceilingHeights = new ConcurrentHashMap<>();
     private final Map<SeaLayersSettings, AtomicCache<KList<LayerNoise>>> seaHeights = new ConcurrentHashMap<>();
     private final Map<ResourceId, LayeredBiome> biomes = new ConcurrentHashMap<>();
 
@@ -147,10 +148,8 @@ public final class BiomeLayers {
             return blocks;
         }
 
-        KList<LayerNoise> heightNoises = surfaceHeightNoises(surfaceSettings(biome), random);
-        // Ceiling layers reuse the surface-layer height noise, so entries beyond the surface layers have none; skip them.
-        int usableLayers = Math.min(ceilingLayers.size(), heightNoises.size());
-        for (int i = 0; i < usableLayers; i++) {
+        KList<LayerNoise> heightNoises = ceilingHeightNoises(biome.ceilingLayers(), random);
+        for (int i = 0; i < ceilingLayers.size(); i++) {
             ResolvedLayer layer = resolve(ceilingLayers.get(i));
             double depth = layerThickness(layer, heightNoises.get(i), wx, wz);
             if (depth <= 0) {
@@ -203,10 +202,8 @@ public final class BiomeLayers {
         return biome.seaLayers() == null ? List.of() : biome.seaLayers().layers();
     }
 
-    /** The biome's cave ceiling layers that place blocks: those with a surface layer at their place to borrow its thickness from. */
     public List<PaletteLayer> ceilingLayers(LayeredBiome biome) {
-        List<PaletteLayer> declared = biome.ceilingLayers() == null ? List.of() : biome.ceilingLayers().layers();
-        return declared.subList(0, Math.min(declared.size(), surfaceLayers(biome).size()));
+        return biome.ceilingLayers() == null ? List.of() : biome.ceilingLayers().layers();
     }
 
     /**
@@ -231,7 +228,7 @@ public final class BiomeLayers {
     /** Cave ceiling layer {@code index}'s block {@code depth} blocks below the ceiling, as {@link #generateCeilingLayers} picks it. */
     public BlockState ceilingLayerBlock(LayeredBiome biome, int index, int depth, double wx, double wz, RNG random) {
         ResolvedLayer layer = resolve(ceilingLayers(biome).get(index));
-        double thickness = layerThickness(layer, surfaceHeightNoises(surfaceSettings(biome), random).get(index), wx, wz);
+        double thickness = layerThickness(layer, ceilingHeightNoises(biome.ceilingLayers(), random).get(index), wx, wz);
         return blockAtDepth(layer, index, depth, thickness, wx, wz, random);
     }
 
@@ -338,6 +335,11 @@ public final class BiomeLayers {
 
     private KList<LayerNoise> surfaceHeightNoises(LayersSettings settings, RNG rng) {
         AtomicCache<KList<LayerNoise>> cache = surfaceHeights.computeIfAbsent(settings, declared -> new AtomicCache<>());
+        return heightNoises(cache, settings.layers(), SURFACE_HEIGHT_SEED, rng);
+    }
+
+    private KList<LayerNoise> ceilingHeightNoises(CaveCeilingLayersSettings settings, RNG rng) {
+        AtomicCache<KList<LayerNoise>> cache = ceilingHeights.computeIfAbsent(settings, declared -> new AtomicCache<>());
         return heightNoises(cache, settings.layers(), SURFACE_HEIGHT_SEED, rng);
     }
 

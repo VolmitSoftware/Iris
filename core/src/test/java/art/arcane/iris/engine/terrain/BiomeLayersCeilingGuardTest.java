@@ -50,7 +50,7 @@ public class BiomeLayersCeilingGuardTest {
         KList<BlockState> result = layersOf(data()).generateCeilingLayers(
                 biome, PaletteExplosion.NONE, 0, 0, new RNG(1), 8);
 
-        assertTrue("extra ceiling layers are skipped, not crashed on", result.isEmpty());
+        assertTrue("zeroed palettes with zero heights produce no blocks", result.isEmpty());
     }
 
     @Test

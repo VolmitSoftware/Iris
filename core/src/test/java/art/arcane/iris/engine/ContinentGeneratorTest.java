@@ -6,6 +6,7 @@ import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
 
@@ -16,6 +17,7 @@ import static org.mockito.Mockito.mock;
 public class ContinentGeneratorTest {
     private static final long WORLD_SEED = 7L;
     private static final double CONTINENT_ZOOM = 4D;
+    private static final double FRACTURE_MULTIPLIER = 3D;
     private static final double CHILD_SCALE = 3D;
     private static final int CHILD_SIGNATURE = 5;
     private static final int CHILDREN_SEED_SALT = 2137;
@@ -24,19 +26,32 @@ public class ContinentGeneratorTest {
     private final IrisData packData = mock(IrisData.class);
 
     @Test
-    public void continentMapIsTheUnscaledNoiseShrunkByTheContinentZoom() {
-        IrisDimension dimension = dimensionWithContinentZoom();
+    public void continentMapIsTheUnscaledNoiseSampledAtZoomedOutBlocks() {
+        IrisDimension dimension = dimensionWithContinentStyle(new IrisGeneratorStyle(NoiseStyle.SIMPLEX));
         CNG unscaled = dimension.getContinentalStyle()
                 .createNoCache(ContinentGenerator.deriveContinentSeed(new RNG(WORLD_SEED)), packData);
 
-        CNG continent = ContinentGenerator.create(dimension, new RNG(WORLD_SEED), packData);
+        ProceduralStream<Double> continent = ContinentGenerator.create(dimension, new RNG(WORLD_SEED), packData);
 
         assertArrayEquals(sample(unscaled, 1D / CONTINENT_ZOOM), sample(continent, 1D), 0D);
     }
 
     @Test
+    public void fracturesOfTheContinentMapScaleWithTheContinentZoom() {
+        IrisGeneratorStyle fractured = new IrisGeneratorStyle(NoiseStyle.SIMPLEX)
+                .setFracture(new IrisGeneratorStyle(NoiseStyle.SIMPLEX).setMultiplier(FRACTURE_MULTIPLIER));
+        IrisDimension zoomed = dimensionWithContinentStyle(fractured);
+        IrisDimension unzoomed = dimensionWithContinentStyle(fractured).setContinentZoom(1D);
+
+        ProceduralStream<Double> zoomedContinent = ContinentGenerator.create(zoomed, new RNG(WORLD_SEED), packData);
+        ProceduralStream<Double> unzoomedContinent = ContinentGenerator.create(unzoomed, new RNG(WORLD_SEED), packData);
+
+        assertArrayEquals(sample(unzoomedContinent, 1D / CONTINENT_ZOOM), sample(zoomedContinent, 1D), 0D);
+    }
+
+    @Test
     public void rebuildingTheContinentMapZoomsItOnlyOnce() {
-        IrisDimension dimension = dimensionWithContinentZoom();
+        IrisDimension dimension = dimensionWithContinentStyle(new IrisGeneratorStyle(NoiseStyle.SIMPLEX));
         double[] first = sample(ContinentGenerator.create(dimension, new RNG(WORLD_SEED), packData), 1D);
 
         double[] rebuilt = sample(ContinentGenerator.create(dimension, new RNG(WORLD_SEED), packData), 1D);
@@ -46,7 +61,7 @@ public class ContinentGeneratorTest {
 
     @Test
     public void buildingTheContinentMapLeavesTheSharedStyleGeneratorUnscaled() {
-        IrisDimension dimension = dimensionWithContinentZoom();
+        IrisDimension dimension = dimensionWithContinentStyle(new IrisGeneratorStyle(NoiseStyle.SIMPLEX));
         RNG continentSeed = ContinentGenerator.deriveContinentSeed(new RNG(WORLD_SEED));
         double[] before = sample(dimension.getContinentalStyle().create(continentSeed, packData), 1D);
 
@@ -86,9 +101,9 @@ public class ContinentGeneratorTest {
         return biome;
     }
 
-    private static IrisDimension dimensionWithContinentZoom() {
+    private static IrisDimension dimensionWithContinentStyle(IrisGeneratorStyle continentalStyle) {
         return new IrisDimension()
-                .setContinentalStyle(new IrisGeneratorStyle(NoiseStyle.SIMPLEX))
+                .setContinentalStyle(continentalStyle)
                 .setContinentZoom(CONTINENT_ZOOM);
     }
 
@@ -96,6 +111,14 @@ public class ContinentGeneratorTest {
         double[] samples = new double[SAMPLE_BLOCKS.length];
         for (int i = 0; i < SAMPLE_BLOCKS.length; i++) {
             samples[i] = generator.noise(SAMPLE_BLOCKS[i][0] * blockScale, SAMPLE_BLOCKS[i][1] * blockScale);
+        }
+        return samples;
+    }
+
+    private static double[] sample(ProceduralStream<Double> stream, double blockScale) {
+        double[] samples = new double[SAMPLE_BLOCKS.length];
+        for (int i = 0; i < SAMPLE_BLOCKS.length; i++) {
+            samples[i] = stream.get(SAMPLE_BLOCKS[i][0] * blockScale, SAMPLE_BLOCKS[i][1] * blockScale);
         }
         return samples;
     }

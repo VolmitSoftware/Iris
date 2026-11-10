@@ -2,7 +2,7 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.math.RNG;
 
 public final class ContinentGenerator {
@@ -11,16 +11,14 @@ public final class ContinentGenerator {
     private ContinentGenerator() {
     }
 
-    public static CNG create(IrisDimension dimension, RNG parentSeedSource, IrisData packData) {
+    public static ProceduralStream<Double> create(IrisDimension dimension, RNG parentSeedSource, IrisData packData) {
         return dimension.getContinentalStyle()
-                .createScaledGenerator(deriveContinentSeed(parentSeedSource), packData, inverseContinentZoom(dimension));
+                .createNoCache(deriveContinentSeed(parentSeedSource), packData)
+                .stream()
+                .zoom(dimension.getContinentZoom());
     }
 
     static RNG deriveContinentSeed(RNG parentSeedSource) {
         return parentSeedSource.nextParallelRNG(CONTINENT_SEED_SALT);
-    }
-
-    private static double inverseContinentZoom(IrisDimension dimension) {
-        return 1D / dimension.getContinentZoom();
     }
 }

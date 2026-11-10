@@ -313,6 +313,8 @@ public class IrisCreator {
                         .thenCompose(Function.identity())
                         .get(WORLD_CREATE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 if (!studio && !benchmark) {
+                    World createdWorld = world;
+                    J.sfut(() -> createdWorld.save()).get(WORLD_CREATE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                     awaitInitialSpawnPreparation(access, name);
                 }
             } catch (Throwable e) {

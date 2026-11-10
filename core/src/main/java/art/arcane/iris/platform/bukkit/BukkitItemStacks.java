@@ -96,7 +96,12 @@ public final class BukkitItemStacks {
             stack.setAmount(drop.amount());
             return stack;
         }
-        return new ItemStack(BukkitBlockResolution.getMaterial(drop.item().toString()), drop.amount());
+        Material material = Material.matchMaterial(drop.item().toString());
+        if (material == null) {
+            IrisLogging.warnOnce("loot:material:" + drop.item(), "Unknown Material: %s", drop.item());
+            return null;
+        }
+        return new ItemStack(material, drop.amount());
     }
 
     private static KMap<String, Object> customNbtOf(ItemDrop drop) {

@@ -48,6 +48,7 @@ import java.util.stream.Stream;
 
 public class CustomBiomeSource extends BiomeSource {
     private static final int NOISE_BIOME_CACHE_MAX = 262144;
+    private static final int NOISE_BIOME_CACHE_CHECK_Y_MASK = 63;
     private static final int STRONGHOLD_RING_SEARCH_Y = 0;
     private static final int STRONGHOLD_RING_SEARCH_RADIUS = 112;
     private static final int STRONGHOLD_RING_SEARCH_QUART_STEP = 4;
@@ -452,7 +453,7 @@ public class CustomBiomeSource extends BiomeSource {
             return existingHolder;
         }
 
-        if (noiseBiomeCache.size() > NOISE_BIOME_CACHE_MAX) {
+        if ((y & NOISE_BIOME_CACHE_CHECK_Y_MASK) == 0 && noiseBiomeCache.size() > NOISE_BIOME_CACHE_MAX) {
             noiseBiomeCache.clear();
         }
 

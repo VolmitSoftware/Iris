@@ -278,16 +278,6 @@ final class ModdedNativeStructureStage {
     }
 
     void placeVanillaStructures(WorldGenLevel world, ChunkAccess chunk, StructureManager structureManager) {
-        if (!structureManager.shouldGenerateStructures()) {
-            ChunkPos disabledChunk = chunk.getPos();
-            throw new IllegalStateException("Iris cannot generate native structures in chunk "
-                    + disabledChunk.x() + "," + disabledChunk.z()
-                    + " because generate-structures=false disables them outside the pack. That flag is fixed when "
-                    + "the world is created (server.properties generate-structures, or the Generate Structures "
-                    + "toggle in singleplayer), so it cannot be changed for this world: create a new world with "
-                    + "structures enabled, then deny families through importedStructures.disabled or complete keys "
-                    + "through importedStructures.disabledExact");
-        }
         ChunkPos chunkPos = chunk.getPos();
         SectionPos sectionPos = SectionPos.of(chunkPos, world.getMinSectionY());
         BlockPos origin = sectionPos.origin();

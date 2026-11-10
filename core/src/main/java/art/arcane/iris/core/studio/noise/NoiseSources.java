@@ -42,6 +42,7 @@ import java.util.NoSuchElementException;
  */
 public final class NoiseSources {
     static final String OVERLAY_NOISE_ID = "world:overlay";
+    static final String TERRAIN_HEIGHT_ID = "world:height";
     // Generators mix their seed the way the Swing explorer did, so a seed shows the same noise in both.
     private static final long GENERATOR_SEED_SALT = 3245L;
 
@@ -54,6 +55,7 @@ public final class NoiseSources {
     public static NoiseSources of(Engine engine) {
         List<Entry> entries = new ArrayList<>();
         addOverlayNoise(engine, entries);
+        addTerrainHeight(engine, entries);
         addPackGenerators(engine.getData(), entries);
         addPackExpressions(engine, entries);
         addStyles(entries);
@@ -91,6 +93,15 @@ public final class NoiseSources {
                 overlay.stream().mapToInt(IrisBiomeGeneratorLink::getMax).sum());
         Source source = new Source(OVERLAY_NOISE_ID, "Overlay noise", NoiseCategory.PACK_GENERATORS.label(), false, blocks);
         entries.add(new Entry(source, NoiseCategory.PACK_GENERATORS, seed -> engine.getComplex().getOverlayStream()::get));
+    }
+
+    // The terrain the world generates, in blocks above the fluid, so the height colours and the water line match the world.
+    private static void addTerrainHeight(Engine engine, List<Entry> entries) {
+        double fluidHeight = engine.getComplex().getFluidHeight();
+        BlockRange blocks = new BlockRange(-fluidHeight, engine.getHeight() - fluidHeight);
+        Source source = new Source(TERRAIN_HEIGHT_ID, "Terrain height", NoiseCategory.PACK_GENERATORS.label(), false, blocks);
+        entries.add(new Entry(source, NoiseCategory.PACK_GENERATORS,
+                seed -> (x, z) -> engine.getComplex().getHeightStream().getDouble(x, z) - fluidHeight));
     }
 
     private static void addPackGenerators(IrisData data, List<Entry> entries) {

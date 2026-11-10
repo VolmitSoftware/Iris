@@ -27,13 +27,19 @@ interface ViewListProps {
   onSelect(view: string): void
   /** Receives the element the shown view fills with its own lists, under the views. */
   slotRef(element: HTMLElement | null): void
+  /** Whether the island lies on top of the map, as in v3e, instead of taking a column of its own. */
+  floating: boolean
 }
 
+const IN_COLUMN = 'bg-card'
+const ON_THE_MAP =
+  'absolute top-3.5 left-3.5 z-10 max-h-[calc(100%-1.75rem)] border border-overlay-border bg-card/90 shadow-lg backdrop-blur-md'
+
 /** The left island: the views the server offers in their groups, then the shown view's own lists. */
-export function ViewList({ views, current, onSelect, slotRef }: ViewListProps): React.JSX.Element {
+export function ViewList({ views, current, onSelect, slotRef, floating }: ViewListProps): React.JSX.Element {
   const groups = [...new Set(views.map((view) => view.groupLabel))]
   return (
-    <div className="flex w-60 shrink-0 flex-col overflow-hidden rounded-lg bg-card">
+    <div className={cn('flex w-60 shrink-0 flex-col overflow-hidden rounded-lg', floating ? ON_THE_MAP : IN_COLUMN)}>
       <nav className="flex shrink-0 flex-col gap-2 overflow-y-auto p-1.5">
         {groups.map((group) => (
           <section key={group}>

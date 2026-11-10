@@ -228,8 +228,8 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         onDisconnect={onDisconnect}
       />
       <SidebarSlot.Provider value={sidebarSlot}>
-      <div className="flex min-h-0 flex-1 gap-1.5 p-1.5">
-        <ViewList views={views} current={viewId} onSelect={selectView} slotRef={setSidebarSlot} />
+      <div className="relative flex min-h-0 flex-1 gap-1.5 p-1.5">
+        <ViewList views={views} current={viewId} onSelect={selectView} slotRef={setSidebarSlot} floating={showsMap} />
         {viewId === 'regions' && regions.length > 1 && (
           <SidebarPanel className="flex-1 overflow-y-auto p-1.5">
             <RegionPreviewList regions={regions} current={layer.preview} onSelect={selectPreview} />

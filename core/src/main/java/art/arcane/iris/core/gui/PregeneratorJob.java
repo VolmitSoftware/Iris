@@ -224,6 +224,14 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         return instance.get();
     }
 
+    public static void reportChunkGenerationFailure(String worldIdentity, int chunkX, int chunkZ, Throwable failure) {
+        PregeneratorJob inst = instance.get();
+        if (inst == null || !inst.targetsWorldIdentity(worldIdentity)) {
+            return;
+        }
+        inst.pregenerator.onChunkGenerationFailed(chunkX, chunkZ, failure);
+    }
+
     public static boolean pauseResume() {
         PregeneratorJob inst = instance.get();
         if (inst == null) {

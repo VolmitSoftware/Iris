@@ -836,6 +836,15 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void generateNoise(@NotNull WorldInfo world, @NotNull Random random, int x, int z, @NotNull ChunkGenerator.ChunkData d) {
+        try {
+            generateNoiseChunk(world, random, x, z, d);
+        } catch (Throwable e) {
+            PregeneratorJob.reportChunkGenerationFailure(this.world.identity(), x, z, e);
+            throw e;
+        }
+    }
+
+    private void generateNoiseChunk(WorldInfo world, Random random, int x, int z, ChunkGenerator.ChunkData d) {
         if (closing) {
             throw new IllegalStateException("Iris chunk generation was rejected while the generator is closing.");
         }

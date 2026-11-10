@@ -46,7 +46,6 @@ import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.InvalidConfigurationException;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -92,6 +91,9 @@ public class ServerConfigurator {
     private static final String COMPILER_INPUT_FINGERPRINT_CACHE = "datapack-compiler-input-fingerprint";
     static final String POST_COMPILE_RESTART_WARNING = "Iris installed updated datapack registry entries; "
             + "restart the server before creating worlds or opening Studios.";
+    private static final Path SPIGOT_CONFIGURATION = Path.of("spigot.yml");
+    private static final Path PAPER_GLOBAL_CONFIGURATION = Path.of("config", "paper-global.yml");
+    private static final String TIMEOUT_RECOVERY_FILE = "server-timeouts.json";
     private static final int FINGERPRINT_BUFFER_BYTES = 64 * 1024;
     private static volatile boolean loadedDatapackRuntimeReady;
     private static volatile String loadedDatapackCompilerInputFingerprint = "";
@@ -108,11 +110,27 @@ public class ServerConfigurator {
         }
         IrisSettings.IrisSettingsAutoconfiguration s = IrisSettings.get().getAutoConfiguration();
         if (s.isConfigureSpigotTimeoutTime()) {
-            J.attempt(ServerConfigurator::increaseKeepAliveSpigot);
+            Throwable failure = J.attemptCatch(ServerConfigurator::increaseKeepAliveSpigot);
+            if (failure != null) {
+                IrisLogging.reportError("Unable to persist the Spigot timeout setting.", failure);
+            }
+        } else {
+            Throwable failure = J.attemptCatch(() -> timeoutConfiguration().restore(ServerTimeoutConfiguration.SPIGOT_TIMEOUT_KEY));
+            if (failure != null) {
+                IrisLogging.reportError("Unable to restore the Spigot timeout setting.", failure);
+            }
         }
 
         if (s.isConfigurePaperWatchdogDelay()) {
-            J.attempt(ServerConfigurator::increasePaperWatchdog);
+            Throwable failure = J.attemptCatch(ServerConfigurator::increasePaperWatchdog);
+            if (failure != null) {
+                IrisLogging.reportError("Unable to persist the Paper watchdog setting.", failure);
+            }
+        } else {
+            Throwable failure = J.attemptCatch(() -> timeoutConfiguration().restore(ServerTimeoutConfiguration.PAPER_WATCHDOG_KEY));
+            if (failure != null) {
+                IrisLogging.reportError("Unable to restore the Paper watchdog setting.", failure);
+            }
         }
 
         if (DefaultPackBootstrapProvisioner.wasProvisionedThisStartup()) {
@@ -240,33 +258,81 @@ public class ServerConfigurator {
     }
 
     private static void increaseKeepAliveSpigot() throws IOException, InvalidConfigurationException {
-        File spigotConfig = new File("spigot.yml");
-        FileConfiguration f = new YamlConfiguration();
-        f.load(spigotConfig);
-        long tt = f.getLong("settings.timeout-time");
+        increaseKeepAliveSpigot(SPIGOT_CONFIGURATION, timeoutConfiguration());
+    }
 
-        long spigotTimeout = TimeUnit.MINUTES.toSeconds(5);
-
-        if (tt < spigotTimeout) {
-            IrisLogging.warn("Updating spigot.yml timeout-time: " + tt + " -> " + spigotTimeout + " (5 minutes)");
-            IrisLogging.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
-            f.set("settings.timeout-time", spigotTimeout);
-            f.save(spigotConfig);
+    static void increaseKeepAliveSpigot(Path file, ServerTimeoutConfiguration timeouts) throws IOException, InvalidConfigurationException {
+        long previous = loadConfiguration(file).getLong(ServerTimeoutConfiguration.SPIGOT_TIMEOUT_KEY);
+        long minimum = TimeUnit.MINUTES.toSeconds(5);
+        if (previous >= minimum) {
+            return;
         }
+        timeouts.raise(file, ServerTimeoutConfiguration.SPIGOT_TIMEOUT_KEY, minimum);
+        IrisLogging.warn("Updated " + file + " settings.timeout-time: " + previous + " -> " + minimum
+                + " seconds. Takes effect after a server restart.");
+        IrisLogging.warn("Disable autoConfiguration.configureSpigotTimeoutTime in iris.json to restore the original value.");
     }
 
     private static void increasePaperWatchdog() throws IOException, InvalidConfigurationException {
-        File spigotConfig = new File("config/paper-global.yml");
-        FileConfiguration f = new YamlConfiguration();
-        f.load(spigotConfig);
-        long tt = f.getLong("watchdog.early-warning-delay");
+        increasePaperWatchdog(PAPER_GLOBAL_CONFIGURATION, timeoutConfiguration());
+    }
 
-        long watchdog = TimeUnit.MINUTES.toMillis(3);
-        if (tt < watchdog) {
-            IrisLogging.warn("Updating paper.yml watchdog early-warning-delay: " + tt + " -> " + watchdog + " (3 minutes)");
-            IrisLogging.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
-            f.set("watchdog.early-warning-delay", watchdog);
-            f.save(spigotConfig);
+    static void increasePaperWatchdog(Path file, ServerTimeoutConfiguration timeouts) throws IOException, InvalidConfigurationException {
+        long previous = loadConfiguration(file).getLong(ServerTimeoutConfiguration.PAPER_WATCHDOG_KEY);
+        long minimum = TimeUnit.MINUTES.toMillis(3);
+        if (previous >= minimum) {
+            return;
+        }
+        timeouts.raise(file, ServerTimeoutConfiguration.PAPER_WATCHDOG_KEY, minimum);
+        IrisLogging.warn("Updated " + file + " watchdog.early-warning-delay: " + previous + " -> " + minimum
+                + " milliseconds. Takes effect after a server restart.");
+        IrisLogging.warn("Disable autoConfiguration.configurePaperWatchdogDelay in iris.json to restore the original value.");
+    }
+
+    private static YamlConfiguration loadConfiguration(Path file) throws IOException, InvalidConfigurationException {
+        YamlConfiguration configuration = new YamlConfiguration();
+        configuration.load(file.toFile());
+        return configuration;
+    }
+
+    private static ServerTimeoutConfiguration timeoutConfiguration() {
+        return new ServerTimeoutConfiguration(IrisPlatforms.get().dataFolder().toPath().resolve(TIMEOUT_RECOVERY_FILE), serverYaml());
+    }
+
+    static ServerTimeoutConfiguration.ServerYaml serverYaml() {
+        return file -> {
+            try {
+                return new BukkitYamlDocument(loadConfiguration(file));
+            } catch (InvalidConfigurationException exception) {
+                throw new IOException("Invalid server configuration: " + file, exception);
+            }
+        };
+    }
+
+    private record BukkitYamlDocument(YamlConfiguration configuration) implements ServerTimeoutConfiguration.Document {
+        @Override
+        public boolean isSet(String key) {
+            return configuration.isSet(key);
+        }
+
+        @Override
+        public boolean isInteger(String key) {
+            return configuration.isInt(key) || configuration.isLong(key);
+        }
+
+        @Override
+        public long getLong(String key) {
+            return configuration.getLong(key);
+        }
+
+        @Override
+        public void set(String key, Long value) {
+            configuration.set(key, value);
+        }
+
+        @Override
+        public String saveToString() {
+            return configuration.saveToString();
         }
     }
 
@@ -852,7 +918,7 @@ public class ServerConfigurator {
 
     private static void writeFingerprintCache(Path cacheFile, PackFingerprint fingerprint) {
         try {
-            writeFingerprintAtomic(cacheFile, fingerprint.content() + "\n" + fingerprint.metadata());
+            writeStringAtomic(cacheFile, fingerprint.content() + "\n" + fingerprint.metadata());
         } catch (IOException e) {
             IrisLogging.warn("Failed to write datapack fingerprint cache: " + e.getMessage());
         }
@@ -860,23 +926,23 @@ public class ServerConfigurator {
 
     private static void writeCompilerInputFingerprintCache(Path cacheFile, String fingerprint) {
         try {
-            writeFingerprintAtomic(cacheFile, fingerprint);
+            writeStringAtomic(cacheFile, fingerprint);
         } catch (IOException exception) {
             IrisLogging.warn("Failed to write datapack compiler-input fingerprint cache: "
                     + exception.getMessage());
         }
     }
 
-    private static void writeFingerprintAtomic(Path target, String fingerprint) throws IOException {
+    static void writeStringAtomic(Path target, String content) throws IOException {
         Path absoluteTarget = target.toAbsolutePath().normalize();
         Path parent = absoluteTarget.getParent();
         if (parent == null) {
-            throw new IOException("Datapack fingerprint target has no parent: " + absoluteTarget);
+            throw new IOException("Atomic write target has no parent: " + absoluteTarget);
         }
         Files.createDirectories(parent);
-        Path staged = Files.createTempFile(parent, ".datapack-fingerprint-", ".tmp");
+        Path staged = Files.createTempFile(parent, ".iris-write-", ".tmp");
         try {
-            Files.writeString(staged, fingerprint, StandardCharsets.UTF_8);
+            Files.writeString(staged, content, StandardCharsets.UTF_8);
             try (FileChannel channel = FileChannel.open(staged, StandardOpenOption.WRITE)) {
                 channel.force(true);
             }

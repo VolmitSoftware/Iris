@@ -38,6 +38,10 @@ import art.arcane.iris.modded.command.ModdedPregenBossBar;
 import art.arcane.iris.modded.command.ModdedPregenJob;
 import art.arcane.iris.modded.command.ModdedStudioCommands;
 import art.arcane.iris.modded.command.ModdedWandService;
+import art.arcane.iris.modded.structure.ModdedPlatformStructures;
+import art.arcane.iris.modded.toolworld.ModdedToolWorldService;
+import art.arcane.iris.core.tooling.ToolWorldsHost;
+import com.volmit.tooling.PlatformStructures;
 import art.arcane.iris.modded.service.ModdedChunkUpdateService;
 import art.arcane.iris.modded.service.ModdedEngineMaintenanceService;
 import art.arcane.iris.modded.service.ModdedEntitySpawnService;
@@ -146,6 +150,7 @@ public final class ModdedEngineBootstrap {
     }
 
     public static void levelUnloaded(ServerLevel level) {
+        ModdedToolWorldService.levelUnloaded(level);
         if (!(level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator generator)) {
             return;
         }
@@ -383,11 +388,15 @@ public final class ModdedEngineBootstrap {
                 createdServices.register(ModdedChunkUpdateService.class, new ModdedChunkUpdateService());
                 createdServices.register(ModdedEntitySpawnService.class, new ModdedEntitySpawnService());
                 createdServices.register(ModdedTreeFellerService.class, new ModdedTreeFellerService());
+                ModdedToolWorldService toolWorlds = createdServices.register(
+                        ModdedToolWorldService.class, new ModdedToolWorldService());
 
                 bindService(PreservationRegistry.class, preservation, rollback);
                 bindService(EngineEffectsProvider.class,
                         (EngineEffectsProvider) ModdedEngineEffects::new, rollback);
                 bindService(EnginePlatformHooks.class, studioHotloadService, rollback);
+                bindService(ToolWorldsHost.class, toolWorlds, rollback);
+                bindService(PlatformStructures.class, new ModdedPlatformStructures(), rollback);
                 bindService(EngineWorldManagerProvider.class,
                         (EngineWorldManagerProvider) (Engine engine) -> new ModdedWorldManager(engine), rollback);
 

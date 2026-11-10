@@ -21,6 +21,7 @@ package art.arcane.iris.modded;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.modded.toolworld.ModdedToolPainting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -120,7 +121,9 @@ public final class ModdedDimensionManager {
         return generator.commandEngine();
     }
 
-    public static Handle create(MinecraftServer server, String dimensionId, String pack, String packDimensionKey, long seed) {
+    /** Makes the runtime dimension {@code dimensionId} generate {@code pack}, with chunks that come only from {@code painting} when it is not null. */
+    public static Handle create(MinecraftServer server, String dimensionId, String pack, String packDimensionKey, long seed,
+                                ModdedToolPainting painting) {
         ModdedStartup.requirePackForWorldCreation(pack);
         ModdedServerAccess serverAccess = requireAccess();
         synchronized (LOCK) {
@@ -145,7 +148,7 @@ public final class ModdedDimensionManager {
             }
 
             try {
-                Handle handle = inject(server, serverAccess, dimensionId, key, pack, packDimensionKey, seed);
+                Handle handle = inject(server, serverAccess, dimensionId, key, pack, packDimensionKey, seed, painting);
                 HANDLES.put(dimensionId, handle);
                 ModdedIrisLog.info("Iris injected runtime dimension '{}' (pack={} dim={} seed={})", dimensionId, pack, packDimensionKey, seed);
                 return handle;
@@ -154,6 +157,10 @@ public final class ModdedDimensionManager {
                 throw new IllegalStateException("Iris runtime dimension injection failed for " + dimensionId, e);
             }
         }
+    }
+
+    public static Handle create(MinecraftServer server, String dimensionId, String pack, String packDimensionKey, long seed) {
+        return create(server, dimensionId, pack, packDimensionKey, seed, null);
     }
 
     public static Handle createPersistent(MinecraftServer server, String dimensionId, String pack, String packDimensionKey, long seed) {
@@ -558,13 +565,15 @@ public final class ModdedDimensionManager {
         }
     }
 
-    private static Handle inject(MinecraftServer server, ModdedServerAccess serverAccess, String dimensionId, ResourceKey<Level> key, String pack, String packDimensionKey, long seed) {
+    private static Handle inject(MinecraftServer server, ModdedServerAccess serverAccess, String dimensionId, ResourceKey<Level> key, String pack, String packDimensionKey, long seed,
+                                 ModdedToolPainting painting) {
         RegistryAccess registryAccess = server.registryAccess();
         Holder<DimensionType> dimensionType = resolveDimensionType(registryAccess, pack, packDimensionKey);
         Holder<Biome> plains = registryAccess.lookupOrThrow(Registries.BIOME).getOrThrow(Biomes.PLAINS);
         FixedBiomeSource biomeSource = new FixedBiomeSource(plains);
         String generatorRef = pack.equals(packDimensionKey) ? pack : pack + ":" + packDimensionKey;
         IrisModdedChunkGenerator generator = new IrisModdedChunkGenerator(biomeSource, generatorRef);
+        generator.paintWith(painting);
         generator.repoint(pack, packDimensionKey, seed);
         LevelStem stem = new LevelStem(dimensionType, generator);
 

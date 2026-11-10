@@ -21,6 +21,7 @@ package art.arcane.iris.modded;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.pack.PackValidationRegistry;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.modded.toolworld.ModdedToolPainting;
 import art.arcane.iris.engine.framework.NativeFeatureGenerationPolicy;
 import art.arcane.iris.engine.framework.GenerationSessionException;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
@@ -134,6 +135,7 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
     private volatile ModdedDimensionMetadata.ConfiguredPack configuredPack;
     private volatile ModdedDimensionMetadata.DimensionMetadata heightMetadata;
     private volatile ServerLevel boundLevel;
+    private volatile ModdedToolPainting toolPainting;
 
     public IrisModdedChunkGenerator(BiomeSource biomeSource, String dimensionKey) {
         this(biomeSource, dimensionKey, new IrisModdedBiomeSource(biomeSource));
@@ -163,6 +165,11 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
         this.defaultDimensionKey = colon >= 0 ? dimensionKey.substring(colon + 1) : dimensionKey;
         this.activePack = defaultPack;
         this.activeDimensionKey = defaultDimensionKey;
+    }
+
+    /** Makes the chunks of this generator whatever {@code painting} paints, and nothing else: no structures, features or mobs. Null gives them back to the pack. */
+    public void paintWith(ModdedToolPainting painting) {
+        this.toolPainting = painting;
     }
 
     public synchronized void repoint(String pack, String packDimensionKey, long seed) {
@@ -797,6 +804,10 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
 
     @Override
     public CompletableFuture<ChunkAccess> fillFromNoise(Blender blender, RandomState randomState, StructureManager structureManager, ChunkAccess chunk) {
+        ModdedToolPainting painting = toolPainting;
+        if (painting != null) {
+            return CompletableFuture.completedFuture(painting.paint(chunk, boundLevel()));
+        }
         Engine generationEngine = engine();
         ChunkPos pos = chunk.getPos();
         lastChunkGenAt = System.currentTimeMillis();
@@ -928,6 +939,9 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
 
     @Override
     public void applyBiomeDecoration(WorldGenLevel level, ChunkAccess chunk, StructureManager structureManager) {
+        if (toolPainting != null) {
+            return;
+        }
         Engine current = engine();
         importedFeatures.prepare(current);
         try (GenerationSessionLease lease = requireGenerationLease(current, "modded_biome_decoration");
@@ -942,6 +956,9 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
 
     @Override
     public void createStructures(RegistryAccess registryAccess, ChunkGeneratorStructureState structureState, StructureManager structureManager, ChunkAccess chunk, StructureTemplateManager templateManager, ResourceKey<Level> levelKey) {
+        if (toolPainting != null) {
+            return;
+        }
         Engine current = engine(levelKey);
         try (GenerationSessionLease lease = requireGenerationLease(current, "modded_create_structures");
              IrisContext.Scope ignored = IrisContext.open(current, lease.sessionId(), null)) {
@@ -966,6 +983,9 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
 
     @Override
     public void createReferences(WorldGenLevel level, StructureManager structureManager, ChunkAccess chunk) {
+        if (toolPainting != null) {
+            return;
+        }
         Engine current = engine(level.getLevel());
         try (GenerationSessionLease lease = requireGenerationLease(current, "modded_create_references");
              IrisContext.Scope ignored = IrisContext.open(current, lease.sessionId(), null)) {
@@ -980,6 +1000,9 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
 
     @Override
     public void spawnOriginalMobs(WorldGenRegion region) {
+        if (toolPainting != null) {
+            return;
+        }
         Registry<Biome> registry = region.registryAccess().lookupOrThrow(Registries.BIOME);
         spawnTables.initializeVanillaSpawnBiomes(registry);
         ChunkPos center = region.getCenter();

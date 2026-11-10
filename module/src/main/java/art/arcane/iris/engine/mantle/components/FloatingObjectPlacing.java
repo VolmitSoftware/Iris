@@ -58,7 +58,8 @@ import java.util.Set;
 /**
  * Places the objects of floating child biomes on and under their islands into the mantle for
  * {@link art.arcane.iris.engine.modifier.FloatingModule}. One per world. Its reach is the largest placement reach of any
- * floating object the dimension's biomes can place, at least 16 blocks.
+ * floating object the dimension's biomes can place, at least 16 blocks once any of them places objects, and none when
+ * no floating biome places objects.
  */
 public final class FloatingObjectPlacing {
     private static final int INVERTED_PICK_ATTEMPTS = 8;
@@ -77,13 +78,15 @@ public final class FloatingObjectPlacing {
     private final ObjectPool objects;
     private final FloatingPlacer placer;
     private final long mantleSeed;
+    private final int reachBlocks;
     private final ModuleLog log;
 
-    FloatingObjectPlacing(FloatingWorld world, ObjectPool objects, FloatingPlacer placer, long mantleSeed, ModuleLog log) {
+    FloatingObjectPlacing(FloatingWorld world, ObjectPool objects, FloatingPlacer placer, long mantleSeed, int reachBlocks, ModuleLog log) {
         this.world = world;
         this.objects = objects;
         this.placer = placer;
         this.mantleSeed = mantleSeed;
+        this.reachBlocks = reachBlocks;
         this.log = log;
     }
 
@@ -91,11 +94,15 @@ public final class FloatingObjectPlacing {
     public static FloatingObjectPlacing of(PackWorld world, ModuleLog log) {
         return world.state(FloatingObjectPlacing.class,
                 generating -> new FloatingObjectPlacing(FloatingWorld.of(generating), ObjectPool.of(generating),
-                        new FloatingPlacer(generating, log), generating.seed(IrisSeedPurposes.MANTLE), log));
+                        new FloatingPlacer(generating, log), generating.seed(IrisSeedPurposes.MANTLE),
+                        reach(generating.settings(), log), log));
     }
 
     /** Places what originates in the chunk of {@code context} into the mantle. */
     public void place(MantleStageContext context) {
+        if (reachBlocks == 0) {
+            return;
+        }
         int minX = context.originX();
         int minZ = context.originZ();
         BlockBox bounds = context.terrain().bounds();
@@ -390,9 +397,9 @@ public final class FloatingObjectPlacing {
 
     /** How far, in blocks along X and Z, the floating objects of the pack {@code settings} describe may write beyond their chunk. */
     public static int reach(PackSettings settings, ModuleLog log) {
-        Reach reach = new Reach(settings.resources(), biomeObjectsOf(settings), log);
-        int maxObjectExtent = MIN_REACH_BLOCKS;
+        int maxObjectExtent = 0;
         try {
+            Reach reach = new Reach(settings.resources(), biomeObjectsOf(settings), log);
             for (Entry<FloatingChildSettings> declared : settings.declared(FloatingChildSettings.class)) {
                 if (declared.level() != Level.BIOME) {
                     continue;
@@ -405,6 +412,7 @@ public final class FloatingObjectPlacing {
         } catch (Throwable e) {
             GenerationFailures.rethrowEngineFailure(e);
             log.error("Failed to work out the reach of the floating biomes' objects", e);
+            maxObjectExtent = Math.max(maxObjectExtent, MIN_REACH_BLOCKS);
         }
         return maxObjectExtent;
     }
@@ -454,8 +462,7 @@ public final class FloatingObjectPlacing {
         }
 
         int of(FloatingChildBiome child, ResourceId parent) {
-            int reach = 0;
-            reach = Math.max(reach, placementRadius(child.floatingObjects()));
+            int reach = placementRadius(child.floatingObjects());
             reach = Math.max(reach, placementRadius(child.extraObjects()));
             reach = Math.max(reach, placementRadius(child.topObjectOverrides()));
             reach = Math.max(reach, placementRadius(child.bottomObjectOverrides()));
@@ -466,12 +473,16 @@ public final class FloatingObjectPlacing {
             } catch (Throwable e) {
                 GenerationFailures.rethrowEngineFailure(e);
                 log.error("Failed to work out the reach of a floating biome's objects", e);
+                reach = Math.max(reach, MIN_REACH_BLOCKS);
             }
             return reach;
         }
 
         private int placementRadius(List<ObjectPlacement> placements) {
-            int radius = 0;
+            if (placements.isEmpty()) {
+                return 0;
+            }
+            int radius = MIN_REACH_BLOCKS;
             for (ObjectPlacement placement : placements) {
                 if (placement == null) {
                     continue;

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import type { StudioHost, ThemeChoice } from '../shared/bridge'
+import type { StoredShortcuts, StudioHost, ThemeChoice } from '../shared/bridge'
 
 const host: StudioHost = {
   listBridges: () => ipcRenderer.invoke('studio:list-bridges'),
@@ -10,7 +10,9 @@ const host: StudioHost = {
     return () => ipcRenderer.removeListener('studio:link', forward)
   },
   setTheme: (theme: ThemeChoice) => ipcRenderer.send('studio:set-theme', theme),
-  copyText: (text: string) => ipcRenderer.send('studio:copy-text', text)
+  copyText: (text: string) => ipcRenderer.send('studio:copy-text', text),
+  loadShortcuts: () => ipcRenderer.invoke('studio:load-shortcuts'),
+  saveShortcuts: (shortcuts: StoredShortcuts) => ipcRenderer.send('studio:save-shortcuts', shortcuts)
 }
 
 contextBridge.exposeInMainWorld('studio', host)

@@ -6,6 +6,9 @@ export interface BridgeConnection {
   startedMillis?: number
 }
 
+/** The keys the user rebound, by shortcut id, each a list of key chords. */
+export type StoredShortcuts = Record<string, string[]>
+
 export type ThemeChoice = 'system' | 'light' | 'dark'
 
 /** What the preload script hands the renderer. */
@@ -16,6 +19,9 @@ export interface StudioHost {
   onLink(listener: (link: string) => void): () => void
   setTheme(theme: ThemeChoice): void
   copyText(text: string): void
+  /** The rebound shortcuts from the studio settings, as the file holds them, for the caller to check. */
+  loadShortcuts(): Promise<unknown>
+  saveShortcuts(shortcuts: StoredShortcuts): void
 }
 
 const LINK_PROTOCOL = 'iris-studio:'

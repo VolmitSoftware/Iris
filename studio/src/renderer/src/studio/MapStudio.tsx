@@ -16,9 +16,11 @@ import { PatternStudio } from './PatternStudio'
 import { SavedWorldStudio } from './SavedWorldStudio'
 import { SceneStudio } from './SceneStudio'
 import { WorldStudio3D } from './WorldStudio3D'
-import { actionForKey, isTypingInto, viewForKey, type ShortcutAction } from './shortcuts'
+import { isTypingInto, shortcutRows, viewOfShortcutId, windowShortcutFor, type ShortcutAction } from './shortcuts'
+import { ShortcutSettings } from './ShortcutSettings'
 import { StatusBar } from './StatusBar'
 import { StudioToolbar } from './StudioToolbar'
+import { useBindings } from './useBindings'
 import { usePickInspection } from './usePickInspection'
 import { ViewList } from './ViewList'
 
@@ -55,6 +57,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   const [hover, setHover] = useState<MapHover | null>(null)
   const [detailed, setDetailed] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [connected, setConnected] = useState(true)
   const [preview, setPreview] = useState<string | null>(null)
@@ -175,7 +178,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
     [views, viewId, selectView, toggle, highlightUnderCursor, tell]
   )
 
-  useKeyboard(runShortcut, selectView, setDetailed, world)
+  useKeyboard(runShortcut, selectView, setDetailed, views)
 
   const teleport = useCallback(
     (point: CanvasPoint) => {
@@ -218,6 +221,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         onRefresh={() => runShortcut('refresh')}
         onResetZoom={() => runShortcut('resetZoom')}
         onHelp={() => setHelpOpen(true)}
+        onSettings={() => setSettingsOpen(true)}
         onDisconnect={onDisconnect}
       />
       <div className="flex min-h-0 flex-1">
@@ -288,6 +292,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
       </div>
       <StatusBar viewLabel={statusLabel(view.label, previewName, showsMap ? null : sceneSummary)} status={showsMap ? status : null} notice={notice} usage={usage} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} views={views} />
+      <ShortcutSettings open={settingsOpen} onOpenChange={setSettingsOpen} views={views} />
     </div>
   )
 }
@@ -463,25 +468,28 @@ function useKeyboard(
   runShortcut: (action: ShortcutAction) => void,
   selectView: (view: string) => void,
   setDetailed: (detailed: boolean) => void,
-  world: WorldInfo
+  views: ViewInfo[]
 ): void {
+  const bindings = useBindings()
   useEffect(() => {
+    const rows = shortcutRows(views)
     const down = (event: KeyboardEvent): void => {
       if (event.key === 'Shift') {
         setDetailed(true)
       }
-      if (event.ctrlKey || event.metaKey || event.altKey || isTypingInto(event.target)) {
+      if (isTypingInto(event.target)) {
         return
       }
-      const viewId = viewForKey(event.key)
-      if (viewId !== null && world.views.some((view) => view.id === viewId)) {
+      const id = windowShortcutFor(event, rows, bindings)
+      if (id === null) {
+        return
+      }
+      event.preventDefault()
+      const viewId = viewOfShortcutId(id)
+      if (viewId === null) {
+        runShortcut(id as ShortcutAction)
+      } else {
         selectView(viewId)
-        return
-      }
-      const action = actionForKey(event.key)
-      if (action !== null) {
-        event.preventDefault()
-        runShortcut(action)
       }
     }
     const up = (event: KeyboardEvent): void => {
@@ -498,5 +506,5 @@ function useKeyboard(
       window.removeEventListener('keyup', up)
       window.removeEventListener('blur', blur)
     }
-  }, [runShortcut, selectView, setDetailed, world])
+  }, [runShortcut, selectView, setDetailed, views, bindings])
 }

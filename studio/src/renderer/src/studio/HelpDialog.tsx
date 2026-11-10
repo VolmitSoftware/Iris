@@ -1,7 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Kbd } from '@/components/ui/kbd'
 import type { ViewInfo } from '../bridge/types'
-import { MOUSE_HINTS, SHORTCUTS, VIEW_KEYS } from './shortcuts'
+import { MOUSE_HINTS, keyTextOf, shortcutRows, type ShortcutGroup } from './shortcuts'
+import { useBindings } from './useBindings'
 
 interface HelpDialogProps {
   open: boolean
@@ -9,13 +10,17 @@ interface HelpDialogProps {
   views: ViewInfo[]
 }
 
-/** Every key and mouse gesture of the map. */
+const KEY_GROUPS: ShortcutGroup[] = ['Views', 'Everywhere', 'Map', 'Node editor']
+
+/** Every key and mouse gesture of the map, with the keys as they are set now. */
 export function HelpDialog({ open, onOpenChange, views }: HelpDialogProps): React.JSX.Element {
-  const viewRows = views.filter((view) => VIEW_KEYS[view.id] !== undefined).map((view) => ({ key: VIEW_KEYS[view.id], label: view.label }))
+  const bindings = useBindings()
+  const rows = shortcutRows(views)
   const groups = [
-    { title: 'Views', rows: [...viewRows, ...rowsOf('Views')] },
-    { title: 'Everywhere', rows: rowsOf('Everywhere') },
-    { title: 'Map', rows: rowsOf('Map') },
+    ...KEY_GROUPS.map((group) => ({
+      title: group,
+      rows: rows.filter((row) => row.group === group).map((row) => ({ key: keyTextOf(row.id, bindings), label: row.label })).filter((row) => row.key !== '')
+    })),
     { title: 'Mouse', rows: MOUSE_HINTS.map((hint) => ({ key: hint.gesture, label: hint.label })) }
   ]
   return (
@@ -42,8 +47,4 @@ export function HelpDialog({ open, onOpenChange, views }: HelpDialogProps): Reac
       </DialogContent>
     </Dialog>
   )
-}
-
-function rowsOf(group: 'Views' | 'Everywhere' | 'Map'): { key: string; label: string }[] {
-  return SHORTCUTS.filter((shortcut) => shortcut.group === group).map((shortcut) => ({ key: shortcut.keyText, label: shortcut.label }))
 }

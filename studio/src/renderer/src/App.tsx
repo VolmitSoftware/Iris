@@ -5,6 +5,7 @@ import type { WorldInfo } from './bridge/types'
 import { ConnectScreen } from './studio/ConnectScreen'
 import { MapStudio } from './studio/MapStudio'
 import { useTheme } from './studio/theme'
+import { shortcutStore } from './studio/useBindings'
 
 interface Session {
   client: BridgeClient
@@ -42,6 +43,10 @@ export function App(): React.JSX.Element {
     },
     [connect]
   )
+
+  useEffect(() => {
+    void shortcutStore.load()
+  }, [])
 
   useEffect(() => {
     void window.studio.initialLink().then((link) => link !== null && connectLink(link))

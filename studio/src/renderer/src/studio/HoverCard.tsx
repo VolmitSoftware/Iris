@@ -4,7 +4,7 @@ import type { MapHover, MapLabel } from '../bridge/types'
 import { hexColor } from './colors'
 import type { CanvasPoint } from './MapCanvas'
 import { PickRows, replacedParent } from './PickRows'
-import { shortcutFor } from './shortcuts'
+import { useKeyText } from './useBindings'
 
 interface HoverCardProps {
   hover: MapHover
@@ -28,6 +28,7 @@ interface Row {
 /** The spot under the cursor: its biome and ground, and with Shift held, the rest of what the server knows. */
 export function HoverCard({ hover, point, viewId, previewing, detailed, minY }: HoverCardProps): React.JSX.Element {
   const card = useRef<HTMLDivElement>(null)
+  const highlightKey = useKeyText()('highlight')
   const [position, setPosition] = useState({ left: point.x + CURSOR_GAP_PIXELS, top: point.y + CURSOR_GAP_PIXELS })
 
   useLayoutEffect(() => {
@@ -73,7 +74,7 @@ export function HoverCard({ hover, point, viewId, previewing, detailed, minY }: 
       ))}
       <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
         {!detailed && <Hint keyText="Shift" label="More" />}
-        <Hint keyText={shortcutFor('highlight').keyText} label="Highlight" />
+        {highlightKey !== '' && <Hint keyText={highlightKey} label="Highlight" />}
         <Hint keyText="Alt+Click" label="Open file" />
       </div>
     </div>

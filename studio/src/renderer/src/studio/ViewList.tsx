@@ -3,7 +3,8 @@ import { Kbd } from '@/components/ui/kbd'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import type { ViewInfo } from '../bridge/types'
-import { VIEW_KEYS } from './shortcuts'
+import { viewShortcutId } from './shortcuts'
+import { useKeyText } from './useBindings'
 
 const VIEW_ICONS: Record<string, LucideIcon> = {
   biomes: Trees,
@@ -54,6 +55,7 @@ export function ViewList({ views, current, onSelect, children }: ViewListProps):
 
 function ViewRow({ view, selected, onSelect }: { view: ViewInfo; selected: boolean; onSelect(): void }): React.JSX.Element {
   const Icon = VIEW_ICONS[view.id] ?? MapIcon
+  const keyText = useKeyText()(viewShortcutId(view.id))
   return (
     <button
       onClick={onSelect}
@@ -64,7 +66,7 @@ function ViewRow({ view, selected, onSelect }: { view: ViewInfo; selected: boole
         <span className="block font-medium">{view.label}</span>
         <span className="block text-[11.5px] leading-snug text-secondary-text">{view.description}</span>
       </span>
-      {VIEW_KEYS[view.id] !== undefined && <Kbd className="mt-0.5">{VIEW_KEYS[view.id]}</Kbd>}
+      {keyText !== '' && <Kbd className="mt-0.5">{keyText}</Kbd>}
     </button>
   )
 }

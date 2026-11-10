@@ -1,10 +1,13 @@
 import { app, BrowserWindow, clipboard, ipcMain, nativeTheme, shell } from 'electron'
-import { readdir, readFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
-import type { BridgeConnection, ThemeChoice } from '../shared/bridge'
+import { dirname, join } from 'node:path'
+import type { BridgeConnection, StoredShortcuts, ThemeChoice } from '../shared/bridge'
 
 const CONNECTION_FOLDER = join(homedir(), '.iris', 'studio', 'bridges')
+const SETTINGS_FILE = 'studio.json'
+const SHORTCUTS_KEY = 'shortcuts'
+const SETTINGS_INDENT = 2
 const LINK_PREFIX = 'iris-studio://'
 const DARK_BACKGROUND = '#1e1f22'
 const WINDOW_SIZE = { width: 1440, height: 880, minWidth: 820, minHeight: 520 }
@@ -51,6 +54,29 @@ async function readConnection(name: string): Promise<BridgeConnection | null> {
     return { world: String(file.world ?? ''), port: file.port, token: file.token, startedMillis: file.startedMillis }
   } catch {
     return null
+  }
+}
+
+function settingsPath(): string {
+  return join(app.getPath('userData'), SETTINGS_FILE)
+}
+
+async function readSettings(): Promise<Record<string, unknown>> {
+  try {
+    const settings: unknown = JSON.parse(await readFile(settingsPath(), 'utf8'))
+    return typeof settings === 'object' && settings !== null && !Array.isArray(settings) ? (settings as Record<string, unknown>) : {}
+  } catch {
+    return {}
+  }
+}
+
+async function saveShortcuts(shortcuts: StoredShortcuts): Promise<void> {
+  try {
+    const settings = { ...(await readSettings()), [SHORTCUTS_KEY]: shortcuts }
+    await mkdir(dirname(settingsPath()), { recursive: true })
+    await writeFile(settingsPath(), JSON.stringify(settings, null, SETTINGS_INDENT))
+  } catch (failure) {
+    console.error(`Could not save the studio shortcuts to ${settingsPath()}`, failure)
   }
 }
 
@@ -117,6 +143,8 @@ if (!app.requestSingleInstanceLock()) {
   ipcMain.on('studio:set-theme', (_event, theme: ThemeChoice) => {
     nativeTheme.themeSource = theme
   })
+  ipcMain.handle('studio:load-shortcuts', async () => (await readSettings())[SHORTCUTS_KEY] ?? {})
+  ipcMain.on('studio:save-shortcuts', (_event, shortcuts: StoredShortcuts) => void saveShortcuts(shortcuts))
   ipcMain.on('studio:copy-text', (_event, text: string) => clipboard.writeText(text))
 
   void app.whenReady().then(createWindow)

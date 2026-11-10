@@ -1,4 +1,4 @@
-import { CircleHelp, Grid3x3, LocateFixed, LogOut, Monitor, Moon, Mountain, PawPrint, RefreshCw, Spline, Sun, ZoomIn } from 'lucide-react'
+import { CircleHelp, Grid3x3, LocateFixed, LogOut, Monitor, Moon, Mountain, PawPrint, RefreshCw, Settings, Spline, Sun, ZoomIn } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
@@ -8,7 +8,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { ThemeChoice } from '../../../shared/bridge'
 import type { WorldInfo } from '../bridge/types'
 import type { StudioToggles } from './MapStudio'
-import { shortcutFor, type ShortcutAction } from './shortcuts'
+import type { ShortcutAction } from './shortcuts'
+import { useKeyText } from './useBindings'
 
 interface StudioToolbarProps {
   title: string
@@ -22,6 +23,7 @@ interface StudioToolbarProps {
   onRefresh(): void
   onResetZoom(): void
   onHelp(): void
+  onSettings(): void
   onDisconnect(): void
 }
 
@@ -46,6 +48,11 @@ export function StudioToolbar(props: StudioToolbarProps): React.JSX.Element {
       <ToolButton action="help" hint="Show every mouse and key shortcut" onClick={props.onHelp}>
         <CircleHelp />
       </ToolButton>
+      <IconHint hint="Change the studio's keys">
+        <Button variant="ghost" size="icon-sm" onClick={props.onSettings}>
+          <Settings />
+        </Button>
+      </IconHint>
       <IconHint hint="Back to the world list">
         <Button variant="ghost" size="icon-sm" onClick={props.onDisconnect}>
           <LogOut />
@@ -91,15 +98,16 @@ function IconHint({ hint, keyText, children }: { hint: string; keyText?: string;
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent className="flex items-center gap-2">
         {hint}
-        {keyText !== undefined && <Kbd>{keyText}</Kbd>}
+        {keyText !== undefined && keyText !== '' && <Kbd>{keyText}</Kbd>}
       </TooltipContent>
     </Tooltip>
   )
 }
 
 function ToolButton({ action, hint, onClick, children }: { action: ShortcutAction; hint: string; onClick(): void; children: ReactNode }): React.JSX.Element {
+  const keyText = useKeyText()
   return (
-    <IconHint hint={hint} keyText={shortcutFor(action).keyText}>
+    <IconHint hint={hint} keyText={keyText(action)}>
       <Button variant="ghost" size="icon-sm" onClick={onClick}>
         {children}
       </Button>
@@ -117,8 +125,9 @@ interface ToolToggleProps {
 }
 
 function ToolToggle({ action, hint, pressed, disabled, onPressed, children }: ToolToggleProps): React.JSX.Element {
+  const keyText = useKeyText()
   return (
-    <IconHint hint={disabled ? 'This server has no players to show' : hint} keyText={shortcutFor(action).keyText}>
+    <IconHint hint={disabled ? 'This server has no players to show' : hint} keyText={keyText(action)}>
       <span>
         <Toggle
           size="sm"

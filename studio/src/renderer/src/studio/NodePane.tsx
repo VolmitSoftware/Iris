@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import type { GraphNode } from '../bridge/types'
 import type { NodeEditor } from '../editor/useNodeEditor'
 import { NodeCanvas } from './NodeCanvas'
-import { isTypingInto } from './shortcuts'
+import { isTypingInto, matches } from './shortcuts'
+import { useBindings } from './useBindings'
 
 interface NodePaneProps {
   editor: NodeEditor
@@ -65,6 +66,7 @@ export function NodePane({ editor, entryKey, selected, onSelect }: NodePaneProps
 
 function useEditorKeys(editor: NodeEditor, selected: GraphNode | null, locked: boolean): void {
   const { undo, redo, edit } = editor
+  const bindings = useBindings()
   useEffect(() => {
     if (locked) {
       return
@@ -73,15 +75,10 @@ function useEditorKeys(editor: NodeEditor, selected: GraphNode | null, locked: b
       if (isTypingInto(event.target)) {
         return
       }
-      const command = event.ctrlKey || event.metaKey
-      if (command && event.key.toLowerCase() === 'z') {
+      if (matches(event, 'undo', bindings)) {
         event.preventDefault()
-        if (event.shiftKey) {
-          redo()
-        } else {
-          undo()
-        }
-      } else if (command && event.key.toLowerCase() === 'y') {
+        undo()
+      } else if (matches(event, 'redo', bindings)) {
         event.preventDefault()
         redo()
       } else if (event.key === 'Delete' && selected !== null && selected.duplicable) {
@@ -91,5 +88,5 @@ function useEditorKeys(editor: NodeEditor, selected: GraphNode | null, locked: b
     }
     window.addEventListener('keydown', down)
     return () => window.removeEventListener('keydown', down)
-  }, [undo, redo, edit, selected, locked])
+  }, [undo, redo, edit, selected, locked, bindings])
 }

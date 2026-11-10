@@ -25,6 +25,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.localization.IrisMessages;
 import art.arcane.iris.core.studio.bridge.StudioBridge;
 import art.arcane.iris.core.studio.bridge.StudioBridges;
+import art.arcane.iris.core.studio.bridge.StudioWindow;
 import art.arcane.iris.core.project.IrisProjectCopier;
 import art.arcane.iris.core.project.StudioEditorLauncher;
 import art.arcane.iris.engine.framework.Engine;
@@ -191,6 +192,7 @@ public final class ModdedStudioCommands {
         String worldName = level.dimension().identifier().toString();
         try {
             StudioBridge bridge = StudioBridges.open(worldName, () -> boundEngine(server, level, openerId), openerId);
+            StudioWindow.show(bridge);
             IrisModdedCommands.ok(source, IrisLanguage.plain(IrisMessages.STUDIO_MAP_READY,
                     MessageArgument.untrusted("world", worldName), MessageArgument.untrusted("link", bridge.link())));
             return 1;

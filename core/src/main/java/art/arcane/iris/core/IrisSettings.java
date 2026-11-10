@@ -367,6 +367,9 @@ public class IrisSettings {
         public boolean disableTimeAndWeather = true;
         public boolean entitySpawning = true;
         public boolean autoStartDefaultStudio = false;
+        /** The Iris Studio app folder the server opens its window from; empty to only print the studio link. */
+        public String studioApp = "";
+        public String electron = "electron";
 
         public StudioEditor getEditor() {
             return editor == null ? StudioEditor.VSCODE : editor;

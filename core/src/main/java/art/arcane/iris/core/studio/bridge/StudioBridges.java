@@ -62,6 +62,7 @@ public final class StudioBridges {
     }
 
     public static synchronized void closeAll() {
+        StudioWindow.closeAll();
         for (StudioBridge bridge : OPEN.values()) {
             bridge.close();
             withdraw(bridge);

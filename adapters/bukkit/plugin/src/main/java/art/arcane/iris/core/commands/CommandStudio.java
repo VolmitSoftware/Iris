@@ -26,6 +26,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.localization.IrisMessages;
 import art.arcane.iris.core.studio.bridge.StudioBridge;
 import art.arcane.iris.core.studio.bridge.StudioBridges;
+import art.arcane.iris.core.studio.bridge.StudioWindow;
 import art.arcane.iris.core.pack.PackDownloader;
 import art.arcane.iris.core.project.IrisProject;
 import art.arcane.iris.core.project.IrisCodeWorkspace;
@@ -404,6 +405,7 @@ public class CommandStudio implements DirectorExecutor {
         PlatformChunkGenerator generator = IrisToolbelt.access(world);
         try {
             StudioBridge bridge = StudioBridges.open(world.getName(), generator::getEngine, openerId);
+            StudioWindow.show(bridge);
             sender().sendMessage(IrisLanguage.text(IrisMessages.STUDIO_MAP_READY,
                     MessageArgument.untrusted("world", world.getName()), MessageArgument.untrusted("link", bridge.link())));
         } catch (IOException error) {

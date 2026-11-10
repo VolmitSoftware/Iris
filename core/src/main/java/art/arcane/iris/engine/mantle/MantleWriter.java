@@ -25,6 +25,7 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.project.matter.TileWrapper;
 import com.google.common.collect.ImmutableList;
 import com.volmit.generation.GenerationFailures;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.tools.WorldMaintenance;
@@ -131,7 +132,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
         return Math.max(1, availableProcessors / 2);
     }
 
-    private static Set<IrisPosition> getBallooned(Set<IrisPosition> vset, double radius) {
+    static Set<IrisPosition> getBallooned(Set<IrisPosition> vset, double radius) {
         Set<IrisPosition> returnset = new HashSet<>();
         int ceilrad = (int) Math.ceil(radius);
         double r2 = Math.pow(radius, 2);
@@ -154,30 +155,83 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
         return returnset;
     }
 
-    private static Set<IrisPosition> getHollowed(Set<IrisPosition> vset) {
+    static Set<IrisPosition> getHollowed(Set<IrisPosition> vset) {
+        PositionLookup lookup = PositionLookup.of(vset);
         Set<IrisPosition> returnset = new KSet<>();
         for (IrisPosition v : vset) {
-            double x = v.getX();
-            double y = v.getY();
-            double z = v.getZ();
-            if (!(vset.contains(new IrisPosition(x + 1, y, z))
-                    && vset.contains(new IrisPosition(x - 1, y, z))
-                    && vset.contains(new IrisPosition(x, y + 1, z))
-                    && vset.contains(new IrisPosition(x, y - 1, z))
-                    && vset.contains(new IrisPosition(x, y, z + 1))
-                    && vset.contains(new IrisPosition(x, y, z - 1)))) {
+            int x = v.getX();
+            int y = v.getY();
+            int z = v.getZ();
+            if (!(lookup.contains(x + 1, y, z)
+                    && lookup.contains(x - 1, y, z)
+                    && lookup.contains(x, y + 1, z)
+                    && lookup.contains(x, y - 1, z)
+                    && lookup.contains(x, y, z + 1)
+                    && lookup.contains(x, y, z - 1))) {
                 returnset.add(v);
             }
         }
         return returnset;
     }
 
-    private static double hypot(double... pars) {
-        double sum = 0;
-        for (double d : pars) {
-            sum += Math.pow(d, 2);
+    private static double hypot(double x, double y, double z) {
+        return Math.pow(x, 2) + Math.pow(y, 2) + Math.pow(z, 2);
+    }
+
+    record PositionLookup(LongOpenHashSet keys, Set<IrisPosition> positions, int originX, int originY, int originZ) {
+        private static final int AXIS_BITS = 21;
+        private static final long AXIS_LIMIT = 1L << AXIS_BITS;
+
+        static PositionLookup of(Set<IrisPosition> positions) {
+            if (positions.isEmpty()) {
+                return new PositionLookup(new LongOpenHashSet(), positions, 0, 0, 0);
+            }
+
+            int minX = Integer.MAX_VALUE;
+            int minY = Integer.MAX_VALUE;
+            int minZ = Integer.MAX_VALUE;
+            int maxX = Integer.MIN_VALUE;
+            int maxY = Integer.MIN_VALUE;
+            int maxZ = Integer.MIN_VALUE;
+            for (IrisPosition position : positions) {
+                minX = Math.min(minX, position.getX());
+                minY = Math.min(minY, position.getY());
+                minZ = Math.min(minZ, position.getZ());
+                maxX = Math.max(maxX, position.getX());
+                maxY = Math.max(maxY, position.getY());
+                maxZ = Math.max(maxZ, position.getZ());
+            }
+
+            if ((long) maxX - minX >= AXIS_LIMIT - 2L
+                    || (long) maxY - minY >= AXIS_LIMIT - 2L
+                    || (long) maxZ - minZ >= AXIS_LIMIT - 2L) {
+                return new PositionLookup(null, positions, 0, 0, 0);
+            }
+
+            LongOpenHashSet keys = new LongOpenHashSet(positions.size());
+            for (IrisPosition position : positions) {
+                keys.add(key(position.getX() - minX, position.getY() - minY, position.getZ() - minZ));
+            }
+            return new PositionLookup(keys, positions, minX, minY, minZ);
         }
-        return sum;
+
+        boolean contains(int x, int y, int z) {
+            if (keys == null) {
+                return positions.contains(new IrisPosition(x, y, z));
+            }
+
+            long dx = (long) x - originX;
+            long dy = (long) y - originY;
+            long dz = (long) z - originZ;
+            if ((dx | dy | dz) < 0L || dx >= AXIS_LIMIT || dy >= AXIS_LIMIT || dz >= AXIS_LIMIT) {
+                return false;
+            }
+            return keys.contains(key(dx, dy, dz));
+        }
+
+        private static long key(long x, long y, long z) {
+            return (x << (AXIS_BITS * 2)) | (y << AXIS_BITS) | z;
+        }
     }
 
     private static double lengthSq(double x, double y, double z) {
@@ -796,10 +850,11 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
         setConsumer(vset, data);
     }
 
-    private static Set<IrisPosition> getMasked(Set<IrisPosition> vectors, Set<IrisPosition> masks, double radius) {
+    static Set<IrisPosition> getMasked(Set<IrisPosition> vectors, Set<IrisPosition> masks, double radius) {
         Set<IrisPosition> vset = new KSet<>();
         int ceil = (int) Math.ceil(radius);
         double r2 = Math.pow(radius, 2);
+        PositionLookup maskLookup = PositionLookup.of(masks);
 
         for (IrisPosition v : vectors) {
             int tipX = v.getX();
@@ -809,7 +864,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
             for (int x = -ceil; x <= ceil; x++) {
                 for (int y = -ceil; y <= ceil; y++) {
                     for (int z = -ceil; z <= ceil; z++) {
-                        if (hypot(x, y, z) > r2 || !masks.contains(new IrisPosition(x, y, z)))
+                        if (hypot(x, y, z) > r2 || !maskLookup.contains(x, y, z))
                             continue;
                         vset.add(new IrisPosition(tipX + x, tipY + y, tipZ + z));
                     }

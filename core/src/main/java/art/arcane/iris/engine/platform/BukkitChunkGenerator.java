@@ -33,6 +33,7 @@ import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.project.PackHotloadFolder;
+import art.arcane.iris.core.project.PackHotloadGuard;
 import art.arcane.iris.core.runtime.ObjectStudioActivation;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioActivation;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioSession;
@@ -150,7 +151,12 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.studioEntryBootstrapActive = new AtomicBoolean(studio);
         this.dataLocation = dataLocation;
         this.dimensionKey = dimensionKey;
-        this.folder = PackHotloadFolder.watch(dataLocation, (_a, _b, _c) -> hotloadFromWatcher());
+        PackHotloadGuard hotloadGuard = new PackHotloadGuard(dataLocation);
+        this.folder = PackHotloadFolder.watch(dataLocation, (created, changed, deleted) -> {
+            if (hotloadGuard.allowsHotload(PackHotloadGuard.touched(created, changed))) {
+                hotloadFromWatcher();
+            }
+        });
         this.initializationFailure = null;
         this.jigsawStudioActive = false;
         this.validatedDimension = null;

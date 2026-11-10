@@ -5,7 +5,7 @@ import art.arcane.volmlib.util.math.RNG;
 import org.jetbrains.annotations.NotNull;
 
 
-public class OffsetNoiseGenerator implements NoiseGenerator {
+public class OffsetNoiseGenerator implements NoiseGenerator, OctaveNoise {
     private static final int GENERIC = 0;
     private static final int SIMPLEX = 1;
     private static final int PERLIN = 2;
@@ -34,6 +34,13 @@ public class OffsetNoiseGenerator implements NoiseGenerator {
         RNG rng = new RNG(seed);
         ox = rng.nextInt(Short.MIN_VALUE, Short.MAX_VALUE);
         oz = rng.nextInt(Short.MIN_VALUE, Short.MAX_VALUE);
+    }
+
+    @Override
+    public void setOctaves(int octaves) {
+        if (base instanceof OctaveNoise octaveBase) {
+            octaveBase.setOctaves(octaves);
+        }
     }
 
     @Override

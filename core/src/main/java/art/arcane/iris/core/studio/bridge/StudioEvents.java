@@ -32,22 +32,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Server-sent events to every connected studio: {@code players} when a player moves, {@code world} when the world's
- * engine changes (a hotload), and a comment now and then so a dead connection is noticed. A studio that stops
+ * engine changes (a hotload), {@code usage} with the server's CPU and heap every second, and a comment now and then so
+ * a dead connection is noticed. A studio that stops
  * reading is dropped.
  */
 final class StudioEvents {
     private static final byte[] KEEP_ALIVE = ": alive\n\n".getBytes(StandardCharsets.UTF_8);
     static final long POLL_INTERVAL_MILLIS = 250L;
     private static final long KEEP_ALIVE_INTERVAL_MILLIS = 10_000L;
+    private static final long USAGE_INTERVAL_MILLIS = 1_000L;
 
     private final StudioWorld world;
     private final Gson gson;
     private final List<OutputStream> listeners = new CopyOnWriteArrayList<>();
     private final AtomicBoolean listenerJoined = new AtomicBoolean();
+    private final AtomicBoolean usageWanted = new AtomicBoolean();
     private final AtomicBoolean hotloaded = new AtomicBoolean();
     private List<GuiMarker> lastPlayers;
     private Engine lastEngine;
     private long lastSentMillis;
+    private long lastUsageMillis;
 
     StudioEvents(StudioWorld world, Gson gson) {
         this.world = world;
@@ -57,6 +61,7 @@ final class StudioEvents {
     void listen(OutputStream stream) {
         listeners.add(stream);
         listenerJoined.set(true);
+        usageWanted.set(true);
     }
 
     /** The pack was hotloaded; the engine may be the same, its streams are not. */
@@ -80,7 +85,12 @@ final class StudioEvents {
             lastPlayers = players;
             send("players", players);
         }
-        if (System.currentTimeMillis() - lastSentMillis > KEEP_ALIVE_INTERVAL_MILLIS) {
+        long now = System.currentTimeMillis();
+        if (usageWanted.getAndSet(false) || now - lastUsageMillis >= USAGE_INTERVAL_MILLIS) {
+            lastUsageMillis = now;
+            send("usage", ServerUsage.sample());
+        }
+        if (now - lastSentMillis > KEEP_ALIVE_INTERVAL_MILLIS) {
             sendToAll(KEEP_ALIVE);
         }
     }

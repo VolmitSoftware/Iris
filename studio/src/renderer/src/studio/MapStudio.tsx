@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ThemeChoice } from '../../../shared/bridge'
 import type { BridgeClient, MapLayerQuery, WorldRect } from '../bridge/BridgeClient'
-import type { MapHover, MapLabel, Marker, ModuleViewInfo, PickDisplay, PickInspection, ViewInfo, WorldInfo } from '../bridge/types'
+import type { MapHover, MapLabel, Marker, ModuleViewInfo, PickDisplay, PickInspection, ServerUsage, ViewInfo, WorldInfo } from '../bridge/types'
 import type { Share } from '../map/census'
 import type { MapController, MapStatus, MapToggles } from '../map/MapController'
 import type { Highlight } from '../map/tileStyle'
@@ -51,6 +51,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   const [shares, setShares] = useState<Share[]>([])
   const [players, setPlayers] = useState<Marker[]>([])
   const [entities, setEntities] = useState<Marker[]>([])
+  const [usage, setUsage] = useState<ServerUsage | null>(null)
   const [pointer, setPointer] = useState<CanvasPoint | null>(null)
   const [hover, setHover] = useState<MapHover | null>(null)
   const [detailed, setDetailed] = useState(false)
@@ -103,7 +104,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   }, [players, toggles.follow])
 
   const packReloaded = useCallback(() => setPackRevision((revision) => revision + 1), [])
-  useServerEvents(client, controller, setPlayers, tell, setConnected, packReloaded)
+  useServerEvents(client, controller, setPlayers, setUsage, tell, setConnected, packReloaded)
   useEntities(client, toggles.entities, setEntities)
   useHover(client, controller, layer, pointer, setHover)
 
@@ -289,7 +290,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
           </>
         )}
       </div>
-      <StatusBar viewLabel={statusLabel(view.label, previewName, showsMap ? null : sceneSummary)} status={showsMap ? status : null} notice={notice} />
+      <StatusBar viewLabel={statusLabel(view.label, previewName, showsMap ? null : sceneSummary)} status={showsMap ? status : null} notice={notice} usage={usage} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} views={views} />
     </div>
   )
@@ -412,11 +413,12 @@ function usePickInspection(
   return inspection
 }
 
-/** Players and hotloads from the server; the first world event only says the world runs, which is known. */
+/** Players, usage and hotloads from the server; the first world event only says the world runs, which is known. */
 function useServerEvents(
   client: BridgeClient,
   controller: React.RefObject<MapController | null>,
   setPlayers: (players: Marker[]) => void,
+  setUsage: (usage: ServerUsage) => void,
   tell: (message: string) => void,
   setConnected: (connected: boolean) => void,
   onPackReloaded: () => void
@@ -440,12 +442,13 @@ function useServerEvents(
           }
         },
         onPlayers: setPlayers,
+        onUsage: setUsage,
         onClosed: () => setConnected(false)
       },
       stop.signal
     )
     return () => stop.abort()
-  }, [client, controller, setPlayers, tell, setConnected, onPackReloaded])
+  }, [client, controller, setPlayers, setUsage, tell, setConnected, onPackReloaded])
 }
 
 function useEntities(client: BridgeClient, visible: boolean, setEntities: (entities: Marker[]) => void): void {

@@ -211,6 +211,24 @@ public class StudioBridgeTest {
         }
     }
 
+    @Test
+    public void aNewListenerHearsTheServersUsageRightAway() throws Exception {
+        HttpResponse<InputStream> events = http.send(authorized("events"), HttpResponse.BodyHandlers.ofInputStream());
+
+        try (BufferedReader lines = new BufferedReader(new InputStreamReader(events.body(), StandardCharsets.UTF_8))) {
+            String line;
+            do {
+                line = lines.readLine();
+            } while (line != null && !line.equals("event: usage"));
+            assertEquals("event: usage", line);
+            JsonObject usage = JsonParser.parseString(lines.readLine().substring("data: ".length())).getAsJsonObject();
+            assertTrue(usage.get("threads").getAsInt() >= 1);
+            assertTrue(usage.get("heapUsedBytes").getAsLong() > 0L);
+            assertTrue(usage.get("heapMaxBytes").getAsLong() >= usage.get("heapUsedBytes").getAsLong());
+            assertTrue(usage.has("cpuPercent"));
+        }
+    }
+
     private HttpResponse<String> get(String endpoint) throws Exception {
         return http.send(authorized(endpoint), HttpResponse.BodyHandlers.ofString());
     }

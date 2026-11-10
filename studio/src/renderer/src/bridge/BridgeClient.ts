@@ -22,6 +22,7 @@ import type {
   SavedWorldInfo,
   SceneEntry,
   SceneViewInfo,
+  ServerUsage,
   WorldInfo
 } from './types'
 
@@ -77,6 +78,7 @@ export interface WorldRect {
 export interface BridgeEvents {
   onWorld(running: boolean): void
   onPlayers(players: Marker[]): void
+  onUsage(usage: ServerUsage): void
   onClosed(): void
 }
 
@@ -307,5 +309,7 @@ function dispatch(block: string, events: BridgeEvents): void {
     events.onWorld((JSON.parse(data) as { running: boolean }).running)
   } else if (name === 'players') {
     events.onPlayers(JSON.parse(data) as Marker[])
+  } else if (name === 'usage') {
+    events.onUsage(JSON.parse(data) as ServerUsage)
   }
 }

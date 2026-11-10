@@ -304,6 +304,16 @@ export interface Marker {
   maxHealth: number
 }
 
+/** What the server asks of its machine, as it sends it every second. */
+export interface ServerUsage {
+  /** The server's CPU use with 100 per busy thread, or null when the JVM cannot tell. */
+  cpuPercent: number | null
+  /** The threads the server's CPU has, so the CPU can reach 100 times this. */
+  threads: number
+  heapUsedBytes: number
+  heapMaxBytes: number
+}
+
 /**
  * A decoded map tile. Grids hold (size + 2)² cells, the tile's pixels inside a ring of its neighbours' edge pixels.
  */

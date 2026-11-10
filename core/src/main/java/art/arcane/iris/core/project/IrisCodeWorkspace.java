@@ -181,6 +181,8 @@ public class IrisCodeWorkspace {
         List<JSONObject> schemaEntries = new ArrayList<>();
         List<CompletableFuture<String>> schemaWrites = new ArrayList<>();
         IrisData dm = IrisData.get(project.getPath());
+        // The shared instance keeps its file listings across edits, so files added, moved or removed since would be missing.
+        dm.clearLists();
         for (ResourceLoader<?> resourceLoader : dm.getLoaders().v()) {
             if (resourceLoader.supportsSchemas()) {
                 schemaEntries.add(resourceLoader.schemaMapping());

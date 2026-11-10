@@ -97,6 +97,8 @@ public final class ModdedWorkspaceGenerator {
 
     private static JSONArray buildSchemas(IrisData data, boolean immediateSchemas, List<CompletableFuture<String>> schemaWrites) {
         JSONArray schemas = new JSONArray();
+        // The shared instance keeps its file listings across edits, so files added, moved or removed since would be missing.
+        data.clearLists();
 
         for (ResourceLoader<?> loader : data.getLoaders().v()) {
             if (loader.supportsSchemas()) {

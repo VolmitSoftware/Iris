@@ -26,10 +26,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -153,6 +155,41 @@ public class IrisCodeWorkspaceTest {
         assertEquals("Regenerating identical schemas must keep Zed's schema hash", firstSchemaHash, zedSchemaHash(pack));
         assertEquals("Studio open must target only the canonical workspace", "unrelated",
                 Files.readString(unrelatedWorkspace.toPath(), StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void reopeningAfterAFileMoveOffersTheNewKeyAndChangesZedsSchemaHash() throws Exception {
+        File pack = temporaryFolder.newFolder("moved-biome");
+        Path biomes = Files.createDirectories(pack.toPath().resolve("biomes"));
+        Files.writeString(biomes.resolve("before-move.json"), "{}", StandardCharsets.UTF_8);
+        IrisSettings.get().getStudio().setEditor(StudioEditor.NONE);
+        IrisCodeWorkspace workspace = new IrisCodeWorkspace(new IrisProject(pack));
+        workspace.prepareAndOpenEditor();
+        data = IrisData.get(pack);
+        String hashBefore = zedSchemaHash(pack);
+        assertTrue(schemasMention(pack, "before-move"));
+
+        Files.move(biomes.resolve("before-move.json"), biomes.resolve("after-move.json"));
+        workspace.prepareAndOpenEditor();
+
+        assertTrue("The refreshed schemas must offer the moved file's new key", schemasMention(pack, "after-move"));
+        assertFalse("The refreshed schemas must stop offering the old key", schemasMention(pack, "before-move"));
+        assertNotEquals("Zed must see a settings change so it reloads the schemas", hashBefore, zedSchemaHash(pack));
+    }
+
+    private static boolean schemasMention(File pack, String key) throws Exception {
+        try (Stream<Path> schemaFiles = Files.walk(pack.toPath().resolve(".iris/schema"))) {
+            return schemaFiles.filter(Files::isRegularFile)
+                    .anyMatch(file -> readQuietly(file).contains("\"" + key + "\""));
+        }
+    }
+
+    private static String readQuietly(Path file) {
+        try {
+            return Files.readString(file, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private static String zedSchemaHash(File pack) throws Exception {

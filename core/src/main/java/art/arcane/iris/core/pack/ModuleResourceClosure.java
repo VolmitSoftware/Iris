@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.pack;
 
+import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.builtin.structure.IrisStructureRef;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
@@ -59,6 +60,13 @@ public final class ModuleResourceClosure {
     private static final String JAVA_PACKAGE_PREFIX = "java.";
     private static final String JSON_EXTENSION = ".json";
     private static final int PRETTY_INDENT = 4;
+
+    /**
+     * The structure model ships with Iris while the loot kind ships in the built-in modules jar, so the model cannot name
+     * the kind with {@code @ResourceRef} (a pack without the jar could not load it). Until both move into the jar the
+     * closure knows this one reference.
+     */
+    private static final Field STRUCTURE_LOOT_FIELD = structureLootField();
 
     private final IrisData data;
     private final Map<Class<?>, ResourceKind<?>> kindsByType = new HashMap<>();
@@ -164,6 +172,14 @@ public final class ModuleResourceClosure {
         }
     }
 
+    private static Field structureLootField() {
+        try {
+            return IrisStructure.class.getDeclaredField("loot");
+        } catch (NoSuchFieldException missing) {
+            throw new IllegalStateException("The structure model has no loot field", missing);
+        }
+    }
+
     /** The class of the resources the field names by key, or null when it names none. */
     private static Class<?> referencedType(Field field) {
         ResourceRef reference = field.getAnnotation(ResourceRef.class);
@@ -172,6 +188,9 @@ public final class ModuleResourceClosure {
         }
         if (field.isAnnotationPresent(IrisStructureRef.class)) {
             return IrisStructure.class;
+        }
+        if (field.equals(STRUCTURE_LOOT_FIELD)) {
+            return LootTable.class;
         }
         RegistryListResource registry = field.getAnnotation(RegistryListResource.class);
         return registry == null ? null : registry.value();

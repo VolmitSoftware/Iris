@@ -63,8 +63,14 @@ public final class IrisModuleHost {
             "iris:spawn", "iris:prepare", "iris:anchor", "iris:validate", "iris:bore", "iris:blocks", "iris:stilt", "iris:vacuum",
             "iris:snow", "iris:vanilla-features", "iris:carve", "iris:deposit", "iris:decorant", "iris:terrain", "iris:objects",
             "iris:floating");
-    /** Iris's pack object model: built-in settings may hold these classes, which Iris reads and describes itself. */
-    public static final String HOST_TYPE_PACKAGE = "art.arcane.iris.engine.object";
+    /**
+     * Iris's pack object model: built-in settings may hold these classes, which Iris reads and describes itself. The
+     * structure model (engine.object.structure) is not among them: it speaks the api's vocabulary and its module describes it.
+     */
+    public static final String[] HOST_TYPE_PACKAGES = Stream.of("annotations", "compatibility", "image", "material", "noise",
+                    "placement", "prefab", "runtime", "terrain", "value", "world")
+            .map(subpackage -> "art.arcane.iris.engine.object." + subpackage)
+            .toArray(String[]::new);
     private static final String[] JAR_COPY_FOLDER = {"cache", "module-jars"};
     private static final String BUNDLED_JAR_RESOURCE = "/" + MissingBuiltInModules.JAR_NAME;
     private static final String BUNDLED_JAR_TEMPORARY_PREFIX = "iris-built-in-modules-";
@@ -98,14 +104,14 @@ public final class IrisModuleHost {
 
     /** Whether {@code type} is one of Iris's own classes that built-in settings may hold. */
     public static boolean isHostType(Class<?> type) {
-        return type.getName().startsWith(HOST_TYPE_PACKAGE + ".");
+        return Stream.of(HOST_TYPE_PACKAGES).anyMatch(hostPackage -> type.getName().startsWith(hostPackage + "."));
     }
 
     private static ModuleHost build() {
         return ModuleHost.of(builtInModules())
                 .exposing(EXPOSED_PACKAGES.toArray(String[]::new))
                 .reservingFields(ModuleTargets.reservedFields())
-                .describingHostTypesIn(HOST_TYPE_PACKAGE)
+                .describingHostTypesIn(HOST_TYPE_PACKAGES)
                 .reservingFolders(IrisData.ownFolderNames().toArray(String[]::new))
                 .bundlingJars(bundledJars())
                 .copyingJarsTo(jarCopyRoot())

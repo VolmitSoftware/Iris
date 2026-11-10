@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.structure.tooling;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarArchetype;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBay;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
@@ -26,16 +25,18 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioGraphMapper;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioLayout;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioMode;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariant;
+import art.arcane.iris.core.service.JigsawStudioRequest;
 import art.arcane.iris.core.service.JigsawStudioService;
 import art.arcane.iris.core.structure.tooling.StudioSessions.ActiveContext;
+import art.arcane.iris.engine.framework.structure.ObjectFrame;
 import art.arcane.iris.engine.framework.structure.PlanarJigsawWorkcellResolver;
 import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetype;
-import art.arcane.iris.engine.object.value.IrisPosition;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.resource.PackResources;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -58,13 +59,19 @@ final class GraphMutations {
     }
 
     static JigsawStudioLayout loadPersistedLayout(ActiveContext context) throws IOException {
-        IrisData source = context.request().source();
-        source.invalidateStructureResources();
-        IrisStructure structure = StructureResources.structure(source.getPackResources(), context.request().structureKey());
+        JigsawStudioRequest request = context.request();
+        request.reloadSource();
+        IrisStructure structure = StructureResources.structure(request.source().resources(), request.structureKey());
         if (structure == null) {
             throw new IOException("The structure could not be reloaded after the graph transaction");
         }
-        return JigsawStudioGraphMapper.map(source, structure);
+        return JigsawStudioGraphMapper.map(request.source(), request.packRoot(), request.structureKey(), structure);
+    }
+
+    /** The declared size of the pack object {@code objectKey} names in the studio's pack; null when it has none. */
+    static ObjectFrame objectFrame(ActiveContext context, String objectKey) {
+        PackResources resources = context.request().source().resources();
+        return resources.objects().sizeOf(resources.idOf(objectKey)).map(ObjectFrame::of).orElse(null);
     }
 
     static JigsawStudioService.CommandGraphMutationResult mappedMutationResult(
@@ -93,23 +100,23 @@ final class GraphMutations {
     static PieceWorkcellResolution resolvePieceWorkcell(
             JigsawStudioLayout layout,
             IrisJigsawPiece piece,
-            IrisObject object
+            ObjectFrame object
     ) {
         JigsawStudioLayout activeLayout = Objects.requireNonNull(layout, "Jigsaw Studio layout");
         IrisJigsawPiece activePiece = Objects.requireNonNull(piece, "Jigsaw piece");
-        IrisObject activeObject = Objects.requireNonNull(object, "Jigsaw piece object");
+        ObjectFrame activeObject = Objects.requireNonNull(object, "Jigsaw piece object");
         String workcellId;
-        IrisPosition requiredDimensions;
+        BlockPosition requiredDimensions;
         if (activeLayout.mode() == JigsawStudioMode.PLANAR_JIGSAW) {
             IrisJigsawWorkcellArchetype modelArchetype = IrisJigsawWorkcellArchetype.fromPiece(activePiece);
             workcellId = JigsawPlanarArchetype.fromModel(modelArchetype).stableId();
             requiredDimensions = PlanarJigsawWorkcellResolver.canonicalDimensions(activePiece, activeObject);
         } else {
             workcellId = JigsawStudioLayout.SPATIAL_WORKCELL_ID;
-            requiredDimensions = new IrisPosition(
-                    activeObject.getW(),
-                    activeObject.getH(),
-                    activeObject.getD());
+            requiredDimensions = new BlockPosition(
+                    activeObject.width(),
+                    activeObject.height(),
+                    activeObject.depth());
         }
         JigsawStudioBay workcell = activeLayout.get(workcellId);
         if (workcell == null) {
@@ -120,7 +127,7 @@ final class GraphMutations {
 
     static String nextThemeKey(ActiveContext context) throws IOException {
         IrisStructure structure = StructureResources.structure(
-                context.request().source().getPackResources(),
+                context.request().source().resources(),
                 context.request().structureKey());
         if (structure == null) {
             throw new IOException("The active jigsaw structure could not be loaded");
@@ -146,7 +153,7 @@ final class GraphMutations {
 
     record PieceWorkcellResolution(
             JigsawStudioBay workcell,
-            IrisPosition requiredDimensions
+            BlockPosition requiredDimensions
     ) {
         PieceWorkcellResolution {
             workcell = Objects.requireNonNull(workcell, "Jigsaw Studio workcell");
@@ -155,9 +162,9 @@ final class GraphMutations {
 
         boolean fits() {
             JigsawStudioCellDimensions capacity = workcell.capacity();
-            return requiredDimensions.getX() <= capacity.width()
-                    && requiredDimensions.getY() <= capacity.height()
-                    && requiredDimensions.getZ() <= capacity.depth();
+            return requiredDimensions.x() <= capacity.width()
+                    && requiredDimensions.y() <= capacity.height()
+                    && requiredDimensions.z() <= capacity.depth();
         }
     }
 }

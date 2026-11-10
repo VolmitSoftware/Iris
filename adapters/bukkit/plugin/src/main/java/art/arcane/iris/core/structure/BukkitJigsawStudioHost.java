@@ -19,7 +19,6 @@
 package art.arcane.iris.core.structure;
 
 import art.arcane.iris.Iris;
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.pack.BrokenPackException;
 import art.arcane.iris.core.runtime.StudioOpenCoordinator;
 import art.arcane.iris.core.service.JigsawStudioService;
@@ -44,11 +43,6 @@ public final class BukkitJigsawStudioHost implements JigsawStudioHost {
     @Override
     public JigsawStudioService studio() {
         return Iris.jigsawStudio();
-    }
-
-    @Override
-    public IrisData dataOf(ToolPack pack) {
-        return IrisToolPack.dataOf(pack);
     }
 
     @Override

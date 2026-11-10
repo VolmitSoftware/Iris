@@ -18,11 +18,9 @@
 
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.IrisValidationContext;
-import art.arcane.iris.core.pack.PackValidationIo;
-import art.arcane.volmlib.util.json.JSONArray;
-import art.arcane.volmlib.util.json.JSONObject;
+import art.arcane.iris.builtin.structure.StructurePlacement;
+import art.arcane.iris.builtin.structure.StructurePlacementSettings;
+import com.volmit.config.FeatureSettings;
 import com.volmit.validation.Problem;
 import com.volmit.validation.ValidationContext;
 import com.volmit.validation.Validator;
@@ -30,6 +28,7 @@ import com.volmit.validation.Validator;
 import java.io.File;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -43,16 +42,15 @@ import java.util.stream.Collectors;
  * severity; everything else is an error, as when Iris's own pack validator ran these checks.
  */
 public final class StructureValidator implements Validator {
-    private static final List<String> STRUCTURE_HOST_FOLDERS = List.of("dimensions", "regions", "biomes");
-    private static final String STRUCTURES_FIELD = "structures";
-
     @Override
     public void validate(ValidationContext pack) {
-        IrisData data = IrisValidationContext.of(pack).data();
-        StructureGraphValidation.Validation graphs = StructureGraphValidation.validate(data, placedStructureKeys(data.getDataFolder()));
+        File packFolder = pack.settings().extension(File.class).orElse(null);
+        StructureGraphValidation.Validation graphs = packFolder == null
+                ? new StructureGraphValidation.Validation(List.of(), Set.of(), Map.of())
+                : StructureGraphValidation.validate(pack.resources(), packFolder, placedStructureKeys(pack));
         graphs.problems().forEach(pack::report);
         reportUnlessAssemblyReported(pack, StructureReferenceValidation.validate(pack.resources()), graphs.problems());
-        NativeReplacementValidation.validate(data.getDataFolder(), graphs.replacementOutputStructures(), graphs.sampledVerticalEnvelopes())
+        NativeReplacementValidation.validate(packFolder, graphs.replacementOutputStructures(), graphs.sampledVerticalEnvelopes())
                 .forEach(pack::report);
         StructurePlacementValidation.validate(pack);
         ImportedStructuresValidation.validate(pack);
@@ -64,43 +62,14 @@ public final class StructureValidator implements Validator {
         references.stream().filter(problem -> !reported.contains(problem.message())).forEach(pack::report);
     }
 
-    /**
-     * The keys of the structures the dimension, region and biome files of the pack in {@code packFolder} place, read
-     * from their JSON as written, like the other checks of these files.
-     */
-    public static Set<String> placedStructureKeys(File packFolder) {
+    /** The keys of the structures the dimensions, regions and biomes of the pack place, whether or not a dimension reaches them. */
+    public static Set<String> placedStructureKeys(ValidationContext pack) {
         Set<String> structureKeys = new LinkedHashSet<>();
-        if (packFolder == null || !packFolder.isDirectory()) {
-            return structureKeys;
-        }
-        for (String folderName : STRUCTURE_HOST_FOLDERS) {
-            File resourceFolder = new File(packFolder, folderName);
-            if (!resourceFolder.isDirectory()) {
-                continue;
-            }
-            for (File resourceFile : PackValidationIo.listJsonRecursive(resourceFolder)) {
-                addPlacedKeys(structureKeys, PackValidationIo.readJson(resourceFile));
+        for (FeatureSettings.Entry<StructurePlacementSettings> declared : pack.settings().declared(StructurePlacementSettings.class).entries()) {
+            for (StructurePlacement placement : declared.value().placements()) {
+                placement.structures().stream().filter(key -> key != null && !key.isBlank()).forEach(structureKeys::add);
             }
         }
         return Set.copyOf(structureKeys);
-    }
-
-    private static void addPlacedKeys(Set<String> structureKeys, JSONObject resource) {
-        JSONArray placements = resource == null ? null : resource.optJSONArray(STRUCTURES_FIELD);
-        if (placements == null) {
-            return;
-        }
-        for (int placementIndex = 0; placementIndex < placements.length(); placementIndex++) {
-            JSONObject placement = placements.optJSONObject(placementIndex);
-            JSONArray references = placement == null ? null : placement.optJSONArray(STRUCTURES_FIELD);
-            if (references == null) {
-                continue;
-            }
-            for (int referenceIndex = 0; referenceIndex < references.length(); referenceIndex++) {
-                if (references.opt(referenceIndex) instanceof String structureKey && !structureKey.isBlank()) {
-                    structureKeys.add(structureKey);
-                }
-            }
-        }
     }
 }

@@ -6,13 +6,14 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceEntry;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceRules;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
-import art.arcane.iris.engine.object.annotations.ArrayType;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
-import art.arcane.iris.engine.object.annotations.MinNumber;
 import com.google.gson.Gson;
+import com.volmit.config.MaxNumber;
+import com.volmit.config.MinNumber;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -117,16 +118,16 @@ public class IrisJigsawRulesModelTest {
         Field minimumPlacements = IrisJigsawPieceRules.class.getDeclaredField("minimumPlacements");
         Field maximumPlacements = IrisJigsawPieceRules.class.getDeclaredField("maximumPlacements");
 
-        ArrayType themeSetArray = themeSets.getAnnotation(ArrayType.class);
-        ArrayType themeArray = themes.getAnnotation(ArrayType.class);
-        assertNotNull(themeSetArray);
-        assertEquals(IrisJigsawThemeSet.class, themeSetArray.type());
-        assertNotNull(themeArray);
-        assertEquals(String.class, themeArray.type());
+        assertEquals(IrisJigsawThemeSet.class, elementTypeOf(themeSets));
+        assertEquals(String.class, elementTypeOf(themes));
         assertEquals(0D, chance.getAnnotation(MinNumber.class).value(), 0D);
         assertEquals(1D, chance.getAnnotation(MaxNumber.class).value(), 0D);
         assertEquals(0D, minimumPlacements.getAnnotation(MinNumber.class).value(), 0D);
         assertEquals(512D, maximumPlacements.getAnnotation(MaxNumber.class).value(), 0D);
+    }
+
+    private static Type elementTypeOf(Field list) {
+        return ((ParameterizedType) list.getGenericType()).getActualTypeArguments()[0];
     }
 
     @Test

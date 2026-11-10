@@ -17,11 +17,11 @@ import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.core.structure.conversion.IrisStructureAdoptionInputKind;
 import art.arcane.iris.core.structure.conversion.IrisStructureAdoptionStrategy;
 import art.arcane.iris.core.structure.export.VanillaJigsawExportFormat;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.framework.structure.ObjectFrame;
+import com.volmit.geometry.BlockPosition;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
-import art.arcane.iris.engine.object.value.IrisDirection;
-import art.arcane.iris.engine.object.value.IrisPosition;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import com.volmit.resource.ResourceId;
 import com.volmit.tooling.Argument;
 import com.volmit.tooling.Command;
@@ -270,8 +270,8 @@ public class JigsawCommandsContractTest {
     public void pieceAddUsesCanonicalAxesForRotatedRectangularPlanarWorkcells() {
         JigsawStudioLayout layout = nonuniformPlanarLayout();
         IrisJigsawPiece eastEnd = new IrisJigsawPiece();
-        eastEnd.getConnectors().add(new IrisJigsawConnector().setDirection(IrisDirection.EAST_POSITIVE_X));
-        IrisObject exactObject = new IrisObject(7, 5, 13);
+        eastEnd.getConnectors().add(new IrisJigsawConnector().setDirection(JigsawDirection.EAST_POSITIVE_X));
+        ObjectFrame exactObject = new ObjectFrame(7, 5, 13);
 
         GraphMutations.PieceWorkcellResolution exact = GraphMutations.resolvePieceWorkcell(
                 layout,
@@ -280,13 +280,13 @@ public class JigsawCommandsContractTest {
         GraphMutations.PieceWorkcellResolution oversized = GraphMutations.resolvePieceWorkcell(
                 layout,
                 eastEnd,
-                new IrisObject(8, 5, 13));
+                new ObjectFrame(8, 5, 13));
 
         assertEquals(JigsawPlanarArchetype.END.stableId(), exact.workcell().stableId());
-        assertEquals(new IrisPosition(13, 5, 7), exact.requiredDimensions());
+        assertEquals(new BlockPosition(13, 5, 7), exact.requiredDimensions());
         assertEquals(new JigsawStudioCellDimensions(13, 5, 7), exact.workcell().capacity());
         assertTrue(exact.fits());
-        assertTrue(exactObject.getD() > exact.workcell().capacity().depth());
+        assertTrue(exactObject.depth() > exact.workcell().capacity().depth());
         assertFalse(oversized.fits());
     }
 
@@ -299,15 +299,15 @@ public class JigsawCommandsContractTest {
                 JigsawStudioVariantCatalog.empty());
         IrisJigsawPiece spatialPiece = new IrisJigsawPiece();
         spatialPiece.getConnectors().add(
-                new IrisJigsawConnector().setDirection(IrisDirection.EAST_POSITIVE_X));
+                new IrisJigsawConnector().setDirection(JigsawDirection.EAST_POSITIVE_X));
 
         GraphMutations.PieceWorkcellResolution resolution = GraphMutations.resolvePieceWorkcell(
                 layout,
                 spatialPiece,
-                new IrisObject(7, 5, 13));
+                new ObjectFrame(7, 5, 13));
 
         assertEquals(JigsawStudioLayout.SPATIAL_WORKCELL_ID, resolution.workcell().stableId());
-        assertEquals(new IrisPosition(7, 5, 13), resolution.requiredDimensions());
+        assertEquals(new BlockPosition(7, 5, 13), resolution.requiredDimensions());
         assertEquals(capacity, resolution.workcell().capacity());
         assertTrue(resolution.fits());
     }

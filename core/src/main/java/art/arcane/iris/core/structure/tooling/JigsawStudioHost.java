@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.structure.tooling;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.service.JigsawStudioService;
 import com.volmit.tooling.Sender;
 import com.volmit.tooling.ToolPack;
@@ -28,15 +27,12 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * What the jigsaw commands need from the server that runs the Jigsaw Studio and that no api type offers: the studio
- * itself, the pack's data, whether a pack may open a studio, and the server's one open studio. The adapter that runs a
+ * itself, whether a pack may open a studio, and the server's one open studio. The adapter that runs a
  * studio implements it; a platform without one has none, and the commands then say so.
  */
 public interface JigsawStudioHost {
     /** The studio, which keeps the sessions of its players. */
     JigsawStudioService studio();
-
-    /** The pack's data, for the resources the studio still reads through it. */
-    IrisData dataOf(ToolPack pack);
 
     /** The key the studio files {@code pack} under. */
     String packKey(ToolPack pack);

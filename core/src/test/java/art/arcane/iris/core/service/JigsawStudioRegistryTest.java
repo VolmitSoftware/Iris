@@ -1,6 +1,6 @@
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.core.loader.IrisData;
+import com.volmit.tooling.ToolPack;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCompatibilityTarget;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioLayout;
@@ -38,7 +38,7 @@ public class JigsawStudioRegistryTest {
 
     @Test
     public void storesRequestAndSessionByNormalizedPackKey() {
-        IrisData source = mock(IrisData.class);
+        ToolPack source = StudioToolPacks.toolPack();
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(11, 7, 11);
         JigsawStudioRequest request = registry.activate(
                 "OverWorld",
@@ -61,7 +61,7 @@ public class JigsawStudioRegistryTest {
 
     @Test
     public void replacementGetsANewRequestScopedSession() {
-        IrisData source = mock(IrisData.class);
+        ToolPack source = StudioToolPacks.toolPack();
         JigsawStudioRequest first = registry.activate(
                 "overworld",
                 "village",
@@ -90,7 +90,7 @@ public class JigsawStudioRegistryTest {
 
     @Test
     public void staleRequestCannotDeactivateItsReplacement() {
-        IrisData source = mock(IrisData.class);
+        ToolPack source = StudioToolPacks.toolPack();
         JigsawStudioRequest first = registry.activate(
                 "overworld",
                 "village",
@@ -116,7 +116,7 @@ public class JigsawStudioRegistryTest {
 
     @Test
     public void acceptsExistingGraphLayoutAsCleanInitialState() {
-        IrisData source = mock(IrisData.class);
+        ToolPack source = StudioToolPacks.toolPack();
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(9, 6, 9);
         JigsawStudioVariant variant = new JigsawStudioVariant(
                 "stronghold/hall",
@@ -154,7 +154,7 @@ public class JigsawStudioRegistryTest {
 
     @Test
     public void stagedSamePackReplacementKeepsPriorActivationUntilCommit() {
-        IrisData source = mock(IrisData.class);
+        ToolPack source = StudioToolPacks.toolPack();
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(16, 16, 16);
         JigsawStudioLayout oldLayout = JigsawStudioLayout.create(
                 JigsawStudioMode.SPATIAL_JIGSAW,
@@ -199,7 +199,7 @@ public class JigsawStudioRegistryTest {
 
     @Test
     public void failedSamePackReplacementRollsBackWithoutReplacingPriorSession() {
-        IrisData source = mock(IrisData.class);
+        ToolPack source = StudioToolPacks.toolPack();
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(16, 16, 16);
         JigsawStudioLayout layout = JigsawStudioLayout.create(
                 JigsawStudioMode.SPATIAL_JIGSAW,

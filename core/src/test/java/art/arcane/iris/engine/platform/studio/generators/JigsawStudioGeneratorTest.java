@@ -1,7 +1,6 @@
 package art.arcane.iris.engine.platform.studio.generators;
 
 import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarArchetype;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarDirection;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarTopology;
@@ -16,11 +15,10 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioSession;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariant;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariantCatalog;
 import art.arcane.iris.core.service.JigsawStudioRequest;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
-import art.arcane.iris.engine.object.value.IrisPosition;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.block.BlockRegistry;
@@ -38,6 +36,7 @@ import com.volmit.tooling.ToolPack;
 import com.volmit.tooling.world.ChunkCanvas;
 import org.junit.Test;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,9 +61,9 @@ public class JigsawStudioGeneratorTest {
     public void connectorBlocksAreHiddenByDefaultAndCanBeShownPerWorkcell() {
         PackFixture pack = new PackFixture();
         IrisJigsawConnector connector = new IrisJigsawConnector()
-                .setPosition(new IrisPosition(1, 1, 1))
-                .setDirection(IrisDirection.NORTH_NEGATIVE_Z)
-                .setTop(IrisDirection.UP_POSITIVE_Y)
+                .setPosition(new BlockPosition(1, 1, 1))
+                .setDirection(JigsawDirection.NORTH_NEGATIVE_Z)
+                .setTop(JigsawDirection.UP_POSITIVE_Y)
                 .setPool("test/start")
                 .setName("door")
                 .setTargetName("door")
@@ -283,9 +282,9 @@ public class JigsawStudioGeneratorTest {
     public void rendersSourceVariantInCanonicalOrientationAndRotatesFinalState() {
         PackFixture pack = new PackFixture();
         IrisJigsawConnector connector = new IrisJigsawConnector()
-                .setPosition(new IrisPosition(2, 1, 1))
-                .setDirection(IrisDirection.EAST_POSITIVE_X)
-                .setTop(IrisDirection.UP_POSITIVE_Y)
+                .setPosition(new BlockPosition(2, 1, 1))
+                .setDirection(JigsawDirection.EAST_POSITIVE_X)
+                .setTop(JigsawDirection.UP_POSITIVE_Y)
                 .setPool("village/start")
                 .setName("door")
                 .setTargetName("door")
@@ -313,7 +312,7 @@ public class JigsawStudioGeneratorTest {
         JigsawStudioGenerator.RenderedConnector rotated = rendered.connectors().getFirst();
         assertEquals(1, rotated.x());
         assertEquals(0, rotated.z());
-        assertEquals(IrisDirection.NORTH_NEGATIVE_Z, rotated.connector().getDirection());
+        assertEquals(JigsawDirection.NORTH_NEGATIVE_Z, rotated.connector().getDirection());
         assertEquals("north_up", rotated.orientation());
         assertTrue(rotated.connector().getFinalState().contains("facing=north"));
         JigsawStudioGenerator.RenderedBlock rotatedBlock = rendered.blocks().getFirst();
@@ -324,9 +323,9 @@ public class JigsawStudioGeneratorTest {
     public void invalidRotatedFinalStateFailsRenderPrecisely() {
         PackFixture pack = new PackFixture();
         IrisJigsawConnector connector = new IrisJigsawConnector()
-                .setPosition(new IrisPosition(2, 1, 1))
-                .setDirection(IrisDirection.EAST_POSITIVE_X)
-                .setTop(IrisDirection.UP_POSITIVE_Y)
+                .setPosition(new BlockPosition(2, 1, 1))
+                .setDirection(JigsawDirection.EAST_POSITIVE_X)
+                .setTop(JigsawDirection.UP_POSITIVE_Y)
                 .setPool("village/start")
                 .setName("door")
                 .setTargetName("door")
@@ -390,11 +389,11 @@ public class JigsawStudioGeneratorTest {
     @Test
     public void mapsAllVanillaJigsawOrientations() {
         assertEquals("north_up", JigsawStudioGenerator.orientation(
-                IrisDirection.NORTH_NEGATIVE_Z, IrisDirection.UP_POSITIVE_Y));
+                JigsawDirection.NORTH_NEGATIVE_Z, JigsawDirection.UP_POSITIVE_Y));
         assertEquals("up_east", JigsawStudioGenerator.orientation(
-                IrisDirection.UP_POSITIVE_Y, IrisDirection.EAST_POSITIVE_X));
+                JigsawDirection.UP_POSITIVE_Y, JigsawDirection.EAST_POSITIVE_X));
         assertEquals("down_west", JigsawStudioGenerator.orientation(
-                IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.WEST_NEGATIVE_X));
+                JigsawDirection.DOWN_NEGATIVE_Y, JigsawDirection.WEST_NEGATIVE_X));
     }
 
     private static BlockState stateAt(
@@ -433,7 +432,8 @@ public class JigsawStudioGeneratorTest {
                 mode,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 dimensions,
-                mock(IrisData.class),
+                pack.pack,
+                Path.of("pack"),
                 null);
         JigsawStudioSession session = new JigsawStudioSession(
                 requestId,
@@ -488,7 +488,7 @@ public class JigsawStudioGeneratorTest {
 
     private static String renderFinalState(
             String finalState,
-            ObjectTurn rotation,
+            PieceTurn rotation,
             int quarterTurns
     ) {
         if (finalState.equals("minecraft:not_a_real_block")) {

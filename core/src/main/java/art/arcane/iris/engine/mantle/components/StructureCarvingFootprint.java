@@ -1,15 +1,8 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.engine.framework.PlacedStructurePiece;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.volmlib.util.math.IrisBlockVector;
-import art.arcane.volmlib.util.collection.KList;
-import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
-
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class StructureCarvingFootprint {
     static final int DEFAULT_MAX_CELLS = 1_048_576;
@@ -36,14 +29,6 @@ public final class StructureCarvingFootprint {
         nearestSourceIds = data.nearestSourceIds();
         sourceMinY = data.sourceMinY();
         sourceMaxY = data.sourceMaxY();
-    }
-
-    static StructureCarvingFootprint from(KList<PlacedStructurePiece> pieces, int padding) {
-        return from(pieces, padding, DEFAULT_MAX_CELLS);
-    }
-
-    static StructureCarvingFootprint from(KList<PlacedStructurePiece> pieces, int padding, int maxCells) {
-        return fromColumns(sink -> emitPieceColumns(pieces, sink), padding, maxCells);
     }
 
     /**
@@ -80,10 +65,10 @@ public final class StructureCarvingFootprint {
         int[] sourceMinY = new int[sourceCount];
         int[] sourceMaxY = new int[sourceCount];
         int sourceId = 0;
-        for (Long2LongMap.Entry entry : sources.columns().long2LongEntrySet()) {
-            int localX = unpackX(entry.getLongKey()) - bounds.minX();
-            int localZ = unpackZ(entry.getLongKey()) - bounds.minZ();
-            long heights = entry.getLongValue();
+        for (Map.Entry<Long, Long> entry : sources.columns().entrySet()) {
+            int localX = unpackX(entry.getKey()) - bounds.minX();
+            int localZ = unpackZ(entry.getKey()) - bounds.minZ();
+            long heights = entry.getValue();
             sourceX[sourceId] = localX;
             sourceZ[sourceId] = localZ;
             sourceMinY[sourceId] = unpackMinY(heights);
@@ -170,7 +155,7 @@ public final class StructureCarvingFootprint {
     }
 
     private static SourceCollection collectSources(ColumnSource source) {
-        Long2LongOpenHashMap columns = new Long2LongOpenHashMap();
+        Map<Long, Long> columns = new HashMap<>();
         MutableBounds bounds = new MutableBounds();
         boolean usable = source.emit((worldX, worldZ, minY, maxY) -> {
             mergeColumn(columns, worldX, worldZ, minY, maxY);
@@ -180,36 +165,6 @@ public final class StructureCarvingFootprint {
             return null;
         }
         return columns.isEmpty() ? null : new SourceCollection(columns, bounds.freeze());
-    }
-
-    private static boolean emitPieceColumns(KList<PlacedStructurePiece> pieces, ColumnSink sink) {
-        if (pieces == null) {
-            return true;
-        }
-        for (PlacedStructurePiece piece : pieces) {
-            if (piece == null) {
-                continue;
-            }
-            IrisObject object = piece.getObject();
-            ObjectTurn rotation = piece.getRotation();
-            if (object == null || rotation == null || object.getBlocks() == null) {
-                continue;
-            }
-            for (IrisBlockVector local : object.getBlocks().keys()) {
-                if (local == null || B.isAir(object.getBlocks().get(local))) {
-                    continue;
-                }
-                IrisBlockVector rotated = rotation.rotate(local.clone());
-                long worldX = (long) piece.getX() + rotated.getBlockX();
-                long worldY = (long) piece.getY() + rotated.getBlockY();
-                long worldZ = (long) piece.getZ() + rotated.getBlockZ();
-                if (!fitsInteger(worldX) || !fitsInteger(worldY) || !fitsInteger(worldZ)) {
-                    return false;
-                }
-                sink.column((int) worldX, (int) worldZ, (int) worldY, (int) worldY);
-            }
-        }
-        return true;
     }
 
     private static Bounds paddedBounds(MutableBoundsSnapshot sourceBounds, int padding, int maxCells) {
@@ -233,7 +188,7 @@ public final class StructureCarvingFootprint {
                 (int) width, (int) depth, cellCount);
     }
 
-    private static void mergeColumn(Long2LongOpenHashMap columns, int x, int z, int minY, int maxY) {
+    private static void mergeColumn(Map<Long, Long> columns, int x, int z, int minY, int maxY) {
         long key = pack(x, z);
         if (!columns.containsKey(key)) {
             columns.put(key, packHeights(minY, maxY));
@@ -430,7 +385,7 @@ public final class StructureCarvingFootprint {
                                  int[] nearestSourceIds, int[] sourceMinY, int[] sourceMaxY) {
     }
 
-    private record SourceCollection(Long2LongOpenHashMap columns, MutableBoundsSnapshot bounds) {
+    private record SourceCollection(Map<Long, Long> columns, MutableBoundsSnapshot bounds) {
     }
 
     private record MutableBoundsSnapshot(int minX, int maxX, int minZ, int maxZ) {

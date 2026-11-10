@@ -1,6 +1,5 @@
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -15,14 +14,14 @@ import static org.junit.Assert.assertTrue;
 public class IrisObjectFrameReaderTest {
     @Test
     public void acceptsModernTileFrame() throws Exception {
-        IrisObject object = readObject(tile -> {
+        ObjectFrame object = readObject(tile -> {
             tile.writeUTF("minecraft:chest");
             tile.writeUTF("{}");
         });
 
-        assertEquals(1, object.getW());
-        assertEquals(1, object.getH());
-        assertEquals(1, object.getD());
+        assertEquals(1, object.width());
+        assertEquals(1, object.height());
+        assertEquals(1, object.depth());
     }
 
     @Test
@@ -146,7 +145,7 @@ public class IrisObjectFrameReaderTest {
                 new ByteArrayInputStream(content), "objects/trailing.iob"));
     }
 
-    private IrisObject readObject(TileWriter tileWriter) throws Exception {
+    private ObjectFrame readObject(TileWriter tileWriter) throws Exception {
         return IrisObjectFrameReader.readBounds(
                 new ByteArrayInputStream(objectBytes(tileWriter)), "objects/test.iob");
     }

@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.structure.tooling;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBay;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCompatibilityTarget;
@@ -295,7 +294,6 @@ final class StudioLifecycleCommands {
             use.error("The current Jigsaw Studio is waiting for autosave. Wait for it to finish or close with discard=true.");
             return;
         }
-        IrisData data = host.dataOf(pack);
         IrisStructure irisStructure = StructureResources.structure(pack.resources(), structure);
         if (irisStructure == null) {
             use.error("No Iris jigsaw structure '" + structure + "' exists in this pack.");
@@ -304,7 +302,7 @@ final class StudioLifecycleCommands {
 
         JigsawStudioLayout layout;
         try {
-            layout = JigsawStudioGraphMapper.map(data, irisStructure);
+            layout = JigsawStudioGraphMapper.map(pack, JigsawStudioRequest.rootOf(pack), structure, irisStructure);
         } catch (RuntimeException exception) {
             pack.log().error("Failed to map Jigsaw Studio graph '" + structure + "'.", exception);
             use.error("Could not map this jigsaw graph: " + exception.getMessage());
@@ -341,7 +339,7 @@ final class StudioLifecycleCommands {
                     layout.mode(),
                     compatibilityOf(irisStructure),
                     layout.cellDimensions(),
-                    data,
+                    pack,
                     layout,
                     playerId,
                     closingRequestId);

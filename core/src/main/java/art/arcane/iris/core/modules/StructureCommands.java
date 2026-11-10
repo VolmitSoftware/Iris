@@ -20,13 +20,12 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.structure.StructureIndexService;
 import art.arcane.iris.core.structure.tooling.PlatformStructuresAccess;
-import art.arcane.iris.core.tooling.IrisToolPack;
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.framework.structure.StructureAssemblyResult;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.resource.ResourceId;
 import com.volmit.tooling.Argument;
 import com.volmit.tooling.Command;
@@ -79,7 +78,7 @@ final class StructureCommands {
         ResourceId id = context.get(STRUCTURE);
         IrisStructure structure = context.pack().resources().require(StructureResources.STRUCTURES, id);
         StructureAssemblyResult assembly = StructureAssemblies
-                .forData(IrisToolPack.dataOf(context.pack()), structure, new IrisPosition(0, INFO_ORIGIN_Y, 0))
+                .forPack(context.pack().resources(), id.path(), structure, new BlockPosition(0, INFO_ORIGIN_Y, 0))
                 .assemble(new RNG(INFO_SAMPLE_SEED));
         if (!assembly.hasOutput()) {
             context.sender().error("Structure " + id + " assembled 0 pieces (check startPool '" + structure.getStartPool() + "')");

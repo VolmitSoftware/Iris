@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.engine.framework.structure.ObjectFrame;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -28,11 +28,14 @@ import lombok.Data;
 @AllArgsConstructor
 public class PlacedStructurePiece {
     private final IrisJigsawPiece piece;
-    private final IrisObject object;
+    /** The pack key of the piece's object. */
+    private final String objectKey;
+    /** The declared size of the piece's object. */
+    private final ObjectFrame object;
     private final int x;
     private final int y;
     private final int z;
-    private final ObjectTurn rotation;
+    private final PieceTurn rotation;
     private final int minX;
     private final int minY;
     private final int minZ;

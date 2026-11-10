@@ -12,11 +12,10 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioSession;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariant;
 import art.arcane.iris.core.service.JigsawStudioBlocks;
 import art.arcane.iris.core.service.JigsawStudioRequest;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.block.BlockRegistry;
@@ -426,7 +425,7 @@ public final class JigsawStudioGenerator implements ChunkPainter {
                     "object '" + variant.objectKey() + "' does not fit workcell '" + workcell.stableId() + "'");
         }
 
-        ObjectTurn rotation = ObjectTurn.of(0, -90.0D * quarterTurns, 0);
+        PieceTurn rotation = PieceTurn.aroundY(-90 * quarterTurns);
         List<RenderedBlock> blocks = renderBlocks(resources.blocks(), object, dimensions, quarterTurns, rotation);
         if (blocks == null) {
             return RenderedBay.invalid(
@@ -434,7 +433,7 @@ public final class JigsawStudioGenerator implements ChunkPainter {
                     "object '" + variant.objectKey() + "' contains an invalid or out-of-bounds block");
         }
 
-        ConnectorRenderResult connectors = renderConnectors(piece, object, dimensions, quarterTurns, rotation);
+        ConnectorRenderResult connectors = renderConnectors(variant.pieceKey(), piece, object, dimensions, quarterTurns, rotation);
         if (!connectors.failure().isEmpty()) {
             return RenderedBay.invalid(dimensions, connectors.failure());
         }
@@ -446,7 +445,7 @@ public final class JigsawStudioGenerator implements ChunkPainter {
             PlaceableObject object,
             JigsawStudioCellDimensions dimensions,
             int quarterTurns,
-            ObjectTurn rotation
+            PieceTurn rotation
     ) {
         BlockPosition center = object.center();
         List<ObjectBlock> sourceBlocks = object.geometry().blocks();
@@ -491,15 +490,16 @@ public final class JigsawStudioGenerator implements ChunkPainter {
     }
 
     private ConnectorRenderResult renderConnectors(
+            String pieceKey,
             IrisJigsawPiece piece,
             PlaceableObject object,
             JigsawStudioCellDimensions dimensions,
             int quarterTurns,
-            ObjectTurn rotation
+            PieceTurn rotation
     ) {
-        KList<IrisJigsawConnector> sourceConnectors = piece.getConnectors();
+        List<IrisJigsawConnector> sourceConnectors = piece.getConnectors();
         if (sourceConnectors == null) {
-            return ConnectorRenderResult.invalid("piece '" + piece.getLoadKey() + "' has no connector list");
+            return ConnectorRenderResult.invalid("piece '" + pieceKey + "' has no connector list");
         }
         List<RenderedConnector> connectors = new ArrayList<>(sourceConnectors.size());
         for (int index = 0; index < sourceConnectors.size(); index++) {
@@ -507,29 +507,29 @@ public final class JigsawStudioGenerator implements ChunkPainter {
             if (!validConnectorMetadata(source)) {
                 return ConnectorRenderResult.invalid("connector " + index + " has incomplete metadata");
             }
-            IrisPosition sourcePosition = source.getPosition();
+            BlockPosition sourcePosition = source.getPosition();
             if (!inside(
-                    sourcePosition.getX(),
-                    sourcePosition.getY(),
-                    sourcePosition.getZ(),
+                    sourcePosition.x(),
+                    sourcePosition.y(),
+                    sourcePosition.z(),
                     object.width(),
                     object.height(),
                     object.depth())) {
                 return ConnectorRenderResult.invalid("connector " + index + " is outside its object bounds");
             }
             RotatedPosition position = rotatePosition(
-                    sourcePosition.getX(),
-                    sourcePosition.getY(),
-                    sourcePosition.getZ(),
+                    sourcePosition.x(),
+                    sourcePosition.y(),
+                    sourcePosition.z(),
                     object.width(),
                     object.depth(),
                     quarterTurns);
-            IrisDirection front = quarterTurns == 0
+            JigsawDirection front = quarterTurns == 0
                     ? source.getDirection()
-                    : rotation.rotate(source.getDirection());
-            IrisDirection top = quarterTurns == 0
+                    : source.getDirection().turnedBy(rotation.quarterTurns());
+            JigsawDirection top = quarterTurns == 0
                     ? source.getTop()
-                    : rotation.rotate(source.getTop());
+                    : source.getTop().turnedBy(rotation.quarterTurns());
             String orientation;
             try {
                 orientation = orientation(front, top);
@@ -543,7 +543,7 @@ public final class JigsawStudioGenerator implements ChunkPainter {
                         + source.getFinalState() + "' cannot be parsed and rotated");
             }
             IrisJigsawConnector connector = copyConnector(source)
-                    .setPosition(new IrisPosition(position.x(), position.y(), position.z()))
+                    .setPosition(new BlockPosition(position.x(), position.y(), position.z()))
                     .setDirection(front)
                     .setTop(top)
                     .setFinalState(finalState);
@@ -562,7 +562,7 @@ public final class JigsawStudioGenerator implements ChunkPainter {
         return ConnectorRenderResult.valid(connectors);
     }
 
-    private String rotatedFinalState(String finalState, ObjectTurn rotation, int quarterTurns) {
+    private String rotatedFinalState(String finalState, PieceTurn rotation, int quarterTurns) {
         BlockRegistry registry = pack.resources().blocks();
         BlockState state = registry.find(finalState).orElse(null);
         if (state == null) {
@@ -712,16 +712,16 @@ public final class JigsawStudioGenerator implements ChunkPainter {
         };
     }
 
-    static String orientation(IrisDirection front, IrisDirection top) {
-        IrisDirection activeFront = Objects.requireNonNull(front, "Jigsaw connector front");
-        IrisDirection activeTop = Objects.requireNonNull(top, "Jigsaw connector top");
-        if (activeFront == IrisDirection.UP_POSITIVE_Y || activeFront == IrisDirection.DOWN_NEGATIVE_Y) {
+    static String orientation(JigsawDirection front, JigsawDirection top) {
+        JigsawDirection activeFront = Objects.requireNonNull(front, "Jigsaw connector front");
+        JigsawDirection activeTop = Objects.requireNonNull(top, "Jigsaw connector top");
+        if (activeFront == JigsawDirection.UP_POSITIVE_Y || activeFront == JigsawDirection.DOWN_NEGATIVE_Y) {
             if (activeTop.isVertical()) {
                 throw new IllegalArgumentException("Vertical jigsaw fronts require a horizontal top direction");
             }
             return directionName(activeFront) + "_" + directionName(activeTop);
         }
-        if (activeTop != IrisDirection.UP_POSITIVE_Y) {
+        if (activeTop != JigsawDirection.UP_POSITIVE_Y) {
             throw new IllegalArgumentException("Horizontal jigsaw fronts require an upward top direction");
         }
         return directionName(activeFront) + "_up";
@@ -763,10 +763,10 @@ public final class JigsawStudioGenerator implements ChunkPainter {
 
     private static IrisJigsawConnector copyConnector(IrisJigsawConnector source) {
         return new IrisJigsawConnector()
-                .setPosition(new IrisPosition(
-                        source.getPosition().getX(),
-                        source.getPosition().getY(),
-                        source.getPosition().getZ()))
+                .setPosition(new BlockPosition(
+                        source.getPosition().x(),
+                        source.getPosition().y(),
+                        source.getPosition().z()))
                 .setDirection(source.getDirection())
                 .setTop(source.getTop())
                 .setPool(source.getPool())
@@ -779,7 +779,7 @@ public final class JigsawStudioGenerator implements ChunkPainter {
                 .setPlacementPriority(source.getPlacementPriority());
     }
 
-    private static String directionName(IrisDirection direction) {
+    private static String directionName(JigsawDirection direction) {
         return switch (direction) {
             case UP_POSITIVE_Y -> "up";
             case DOWN_NEGATIVE_Y -> "down";
@@ -884,7 +884,7 @@ public final class JigsawStudioGenerator implements ChunkPainter {
 
     @FunctionalInterface
     interface FinalStateRenderer {
-        String render(String finalState, ObjectTurn rotation, int quarterTurns);
+        String render(String finalState, PieceTurn rotation, int quarterTurns);
     }
 
     record RotatedPosition(int x, int y, int z) {

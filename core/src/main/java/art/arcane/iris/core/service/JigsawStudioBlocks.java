@@ -1,6 +1,6 @@
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
 
@@ -39,8 +39,8 @@ public final class JigsawStudioBlocks {
     }
 
     /** {@code state} turned like {@code rotation}; null when the registry cannot turn the block. */
-    public static BlockState rotated(BlockRegistry registry, BlockState state, ObjectTurn rotation) {
-        if (!rotation.canRotate()) {
+    public static BlockState rotated(BlockRegistry registry, BlockState state, PieceTurn rotation) {
+        if (rotation.quarterTurns() == 0) {
             return state;
         }
         return registry.tryRotate(state, rotation.blockTurn()).orElse(null);

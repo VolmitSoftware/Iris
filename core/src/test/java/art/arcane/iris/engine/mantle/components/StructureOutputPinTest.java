@@ -13,7 +13,7 @@ import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
-import art.arcane.iris.engine.framework.PlacedStructurePiece;
+import art.arcane.iris.engine.framework.structure.assembly.AssembledPiece;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.framework.StructurePlacementScope;
 import art.arcane.iris.engine.mantle.EngineMantle;
@@ -29,8 +29,8 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceRules;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
-import art.arcane.iris.engine.object.value.IrisDirection;
-import art.arcane.iris.engine.object.value.IrisPosition;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
+import com.volmit.geometry.BlockPosition;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -51,6 +51,7 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.internal.stubbing.defaultanswers.ReturnsEmptyValues;
 import org.mockito.invocation.InvocationOnMock;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -126,8 +127,26 @@ public class StructureOutputPinTest {
         pack = BuiltInPack.serve(data, folder, List.of());
         writePack();
         when(data.getBlockLoader()).thenReturn(mock(art.arcane.iris.core.loader.ResourceLoader.class));
+        art.arcane.iris.core.loader.ResourceLoader<IrisObject> objectLoader = mock(art.arcane.iris.core.loader.ResourceLoader.class);
+        when(objectLoader.getPossibleKeys()).thenAnswer(invocation -> objects.keySet().toArray(String[]::new));
+        when(objectLoader.findFile(anyString())).thenAnswer(invocation -> objectFile(invocation.getArgument(0)));
+        when(data.getObjectLoader()).thenReturn(objectLoader);
         when(data.load(eq(IrisObject.class), anyString(), anyBoolean()))
                 .thenAnswer(invocation -> objects.get((String) invocation.getArgument(1)));
+    }
+
+    /** The .iob file of the object {@code key}, written on first ask, which is where the graph reads an object's size from. */
+    private File objectFile(String key) throws IOException {
+        IrisObject object = objects.get(key);
+        if (object == null) {
+            return null;
+        }
+        File file = new File(folder.getRoot(), "objects/" + key + ".iob");
+        if (!file.exists()) {
+            Files.createDirectories(file.getParentFile().toPath());
+            object.write(file);
+        }
+        return file;
     }
 
     @After
@@ -228,7 +247,7 @@ public class StructureOutputPinTest {
                     outcome.starts++;
                     outcome.pieces.add("start " + chunkX + "," + chunkZ + " " + resolved.structureKey() + " " + resolved.originX() + ","
                             + resolved.baseY() + "," + resolved.originZ() + " exactY=" + resolved.exactY());
-                    for (PlacedStructurePiece piece : resolved.pieces()) {
+                    for (AssembledPiece piece : resolved.pieces()) {
                         outcome.pieces.add(describe(piece));
                     }
                 }
@@ -239,11 +258,11 @@ public class StructureOutputPinTest {
         return outcome;
     }
 
-    private static String describe(PlacedStructurePiece piece) {
-        return piece.getObject().getLoadKey() + " " + piece.getX() + "," + piece.getY() + "," + piece.getZ()
-                + " turn=" + piece.getRotation().xDegrees() + "," + piece.getRotation().yDegrees() + "," + piece.getRotation().zDegrees()
-                + " box=" + piece.getMinX() + "," + piece.getMinY() + "," + piece.getMinZ() + ".."
-                + piece.getMaxX() + "," + piece.getMaxY() + "," + piece.getMaxZ();
+    private String describe(AssembledPiece piece) {
+        return data.getPackResources().keyOf(piece.object()) + " " + piece.x() + "," + piece.y() + "," + piece.z()
+                + " turn=0.0," + (double) piece.turn().yDegrees() + ",0.0"
+                + " box=" + piece.minX() + "," + piece.minY() + "," + piece.minZ() + ".."
+                + piece.maxX() + "," + piece.maxY() + "," + piece.maxZ();
     }
 
     private Engine engineWith(StructurePlacement placement) {
@@ -414,15 +433,15 @@ public class StructureOutputPinTest {
         pools.put("pin/spatial/tails", pool("", "pin/spatial/tower"));
         pools.put("pin/spatial/ends", pool("", "pin/spatial/cap"));
         pieces.put("pin/spatial/hall", piece("pin/spatial/hall", true,
-                connector(IrisDirection.EAST_POSITIVE_X, "pin/spatial/arms", "hall-east", "door", 8, 1, 4),
-                connector(IrisDirection.WEST_NEGATIVE_X, "pin/spatial/tails", "hall-west", "tail", 0, 1, 4)));
+                connector(JigsawDirection.EAST_POSITIVE_X, "pin/spatial/arms", "hall-east", "door", 8, 1, 4),
+                connector(JigsawDirection.WEST_NEGATIVE_X, "pin/spatial/tails", "hall-west", "tail", 0, 1, 4)));
         pieces.put("pin/spatial/wing", piece("pin/spatial/wing", true,
-                connector(IrisDirection.WEST_NEGATIVE_X, "terminal", "door", "unused", 0, 1, 2),
-                connector(IrisDirection.EAST_POSITIVE_X, "pin/spatial/ends", "wing-east", "door", 6, 1, 2)));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "terminal", "door", "unused", 0, 1, 2),
+                connector(JigsawDirection.EAST_POSITIVE_X, "pin/spatial/ends", "wing-east", "door", 6, 1, 2)));
         pieces.put("pin/spatial/tower", piece("pin/spatial/tower", true,
-                connector(IrisDirection.EAST_POSITIVE_X, "terminal", "tail", "unused", 2, 1, 1)));
+                connector(JigsawDirection.EAST_POSITIVE_X, "terminal", "tail", "unused", 2, 1, 1)));
         pieces.put("pin/spatial/cap", piece("pin/spatial/cap", true,
-                connector(IrisDirection.WEST_NEGATIVE_X, "terminal", "door", "unused", 0, 1, 1)));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "terminal", "door", "unused", 0, 1, 1)));
         objects.put("pin/spatial/hall", building("pin/spatial/hall", 9, 5, 9, "oak_planks", true));
         objects.put("pin/spatial/wing", building("pin/spatial/wing", 7, 4, 5, "spruce_planks", false));
         objects.put("pin/spatial/tower", building("pin/spatial/tower", 3, 8, 3, "stone_bricks", true));
@@ -437,25 +456,25 @@ public class StructureOutputPinTest {
         pools.put("pin/planar/south", pool("", "pin/planar/south"));
         pools.put("pin/planar/west", pool("", "pin/planar/west"));
         pieces.put("pin/planar/start", piece("pin/planar/start", false,
-                connector(IrisDirection.NORTH_NEGATIVE_Z, "pin/planar/north", "start", "door", 8, 4, 0),
-                connector(IrisDirection.EAST_POSITIVE_X, "pin/planar/east", "start", "door", 15, 4, 8),
-                connector(IrisDirection.SOUTH_POSITIVE_Z, "pin/planar/south", "start", "door", 8, 4, 15),
-                connector(IrisDirection.WEST_NEGATIVE_X, "pin/planar/west", "start", "door", 0, 4, 8)));
+                connector(JigsawDirection.NORTH_NEGATIVE_Z, "pin/planar/north", "start", "door", 8, 4, 0),
+                connector(JigsawDirection.EAST_POSITIVE_X, "pin/planar/east", "start", "door", 15, 4, 8),
+                connector(JigsawDirection.SOUTH_POSITIVE_Z, "pin/planar/south", "start", "door", 8, 4, 15),
+                connector(JigsawDirection.WEST_NEGATIVE_X, "pin/planar/west", "start", "door", 0, 4, 8)));
         pieces.put("pin/planar/north", piece("pin/planar/north", false,
-                connector(IrisDirection.SOUTH_POSITIVE_Z, "terminal", "door", "", 8, 4, 15)));
+                connector(JigsawDirection.SOUTH_POSITIVE_Z, "terminal", "door", "", 8, 4, 15)));
         pieces.put("pin/planar/east", piece("pin/planar/east", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "terminal", "door", "", 0, 4, 8)));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "terminal", "door", "", 0, 4, 8)));
         pieces.put("pin/planar/south", piece("pin/planar/south", false,
-                connector(IrisDirection.NORTH_NEGATIVE_Z, "terminal", "door", "", 8, 4, 0)));
+                connector(JigsawDirection.NORTH_NEGATIVE_Z, "terminal", "door", "", 8, 4, 0)));
         pieces.put("pin/planar/west", piece("pin/planar/west", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "terminal", "door", "", 15, 4, 8)));
+                connector(JigsawDirection.EAST_POSITIVE_X, "terminal", "door", "", 15, 4, 8)));
         objects.put("pin/planar/start", building("pin/planar/start", 16, 8, 16, "oak_planks", true));
         objects.put("pin/planar/north", building("pin/planar/north", 16, 8, 16, "spruce_planks", false));
         objects.put("pin/planar/east", building("pin/planar/east", 16, 8, 16, "birch_planks", false));
         objects.put("pin/planar/south", building("pin/planar/south", 16, 8, 16, "dark_oak_planks", true));
         objects.put("pin/planar/west", building("pin/planar/west", 16, 8, 16, "acacia_planks", false));
         structures.put("pin/planar", structure("pin/planar/start", 1, 8)
-                .setMode(IrisJigsawMode.PLANAR_JIGSAW).setCellSize(new IrisPosition(16, 8, 16)));
+                .setMode(IrisJigsawMode.PLANAR_JIGSAW).setCellSize(new BlockPosition(16, 8, 16)));
     }
 
     private void defineThemed(Map<String, IrisStructure> structures, Map<String, IrisJigsawPool> pools, Map<String, IrisJigsawPiece> pieces) {
@@ -479,13 +498,13 @@ public class StructureOutputPinTest {
         pools.put("pin/caps/branch", pool("pin/caps/caps", "pin/caps/incompatible"));
         pools.put("pin/caps/caps", pool("", "pin/caps/cap"));
         pieces.put("pin/caps/start", piece("pin/caps/start", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "pin/caps/branch", "start", "door", 6, 1, 2),
-                connector(IrisDirection.WEST_NEGATIVE_X, "pin/caps/branch", "start", "door", 0, 1, 2)));
+                connector(JigsawDirection.EAST_POSITIVE_X, "pin/caps/branch", "start", "door", 6, 1, 2),
+                connector(JigsawDirection.WEST_NEGATIVE_X, "pin/caps/branch", "start", "door", 0, 1, 2)));
         pieces.put("pin/caps/incompatible", piece("pin/caps/incompatible", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "terminal", "wrong", "", 0, 1, 1)));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "terminal", "wrong", "", 0, 1, 1)));
         IrisJigsawPiece cap = piece("pin/caps/cap", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "terminal", "door", "", 0, 1, 1),
-                connector(IrisDirection.EAST_POSITIVE_X, "terminal", "door", "", 2, 1, 1));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "terminal", "door", "", 0, 1, 1),
+                connector(JigsawDirection.EAST_POSITIVE_X, "terminal", "door", "", 2, 1, 1));
         cap.setRules(new IrisJigsawPieceRules().setTerminal(true));
         pieces.put("pin/caps/cap", cap);
         objects.put("pin/caps/start", building("pin/caps/start", 7, 5, 5, "oak_planks", true));
@@ -508,13 +527,13 @@ public class StructureOutputPinTest {
 
     private static IrisJigsawPiece piece(String object, boolean rotatable, IrisJigsawConnector... connectors) {
         IrisJigsawPiece piece = new IrisJigsawPiece().setObject(object).setRotatable(rotatable);
-        piece.getConnectors().add(connectors);
+        piece.getConnectors().addAll(List.of(connectors));
         return piece;
     }
 
-    private static IrisJigsawConnector connector(IrisDirection direction, String pool, String name, String targetName, int x, int y, int z) {
+    private static IrisJigsawConnector connector(JigsawDirection direction, String pool, String name, String targetName, int x, int y, int z) {
         return new IrisJigsawConnector()
-                .setPosition(new IrisPosition(x, y, z))
+                .setPosition(new BlockPosition(x, y, z))
                 .setDirection(direction)
                 .setPool(pool)
                 .setName(name)

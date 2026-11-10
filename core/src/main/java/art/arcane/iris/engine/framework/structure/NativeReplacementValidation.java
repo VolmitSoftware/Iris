@@ -20,7 +20,6 @@ package art.arcane.iris.engine.framework.structure;
 
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
-import art.arcane.iris.core.pack.PackValidationIo;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.volmit.validation.Problem;
@@ -77,14 +76,14 @@ public final class NativeReplacementValidation {
             if (!resourceFolder.isDirectory()) {
                 continue;
             }
-            List<File> resourceFiles = PackValidationIo.listJsonRecursive(resourceFolder);
+            List<File> resourceFiles = PackJsonFiles.listRecursive(resourceFolder);
             resourceFiles.sort(Comparator.comparing(File::getPath));
             for (File resourceFile : resourceFiles) {
-                JSONObject resource = PackValidationIo.readJson(resourceFile);
+                JSONObject resource = PackJsonFiles.read(resourceFile);
                 if (resource == null) {
                     continue;
                 }
-                String resourceKey = PackValidationIo.deriveKey(resourceFolder, resourceFile);
+                String resourceKey = PackJsonFiles.keyOf(resourceFolder, resourceFile);
                 Subject file = Subject.file(folderName + "/" + resourceKey + JSON_EXTENSION);
                 for (String error : validateResource(folderName, resourceKey, resource, structures, viableStructures, verticalEnvelopes)) {
                     problems.add(Problem.error(file, error));
@@ -97,10 +96,10 @@ public final class NativeReplacementValidation {
     private static Map<String, JSONObject> readStructures(File packFolder) {
         File structuresFolder = new File(packFolder, StructureResources.STRUCTURES.folder());
         Map<String, JSONObject> structures = new HashMap<>();
-        for (File structureFile : PackValidationIo.listJsonRecursive(structuresFolder)) {
-            JSONObject structure = PackValidationIo.readJson(structureFile);
+        for (File structureFile : PackJsonFiles.listRecursive(structuresFolder)) {
+            JSONObject structure = PackJsonFiles.read(structureFile);
             if (structure != null) {
-                structures.put(PackValidationIo.deriveKey(structuresFolder, structureFile), structure);
+                structures.put(PackJsonFiles.keyOf(structuresFolder, structureFile), structure);
             }
         }
         return structures;

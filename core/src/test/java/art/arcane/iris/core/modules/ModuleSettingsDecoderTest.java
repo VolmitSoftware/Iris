@@ -125,7 +125,7 @@ public class ModuleSettingsDecoderTest {
     public void loadPack() throws IOException {
         packFolder = folder.newFolder("pack").toPath();
         pack = LoadedPack.load(packFolder, ModuleHost.of(List.of(new MossModule()))
-                .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE).copyingJarsTo(folder.newFolder("copies").toPath()));
+                .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGES).copyingJarsTo(folder.newFolder("copies").toPath()));
         decoder = new ModuleSettingsDecoder(pack.catalog(), packFolder, Gson::new);
     }
 

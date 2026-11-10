@@ -78,7 +78,6 @@ public class StructureResourcesTest {
 
             assertEquals("castle/start", castle.getStartPool());
             assertEquals(5, castle.getMaxDepth());
-            assertEquals("castle", castle.getLoadKey());
             assertSame(castle, data.getPackResources().find(StructureResources.STRUCTURES, new ResourceId("castles", "castle")).orElseThrow());
             assertEquals("castle/start", StructureResources.pool(data.getPackResources(), "castle/start").getPieces().getFirst().getPiece());
             assertEquals("castle/start", StructureResources.piece(data.getPackResources(), "castle/start").getObject());
@@ -149,7 +148,7 @@ public class StructureResourcesTest {
                     entries.stream().map(entry -> entry.getString("url")).filter(url -> url.contains("jigsaw") || url.contains("structures-")).toList());
             JSONObject structures = new JSONObject(Files.readString(pack.resolve(".iris/schema/structures-schema.json")));
             JSONObject startPool = structures.getJSONObject("properties").getJSONObject("startPool");
-            assertEquals("#/definitions/erzjigsaw-pools", startPool.getString("$ref"));
+            assertEquals("#/definitions/erzjigsaw-pools", startPool.optString("$ref", startPool.toString()));
             assertEquals("[\"castle/start\"]",
                     structures.getJSONObject("definitions").getJSONObject("erzjigsaw-pools").getJSONArray("enum").toString());
         } finally {

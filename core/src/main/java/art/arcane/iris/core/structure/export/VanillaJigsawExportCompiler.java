@@ -13,8 +13,6 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceEntry;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceRules;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetype;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import com.volmit.block.BlockState;
@@ -66,10 +64,11 @@ final class VanillaJigsawExportCompiler {
             return rejected(diagnostics);
         }
 
-        validateStructure(structure, request.settings(), diagnostics);
+        validateStructure(request.source().structureKey(), structure, request.settings(), diagnostics);
         StructureGraphCompilation graphCompilation;
         try {
-            graphCompilation = StructureGraphCompiler.compile(structure, request.source().resolver());
+            graphCompilation = StructureGraphCompiler.compile(
+                    request.source().structureKey(), structure, request.source().resolver());
         } catch (RuntimeException exception) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.GRAPH_VALIDATION,
@@ -79,7 +78,7 @@ final class VanillaJigsawExportCompiler {
         }
         addGraphDiagnostics(graphCompilation, diagnostics);
         CompiledStructureGraph graph = graphCompilation.getGraph();
-        validateGraph(graph, diagnostics);
+        validateGraph(graph, request.source(), diagnostics);
         if (hasErrors(diagnostics)) {
             return rejected(diagnostics);
         }
@@ -167,6 +166,7 @@ final class VanillaJigsawExportCompiler {
     }
 
     private void validateStructure(
+            String structureKey,
             IrisStructure structure,
             VanillaJigsawExportSettings settings,
             List<VanillaJigsawExportDiagnostic> diagnostics
@@ -174,50 +174,50 @@ final class VanillaJigsawExportCompiler {
         if (structure.resolvedCompatibility() != IrisJigsawCompatibility.VANILLA_PORTABLE) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.UNSUPPORTED_COMPATIBILITY,
-                    structureKey(structure),
+                    structureKey,
                     "Strict export requires compatibility VANILLA_PORTABLE.");
         }
         if (!structure.stampsPiecesWhereAssembled()) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.UNSUPPORTED_PLACE_MODE,
-                    structureKey(structure),
+                    structureKey,
                     "Vanilla export requires placeMode STRUCTURE_PIECE; Iris terrain and stilt modes have no vanilla jigsaw equivalent.");
         }
         if (structure.getEdit() != null && !structure.getEdit().isEmpty()) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.UNSUPPORTED_EDIT,
-                    structureKey(structure),
+                    structureKey,
                     "Structure-wide Iris block edits cannot be represented losslessly by vanilla template pools.");
         }
         if (structure.getLoot() != null && !structure.getLoot().isEmpty()) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.UNSUPPORTED_LOOT,
-                    structureKey(structure),
+                    structureKey,
                     "Structure-wide Iris loot injection cannot be represented losslessly by this vanilla exporter.");
         }
         if (structure.getThemeSets() != null && !structure.getThemeSets().isEmpty()) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.UNSUPPORTED_THEME_METADATA,
-                    structureKey(structure),
+                    structureKey,
                     "Coherent Iris theme selection has no lossless vanilla jigsaw representation.");
         }
         if (structure.isRequireCaps()) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.UNSUPPORTED_REQUIRED_CAPS,
-                    structureKey(structure),
+                    structureKey,
                     "Vanilla jigsaws cannot enforce Iris requireCaps terminal-closure semantics.");
         }
         if (structure.getMaxDepth() < 1 || structure.getMaxDepth() > MAX_DEPTH) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.INVALID_MAX_DEPTH,
-                    structureKey(structure),
+                    structureKey,
                     "Minecraft 26.2 jigsaw size must be within 0..20; Iris export requires 1..20.");
         }
         long horizontalDistance = (long) structure.getMaxSizeChunks() * 16L;
         if (horizontalDistance < 1L || horizontalDistance > MAX_HORIZONTAL_DISTANCE) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.INVALID_MAX_DISTANCE,
-                    structureKey(structure),
+                    structureKey,
                     "Iris maxSizeChunks maps to " + horizontalDistance
                             + " blocks, outside Minecraft 26.2's 1..128 horizontal limit.");
         }
@@ -226,7 +226,7 @@ final class VanillaJigsawExportCompiler {
         if (horizontalDistance + terrainPadding > MAX_HORIZONTAL_DISTANCE) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.INVALID_MAX_DISTANCE,
-                    structureKey(structure),
+                    structureKey,
                     "Horizontal distance plus vanilla terrain-adaptation padding must not exceed 128 blocks.");
         }
     }
@@ -250,6 +250,7 @@ final class VanillaJigsawExportCompiler {
 
     private void validateGraph(
             CompiledStructureGraph graph,
+            VanillaJigsawExportSource source,
             List<VanillaJigsawExportDiagnostic> diagnostics
     ) {
         Map<IrisJigsawWorkcellArchetype, PlanarJigsawWorkcellResolver.ResolvedWorkcell> workcells =
@@ -275,7 +276,7 @@ final class VanillaJigsawExportCompiler {
                         pieceKey,
                         "Iris piece keys must be valid lowercase resource paths for vanilla export.");
             }
-            validatePiece(graph, pieceKey, pieceEntry.getValue(), diagnostics);
+            validatePiece(graph, source, pieceKey, pieceEntry.getValue(), diagnostics);
         }
     }
 
@@ -334,6 +335,7 @@ final class VanillaJigsawExportCompiler {
 
     private void validatePiece(
             CompiledStructureGraph graph,
+            VanillaJigsawExportSource source,
             String pieceKey,
             IrisJigsawPiece piece,
             List<VanillaJigsawExportDiagnostic> diagnostics
@@ -367,7 +369,7 @@ final class VanillaJigsawExportCompiler {
                     pieceKey,
                     "Vanilla template pools cannot serialize Iris collidable=false assembly metadata.");
         }
-        IrisObject object = graph.getObjects().get(trim(piece.getObject()));
+        ObjectContents object = source.contents(trim(piece.getObject()));
         if (object == null) {
             return;
         }
@@ -377,10 +379,10 @@ final class VanillaJigsawExportCompiler {
 
     private void validateObject(
             String pieceKey,
-            IrisObject object,
+            ObjectContents object,
             List<VanillaJigsawExportDiagnostic> diagnostics
     ) {
-        IrisObject.ApiContents contents = object.apiContents();
+        ObjectContents contents = object;
         if (!contents.blockEntities().isEmpty()) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.UNSUPPORTED_TILE_DATA,
@@ -391,13 +393,13 @@ final class VanillaJigsawExportCompiler {
             BlockState state = entry.getValue();
             BlockPosition position = entry.getKey();
             String resource = pieceKey + "@" + new IrisBlockVector(
-                    position.x() - object.getCenter().getX(),
-                    position.y() - object.getCenter().getY(),
-                    position.z() - object.getCenter().getZ());
+                    position.x() - object.center().x(),
+                    position.y() - object.center().y(),
+                    position.z() - object.center().z());
             int x = position.x();
             int y = position.y();
             int z = position.z();
-            if (x < 0 || x >= object.getW() || y < 0 || y >= object.getH() || z < 0 || z >= object.getD()) {
+            if (x < 0 || x >= object.width() || y < 0 || y >= object.height() || z < 0 || z >= object.depth()) {
                 addError(diagnostics,
                         VanillaJigsawExportDiagnostic.Code.INVALID_BLOCK_STATE,
                         resource,
@@ -440,14 +442,14 @@ final class VanillaJigsawExportCompiler {
             CompiledStructureGraph graph,
             String pieceKey,
             IrisJigsawPiece piece,
-            IrisObject object,
+            ObjectContents object,
             List<VanillaJigsawExportDiagnostic> diagnostics
     ) {
         if (piece.getConnectors() == null) {
             return;
         }
         Set<String> positions = new LinkedHashSet<>();
-        Map<BlockPosition, BlockState> storedBlocks = object.apiContents().blocks();
+        Map<BlockPosition, BlockState> storedBlocks = object.blocks();
         for (int index = 0; index < piece.getConnectors().size(); index++) {
             IrisJigsawConnector connector = piece.getConnectors().get(index);
             if (connector == null) {
@@ -477,11 +479,11 @@ final class VanillaJigsawExportCompiler {
                         resource,
                         exception.getMessage() == null ? "Connector orientation is incomplete." : exception.getMessage());
             }
-            IrisPosition position = connector.getPosition();
+            BlockPosition position = connector.getPosition();
             if (position == null || !inside(position, object)) {
                 continue;
             }
-            String positionKey = position.getX() + "," + position.getY() + "," + position.getZ();
+            String positionKey = position.x() + "," + position.y() + "," + position.z();
             if (!positions.add(positionKey)) {
                 addError(diagnostics,
                         VanillaJigsawExportDiagnostic.Code.DUPLICATE_CONNECTOR_POSITION,
@@ -523,8 +525,8 @@ final class VanillaJigsawExportCompiler {
                     exception.getMessage());
             return;
         }
-        IrisPosition position = connector.getPosition();
-        BlockState objectState = storedBlocks.get(new BlockPosition(position.getX(), position.getY(), position.getZ()));
+        BlockPosition position = connector.getPosition();
+        BlockState objectState = storedBlocks.get(position);
         String expectedSource = objectState == null ? "minecraft:structure_void" : objectState.key();
         try {
             VanillaBlockState expected = VanillaBlockState.parse(expectedSource);
@@ -567,7 +569,7 @@ final class VanillaJigsawExportCompiler {
             if (!pieceEnabled(workcells, pieceEntry.getValue())) {
                 continue;
             }
-            IrisObject object = graph.getObjects().get(trim(pieceEntry.getValue().getObject()));
+            ObjectContents object = request.source().contents(trim(pieceEntry.getValue().getObject()));
             byte[] template = encoder.encode(
                     object,
                     pieceEntry.getValue(),
@@ -757,10 +759,10 @@ final class VanillaJigsawExportCompiler {
         return request.namespace() + ":" + request.resourcePath() + "/piece/" + pieceKey;
     }
 
-    private boolean inside(IrisPosition position, IrisObject object) {
-        return position.getX() >= 0 && position.getX() < object.getW()
-                && position.getY() >= 0 && position.getY() < object.getH()
-                && position.getZ() >= 0 && position.getZ() < object.getD();
+    private boolean inside(BlockPosition position, ObjectContents object) {
+        return position.x() >= 0 && position.x() < object.width()
+                && position.y() >= 0 && position.y() < object.height()
+                && position.z() >= 0 && position.z() < object.depth();
     }
 
     private boolean hasErrors(List<VanillaJigsawExportDiagnostic> diagnostics) {
@@ -787,11 +789,6 @@ final class VanillaJigsawExportCompiler {
                 code,
                 resource,
                 message));
-    }
-
-    private String structureKey(IrisStructure structure) {
-        String key = structure.getLoadKey();
-        return key == null || key.isBlank() ? "<unloaded>" : key;
     }
 
     private String trim(String value) {

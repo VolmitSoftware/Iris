@@ -1,6 +1,6 @@
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
 import org.junit.Test;
@@ -18,7 +18,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class JigsawStudioBlocksTest {
-    private static final ObjectTurn QUARTER_TURN = ObjectTurn.of(0, 90.0D, 0);
+    private static final PieceTurn QUARTER_TURN = PieceTurn.aroundY(90);
 
     @Test
     public void aBlockTheRegistryCannotTurnComesBackAsNothingNotAsAir() {
@@ -43,7 +43,7 @@ public class JigsawStudioBlocksTest {
         BlockRegistry registry = mock(BlockRegistry.class);
         BlockState stairs = BlockState.parse("minecraft:oak_stairs[facing=east]");
 
-        assertSame(stairs, JigsawStudioBlocks.rotated(registry, stairs, ObjectTurn.of(0, 0, 0)));
+        assertSame(stairs, JigsawStudioBlocks.rotated(registry, stairs, PieceTurn.NONE));
         verifyNoInteractions(registry);
     }
 

@@ -1,8 +1,12 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.engine.framework.IrisStructureLocator;
-import art.arcane.iris.engine.framework.PlacedStructurePiece;
-import art.arcane.iris.engine.object.structure.IrisStructure;
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.engine.framework.structure.assembly.AssembledPiece;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
+import art.arcane.iris.engine.framework.structure.assembly.StructureStamp;
+import com.volmit.resource.ResourceId;
+import java.util.List;
 import art.arcane.iris.builtin.structure.StructurePlacement;
 import art.arcane.iris.builtin.structure.NativeStructureSuppression;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -88,21 +92,20 @@ public class StructurePlacingMarkerTest {
     private IrisStructureLocator.ResolvedPlacement resolvedWithOnePiece(
             NativeStructureSuppression suppression
     ) {
-        KList<PlacedStructurePiece> pieces = new KList<>();
-        pieces.add(mock(PlacedStructurePiece.class));
+        KList<AssembledPiece> pieces = new KList<>();
+        pieces.add(new AssembledPiece(new ResourceId("test", "piece"), 0, 0, 0, PieceTurn.NONE, 0, 0, 0, 0, 0, 0));
         return resolvedPlacement(suppression, pieces);
     }
 
     private IrisStructureLocator.ResolvedPlacement resolvedPlacement(
             NativeStructureSuppression suppression,
-            KList<PlacedStructurePiece> pieces
+            KList<AssembledPiece> pieces
     ) {
         StructurePlacement placement = placement("nativeSuppression", suppression);
         withAdded(placement, "structures", "test:city");
-        IrisStructure structure = new IrisStructure();
-        structure.setLoadKey("test:city");
+        StructureStamp stamp = new StructureStamp(ObjectPlaceMode.STRUCTURE_PIECE, List.of(), List.of(), "");
         return new IrisStructureLocator.ResolvedPlacement(
-                placement, "test:city", structure, pieces, new RNG(1L), 0, 64, 0, false);
+                placement, "test:city", stamp, pieces, new RNG(1L), 0, 64, 0, false);
     }
 
     private void assertReplacementFailure(Runnable operation, String expectedMessage) {

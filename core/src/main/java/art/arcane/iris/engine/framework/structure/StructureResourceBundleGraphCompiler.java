@@ -22,12 +22,11 @@ import art.arcane.iris.core.structure.authoring.StructureResourceBundle;
 import art.arcane.iris.engine.framework.StructureAssembler;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.volmit.geometry.BlockPosition;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -49,8 +48,8 @@ public final class StructureResourceBundleGraphCompiler {
     public static List<StructureGraphCompilation> compile(StructureResourceBundle bundle) {
         BundleGraph graph = parse(Objects.requireNonNull(bundle));
         List<StructureGraphCompilation> compilations = new ArrayList<>(graph.structures().size());
-        for (IrisStructure structure : graph.structures().values()) {
-            compilations.add(StructureGraphCompiler.compile(structure, graph.resolver()));
+        for (Map.Entry<String, IrisStructure> structure : graph.structures().entrySet()) {
+            compilations.add(StructureGraphCompiler.compile(structure.getKey(), structure.getValue(), graph.resolver()));
         }
         return List.copyOf(compilations);
     }
@@ -60,8 +59,9 @@ public final class StructureResourceBundleGraphCompiler {
         if (graph.structures().isEmpty()) {
             throw new StructureGraphValidationException("Structure bundle does not contain a root structure resource");
         }
-        for (IrisStructure structure : graph.structures().values()) {
-            StructureGraphCompilation compilation = StructureGraphCompiler.compile(structure, graph.resolver());
+        for (Map.Entry<String, IrisStructure> structure : graph.structures().entrySet()) {
+            StructureGraphCompilation compilation = StructureGraphCompiler.compile(
+                    structure.getKey(), structure.getValue(), graph.resolver());
             if (!compilation.isAssemblyViable()) {
                 throw new StructureGraphValidationException(
                         "Structure bundle graph is not viable: " + viabilityFailure(compilation));
@@ -90,14 +90,11 @@ public final class StructureResourceBundleGraphCompiler {
         Map<String, IrisStructure> structures = new LinkedHashMap<>();
         Map<String, IrisJigsawPool> pools = new LinkedHashMap<>();
         Map<String, IrisJigsawPiece> pieces = new LinkedHashMap<>();
-        Map<String, IrisObject> objects = new LinkedHashMap<>();
+        Map<String, ObjectFrame> objects = new LinkedHashMap<>();
         for (StructureResourceBundle.Resource resource : activeBundle.resources().values()) {
             String path = resource.relativePath();
             if (matches(path, "structures/", ".json")) {
-                IrisStructure structure = readJson(resource, IrisStructure.class);
-                String key = key(path, "structures/", ".json");
-                structure.setLoadKey(key);
-                structures.put(key, structure);
+                structures.put(key(path, "structures/", ".json"), readJson(resource, IrisStructure.class));
             } else if (matches(path, "jigsaw-pools/", ".json")) {
                 pools.put(key(path, "jigsaw-pools/", ".json"), readJson(resource, IrisJigsawPool.class));
             } else if (matches(path, "jigsaw-pieces/", ".json")) {
@@ -114,7 +111,7 @@ public final class StructureResourceBundleGraphCompiler {
         for (long seed : ASSEMBLY_SEEDS) {
             try {
                 StructureAssembler assembler = StructureAssembler.forCompilation(
-                        compilation, new IrisPosition(0, 64, 0));
+                        compilation, new BlockPosition(0, 64, 0));
                 StructureAssemblyResult result = assembler.assemble(new RNG(seed));
                 if (result.status().isFailure()) {
                     throw new StructureGraphValidationException("Structure bundle graph '" + structureKey
@@ -157,7 +154,7 @@ public final class StructureResourceBundleGraphCompiler {
         return value;
     }
 
-    private static IrisObject readObjectBounds(StructureResourceBundle.Resource resource) {
+    private static ObjectFrame readObjectBounds(StructureResourceBundle.Resource resource) {
         try (ByteArrayInputStream input = new ByteArrayInputStream(resource.content())) {
             return IrisObjectFrameReader.readBounds(input, resource.relativePath());
         } catch (IOException e) {
@@ -168,7 +165,7 @@ public final class StructureResourceBundleGraphCompiler {
     private record BundleResolver(
             Map<String, IrisJigsawPool> pools,
             Map<String, IrisJigsawPiece> pieces,
-            Map<String, IrisObject> objects
+            Map<String, ObjectFrame> objects
     ) implements StructureGraphResolver {
         private BundleResolver {
             pools = Map.copyOf(pools);
@@ -187,7 +184,7 @@ public final class StructureResourceBundleGraphCompiler {
         }
 
         @Override
-        public IrisObject loadObject(String key) {
+        public ObjectFrame loadObject(String key) {
             return objects.get(key);
         }
     }

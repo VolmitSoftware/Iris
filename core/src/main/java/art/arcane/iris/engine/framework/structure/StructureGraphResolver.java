@@ -1,9 +1,8 @@
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import com.volmit.resource.PackResources;
 
 import java.util.Objects;
 
@@ -12,10 +11,11 @@ public interface StructureGraphResolver {
 
     IrisJigsawPiece loadPiece(String key);
 
-    IrisObject loadObject(String key);
+    /** The declared size of the pack object {@code key} names; null when the pack has none. */
+    ObjectFrame loadObject(String key);
 
-    static StructureGraphResolver forData(IrisData data) {
-        return new IrisDataStructureGraphResolver(Objects.requireNonNull(data));
+    static StructureGraphResolver forPack(PackResources pack) {
+        return new PackStructureGraphResolver(Objects.requireNonNull(pack));
     }
 
     static StructureGraphResolver forCompiledGraph(CompiledStructureGraph graph) {
@@ -23,26 +23,29 @@ public interface StructureGraphResolver {
     }
 }
 
-final class IrisDataStructureGraphResolver implements StructureGraphResolver {
-    private final IrisData data;
+final class PackStructureGraphResolver implements StructureGraphResolver {
+    private final PackResources pack;
 
-    IrisDataStructureGraphResolver(IrisData data) {
-        this.data = data;
+    PackStructureGraphResolver(PackResources pack) {
+        this.pack = pack;
     }
 
     @Override
     public IrisJigsawPool loadPool(String key) {
-        return StructureResources.pool(data.getPackResources(), key);
+        return StructureResources.pool(pack, key);
     }
 
     @Override
     public IrisJigsawPiece loadPiece(String key) {
-        return StructureResources.piece(data.getPackResources(), key);
+        return StructureResources.piece(pack, key);
     }
 
     @Override
-    public IrisObject loadObject(String key) {
-        return data.load(IrisObject.class, key, false);
+    public ObjectFrame loadObject(String key) {
+        if (key == null || key.isBlank()) {
+            return null;
+        }
+        return pack.objects().sizeOf(pack.idOf(key)).map(ObjectFrame::of).orElse(null);
     }
 }
 
@@ -64,7 +67,7 @@ final class CompiledStructureGraphResolver implements StructureGraphResolver {
     }
 
     @Override
-    public IrisObject loadObject(String key) {
+    public ObjectFrame loadObject(String key) {
         return graph.getObjects().get(normalize(key));
     }
 

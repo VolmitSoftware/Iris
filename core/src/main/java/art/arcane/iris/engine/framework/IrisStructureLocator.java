@@ -19,17 +19,16 @@
 package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.builtin.anchor.PlaceTrait;
+import art.arcane.iris.engine.framework.structure.ColumnHeights;
 import art.arcane.iris.engine.framework.structure.NativeStartPlanner;
-import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.structure.StructureGraphCatalog;
-import art.arcane.iris.engine.framework.structure.StructureGraphCompilation;
-import art.arcane.iris.engine.framework.structure.StructureAssemblyResult;
+import art.arcane.iris.engine.framework.structure.assembly.AssembledPiece;
+import art.arcane.iris.engine.framework.structure.assembly.Assembly;
+import art.arcane.iris.engine.framework.structure.assembly.StructureAssembly;
+import art.arcane.iris.engine.framework.structure.assembly.StructureStamp;
+import art.arcane.iris.engine.framework.structure.assembly.Viability;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.builtin.structure.NativeStructureSource;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.builtin.structure.StructureAnchorMode;
 import art.arcane.iris.builtin.structure.StructureCarveShape;
 import art.arcane.iris.builtin.structure.StructurePlacement;
@@ -39,9 +38,9 @@ import art.arcane.iris.builtin.structure.NativeStructureSuppression;
 import art.arcane.iris.builtin.structure.StructureDistribution;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.core.modules.IrisModuleHost;
-import com.volmit.ModuleLog;
-import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -171,7 +170,7 @@ public final class IrisStructureLocator {
             return false;
         }
         for (StructurePlacement placement : index(engine).placements) {
-            if (placement.hasIrisStructures() && matches(placement, key, engine.getData())) {
+            if (placement.hasIrisStructures() && matches(placement, key, engine)) {
                 return true;
             }
         }
@@ -516,32 +515,33 @@ public final class IrisStructureLocator {
         if (selectedKey == null || selectedKey.isBlank()) {
             throw new IllegalStateException("Iris structure placement selected a blank structure key");
         }
-        IrisStructure structure = StructureResources.structure(engine.getData().getPackResources(), selectedKey);
-        if (structure == null) {
+        PackResources pack = engine.getData().getPackResources();
+        ResourceId structureId = pack.idOf(selectedKey);
+        StructureAssembly provider = providerOf(engine, structureId);
+        if (provider == null) {
             throw new IllegalStateException("Iris structure placement references missing structure '"
                     + selectedKey + "'");
         }
-        StructureGraphCompilation compilation = StructureGraphCatalog.compile(engine.getData(), structure, IrisModuleHost.hostLog());
-        if (!compilation.isAssemblyViable()) {
+        if (!provider.viability(pack, structureId).isViable()) {
             throw new IllegalStateException("Iris structure '" + selectedKey
                     + "' has no runtime-viable assembly graph");
         }
 
-        StructureAssembler assembler = StructureAssembler.forData(
-                engine.getData(), structure, new IrisPosition(originX, baseY, originZ), IrisModuleHost.hostLog());
-        StructureAssemblyResult assembly = assembler.assemble(rng);
+        Assembly assembly = provider.assemble(pack, structureId, new BlockPosition(originX, baseY, originZ), rng)
+                .orElseThrow();
         if (!requirePlacementOutput(placement, selectedKey, cx, cz,
                 assembly.hasOutput(), "runtime assembly produced " + assembly.status() + ": " + assembly.detail())) {
             return null;
         }
-        KList<PlacedStructurePiece> pieces = new KList<>(assembly.pieces());
+        StructureStamp stamp = provider.stamp(pack, structureId).orElseThrow();
+        KList<AssembledPiece> pieces = new KList<>(assembly.pieces());
         pieces = alignCavePieces(pieces, placement, baseY);
-        pieces = alignSurfacePieces(pieces, placement, structure, baseY);
+        pieces = alignSurfacePieces(pieces, placement, stamp, baseY);
         if (!requirePlacementOutput(placement, selectedKey, cx, cz,
                 pieces != null && !pieces.isEmpty(), "surface alignment produced no pieces")) {
             return null;
         }
-        boolean exactY = hasExactY(placement, structure, pieces);
+        boolean exactY = hasExactY(placement, stamp, pieces);
 
         int worldMin = engine.getMinHeight() + 1;
         int worldMax = engine.getMinHeight() + engine.getHeight() - 1;
@@ -569,7 +569,7 @@ public final class IrisStructureLocator {
             }
         }
 
-        long configuredRadius = (long) Math.max(1, structure.getMaxSizeChunks()) * 16L;
+        long configuredRadius = (long) Math.max(1, provider.reachChunks(pack, structureId).orElse(1)) * 16L;
         int structureRadius = (int) Math.min(Integer.MAX_VALUE, configuredRadius);
         boolean withinBounds = fitsHorizontalBounds(pieces, originX, originZ, structureRadius)
                 && (!exactY || fitsVerticalBounds(pieces, worldMin, worldMax));
@@ -577,7 +577,29 @@ public final class IrisStructureLocator {
                 "assembled pieces exceed the configured structure or world bounds")) {
             return null;
         }
-        return new ResolvedPlacement(placement, selectedKey, structure, pieces, rng, originX, baseY, originZ, exactY);
+        return new ResolvedPlacement(placement, selectedKey, stamp, pieces, rng, originX, baseY, originZ, exactY);
+    }
+
+    /**
+     * The first provider of {@link StructureAssembly} among the modules of the engine's pack that knows {@code structure};
+     * null when none does.
+     */
+    public static StructureAssembly providerOf(Engine engine, ResourceId structure) {
+        PackResources pack = engine.getData().getPackResources();
+        for (StructureAssembly provider : engine.getGeneration().world().services(StructureAssembly.class)) {
+            if (provider.knows(pack, structure)) {
+                return provider;
+            }
+        }
+        return null;
+    }
+
+    /** How the pieces of the pack structure {@code key} are stamped; null when no module knows the structure. */
+    public static StructureStamp stampOf(Engine engine, String key) {
+        PackResources pack = engine.getData().getPackResources();
+        ResourceId structure = pack.idOf(key);
+        StructureAssembly provider = providerOf(engine, structure);
+        return provider == null ? null : provider.stamp(pack, structure).orElse(null);
     }
 
     public static boolean requirePlacementOutput(StructurePlacement placement, String structureKey,
@@ -599,7 +621,7 @@ public final class IrisStructureLocator {
                 + ". Native generation is suppressed and will not be used as a fallback");
     }
 
-    static boolean fitsWorldBounds(KList<PlacedStructurePiece> pieces, int worldMin, int worldMax,
+    static boolean fitsWorldBounds(KList<AssembledPiece> pieces, int worldMin, int worldMax,
                                   int originX, int originZ, int structureRadius) {
         int[] bounds = computeBounds(pieces);
         if (bounds == null) {
@@ -610,7 +632,6 @@ public final class IrisStructureLocator {
     }
 
     private static ResolvedStart resolveInChunk(Engine engine, String key, int cx, int cz) {
-        IrisData data = engine.getData();
         String normalizedKey = normalize(key);
         if (hasNativePlacement(engine, key)) {
             for (NativeStartPlanner.Plan plan : NativeStartPlanner.plansAt(engine, cx, cz)) {
@@ -621,7 +642,7 @@ public final class IrisStructureLocator {
         }
         KList<StructurePlacement> placements = StructurePlacementScope.placementsAt(engine, cx, cz);
         for (StructurePlacement placement : placements) {
-            if (!matches(placement, key, data)) {
+            if (!matches(placement, key, engine)) {
                 continue;
             }
             if (placement.hasNativeStructures()) {
@@ -676,7 +697,7 @@ public final class IrisStructureLocator {
         return randomInclusive(rng, bandMin, bandMax);
     }
 
-    static Integer resolveVerticalShift(KList<PlacedStructurePiece> pieces, StructurePlacement placement,
+    static Integer resolveVerticalShift(KList<AssembledPiece> pieces, StructurePlacement placement,
                                         int baseY, int worldMin, int worldMax) {
         int[] bounds = computeBounds(pieces);
         if (bounds == null) {
@@ -701,7 +722,7 @@ public final class IrisStructureLocator {
         return 0;
     }
 
-    static Integer resolveUndergroundBurialShift(Engine engine, KList<PlacedStructurePiece> pieces,
+    static Integer resolveUndergroundBurialShift(Engine engine, KList<AssembledPiece> pieces,
                                                   StructurePlacement placement, int baseY,
                                                   int worldMin, int worldMax) {
         int[] bounds = computeBounds(pieces);
@@ -729,8 +750,7 @@ public final class IrisStructureLocator {
             return null;
         }
 
-        Long2IntOpenHashMap surfaceHeights = new Long2IntOpenHashMap();
-        surfaceHeights.defaultReturnValue(Integer.MIN_VALUE);
+        ColumnHeights surfaceHeights = new ColumnHeights(Integer.MIN_VALUE);
         if (bore || forceCarve && carveShape == StructureCarveShape.BOX) {
             maximumShift = resolveBurialEnvelopeShift(
                     engine,
@@ -746,14 +766,14 @@ public final class IrisStructureLocator {
                 return null;
             }
         } else {
-            for (PlacedStructurePiece piece : pieces) {
+            for (AssembledPiece piece : pieces) {
                 maximumShift = resolveBurialEnvelopeShift(
                         engine,
-                        piece.getMinX() - sideExtension,
-                        piece.getMaxX() + sideExtension,
-                        piece.getMinZ() - sideExtension,
-                        piece.getMaxZ() + sideExtension,
-                        piece.getMaxY() + topExtension,
+                        piece.minX() - sideExtension,
+                        piece.maxX() + sideExtension,
+                        piece.minZ() - sideExtension,
+                        piece.maxZ() + sideExtension,
+                        piece.maxY() + topExtension,
                         maximumShift,
                         surfaceHeights
                 );
@@ -767,7 +787,7 @@ public final class IrisStructureLocator {
 
     private static int resolveBurialEnvelopeShift(Engine engine, int minX, int maxX, int minZ, int maxZ,
                                                    int envelopeTopY, int maximumShift,
-                                                   Long2IntOpenHashMap surfaceHeights) {
+                                                   ColumnHeights surfaceHeights) {
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
                 long columnKey = ((long) x << 32) ^ (z & 0xffffffffL);
@@ -793,8 +813,8 @@ public final class IrisStructureLocator {
         return placement.structures().get(rng.nextInt(placement.structures().size()));
     }
 
-    static KList<PlacedStructurePiece> alignCavePieces(
-            KList<PlacedStructurePiece> pieces,
+    static KList<AssembledPiece> alignCavePieces(
+            KList<AssembledPiece> pieces,
             StructurePlacement placement,
             int anchorY
     ) {
@@ -815,24 +835,24 @@ public final class IrisStructureLocator {
         return shiftPieces(pieces, anchorY - targetY);
     }
 
-    private static KList<PlacedStructurePiece> alignSurfacePieces(KList<PlacedStructurePiece> pieces,
+    private static KList<AssembledPiece> alignSurfacePieces(KList<AssembledPiece> pieces,
                                                                   StructurePlacement placement,
-                                                                  IrisStructure structure, int baseY) {
+                                                                  StructureStamp stamp, int baseY) {
         if (placement.isAnchoredUnderground() || pieces.size() <= 1
-                || structure.getPlaceMode().placeMode().has(PlaceTrait.FREE_HEIGHT)) {
+                || stamp.placeMode().placeMode().has(PlaceTrait.FREE_HEIGHT)) {
             return pieces;
         }
         int[] bounds = computeBounds(pieces);
         return bounds == null ? pieces : shiftPieces(pieces, baseY - bounds[1]);
     }
 
-    static boolean hasExactY(StructurePlacement placement, IrisStructure structure,
-                             KList<PlacedStructurePiece> pieces) {
+    static boolean hasExactY(StructurePlacement placement, StructureStamp stamp,
+                             KList<AssembledPiece> pieces) {
         return placement.isAnchoredUnderground() || pieces.size() > 1
-                || structure.getPlaceMode().placeMode().has(PlaceTrait.FREE_HEIGHT);
+                || stamp.placeMode().placeMode().has(PlaceTrait.FREE_HEIGHT);
     }
 
-    private static boolean fitsVerticalBounds(KList<PlacedStructurePiece> pieces, int worldMin, int worldMax) {
+    private static boolean fitsVerticalBounds(KList<AssembledPiece> pieces, int worldMin, int worldMax) {
         int[] bounds = computeBounds(pieces);
         return bounds != null && fitsVerticalBounds(bounds, worldMin, worldMax);
     }
@@ -841,7 +861,7 @@ public final class IrisStructureLocator {
         return bounds[1] >= worldMin && bounds[4] <= worldMax;
     }
 
-    private static boolean fitsHorizontalBounds(KList<PlacedStructurePiece> pieces, int originX, int originZ,
+    private static boolean fitsHorizontalBounds(KList<AssembledPiece> pieces, int originX, int originZ,
                                                 int structureRadius) {
         int[] bounds = computeBounds(pieces);
         return bounds != null && fitsHorizontalBounds(bounds, originX, originZ, structureRadius);
@@ -852,18 +872,15 @@ public final class IrisStructureLocator {
                 && bounds[2] >= originZ - structureRadius && bounds[5] <= originZ + structureRadius;
     }
 
-    private static KList<PlacedStructurePiece> shiftPieces(KList<PlacedStructurePiece> pieces, int shiftY) {
-        KList<PlacedStructurePiece> shifted = new KList<>();
-        for (PlacedStructurePiece piece : pieces) {
-            shifted.add(new PlacedStructurePiece(
-                    piece.getPiece(), piece.getObject(), piece.getX(), piece.getY() + shiftY, piece.getZ(), piece.getRotation(),
-                    piece.getMinX(), piece.getMinY() + shiftY, piece.getMinZ(),
-                    piece.getMaxX(), piece.getMaxY() + shiftY, piece.getMaxZ()));
+    private static KList<AssembledPiece> shiftPieces(KList<AssembledPiece> pieces, int shiftY) {
+        KList<AssembledPiece> shifted = new KList<>();
+        for (AssembledPiece piece : pieces) {
+            shifted.add(piece.shiftedUp(shiftY));
         }
         return shifted;
     }
 
-    private static int[] computeBounds(KList<PlacedStructurePiece> pieces) {
+    private static int[] computeBounds(KList<AssembledPiece> pieces) {
         if (pieces == null || pieces.isEmpty()) {
             return null;
         }
@@ -873,13 +890,13 @@ public final class IrisStructureLocator {
         int maxX = Integer.MIN_VALUE;
         int maxY = Integer.MIN_VALUE;
         int maxZ = Integer.MIN_VALUE;
-        for (PlacedStructurePiece piece : pieces) {
-            minX = Math.min(minX, piece.getMinX());
-            minY = Math.min(minY, piece.getMinY());
-            minZ = Math.min(minZ, piece.getMinZ());
-            maxX = Math.max(maxX, piece.getMaxX());
-            maxY = Math.max(maxY, piece.getMaxY());
-            maxZ = Math.max(maxZ, piece.getMaxZ());
+        for (AssembledPiece piece : pieces) {
+            minX = Math.min(minX, piece.minX());
+            minY = Math.min(minY, piece.minY());
+            minZ = Math.min(minZ, piece.minZ());
+            maxX = Math.max(maxX, piece.maxX());
+            maxY = Math.max(maxY, piece.maxY());
+            maxZ = Math.max(maxZ, piece.maxZ());
         }
         return new int[]{minX, minY, minZ, maxX, maxY, maxZ};
     }
@@ -897,7 +914,7 @@ public final class IrisStructureLocator {
         boolean hasDensity = false;
         for (StructurePlacement placement : index(engine).placements) {
             if (!isSearchablePlacement(engine, placement)
-                    || !matches(placement, key, engine.getData())) {
+                    || !matches(placement, key, engine)) {
                 continue;
             }
             if (placement.distribution() == StructureDistribution.RANDOM_SPREAD) {
@@ -1016,8 +1033,8 @@ public final class IrisStructureLocator {
     private record PlacementAnchor(int x, int y, int z) {
     }
 
-    private static boolean matches(StructurePlacement placement, String key, IrisData data) {
-        if (placement == null || key == null || data == null) {
+    private static boolean matches(StructurePlacement placement, String key, Engine engine) {
+        if (placement == null || key == null || engine == null || engine.getData() == null) {
             return false;
         }
         String normalizedKey = normalize(key);
@@ -1030,13 +1047,12 @@ public final class IrisStructureLocator {
             if (structureKey == null || structureKey.isBlank()) {
                 continue;
             }
-            IrisStructure structure = StructureResources.structure(data.getPackResources(), structureKey);
-            if (structure == null) {
+            StructureStamp stamp = stampOf(engine, structureKey);
+            if (stamp == null) {
                 continue;
             }
             if (normalize(structureKey).equals(normalizedKey)
-                    || normalize(structure.getLoadKey()).equals(normalizedKey)
-                    || normalize(structure.getVanillaSource()).equals(normalizedKey)) {
+                    || normalize(stamp.vanillaSource()).equals(normalizedKey)) {
                 return true;
             }
         }
@@ -1046,8 +1062,7 @@ public final class IrisStructureLocator {
     static boolean matchesResolved(ResolvedPlacement resolved, String key) {
         String normalizedKey = normalize(key);
         return normalize(resolved.structureKey()).equals(normalizedKey)
-                || normalize(resolved.structure().getLoadKey()).equals(normalizedKey)
-                || normalize(resolved.structure().getVanillaSource()).equals(normalizedKey);
+                || normalize(resolved.stamp().vanillaSource()).equals(normalizedKey);
     }
 
     private static String normalize(String key) {
@@ -1072,7 +1087,6 @@ public final class IrisStructureLocator {
     }
 
     private static LocatableIndex buildLocatableIndex(Engine engine) {
-        IrisData data = engine.getData();
         Set<String> keys = new LinkedHashSet<>();
         Set<String> normalizedKeys = new LinkedHashSet<>();
         Set<String> editableKeys = new LinkedHashSet<>();
@@ -1091,17 +1105,15 @@ public final class IrisStructureLocator {
                 continue;
             }
             for (String structureKey : placement.structures()) {
-                IrisStructure structure = StructureResources.structure(data.getPackResources(), structureKey);
-                if (structure == null) {
+                StructureStamp stamp = stampOf(engine, structureKey);
+                if (stamp == null) {
                     throw new IllegalStateException(
                             "Iris structure placement references missing structure '" + structureKey + "'");
                 }
                 addLocatableKey(structureKey, keys, normalizedKeys);
                 addLocatableKey(structureKey, editableKeys, normalizedEditableKeys);
-                addLocatableKey(structure.getLoadKey(), keys, normalizedKeys);
-                addLocatableKey(structure.getLoadKey(), editableKeys, normalizedEditableKeys);
-                addLocatableKey(structure.getVanillaSource(), keys, normalizedKeys);
-                addLocatableKey(structure.getVanillaSource(), editableKeys, normalizedEditableKeys);
+                addLocatableKey(stamp.vanillaSource(), keys, normalizedKeys);
+                addLocatableKey(stamp.vanillaSource(), editableKeys, normalizedEditableKeys);
             }
         }
         return new LocatableIndex(
@@ -1123,19 +1135,17 @@ public final class IrisStructureLocator {
     }
 
     private static PlacementIndex build(Engine engine) {
-        IrisData data = engine.getData();
-        ModuleLog log = IrisModuleHost.hostLog();
         Set<String> loadKeys = new LinkedHashSet<>();
         Set<String> normalizedLoadKeys = new LinkedHashSet<>();
         Set<String> vanillaAliases = new LinkedHashSet<>();
         Set<String> suppressedVanillaSources = new LinkedHashSet<>();
         List<StructurePlacement> placements = new ArrayList<>();
-        collect(StructurePlacementScope.placementsOf(engine.getDimension()), data, log, loadKeys, normalizedLoadKeys, vanillaAliases,
+        collect(StructurePlacementScope.placementsOf(engine.getDimension()), engine, loadKeys, normalizedLoadKeys, vanillaAliases,
                 suppressedVanillaSources, placements, true);
         KList<IrisRegion> regions = engine.getDimension().getAllRegions(engine);
         if (regions != null) {
             for (IrisRegion region : regions) {
-                collect(StructurePlacementScope.placementsOf(region), data, log,
+                collect(StructurePlacementScope.placementsOf(region), engine,
                         loadKeys, normalizedLoadKeys, vanillaAliases,
                         suppressedVanillaSources, placements, false);
             }
@@ -1143,7 +1153,7 @@ public final class IrisStructureLocator {
         KList<IrisBiome> biomes = engine.getDimension().getReachableBiomes(engine);
         if (biomes != null) {
             for (IrisBiome biome : biomes) {
-                collect(StructurePlacementScope.placementsOf(biome), data, log,
+                collect(StructurePlacementScope.placementsOf(biome), engine,
                         loadKeys, normalizedLoadKeys, vanillaAliases,
                         suppressedVanillaSources, placements, false);
             }
@@ -1172,7 +1182,7 @@ public final class IrisStructureLocator {
         return Collections.unmodifiableSet(nativeKeys);
     }
 
-    private static void collect(List<StructurePlacement> source, IrisData data, ModuleLog log, Set<String> loadKeys,
+    private static void collect(List<StructurePlacement> source, Engine engine, Set<String> loadKeys,
                                 Set<String> normalizedLoadKeys, Set<String> vanillaAliases,
                                 Set<String> suppressedVanillaSources,
                                 List<StructurePlacement> placements, boolean allowNativeSuppression) {
@@ -1209,8 +1219,8 @@ public final class IrisStructureLocator {
                             ? "REPLACE_SOURCE contains a blank Iris structure reference"
                             : "Iris structure placement contains a blank structure reference");
                 }
-                IrisStructure structure = StructureResources.structure(data.getPackResources(), structureKey);
-                if (structure == null) {
+                StructureStamp stamp = stampOf(engine, structureKey);
+                if (stamp == null) {
                     throw new IllegalStateException((replacesNative
                             ? "REPLACE_SOURCE references missing Iris structure '"
                             : "Iris structure placement references missing structure '")
@@ -1218,20 +1228,18 @@ public final class IrisStructureLocator {
                 }
                 loadKeys.add(structureKey);
                 normalizedLoadKeys.add(normalize(structureKey));
-                if (structure.getLoadKey() != null && !structure.getLoadKey().isBlank()) {
-                    loadKeys.add(structure.getLoadKey());
-                    normalizedLoadKeys.add(normalize(structure.getLoadKey()));
-                }
-                if (structure.getVanillaSource() != null && !structure.getVanillaSource().isBlank()) {
-                    vanillaAliases.add(normalize(structure.getVanillaSource()));
+                if (!stamp.vanillaSource().isBlank()) {
+                    vanillaAliases.add(normalize(stamp.vanillaSource()));
                 }
                 if (replacesNative) {
-                    String vanillaSource = structure.getVanillaSource();
-                    if (vanillaSource == null || !NAMESPACED_RESOURCE_KEY.matcher(vanillaSource).matches()) {
+                    String vanillaSource = stamp.vanillaSource();
+                    if (!NAMESPACED_RESOURCE_KEY.matcher(vanillaSource).matches()) {
                         throw new IllegalStateException("REPLACE_SOURCE structure '" + structureKey
                                 + "' must declare a valid namespaced vanillaSource");
                     }
-                    if (!StructureGraphCatalog.guaranteesRuntimeOutput(data, structure, log)) {
+                    PackResources pack = engine.getData().getPackResources();
+                    ResourceId structureId = pack.idOf(structureKey);
+                    if (providerOf(engine, structureId).viability(pack, structureId) != Viability.GUARANTEED) {
                         throw new IllegalStateException("REPLACE_SOURCE structure '" + structureKey
                                 + "' is not runtime-viable; native generation will not be used as a fallback");
                     }
@@ -1242,8 +1250,8 @@ public final class IrisStructureLocator {
         }
     }
 
-    public record ResolvedPlacement(StructurePlacement placement, String structureKey, IrisStructure structure,
-                                    KList<PlacedStructurePiece> pieces, RNG rng,
+    public record ResolvedPlacement(StructurePlacement placement, String structureKey, StructureStamp stamp,
+                                    KList<AssembledPiece> pieces, RNG rng,
                                     int originX, int baseY, int originZ, boolean exactY) {
     }
 

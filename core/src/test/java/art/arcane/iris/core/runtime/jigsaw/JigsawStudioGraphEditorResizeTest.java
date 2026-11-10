@@ -1,10 +1,10 @@
 package art.arcane.iris.core.runtime.jigsaw;
 
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
+import com.volmit.geometry.BlockPosition;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import com.google.gson.JsonArray;
@@ -70,8 +70,8 @@ public class JigsawStudioGraphEditorResizeTest {
         JsonArray connectors = readJson(packRoot.resolve(
                         "jigsaw-pieces/resize/atomic/variants/corner/variant-2.json"))
                 .getAsJsonArray("connectors");
-        assertEquals(new IrisPosition(3, 2, 0), connectorPosition(connectors, "NORTH_NEGATIVE_Z"));
-        assertEquals(new IrisPosition(6, 2, 4), connectorPosition(connectors, "EAST_POSITIVE_X"));
+        assertEquals(new BlockPosition(3, 2, 0), connectorPosition(connectors, "NORTH_NEGATIVE_Z"));
+        assertEquals(new BlockPosition(6, 2, 4), connectorPosition(connectors, "EAST_POSITIVE_X"));
     }
 
     @Test
@@ -124,7 +124,7 @@ public class JigsawStudioGraphEditorResizeTest {
         PlatformBlockState stone = state("minecraft:stone", false);
         source.setUnsigned(6, 1, 2, explicitAir);
         source.setUnsigned(4, 1, 1, stone);
-        IrisJigsawPiece piece = endPiece(IrisDirection.EAST_POSITIVE_X, new IrisPosition(6, 1, 2));
+        IrisJigsawPiece piece = endPiece(JigsawDirection.EAST_POSITIVE_X, new BlockPosition(6, 1, 2));
 
         JigsawStudioGraphEditor.PlanarPieceObjectResize result =
                 JigsawStudioGraphEditor.resizePlanarPieceObject(
@@ -139,7 +139,7 @@ public class JigsawStudioGraphEditorResizeTest {
         assertEquals(3, resized.getH());
         assertEquals(9, resized.getD());
         assertEquals(1, result.relocatedConnectors());
-        assertEquals(new IrisPosition(10, 1, 4), piece.getConnectors().getFirst().getPosition());
+        assertEquals(new BlockPosition(10, 1, 4), piece.getConnectors().getFirst().getPosition());
         assertSame(explicitAir, blockAt(resized, 10, 1, 4));
         assertFalse(resized.getBlocks().containsKey(resized.getSigned(10, 1, 2)));
         assertSame(stone, blockAt(resized, 8, 1, 1));
@@ -173,8 +173,8 @@ public class JigsawStudioGraphEditorResizeTest {
         PlatformBlockState collision = state("minecraft:stone", false);
         source.setUnsigned(2, 1, 0, underlay);
         source.setUnsigned(3, 1, 0, collision);
-        IrisPosition originalPosition = new IrisPosition(2, 1, 0);
-        IrisJigsawPiece piece = endPiece(IrisDirection.NORTH_NEGATIVE_Z, originalPosition.copy());
+        BlockPosition originalPosition = new BlockPosition(2, 1, 0);
+        IrisJigsawPiece piece = endPiece(JigsawDirection.NORTH_NEGATIVE_Z, originalPosition);
 
         IOException failure = assertThrows(
                 IOException.class,
@@ -202,7 +202,7 @@ public class JigsawStudioGraphEditorResizeTest {
         return packRoot;
     }
 
-    private static IrisJigsawPiece endPiece(IrisDirection direction, IrisPosition position) {
+    private static IrisJigsawPiece endPiece(JigsawDirection direction, BlockPosition position) {
         IrisJigsawPiece piece = new IrisJigsawPiece().setObject("resize/end");
         piece.getConnectors().add(new IrisJigsawConnector()
                 .setDirection(direction)
@@ -245,14 +245,14 @@ public class JigsawStudioGraphEditorResizeTest {
         throw new AssertionError("Missing planar workcell " + archetype);
     }
 
-    private static IrisPosition connectorPosition(JsonArray connectors, String direction) {
+    private static BlockPosition connectorPosition(JsonArray connectors, String direction) {
         for (int index = 0; index < connectors.size(); index++) {
             JsonObject connector = connectors.get(index).getAsJsonObject();
             if (!direction.equals(connector.get("direction").getAsString())) {
                 continue;
             }
             JsonObject position = connector.getAsJsonObject("position");
-            return new IrisPosition(
+            return new BlockPosition(
                     position.get("x").getAsInt(),
                     position.get("y").getAsInt(),
                     position.get("z").getAsInt());

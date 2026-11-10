@@ -53,7 +53,13 @@ public class PackValidatorStructureGraphTest {
         write(pack, "structures/regional.json", "{}");
         write(pack, "structures/library.json", "{}");
 
-        assertEquals(Set.of("active", "regional"), StructureValidator.placedStructureKeys(pack));
+        art.arcane.iris.core.loader.IrisData data = art.arcane.iris.core.loader.IrisData.openValidation(pack);
+        try {
+            assertEquals(Set.of("active", "regional"), StructureValidator.placedStructureKeys(
+                    art.arcane.iris.core.modules.IrisValidationContext.forPack(data)));
+        } finally {
+            data.close();
+        }
     }
 
     @Test

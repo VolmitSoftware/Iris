@@ -1,6 +1,5 @@
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBay;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCompatibilityTarget;
@@ -299,7 +298,7 @@ public class JigsawStudioLifecycleTest {
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(16, 16, 16),
-                mock(IrisData.class),
+                StudioToolPacks.toolPack(),
                 JigsawStudioLayout.create(
                         JigsawStudioMode.SPATIAL_JIGSAW,
                         new JigsawStudioCellDimensions(16, 16, 16),

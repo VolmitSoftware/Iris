@@ -18,10 +18,10 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.StructureAssembler;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.value.IrisPosition;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.resource.PackResources;
 
 /**
  * Structure assembly for Iris's own tools, the commands and studio, which run outside any module's stage, service or hook and so
@@ -31,8 +31,8 @@ public final class StructureAssemblies {
     private StructureAssemblies() {
     }
 
-    /** The assembler of {@code structure}, compiled from the pack {@code data} serves, for a start at {@code origin}. */
-    public static StructureAssembler forData(IrisData data, IrisStructure structure, IrisPosition origin) {
-        return StructureAssembler.forData(data, structure, origin, IrisModuleHost.hostLog());
+    /** The assembler of {@code structure}, the structure {@code structureKey} of {@code pack}, for a start at {@code origin}. */
+    public static StructureAssembler forPack(PackResources pack, String structureKey, IrisStructure structure, BlockPosition origin) {
+        return StructureAssembler.forPack(pack, structureKey, structure, origin, IrisModuleHost.hostLog());
     }
 }

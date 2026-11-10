@@ -1,6 +1,6 @@
 package art.arcane.iris.core.runtime.jigsaw;
 
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 
 public enum JigsawPlanarDirection {
     NORTH(1),
@@ -18,12 +18,12 @@ public enum JigsawPlanarDirection {
         return bit;
     }
 
-    public IrisDirection irisDirection() {
+    public JigsawDirection direction() {
         return switch (this) {
-            case NORTH -> IrisDirection.NORTH_NEGATIVE_Z;
-            case EAST -> IrisDirection.EAST_POSITIVE_X;
-            case SOUTH -> IrisDirection.SOUTH_POSITIVE_Z;
-            case WEST -> IrisDirection.WEST_NEGATIVE_X;
+            case NORTH -> JigsawDirection.NORTH_NEGATIVE_Z;
+            case EAST -> JigsawDirection.EAST_POSITIVE_X;
+            case SOUTH -> JigsawDirection.SOUTH_POSITIVE_Z;
+            case WEST -> JigsawDirection.WEST_NEGATIVE_X;
         };
     }
 

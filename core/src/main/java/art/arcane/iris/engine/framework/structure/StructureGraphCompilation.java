@@ -6,7 +6,6 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceEntry;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -96,7 +95,7 @@ public final class StructureGraphCompilation {
             if (piece == null || !JigsawPoolSelection.pieceEligible(piece, theme, 0, 0)) {
                 continue;
             }
-            IrisObject object = graph.getObjects().get(normalize(piece.getObject()));
+            ObjectFrame object = graph.getObjects().get(normalize(piece.getObject()));
             if (object == null || !fitsStartRadius(object)) {
                 return false;
             }
@@ -185,9 +184,9 @@ public final class StructureGraphCompilation {
         return false;
     }
 
-    private boolean fitsStartRadius(IrisObject object) {
+    private boolean fitsStartRadius(ObjectFrame object) {
         long radius = (long) graph.getStructure().getMaxSizeChunks() * 16L;
-        return axisFitsRadius(object.getW(), radius) && axisFitsRadius(object.getD(), radius);
+        return axisFitsRadius(object.width(), radius) && axisFitsRadius(object.depth(), radius);
     }
 
     private List<String> themes() {

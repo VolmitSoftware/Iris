@@ -18,21 +18,21 @@
 
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.framework.StructureAssembler;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.validation.Problem;
 import com.volmit.validation.Severity;
 import com.volmit.validation.Subject;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -65,43 +65,43 @@ public final class StructureGraphValidation {
     private StructureGraphValidation() {
     }
 
-    /** Checks every structure of the pack {@code data} holds. */
-    public static Validation validate(IrisData data) {
-        return validate(data, null);
+    /** Checks every structure of {@code pack}, whose objects are the files below {@code packFolder}. */
+    public static Validation validate(PackResources pack, File packFolder) {
+        return validate(pack, packFolder, null);
     }
 
-    /** Checks the structures of the pack {@code data} holds whose keys are in {@code activeStructureKeys}, or all when it is null. */
-    public static Validation validate(IrisData data, Set<String> activeStructureKeys) {
+    /** Checks the structures of {@code pack} whose keys are in {@code activeStructureKeys}, or all when it is null. */
+    public static Validation validate(PackResources pack, File packFolder, Set<String> activeStructureKeys) {
         List<Problem> problems = new ArrayList<>();
         Set<String> replacementOutputStructures = new LinkedHashSet<>();
         Map<String, List<SampledVerticalEnvelope>> sampledVerticalEnvelopes = new LinkedHashMap<>();
-        PackStructureResolver resolver = new PackStructureResolver(data);
-        for (ResourceId id : data.getPackResources().ids(StructureResources.STRUCTURES)) {
+        PackStructureResolver resolver = new PackStructureResolver(pack, packFolder);
+        for (ResourceId id : pack.ids(StructureResources.STRUCTURES)) {
             String structureKey = id.path();
             if (activeStructureKeys != null && !activeStructureKeys.contains(structureKey)) {
                 continue;
             }
-            IrisStructure structure = StructureResources.structure(data.getPackResources(), structureKey);
+            IrisStructure structure = StructureResources.structure(pack, structureKey);
             if (structure == null) {
                 continue;
             }
-            validateStructure(structure, resolver, problems, replacementOutputStructures, sampledVerticalEnvelopes);
+            validateStructure(structureKey, structure, resolver, problems, replacementOutputStructures, sampledVerticalEnvelopes);
         }
         return new Validation(problems, replacementOutputStructures, sampledVerticalEnvelopes);
     }
 
     private static void validateStructure(
+            String structureKey,
             IrisStructure structure,
             StructureGraphResolver resolver,
             List<Problem> problems,
             Set<String> replacementOutputStructures,
             Map<String, List<SampledVerticalEnvelope>> sampledVerticalEnvelopes
     ) {
-        String structureKey = structure.getLoadKey();
         Subject file = Subject.file(StructureResources.STRUCTURES.folder() + "/" + structureKey + JSON_EXTENSION);
         StructureGraphCompilation compilation;
         try {
-            compilation = StructureGraphCompiler.compile(structure, resolver);
+            compilation = StructureGraphCompiler.compile(structureKey, structure, resolver);
         } catch (MalformedObjectResourceException e) {
             problems.add(Problem.error(file, e.getMessage()));
             return;
@@ -139,7 +139,7 @@ public final class StructureGraphValidation {
         for (long seed : GEOMETRY_SAMPLE_SEEDS) {
             try {
                 StructureAssembler assembler = StructureAssembler.forCompilation(
-                        compilation, new IrisPosition(0, GEOMETRY_SAMPLE_ORIGIN_Y, 0));
+                        compilation, new BlockPosition(0, GEOMETRY_SAMPLE_ORIGIN_Y, 0));
                 StructureAssemblyResult result = assembler.assemble(new RNG(seed));
                 if (result.status().isFailure()) {
                     failures.add("seed " + seed + " returned " + result.status() + ": " + result.detail());
@@ -257,28 +257,28 @@ public final class StructureGraphValidation {
 
     /** Pools and pieces from the pack's structure resources; objects as far as their bounds, read from their files once each. */
     private static final class PackStructureResolver implements StructureGraphResolver {
-        private final IrisData data;
+        private final PackResources pack;
         private final Path objectsRoot;
-        private final Map<String, IrisObject> objects = new HashMap<>();
+        private final Map<String, ObjectFrame> objects = new HashMap<>();
         private final Set<String> missingObjects = new LinkedHashSet<>();
 
-        private PackStructureResolver(IrisData data) {
-            this.data = data;
-            this.objectsRoot = data.getDataFolder().toPath().toAbsolutePath().normalize().resolve(OBJECTS_FOLDER);
+        private PackStructureResolver(PackResources pack, File packFolder) {
+            this.pack = pack;
+            this.objectsRoot = packFolder.toPath().toAbsolutePath().normalize().resolve(OBJECTS_FOLDER);
         }
 
         @Override
         public IrisJigsawPool loadPool(String key) {
-            return StructureResources.pool(data.getPackResources(), key);
+            return StructureResources.pool(pack, key);
         }
 
         @Override
         public IrisJigsawPiece loadPiece(String key) {
-            return StructureResources.piece(data.getPackResources(), key);
+            return StructureResources.piece(pack, key);
         }
 
         @Override
-        public IrisObject loadObject(String key) {
+        public ObjectFrame loadObject(String key) {
             if (objects.containsKey(key)) {
                 return objects.get(key);
             }
@@ -286,7 +286,7 @@ public final class StructureGraphValidation {
                 return null;
             }
             Path file = resolveObject(key);
-            IrisObject object = file == null ? null : readObjectBounds(file);
+            ObjectFrame object = file == null ? null : readObjectBounds(file);
             if (object == null) {
                 missingObjects.add(key);
                 return null;
@@ -306,7 +306,7 @@ public final class StructureGraphValidation {
             return file;
         }
 
-        private IrisObject readObjectBounds(Path file) {
+        private ObjectFrame readObjectBounds(Path file) {
             try (BufferedInputStream input = new BufferedInputStream(Files.newInputStream(file))) {
                 return IrisObjectFrameReader.readBounds(input, file.toString());
             } catch (IOException e) {

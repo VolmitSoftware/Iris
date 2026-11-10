@@ -59,7 +59,7 @@ public class DecorantSettingsDecodingTest {
         Path snippets = Files.createDirectories(packFolder.resolve("snippet/iris/decorant/decorator"));
         Files.writeString(snippets.resolve("bush.json"), "{\"chance\": 0.2, \"palette\": [{\"block\": \"minecraft:fern\"}]}");
         pack = LoadedPack.load(packFolder, ModuleHost.of(BuiltInPack.allBuiltIns())
-                .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE).copyingJarsTo(folder.newFolder("copies").toPath()));
+                .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGES).copyingJarsTo(folder.newFolder("copies").toPath()));
         decoder = new ModuleSettingsDecoder(pack.catalog(), packFolder, Gson::new);
     }
 

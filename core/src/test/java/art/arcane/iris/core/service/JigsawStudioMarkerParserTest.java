@@ -1,6 +1,6 @@
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import org.junit.Test;
@@ -14,18 +14,18 @@ import static org.junit.Assert.assertThrows;
 public class JigsawStudioMarkerParserTest {
     @Test
     public void mapsEveryJigsawOrientation() {
-        assertDirections("down_east", IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.EAST_POSITIVE_X);
-        assertDirections("down_north", IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.NORTH_NEGATIVE_Z);
-        assertDirections("down_south", IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.SOUTH_POSITIVE_Z);
-        assertDirections("down_west", IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.WEST_NEGATIVE_X);
-        assertDirections("up_east", IrisDirection.UP_POSITIVE_Y, IrisDirection.EAST_POSITIVE_X);
-        assertDirections("up_north", IrisDirection.UP_POSITIVE_Y, IrisDirection.NORTH_NEGATIVE_Z);
-        assertDirections("up_south", IrisDirection.UP_POSITIVE_Y, IrisDirection.SOUTH_POSITIVE_Z);
-        assertDirections("up_west", IrisDirection.UP_POSITIVE_Y, IrisDirection.WEST_NEGATIVE_X);
-        assertDirections("west_up", IrisDirection.WEST_NEGATIVE_X, IrisDirection.UP_POSITIVE_Y);
-        assertDirections("east_up", IrisDirection.EAST_POSITIVE_X, IrisDirection.UP_POSITIVE_Y);
-        assertDirections("north_up", IrisDirection.NORTH_NEGATIVE_Z, IrisDirection.UP_POSITIVE_Y);
-        assertDirections("south_up", IrisDirection.SOUTH_POSITIVE_Z, IrisDirection.UP_POSITIVE_Y);
+        assertDirections("down_east", JigsawDirection.DOWN_NEGATIVE_Y, JigsawDirection.EAST_POSITIVE_X);
+        assertDirections("down_north", JigsawDirection.DOWN_NEGATIVE_Y, JigsawDirection.NORTH_NEGATIVE_Z);
+        assertDirections("down_south", JigsawDirection.DOWN_NEGATIVE_Y, JigsawDirection.SOUTH_POSITIVE_Z);
+        assertDirections("down_west", JigsawDirection.DOWN_NEGATIVE_Y, JigsawDirection.WEST_NEGATIVE_X);
+        assertDirections("up_east", JigsawDirection.UP_POSITIVE_Y, JigsawDirection.EAST_POSITIVE_X);
+        assertDirections("up_north", JigsawDirection.UP_POSITIVE_Y, JigsawDirection.NORTH_NEGATIVE_Z);
+        assertDirections("up_south", JigsawDirection.UP_POSITIVE_Y, JigsawDirection.SOUTH_POSITIVE_Z);
+        assertDirections("up_west", JigsawDirection.UP_POSITIVE_Y, JigsawDirection.WEST_NEGATIVE_X);
+        assertDirections("west_up", JigsawDirection.WEST_NEGATIVE_X, JigsawDirection.UP_POSITIVE_Y);
+        assertDirections("east_up", JigsawDirection.EAST_POSITIVE_X, JigsawDirection.UP_POSITIVE_Y);
+        assertDirections("north_up", JigsawDirection.NORTH_NEGATIVE_Z, JigsawDirection.UP_POSITIVE_Y);
+        assertDirections("south_up", JigsawDirection.SOUTH_POSITIVE_Z, JigsawDirection.UP_POSITIVE_Y);
     }
 
     @Test
@@ -43,11 +43,11 @@ public class JigsawStudioMarkerParserTest {
         IrisJigsawConnector connector = JigsawStudioMarkerParser.parse(
                 nbt, "north_up", 3, 5, 7);
 
-        assertEquals(3, connector.getPosition().getX());
-        assertEquals(5, connector.getPosition().getY());
-        assertEquals(7, connector.getPosition().getZ());
-        assertEquals(IrisDirection.NORTH_NEGATIVE_Z, connector.getDirection());
-        assertEquals(IrisDirection.UP_POSITIVE_Y, connector.getTop());
+        assertEquals(3, connector.getPosition().x());
+        assertEquals(5, connector.getPosition().y());
+        assertEquals(7, connector.getPosition().z());
+        assertEquals(JigsawDirection.NORTH_NEGATIVE_Z, connector.getDirection());
+        assertEquals(JigsawDirection.UP_POSITIVE_Y, connector.getTop());
         assertEquals("fort/pool", connector.getPool());
         assertEquals("iris:door", connector.getName());
         assertEquals("iris:door", connector.getTargetName());
@@ -98,8 +98,8 @@ public class JigsawStudioMarkerParserTest {
 
     private static void assertDirections(
             String orientation,
-            IrisDirection expectedFront,
-            IrisDirection expectedTop
+            JigsawDirection expectedFront,
+            JigsawDirection expectedTop
     ) {
         JigsawStudioMarkerParser.Directions directions = JigsawStudioMarkerParser.directions(orientation);
         assertEquals(expectedFront, directions.front());

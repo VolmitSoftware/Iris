@@ -20,7 +20,9 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.structure.tooling.JigsawCommands;
 import art.arcane.iris.core.structure.tooling.JigsawStudioHost;
+import art.arcane.iris.engine.framework.structure.JigsawStructureAssembly;
 import art.arcane.iris.engine.framework.structure.StructureLocating;
+import art.arcane.iris.engine.framework.structure.assembly.StructureAssembly;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.framework.structure.StructureValidator;
 import art.arcane.iris.engine.framework.structure.StructureVanillaStructures;
@@ -61,6 +63,7 @@ public final class StructureModelModule implements IrisModule {
     public void setup(ModuleSetup setup) {
         var registry = setup.registry();
         registry.registerValidator(new StructureValidator());
+        registry.registerService(StructureAssembly.class, new JigsawStructureAssembly(setup.log()));
         registry.registerService(StructureLocator.class, new StructureLocating());
         registry.registerService(VanillaStructures.class, new StructureVanillaStructures());
         setup.tooling().registerCommand(StructureCommands.root());

@@ -110,7 +110,7 @@ public final class BuiltInPack {
         LoadedPack pack = LoadedPack.load(packFolder, ModuleHost.of(modules)
                 .exposing(IrisModuleHost.EXPOSED_PACKAGES.toArray(String[]::new))
                 .reservingFields(ModuleTargets.reservedFields())
-                .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE)
+                .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGES)
                 .copyingJarsTo(folder.newFolder().toPath()));
         PackModuleSet moduleSet = mock(PackModuleSet.class);
         when(moduleSet.pack()).thenReturn(pack);

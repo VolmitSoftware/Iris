@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.structure.tooling;
 
-import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.service.JigsawStudioRequest;
 import art.arcane.iris.core.structure.authoring.StructureKey;
 import art.arcane.iris.core.structure.authoring.StructureOwnershipManifest;
 import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
@@ -82,7 +82,6 @@ final class AdoptionCommands {
             return;
         }
         StudioUse use = begun.get();
-        IrisData data = use.host().dataOf(context.pack());
         String sourceKey;
         Optional<StructureKey> targetKey;
         IrisStructureAdoptionStrategy adoptionStrategy;
@@ -91,14 +90,14 @@ final class AdoptionCommands {
             sourceKey = parseAdoptionSource(context.get(SOURCE));
             targetKey = parseAdoptionTarget(context.get(TARGET));
             adoptionStrategy = parseAdoptionStrategy(context.get(STRATEGY));
-            root = canonicalAdoptionRoot(data.getDataFolder().toPath());
+            root = canonicalAdoptionRoot(JigsawStudioRequest.rootOf(context.pack()));
         } catch (IOException | IllegalArgumentException exception) {
             use.error("Could not inspect adoption source: " + exception.getMessage());
             return;
         }
         UUID ownerId = use.player().id();
         use.say(TextColor.GRAY, "Inspecting Jigsaw adoption source '" + sourceKey + "' asynchronously...");
-        runAdoptionInspect(use, ownerId, data, root, sourceKey, targetKey, adoptionStrategy);
+        runAdoptionInspect(use, ownerId, root, sourceKey, targetKey, adoptionStrategy);
     }
 
     private void apply(CommandContext context) {
@@ -176,7 +175,6 @@ final class AdoptionCommands {
     private static void runAdoptionInspect(
             StudioUse use,
             UUID ownerId,
-            IrisData data,
             Path root,
             String sourceKey,
             Optional<StructureKey> targetKey,
@@ -197,13 +195,12 @@ final class AdoptionCommands {
             failure = throwable;
             use.pack().log().error("Failed to inspect Jigsaw adoption source '" + sourceKey + "'.", throwable);
         }
-        finishAdoptionInspect(use, ownerId, data, service, plan, failure);
+        finishAdoptionInspect(use, ownerId, service, plan, failure);
     }
 
     private static void finishAdoptionInspect(
             StudioUse use,
             UUID ownerId,
-            IrisData data,
             IrisStructureAdoptionService service,
             IrisStructureAdoptionPlan plan,
             Throwable failure
@@ -216,7 +213,7 @@ final class AdoptionCommands {
         pruneAdoptionPlanBindings();
         if (service.plan(plan.planId()).isPresent()) {
             ADOPTION_PLANS.put(plan.planId(), new AdoptionPlanBinding(
-                    ownerId, use.pack(), data, service, plan));
+                    ownerId, use.pack(), service, plan));
         }
         reportAdoptionPlan(use, plan);
     }
@@ -236,7 +233,7 @@ final class AdoptionCommands {
             return;
         }
         StructureKey target = result.receipt().orElseThrow().targetStructure();
-        binding.data().invalidateStructureResources();
+        JigsawStudioRequest.reload(binding.pack());
         StudioLifecycleCommands.openProject(use.onPack(binding.pack()), target.path());
     }
 
@@ -337,7 +334,6 @@ final class AdoptionCommands {
     private record AdoptionPlanBinding(
             UUID ownerId,
             ToolPack pack,
-            IrisData data,
             IrisStructureAdoptionService service,
             IrisStructureAdoptionPlan plan
     ) {

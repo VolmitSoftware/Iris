@@ -18,12 +18,11 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.core.modules.ModuleResourceFixture;
-import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.engine.framework.structure.MapStructureResolver;
+import art.arcane.iris.engine.framework.structure.ObjectFrame;
 import art.arcane.iris.engine.framework.structure.StructureAssemblyResult;
 import art.arcane.iris.engine.framework.structure.StructureAssemblyStatus;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawMode;
@@ -32,8 +31,6 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceEntry;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceRules;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import art.arcane.iris.spi.IrisPlatform;
@@ -41,7 +38,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.host.ModuleLogs;
+import com.volmit.geometry.BlockPosition;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -77,16 +74,16 @@ public class StructureAssemblerTest {
     @Test
     public void attachedNonRotatablePieceKeepsItsAuthoredFacing() {
         Fixture fixture = new Fixture();
-        IrisJigsawConnector startConnector = connector(IrisDirection.EAST_POSITIVE_X, "target", "start", "door");
+        IrisJigsawConnector startConnector = connector(JigsawDirection.EAST_POSITIVE_X, "target", "start", "door");
         IrisJigsawPiece startPiece = piece("start-object", false, startConnector);
-        IrisJigsawConnector candidateConnector = connector(IrisDirection.NORTH_NEGATIVE_Z, "", "door", "");
+        IrisJigsawConnector candidateConnector = connector(JigsawDirection.NORTH_NEGATIVE_Z, "", "door", "");
         IrisJigsawPiece candidatePiece = piece("candidate-object", false, candidateConnector);
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("target", pool("", "candidate-piece"));
         fixture.piece("start-piece", startPiece);
         fixture.piece("candidate-piece", candidatePiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("candidate-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("candidate-object", new ObjectFrame(1, 1, 1));
 
         StructureAssemblyResult fixed = fixture.assembler(
                 structure("start", 1), 0, 0, 0).assemble(new RNG(11L));
@@ -105,20 +102,20 @@ public class StructureAssemblerTest {
     public void fallbackCandidatesAreTriedAfterPrimaryCandidatesFail() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece startPiece = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "branch", "start", "door"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "branch", "start", "door"));
         IrisJigsawPiece incompatiblePiece = piece("incompatible-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "wrong", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "wrong", ""));
         IrisJigsawPiece fallbackPiece = piece("fallback-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""));
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("branch", pool("fallback", "incompatible-piece"));
         fixture.pool("fallback", pool("", "fallback-piece"));
         fixture.piece("start-piece", startPiece);
         fixture.piece("incompatible-piece", incompatiblePiece);
         fixture.piece("fallback-piece", fallbackPiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("incompatible-object", new IrisObject(1, 1, 1));
-        fixture.object("fallback-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("incompatible-object", new ObjectFrame(1, 1, 1));
+        fixture.object("fallback-object", new ObjectFrame(1, 1, 1));
 
         List<PlacedStructurePiece> placed = completedPieces(
                 fixture.assembler(structure("start", 2), 0, 0, 0), new RNG(29L));
@@ -139,21 +136,21 @@ public class StructureAssemblerTest {
     public void branchTerminationPolicyEndsOnlyAnUnmatchedOptionalBranch() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece startPiece = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "target", "start", "door"),
-                connector(IrisDirection.SOUTH_POSITIVE_Z, "sibling", "start", "hall"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "target", "start", "door"),
+                connector(JigsawDirection.SOUTH_POSITIVE_Z, "sibling", "start", "hall"));
         IrisJigsawPiece incompatiblePiece = piece("incompatible-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "wrong", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "wrong", ""));
         IrisJigsawPiece siblingPiece = piece("sibling-object", false,
-                connector(IrisDirection.NORTH_NEGATIVE_Z, "", "hall", ""));
+                connector(JigsawDirection.NORTH_NEGATIVE_Z, "", "hall", ""));
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("target", pool("", "incompatible-piece"));
         fixture.pool("sibling", pool("", "sibling-piece"));
         fixture.piece("start-piece", startPiece);
         fixture.piece("incompatible-piece", incompatiblePiece);
         fixture.piece("sibling-piece", siblingPiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("incompatible-object", new IrisObject(1, 1, 1));
-        fixture.object("sibling-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("incompatible-object", new ObjectFrame(1, 1, 1));
+        fixture.object("sibling-object", new ObjectFrame(1, 1, 1));
 
         StructureAssemblyResult strict = fixture.assembler(
                 structure("start", 2), 0, 0, 0).assemble(new RNG(17L));
@@ -173,17 +170,17 @@ public class StructureAssemblerTest {
     public void requiredFallbackOverridesBranchTerminationPolicy() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece startPiece = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "target", "start", "door"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "target", "start", "door"));
         IrisJigsawPiece capPiece = piece("cap-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", "unused"));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", "unused"));
         capPiece.setRules(new IrisJigsawPieceRules().setTerminal(true));
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("target", pool("caps"));
         fixture.pool("caps", pool("", "cap-piece"));
         fixture.piece("start-piece", startPiece);
         fixture.piece("cap-piece", capPiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("cap-object", new IrisObject(64, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("cap-object", new ObjectFrame(64, 1, 1));
         IrisStructure structure = structure("start", 2)
                 .setMaxSizeChunks(1)
                 .setBranchFailurePolicy(IrisJigsawBranchFailurePolicy.TERMINATE_BRANCH);
@@ -203,9 +200,9 @@ public class StructureAssemblerTest {
     public void explicitEmptyAndEmptyPrimaryPoolsCutOffDirectFallback() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece startPiece = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "target", "start", "door"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "target", "start", "door"));
         IrisJigsawPiece fallbackPiece = piece("fallback-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""));
         IrisJigsawPool explicitEmpty = pool("fallback");
         explicitEmpty.getPieces().add(new IrisJigsawPieceEntry().setEmpty(true).setWeight(1));
         fixture.pool("start", pool("", "start-piece"));
@@ -213,8 +210,8 @@ public class StructureAssemblerTest {
         fixture.pool("fallback", pool("", "fallback-piece"));
         fixture.piece("start-piece", startPiece);
         fixture.piece("fallback-piece", fallbackPiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("fallback-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("fallback-object", new ObjectFrame(1, 1, 1));
         IrisStructure structure = structure("start", 2)
                 .setBranchFailurePolicy(IrisJigsawBranchFailurePolicy.TERMINATE_BRANCH);
 
@@ -233,25 +230,25 @@ public class StructureAssemblerTest {
     @Test
     public void alignedRuntimeConnectorsPreserveTopOrientation() {
         Fixture fixture = new Fixture();
-        IrisJigsawConnector source = connector(IrisDirection.EAST_POSITIVE_X, "target", "start", "door")
+        IrisJigsawConnector source = connector(JigsawDirection.EAST_POSITIVE_X, "target", "start", "door")
                 .setJoint(JigsawJoint.ALIGNED)
-                .setTop(IrisDirection.UP_POSITIVE_Y);
-        IrisJigsawConnector target = connector(IrisDirection.WEST_NEGATIVE_X, "target", "door", "unused")
-                .setTop(IrisDirection.DOWN_NEGATIVE_Y);
+                .setTop(JigsawDirection.UP_POSITIVE_Y);
+        IrisJigsawConnector target = connector(JigsawDirection.WEST_NEGATIVE_X, "target", "door", "unused")
+                .setTop(JigsawDirection.DOWN_NEGATIVE_Y);
         IrisJigsawPiece startPiece = piece("start-object", false, source);
         IrisJigsawPiece targetPiece = piece("target-object", false, target);
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("target", pool("", "target-piece"));
         fixture.piece("start-piece", startPiece);
         fixture.piece("target-piece", targetPiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("target-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("target-object", new ObjectFrame(1, 1, 1));
 
         assertEquals(StructureAssemblyStatus.FAILED_UNCAPPED,
                 fixture.assembler(structure("start", 1), 0, 0, 0)
                         .assemble(new RNG(13L)).status());
 
-        target.setTop(IrisDirection.UP_POSITIVE_Y);
+        target.setTop(JigsawDirection.UP_POSITIVE_Y);
         List<PlacedStructurePiece> placed = completedPieces(
                 fixture.assembler(structure("start", 1), 0, 0, 0), new RNG(13L));
         assertEquals(2, placed.size());
@@ -261,31 +258,31 @@ public class StructureAssemblerTest {
     public void planarCanonicalSocketsPlaceEveryNeighborOnTheExactCellGrid() {
         Fixture fixture = new Fixture();
         IrisJigsawConnector northSource = connector(
-                IrisDirection.NORTH_NEGATIVE_Z, "north", "start", "door")
-                .setPosition(new IrisPosition(8, 4, 0));
+                JigsawDirection.NORTH_NEGATIVE_Z, "north", "start", "door")
+                .setPosition(new BlockPosition(8, 4, 0));
         IrisJigsawConnector eastSource = connector(
-                IrisDirection.EAST_POSITIVE_X, "east", "start", "door")
-                .setPosition(new IrisPosition(15, 4, 8));
+                JigsawDirection.EAST_POSITIVE_X, "east", "start", "door")
+                .setPosition(new BlockPosition(15, 4, 8));
         IrisJigsawConnector southSource = connector(
-                IrisDirection.SOUTH_POSITIVE_Z, "south", "start", "door")
-                .setPosition(new IrisPosition(8, 4, 15));
+                JigsawDirection.SOUTH_POSITIVE_Z, "south", "start", "door")
+                .setPosition(new BlockPosition(8, 4, 15));
         IrisJigsawConnector westSource = connector(
-                IrisDirection.WEST_NEGATIVE_X, "west", "start", "door")
-                .setPosition(new IrisPosition(0, 4, 8));
+                JigsawDirection.WEST_NEGATIVE_X, "west", "start", "door")
+                .setPosition(new BlockPosition(0, 4, 8));
         IrisJigsawPiece startPiece = piece(
                 "start-object", false, northSource, eastSource, southSource, westSource);
         IrisJigsawPiece northPiece = piece("north-object", false,
-                connector(IrisDirection.SOUTH_POSITIVE_Z, "", "door", "")
-                        .setPosition(new IrisPosition(8, 4, 15)));
+                connector(JigsawDirection.SOUTH_POSITIVE_Z, "", "door", "")
+                        .setPosition(new BlockPosition(8, 4, 15)));
         IrisJigsawPiece eastPiece = piece("east-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", "")
-                        .setPosition(new IrisPosition(0, 4, 8)));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", "")
+                        .setPosition(new BlockPosition(0, 4, 8)));
         IrisJigsawPiece southPiece = piece("south-object", false,
-                connector(IrisDirection.NORTH_NEGATIVE_Z, "", "door", "")
-                        .setPosition(new IrisPosition(8, 4, 0)));
+                connector(JigsawDirection.NORTH_NEGATIVE_Z, "", "door", "")
+                        .setPosition(new BlockPosition(8, 4, 0)));
         IrisJigsawPiece westPiece = piece("west-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "", "door", "")
-                        .setPosition(new IrisPosition(15, 4, 8)));
+                connector(JigsawDirection.EAST_POSITIVE_X, "", "door", "")
+                        .setPosition(new BlockPosition(15, 4, 8)));
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("north", pool("", "north-piece"));
         fixture.pool("east", pool("", "east-piece"));
@@ -296,14 +293,14 @@ public class StructureAssemblerTest {
         fixture.piece("east-piece", eastPiece);
         fixture.piece("south-piece", southPiece);
         fixture.piece("west-piece", westPiece);
-        fixture.object("start-object", new IrisObject(16, 8, 16));
-        fixture.object("north-object", new IrisObject(16, 8, 16));
-        fixture.object("east-object", new IrisObject(16, 8, 16));
-        fixture.object("south-object", new IrisObject(16, 8, 16));
-        fixture.object("west-object", new IrisObject(16, 8, 16));
+        fixture.object("start-object", new ObjectFrame(16, 8, 16));
+        fixture.object("north-object", new ObjectFrame(16, 8, 16));
+        fixture.object("east-object", new ObjectFrame(16, 8, 16));
+        fixture.object("south-object", new ObjectFrame(16, 8, 16));
+        fixture.object("west-object", new ObjectFrame(16, 8, 16));
         IrisStructure structure = structure("start", 1)
                 .setMode(IrisJigsawMode.PLANAR_JIGSAW)
-                .setCellSize(new IrisPosition(16, 8, 16));
+                .setCellSize(new BlockPosition(16, 8, 16));
 
         List<PlacedStructurePiece> placed = completedPieces(
                 fixture.assembler(structure, 32, 64, -48), new RNG(127L));
@@ -336,23 +333,23 @@ public class StructureAssemblerTest {
     public void selectionPriorityProcessesHigherConnectorsFirstAndPreservesStableTies() {
         Fixture fixture = new Fixture();
         IrisJigsawConnector eastSource = connector(
-                IrisDirection.EAST_POSITIVE_X, "east", "start", "door").setSelectionPriority(-20);
+                JigsawDirection.EAST_POSITIVE_X, "east", "start", "door").setSelectionPriority(-20);
         IrisJigsawConnector westSource = connector(
-                IrisDirection.WEST_NEGATIVE_X, "west", "start", "door").setSelectionPriority(-10);
+                JigsawDirection.WEST_NEGATIVE_X, "west", "start", "door").setSelectionPriority(-10);
         IrisJigsawPiece startPiece = piece("start-object", false, eastSource, westSource);
         IrisJigsawPiece eastPiece = piece("east-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""));
         IrisJigsawPiece westPiece = piece("west-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "", "door", ""));
+                connector(JigsawDirection.EAST_POSITIVE_X, "", "door", ""));
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("east", pool("", "east-piece"));
         fixture.pool("west", pool("", "west-piece"));
         fixture.piece("start-piece", startPiece);
         fixture.piece("east-piece", eastPiece);
         fixture.piece("west-piece", westPiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("east-object", new IrisObject(1, 1, 1));
-        fixture.object("west-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("east-object", new ObjectFrame(1, 1, 1));
+        fixture.object("west-object", new ObjectFrame(1, 1, 1));
         IrisStructure structure = structure("start", 1);
 
         List<PlacedStructurePiece> prioritized = completedPieces(
@@ -374,20 +371,20 @@ public class StructureAssemblerTest {
     public void selectionPriorityChoosesHigherCandidateConnectorAndPreservesStableTies() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece startPiece = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "target", "start", "door"));
-        IrisJigsawConnector low = connector(IrisDirection.WEST_NEGATIVE_X, "", "door", "")
-                .setPosition(new IrisPosition(0, 0, 0))
+                connector(JigsawDirection.EAST_POSITIVE_X, "target", "start", "door"));
+        IrisJigsawConnector low = connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", "")
+                .setPosition(new BlockPosition(0, 0, 0))
                 .setSelectionPriority(-20);
-        IrisJigsawConnector high = connector(IrisDirection.WEST_NEGATIVE_X, "", "door", "")
-                .setPosition(new IrisPosition(0, 0, 2))
+        IrisJigsawConnector high = connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", "")
+                .setPosition(new BlockPosition(0, 0, 2))
                 .setSelectionPriority(-10);
         IrisJigsawPiece targetPiece = piece("target-object", false, low, high);
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("target", pool("", "target-piece"));
         fixture.piece("start-piece", startPiece);
         fixture.piece("target-piece", targetPiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("target-object", new IrisObject(1, 1, 3));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("target-object", new ObjectFrame(1, 1, 3));
         IrisStructure structure = structure("start", 1);
 
         List<PlacedStructurePiece> prioritized = completedPieces(
@@ -406,20 +403,20 @@ public class StructureAssemblerTest {
     public void placementPrioritySchedulesChildExpansionAfterTheCurrentPieceAndPreservesStableTies() {
         Fixture fixture = new Fixture();
         IrisJigsawConnector eastSource = connector(
-                IrisDirection.EAST_POSITIVE_X, "east", "start", "door").setPlacementPriority(-20);
+                JigsawDirection.EAST_POSITIVE_X, "east", "start", "door").setPlacementPriority(-20);
         IrisJigsawConnector westSource = connector(
-                IrisDirection.WEST_NEGATIVE_X, "west", "start", "door").setPlacementPriority(-10);
+                JigsawDirection.WEST_NEGATIVE_X, "west", "start", "door").setPlacementPriority(-10);
         IrisJigsawPiece startPiece = piece("start-object", false, eastSource, westSource);
         IrisJigsawPiece eastPiece = piece("east-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""),
-                connector(IrisDirection.EAST_POSITIVE_X, "east-leaf", "east", "leaf"));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""),
+                connector(JigsawDirection.EAST_POSITIVE_X, "east-leaf", "east", "leaf"));
         IrisJigsawPiece westPiece = piece("west-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "", "door", ""),
-                connector(IrisDirection.WEST_NEGATIVE_X, "west-leaf", "west", "leaf"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "", "door", ""),
+                connector(JigsawDirection.WEST_NEGATIVE_X, "west-leaf", "west", "leaf"));
         IrisJigsawPiece eastLeaf = piece("east-leaf-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "leaf", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "leaf", ""));
         IrisJigsawPiece westLeaf = piece("west-leaf-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "", "leaf", ""));
+                connector(JigsawDirection.EAST_POSITIVE_X, "", "leaf", ""));
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("east", pool("", "east-piece"));
         fixture.pool("west", pool("", "west-piece"));
@@ -430,11 +427,11 @@ public class StructureAssemblerTest {
         fixture.piece("west-piece", westPiece);
         fixture.piece("east-leaf-piece", eastLeaf);
         fixture.piece("west-leaf-piece", westLeaf);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("east-object", new IrisObject(1, 1, 1));
-        fixture.object("west-object", new IrisObject(1, 1, 1));
-        fixture.object("east-leaf-object", new IrisObject(1, 1, 1));
-        fixture.object("west-leaf-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("east-object", new ObjectFrame(1, 1, 1));
+        fixture.object("west-object", new ObjectFrame(1, 1, 1));
+        fixture.object("east-leaf-object", new ObjectFrame(1, 1, 1));
+        fixture.object("west-leaf-object", new ObjectFrame(1, 1, 1));
         IrisStructure structure = structure("start", 2);
 
         List<PlacedStructurePiece> prioritized = completedPieces(
@@ -458,17 +455,17 @@ public class StructureAssemblerTest {
     public void connectorChannelsMustMatchExactly() {
         Fixture fixture = new Fixture();
         IrisJigsawConnector source = connector(
-                IrisDirection.EAST_POSITIVE_X, "target", "start", "door").setChannel("road");
+                JigsawDirection.EAST_POSITIVE_X, "target", "start", "door").setChannel("road");
         IrisJigsawConnector target = connector(
-                IrisDirection.WEST_NEGATIVE_X, "", "door", "").setChannel("room");
+                JigsawDirection.WEST_NEGATIVE_X, "", "door", "").setChannel("room");
         IrisJigsawPiece startPiece = piece("start-object", false, source);
         IrisJigsawPiece targetPiece = piece("target-object", false, target);
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("target", pool("", "target-piece"));
         fixture.piece("start-piece", startPiece);
         fixture.piece("target-piece", targetPiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("target-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("target-object", new ObjectFrame(1, 1, 1));
         IrisStructure structure = structure("start", 1);
 
         assertEquals(StructureAssemblyStatus.FAILED_UNCAPPED,
@@ -493,15 +490,15 @@ public class StructureAssemblerTest {
     public void fallbackAtMaximumDepthDoesNotExpandAgain() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece startPiece = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "branch", "start", "door"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "branch", "start", "door"));
         IrisJigsawPiece branchPiece = piece("branch-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""),
-                connector(IrisDirection.EAST_POSITIVE_X, "terminal", "branch", "door"));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""),
+                connector(JigsawDirection.EAST_POSITIVE_X, "terminal", "branch", "door"));
         IrisJigsawPiece primaryTerminal = piece("primary-terminal-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""));
         IrisJigsawPiece fallbackTerminal = piece("fallback-terminal-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""),
-                connector(IrisDirection.EAST_POSITIVE_X, "terminal", "terminal", "door"));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""),
+                connector(JigsawDirection.EAST_POSITIVE_X, "terminal", "terminal", "door"));
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("branch", pool("", "branch-piece"));
         fixture.pool("terminal", pool("terminal-fallback", "primary-terminal-piece"));
@@ -510,10 +507,10 @@ public class StructureAssemblerTest {
         fixture.piece("branch-piece", branchPiece);
         fixture.piece("primary-terminal-piece", primaryTerminal);
         fixture.piece("fallback-terminal-piece", fallbackTerminal);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("branch-object", new IrisObject(1, 1, 1));
-        fixture.object("primary-terminal-object", new IrisObject(1, 1, 1));
-        fixture.object("fallback-terminal-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("branch-object", new ObjectFrame(1, 1, 1));
+        fixture.object("primary-terminal-object", new ObjectFrame(1, 1, 1));
+        fixture.object("fallback-terminal-object", new ObjectFrame(1, 1, 1));
         IrisStructure structure = structure("start", 1);
         structure.setMaxSizeChunks(1);
 
@@ -529,17 +526,17 @@ public class StructureAssemblerTest {
     public void fallbackOfFallbackIsNotSelected() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece startPiece = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "branch", "start", "door"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "branch", "start", "door"));
         IrisJigsawPiece incompatiblePiece = piece("incompatible-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "wrong", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "wrong", ""));
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("branch", pool("terminators", "incompatible-piece"));
         fixture.pool("terminators", pool("empty", "incompatible-piece"));
         fixture.pool("empty", pool(""));
         fixture.piece("start-piece", startPiece);
         fixture.piece("incompatible-piece", incompatiblePiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("incompatible-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("incompatible-object", new ObjectFrame(1, 1, 1));
 
         assertEquals(StructureAssemblyStatus.FAILED_UNCAPPED,
                 fixture.assembler(structure("start", 2), 0, 0, 0)
@@ -552,7 +549,7 @@ public class StructureAssemblerTest {
         IrisJigsawPiece startPiece = piece("start-object", false);
         fixture.pool("start", pool("", "start-piece"));
         fixture.piece("start-piece", startPiece);
-        fixture.object("start-object", new IrisObject(4, 2, 6));
+        fixture.object("start-object", new ObjectFrame(4, 2, 6));
 
         PlacedStructurePiece placed = completedPieces(
                 fixture.assembler(structure("start", 1), 10, 20, 30), new RNG(53L)).getFirst();
@@ -566,7 +563,7 @@ public class StructureAssemblerTest {
         IrisJigsawPiece startPiece = piece("start-object", true);
         fixture.pool("start", pool("", "start-piece"));
         fixture.piece("start-piece", startPiece);
-        fixture.object("start-object", new IrisObject(4, 2, 6));
+        fixture.object("start-object", new ObjectFrame(4, 2, 6));
 
         StructureAssembler assembler = fixture.assembler(structure("start", 1), 10, 20, 30);
         assertBounds(completedPieces(assembler, rotationIndex(1)).getFirst(), 7, 19, 29, 12, 20, 32);
@@ -579,12 +576,12 @@ public class StructureAssemblerTest {
         for (int quarterTurn = 0; quarterTurn < 4; quarterTurn++) {
             Fixture fixture = new Fixture();
             IrisJigsawConnector source = connector(
-                    IrisDirection.NORTH_NEGATIVE_Z, "target", "start", "door")
-                    .setPosition(new IrisPosition(2, 1, 0))
+                    JigsawDirection.NORTH_NEGATIVE_Z, "target", "start", "door")
+                    .setPosition(new BlockPosition(2, 1, 0))
                     .setJoint(JigsawJoint.ALIGNED);
             IrisJigsawConnector target = connector(
-                    IrisDirection.SOUTH_POSITIVE_Z, "", "door", "unused")
-                    .setPosition(new IrisPosition(2, 1, 5))
+                    JigsawDirection.SOUTH_POSITIVE_Z, "", "door", "unused")
+                    .setPosition(new BlockPosition(2, 1, 5))
                     .setJoint(JigsawJoint.ALIGNED);
             IrisJigsawPiece startPiece = piece("start-object", true, source);
             IrisJigsawPiece targetPiece = piece("target-object", true, target);
@@ -592,11 +589,11 @@ public class StructureAssemblerTest {
             fixture.pool("target", pool("", "target-piece"));
             fixture.piece("start-piece", startPiece);
             fixture.piece("target-piece", targetPiece);
-            fixture.object("start-object", new IrisObject(4, 2, 6));
-            fixture.object("target-object", new IrisObject(4, 2, 6));
+            fixture.object("start-object", new ObjectFrame(4, 2, 6));
+            fixture.object("target-object", new ObjectFrame(4, 2, 6));
             IrisStructure structure = structure("start", 1)
                     .setMode(IrisJigsawMode.PLANAR_JIGSAW)
-                    .setCellSize(new IrisPosition(4, 2, 6));
+                    .setCellSize(new BlockPosition(4, 2, 6));
 
             List<PlacedStructurePiece> pieces = completedPieces(
                     fixture.assembler(structure, 10, 20, 30), rotationIndex(quarterTurn));
@@ -662,18 +659,18 @@ public class StructureAssemblerTest {
     public void pillagerOutpostAirScaffoldAllowsTheWatchtowerToOverlapItsNativeBounds() {
         Fixture fixture = new Fixture();
         IrisJigsawConnector baseEntrance = connector(
-                IrisDirection.NORTH_NEGATIVE_Z,
+                JigsawDirection.NORTH_NEGATIVE_Z,
                 "towers",
                 "minecraft:entrance",
                 "minecraft:entrance")
-                .setPosition(new IrisPosition(8, 1, 14))
+                .setPosition(new BlockPosition(8, 1, 14))
                 .setJoint(JigsawJoint.ALIGNED);
         IrisJigsawConnector towerEntrance = connector(
-                IrisDirection.SOUTH_POSITIVE_Z,
+                JigsawDirection.SOUTH_POSITIVE_Z,
                 "terminal",
                 "minecraft:entrance",
                 "minecraft:entrance")
-                .setPosition(new IrisPosition(7, 1, 13))
+                .setPosition(new BlockPosition(7, 1, 13))
                 .setJoint(JigsawJoint.ALIGNED);
         IrisJigsawPiece basePlate = piece("base-plate-object", true, baseEntrance);
         IrisJigsawPiece watchtower = piece("watchtower-object", true, towerEntrance);
@@ -681,8 +678,8 @@ public class StructureAssemblerTest {
         fixture.pool("towers", pool("terminal", "watchtower"));
         fixture.piece("base-plate", basePlate);
         fixture.piece("watchtower", watchtower);
-        fixture.object("base-plate-object", new IrisObject(16, 30, 16));
-        fixture.object("watchtower-object", new IrisObject(15, 21, 15));
+        fixture.object("base-plate-object", new ObjectFrame(16, 30, 16));
+        fixture.object("watchtower-object", new ObjectFrame(15, 21, 15));
         IrisStructure structure = structure("start", 1);
 
         StructureAssemblyResult collidable = fixture.assembler(structure, 0, 0, 0)
@@ -714,8 +711,8 @@ public class StructureAssemblerTest {
         fixture.pool("start", start);
         fixture.piece("first-piece", first);
         fixture.piece("second-piece", second);
-        fixture.object("first-object", new IrisObject(1, 1, 1));
-        fixture.object("second-object", new IrisObject(1, 1, 1));
+        fixture.object("first-object", new ObjectFrame(1, 1, 1));
+        fixture.object("second-object", new ObjectFrame(1, 1, 1));
 
         for (long seed = 0; seed < 32; seed++) {
             List<PlacedStructurePiece> placed = completedPieces(
@@ -731,7 +728,7 @@ public class StructureAssemblerTest {
         startPiece.setConnectors(null);
         fixture.pool("start", pool("", "start-piece"));
         fixture.piece("start-piece", startPiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
 
         assertThrows(IllegalStateException.class,
                 () -> fixture.assembler(structure("start", 1), 0, 0, 0).assemble(new RNG(3L)));
@@ -741,20 +738,20 @@ public class StructureAssemblerTest {
     public void corruptWeightedPeerFailsBeforeCandidateSelection() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece startPiece = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "branch", "start", "door"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "branch", "start", "door"));
         IrisJigsawPiece validPiece = piece("valid-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""));
         IrisJigsawPiece fallbackPiece = piece("fallback-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""));
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("branch", pool("fallback", "valid-piece", "missing-piece"));
         fixture.pool("fallback", pool("", "fallback-piece"));
         fixture.piece("start-piece", startPiece);
         fixture.piece("valid-piece", validPiece);
         fixture.piece("fallback-piece", fallbackPiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("valid-object", new IrisObject(1, 1, 1));
-        fixture.object("fallback-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("valid-object", new ObjectFrame(1, 1, 1));
+        fixture.object("fallback-object", new ObjectFrame(1, 1, 1));
 
         IllegalStateException failure = assertThrows(IllegalStateException.class,
                 () -> fixture.assembler(structure("start", 2), 0, 0, 0).assemble(new RNG(17L)));
@@ -769,7 +766,7 @@ public class StructureAssemblerTest {
         IrisJigsawPiece validPiece = piece("valid-object", false);
         fixture.pool("start", pool("", "valid-piece", "missing-piece"));
         fixture.piece("valid-piece", validPiece);
-        fixture.object("valid-object", new IrisObject(1, 1, 1));
+        fixture.object("valid-object", new ObjectFrame(1, 1, 1));
 
         IllegalStateException failure = assertThrows(IllegalStateException.class,
                 () -> fixture.assembler(structure("start", 1), 0, 0, 0).assemble(new RNG(18L)));
@@ -782,20 +779,20 @@ public class StructureAssemblerTest {
     public void malformedNestedConnectorDoesNotFallThroughToAuthoredFallback() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece startPiece = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "branch", "start", "door"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "branch", "start", "door"));
         IrisJigsawPiece malformedPiece = piece("malformed-object", false);
         malformedPiece.getConnectors().add((IrisJigsawConnector) null);
         IrisJigsawPiece fallbackPiece = piece("fallback-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""));
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("branch", pool("fallback", "malformed-piece"));
         fixture.pool("fallback", pool("", "fallback-piece"));
         fixture.piece("start-piece", startPiece);
         fixture.piece("malformed-piece", malformedPiece);
         fixture.piece("fallback-piece", fallbackPiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("malformed-object", new IrisObject(1, 1, 1));
-        fixture.object("fallback-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("malformed-object", new ObjectFrame(1, 1, 1));
+        fixture.object("fallback-object", new ObjectFrame(1, 1, 1));
 
         assertThrows(IllegalStateException.class,
                 () -> fixture.assembler(structure("start", 2), 0, 0, 0).assemble(new RNG(19L)));
@@ -805,13 +802,13 @@ public class StructureAssemblerTest {
     public void emptyPoolChoiceTerminatesTheBranchWithoutPlacingAir() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece startPiece = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "terminal", "start", "door"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "terminal", "start", "door"));
         fixture.pool("start", pool("", "start-piece"));
         IrisJigsawPool terminal = new IrisJigsawPool();
         terminal.getPieces().add(new IrisJigsawPieceEntry().setEmpty(true).setWeight(1));
         fixture.pool("terminal", terminal);
         fixture.piece("start-piece", startPiece);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
 
         List<PlacedStructurePiece> placed = completedPieces(
                 fixture.assembler(structure("start", 2), 0, 0, 0), new RNG(7L));
@@ -859,8 +856,8 @@ public class StructureAssemblerTest {
         fixture.pool("start", pool("", "first-piece", "second-piece"));
         fixture.piece("first-piece", first);
         fixture.piece("second-piece", second);
-        fixture.object("first-object", new IrisObject(1, 1, 1));
-        fixture.object("second-object", new IrisObject(1, 1, 1));
+        fixture.object("first-object", new ObjectFrame(1, 1, 1));
+        fixture.object("second-object", new ObjectFrame(1, 1, 1));
         IrisStructure structure = structure("start", 1);
         structure.getThemeSets().add(new IrisJigsawThemeSet("variant-1", 1));
         structure.getThemeSets().add(new IrisJigsawThemeSet("variant-2", 1));
@@ -877,12 +874,12 @@ public class StructureAssemblerTest {
     public void unmetMinimumPlacementsTakePriorityWithinTheirPool() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece start = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "branch", "start", "door"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "branch", "start", "door"));
         IrisJigsawPiece required = piece("required-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""));
         required.setRules(new IrisJigsawPieceRules().setMinimumPlacements(1));
         IrisJigsawPiece common = piece("common-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""));
         fixture.pool("start", pool("", "start-piece"));
         IrisJigsawPool branch = new IrisJigsawPool();
         branch.getPieces().add(new IrisJigsawPieceEntry("common-piece", 100));
@@ -891,9 +888,9 @@ public class StructureAssemblerTest {
         fixture.piece("start-piece", start);
         fixture.piece("required-piece", required);
         fixture.piece("common-piece", common);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("required-object", new IrisObject(1, 1, 1));
-        fixture.object("common-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("required-object", new ObjectFrame(1, 1, 1));
+        fixture.object("common-object", new ObjectFrame(1, 1, 1));
 
         StructureAssemblyResult result = fixture.assembler(structure("start", 2), 0, 0, 0)
                 .assemble(new RNG(61L));
@@ -906,16 +903,16 @@ public class StructureAssemblerTest {
     public void terminalPiecesNeverEnqueueTheirRemainingConnectors() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece terminal = piece("terminal-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "child", "start", "door"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "child", "start", "door"));
         terminal.setRules(new IrisJigsawPieceRules().setTerminal(true));
         IrisJigsawPiece child = piece("child-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""));
         fixture.pool("start", pool("", "terminal-piece"));
         fixture.pool("child", pool("", "child-piece"));
         fixture.piece("terminal-piece", terminal);
         fixture.piece("child-piece", child);
-        fixture.object("terminal-object", new IrisObject(1, 1, 1));
-        fixture.object("child-object", new IrisObject(1, 1, 1));
+        fixture.object("terminal-object", new ObjectFrame(1, 1, 1));
+        fixture.object("child-object", new ObjectFrame(1, 1, 1));
 
         StructureAssemblyResult result = fixture.assembler(structure("start", 2), 0, 0, 0)
                 .assemble(new RNG(67L));
@@ -928,11 +925,11 @@ public class StructureAssemblerTest {
     public void requiredCapsResolveThroughACompatibleTerminalFallback() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece start = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "branch", "start", "door"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "branch", "start", "door"));
         IrisJigsawPiece incompatible = piece("incompatible-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "wrong", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "wrong", ""));
         IrisJigsawPiece cap = piece("cap-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "", "door", ""));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "", "door", ""));
         cap.setRules(new IrisJigsawPieceRules().setTerminal(true));
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("branch", pool("caps", "incompatible-piece"));
@@ -940,9 +937,9 @@ public class StructureAssemblerTest {
         fixture.piece("start-piece", start);
         fixture.piece("incompatible-piece", incompatible);
         fixture.piece("cap-piece", cap);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("incompatible-object", new IrisObject(1, 1, 1));
-        fixture.object("cap-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("incompatible-object", new ObjectFrame(1, 1, 1));
+        fixture.object("cap-object", new ObjectFrame(1, 1, 1));
         IrisStructure structure = structure("start", 2).setRequireCaps(true);
 
         StructureAssemblyResult result = fixture.assembler(structure, 0, 0, 0)
@@ -957,20 +954,20 @@ public class StructureAssemblerTest {
     public void compatibleOpenConnectorsCloseAgainstAnAlreadyPlacedNeighbor() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece start = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "east", "start-east", "door"),
-                connector(IrisDirection.SOUTH_POSITIVE_Z, "south", "start-south", "door"));
+                connector(JigsawDirection.EAST_POSITIVE_X, "east", "start-east", "door"),
+                connector(JigsawDirection.SOUTH_POSITIVE_Z, "south", "start-south", "door"));
         IrisJigsawPiece east = piece("east-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "terminal", "door", "unused"),
-                connector(IrisDirection.SOUTH_POSITIVE_Z, "diagonal", "east-south", "door"));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "terminal", "door", "unused"),
+                connector(JigsawDirection.SOUTH_POSITIVE_Z, "diagonal", "east-south", "door"));
         IrisJigsawPiece south = piece("south-object", false,
-                connector(IrisDirection.NORTH_NEGATIVE_Z, "terminal", "door", "unused"),
-                connector(IrisDirection.EAST_POSITIVE_X, "diagonal", "south-east", "door"));
+                connector(JigsawDirection.NORTH_NEGATIVE_Z, "terminal", "door", "unused"),
+                connector(JigsawDirection.EAST_POSITIVE_X, "diagonal", "south-east", "door"));
         IrisJigsawPiece diagonal = piece("diagonal-object", false,
-                connector(IrisDirection.NORTH_NEGATIVE_Z, "loop", "door", "unused"),
-                connector(IrisDirection.WEST_NEGATIVE_X, "loop", "door", "unused"));
+                connector(JigsawDirection.NORTH_NEGATIVE_Z, "loop", "door", "unused"),
+                connector(JigsawDirection.WEST_NEGATIVE_X, "loop", "door", "unused"));
         IrisJigsawPiece cap = piece("cap-object", true,
-                connector(IrisDirection.WEST_NEGATIVE_X, "terminal", "door", "unused"),
-                connector(IrisDirection.WEST_NEGATIVE_X, "terminal", "unused", "unused"));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "terminal", "door", "unused"),
+                connector(JigsawDirection.WEST_NEGATIVE_X, "terminal", "unused", "unused"));
         cap.setRules(new IrisJigsawPieceRules().setTerminal(true));
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("east", pool("caps", "east-piece"));
@@ -983,11 +980,11 @@ public class StructureAssemblerTest {
         fixture.piece("south-piece", south);
         fixture.piece("diagonal-piece", diagonal);
         fixture.piece("cap-piece", cap);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
-        fixture.object("east-object", new IrisObject(1, 1, 1));
-        fixture.object("south-object", new IrisObject(1, 1, 1));
-        fixture.object("diagonal-object", new IrisObject(1, 1, 1));
-        fixture.object("cap-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
+        fixture.object("east-object", new ObjectFrame(1, 1, 1));
+        fixture.object("south-object", new ObjectFrame(1, 1, 1));
+        fixture.object("diagonal-object", new ObjectFrame(1, 1, 1));
+        fixture.object("cap-object", new ObjectFrame(1, 1, 1));
         IrisStructure structure = structure("start", 2).setRequireCaps(true);
 
         List<PlacedStructurePiece> placed = completedPieces(
@@ -1001,26 +998,26 @@ public class StructureAssemblerTest {
     public void planarRequiredCapsRejectASecondOpenReservationForTheSameEmptyCell() {
         Fixture fixture = new Fixture();
         IrisJigsawPiece start = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "east", "start-east", "door")
-                        .setPosition(new IrisPosition(2, 0, 1)),
-                connector(IrisDirection.SOUTH_POSITIVE_Z, "south", "start-south", "door")
-                        .setPosition(new IrisPosition(1, 0, 2)));
+                connector(JigsawDirection.EAST_POSITIVE_X, "east", "start-east", "door")
+                        .setPosition(new BlockPosition(2, 0, 1)),
+                connector(JigsawDirection.SOUTH_POSITIVE_Z, "south", "start-south", "door")
+                        .setPosition(new BlockPosition(1, 0, 2)));
         IrisJigsawPiece east = piece("east-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "terminal", "door", "unused")
-                        .setPosition(new IrisPosition(0, 0, 1)),
-                connector(IrisDirection.SOUTH_POSITIVE_Z, "grow", "east-south", "door")
-                        .setPosition(new IrisPosition(1, 0, 2)));
+                connector(JigsawDirection.WEST_NEGATIVE_X, "terminal", "door", "unused")
+                        .setPosition(new BlockPosition(0, 0, 1)),
+                connector(JigsawDirection.SOUTH_POSITIVE_Z, "grow", "east-south", "door")
+                        .setPosition(new BlockPosition(1, 0, 2)));
         IrisJigsawPiece conflicting = piece("conflicting-object", false,
-                connector(IrisDirection.NORTH_NEGATIVE_Z, "terminal", "door", "unused")
-                        .setPosition(new IrisPosition(1, 0, 0)),
-                connector(IrisDirection.EAST_POSITIVE_X, "grow", "south-east", "door")
-                        .setPosition(new IrisPosition(2, 0, 1)));
+                connector(JigsawDirection.NORTH_NEGATIVE_Z, "terminal", "door", "unused")
+                        .setPosition(new BlockPosition(1, 0, 0)),
+                connector(JigsawDirection.EAST_POSITIVE_X, "grow", "south-east", "door")
+                        .setPosition(new BlockPosition(2, 0, 1)));
         IrisJigsawPiece compatible = piece("compatible-object", false,
-                connector(IrisDirection.NORTH_NEGATIVE_Z, "terminal", "door", "unused")
-                        .setPosition(new IrisPosition(1, 0, 0)));
+                connector(JigsawDirection.NORTH_NEGATIVE_Z, "terminal", "door", "unused")
+                        .setPosition(new BlockPosition(1, 0, 0)));
         IrisJigsawPiece cap = piece("cap-object", true,
-                connector(IrisDirection.NORTH_NEGATIVE_Z, "terminal", "door", "unused")
-                        .setPosition(new IrisPosition(1, 0, 0)));
+                connector(JigsawDirection.NORTH_NEGATIVE_Z, "terminal", "door", "unused")
+                        .setPosition(new BlockPosition(1, 0, 0)));
         cap.setRules(new IrisJigsawPieceRules().setTerminal(true));
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("east", pool("caps", "east-piece"));
@@ -1032,14 +1029,14 @@ public class StructureAssemblerTest {
         fixture.piece("conflicting-piece", conflicting);
         fixture.piece("compatible-piece", compatible);
         fixture.piece("cap-piece", cap);
-        fixture.object("start-object", new IrisObject(3, 1, 3));
-        fixture.object("east-object", new IrisObject(3, 1, 3));
-        fixture.object("conflicting-object", new IrisObject(3, 1, 3));
-        fixture.object("compatible-object", new IrisObject(3, 1, 3));
-        fixture.object("cap-object", new IrisObject(3, 1, 3));
+        fixture.object("start-object", new ObjectFrame(3, 1, 3));
+        fixture.object("east-object", new ObjectFrame(3, 1, 3));
+        fixture.object("conflicting-object", new ObjectFrame(3, 1, 3));
+        fixture.object("compatible-object", new ObjectFrame(3, 1, 3));
+        fixture.object("cap-object", new ObjectFrame(3, 1, 3));
         IrisStructure structure = structure("start", 2)
                 .setMode(IrisJigsawMode.PLANAR_JIGSAW)
-                .setCellSize(new IrisPosition(3, 1, 3))
+                .setCellSize(new BlockPosition(3, 1, 3))
                 .setRequireCaps(true);
 
         List<PlacedStructurePiece> placed = completedPieces(
@@ -1059,7 +1056,7 @@ public class StructureAssemblerTest {
         startPool.getPieces().getFirst().setChance(0D);
         fixture.pool("start", startPool);
         fixture.piece("start-piece", start);
-        fixture.object("start-object", new IrisObject(1, 1, 1));
+        fixture.object("start-object", new ObjectFrame(1, 1, 1));
 
         StructureAssemblyResult result = fixture.assembler(structure("start", 1), 0, 0, 0)
                 .assemble(new RNG(73L));
@@ -1072,18 +1069,18 @@ public class StructureAssemblerTest {
     public void branchingGeometryReturnsATypedHardCapFailure() {
         Fixture fixture = new Fixture();
         IrisJigsawConnector[] connectors = {
-                connector(IrisDirection.NORTH_NEGATIVE_Z, "branch", "door", "door"),
-                connector(IrisDirection.EAST_POSITIVE_X, "branch", "door", "door"),
-                connector(IrisDirection.SOUTH_POSITIVE_Z, "branch", "door", "door"),
-                connector(IrisDirection.WEST_NEGATIVE_X, "branch", "door", "door"),
-                connector(IrisDirection.UP_POSITIVE_Y, "branch", "door", "door"),
-                connector(IrisDirection.DOWN_NEGATIVE_Y, "branch", "door", "door")
+                connector(JigsawDirection.NORTH_NEGATIVE_Z, "branch", "door", "door"),
+                connector(JigsawDirection.EAST_POSITIVE_X, "branch", "door", "door"),
+                connector(JigsawDirection.SOUTH_POSITIVE_Z, "branch", "door", "door"),
+                connector(JigsawDirection.WEST_NEGATIVE_X, "branch", "door", "door"),
+                connector(JigsawDirection.UP_POSITIVE_Y, "branch", "door", "door"),
+                connector(JigsawDirection.DOWN_NEGATIVE_Y, "branch", "door", "door")
         };
         IrisJigsawPiece node = piece("node-object", false, connectors);
         fixture.pool("start", pool("", "node-piece"));
         fixture.pool("branch", pool("terminal", "node-piece"));
         fixture.piece("node-piece", node);
-        fixture.object("node-object", new IrisObject(1, 1, 1));
+        fixture.object("node-object", new ObjectFrame(1, 1, 1));
 
         StructureAssemblyResult result = fixture.assembler(structure("start", 10), 0, 0, 0)
                 .assemble(new RNG(83L));
@@ -1093,9 +1090,9 @@ public class StructureAssemblerTest {
         assertFalse(result.hasOutput());
     }
 
-    private static IrisJigsawConnector connector(IrisDirection direction, String pool, String name, String targetName) {
+    private static IrisJigsawConnector connector(JigsawDirection direction, String pool, String name, String targetName) {
         return new IrisJigsawConnector()
-                .setPosition(new IrisPosition())
+                .setPosition(new BlockPosition(0, 0, 0))
                 .setDirection(direction)
                 .setPool(pool == null || pool.isBlank() ? "terminal" : pool)
                 .setName(name)
@@ -1105,7 +1102,7 @@ public class StructureAssemblerTest {
 
     private static IrisJigsawPiece piece(String object, boolean rotatable, IrisJigsawConnector... connectors) {
         IrisJigsawPiece piece = new IrisJigsawPiece().setObject(object).setRotatable(rotatable);
-        piece.getConnectors().add(connectors);
+        piece.getConnectors().addAll(List.of(connectors));
         return piece;
     }
 
@@ -1123,17 +1120,17 @@ public class StructureAssemblerTest {
     ) {
         Fixture fixture = new Fixture();
         IrisJigsawPiece start = piece("start-object", false,
-                connector(IrisDirection.EAST_POSITIVE_X, "target", "start", "door"))
+                connector(JigsawDirection.EAST_POSITIVE_X, "target", "start", "door"))
                 .setCollidable(placedCollidable);
         IrisJigsawPiece candidate = piece("candidate-object", false,
-                connector(IrisDirection.WEST_NEGATIVE_X, "terminal", "door", "unused"))
+                connector(JigsawDirection.WEST_NEGATIVE_X, "terminal", "door", "unused"))
                 .setCollidable(candidateCollidable);
         fixture.pool("start", pool("", "start-piece"));
         fixture.pool("target", pool("", "candidate-piece"));
         fixture.piece("start-piece", start);
         fixture.piece("candidate-piece", candidate);
-        fixture.object("start-object", new IrisObject(3, 3, 3));
-        fixture.object("candidate-object", new IrisObject(3, 3, 3));
+        fixture.object("start-object", new ObjectFrame(3, 3, 3));
+        fixture.object("candidate-object", new ObjectFrame(3, 3, 3));
         return fixture.assembler(structure("start", 1), 0, 0, 0).assemble(new RNG(137L));
     }
 
@@ -1165,7 +1162,7 @@ public class StructureAssemblerTest {
     }
 
     private static PlacedStructurePiece bounds(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
-        return new PlacedStructurePiece(null, null, 0, 0, 0, null, minX, minY, minZ, maxX, maxY, maxZ);
+        return new PlacedStructurePiece(null, null, null, 0, 0, 0, null, minX, minY, minZ, maxX, maxY, maxZ);
     }
 
     private static List<PlacedStructurePiece> completedPieces(StructureAssembler assembler, RNG rng) {
@@ -1195,26 +1192,26 @@ public class StructureAssemblerTest {
     }
 
     private static final class Fixture {
-        private final IrisData data = mock(IrisData.class);
+        private final MapStructureResolver resolver = new MapStructureResolver();
 
         private Fixture() {
-            ModuleResourceFixture.of(data).resource(StructureResources.POOLS, "terminal", new IrisJigsawPool());
+            resolver.pool("terminal", new IrisJigsawPool());
         }
 
         private void pool(String key, IrisJigsawPool pool) {
-            ModuleResourceFixture.of(data).resource(StructureResources.POOLS, key, pool);
+            resolver.pool(key, pool);
         }
 
         private void piece(String key, IrisJigsawPiece piece) {
-            ModuleResourceFixture.of(data).resource(StructureResources.PIECES, key, piece);
+            resolver.piece(key, piece);
         }
 
-        private void object(String key, IrisObject object) {
-            when(data.load(IrisObject.class, key, false)).thenReturn(object);
+        private void object(String key, ObjectFrame object) {
+            resolver.object(key, object);
         }
 
         private StructureAssembler assembler(IrisStructure structure, int x, int y, int z) {
-            return StructureAssembler.forData(data, structure, new IrisPosition(x, y, z), ModuleLogs.discarding());
+            return StructureAssembler.forResolver("test", resolver, structure, new BlockPosition(x, y, z));
         }
     }
 }

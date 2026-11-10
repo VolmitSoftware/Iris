@@ -12,9 +12,7 @@ import art.arcane.iris.engine.framework.structure.StructureResourceBundleGraphCo
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawMode;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetype;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.volmlib.util.math.IrisBlockVector;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -22,6 +20,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -270,14 +269,21 @@ public final class JigsawStudioStructureEditor {
                 continue;
             }
             Path objectPath = resolveOwnedResource(root, relativePath);
-            IrisBlockVector size = IrisObject.sampleSize(objectPath.toFile());
-            if (size.getBlockX() > dimensions.width()
-                    || size.getBlockY() > dimensions.height()
-                    || size.getBlockZ() > dimensions.depth()) {
+            int[] size = sampleSize(objectPath);
+            if (size[0] > dimensions.width()
+                    || size[1] > dimensions.height()
+                    || size[2] > dimensions.depth()) {
                 throw new IOException("Owned object '" + relativePath + "' is "
-                        + size.getBlockX() + "x" + size.getBlockY() + "x" + size.getBlockZ()
+                        + size[0] + "x" + size[1] + "x" + size[2]
                         + " and does not fit the requested cell bounds");
             }
+        }
+    }
+
+    /** The declared width, height and depth in the header of an {@code .iob} file. */
+    private static int[] sampleSize(Path objectPath) throws IOException {
+        try (DataInputStream header = new DataInputStream(Files.newInputStream(objectPath))) {
+            return new int[]{header.readInt(), header.readInt(), header.readInt()};
         }
     }
 

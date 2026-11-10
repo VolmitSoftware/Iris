@@ -1,6 +1,5 @@
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarTopology;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBay;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
@@ -81,7 +80,7 @@ public class JigsawStudioWorldListenerTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 dimensions,
-                mock(IrisData.class),
+                StudioToolPacks.toolPack(),
                 layout,
                 OWNER);
         service.registry().finishOpen(OWNER);

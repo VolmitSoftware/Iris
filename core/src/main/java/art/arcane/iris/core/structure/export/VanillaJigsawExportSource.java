@@ -1,48 +1,57 @@
 package art.arcane.iris.core.structure.export;
 
-import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.structure.StructureGraphResolver;
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.structure.IrisStructure;
+import com.volmit.resource.PackResources;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 public final class VanillaJigsawExportSource {
     private final String structureKey;
-    private final IrisData data;
+    private final PackResources pack;
     private final IrisStructure structure;
     private final StructureGraphResolver resolver;
+    private final Function<String, ObjectContents> objects;
 
     private VanillaJigsawExportSource(
             String structureKey,
-            IrisData data,
+            PackResources pack,
             IrisStructure structure,
-            StructureGraphResolver resolver
+            StructureGraphResolver resolver,
+            Function<String, ObjectContents> objects
     ) {
         this.structureKey = requireKey(structureKey);
-        this.data = data;
+        this.pack = pack;
         this.structure = structure;
         this.resolver = resolver;
+        this.objects = objects;
     }
 
-    public static VanillaJigsawExportSource forData(IrisData data, String structureKey) {
+    public static VanillaJigsawExportSource forPack(PackResources pack, String structureKey) {
+        Objects.requireNonNull(pack);
         return new VanillaJigsawExportSource(
                 structureKey,
-                Objects.requireNonNull(data),
+                pack,
                 null,
-                StructureGraphResolver.forData(data));
+                StructureGraphResolver.forPack(pack),
+                key -> pack.objects().object(pack.idOf(key)).map(object -> ObjectContents.of(object, pack.blocks())).orElse(null));
     }
 
+    /** A source of {@code structure} whose pieces' objects {@code objects} reads, for a structure that is not in a pack. */
     public static VanillaJigsawExportSource forStructure(
             String structureKey,
             IrisStructure structure,
-            StructureGraphResolver resolver
+            StructureGraphResolver resolver,
+            Function<String, ObjectContents> objects
     ) {
         return new VanillaJigsawExportSource(
                 structureKey,
                 null,
                 Objects.requireNonNull(structure),
-                Objects.requireNonNull(resolver));
+                Objects.requireNonNull(resolver),
+                Objects.requireNonNull(objects));
     }
 
     public String structureKey() {
@@ -53,11 +62,16 @@ public final class VanillaJigsawExportSource {
         if (structure != null) {
             return structure;
         }
-        return StructureResources.structure(data.getPackResources(), structureKey);
+        return StructureResources.structure(pack, structureKey);
     }
 
     public StructureGraphResolver resolver() {
         return resolver;
+    }
+
+    /** What the object the pack key {@code objectKey} names holds; null when there is none. */
+    public ObjectContents contents(String objectKey) {
+        return objects.apply(objectKey);
     }
 
     private static String requireKey(String value) {

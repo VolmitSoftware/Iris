@@ -1,13 +1,14 @@
 package art.arcane.iris.core.service;
 
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
-import art.arcane.volmlib.util.math.IrisBlockVector;
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
 import com.volmit.object.ObjectBlock;
+import com.volmit.object.PlaceableObject;
+import com.volmit.resource.PackResources;
 import com.volmit.tooling.world.ToolWorld;
 
 import java.io.IOException;
@@ -39,7 +40,8 @@ public final class JigsawStudioPreviewRenderer {
         this.log = Objects.requireNonNull(log, "Jigsaw Studio preview log");
     }
 
-    public static PreviewPlan plan(List<PlacedStructurePiece> pieces, BlockRegistry registry) throws IOException {
+    public static PreviewPlan plan(List<PlacedStructurePiece> pieces, PackResources pack) throws IOException {
+        BlockRegistry registry = pack.blocks();
         List<PlacedStructurePiece> source = List.copyOf(Objects.requireNonNull(
                 pieces,
                 "Jigsaw Studio preview pieces"));
@@ -64,7 +66,7 @@ public final class JigsawStudioPreviewRenderer {
             maximumX = Math.max(maximumX, piece.getMaxX());
             maximumY = Math.max(maximumY, piece.getMaxY());
             maximumZ = Math.max(maximumZ, piece.getMaxZ());
-            appendObject(blocks, piece, registry);
+            appendObject(blocks, piece, pack);
             appendFinalStates(blocks, piece, registry);
             if (blocks.size() > MAX_BLOCKS) {
                 throw new IOException("The seed-1337 preview exceeds the Studio render limit of "
@@ -188,19 +190,17 @@ public final class JigsawStudioPreviewRenderer {
     private static void appendObject(
             Map<BlockPosition, String> blocks,
             PlacedStructurePiece piece,
-            BlockRegistry registry
+            PackResources pack
     ) throws IOException {
-        ObjectTurn rotation = piece.getRotation();
-        for (ObjectBlock block : piece.getObject().geometry().blocks()) {
-            IrisBlockVector rotated = rotation.rotate(new IrisBlockVector(
-                    block.position().x(), block.position().y(), block.position().z()));
+        PieceTurn rotation = piece.getRotation();
+        PlaceableObject object = pack.objects().object(pack.idOf(piece.getObjectKey()))
+                .orElseThrow(() -> new IOException("Jigsaw Studio preview cannot find object '" + piece.getObjectKey() + "'"));
+        for (ObjectBlock block : object.geometry().blocks()) {
+            com.volmit.geometry.BlockPosition rotated = rotation.rotate(block.position());
             putState(
                     blocks,
-                    new BlockPosition(
-                            piece.getX() + rotated.getBlockX(),
-                            piece.getY() + rotated.getBlockY(),
-                            piece.getZ() + rotated.getBlockZ()),
-                    JigsawStudioBlocks.rotated(registry, block.state(), rotation),
+                    new BlockPosition(piece.getX() + rotated.x(), piece.getY() + rotated.y(), piece.getZ() + rotated.z()),
+                    JigsawStudioBlocks.rotated(pack.blocks(), block.state(), rotation),
                     "object block");
         }
     }
@@ -210,7 +210,7 @@ public final class JigsawStudioPreviewRenderer {
             PlacedStructurePiece piece,
             BlockRegistry registry
     ) throws IOException {
-        ObjectTurn rotation = piece.getRotation();
+        PieceTurn rotation = piece.getRotation();
         if (piece.getPiece().getConnectors() == null) {
             return;
         }
@@ -218,18 +218,14 @@ public final class JigsawStudioPreviewRenderer {
             if (connector == null || connector.getPosition() == null) {
                 throw new IOException("Jigsaw Studio preview contains an incomplete connector");
             }
-            IrisBlockVector signed = new IrisBlockVector(
-                    connector.getPosition().getX() - piece.getObject().center().x(),
-                    connector.getPosition().getY() - piece.getObject().center().y(),
-                    connector.getPosition().getZ() - piece.getObject().center().z());
-            IrisBlockVector rotated = rotation.rotate(signed);
+            com.volmit.geometry.BlockPosition rotated = rotation.rotate(new com.volmit.geometry.BlockPosition(
+                    connector.getPosition().x() - piece.getObject().center().x(),
+                    connector.getPosition().y() - piece.getObject().center().y(),
+                    connector.getPosition().z() - piece.getObject().center().z()));
             BlockState source = registry.find(connector.getFinalState()).orElse(null);
             putState(
                     blocks,
-                    new BlockPosition(
-                            piece.getX() + rotated.getBlockX(),
-                            piece.getY() + rotated.getBlockY(),
-                            piece.getZ() + rotated.getBlockZ()),
+                    new BlockPosition(piece.getX() + rotated.x(), piece.getY() + rotated.y(), piece.getZ() + rotated.z()),
                     source == null ? null : JigsawStudioBlocks.rotated(registry, source, rotation),
                     "connector final state");
         }

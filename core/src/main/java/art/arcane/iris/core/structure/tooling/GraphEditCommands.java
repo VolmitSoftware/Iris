@@ -31,10 +31,9 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariant;
 import art.arcane.iris.core.service.JigsawStudioService;
 import art.arcane.iris.core.structure.tooling.GraphMutations.PieceWorkcellResolution;
 import art.arcane.iris.core.structure.tooling.StudioSessions.ActiveContext;
+import art.arcane.iris.engine.framework.structure.ObjectFrame;
 import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.tooling.Argument;
 import com.volmit.tooling.Command;
@@ -208,20 +207,20 @@ final class GraphEditCommands {
             use.error("The active variant is read-only. Adopt it into this project before editing it.");
             return;
         }
-        IrisObject object = active.request().source().getObjectLoader().load(activeVariant.objectKey());
+        ObjectFrame object = GraphMutations.objectFrame(active, activeVariant.objectKey());
         if (object == null) {
             use.error("The active variant object '" + activeVariant.objectKey() + "' is missing.");
             return;
         }
-        IrisPosition canonicalPosition = new IrisPosition(
+        BlockPosition canonicalPosition = new BlockPosition(
                 target.x() - bay.bounds().originX(),
                 target.y() - bay.bounds().originY(),
                 target.z() - bay.bounds().originZ());
-        IrisPosition position;
+        BlockPosition position;
         try {
             position = activeVariant.canonicalToSourcePosition(
                     canonicalPosition,
-                    new JigsawStudioCellDimensions(object.getW(), object.getH(), object.getD()));
+                    new JigsawStudioCellDimensions(object.width(), object.height(), object.depth()));
         } catch (IllegalArgumentException exception) {
             use.error("Connector channel update failed: " + exception.getMessage());
             return;
@@ -232,7 +231,7 @@ final class GraphEditCommands {
                 : channel.trim();
         runGraphMutation(use, active, () -> {
             JigsawStudioGraphEditor.updateConnectorChannel(
-                    active.request().source().getDataFolder().toPath(),
+                    active.request().packRoot(),
                     active.request().structureKey(),
                     activeVariant.pieceKey(),
                     position,
@@ -242,8 +241,8 @@ final class GraphEditCommands {
                     "",
                     "",
                     "Persisted connector channel '" + normalized + "' on piece '"
-                            + activeVariant.pieceKey() + "' at " + position.getX() + "," + position.getY()
-                            + "," + position.getZ() + ".");
+                            + activeVariant.pieceKey() + "' at " + position.x() + "," + position.y()
+                            + "," + position.z() + ".");
         });
     }
 
@@ -281,7 +280,7 @@ final class GraphEditCommands {
         String fallback = NONE.equalsIgnoreCase(fallbackPoolKey) ? "" : fallbackPoolKey;
         runGraphMutation(use, active, () -> {
             JigsawStudioGraphEditor.createPool(
-                    active.request().source().getDataFolder().toPath(),
+                    active.request().packRoot(),
                     active.request().structureKey(),
                     poolKey,
                     fallback);
@@ -334,7 +333,7 @@ final class GraphEditCommands {
         String topologyText = selectedTopology == null ? "blank spatial" : selectedTopology.name();
         runGraphMutation(use, active, () -> {
             JigsawStudioGraphEditor.createPiece(
-                    active.request().source().getDataFolder().toPath(),
+                    active.request().packRoot(),
                     active.request().structureKey(),
                     poolKey,
                     pieceKey,
@@ -363,7 +362,7 @@ final class GraphEditCommands {
         String poolKey = context.get(OWNED_POOL);
         String pieceKey = context.get(EXISTING_PIECE);
         int weight = context.get(OPTIONAL_WEIGHT).intValue();
-        IrisJigsawPiece piece = StructureResources.piece(active.request().source().getPackResources(), pieceKey);
+        IrisJigsawPiece piece = StructureResources.piece(active.request().source().resources(), pieceKey);
         if (piece == null) {
             use.error("No jigsaw piece '" + pieceKey + "' exists in this pack.");
             return;
@@ -372,7 +371,7 @@ final class GraphEditCommands {
             use.error("Jigsaw piece '" + pieceKey + "' does not declare an object.");
             return;
         }
-        IrisObject object = active.request().source().getObjectLoader().load(piece.getObject());
+        ObjectFrame object = GraphMutations.objectFrame(active, piece.getObject());
         if (object == null) {
             use.error("Jigsaw piece '" + pieceKey + "' has no loadable object.");
             return;
@@ -386,10 +385,10 @@ final class GraphEditCommands {
             return;
         }
         if (!resolution.fits()) {
-            IrisPosition required = resolution.requiredDimensions();
+            BlockPosition required = resolution.requiredDimensions();
             JigsawStudioCellDimensions capacity = resolution.workcell().capacity();
-            use.error("Jigsaw piece '" + pieceKey + "' requires " + required.getX() + "x"
-                    + required.getY() + "x" + required.getZ() + " in " + resolution.workcell().displayName()
+            use.error("Jigsaw piece '" + pieceKey + "' requires " + required.x() + "x"
+                    + required.y() + "x" + required.z() + " in " + resolution.workcell().displayName()
                     + ", but that workcell capacity is " + capacity.width() + "x" + capacity.height()
                     + "x" + capacity.depth() + ".");
             return;
@@ -397,7 +396,7 @@ final class GraphEditCommands {
         String objectKey = piece.getObject();
         runGraphMutation(use, active, () -> {
             if (!JigsawStudioGraphEditor.ownsPiece(
-                    active.request().source().getDataFolder().toPath(),
+                    active.request().packRoot(),
                     active.request().structureKey(),
                     pieceKey,
                     objectKey)) {
@@ -405,7 +404,7 @@ final class GraphEditCommands {
                         + "use piece create for a new owned piece");
             }
             JigsawStudioPoolEditor.PoolUpdate update = JigsawStudioPoolEditor.addPiece(
-                    active.request().source().getDataFolder().toPath(),
+                    active.request().packRoot(),
                     active.request().structureKey(),
                     poolKey,
                     pieceKey,
@@ -442,7 +441,7 @@ final class GraphEditCommands {
         String pieceKey = selected.pieceKey();
         runGraphMutation(use, active, () -> {
             JigsawStudioPoolEditor.PoolUpdate update = JigsawStudioPoolEditor.removePiece(
-                    active.request().source().getDataFolder().toPath(),
+                    active.request().packRoot(),
                     active.request().structureKey(),
                     poolKey,
                     pieceKey);
@@ -482,7 +481,7 @@ final class GraphEditCommands {
         String pieceKey = selected.pieceKey();
         runGraphMutation(use, active, () -> {
             JigsawStudioGraphEditor.updateRotatable(
-                    active.request().source().getDataFolder().toPath(),
+                    active.request().packRoot(),
                     active.request().structureKey(),
                     pieceKey,
                     rotatable);
@@ -585,7 +584,7 @@ final class GraphEditCommands {
         String pieceKey = selected.pieceKey();
         runGraphMutation(use, active, () -> {
             JigsawStudioPoolEditor.WeightUpdate update = JigsawStudioPoolEditor.updateWeight(
-                    active.request().source().getDataFolder().toPath(),
+                    active.request().packRoot(),
                     active.request().structureKey(),
                     poolKey,
                     pieceKey,
@@ -727,7 +726,7 @@ final class GraphEditCommands {
         }
         runGraphMutation(use, active, () -> {
             JigsawStudioStructureEditor.updateLimits(
-                    active.request().source().getDataFolder().toPath(),
+                    active.request().packRoot(),
                     active.request().structureKey(),
                     maxDepth,
                     maxSizeChunks);
@@ -755,7 +754,7 @@ final class GraphEditCommands {
         String fallback = NONE.equalsIgnoreCase(fallbackPoolKey) ? "" : fallbackPoolKey;
         runGraphMutation(use, active, () -> {
             JigsawStudioPoolEditor.PoolUpdate update = JigsawStudioPoolEditor.updateFallback(
-                    active.request().source().getDataFolder().toPath(),
+                    active.request().packRoot(),
                     active.request().structureKey(),
                     poolKey,
                     fallback);

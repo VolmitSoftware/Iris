@@ -1,12 +1,12 @@
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCompatibilityTarget;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioLayout;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioMode;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioSession;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariantCatalog;
+import com.volmit.tooling.ToolPack;
 
 import java.util.Locale;
 import java.util.Map;
@@ -31,7 +31,7 @@ public final class JigsawStudioRegistry {
             JigsawStudioMode mode,
             JigsawStudioCompatibilityTarget compatibilityTarget,
             JigsawStudioCellDimensions cellDimensions,
-            IrisData source
+            ToolPack source
     ) {
         JigsawStudioLayout layout = JigsawStudioLayout.create(
                 mode,
@@ -55,7 +55,7 @@ public final class JigsawStudioRegistry {
             JigsawStudioMode mode,
             JigsawStudioCompatibilityTarget compatibilityTarget,
             JigsawStudioCellDimensions cellDimensions,
-            IrisData source,
+            ToolPack source,
             JigsawStudioLayout initialLayout
     ) {
         return activate(
@@ -76,7 +76,7 @@ public final class JigsawStudioRegistry {
             JigsawStudioMode mode,
             JigsawStudioCompatibilityTarget compatibilityTarget,
             JigsawStudioCellDimensions cellDimensions,
-            IrisData source,
+            ToolPack source,
             JigsawStudioLayout initialLayout,
             UUID ownerId
     ) {
@@ -109,7 +109,7 @@ public final class JigsawStudioRegistry {
             JigsawStudioMode mode,
             JigsawStudioCompatibilityTarget compatibilityTarget,
             JigsawStudioCellDimensions cellDimensions,
-            IrisData source,
+            ToolPack source,
             JigsawStudioLayout initialLayout,
             UUID ownerId,
             UUID preservedRequestId
@@ -299,7 +299,7 @@ public final class JigsawStudioRegistry {
             JigsawStudioMode mode,
             JigsawStudioCompatibilityTarget compatibilityTarget,
             JigsawStudioCellDimensions cellDimensions,
-            IrisData source,
+            ToolPack source,
             JigsawStudioLayout initialLayout,
             UUID ownerId
     ) {
@@ -311,6 +311,7 @@ public final class JigsawStudioRegistry {
                 compatibilityTarget,
                 cellDimensions,
                 source,
+                JigsawStudioRequest.rootOf(source),
                 ownerId);
         JigsawStudioLayout layout = Objects.requireNonNull(initialLayout, "Initial Jigsaw Studio layout");
         if (layout.mode() != mode) {

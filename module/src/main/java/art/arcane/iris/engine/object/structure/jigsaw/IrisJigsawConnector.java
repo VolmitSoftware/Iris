@@ -18,11 +18,10 @@
 
 package art.arcane.iris.engine.object.structure.jigsaw;
 
-import art.arcane.iris.engine.object.value.IrisDirection;
-import art.arcane.iris.engine.object.value.IrisPosition;
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.RegistryListResource;
-import art.arcane.iris.engine.object.annotations.Required;
+import com.volmit.config.Desc;
+import com.volmit.config.Required;
+import com.volmit.config.ResourceRef;
+import com.volmit.geometry.BlockPosition;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -36,20 +35,20 @@ import java.util.Objects;
 @Desc("A jigsaw connection point on a piece. When two connectors face each other and their names match, the assembler may join the pieces.")
 @Data
 public class IrisJigsawConnector {
-    public static IrisPosition canonicalPlanarPosition(IrisPosition cellSize, IrisDirection direction) {
-        IrisPosition dimensions = Objects.requireNonNull(cellSize, "Planar jigsaw cell size");
-        IrisDirection face = Objects.requireNonNull(direction, "Planar jigsaw connector direction");
-        if (dimensions.getX() < 1 || dimensions.getY() < 1 || dimensions.getZ() < 1) {
+    public static BlockPosition canonicalPlanarPosition(BlockPosition cellSize, JigsawDirection direction) {
+        BlockPosition dimensions = Objects.requireNonNull(cellSize, "Planar jigsaw cell size");
+        JigsawDirection face = Objects.requireNonNull(direction, "Planar jigsaw connector direction");
+        if (dimensions.x() < 1 || dimensions.y() < 1 || dimensions.z() < 1) {
             throw new IllegalArgumentException("Planar jigsaw cell dimensions must be positive");
         }
-        int centerX = dimensions.getX() / 2;
-        int centerY = dimensions.getY() / 2;
-        int centerZ = dimensions.getZ() / 2;
+        int centerX = dimensions.x() / 2;
+        int centerY = dimensions.y() / 2;
+        int centerZ = dimensions.z() / 2;
         return switch (face) {
-            case NORTH_NEGATIVE_Z -> new IrisPosition(centerX, centerY, 0);
-            case EAST_POSITIVE_X -> new IrisPosition(dimensions.getX() - 1, centerY, centerZ);
-            case SOUTH_POSITIVE_Z -> new IrisPosition(centerX, centerY, dimensions.getZ() - 1);
-            case WEST_NEGATIVE_X -> new IrisPosition(0, centerY, centerZ);
+            case NORTH_NEGATIVE_Z -> new BlockPosition(centerX, centerY, 0);
+            case EAST_POSITIVE_X -> new BlockPosition(dimensions.x() - 1, centerY, centerZ);
+            case SOUTH_POSITIVE_Z -> new BlockPosition(centerX, centerY, dimensions.z() - 1);
+            case WEST_NEGATIVE_X -> new BlockPosition(0, centerY, centerZ);
             case UP_POSITIVE_Y, DOWN_NEGATIVE_Y -> throw new IllegalArgumentException(
                     "Planar jigsaw connector direction must be horizontal");
         };
@@ -57,18 +56,18 @@ public class IrisJigsawConnector {
 
     @Required
     @Desc("The position of this connector relative to the piece object's origin (0,0,0 is the lowest-corner of the object).")
-    private IrisPosition position = new IrisPosition();
+    private BlockPosition position = new BlockPosition(0, 0, 0);
 
     @Required
     @Desc("The direction this connector faces. The connecting piece is placed on this side.")
-    private IrisDirection direction = IrisDirection.NORTH_NEGATIVE_Z;
+    private JigsawDirection direction = JigsawDirection.NORTH_NEGATIVE_Z;
 
     @Required
     @Desc("The connector's authored top direction, used to preserve aligned vanilla jigsaw orientation.")
-    private IrisDirection top = IrisDirection.UP_POSITIVE_Y;
+    private JigsawDirection top = JigsawDirection.UP_POSITIVE_Y;
 
     @Required
-    @RegistryListResource(IrisJigsawPool.class)
+    @ResourceRef(IrisJigsawPool.class)
     @Desc("The jigsaw pool to draw the connecting piece from.")
     private String pool = "";
 

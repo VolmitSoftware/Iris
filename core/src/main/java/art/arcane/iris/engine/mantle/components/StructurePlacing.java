@@ -20,15 +20,17 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
-import art.arcane.iris.engine.framework.structure.StructureResources;
+import art.arcane.iris.engine.framework.structure.ColumnHeights;
+import art.arcane.iris.engine.framework.structure.assembly.AssembledPiece;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
+import art.arcane.iris.engine.framework.structure.assembly.StructureAssembly;
+import art.arcane.iris.engine.framework.structure.assembly.StructureStamp;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.modules.ModuleObjectPlacement;
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
-import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.framework.StructurePlacementScope;
 import art.arcane.iris.core.modules.PlacementMarkers;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
@@ -39,7 +41,6 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.builtin.structure.StructureCarveShape;
 import art.arcane.iris.builtin.structure.StructurePlacement;
 import art.arcane.iris.builtin.structure.StructureStilts;
@@ -61,8 +62,7 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterStructurePOI;
 import art.arcane.volmlib.util.math.RNG;
-import it.unimi.dsi.fastutil.longs.Long2IntMap;
-import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -112,8 +112,8 @@ public class StructurePlacing {
         }
 
         String key = resolved.structureKey();
-        IrisStructure structure = resolved.structure();
-        KList<PlacedStructurePiece> pieces = resolvedPiecesOrNull(resolved, cx, cz);
+        StructureStamp stamp = resolved.stamp();
+        KList<AssembledPiece> pieces = resolvedPiecesOrNull(resolved, cx, cz);
         if (pieces == null) {
             return;
         }
@@ -139,36 +139,36 @@ public class StructurePlacing {
                     + " is not implemented for structure '" + key + "'");
         }
 
-        ObjectPlaceMode mode = structure.getPlaceMode();
+        ObjectPlaceMode mode = stamp.placeMode();
         int failedPieces = 0;
         StructureStilts stilt = placement.stilt().orElse(null);
-        Long2IntOpenHashMap foundationColumns = stilt == null
-                ? null : new Long2IntOpenHashMap();
+        ColumnHeights foundationColumns = stilt == null
+                ? null : new ColumnHeights(0);
         boolean supportNonOccluding = stilt != null && stilt.supportNonOccluding();
         if (placement.isAnchoredUnderground()) {
             ObjectPlaceMode undergroundMode = mode.placeMode().has(PlaceTrait.CAVE_ANCHORED)
                     ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
-            for (PlacedStructurePiece p : pieces) {
-                if (placeObject(writer, structure, p, undergroundMode, p.getY(), rng,
+            for (AssembledPiece p : pieces) {
+                if (placeObject(writer, key, stamp, p, undergroundMode, p.y(), rng,
                         foundationColumns, supportNonOccluding) == -1) {
                     failedPieces++;
                 }
             }
         } else if (mode.placeMode().has(PlaceTrait.FREE_HEIGHT)) {
-            for (PlacedStructurePiece p : pieces) {
-                if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, p.getY(), rng,
+            for (AssembledPiece p : pieces) {
+                if (placeObject(writer, key, stamp, p, ObjectPlaceMode.STRUCTURE_PIECE, p.y(), rng,
                         foundationColumns, supportNonOccluding) == -1) {
                     failedPieces++;
                 }
             }
         } else if (pieces.size() == 1) {
-            if (placeObject(writer, structure, pieces.getFirst(), mode, -1, rng,
+            if (placeObject(writer, key, stamp, pieces.getFirst(), mode, -1, rng,
                     foundationColumns, supportNonOccluding) == -1) {
                 failedPieces++;
             }
         } else {
-            for (PlacedStructurePiece p : pieces) {
-                if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, p.getY(), rng,
+            for (AssembledPiece p : pieces) {
+                if (placeObject(writer, key, stamp, p, ObjectPlaceMode.STRUCTURE_PIECE, p.y(), rng,
                         foundationColumns, supportNonOccluding) == -1) {
                     failedPieces++;
                 }
@@ -180,7 +180,7 @@ public class StructurePlacing {
         }
     }
 
-    private void placeFoundation(MantleWriter writer, Long2IntOpenHashMap columns,
+    private void placeFoundation(MantleWriter writer, ColumnHeights columns,
                                  StructureStilts settings, RNG rng,
                                  boolean surfaceStructure) {
         PaletteSpec palette = settings.palette().orElseThrow(
@@ -188,14 +188,13 @@ public class StructurePlacing {
         PaletteSampler picker = engine.getData().getPackResources().blocks().palette(palette, rng.getSeed());
         int mantleOffset = engine.getMinHeight();
         int maxDepth = Math.max(1, settings.maxDepth());
-        for (Long2IntMap.Entry column : columns.long2IntEntrySet()) {
-            int worldX = StructureFoundationPlanner.unpackX(column.getLongKey());
-            int worldZ = StructureFoundationPlanner.unpackZ(column.getLongKey());
-            int foundationY = column.getIntValue();
+        columns.forEach((column, foundationY) -> {
+            int worldX = StructureFoundationPlanner.unpackX(column);
+            int worldZ = StructureFoundationPlanner.unpackZ(column);
             PlatformBlockState foundationState = writer.getDataIfPresent(
                     worldX, foundationY, worldZ, PlatformBlockState.class);
             if (foundationState == null || !foundationState.isSolid()) {
-                continue;
+                return;
             }
             int terrainHeight = engine.getMantle().trueHeight(worldX, worldZ);
             int groundY = StructureFoundationPlanner.findGroundY(
@@ -212,12 +211,12 @@ public class StructurePlacing {
                                         overlay, carved, y, terrainHeight);
                     });
             if (groundY == StructureFoundationPlanner.NO_GROUND) {
-                continue;
+                return;
             }
             StructureFoundationPlanner.fillSupportColumn(foundationY, groundY, y -> {
                 writeFoundationSupport(writer, picker, worldX, y, worldZ, mantleOffset);
             });
-        }
+        });
     }
 
     /** Writes the stilt palette's block at the column's mantle height, clearing any carve there. */
@@ -233,7 +232,7 @@ public class StructurePlacing {
         writer.set(worldX, mantleY, worldZ, support);
     }
 
-    static KList<PlacedStructurePiece> resolvedPiecesOrNull(
+    static KList<AssembledPiece> resolvedPiecesOrNull(
             IrisStructureLocator.ResolvedPlacement resolved,
             int chunkX,
             int chunkZ
@@ -241,7 +240,7 @@ public class StructurePlacing {
         if (resolved == null) {
             return null;
         }
-        KList<PlacedStructurePiece> pieces = resolved.pieces();
+        KList<AssembledPiece> pieces = resolved.pieces();
         if (!IrisStructureLocator.requirePlacementOutput(
                 resolved.placement(), resolved.structureKey(), chunkX, chunkZ,
                 pieces != null && !pieces.isEmpty(), "placement application received no assembled pieces")) {
@@ -258,7 +257,7 @@ public class StructurePlacing {
                         + " assembled piece(s)");
     }
 
-    private void boreStructure(MantleWriter writer, KList<PlacedStructurePiece> pieces,
+    private void boreStructure(MantleWriter writer, KList<AssembledPiece> pieces,
                                StructureTerrain terrain) {
         int[] bounds = computePieceBounds(pieces);
         if (bounds == null) {
@@ -288,7 +287,7 @@ public class StructurePlacing {
         }
     }
 
-    private void forceCarveStructure(MantleWriter writer, KList<PlacedStructurePiece> pieces,
+    private void forceCarveStructure(MantleWriter writer, KList<AssembledPiece> pieces,
                                      StructureTerrain terrain) {
         int[] bounds = computePieceBounds(pieces);
         if (bounds == null) {
@@ -310,8 +309,8 @@ public class StructurePlacing {
         }
 
         long work = overboreCandidateVolume(bounds, margin, upExtension, floorCut);
-        StructureCarvingFootprint footprint = StructureCarvingFootprint.from(
-                pieces, margin, Integer.MAX_VALUE);
+        StructureCarvingFootprint footprint = StructureCarvingFootprint.fromColumns(
+                sink -> StructurePieceColumns.emit(pieces, this::blocksOf, sink), margin, Integer.MAX_VALUE);
         if (footprint == null) {
             throw new IllegalStateException("Structure force-carve footprint is empty or exceeds addressable memory");
         }
@@ -419,18 +418,20 @@ public class StructurePlacing {
         int mantleOffset = engine.getMinHeight();
         int worldHeight = engine.getHeight();
         Map<String, ObjectMarkerBounds> intersectingObjects = new HashMap<>();
-        for (PlacedStructurePiece piece : resolved.pieces()) {
-            for (IrisBlockVector local : piece.getObject().getBlocks().keys()) {
-                PlatformBlockState structureState = piece.getObject().getBlocks().get(local);
+        for (AssembledPiece piece : resolved.pieces()) {
+            IrisObject object = objectOf(piece);
+            for (IrisBlockVector local : object.getBlocks().keys()) {
+                PlatformBlockState structureState = object.getBlocks().get(local);
                 if (!isOccupiedStructureState(structureState)) {
                     continue;
                 }
-                IrisBlockVector rotated = piece.getRotation().rotate(local.clone());
-                int y = piece.getY() - mantleOffset + rotated.getBlockY();
+                BlockPosition rotated = piece.turn().rotate(
+                        new BlockPosition(local.getBlockX(), local.getBlockY(), local.getBlockZ()));
+                int y = piece.y() - mantleOffset + rotated.y();
                 if (y >= 0 && y < worldHeight) {
                     collectIntersectingObjectTreeMarker(
-                            writer, piece.getX() + rotated.getBlockX(), y,
-                            piece.getZ() + rotated.getBlockZ(), intersectingObjects);
+                            writer, piece.x() + rotated.x(), y,
+                            piece.z() + rotated.z(), intersectingObjects);
                 }
             }
         }
@@ -520,7 +521,29 @@ public class StructurePlacing {
                 Math.max(0, horizontalSpan - 1), Math.max(0, verticalSpan - 1), worldHeight);
     }
 
-    private int[] computePieceBounds(KList<PlacedStructurePiece> pieces) {
+    private List<StructurePieceColumns.PieceBlock> blocksOf(AssembledPiece piece) {
+        IrisObject object = objectOf(piece);
+        if (object == null || object.getBlocks() == null) {
+            return null;
+        }
+        List<StructurePieceColumns.PieceBlock> blocks = new ArrayList<>();
+        for (IrisBlockVector local : object.getBlocks().keys()) {
+            if (local != null) {
+                blocks.add(new StructurePieceColumns.PieceBlock(
+                        new BlockPosition(local.getBlockX(), local.getBlockY(), local.getBlockZ()),
+                        B.isAir(object.getBlocks().get(local))));
+            }
+        }
+        return blocks;
+    }
+
+    /** The object of {@code piece}, loaded from the engine's pack. */
+    private IrisObject objectOf(AssembledPiece piece) {
+        String key = engine.getData().getPackResources().keyOf(piece.object());
+        return engine.getData().load(IrisObject.class, key, false);
+    }
+
+    private int[] computePieceBounds(KList<AssembledPiece> pieces) {
         if (pieces == null || pieces.isEmpty()) {
             return null;
         }
@@ -530,29 +553,29 @@ public class StructurePlacing {
         int maxX = Integer.MIN_VALUE;
         int maxY = Integer.MIN_VALUE;
         int maxZ = Integer.MIN_VALUE;
-        for (PlacedStructurePiece p : pieces) {
-            minX = Math.min(minX, p.getMinX());
-            minY = Math.min(minY, p.getMinY());
-            minZ = Math.min(minZ, p.getMinZ());
-            maxX = Math.max(maxX, p.getMaxX());
-            maxY = Math.max(maxY, p.getMaxY());
-            maxZ = Math.max(maxZ, p.getMaxZ());
+        for (AssembledPiece p : pieces) {
+            minX = Math.min(minX, p.minX());
+            minY = Math.min(minY, p.minY());
+            minZ = Math.min(minZ, p.minZ());
+            maxX = Math.max(maxX, p.maxX());
+            maxY = Math.max(maxY, p.maxY());
+            maxZ = Math.max(maxZ, p.maxZ());
         }
         return new int[]{minX, minY, minZ, maxX, maxY, maxZ};
     }
 
-    /** A placement of the piece object {@code objectKey} whose containers draw from the structure's loot tables. */
-    public static ObjectPlacement lootPlacement(IrisStructure structure, String objectKey) {
-        return lootPlacementBuilder(structure, objectKey).build();
+    /** A placement of the piece object {@code objectKey} whose containers draw from the stamp's loot tables. */
+    public static ObjectPlacement lootPlacement(StructureStamp stamp, String objectKey) {
+        return lootPlacementBuilder(stamp, objectKey).build();
     }
 
-    private static ObjectPlacement.Builder lootPlacementBuilder(IrisStructure structure, String objectKey) {
+    private static ObjectPlacement.Builder lootPlacementBuilder(StructureStamp stamp, String objectKey) {
         ObjectPlacement.Builder placement = ObjectPlacement.builder().place(List.of(objectKey));
-        if (structure.getLoot() == null) {
+        if (stamp.loot().isEmpty()) {
             return placement;
         }
         List<ObjectLoot> loot = new ArrayList<>();
-        for (String lootTable : structure.getLoot()) {
+        for (String lootTable : stamp.loot()) {
             if (lootTable != null && !lootTable.isBlank()) {
                 loot.add(new ObjectLoot(lootTable, 1));
             }
@@ -560,22 +583,22 @@ public class StructurePlacing {
         return placement.loot(loot);
     }
 
-    private int placeObject(MantleWriter writer, IrisStructure structure, PlacedStructurePiece p,
-                            ObjectPlaceMode mode, int y, RNG rng, Long2IntOpenHashMap foundationColumns,
+    private int placeObject(MantleWriter writer, String structureKey, StructureStamp stamp, AssembledPiece p,
+                            ObjectPlaceMode mode, int y, RNG rng, ColumnHeights foundationColumns,
                             boolean supportNonOccluding) {
-        IrisObject object = p.getObject();
+        IrisObject object = objectOf(p);
         String objectKey = object.getLoadKey();
-        ObjectPlacement.Builder builder = lootPlacementBuilder(structure, objectKey).mode(mode).rotation(moduleRotation(p.getRotation()));
-        if (!structure.getEdit().isEmpty()) {
-            builder.edit(structure.getEdit());
+        ObjectPlacement.Builder builder = lootPlacementBuilder(stamp, objectKey).mode(mode).rotation(moduleRotation(p.turn()));
+        if (!stamp.edits().isEmpty()) {
+            builder.edit(new KList<>(stamp.edits()));
         }
         if (!mode.placeMode().has(PlaceTrait.FREE_HEIGHT)) {
             builder.forcePlace(true);
         }
         ObjectPlacement config = builder.build();
         int placeY = (y == -1) ? -1 : y - engine.getMinHeight();
-        String marker = structurePlacementMarker(structure, p, objectKey);
-        return ModuleObjectPlacement.place(object, p.getX(), placeY, p.getZ(), writer, config, rng, (position, state) -> {
+        String marker = structurePlacementMarker(structureKey, p, objectKey);
+        return ModuleObjectPlacement.place(object, p.x(), placeY, p.z(), writer, config, rng, (position, state) -> {
             StructureFoundationPlanner.recordBaseCell(
                     foundationColumns, position.getX(), position.getY(), position.getZ(), state,
                     supportNonOccluding);
@@ -586,8 +609,8 @@ public class StructurePlacing {
     }
 
     /** The placement rotation that turns a placed piece the way {@code turn} does. */
-    public static ObjectRotation moduleRotation(ObjectTurn turn) {
-        return ObjectRotation.of(turn.xDegrees(), turn.yDegrees(), turn.zDegrees());
+    public static ObjectRotation moduleRotation(PieceTurn turn) {
+        return ObjectRotation.of(0, turn.yDegrees(), 0);
     }
 
     static boolean shouldWriteStructureMarker(PlatformBlockState state) {
@@ -604,12 +627,11 @@ public class StructurePlacing {
         return hash & Integer.MAX_VALUE;
     }
 
-    private static String structurePlacementMarker(IrisStructure structure, PlacedStructurePiece piece, String objectKey) {
-        String structureKey = structure.getLoadKey();
+    private static String structurePlacementMarker(String structureKey, AssembledPiece piece, String objectKey) {
         if (structureKey == null || structureKey.isBlank() || objectKey == null || objectKey.isBlank()) {
             return null;
         }
-        int placementId = structurePlacementId(structureKey, objectKey, piece.getX(), piece.getY(), piece.getZ());
+        int placementId = structurePlacementId(structureKey, objectKey, piece.x(), piece.y(), piece.z());
         return PlacementMarkers.encodeStructure(objectKey, placementId, structureKey);
     }
 
@@ -640,9 +662,11 @@ public class StructurePlacing {
                     || terrain.resolvedMode() == StructureTerrainMode.BORE
                     ? Math.max(0, terrain.horizontalPadding()) : 0;
             for (String key : placement.structures()) {
-                IrisStructure structure = StructureResources.structure(engine.getData().getPackResources(), key);
-                if (structure != null) {
-                    max = Math.max(max, Math.max(1, structure.getMaxSizeChunks()) * 16 + carvePadding);
+                var pack = engine.getData().getPackResources();
+                var structure = pack.idOf(key);
+                StructureAssembly provider = IrisStructureLocator.providerOf(engine, structure);
+                if (provider != null) {
+                    max = Math.max(max, Math.max(1, provider.reachChunks(pack, structure).orElse(1)) * 16 + carvePadding);
                 }
             }
         }

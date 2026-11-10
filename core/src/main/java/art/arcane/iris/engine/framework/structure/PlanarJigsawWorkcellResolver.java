@@ -3,9 +3,8 @@ package art.arcane.iris.engine.framework.structure;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcell;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetype;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.Collections;
 import java.util.EnumMap;
@@ -27,16 +26,16 @@ public final class PlanarJigsawWorkcellResolver {
         EnumMap<IrisJigsawWorkcellArchetype, ResolvedWorkcell> resolved =
                 new EnumMap<>(IrisJigsawWorkcellArchetype.class);
         if (source.getPlanarWorkcells() == null || source.getPlanarWorkcells().isEmpty()) {
-            IrisPosition fallback = source.getCellSize() == null
-                    ? new IrisPosition(DEFAULT_SIZE, DEFAULT_SIZE, DEFAULT_SIZE)
+            BlockPosition fallback = source.getCellSize() == null
+                    ? new BlockPosition(DEFAULT_SIZE, DEFAULT_SIZE, DEFAULT_SIZE)
                     : source.getCellSize();
             for (IrisJigsawWorkcellArchetype archetype : IrisJigsawWorkcellArchetype.values()) {
                 ResolvedWorkcell workcell = new ResolvedWorkcell(
                         archetype,
                         "",
-                        fallback.getX(),
-                        fallback.getY(),
-                        fallback.getZ(),
+                        fallback.x(),
+                        fallback.y(),
+                        fallback.z(),
                         true);
                 validate(workcell);
                 resolved.put(archetype, workcell);
@@ -86,14 +85,14 @@ public final class PlanarJigsawWorkcellResolver {
         return workcell;
     }
 
-    public static IrisPosition canonicalDimensions(IrisJigsawPiece piece, IrisObject object) {
+    public static BlockPosition canonicalDimensions(IrisJigsawPiece piece, ObjectFrame object) {
         IrisJigsawPiece sourcePiece = Objects.requireNonNull(piece, "Planar jigsaw piece");
-        IrisObject sourceObject = Objects.requireNonNull(object, "Planar jigsaw object");
+        ObjectFrame sourceObject = Objects.requireNonNull(object, "Planar jigsaw object");
         IrisJigsawWorkcellArchetype archetype = IrisJigsawWorkcellArchetype.fromPiece(sourcePiece);
         int quarterTurns = archetype.sourceToCanonicalQuarterTurns(sourcePiece);
         return Math.floorMod(quarterTurns, 2) == 0
-                ? new IrisPosition(sourceObject.getW(), sourceObject.getH(), sourceObject.getD())
-                : new IrisPosition(sourceObject.getD(), sourceObject.getH(), sourceObject.getW());
+                ? new BlockPosition(sourceObject.width(), sourceObject.height(), sourceObject.depth())
+                : new BlockPosition(sourceObject.depth(), sourceObject.height(), sourceObject.width());
     }
 
     public record ResolvedWorkcell(
@@ -109,13 +108,13 @@ public final class PlanarJigsawWorkcellResolver {
             displayName = normalizeDisplayName(displayName);
         }
 
-        public IrisPosition dimensions() {
-            return new IrisPosition(width, height, depth);
+        public BlockPosition dimensions() {
+            return new BlockPosition(width, height, depth);
         }
 
-        public boolean contains(IrisPosition dimensions) {
-            IrisPosition size = Objects.requireNonNull(dimensions, "Planar jigsaw object dimensions");
-            return size.getX() <= width && size.getY() <= height && size.getZ() <= depth;
+        public boolean contains(BlockPosition dimensions) {
+            BlockPosition size = Objects.requireNonNull(dimensions, "Planar jigsaw object dimensions");
+            return size.x() <= width && size.y() <= height && size.z() <= depth;
         }
     }
 

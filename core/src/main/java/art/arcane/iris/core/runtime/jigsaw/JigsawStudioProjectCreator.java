@@ -11,7 +11,7 @@ import art.arcane.iris.core.structure.authoring.StructureWriteResult;
 import art.arcane.iris.engine.framework.structure.StructureResourceBundleGraphCompiler;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawCompatibility;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawMode;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
@@ -21,8 +21,8 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcell;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
+import com.volmit.geometry.BlockPosition;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -36,13 +36,13 @@ import java.util.Objects;
 
 public final class JigsawStudioProjectCreator {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final List<IrisDirection> SPATIAL_CONNECTOR_ORDER = List.of(
-            IrisDirection.NORTH_NEGATIVE_Z,
-            IrisDirection.SOUTH_POSITIVE_Z,
-            IrisDirection.EAST_POSITIVE_X,
-            IrisDirection.WEST_NEGATIVE_X,
-            IrisDirection.UP_POSITIVE_Y,
-            IrisDirection.DOWN_NEGATIVE_Y);
+    private static final List<JigsawDirection> SPATIAL_CONNECTOR_ORDER = List.of(
+            JigsawDirection.NORTH_NEGATIVE_Z,
+            JigsawDirection.SOUTH_POSITIVE_Z,
+            JigsawDirection.EAST_POSITIVE_X,
+            JigsawDirection.WEST_NEGATIVE_X,
+            JigsawDirection.UP_POSITIVE_Y,
+            JigsawDirection.DOWN_NEGATIVE_Y);
 
     private JigsawStudioProjectCreator() {
     }
@@ -64,7 +64,7 @@ public final class JigsawStudioProjectCreator {
                 .setMode(toModelMode(options.mode()))
                 .setCompatibility(toModelCompatibility(options.compatibilityTarget()))
                 .setBranchFailurePolicy(toBranchFailurePolicy(options.compatibilityTarget()))
-                .setCellSize(new IrisPosition(
+                .setCellSize(new BlockPosition(
                         options.cellDimensions().width(),
                         options.cellDimensions().height(),
                         options.cellDimensions().depth()));
@@ -123,7 +123,7 @@ public final class JigsawStudioProjectCreator {
             Options options
     ) throws IOException {
         JigsawStudioCellDimensions dimensions = options.cellDimensions();
-        IrisPosition size = new IrisPosition(dimensions.width(), dimensions.height(), dimensions.depth());
+        BlockPosition size = new BlockPosition(dimensions.width(), dimensions.height(), dimensions.depth());
         String piecePoolKey = options.structureKey() + "/pieces";
         String capPoolKey = options.structureKey() + "/caps";
         IrisJigsawPool piecePool = new IrisJigsawPool().setFallback(capPoolKey);
@@ -209,13 +209,13 @@ public final class JigsawStudioProjectCreator {
                 .setRotatable(true)
                 .setRules(new IrisJigsawPieceRules().setMaximumPlacements(16));
         for (int index = 0; index < connectorCount; index++) {
-            IrisDirection direction = SPATIAL_CONNECTOR_ORDER.get(index);
+            JigsawDirection direction = SPATIAL_CONNECTOR_ORDER.get(index);
             piece.getConnectors().add(new IrisJigsawConnector()
                     .setPosition(spatialConnectorPosition(dimensions, direction))
                     .setDirection(direction)
                     .setTop(direction.isVertical()
-                            ? IrisDirection.NORTH_NEGATIVE_Z
-                            : IrisDirection.UP_POSITIVE_Y)
+                            ? JigsawDirection.NORTH_NEGATIVE_Z
+                            : JigsawDirection.UP_POSITIVE_Y)
                     .setPool(poolKey)
                     .setName("iris:spatial")
                     .setTargetName("iris:spatial")
@@ -225,36 +225,36 @@ public final class JigsawStudioProjectCreator {
         return piece;
     }
 
-    private static IrisPosition spatialConnectorPosition(
+    private static BlockPosition spatialConnectorPosition(
             JigsawStudioCellDimensions dimensions,
-            IrisDirection direction
+            JigsawDirection direction
     ) {
         int centerX = dimensions.width() / 2;
         int centerY = dimensions.height() / 2;
         int centerZ = dimensions.depth() / 2;
         return switch (direction) {
-            case NORTH_NEGATIVE_Z -> new IrisPosition(centerX, centerY, 0);
-            case SOUTH_POSITIVE_Z -> new IrisPosition(centerX, centerY, dimensions.depth() - 1);
-            case EAST_POSITIVE_X -> new IrisPosition(dimensions.width() - 1, centerY, centerZ);
-            case WEST_NEGATIVE_X -> new IrisPosition(0, centerY, centerZ);
-            case UP_POSITIVE_Y -> new IrisPosition(centerX, dimensions.height() - 1, centerZ);
-            case DOWN_NEGATIVE_Y -> new IrisPosition(centerX, 0, centerZ);
+            case NORTH_NEGATIVE_Z -> new BlockPosition(centerX, centerY, 0);
+            case SOUTH_POSITIVE_Z -> new BlockPosition(centerX, centerY, dimensions.depth() - 1);
+            case EAST_POSITIVE_X -> new BlockPosition(dimensions.width() - 1, centerY, centerZ);
+            case WEST_NEGATIVE_X -> new BlockPosition(0, centerY, centerZ);
+            case UP_POSITIVE_Y -> new BlockPosition(centerX, dimensions.height() - 1, centerZ);
+            case DOWN_NEGATIVE_Y -> new BlockPosition(centerX, 0, centerZ);
         };
     }
 
     private static IrisJigsawPiece planarPiece(
             String objectKey,
             String poolKey,
-            IrisPosition dimensions,
+            BlockPosition dimensions,
             JigsawPlanarArchetype archetype
     ) {
         IrisJigsawPiece piece = new IrisJigsawPiece().setObject(objectKey).setRotatable(true);
         for (JigsawPlanarDirection planarDirection : archetype.canonicalTopology().directions()) {
-            IrisDirection direction = planarDirection.irisDirection();
+            JigsawDirection direction = planarDirection.direction();
             piece.getConnectors().add(new IrisJigsawConnector()
                     .setPosition(IrisJigsawConnector.canonicalPlanarPosition(dimensions, direction))
                     .setDirection(direction)
-                    .setTop(IrisDirection.UP_POSITIVE_Y)
+                    .setTop(JigsawDirection.UP_POSITIVE_Y)
                     .setPool(poolKey)
                     .setName("iris:planar")
                     .setTargetName("iris:planar")

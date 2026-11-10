@@ -1,6 +1,6 @@
 package art.arcane.iris.core.runtime.jigsaw;
 
-import art.arcane.iris.engine.object.value.IrisPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.List;
 import java.util.Objects;
@@ -61,8 +61,8 @@ public record JigsawStudioVariant(
                 .canonicalToSourceQuarterTurns(topology);
     }
 
-    public IrisPosition sourceToCanonicalPosition(
-            IrisPosition sourcePosition,
+    public BlockPosition sourceToCanonicalPosition(
+            BlockPosition sourcePosition,
             JigsawStudioCellDimensions sourceDimensions
     ) {
         return rotatePosition(
@@ -71,8 +71,8 @@ public record JigsawStudioVariant(
                 sourceToCanonicalQuarterTurns());
     }
 
-    public IrisPosition canonicalToSourcePosition(
-            IrisPosition canonicalPosition,
+    public BlockPosition canonicalToSourcePosition(
+            BlockPosition canonicalPosition,
             JigsawStudioCellDimensions sourceDimensions
     ) {
         JigsawStudioCellDimensions canonicalDimensions = canonicalDimensions(sourceDimensions);
@@ -98,34 +98,34 @@ public record JigsawStudioVariant(
         return !memberships.isEmpty();
     }
 
-    private static IrisPosition rotatePosition(
-            IrisPosition position,
+    private static BlockPosition rotatePosition(
+            BlockPosition position,
             JigsawStudioCellDimensions dimensions,
             int quarterTurns
     ) {
-        IrisPosition source = Objects.requireNonNull(position, "Jigsaw Studio variant position");
+        BlockPosition source = Objects.requireNonNull(position, "Jigsaw Studio variant position");
         JigsawStudioCellDimensions bounds = Objects.requireNonNull(
                 dimensions,
                 "Jigsaw Studio variant position bounds");
-        if (source.getX() < 0 || source.getX() >= bounds.width()
-                || source.getY() < 0 || source.getY() >= bounds.height()
-                || source.getZ() < 0 || source.getZ() >= bounds.depth()) {
+        if (source.x() < 0 || source.x() >= bounds.width()
+                || source.y() < 0 || source.y() >= bounds.height()
+                || source.z() < 0 || source.z() >= bounds.depth()) {
             throw new IllegalArgumentException("Jigsaw Studio variant position is outside its object bounds");
         }
         return switch (Math.floorMod(quarterTurns, 4)) {
-            case 0 -> new IrisPosition(source.getX(), source.getY(), source.getZ());
-            case 1 -> new IrisPosition(
-                    bounds.depth() - 1 - source.getZ(),
-                    source.getY(),
-                    source.getX());
-            case 2 -> new IrisPosition(
-                    bounds.width() - 1 - source.getX(),
-                    source.getY(),
-                    bounds.depth() - 1 - source.getZ());
-            case 3 -> new IrisPosition(
-                    source.getZ(),
-                    source.getY(),
-                    bounds.width() - 1 - source.getX());
+            case 0 -> new BlockPosition(source.x(), source.y(), source.z());
+            case 1 -> new BlockPosition(
+                    bounds.depth() - 1 - source.z(),
+                    source.y(),
+                    source.x());
+            case 2 -> new BlockPosition(
+                    bounds.width() - 1 - source.x(),
+                    source.y(),
+                    bounds.depth() - 1 - source.z());
+            case 3 -> new BlockPosition(
+                    source.z(),
+                    source.y(),
+                    bounds.width() - 1 - source.x());
             default -> throw new IllegalStateException("Unreachable Jigsaw Studio rotation");
         };
     }

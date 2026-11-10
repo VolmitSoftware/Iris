@@ -1,7 +1,6 @@
 package art.arcane.iris.core.service;
 
 import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarArchetype;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarDirection;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarTopology;
@@ -36,12 +35,11 @@ import art.arcane.iris.engine.framework.structure.StructureGraphCompiler;
 import art.arcane.iris.engine.framework.structure.StructureGraphDiagnostic;
 import art.arcane.iris.engine.framework.structure.StructureGraphResolver;
 import art.arcane.iris.engine.framework.structure.StructureResourceBundleGraphCompiler;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import art.arcane.iris.engine.platform.studio.generators.JigsawStudioGenerator;
@@ -138,9 +136,9 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
             "help", "list", "me", "msg", "ping", "pl", "plugins", "r", "reply", "rules",
             "say", "tell", "ver", "version", "w", "whisper");
     private static final Comparator<IrisJigsawConnector> NEW_CONNECTOR_SOURCE_POSITION_ORDER = Comparator
-            .comparingInt((IrisJigsawConnector connector) -> connector.getPosition().getX())
-            .thenComparingInt(connector -> connector.getPosition().getY())
-            .thenComparingInt(connector -> connector.getPosition().getZ());
+            .comparingInt((IrisJigsawConnector connector) -> connector.getPosition().x())
+            .thenComparingInt(connector -> connector.getPosition().y())
+            .thenComparingInt(connector -> connector.getPosition().z());
     private final ModuleLog log;
     private final JigsawStudioRegistry registry = new JigsawStudioRegistry();
     private final JigsawStudioScheduler scheduler;
@@ -999,7 +997,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                         throw new IOException("Jigsaw Studio undo failed: "
                                 + writeFailure(result.writeResult()));
                     }
-                    request.source().invalidateStructureResources();
+                    request.reloadSource();
                     JigsawStudioLayout restoredLayout = loadMappedLayout(studio);
                     VariantReloadRequest reload = activeReloads.get(result.pieceKey());
                     Optional<VariantReloadRequest> activeReload = reload == null
@@ -1380,7 +1378,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                                 archetype,
                                 dimensions);
                     }
-                    request.source().invalidateStructureResources();
+                    request.reloadSource();
                     String resizeSummary = capacityResult == null
                             ? ""
                             : " Verified " + capacityResult.checkedVariants() + " existing variant"
@@ -2379,7 +2377,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
             return false;
         }
         BlockPosition playerAt = player.position();
-        IrisPosition origin = new IrisPosition(playerAt.x(), playerAt.y(), playerAt.z());
+        BlockPosition origin = new BlockPosition(playerAt.x(), playerAt.y(), playerAt.z());
         JigsawStudioRequest request = studio.generator().getRequest();
         ToolPack pack = studio.generator().getPack();
         scheduler.async(() -> {
@@ -2389,8 +2387,8 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                 if (structure == null) {
                     throw new IOException("The active structure resource no longer exists");
                 }
-                StructureAssembler assembler = StructureAssembler.forData(
-                        request.source(), structure, origin, pack.log());
+                StructureAssembler assembler = StructureAssembler.forPack(
+                        request.source().resources(), request.structureKey(), structure, origin, pack.log());
                 StructureAssemblyResult assembly = assembler.assemble(new RNG(seed));
                 if (!assembly.hasOutput()) {
                     message(player, "The active graph assembled zero preview pieces.");
@@ -2515,8 +2513,9 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                 throw new IOException("The active structure resource no longer exists");
             }
             StructureGraphCompilation compilation = StructureGraphCompiler.compile(
+                    request.structureKey(),
                     structure,
-                    StructureGraphResolver.forData(request.source()));
+                    StructureGraphResolver.forPack(request.source().resources()));
             StructureGraphDiagnostic firstError = firstDiagnostic(
                     compilation,
                     StructureGraphDiagnostic.Severity.ERROR);
@@ -2526,7 +2525,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                         generation,
                         firstError.code() + ": " + firstError.message());
             } else {
-                IrisPosition origin = previewOrigin(studio.generator().getLayout(), structure);
+                BlockPosition origin = previewOrigin(studio.generator().getLayout(), structure);
                 StructureAssembler assembler = StructureAssembler.forCompilation(compilation, origin);
                 StructureAssemblyResult assembly = assembler.assemble(new RNG(PREVIEW_SEED));
                 computation = evaluationForAssembly(
@@ -2535,7 +2534,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                         compilation,
                         assembly,
                         studio.generator().getLayout().mode(),
-                        studio.generator().getPack().resources().blocks());
+                        studio.generator().getPack().resources());
             }
         } catch (Throwable exception) {
             reportError(exception);
@@ -2550,7 +2549,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
             StructureGraphCompilation compilation,
             StructureAssemblyResult assembly,
             JigsawStudioMode mode,
-            BlockRegistry blocks
+            PackResources pack
     ) throws IOException {
         if (assembly.status().isFailure()) {
             return invalidEvaluation(
@@ -2574,7 +2573,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                     JigsawStudioPreviewRenderer.PreviewPlan.empty());
         }
         List<PlacedStructurePiece> aligned = alignPreviewPieces(assembly.pieces(), mode);
-        JigsawStudioPreviewRenderer.PreviewPlan plan = JigsawStudioPreviewRenderer.plan(aligned, blocks);
+        JigsawStudioPreviewRenderer.PreviewPlan plan = JigsawStudioPreviewRenderer.plan(aligned, pack);
         StructureGraphDiagnostic firstWarning = firstDiagnostic(
                 compilation,
                 StructureGraphDiagnostic.Severity.WARNING);
@@ -2667,9 +2666,9 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
         return null;
     }
 
-    private static IrisPosition previewOrigin(JigsawStudioLayout layout, IrisStructure structure) {
+    private static BlockPosition previewOrigin(JigsawStudioLayout layout, IrisStructure structure) {
         int radius = Math.max(1, structure.getMaxSizeChunks()) * 16;
-        return new IrisPosition(
+        return new BlockPosition(
                 -radius - 32,
                 0,
                 Math.max(16, layout.extentZ() / 2));
@@ -2691,6 +2690,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
         for (PlacedStructurePiece piece : pieces) {
             aligned.add(new PlacedStructurePiece(
                     piece.getPiece(),
+                    piece.getObjectKey(),
                     piece.getObject(),
                     piece.getX(),
                     piece.getY() + shiftY,
@@ -3709,13 +3709,12 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
 
     private static JigsawStudioLayout loadMappedLayout(ActiveStudio studio) throws IOException {
         JigsawStudioRequest request = studio.generator().getRequest();
-        IrisData source = request.source();
-        source.invalidateStructureResources();
-        IrisStructure structure = StructureResources.structure(source.getPackResources(), request.structureKey());
+        request.reloadSource();
+        IrisStructure structure = StructureResources.structure(request.source().resources(), request.structureKey());
         if (structure == null) {
             throw new IOException("The structure could not be reloaded after the graph transaction");
         }
-        return JigsawStudioGraphMapper.map(source, structure);
+        return JigsawStudioGraphMapper.map(request.source(), request.packRoot(), request.structureKey(), structure);
     }
 
     public boolean showAssemblyPreview(ToolPlayer player, List<PlacedStructurePiece> pieces) {
@@ -5774,7 +5773,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
         int sourceDepth = (quarterTurns & 1) == 0
                 ? displayDimensions.depth()
                 : displayDimensions.width();
-        ObjectTurn rotation = ObjectTurn.of(0, -90.0D * quarterTurns, 0);
+        PieceTurn rotation = PieceTurn.aroundY(-90 * quarterTurns);
         Map<LocalPosition, IrisJigsawConnector> displayed = new HashMap<>(source.getConnectors().size());
         for (IrisJigsawConnector sourceConnector : source.getConnectors()) {
             LocalPosition sourcePosition = connectorPosition(sourceConnector, "source piece");
@@ -5786,9 +5785,9 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                     sourceDepth,
                     quarterTurns);
             IrisJigsawConnector connector = CapturedConnector.from(sourceConnector).toConnector()
-                    .setPosition(new IrisPosition(position.x(), position.y(), position.z()))
-                    .setDirection(rotation.rotate(sourceConnector.getDirection()))
-                    .setTop(rotation.rotate(sourceConnector.getTop()));
+                    .setPosition(new BlockPosition(position.x(), position.y(), position.z()))
+                    .setDirection(sourceConnector.getDirection().turnedBy(rotation.quarterTurns()))
+                    .setTop(sourceConnector.getTop().turnedBy(rotation.quarterTurns()));
             if (displayed.put(position, connector) != null) {
                 throw new IOException("Jigsaw Studio source piece has duplicate displayed connector position "
                         + connectorLocation(position));
@@ -5903,7 +5902,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                 : captureBounds.dimensions().width();
         int sourceHeight = captureBounds.dimensions().height();
         List<ObjectBlock> objectBlocks = new ArrayList<>();
-        ObjectTurn inverseRotation = ObjectTurn.of(0, 90.0D * quarterTurns, 0);
+        PieceTurn inverseRotation = PieceTurn.aroundY(90 * quarterTurns);
         List<IrisJigsawConnector> connectors = new ArrayList<>();
         Set<LocalPosition> capturedBlocks = new HashSet<>();
         Set<LocalPosition> capturedConnectors = new HashSet<>();
@@ -5959,9 +5958,9 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                 }
                 IrisJigsawConnector connector = capturedConnector.toConnector();
                 if (quarterTurns != 0) {
-                    connector.setPosition(new IrisPosition(position.x(), position.y(), position.z()));
-                    connector.setDirection(inverseRotation.rotate(connector.getDirection()));
-                    connector.setTop(inverseRotation.rotate(connector.getTop()));
+                    connector.setPosition(new BlockPosition(position.x(), position.y(), position.z()));
+                    connector.setDirection(connector.getDirection().turnedBy(inverseRotation.quarterTurns()));
+                    connector.setTop(connector.getTop().turnedBy(inverseRotation.quarterTurns()));
                     BlockState finalState = registry.find(connector.getFinalState()).orElse(null);
                     if (finalState == null) {
                         throw new IOException("Captured connector final state cannot be parsed at "
@@ -6051,8 +6050,8 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
         if (connector == null || connector.getPosition() == null) {
             throw new IOException("Jigsaw Studio " + owner + " contains a connector without a position");
         }
-        IrisPosition position = connector.getPosition();
-        return new LocalPosition(position.getX(), position.getY(), position.getZ());
+        BlockPosition position = connector.getPosition();
+        return new LocalPosition(position.x(), position.y(), position.z());
     }
 
     private static String connectorLocation(LocalPosition position) {
@@ -6478,24 +6477,24 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
                 ? displayDimensions.depth()
                 : displayDimensions.width();
         LocalPosition position = inversePosition(
-                captured.getPosition().getX(),
-                captured.getPosition().getY(),
-                captured.getPosition().getZ(),
+                captured.getPosition().x(),
+                captured.getPosition().y(),
+                captured.getPosition().z(),
                 sourceWidth,
                 sourceDepth,
                 quarterTurns);
-        ObjectTurn inverseRotation = ObjectTurn.of(0, 90.0D * quarterTurns, 0);
+        PieceTurn inverseRotation = PieceTurn.aroundY(90 * quarterTurns);
         IrisJigsawConnector sourceOriented = CapturedConnector.from(captured).toConnector()
-                .setPosition(new IrisPosition(position.x(), position.y(), position.z()))
-                .setDirection(inverseRotation.rotate(captured.getDirection()))
-                .setTop(inverseRotation.rotate(captured.getTop()));
+                .setPosition(new BlockPosition(position.x(), position.y(), position.z()))
+                .setDirection(captured.getDirection().turnedBy(inverseRotation.quarterTurns()))
+                .setTop(captured.getTop().turnedBy(inverseRotation.quarterTurns()));
         restoreCapturedMetadata(sourceOriented, sourcePiece);
         captured.setName(sourceOriented.getName());
         captured.setTargetName(sourceOriented.getTargetName());
         captured.setChannel(sourceOriented.getChannel());
     }
 
-    private static IrisJigsawConnector connectorAt(IrisJigsawPiece piece, IrisPosition position) {
+    private static IrisJigsawConnector connectorAt(IrisJigsawPiece piece, BlockPosition position) {
         if (piece == null || piece.getConnectors() == null || position == null) {
             return null;
         }
@@ -7087,7 +7086,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
         }
         for (JigsawStudioGenerator.RenderedConnector renderedConnector : rendered.connectors()) {
             IrisJigsawConnector connector = renderedConnector.connector();
-            IrisDirection direction = connector.getDirection();
+            JigsawDirection direction = connector.getDirection();
             drawConnectorLine(
                     playerLocation,
                     bay.bounds().originX() + renderedConnector.x() + 0.5D,
@@ -7107,7 +7106,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
             double startX,
             double startY,
             double startZ,
-            IrisDirection direction,
+            JigsawDirection direction,
             int color,
             ParticleBudget budget
     ) {
@@ -8182,8 +8181,8 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
             int x,
             int y,
             int z,
-            IrisDirection direction,
-            IrisDirection top,
+            JigsawDirection direction,
+            JigsawDirection top,
             String pool,
             String name,
             String targetName,
@@ -8206,11 +8205,11 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
 
         static CapturedConnector from(IrisJigsawConnector connector) {
             IrisJigsawConnector source = Objects.requireNonNull(connector, "Jigsaw Studio captured connector");
-            IrisPosition position = source.getPosition();
+            BlockPosition position = source.getPosition();
             return new CapturedConnector(
-                    position.getX(),
-                    position.getY(),
-                    position.getZ(),
+                    position.x(),
+                    position.y(),
+                    position.z(),
                     source.getDirection(),
                     source.getTop(),
                     source.getPool(),
@@ -8225,7 +8224,7 @@ public final class JigsawStudioService implements JigsawStudioMenuController.Act
 
         IrisJigsawConnector toConnector() {
             return new IrisJigsawConnector()
-                    .setPosition(new IrisPosition(x, y, z))
+                    .setPosition(new BlockPosition(x, y, z))
                     .setDirection(direction)
                     .setTop(top)
                     .setPool(pool)

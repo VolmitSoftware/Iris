@@ -8,7 +8,7 @@ import art.arcane.iris.engine.framework.structure.StructureAssemblyStatus;
 import art.arcane.iris.engine.framework.structure.StructureGraphCompilation;
 import art.arcane.iris.engine.framework.structure.StructureResourceBundleGraphCompiler;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
+import com.volmit.geometry.BlockPosition;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.JsonObject;
@@ -200,7 +200,7 @@ public class JigsawStudioProjectCreatorTest {
         for (long seed : List.of(0L, 1337L)) {
             StructureAssemblyResult result = StructureAssembler.forCompilation(
                     compilation,
-                    new IrisPosition(0, 64, 0)).assemble(new RNG(seed));
+                    new BlockPosition(0, 64, 0)).assemble(new RNG(seed));
 
             assertEquals(result.detail(), StructureAssemblyStatus.COMPLETE, result.status());
         }
@@ -258,7 +258,7 @@ public class JigsawStudioProjectCreatorTest {
                 JigsawStudioProjectCreator.bundle(options)).getFirst();
         StructureAssemblyResult preview = StructureAssembler.forCompilation(
                 compilation,
-                new IrisPosition(0, 0, 0)).assemble(new RNG(1337L));
+                new BlockPosition(0, 0, 0)).assemble(new RNG(1337L));
         assertEquals(preview.detail(), StructureAssemblyStatus.COMPLETE, preview.status());
         assertTrue(preview.pieces().size() > 1);
         assertTrue(preview.pieces().size() <= 96);
@@ -328,7 +328,7 @@ public class JigsawStudioProjectCreatorTest {
                 temporaryDirectory,
                 "settlement/test",
                 "settlement/test/side",
-                new IrisPosition(8, 8, 0),
+                new BlockPosition(8, 8, 0),
                 "village/road").successful());
         JsonObject channeledPiece = JsonParser.parseString(Files.readString(
                 temporaryDirectory.resolve("jigsaw-pieces/settlement/test/side.json"),

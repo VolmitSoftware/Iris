@@ -11,11 +11,11 @@ import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.core.structure.authoring.StructureWriteMode;
 import art.arcane.iris.core.structure.authoring.StructureWriteOptions;
 import art.arcane.iris.core.structure.authoring.StructureWriteResult;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
+import com.volmit.geometry.BlockPosition;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -275,9 +275,9 @@ public class JigsawStudioResourceBundleAssemblerTest {
 
     private static IrisJigsawConnector connector() {
         return new IrisJigsawConnector()
-                .setPosition(new IrisPosition(0, 0, 0))
-                .setDirection(IrisDirection.NORTH_NEGATIVE_Z)
-                .setTop(IrisDirection.UP_POSITIVE_Y)
+                .setPosition(new BlockPosition(0, 0, 0))
+                .setDirection(JigsawDirection.NORTH_NEGATIVE_Z)
+                .setTop(JigsawDirection.UP_POSITIVE_Y)
                 .setPool("fort/start")
                 .setName("iris:door")
                 .setTargetName("iris:door")

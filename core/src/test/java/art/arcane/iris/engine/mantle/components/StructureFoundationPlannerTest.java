@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.spi.PlatformBlockState;
-import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import art.arcane.iris.engine.framework.structure.ColumnHeights;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -25,7 +25,7 @@ public class StructureFoundationPlannerTest {
         PlatformBlockState decoration = mock(PlatformBlockState.class);
         when(decoration.isOccluding()).thenReturn(false);
 
-        Long2IntOpenHashMap columns = new Long2IntOpenHashMap();
+        ColumnHeights columns = new ColumnHeights(0);
         StructureFoundationPlanner.recordBaseCell(columns, 100, 48, 200, decoration, false);
         StructureFoundationPlanner.recordBaseCell(columns, 100, 49, 200, solid, false);
         StructureFoundationPlanner.recordBaseCell(columns, 100, 50, 200, solid, false);
@@ -51,7 +51,7 @@ public class StructureFoundationPlannerTest {
         when(fullStructureBlock.isSolid()).thenReturn(true);
         when(fullStructureBlock.isOccluding()).thenReturn(true);
 
-        Long2IntOpenHashMap columns = new Long2IntOpenHashMap();
+        ColumnHeights columns = new ColumnHeights(0);
         StructureFoundationPlanner.recordBaseCell(
                 columns, 12, 41, 44, fullStructureBlock, true);
         StructureFoundationPlanner.recordBaseCell(

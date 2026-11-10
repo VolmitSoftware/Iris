@@ -18,10 +18,10 @@
 
 package art.arcane.iris.engine.object.structure.jigsaw;
 
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
-import art.arcane.iris.engine.object.annotations.MinNumber;
-import art.arcane.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.config.Desc;
+import com.volmit.config.MaxNumber;
+import com.volmit.config.MinNumber;
+import com.volmit.config.ResourceRef;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -33,7 +33,7 @@ import lombok.experimental.Accessors;
 @Desc("A weighted reference to a jigsaw piece inside a jigsaw pool.")
 @Data
 public class IrisJigsawPieceEntry {
-    @RegistryListResource(IrisJigsawPiece.class)
+    @ResourceRef(IrisJigsawPiece.class)
     @Desc("The jigsaw piece this entry refers to. Omit when empty is true.")
     private String piece;
 

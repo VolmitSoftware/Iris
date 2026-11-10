@@ -104,9 +104,7 @@ public class StructureHandlerTest {
         placements.add(editablePlacement("iris:collision_definition"));
 
         IrisStructure custom = new IrisStructure();
-        custom.setLoadKey("iris:custom");
         IrisStructure collision = new IrisStructure();
-        collision.setLoadKey("pack:collision");
         ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:custom_definition", custom);
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:collision_definition", collision);
@@ -168,9 +166,7 @@ public class StructureHandlerTest {
         StructureSettings settings = new StructureSettings(List.of("minecraft:replacement"), List.of(), 0, true, List.of(), List.of());
 
         IrisStructure editable = new IrisStructure();
-        editable.setLoadKey("iris:editable");
         IrisStructure replacement = new IrisStructure();
-        replacement.setLoadKey("iris:replacement");
         replacement.setVanillaSource("minecraft:replacement");
         KList<StructurePlacement> placements = new KList<>();
         placements.add(editablePlacement("iris:editable_definition"));
@@ -205,9 +201,7 @@ public class StructureHandlerTest {
             assertEquals(Set.of(
                     "minecraft:replacement",
                     "iris:editable_definition",
-                    "iris:editable",
-                    "iris:replacement_definition",
-                    "iris:replacement"), possibilities);
+                    "iris:replacement_definition"), possibilities);
             assertFalse(possibilities.contains("minecraft:explicit"));
             assertFalse(possibilities.contains("minecraft:reachable"));
         } finally {

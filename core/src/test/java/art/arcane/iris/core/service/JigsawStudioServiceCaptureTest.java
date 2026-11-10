@@ -1,6 +1,5 @@
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarArchetype;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarTopology;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBay;
@@ -17,12 +16,12 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariant;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariantCatalog;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioWorkcellSpec;
 import art.arcane.iris.core.structure.authoring.StructureWriteResult;
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
-import art.arcane.iris.engine.object.value.IrisDirection;
-import art.arcane.iris.engine.object.value.IrisPosition;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
+import com.volmit.geometry.BlockPosition;
 import art.arcane.iris.engine.platform.studio.generators.JigsawStudioGenerator;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -432,7 +431,7 @@ public class JigsawStudioServiceCaptureTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 dimensions,
-                mock(IrisData.class),
+                StudioToolPacks.toolPack(),
                 initialLayout);
         JigsawStudioSession session = service.registry().getSession(request.requestId());
         JigsawStudioBay initialEnd = initialLayout.get("workcell/end");
@@ -505,7 +504,7 @@ public class JigsawStudioServiceCaptureTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 dimensions,
-                mock(IrisData.class),
+                StudioToolPacks.toolPack(),
                 layout,
                 OWNER);
         service.registry().finishOpen(OWNER);
@@ -601,8 +600,8 @@ public class JigsawStudioServiceCaptureTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 dimensions,
                 JigsawStudioVariantCatalog.empty());
-        IrisJigsawConnector eastSource = connector().setDirection(IrisDirection.EAST_POSITIVE_X);
-        IrisJigsawConnector southDisplayed = connector().setDirection(IrisDirection.SOUTH_POSITIVE_Z);
+        IrisJigsawConnector eastSource = connector().setDirection(JigsawDirection.EAST_POSITIVE_X);
+        IrisJigsawConnector southDisplayed = connector().setDirection(JigsawDirection.SOUTH_POSITIVE_Z);
 
         JigsawStudioService.requireWorkcellTopology(
                 layout.get("workcell/end"),
@@ -637,15 +636,15 @@ public class JigsawStudioServiceCaptureTest {
         List<JigsawStudioService.ChunkCaptureArea> areas = JigsawStudioService.chunkIntersections(bounds);
         BlockState sourceState = BlockState.parse("minecraft:observer[facing=north]");
         for (int quarterTurns = 1; quarterTurns <= 3; quarterTurns++) {
-            ObjectTurn displayRotation = ObjectTurn.of(0, -90.0D * quarterTurns, 0);
+            PieceTurn displayRotation = PieceTurn.aroundY(-90 * quarterTurns);
             BlockState displayedState = FakeBlockRegistry.rotated(sourceState, displayRotation.blockTurn());
-            IrisDirection displayedDirection = displayRotation.rotate(IrisDirection.NORTH_NEGATIVE_Z);
+            JigsawDirection displayedDirection = JigsawDirection.NORTH_NEGATIVE_Z.turnedBy(displayRotation.quarterTurns());
             JigsawStudioService.CapturedConnector connector = new JigsawStudioService.CapturedConnector(
                     1,
                     0,
                     1,
                     displayedDirection,
-                    IrisDirection.UP_POSITIVE_Y,
+                    JigsawDirection.UP_POSITIVE_Y,
                     "test/pool",
                     "door",
                     "door",
@@ -721,26 +720,26 @@ public class JigsawStudioServiceCaptureTest {
     @Test
     public void noOpTeeAndCrossCapturePreservesCreatorOrderForSeededAssembly() throws IOException {
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(16, 16, 16);
-        List<List<IrisDirection>> authoredOrders = List.of(
+        List<List<JigsawDirection>> authoredOrders = List.of(
                 List.of(
-                        IrisDirection.NORTH_NEGATIVE_Z,
-                        IrisDirection.EAST_POSITIVE_X,
-                        IrisDirection.WEST_NEGATIVE_X),
+                        JigsawDirection.NORTH_NEGATIVE_Z,
+                        JigsawDirection.EAST_POSITIVE_X,
+                        JigsawDirection.WEST_NEGATIVE_X),
                 List.of(
-                        IrisDirection.NORTH_NEGATIVE_Z,
-                        IrisDirection.EAST_POSITIVE_X,
-                        IrisDirection.SOUTH_POSITIVE_Z,
-                        IrisDirection.WEST_NEGATIVE_X));
-        List<List<IrisDirection>> captureOrders = List.of(
+                        JigsawDirection.NORTH_NEGATIVE_Z,
+                        JigsawDirection.EAST_POSITIVE_X,
+                        JigsawDirection.SOUTH_POSITIVE_Z,
+                        JigsawDirection.WEST_NEGATIVE_X));
+        List<List<JigsawDirection>> captureOrders = List.of(
                 List.of(
-                        IrisDirection.WEST_NEGATIVE_X,
-                        IrisDirection.NORTH_NEGATIVE_Z,
-                        IrisDirection.EAST_POSITIVE_X),
+                        JigsawDirection.WEST_NEGATIVE_X,
+                        JigsawDirection.NORTH_NEGATIVE_Z,
+                        JigsawDirection.EAST_POSITIVE_X),
                 List.of(
-                        IrisDirection.WEST_NEGATIVE_X,
-                        IrisDirection.NORTH_NEGATIVE_Z,
-                        IrisDirection.SOUTH_POSITIVE_Z,
-                        IrisDirection.EAST_POSITIVE_X));
+                        JigsawDirection.WEST_NEGATIVE_X,
+                        JigsawDirection.NORTH_NEGATIVE_Z,
+                        JigsawDirection.SOUTH_POSITIVE_Z,
+                        JigsawDirection.EAST_POSITIVE_X));
 
         for (int index = 0; index < authoredOrders.size(); index++) {
             IrisJigsawPiece source = pieceWithPlanarConnectors(dimensions, authoredOrders.get(index));
@@ -758,11 +757,11 @@ public class JigsawStudioServiceCaptureTest {
     public void connectorMetadataEditsAtTheSamePositionKeepAuthoredOrder() throws IOException {
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(16, 16, 16);
         IrisJigsawPiece source = pieceWithPlanarConnectors(dimensions, List.of(
-                IrisDirection.NORTH_NEGATIVE_Z,
-                IrisDirection.EAST_POSITIVE_X));
+                JigsawDirection.NORTH_NEGATIVE_Z,
+                JigsawDirection.EAST_POSITIVE_X));
         IrisJigsawConnector capturedNorth = planarConnector(
                 dimensions,
-                IrisDirection.NORTH_NEGATIVE_Z)
+                JigsawDirection.NORTH_NEGATIVE_Z)
                 .setPool("changed/pool")
                 .setName("changed:name")
                 .setTargetName("changed:target")
@@ -773,7 +772,7 @@ public class JigsawStudioServiceCaptureTest {
                 .setPlacementPriority(-4);
         IrisJigsawConnector capturedEast = planarConnector(
                 dimensions,
-                IrisDirection.EAST_POSITIVE_X);
+                JigsawDirection.EAST_POSITIVE_X);
 
         List<IrisJigsawConnector> ordered = JigsawStudioService.preserveCapturedConnectorOrder(
                 source,
@@ -789,23 +788,23 @@ public class JigsawStudioServiceCaptureTest {
     public void removedConnectorsDisappearWithoutReorderingSurvivors() throws IOException {
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(16, 16, 16);
         IrisJigsawPiece source = pieceWithPlanarConnectors(dimensions, List.of(
-                IrisDirection.NORTH_NEGATIVE_Z,
-                IrisDirection.EAST_POSITIVE_X,
-                IrisDirection.WEST_NEGATIVE_X));
+                JigsawDirection.NORTH_NEGATIVE_Z,
+                JigsawDirection.EAST_POSITIVE_X,
+                JigsawDirection.WEST_NEGATIVE_X));
         IrisJigsawConnector capturedWest = planarConnector(
                 dimensions,
-                IrisDirection.WEST_NEGATIVE_X);
+                JigsawDirection.WEST_NEGATIVE_X);
         IrisJigsawConnector capturedNorth = planarConnector(
                 dimensions,
-                IrisDirection.NORTH_NEGATIVE_Z);
+                JigsawDirection.NORTH_NEGATIVE_Z);
 
         List<IrisJigsawConnector> ordered = JigsawStudioService.preserveCapturedConnectorOrder(
                 source,
                 List.of(capturedWest, capturedNorth));
 
         assertEquals(List.of(
-                IrisDirection.NORTH_NEGATIVE_Z,
-                IrisDirection.WEST_NEGATIVE_X), connectorDirections(ordered));
+                JigsawDirection.NORTH_NEGATIVE_Z,
+                JigsawDirection.WEST_NEGATIVE_X), connectorDirections(ordered));
     }
 
     @Test
@@ -813,10 +812,10 @@ public class JigsawStudioServiceCaptureTest {
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(16, 16, 16);
         IrisJigsawPiece source = pieceWithPlanarConnectors(
                 dimensions,
-                List.of(IrisDirection.NORTH_NEGATIVE_Z));
+                List.of(JigsawDirection.NORTH_NEGATIVE_Z));
         IrisJigsawConnector capturedNorth = planarConnector(
                 dimensions,
-                IrisDirection.NORTH_NEGATIVE_Z);
+                JigsawDirection.NORTH_NEGATIVE_Z);
         IrisJigsawConnector highY = connectorAt(2, 5, 9);
         IrisJigsawConnector highZ = connectorAt(2, 3, 10);
         IrisJigsawConnector lowZ = connectorAt(2, 3, 4);
@@ -835,7 +834,7 @@ public class JigsawStudioServiceCaptureTest {
     public void duplicateSourceOrCapturedConnectorPositionsAreRejected() {
         IrisJigsawConnector first = connectorAt(1, 2, 3);
         IrisJigsawConnector second = connectorAt(1, 2, 3)
-                .setDirection(IrisDirection.SOUTH_POSITIVE_Z);
+                .setDirection(JigsawDirection.SOUTH_POSITIVE_Z);
         IrisJigsawPiece duplicateSource = new IrisJigsawPiece().setConnectors(new KList<>());
         duplicateSource.getConnectors().add(first);
         duplicateSource.getConnectors().add(second);
@@ -858,16 +857,16 @@ public class JigsawStudioServiceCaptureTest {
                 new JigsawStudioCellDimensions(5, 1, 3));
         List<JigsawStudioService.ChunkCaptureArea> areas = JigsawStudioService.chunkIntersections(bounds);
         IrisJigsawConnector sourceFirst = connectorAt(0, 0, 1)
-                .setDirection(IrisDirection.NORTH_NEGATIVE_Z);
+                .setDirection(JigsawDirection.NORTH_NEGATIVE_Z);
         IrisJigsawConnector sourceSecond = connectorAt(2, 0, 2)
-                .setDirection(IrisDirection.EAST_POSITIVE_X);
+                .setDirection(JigsawDirection.EAST_POSITIVE_X);
         IrisJigsawPiece source = new IrisJigsawPiece().setConnectors(new KList<>());
         source.getConnectors().add(sourceFirst);
         source.getConnectors().add(sourceSecond);
         BlockState sourceState = BlockState.parse("minecraft:observer[facing=north]");
 
         for (int quarterTurns = 1; quarterTurns <= 3; quarterTurns++) {
-            ObjectTurn displayRotation = ObjectTurn.of(0, -90.0D * quarterTurns, 0);
+            PieceTurn displayRotation = PieceTurn.aroundY(-90 * quarterTurns);
             BlockState displayedState = FakeBlockRegistry.rotated(sourceState, displayRotation.blockTurn());
             JigsawStudioService.CapturedConnector displayedFirst = displayedConnector(
                     sourceFirst,
@@ -1248,7 +1247,8 @@ public class JigsawStudioServiceCaptureTest {
                 mode,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 dimensions,
-                mock(IrisData.class),
+                mock(com.volmit.tooling.ToolPack.class),
+                java.nio.file.Path.of("pack"),
                 null);
     }
 
@@ -1274,9 +1274,9 @@ public class JigsawStudioServiceCaptureTest {
 
     private static IrisJigsawConnector connector() {
         return new IrisJigsawConnector()
-                .setPosition(new IrisPosition(0, 0, 0))
-                .setDirection(IrisDirection.NORTH_NEGATIVE_Z)
-                .setTop(IrisDirection.UP_POSITIVE_Y)
+                .setPosition(new BlockPosition(0, 0, 0))
+                .setDirection(JigsawDirection.NORTH_NEGATIVE_Z)
+                .setTop(JigsawDirection.UP_POSITIVE_Y)
                 .setPool("fort/start")
                 .setName("iris:door")
                 .setTargetName("iris:door")
@@ -1285,14 +1285,14 @@ public class JigsawStudioServiceCaptureTest {
     }
 
     private static IrisJigsawConnector connectorAt(int x, int y, int z) {
-        return connector().setPosition(new IrisPosition(x, y, z));
+        return connector().setPosition(new BlockPosition(x, y, z));
     }
 
     private static IrisJigsawConnector planarConnector(
             JigsawStudioCellDimensions dimensions,
-            IrisDirection direction
+            JigsawDirection direction
     ) {
-        IrisPosition size = new IrisPosition(
+        BlockPosition size = new BlockPosition(
                 dimensions.width(),
                 dimensions.height(),
                 dimensions.depth());
@@ -1303,10 +1303,10 @@ public class JigsawStudioServiceCaptureTest {
 
     private static List<IrisJigsawConnector> planarConnectors(
             JigsawStudioCellDimensions dimensions,
-            List<IrisDirection> directions
+            List<JigsawDirection> directions
     ) {
         List<IrisJigsawConnector> connectors = new ArrayList<>(directions.size());
-        for (IrisDirection direction : directions) {
+        for (JigsawDirection direction : directions) {
             connectors.add(planarConnector(dimensions, direction));
         }
         return connectors;
@@ -1314,15 +1314,15 @@ public class JigsawStudioServiceCaptureTest {
 
     private static IrisJigsawPiece pieceWithPlanarConnectors(
             JigsawStudioCellDimensions dimensions,
-            List<IrisDirection> directions
+            List<JigsawDirection> directions
     ) {
         IrisJigsawPiece piece = new IrisJigsawPiece().setConnectors(new KList<>());
         piece.getConnectors().addAll(planarConnectors(dimensions, directions));
         return piece;
     }
 
-    private static List<IrisDirection> connectorDirections(List<IrisJigsawConnector> connectors) {
-        List<IrisDirection> directions = new ArrayList<>(connectors.size());
+    private static List<JigsawDirection> connectorDirections(List<IrisJigsawConnector> connectors) {
+        List<JigsawDirection> directions = new ArrayList<>(connectors.size());
         for (IrisJigsawConnector connector : connectors) {
             directions.add(connector.getDirection());
         }
@@ -1333,19 +1333,19 @@ public class JigsawStudioServiceCaptureTest {
             IrisJigsawConnector source,
             JigsawStudioCellDimensions displayDimensions,
             int displayRotationQuarterTurns,
-            ObjectTurn displayRotation,
+            PieceTurn displayRotation,
             String finalState
     ) {
-        IrisPosition displayedPosition = displayedPosition(
+        BlockPosition displayedPosition = displayedPosition(
                 source.getPosition(),
                 displayDimensions,
                 displayRotationQuarterTurns);
         return new JigsawStudioService.CapturedConnector(
-                displayedPosition.getX(),
-                displayedPosition.getY(),
-                displayedPosition.getZ(),
-                displayRotation.rotate(source.getDirection()),
-                displayRotation.rotate(source.getTop()),
+                displayedPosition.x(),
+                displayedPosition.y(),
+                displayedPosition.z(),
+                source.getDirection().turnedBy(displayRotation.quarterTurns()),
+                source.getTop().turnedBy(displayRotation.quarterTurns()),
                 source.getPool(),
                 source.getName(),
                 source.getTargetName(),
@@ -1356,8 +1356,8 @@ public class JigsawStudioServiceCaptureTest {
                 source.getPlacementPriority());
     }
 
-    private static IrisPosition displayedPosition(
-            IrisPosition source,
+    private static BlockPosition displayedPosition(
+            BlockPosition source,
             JigsawStudioCellDimensions displayDimensions,
             int displayRotationQuarterTurns
     ) {
@@ -1370,12 +1370,12 @@ public class JigsawStudioServiceCaptureTest {
                 : displayDimensions.width();
         return switch (quarterTurns) {
             case 0 -> source;
-            case 1 -> new IrisPosition(sourceDepth - 1 - source.getZ(), source.getY(), source.getX());
-            case 2 -> new IrisPosition(
-                    sourceWidth - 1 - source.getX(),
-                    source.getY(),
-                    sourceDepth - 1 - source.getZ());
-            case 3 -> new IrisPosition(source.getZ(), source.getY(), sourceWidth - 1 - source.getX());
+            case 1 -> new BlockPosition(sourceDepth - 1 - source.z(), source.y(), source.x());
+            case 2 -> new BlockPosition(
+                    sourceWidth - 1 - source.x(),
+                    source.y(),
+                    sourceDepth - 1 - source.z());
+            case 3 -> new BlockPosition(source.z(), source.y(), sourceWidth - 1 - source.x());
             default -> throw new IllegalStateException("Unreachable Jigsaw Studio test rotation");
         };
     }

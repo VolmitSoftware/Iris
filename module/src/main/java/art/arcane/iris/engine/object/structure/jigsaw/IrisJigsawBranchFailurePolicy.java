@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.object.structure.jigsaw;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
 @Desc("Controls how an Iris jigsaw assembly handles an optional connector branch that exhausts its primary pool and direct fallback without attaching a piece.")
 public enum IrisJigsawBranchFailurePolicy {

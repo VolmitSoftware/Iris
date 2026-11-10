@@ -18,8 +18,9 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.structure.CompiledStructureGraph;
+import art.arcane.iris.engine.framework.structure.ObjectFrame;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
 import art.arcane.iris.engine.framework.structure.JigsawPoolSelection;
 import art.arcane.iris.engine.framework.structure.PlanarJigsawWorkcellResolver;
 import art.arcane.iris.engine.framework.structure.StructureAssemblyResult;
@@ -29,7 +30,7 @@ import art.arcane.iris.engine.framework.structure.StructureGraphCompilation;
 import art.arcane.iris.engine.framework.structure.StructureGraphCompiler;
 import art.arcane.iris.engine.framework.structure.StructureGraphDiagnostic;
 import art.arcane.iris.engine.framework.structure.StructureGraphResolver;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawMode;
@@ -37,15 +38,14 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceEntry;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetype;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 
 import com.volmit.ModuleLog;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.resource.PackResources;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -79,9 +79,9 @@ public final class StructureAssembler {
         this.resolver = options.resolver();
         this.graph = options.graph();
         this.structure = options.structure();
-        this.originX = options.origin().getX();
-        this.originY = options.origin().getY();
-        this.originZ = options.origin().getZ();
+        this.originX = options.origin().x();
+        this.originY = options.origin().y();
+        this.originZ = options.origin().z();
         this.planarWorkcells = this.structure.resolvedMode() == IrisJigsawMode.PLANAR_JIGSAW
                 ? PlanarJigsawWorkcellResolver.resolve(this.structure)
                 : Map.of();
@@ -90,23 +90,25 @@ public final class StructureAssembler {
                 ? this.structure.getMaxSizeChunks() * 16 : 0;
     }
 
-    public static StructureAssembler forData(IrisData data, IrisStructure structure, IrisPosition origin, ModuleLog log) {
-        IrisData activeData = Objects.requireNonNull(data, "Structure assembly data must not be null");
+    /** An assembler of {@code structure}, the pack's structure {@code structureKey}, from {@code origin}. */
+    public static StructureAssembler forPack(PackResources pack, String structureKey, IrisStructure structure, BlockPosition origin,
+                                             ModuleLog log) {
+        PackResources activePack = Objects.requireNonNull(pack, "Structure assembly pack must not be null");
         IrisStructure activeStructure = Objects.requireNonNull(
                 structure, "Structure assembly structure must not be null");
-        return forCompilation(StructureGraphCatalog.compile(activeData, activeStructure, log), origin);
+        return forCompilation(StructureGraphCatalog.compile(activePack, structureKey, activeStructure, log), origin);
     }
 
-    public static StructureAssembler forResolver(StructureGraphResolver resolver, IrisStructure structure,
-                                                  IrisPosition origin) {
+    public static StructureAssembler forResolver(String structureKey, StructureGraphResolver resolver, IrisStructure structure,
+                                                  BlockPosition origin) {
         StructureGraphResolver activeResolver = Objects.requireNonNull(
                 resolver, "Structure assembly resolver must not be null");
         IrisStructure activeStructure = Objects.requireNonNull(
                 structure, "Structure assembly structure must not be null");
-        return forCompilation(StructureGraphCompiler.compile(activeStructure, activeResolver), origin);
+        return forCompilation(StructureGraphCompiler.compile(structureKey, activeStructure, activeResolver), origin);
     }
 
-    public static StructureAssembler forCompilation(StructureGraphCompilation compilation, IrisPosition origin) {
+    public static StructureAssembler forCompilation(StructureGraphCompilation compilation, BlockPosition origin) {
         StructureGraphCompilation activeCompilation = Objects.requireNonNull(
                 compilation, "Structure graph compilation must not be null");
         if (activeCompilation.hasErrors()) {
@@ -120,17 +122,17 @@ public final class StructureAssembler {
     public StructureAssemblyResult assemble(RNG rng) {
         Objects.requireNonNull(rng, "Structure assembly RNG must not be null");
         if (radius == 0) {
-            throw new IllegalStateException("Structure '" + structure.getLoadKey()
+            throw new IllegalStateException("Structure '" + graph.getStructureKey()
                     + "' has maxSizeChunks outside 1.." + MAX_SIZE_CHUNKS);
         }
         if (structure.getMaxDepth() < 1 || structure.getMaxDepth() > MAX_DEPTH) {
-            throw new IllegalStateException("Structure '" + structure.getLoadKey()
+            throw new IllegalStateException("Structure '" + graph.getStructureKey()
                     + "' has maxDepth outside 1.." + MAX_DEPTH);
         }
         String startPoolKey = normalize(structure.getStartPool());
         IrisJigsawPool startPool = resolver.loadPool(startPoolKey);
         if (startPool == null || startPool.getPieces() == null || startPool.getPieces().isEmpty()) {
-            throw new IllegalStateException("Structure '" + structure.getLoadKey()
+            throw new IllegalStateException("Structure '" + graph.getStructureKey()
                     + "' has no resolvable start pool '" + startPoolKey + "'");
         }
 
@@ -160,7 +162,7 @@ public final class StructureAssembler {
         }
         IrisJigsawPieceEntry startEntry = weightedPick(startEntries, rng);
         if (startEntry == null) {
-            throw new IllegalStateException("Structure '" + structure.getLoadKey()
+            throw new IllegalStateException("Structure '" + graph.getStructureKey()
                     + "' start pool has no positively weighted entry");
         }
         if (startEntry.isEmpty()) {
@@ -171,23 +173,23 @@ public final class StructureAssembler {
         String startPieceKey = normalize(startEntry.getPiece());
         IrisJigsawPiece startPiece = resolver.loadPiece(startPieceKey);
         if (startPiece == null) {
-            throw new IllegalStateException("Structure '" + structure.getLoadKey()
+            throw new IllegalStateException("Structure '" + graph.getStructureKey()
                     + "' start pool references missing piece '" + startPieceKey + "'");
         }
         String startObjectKey = normalize(startPiece.getObject());
-        IrisObject startObject = resolver.loadObject(startObjectKey);
+        ObjectFrame startObject = resolver.loadObject(startObjectKey);
         if (startObject == null) {
-            throw new IllegalStateException("Structure '" + structure.getLoadKey()
+            throw new IllegalStateException("Structure '" + graph.getStructureKey()
                     + "' start piece references missing object '" + startObjectKey + "'");
         }
         if (startPiece.getConnectors() == null) {
-            throw new IllegalStateException("Structure '" + structure.getLoadKey()
+            throw new IllegalStateException("Structure '" + graph.getStructureKey()
                     + "' start piece has no connector list");
         }
 
         int startRotY = startPiece.isRotatable() ? Y_DEGREES[rng.i(Y_DEGREES.length)] : 0;
-        ObjectTurn startRot = ObjectTurn.of(0, startRotY, 0);
-        PlacedStructurePiece start = build(startPiece, startObject, originX, originY, originZ, startRot);
+        PieceTurn startRot = PieceTurn.aroundY(startRotY);
+        PlacedStructurePiece start = build(startPiece, startObjectKey, startObject, originX, originY, originZ, startRot);
         placed.add(start);
         registerPlacedPiece(consumedConnectors, start, null);
         incrementPlacement(placementCounts, startPieceKey);
@@ -216,7 +218,7 @@ public final class StructureAssembler {
 
                 IrisJigsawPool pool = resolver.loadPool(connector.pool);
                 if (pool == null) {
-                    throw new IllegalStateException("Structure '" + structure.getLoadKey()
+                    throw new IllegalStateException("Structure '" + graph.getStructureKey()
                             + "' references missing connector pool '" + connector.pool + "'");
                 }
 
@@ -380,7 +382,7 @@ public final class StructureAssembler {
             if (objectKey.isEmpty()) {
                 throw assemblyFailure("piece '" + pieceName + "' has no object key");
             }
-            IrisObject object = resolver.loadObject(objectKey);
+            ObjectFrame object = resolver.loadObject(objectKey);
             if (object == null) {
                 throw assemblyFailure("piece '" + pieceName + "' references missing object '"
                         + objectKey + "'");
@@ -404,27 +406,27 @@ public final class StructureAssembler {
                     continue;
                 }
 
-                IrisDirection needed = connector.facing.reverse();
+                JigsawDirection needed = connector.facing.reverse();
                 int[] rotations = piece.isRotatable() ? rotationCandidates(connector.joint, rng) : NO_ROTATION;
                 for (int yDeg : rotations) {
-                    ObjectTurn rot = ObjectTurn.of(0, yDeg, 0);
-                    IrisDirection rotatedFace = rot.rotate(cb.getDirection());
+                    PieceTurn rot = PieceTurn.aroundY(yDeg);
+                    JigsawDirection rotatedFace = rotate(rot, cb.getDirection());
                     if (rotatedFace != needed) {
                         continue;
                     }
-                    if (connector.joint == JigsawJoint.ALIGNED && rot.rotate(cb.getTop()) != connector.top) {
+                    if (connector.joint == JigsawJoint.ALIGNED && rotate(rot, cb.getTop()) != connector.top) {
                         continue;
                     }
 
-                    IrisPosition rcr = connectorOffset(object, cb, rot);
+                    BlockPosition rcr = connectorOffset(object, cb, rot);
                     int wcx = connector.wx + connector.facing.x();
                     int wcy = connector.wy + connector.facing.y();
                     int wcz = connector.wz + connector.facing.z();
-                    int px = wcx - rcr.getX();
-                    int py = wcy - rcr.getY();
-                    int pz = wcz - rcr.getZ();
+                    int px = wcx - rcr.x();
+                    int py = wcy - rcr.y();
+                    int pz = wcz - rcr.z();
 
-                    PlacedStructurePiece candidate = build(piece, object, px, py, pz, rot);
+                    PlacedStructurePiece candidate = build(piece, objectKey, object, px, py, pz, rot);
                     if (!withinRadius(candidate) || collides(placed, candidate)) {
                         continue;
                     }
@@ -527,7 +529,7 @@ public final class StructureAssembler {
                         || isMatched(matchedExisting, existingPiece, existingConnector)) {
                     continue;
                 }
-                IrisPosition target = connectorTarget(existingPiece, existingConnector);
+                BlockPosition target = connectorTarget(existingPiece, existingConnector);
                 if (!contains(candidatePiece, target)) {
                     continue;
                 }
@@ -556,7 +558,7 @@ public final class StructureAssembler {
                     || normalize(candidateConnector.getPool()).isEmpty()) {
                 continue;
             }
-            IrisPosition target = connectorTarget(candidatePiece, candidateConnector);
+            BlockPosition target = connectorTarget(candidatePiece, candidateConnector);
             PlacedStructurePiece occupied = containingPiece(placed, target);
             if (occupied == null) {
                 continue;
@@ -706,7 +708,8 @@ public final class StructureAssembler {
             if (piece == null || piece.getConnectors() == null) {
                 continue;
             }
-            IrisObject object = resolver.loadObject(normalize(piece.getObject()));
+            String objectKey = normalize(piece.getObject());
+            ObjectFrame object = resolver.loadObject(objectKey);
             if (object == null) {
                 continue;
             }
@@ -717,18 +720,19 @@ public final class StructureAssembler {
                 }
                 int[] rotations = piece.isRotatable() ? Y_DEGREES : NO_ROTATION;
                 for (int yDegrees : rotations) {
-                    ObjectTurn rotation = ObjectTurn.of(0, yDegrees, 0);
-                    if (rotation.rotate(connector.getDirection()) != source.facing().reverse()
+                    PieceTurn rotation = PieceTurn.aroundY(yDegrees);
+                    if (rotate(rotation, connector.getDirection()) != source.facing().reverse()
                             || source.joint() == JigsawJoint.ALIGNED
-                            && rotation.rotate(connector.getTop()) != source.top()) {
+                            && rotate(rotation, connector.getTop()) != source.top()) {
                         continue;
                     }
-                    IrisPosition offset = connectorOffset(object, connector, rotation);
-                    int logicalX = source.wx() + source.facing().x() - offset.getX();
-                    int logicalY = source.wy() + source.facing().y() - offset.getY();
-                    int logicalZ = source.wz() + source.facing().z() - offset.getZ();
+                    BlockPosition offset = connectorOffset(object, connector, rotation);
+                    int logicalX = source.wx() + source.facing().x() - offset.x();
+                    int logicalY = source.wy() + source.facing().y() - offset.y();
+                    int logicalZ = source.wz() + source.facing().z() - offset.z();
                     PlacedStructurePiece reservation = build(
                             piece,
+                            objectKey,
                             object,
                             logicalX,
                             logicalY,
@@ -749,49 +753,49 @@ public final class StructureAssembler {
             PlacedStructurePiece targetPiece,
             Set<IrisJigsawConnector> unavailable
     ) {
-        IrisPosition target = connectorTarget(sourcePiece, sourceConnector);
-        IrisDirection sourceFacing = sourcePiece.getRotation().rotate(sourceConnector.getDirection());
-        IrisDirection sourceTop = sourcePiece.getRotation().rotate(sourceConnector.getTop());
+        BlockPosition target = connectorTarget(sourcePiece, sourceConnector);
+        JigsawDirection sourceFacing = rotate(sourcePiece.getRotation(), sourceConnector.getDirection());
+        JigsawDirection sourceTop = rotate(sourcePiece.getRotation(), sourceConnector.getTop());
         for (IrisJigsawConnector candidate : targetPiece.getPiece().getConnectors()) {
             if (unavailable.contains(candidate)
                     || !Objects.equals(sourceConnector.getChannel(), candidate.getChannel())
                     || !Objects.equals(sourceConnector.getTargetName(), candidate.getName())) {
                 continue;
             }
-            IrisPosition candidatePosition = connectorPosition(targetPiece, candidate);
+            BlockPosition candidatePosition = connectorPosition(targetPiece, candidate);
             if (!target.equals(candidatePosition)
-                    || targetPiece.getRotation().rotate(candidate.getDirection()) != sourceFacing.reverse()) {
+                    || rotate(targetPiece.getRotation(), candidate.getDirection()) != sourceFacing.reverse()) {
                 continue;
             }
             if (sourceConnector.getJoint() != JigsawJoint.ALIGNED
-                    || targetPiece.getRotation().rotate(candidate.getTop()) == sourceTop) {
+                    || rotate(targetPiece.getRotation(), candidate.getTop()) == sourceTop) {
                 return candidate;
             }
         }
         return null;
     }
 
-    private IrisPosition connectorPosition(PlacedStructurePiece piece, IrisJigsawConnector connector) {
-        IrisPosition center = logicalCenter(piece);
-        IrisPosition offset = connectorOffset(piece.getObject(), connector, piece.getRotation());
-        return new IrisPosition(
-                center.getX() + offset.getX(),
-                center.getY() + offset.getY(),
-                center.getZ() + offset.getZ());
+    private BlockPosition connectorPosition(PlacedStructurePiece piece, IrisJigsawConnector connector) {
+        BlockPosition center = logicalCenter(piece);
+        BlockPosition offset = connectorOffset(piece.getObject(), connector, piece.getRotation());
+        return new BlockPosition(
+                center.x() + offset.x(),
+                center.y() + offset.y(),
+                center.z() + offset.z());
     }
 
-    private IrisPosition connectorTarget(PlacedStructurePiece piece, IrisJigsawConnector connector) {
-        IrisPosition position = connectorPosition(piece, connector);
-        IrisDirection facing = piece.getRotation().rotate(connector.getDirection());
-        return new IrisPosition(
-                position.getX() + facing.x(),
-                position.getY() + facing.y(),
-                position.getZ() + facing.z());
+    private BlockPosition connectorTarget(PlacedStructurePiece piece, IrisJigsawConnector connector) {
+        BlockPosition position = connectorPosition(piece, connector);
+        JigsawDirection facing = rotate(piece.getRotation(), connector.getDirection());
+        return new BlockPosition(
+                position.x() + facing.x(),
+                position.y() + facing.y(),
+                position.z() + facing.z());
     }
 
     private PlacedStructurePiece containingPiece(
             KList<PlacedStructurePiece> pieces,
-            IrisPosition position
+            BlockPosition position
     ) {
         for (PlacedStructurePiece piece : pieces) {
             if (contains(piece, position)) {
@@ -801,10 +805,10 @@ public final class StructureAssembler {
         return null;
     }
 
-    private boolean contains(PlacedStructurePiece piece, IrisPosition position) {
-        return position.getX() >= piece.getMinX() && position.getX() <= piece.getMaxX()
-                && position.getY() >= piece.getMinY() && position.getY() <= piece.getMaxY()
-                && position.getZ() >= piece.getMinZ() && position.getZ() <= piece.getMaxZ();
+    private boolean contains(PlacedStructurePiece piece, BlockPosition position) {
+        return position.x() >= piece.getMinX() && position.x() <= piece.getMaxX()
+                && position.y() >= piece.getMinY() && position.y() <= piece.getMaxY()
+                && position.z() >= piece.getMinZ() && position.z() <= piece.getMaxZ();
     }
 
     private boolean isMatched(
@@ -824,24 +828,24 @@ public final class StructureAssembler {
             int targetY,
             int targetZ
     ) {
-        requireConnector(candidate, candidatePiece.getObject().getLoadKey());
+        requireConnector(candidate, candidatePiece.getObjectKey());
         if (!Objects.equals(source.channel(), candidate.getChannel())
                 || !Objects.equals(source.targetName(), candidate.getName())) {
             return false;
         }
-        IrisPosition rotated = connectorOffset(
+        BlockPosition rotated = connectorOffset(
                 candidatePiece.getObject(), candidate, candidatePiece.getRotation());
-        IrisPosition center = logicalCenter(candidatePiece);
-        if (center.getX() + rotated.getX() != targetX
-                || center.getY() + rotated.getY() != targetY
-                || center.getZ() + rotated.getZ() != targetZ) {
+        BlockPosition center = logicalCenter(candidatePiece);
+        if (center.x() + rotated.x() != targetX
+                || center.y() + rotated.y() != targetY
+                || center.z() + rotated.z() != targetZ) {
             return false;
         }
-        if (candidatePiece.getRotation().rotate(candidate.getDirection()) != source.facing().reverse()) {
+        if (rotate(candidatePiece.getRotation(), candidate.getDirection()) != source.facing().reverse()) {
             return false;
         }
         return source.joint() != JigsawJoint.ALIGNED
-                || candidatePiece.getRotation().rotate(candidate.getTop()) == source.top();
+                || rotate(candidatePiece.getRotation(), candidate.getTop()) == source.top();
     }
 
     private void registerPlacedPiece(
@@ -890,15 +894,15 @@ public final class StructureAssembler {
                                        Deque<PieceExpansion> pending,
                                        Map<PlacedStructurePiece, Map<IrisJigsawConnector, OpenConnector>> openConnectors,
                                        PlacedStructurePiece p,
-                                       IrisObject object, int depth, int pieceDepth, IrisJigsawConnector skip,
+                                       ObjectFrame object, int depth, int pieceDepth, IrisJigsawConnector skip,
                                        int placementPriority) {
         if (p.getPiece().getConnectors() == null) {
-            throw assemblyFailure("placed piece for object '" + object.getLoadKey() + "' has no connector list");
+            throw assemblyFailure("placed piece for object '" + p.getObjectKey() + "' has no connector list");
         }
         List<OpenConnector> connectors = new ArrayList<>();
         Map<IrisJigsawConnector, OpenConnector> definitions = new IdentityHashMap<>();
         for (IrisJigsawConnector con : orderedConnectors(p.getPiece().getConnectors(), skip)) {
-            requireConnector(con, object.getLoadKey());
+            requireConnector(con, p.getObjectKey());
             if (con.getPool() == null || con.getPool().isBlank()) {
                 continue;
             }
@@ -914,21 +918,21 @@ public final class StructureAssembler {
 
     private OpenConnector openConnector(
             PlacedStructurePiece piece,
-            IrisObject object,
+            ObjectFrame object,
             IrisJigsawConnector connector,
             int depth,
             int pieceDepth
     ) {
-        IrisPosition offset = connectorOffset(object, connector, piece.getRotation());
-        IrisPosition center = logicalCenter(piece);
+        BlockPosition offset = connectorOffset(object, connector, piece.getRotation());
+        BlockPosition center = logicalCenter(piece);
         return new OpenConnector(
                 piece,
                 connector,
-                center.getX() + offset.getX(),
-                center.getY() + offset.getY(),
-                center.getZ() + offset.getZ(),
-                piece.getRotation().rotate(connector.getDirection()),
-                piece.getRotation().rotate(connector.getTop()),
+                center.x() + offset.x(),
+                center.y() + offset.y(),
+                center.z() + offset.z(),
+                rotate(piece.getRotation(), connector.getDirection()),
+                rotate(piece.getRotation(), connector.getTop()),
                 normalize(connector.getPool()),
                 connector.getName(),
                 connector.getTargetName(),
@@ -968,29 +972,30 @@ public final class StructureAssembler {
         throw assemblyFailure("piece expansion queue was unexpectedly empty");
     }
 
-    private PlacedStructurePiece build(IrisJigsawPiece piece, IrisObject object, int x, int y, int z, ObjectTurn rot) {
-        int width = Math.max(1, object.getW());
-        int height = Math.max(1, object.getH());
-        int depth = Math.max(1, object.getD());
+    private PlacedStructurePiece build(IrisJigsawPiece piece, String objectKey, ObjectFrame object, int x, int y, int z, PieceTurn rot) {
+        int width = Math.max(1, object.width());
+        int height = Math.max(1, object.height());
+        int depth = Math.max(1, object.depth());
         if (structure.resolvedMode() == IrisJigsawMode.PLANAR_JIGSAW) {
-            IrisPosition dimensions = rotatedDimensions(object, rot);
-            IrisPosition offset = planarPlacementOffset(object, rot);
-            int minX = x - dimensions.getX() / 2;
-            int minY = y - dimensions.getY() / 2;
-            int minZ = z - dimensions.getZ() / 2;
+            BlockPosition dimensions = rotatedDimensions(object, rot);
+            BlockPosition offset = planarPlacementOffset(object, rot);
+            int minX = x - dimensions.x() / 2;
+            int minY = y - dimensions.y() / 2;
+            int minZ = z - dimensions.z() / 2;
             return new PlacedStructurePiece(
                     piece,
+                    objectKey,
                     object,
-                    x + offset.getX(),
-                    y + offset.getY(),
-                    z + offset.getZ(),
+                    x + offset.x(),
+                    y + offset.y(),
+                    z + offset.z(),
                     rot,
                     minX,
                     minY,
                     minZ,
-                    minX + dimensions.getX() - 1,
-                    minY + dimensions.getY() - 1,
-                    minZ + dimensions.getZ() - 1);
+                    minX + dimensions.x() - 1,
+                    minY + dimensions.y() - 1,
+                    minZ + dimensions.z() - 1);
         }
         int localMinX = -(width / 2);
         int localMinY = -(height / 2);
@@ -998,15 +1003,15 @@ public final class StructureAssembler {
         int localMaxX = localMinX + width - 1;
         int localMaxY = localMinY + height - 1;
         int localMaxZ = localMinZ + depth - 1;
-        IrisPosition rotatedMin = rot.rotate(new IrisPosition(localMinX, localMinY, localMinZ));
-        IrisPosition rotatedMax = rot.rotate(new IrisPosition(localMaxX, localMaxY, localMaxZ));
-        int minX = Math.min(rotatedMin.getX(), rotatedMax.getX());
-        int minY = Math.min(rotatedMin.getY(), rotatedMax.getY());
-        int minZ = Math.min(rotatedMin.getZ(), rotatedMax.getZ());
-        int maxX = Math.max(rotatedMin.getX(), rotatedMax.getX());
-        int maxY = Math.max(rotatedMin.getY(), rotatedMax.getY());
-        int maxZ = Math.max(rotatedMin.getZ(), rotatedMax.getZ());
-        return new PlacedStructurePiece(piece, object, x, y, z, rot,
+        BlockPosition rotatedMin = rot.rotate(new BlockPosition(localMinX, localMinY, localMinZ));
+        BlockPosition rotatedMax = rot.rotate(new BlockPosition(localMaxX, localMaxY, localMaxZ));
+        int minX = Math.min(rotatedMin.x(), rotatedMax.x());
+        int minY = Math.min(rotatedMin.y(), rotatedMax.y());
+        int minZ = Math.min(rotatedMin.z(), rotatedMax.z());
+        int maxX = Math.max(rotatedMin.x(), rotatedMax.x());
+        int maxY = Math.max(rotatedMin.y(), rotatedMax.y());
+        int maxZ = Math.max(rotatedMin.z(), rotatedMax.z());
+        return new PlacedStructurePiece(piece, objectKey, object, x, y, z, rot,
                 x + minX, y + minY, z + minZ, x + maxX, y + maxY, z + maxZ);
     }
 
@@ -1041,70 +1046,74 @@ public final class StructureAssembler {
         return shuffled;
     }
 
-    private IrisPosition centerOf(IrisObject object) {
-        return new IrisPosition(object.getW() / 2, object.getH() / 2, object.getD() / 2);
+    private BlockPosition centerOf(ObjectFrame object) {
+        return object.center();
     }
 
-    private IrisPosition connectorOffset(
-            IrisObject object,
+    private BlockPosition connectorOffset(
+            ObjectFrame object,
             IrisJigsawConnector connector,
-            ObjectTurn rotation
+            PieceTurn rotation
     ) {
         if (structure.resolvedMode() == IrisJigsawMode.PLANAR_JIGSAW) {
-            IrisPosition dimensions = rotatedDimensions(object, rotation);
-            IrisPosition position = IrisJigsawConnector.canonicalPlanarPosition(
+            BlockPosition dimensions = rotatedDimensions(object, rotation);
+            BlockPosition position = IrisJigsawConnector.canonicalPlanarPosition(
                     dimensions,
-                    rotation.rotate(connector.getDirection()));
-            return new IrisPosition(
-                    position.getX() - dimensions.getX() / 2,
-                    position.getY() - dimensions.getY() / 2,
-                    position.getZ() - dimensions.getZ() / 2);
+                    rotate(rotation, connector.getDirection()));
+            return new BlockPosition(
+                    position.x() - dimensions.x() / 2,
+                    position.y() - dimensions.y() / 2,
+                    position.z() - dimensions.z() / 2);
         }
-        IrisPosition center = centerOf(object);
-        IrisPosition relative = new IrisPosition(
-                connector.getPosition().getX() - center.getX(),
-                connector.getPosition().getY() - center.getY(),
-                connector.getPosition().getZ() - center.getZ());
+        BlockPosition center = centerOf(object);
+        BlockPosition relative = new BlockPosition(
+                connector.getPosition().x() - center.x(),
+                connector.getPosition().y() - center.y(),
+                connector.getPosition().z() - center.z());
         return rotation.rotate(relative);
     }
 
-    private IrisPosition logicalCenter(PlacedStructurePiece piece) {
+    private BlockPosition logicalCenter(PlacedStructurePiece piece) {
         if (structure.resolvedMode() != IrisJigsawMode.PLANAR_JIGSAW) {
-            return new IrisPosition(piece.getX(), piece.getY(), piece.getZ());
+            return new BlockPosition(piece.getX(), piece.getY(), piece.getZ());
         }
-        IrisPosition offset = planarPlacementOffset(piece.getObject(), piece.getRotation());
-        return new IrisPosition(
-                piece.getX() - offset.getX(),
-                piece.getY() - offset.getY(),
-                piece.getZ() - offset.getZ());
+        BlockPosition offset = planarPlacementOffset(piece.getObject(), piece.getRotation());
+        return new BlockPosition(
+                piece.getX() - offset.x(),
+                piece.getY() - offset.y(),
+                piece.getZ() - offset.z());
     }
 
-    private IrisPosition rotatedDimensions(IrisObject object, ObjectTurn rotation) {
-        int width = Math.max(1, object.getW());
-        int height = Math.max(1, object.getH());
-        int depth = Math.max(1, object.getD());
+    private BlockPosition rotatedDimensions(ObjectFrame object, PieceTurn rotation) {
+        int width = Math.max(1, object.width());
+        int height = Math.max(1, object.height());
+        int depth = Math.max(1, object.depth());
         return quarterTurns(rotation) % 2 == 0
-                ? new IrisPosition(width, height, depth)
-                : new IrisPosition(depth, height, width);
+                ? new BlockPosition(width, height, depth)
+                : new BlockPosition(depth, height, width);
     }
 
-    private IrisPosition planarPlacementOffset(IrisObject object, ObjectTurn rotation) {
-        int width = Math.max(1, object.getW());
-        int depth = Math.max(1, object.getD());
+    private BlockPosition planarPlacementOffset(ObjectFrame object, PieceTurn rotation) {
+        int width = Math.max(1, object.width());
+        int depth = Math.max(1, object.depth());
         return switch (quarterTurns(rotation)) {
-            case 0 -> new IrisPosition();
-            case 1 -> new IrisPosition(0, 0, width % 2 == 0 ? -1 : 0);
-            case 2 -> new IrisPosition(
+            case 0 -> new BlockPosition(0, 0, 0);
+            case 1 -> new BlockPosition(0, 0, width % 2 == 0 ? -1 : 0);
+            case 2 -> new BlockPosition(
                     width % 2 == 0 ? -1 : 0,
                     0,
                     depth % 2 == 0 ? -1 : 0);
-            case 3 -> new IrisPosition(depth % 2 == 0 ? -1 : 0, 0, 0);
+            case 3 -> new BlockPosition(depth % 2 == 0 ? -1 : 0, 0, 0);
             default -> throw new IllegalStateException("Unsupported planar quarter-turn count");
         };
     }
 
-    private int quarterTurns(ObjectTurn rotation) {
-        return switch (rotation.rotate(IrisDirection.NORTH_NEGATIVE_Z)) {
+    private static JigsawDirection rotate(PieceTurn turn, JigsawDirection direction) {
+        return direction.turnedBy(turn.quarterTurns());
+    }
+
+    private int quarterTurns(PieceTurn rotation) {
+        return switch (rotate(rotation, JigsawDirection.NORTH_NEGATIVE_Z)) {
             case NORTH_NEGATIVE_Z -> 0;
             case WEST_NEGATIVE_X -> 1;
             case SOUTH_POSITIVE_Z -> 2;
@@ -1280,7 +1289,7 @@ public final class StructureAssembler {
     }
 
     private IllegalStateException assemblyFailure(String detail) {
-        return new IllegalStateException("Structure '" + structure.getLoadKey() + "' assembly failed: " + detail);
+        return new IllegalStateException("Structure '" + graph.getStructureKey() + "' assembly failed: " + detail);
     }
 
     private static IllegalStateException invalidGraph(StructureGraphCompilation compilation) {
@@ -1300,7 +1309,7 @@ public final class StructureAssembler {
     }
 
     private record OpenConnector(PlacedStructurePiece sourcePiece, IrisJigsawConnector sourceConnector,
-                                 int wx, int wy, int wz, IrisDirection facing, IrisDirection top,
+                                 int wx, int wy, int wz, JigsawDirection facing, JigsawDirection top,
                                  String pool, String name,
                                  String targetName, String channel, JigsawJoint joint, int depth,
                                  int pieceDepth, int placementPriority) {
@@ -1347,7 +1356,7 @@ public final class StructureAssembler {
 
     private record AssemblyOptions(StructureGraphResolver resolver, CompiledStructureGraph graph,
                                    IrisStructure structure,
-                                   IrisPosition origin) {
+                                   BlockPosition origin) {
         private AssemblyOptions {
             Objects.requireNonNull(resolver, "Structure assembly resolver must not be null");
             Objects.requireNonNull(graph, "Compiled structure graph must not be null");

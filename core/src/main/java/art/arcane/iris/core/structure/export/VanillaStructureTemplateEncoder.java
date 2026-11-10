@@ -1,10 +1,8 @@
 package art.arcane.iris.core.structure.export;
 
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.volmlib.util.nbt.io.NBTUtil;
 import art.arcane.volmlib.util.nbt.io.NamedTag;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
@@ -29,7 +27,7 @@ final class VanillaStructureTemplateEncoder {
             .thenComparingInt(entry -> entry.position().z());
 
     byte[] encode(
-            IrisObject object,
+            ObjectContents object,
             IrisJigsawPiece piece,
             Function<String, String> poolIdentifier
     ) throws IOException {
@@ -49,7 +47,7 @@ final class VanillaStructureTemplateEncoder {
         }
 
         CompoundTag root = new CompoundTag();
-        root.put("size", intList(object.getW(), object.getH(), object.getD()));
+        root.put("size", intList(object.width(), object.height(), object.depth()));
         root.put("palette", palette(paletteStates));
         root.put("blocks", blocks(orderedBlocks, paletteIndexes));
         root.put("entities", new ListTag<>(CompoundTag.class));
@@ -60,9 +58,9 @@ final class VanillaStructureTemplateEncoder {
         return output.toByteArray();
     }
 
-    private Map<BlockPosition, BlockEntry> objectBlocks(IrisObject object) {
+    private Map<BlockPosition, BlockEntry> objectBlocks(ObjectContents object) {
         Map<BlockPosition, BlockEntry> blocks = new LinkedHashMap<>();
-        for (var entry : object.apiContents().blocks().entrySet()) {
+        for (var entry : object.blocks().entrySet()) {
             BlockPosition position = new BlockPosition(entry.getKey().x(), entry.getKey().y(), entry.getKey().z());
             VanillaBlockState state = VanillaBlockState.parse(entry.getValue().key());
             blocks.put(position, new BlockEntry(position, state, null));
@@ -76,9 +74,9 @@ final class VanillaStructureTemplateEncoder {
             Function<String, String> poolIdentifier
     ) {
         for (IrisJigsawConnector connector : piece.getConnectors()) {
-            IrisPosition sourcePosition = connector.getPosition();
+            var sourcePosition = connector.getPosition();
             BlockPosition position = new BlockPosition(
-                    sourcePosition.getX(), sourcePosition.getY(), sourcePosition.getZ());
+                    sourcePosition.x(), sourcePosition.y(), sourcePosition.z());
             String orientation = orientation(connector.getDirection(), connector.getTop());
             VanillaBlockState state = VanillaBlockState.parse(
                     "minecraft:jigsaw[orientation=" + orientation + "]");
@@ -100,23 +98,23 @@ final class VanillaStructureTemplateEncoder {
         return nbt;
     }
 
-    static String orientation(IrisDirection front, IrisDirection top) {
-        if (front == IrisDirection.UP_POSITIVE_Y || front == IrisDirection.DOWN_NEGATIVE_Y) {
-            if (top == IrisDirection.NORTH_NEGATIVE_Z
-                    || top == IrisDirection.SOUTH_POSITIVE_Z
-                    || top == IrisDirection.EAST_POSITIVE_X
-                    || top == IrisDirection.WEST_NEGATIVE_X) {
+    static String orientation(JigsawDirection front, JigsawDirection top) {
+        if (front == JigsawDirection.UP_POSITIVE_Y || front == JigsawDirection.DOWN_NEGATIVE_Y) {
+            if (top == JigsawDirection.NORTH_NEGATIVE_Z
+                    || top == JigsawDirection.SOUTH_POSITIVE_Z
+                    || top == JigsawDirection.EAST_POSITIVE_X
+                    || top == JigsawDirection.WEST_NEGATIVE_X) {
                 return directionName(front) + "_" + directionName(top);
             }
             throw new IllegalArgumentException("Vertical jigsaw fronts require a horizontal top direction");
         }
-        if (top != IrisDirection.UP_POSITIVE_Y) {
+        if (top != JigsawDirection.UP_POSITIVE_Y) {
             throw new IllegalArgumentException("Horizontal jigsaw fronts require an upward top direction");
         }
         return directionName(front) + "_up";
     }
 
-    private static String directionName(IrisDirection direction) {
+    private static String directionName(JigsawDirection direction) {
         return switch (direction) {
             case UP_POSITIVE_Y -> "up";
             case DOWN_NEGATIVE_Y -> "down";

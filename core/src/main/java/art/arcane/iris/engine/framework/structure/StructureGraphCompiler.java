@@ -2,7 +2,7 @@ package art.arcane.iris.engine.framework.structure;
 
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.framework.StructureAssembler;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawCompatibility;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
@@ -13,12 +13,11 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceRules;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetype;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -44,9 +43,10 @@ public final class StructureGraphCompiler {
     private StructureGraphCompiler() {
     }
 
-    public static StructureGraphCompilation compile(IrisStructure structure, StructureGraphResolver resolver) {
+    /** @param structureKey the pack key of {@code structure}, which the diagnostics name it by; blank for one without a key */
+    public static StructureGraphCompilation compile(String structureKey, IrisStructure structure, StructureGraphResolver resolver) {
         CompilationState state = new CompilationState(
-                Objects.requireNonNull(structure), Objects.requireNonNull(resolver));
+                structureKey, Objects.requireNonNull(structure), Objects.requireNonNull(resolver));
         state.loadClosure();
         state.detectFallbackCycles();
         state.analyzeReachability();
@@ -66,6 +66,7 @@ public final class StructureGraphCompiler {
     }
 
     private static final class CompilationState {
+        private final String structureKey;
         private final IrisStructure structure;
         private final StructureGraphResolver resolver;
         private final CompiledStructureGraph.Builder graph;
@@ -89,10 +90,11 @@ public final class StructureGraphCompiler {
         private Map<IrisJigsawWorkcellArchetype, PlanarJigsawWorkcellResolver.ResolvedWorkcell>
                 planarWorkcells = Map.of();
 
-        private CompilationState(IrisStructure structure, StructureGraphResolver resolver) {
+        private CompilationState(String structureKey, IrisStructure structure, StructureGraphResolver resolver) {
+            this.structureKey = structureKey;
             this.structure = structure;
             this.resolver = resolver;
-            this.graph = CompiledStructureGraph.builder(structure);
+            this.graph = CompiledStructureGraph.builder(structureKey, structure);
         }
 
         private void loadClosure() {
@@ -145,7 +147,7 @@ public final class StructureGraphCompiler {
         }
 
         private void validateThemes() {
-            KList<IrisJigsawThemeSet> themeSets = structure.getThemeSets();
+            List<IrisJigsawThemeSet> themeSets = structure.getThemeSets();
             if (themeSets == null) {
                 addDiagnostic(StructureGraphDiagnostic.Code.INVALID_THEME,
                         "Structure '" + structureKey() + "' declares a null themeSets list.",
@@ -235,7 +237,7 @@ public final class StructureGraphCompiler {
             graph.pools().put(key, pool);
             List<PoolEntryReference> entries = new ArrayList<>();
             poolEntries.put(key, entries);
-            KList<IrisJigsawPieceEntry> configuredEntries = pool.getPieces();
+            List<IrisJigsawPieceEntry> configuredEntries = pool.getPieces();
             if (configuredEntries == null || configuredEntries.isEmpty()) {
                 if (key.equals(normalize(structure.getStartPool()))) {
                     addDiagnostic(StructureGraphDiagnostic.Code.EMPTY_START_POOL,
@@ -339,13 +341,13 @@ public final class StructureGraphCompiler {
             }
 
             graph.pieces().put(key, piece);
-            IrisObject object = loadPieceObject(key, piece);
+            ObjectFrame object = loadPieceObject(key, piece);
             validatePieceMetadata(key, piece);
             scanConnectors(key, piece, object);
         }
 
         private void validatePieceMetadata(String pieceKey, IrisJigsawPiece piece) {
-            KList<String> themes = piece.getThemes();
+            List<String> themes = piece.getThemes();
             if (themes == null) {
                 addDiagnostic(StructureGraphDiagnostic.Code.INVALID_THEME,
                         "Jigsaw piece '" + pieceKey + "' declares a null themes list.",
@@ -419,7 +421,7 @@ public final class StructureGraphCompiler {
                     && !rules.isTerminal();
         }
 
-        private IrisObject loadPieceObject(String pieceKey, IrisJigsawPiece piece) {
+        private ObjectFrame loadPieceObject(String pieceKey, IrisJigsawPiece piece) {
             String objectKey = normalize(piece.getObject());
             pieceObjects.put(pieceKey, objectKey);
             if (objectKey.isEmpty()) {
@@ -438,7 +440,7 @@ public final class StructureGraphCompiler {
                 return graph.objects().get(objectKey);
             }
 
-            IrisObject object = resolver.loadObject(objectKey);
+            ObjectFrame object = resolver.loadObject(objectKey);
             if (object == null) {
                 missingObjects.add(objectKey);
                 addDiagnostic(StructureGraphDiagnostic.Code.MISSING_OBJECT,
@@ -447,20 +449,20 @@ public final class StructureGraphCompiler {
                 return null;
             }
             graph.objects().put(objectKey, object);
-            if (object.getW() < 1 || object.getH() < 1 || object.getD() < 1) {
+            if (object.width() < 1 || object.height() < 1 || object.depth() < 1) {
                 addDiagnostic(StructureGraphDiagnostic.Code.INVALID_OBJECT_BOUNDS,
                         "Object '" + objectKey + "' used by jigsaw piece '" + pieceKey
-                                + "' has invalid dimensions " + object.getW() + "x" + object.getH() + "x"
-                                + object.getD() + ".",
+                                + "' has invalid dimensions " + object.width() + "x" + object.height() + "x"
+                                + object.depth() + ".",
                         "object-bounds:" + objectKey);
             }
             return object;
         }
 
-        private void scanConnectors(String pieceKey, IrisJigsawPiece piece, IrisObject object) {
+        private void scanConnectors(String pieceKey, IrisJigsawPiece piece, ObjectFrame object) {
             List<ConnectorReference> references = new ArrayList<>();
             pieceConnectors.put(pieceKey, references);
-            KList<IrisJigsawConnector> connectors = piece.getConnectors();
+            List<IrisJigsawConnector> connectors = piece.getConnectors();
             if (connectors == null) {
                 addDiagnostic(StructureGraphDiagnostic.Code.INVALID_CONNECTOR,
                         "Jigsaw piece '" + pieceKey + "' declares a null connector list.",
@@ -552,7 +554,7 @@ public final class StructureGraphCompiler {
         }
 
         private boolean validatePlanarConnector(String pieceKey, int index, IrisJigsawConnector connector,
-                                                IrisObject object, boolean validDirection, boolean validTop,
+                                                ObjectFrame object, boolean validDirection, boolean validTop,
                                                 boolean validPosition) {
             if (structure.resolvedMode() != IrisJigsawMode.PLANAR_JIGSAW) {
                 return true;
@@ -568,7 +570,7 @@ public final class StructureGraphCompiler {
                         "connector:planar-direction:" + pieceKey + ":" + index);
                 valid = false;
             }
-            if (validTop && connector.getTop() != IrisDirection.UP_POSITIVE_Y) {
+            if (validTop && connector.getTop() != JigsawDirection.UP_POSITIVE_Y) {
                 addDiagnostic(StructureGraphDiagnostic.Code.INVALID_PLANAR_CONNECTOR,
                         "Jigsaw piece '" + pieceKey + "' connectors[" + index + "] has top "
                                 + connector.getTop().name()
@@ -582,8 +584,8 @@ public final class StructureGraphCompiler {
                     || object == null || !validPosition) {
                 return valid;
             }
-            IrisPosition objectSize = new IrisPosition(object.getW(), object.getH(), object.getD());
-            IrisPosition expected = IrisJigsawConnector.canonicalPlanarPosition(
+            BlockPosition objectSize = new BlockPosition(object.width(), object.height(), object.depth());
+            BlockPosition expected = IrisJigsawConnector.canonicalPlanarPosition(
                     objectSize, connector.getDirection());
             if (!expected.equals(connector.getPosition())) {
                 addDiagnostic(StructureGraphDiagnostic.Code.INVALID_PLANAR_CONNECTOR,
@@ -596,7 +598,7 @@ public final class StructureGraphCompiler {
             return valid;
         }
 
-        private String invalidPositionMessage(String pieceKey, int index, IrisPosition position, IrisObject object) {
+        private String invalidPositionMessage(String pieceKey, int index, BlockPosition position, ObjectFrame object) {
             if (position == null) {
                 return "Jigsaw piece '" + pieceKey + "' connectors[" + index
                         + "] does not declare a position.";
@@ -606,17 +608,17 @@ public final class StructureGraphCompiler {
                         + "] position " + position + " cannot be checked because its object is missing.";
             }
             return "Jigsaw piece '" + pieceKey + "' connectors[" + index + "] position " + position
-                    + " is outside object bounds 0.." + (object.getW() - 1) + ", 0.." + (object.getH() - 1)
-                    + ", 0.." + (object.getD() - 1) + ".";
+                    + " is outside object bounds 0.." + (object.width() - 1) + ", 0.." + (object.height() - 1)
+                    + ", 0.." + (object.depth() - 1) + ".";
         }
 
-        private boolean isValidPosition(IrisPosition position, IrisObject object) {
+        private boolean isValidPosition(BlockPosition position, ObjectFrame object) {
             if (position == null || object == null) {
                 return false;
             }
-            return position.getX() >= 0 && position.getX() < object.getW()
-                    && position.getY() >= 0 && position.getY() < object.getH()
-                    && position.getZ() >= 0 && position.getZ() < object.getD();
+            return position.x() >= 0 && position.x() < object.width()
+                    && position.y() >= 0 && position.y() < object.height()
+                    && position.z() >= 0 && position.z() < object.depth();
         }
 
         private void detectFallbackCycles() {
@@ -785,21 +787,21 @@ public final class StructureGraphCompiler {
             for (String pieceKey : graph.reachablePieces()) {
                 IrisJigsawPiece piece = graph.pieces().get(pieceKey);
                 String objectKey = pieceObjects.get(pieceKey);
-                IrisObject object = graph.objects().get(objectKey);
+                ObjectFrame object = graph.objects().get(objectKey);
                 if (piece == null || object == null) {
                     continue;
                 }
                 PlanarJigsawWorkcellResolver.ResolvedWorkcell workcell =
                         PlanarJigsawWorkcellResolver.workcell(planarWorkcells, piece);
-                IrisPosition dimensions = PlanarJigsawWorkcellResolver.canonicalDimensions(piece, object);
+                BlockPosition dimensions = PlanarJigsawWorkcellResolver.canonicalDimensions(piece, object);
                 if (workcell.contains(dimensions)) {
                     continue;
                 }
                 addDiagnostic(StructureGraphDiagnostic.Code.INVALID_PLANAR_OBJECT_SIZE,
                         "Object '" + objectKey + "' used by reachable planar piece '" + pieceKey
-                                + "' is " + object.getW() + "x" + object.getH() + "x" + object.getD()
-                                + " and canonically occupies " + dimensions.getX() + "x" + dimensions.getY()
-                                + "x" + dimensions.getZ() + "; it does not fit " + workcell.archetype()
+                                + "' is " + object.width() + "x" + object.height() + "x" + object.depth()
+                                + " and canonically occupies " + dimensions.x() + "x" + dimensions.y()
+                                + "x" + dimensions.z() + "; it does not fit " + workcell.archetype()
                                 + " workcell " + workcell.width() + "x" + workcell.height() + "x"
                                 + workcell.depth() + ".",
                         "object:planar-size:" + pieceKey);
@@ -985,9 +987,9 @@ public final class StructureGraphCompiler {
                 return false;
             }
 
-            IrisDirection sourceDirection = rotateDirection(
+            JigsawDirection sourceDirection = rotateDirection(
                     sourceConnector.getDirection(), source.rotation());
-            IrisDirection candidateDirection = rotateDirection(
+            JigsawDirection candidateDirection = rotateDirection(
                     candidateConnector.getDirection(), candidateRotation);
             if (candidateDirection != sourceDirection.reverse()) {
                 return false;
@@ -995,8 +997,8 @@ public final class StructureGraphCompiler {
             if (sourceConnector.getJoint() != JigsawJoint.ALIGNED) {
                 return true;
             }
-            IrisDirection sourceTop = rotateDirection(sourceConnector.getTop(), source.rotation());
-            IrisDirection candidateTop = rotateDirection(candidateConnector.getTop(), candidateRotation);
+            JigsawDirection sourceTop = rotateDirection(sourceConnector.getTop(), source.rotation());
+            JigsawDirection candidateTop = rotateDirection(candidateConnector.getTop(), candidateRotation);
             return candidateTop == sourceTop;
         }
 
@@ -1116,7 +1118,7 @@ public final class StructureGraphCompiler {
             for (long seed : ASSEMBLY_SEEDS) {
                 try {
                     StructureAssembler assembler = StructureAssembler.forCompilation(
-                            compilation, new IrisPosition(0, 64, 0));
+                            compilation, new BlockPosition(0, 64, 0));
                     StructureAssemblyResult result = assembler.assemble(new RNG(seed));
                     List<String> pieces = new ArrayList<>(result.pieces().size());
                     for (PlacedStructurePiece placed : result.pieces()) {
@@ -1175,8 +1177,7 @@ public final class StructureGraphCompiler {
         }
 
         private String structureKey() {
-            String key = structure.getLoadKey();
-            return key == null || key.isBlank() ? "<unloaded>" : key;
+            return structureKey == null || structureKey.isBlank() ? "<unloaded>" : structureKey;
         }
     }
 
@@ -1188,18 +1189,18 @@ public final class StructureGraphCompiler {
         return piece.isRotatable() ? Y_ROTATIONS : NO_ROTATION;
     }
 
-    private static IrisDirection rotateDirection(IrisDirection direction, int degrees) {
+    private static JigsawDirection rotateDirection(JigsawDirection direction, int degrees) {
         if (direction.isVertical()) {
             return direction;
         }
         int turns = Math.floorMod(degrees, 360) / 90;
-        IrisDirection rotated = direction;
+        JigsawDirection rotated = direction;
         for (int turn = 0; turn < turns; turn++) {
             rotated = switch (rotated) {
-                case NORTH_NEGATIVE_Z -> IrisDirection.WEST_NEGATIVE_X;
-                case WEST_NEGATIVE_X -> IrisDirection.SOUTH_POSITIVE_Z;
-                case SOUTH_POSITIVE_Z -> IrisDirection.EAST_POSITIVE_X;
-                case EAST_POSITIVE_X -> IrisDirection.NORTH_NEGATIVE_Z;
+                case NORTH_NEGATIVE_Z -> JigsawDirection.WEST_NEGATIVE_X;
+                case WEST_NEGATIVE_X -> JigsawDirection.SOUTH_POSITIVE_Z;
+                case SOUTH_POSITIVE_Z -> JigsawDirection.EAST_POSITIVE_X;
+                case EAST_POSITIVE_X -> JigsawDirection.NORTH_NEGATIVE_Z;
                 case UP_POSITIVE_Y, DOWN_NEGATIVE_Y -> rotated;
             };
         }

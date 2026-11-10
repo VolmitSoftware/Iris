@@ -1,23 +1,23 @@
 package art.arcane.iris.core.runtime.jigsaw;
 
+import art.arcane.iris.engine.framework.structure.ObjectFrame;
 import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.structure.authoring.StructureKey;
 import art.arcane.iris.core.structure.authoring.StructureOwnershipManifest;
 import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.engine.framework.structure.PlanarJigsawWorkcellResolver;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawMode;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceEntry;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetype;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.resource.PackResources;
+import com.volmit.tooling.ToolPack;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -38,20 +38,24 @@ public final class JigsawStudioGraphMapper {
     private JigsawStudioGraphMapper() {
     }
 
-    public static JigsawStudioLayout map(IrisData data, IrisStructure structure) {
-        Objects.requireNonNull(data, "Jigsaw Studio graph mapping requires pack data");
+    /**
+     * The studio layout of {@code structure}, the structure {@code structureKey} of {@code pack}, whose files are below {@code packRoot}.
+     */
+    public static JigsawStudioLayout map(ToolPack pack, Path packRoot, String structureKey, IrisStructure structure) {
+        Source data = new Source(Objects.requireNonNull(pack, "Jigsaw Studio graph mapping requires a pack").resources(),
+                Objects.requireNonNull(packRoot, "Jigsaw Studio graph mapping requires the pack folder"), structureKey);
         Objects.requireNonNull(structure, "Jigsaw Studio graph mapping requires a structure");
         JigsawStudioMode mode = structure.resolvedMode() == IrisJigsawMode.PLANAR_JIGSAW
                 ? JigsawStudioMode.PLANAR_JIGSAW
                 : JigsawStudioMode.SPATIAL_JIGSAW;
         JigsawStudioVariantCatalog catalog = catalog(data, structure, mode);
-        IrisPosition configuredCell = structure.getCellSize();
+        BlockPosition configuredCell = structure.getCellSize();
         JigsawStudioCellDimensions dimensions = configuredCell == null
                 ? new JigsawStudioCellDimensions(15, 15, 15)
                 : new JigsawStudioCellDimensions(
-                        Math.max(1, configuredCell.getX()),
-                        Math.max(1, configuredCell.getY()),
-                        Math.max(1, configuredCell.getZ()));
+                        Math.max(1, configuredCell.x()),
+                        Math.max(1, configuredCell.y()),
+                        Math.max(1, configuredCell.z()));
         if (mode == JigsawStudioMode.SPATIAL_JIGSAW) {
             dimensions = expandSpatialDimensions(data, catalog, dimensions);
             return JigsawStudioLayout.createSpatial(
@@ -77,11 +81,18 @@ public final class JigsawStudioGraphMapper {
     }
 
     public static JigsawStudioVariantCatalog catalog(
-            IrisData data,
+            ToolPack pack,
+            Path packRoot,
+            String structureKey,
             IrisStructure structure,
             JigsawStudioMode mode
     ) {
-        IrisData source = Objects.requireNonNull(data, "Jigsaw Studio catalog pack data");
+        return catalog(new Source(Objects.requireNonNull(pack, "Jigsaw Studio catalog pack").resources(),
+                Objects.requireNonNull(packRoot, "Jigsaw Studio catalog pack folder"), structureKey), structure, mode);
+    }
+
+    private static JigsawStudioVariantCatalog catalog(Source data, IrisStructure structure, JigsawStudioMode mode) {
+        Source source = data;
         IrisStructure root = Objects.requireNonNull(structure, "Jigsaw Studio catalog structure");
         JigsawStudioMode activeMode = Objects.requireNonNull(mode, "Jigsaw Studio catalog mode");
         OwnedResources owned = ownedResources(source, root);
@@ -123,37 +134,34 @@ public final class JigsawStudioGraphMapper {
     }
 
     static JigsawStudioCellDimensions expandSpatialDimensions(
-            IrisData data,
+            Source data,
             JigsawStudioVariantCatalog catalog,
             JigsawStudioCellDimensions configured
     ) {
-        if (data.getObjectLoader() == null) {
-            return configured;
-        }
         int width = configured.width();
         int height = configured.height();
         int depth = configured.depth();
         for (JigsawStudioVariant variant : catalog.spatialVariants()) {
-            IrisObject object = data.getObjectLoader().load(variant.objectKey());
+            ObjectFrame object = data.objectFrame(variant.objectKey());
             if (object == null) {
                 continue;
             }
-            int objectWidth = object.getW();
-            int objectDepth = object.getD();
+            int objectWidth = object.width();
+            int objectDepth = object.depth();
             if (variant.rotatable()) {
                 int horizontalSpan = Math.max(objectWidth, objectDepth);
                 objectWidth = horizontalSpan;
                 objectDepth = horizontalSpan;
             }
             width = Math.max(width, objectWidth);
-            height = Math.max(height, object.getH());
+            height = Math.max(height, object.height());
             depth = Math.max(depth, objectDepth);
         }
         return new JigsawStudioCellDimensions(width, height, depth);
     }
 
     private static void traversePools(
-            IrisData data,
+            Source data,
             JigsawStudioMode mode,
             OwnedResources owned,
             ArrayDeque<String> pools,
@@ -166,7 +174,7 @@ public final class JigsawStudioGraphMapper {
             if (!visitedPools.add(poolKey)) {
                 continue;
             }
-            IrisJigsawPool pool = StructureResources.pool(data.getPackResources(), poolKey);
+            IrisJigsawPool pool = StructureResources.pool(data.resources(), poolKey);
             if (pool == null) {
                 continue;
             }
@@ -180,7 +188,7 @@ public final class JigsawStudioGraphMapper {
                     continue;
                 }
                 String pieceKey = entry.getPiece();
-                IrisJigsawPiece piece = StructureResources.piece(data.getPackResources(), pieceKey);
+                IrisJigsawPiece piece = StructureResources.piece(data.resources(), pieceKey);
                 if (piece == null || piece.getObject() == null || piece.getObject().isBlank()) {
                     continue;
                 }
@@ -202,7 +210,7 @@ public final class JigsawStudioGraphMapper {
     }
 
     private static void addOwnedVariant(
-            IrisData data,
+            Source data,
             JigsawStudioMode mode,
             OwnedResources owned,
             String pieceKey,
@@ -211,21 +219,20 @@ public final class JigsawStudioGraphMapper {
         if (variants.containsKey(pieceKey)) {
             return;
         }
-        IrisJigsawPiece piece = StructureResources.piece(data.getPackResources(), pieceKey);
+        IrisJigsawPiece piece = StructureResources.piece(data.resources(), pieceKey);
         if (piece == null || piece.getObject() == null || piece.getObject().isBlank()) {
             return;
         }
         variants.put(pieceKey, new MutableVariant(pieceKey, piece, mode, owned.owns(pieceKey, piece.getObject())));
     }
 
-    private static OwnedResources ownedResources(IrisData data, IrisStructure structure) {
-        String structureKey = structure.getLoadKey();
-        File dataFolder = data.getDataFolder();
-        if (structureKey == null || structureKey.isBlank() || dataFolder == null) {
+    private static OwnedResources ownedResources(Source data, IrisStructure structure) {
+        String structureKey = data.structureKey();
+        if (structureKey == null || structureKey.isBlank()) {
             return OwnedResources.empty();
         }
         try {
-            Path root = dataFolder.toPath().toAbsolutePath().normalize();
+            Path root = data.root().toAbsolutePath().normalize();
             StructureTransactionWriter writer = new StructureTransactionWriter(root);
             Path manifestPath = writer.ownershipManifestPath(StructureKey.parse(structureKey, "iris"));
             if (!Files.isRegularFile(manifestPath, LinkOption.NOFOLLOW_LINKS)) {
@@ -255,7 +262,7 @@ public final class JigsawStudioGraphMapper {
         }
     }
 
-    private static int directionBit(IrisDirection direction) {
+    private static int directionBit(JigsawDirection direction) {
         return switch (direction) {
             case NORTH_NEGATIVE_Z -> JigsawPlanarDirection.NORTH.bit();
             case EAST_POSITIVE_X -> JigsawPlanarDirection.EAST.bit();
@@ -310,7 +317,7 @@ public final class JigsawStudioGraphMapper {
             memberships.add(membership);
         }
 
-        private JigsawStudioVariant build(IrisData data) {
+        private JigsawStudioVariant build(Source data) {
             Optional<JigsawStudioCellDimensions> dimensions = objectDimensions(data, piece, mode);
             return new JigsawStudioVariant(
                     pieceKey,
@@ -329,21 +336,18 @@ public final class JigsawStudioGraphMapper {
         }
 
         private static Optional<JigsawStudioCellDimensions> objectDimensions(
-                IrisData data,
+                Source data,
                 IrisJigsawPiece piece,
                 JigsawStudioMode mode
         ) {
-            if (data.getObjectLoader() == null) {
-                return Optional.empty();
-            }
-            IrisObject object = data.getObjectLoader().load(piece.getObject());
+            ObjectFrame object = data.objectFrame(piece.getObject());
             if (object == null) {
                 return Optional.empty();
             }
             JigsawStudioCellDimensions sourceDimensions = new JigsawStudioCellDimensions(
-                    object.getW(),
-                    object.getH(),
-                    object.getD());
+                    object.width(),
+                    object.height(),
+                    object.depth());
             if (mode == JigsawStudioMode.SPATIAL_JIGSAW) {
                 return Optional.of(sourceDimensions);
             }
@@ -356,6 +360,14 @@ public final class JigsawStudioGraphMapper {
                     sourceDimensions.depth(),
                     sourceDimensions.height(),
                     sourceDimensions.width()));
+        }
+    }
+
+    /** What the mapper reads: the pack's resources, its folder for the ownership manifests, and the key of the mapped structure. */
+    record Source(PackResources resources, Path root, String structureKey) {
+        /** The declared size of the object the pack key {@code key} names; null when the pack has none. */
+        private ObjectFrame objectFrame(String key) {
+            return resources.objects().sizeOf(resources.idOf(key)).map(ObjectFrame::of).orElse(null);
         }
     }
 

@@ -889,7 +889,7 @@ public class SchemaBuilderParityTest {
         try (LoadedPack pack = LoadedPack.load(Files.createDirectory(root.resolve("pack")),
                 ModuleHost.of(modules)
                         .exposing(IrisModuleHost.EXPOSED_PACKAGES.toArray(String[]::new))
-                        .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE)
+                        .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGES)
                         .copyingJarsTo(Files.createDirectory(root.resolve("copies"))))) {
             return pack.schema();
         }

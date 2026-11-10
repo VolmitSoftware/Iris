@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.engine.framework.structure.ColumnHeights;
 import art.arcane.iris.spi.PlatformBlockState;
-import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 
 import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
@@ -12,7 +12,7 @@ final class StructureFoundationPlanner {
     private StructureFoundationPlanner() {
     }
 
-    static void recordBaseCell(Long2IntOpenHashMap columns, int x, int y, int z,
+    static void recordBaseCell(ColumnHeights columns, int x, int y, int z,
                                PlatformBlockState state, boolean supportNonOccluding) {
         if (columns == null || state == null
                 || !(supportNonOccluding ? state.isSolid() : state.isOccluding())) {

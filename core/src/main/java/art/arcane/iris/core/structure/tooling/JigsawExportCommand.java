@@ -103,8 +103,8 @@ final class JigsawExportCommand {
         VanillaJigsawExportRequest request;
         try {
             request = VanillaJigsawExportRequest.builder(
-                            VanillaJigsawExportSource.forData(
-                                    active.request().source(), active.request().structureKey()), destination)
+                            VanillaJigsawExportSource.forPack(
+                                    active.request().source().resources(), active.request().structureKey()), destination)
                     .namespace(context.get(NAMESPACE))
                     .resourcePath(active.request().structureKey())
                     .format(exportFormat)

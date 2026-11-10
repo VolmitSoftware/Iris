@@ -1,6 +1,5 @@
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
@@ -23,7 +22,7 @@ public final class IrisObjectFrameReader {
     private IrisObjectFrameReader() {
     }
 
-    public static IrisObject readBounds(InputStream stream, String resourceName) throws IOException {
+    public static ObjectFrame readBounds(InputStream stream, String resourceName) throws IOException {
         String activeResourceName = resourceName == null || resourceName.isBlank()
                 ? "<unknown>" : resourceName;
         try {
@@ -41,7 +40,7 @@ public final class IrisObjectFrameReader {
         }
     }
 
-    private static IrisObject readBounds(byte[] content, String resourceName) throws IOException {
+    private static ObjectFrame readBounds(byte[] content, String resourceName) throws IOException {
         ByteArrayInputStream bytes = new ByteArrayInputStream(content);
         DataInputStream input = new DataInputStream(bytes);
         int width = input.readInt();
@@ -88,7 +87,7 @@ public final class IrisObjectFrameReader {
         }
         int tileStart = content.length - bytes.available();
         requireCompleteTileFraming(content, tileStart, tileCount, width, height, depth, resourceName);
-        return new IrisObject(width, height, depth);
+        return new ObjectFrame(width, height, depth);
     }
 
     private static void requireCompleteTileFraming(

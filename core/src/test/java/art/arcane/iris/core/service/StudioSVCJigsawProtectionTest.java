@@ -1,6 +1,5 @@
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.project.IrisProject;
 import art.arcane.iris.core.runtime.StudioOpenCoordinator;
 import art.arcane.iris.core.runtime.StudioSlotOccupant;
@@ -177,7 +176,7 @@ public class StudioSVCJigsawProtectionTest {
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 dimensions,
-                mock(IrisData.class),
+                StudioToolPacks.toolPack(),
                 JigsawStudioLayout.create(
                         JigsawStudioMode.SPATIAL_JIGSAW,
                         dimensions,

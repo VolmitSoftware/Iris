@@ -18,14 +18,13 @@
 
 package art.arcane.iris.engine.object.structure.jigsaw;
 
-import art.arcane.iris.engine.object.KeyedResource;
-import art.arcane.iris.engine.object.annotations.ArrayType;
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.config.Desc;
+import com.volmit.config.ResourceRef;
 import art.arcane.volmlib.util.collection.KList;
+
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
@@ -34,13 +33,11 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Desc("A jigsaw pool. A pool is a weighted set of pieces the assembler chooses from when a connector targets this pool.")
 @Data
-@EqualsAndHashCode(callSuper = false)
-public class IrisJigsawPool extends KeyedResource {
-    @ArrayType(type = IrisJigsawPieceEntry.class, min = 1)
+public class IrisJigsawPool {
     @Desc("The weighted pieces in this pool.")
-    private KList<IrisJigsawPieceEntry> pieces = new KList<>();
+    private List<IrisJigsawPieceEntry> pieces = new KList<>();
 
-    @RegistryListResource(IrisJigsawPool.class)
+    @ResourceRef(IrisJigsawPool.class)
     @Desc("The direct fallback pool tried after this pool, or used alone at maximum depth. The fallback pool's own fallback is not part of the same selection. Leave empty to stop expanding at maximum depth.")
     private String fallback = "";
 
@@ -49,15 +46,5 @@ public class IrisJigsawPool extends KeyedResource {
 
     public boolean requiresFallback(boolean structureRequiresCaps) {
         return structureRequiresCaps || mandatoryFallback;
-    }
-
-    @Override
-    public String getFolderName() {
-        return "jigsaw-pools";
-    }
-
-    @Override
-    public String getTypeName() {
-        return "Jigsaw Pool";
     }
 }

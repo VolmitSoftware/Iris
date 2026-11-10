@@ -9,14 +9,13 @@ import art.arcane.iris.core.structure.authoring.StructureWriteOptions;
 import art.arcane.iris.core.structure.authoring.StructureWriteResult;
 import art.arcane.iris.engine.framework.structure.PlanarJigsawWorkcellResolver;
 import art.arcane.iris.engine.framework.structure.StructureResourceBundleGraphCompiler;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawMode;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetype;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import art.arcane.volmlib.util.math.IrisBlockVector;
@@ -91,14 +90,14 @@ public final class JigsawStudioGraphEditor {
                 .setObject(normalizedPiece)
                 .setRotatable(true);
         if (topology != null) {
-            IrisPosition cellSize = new IrisPosition(
+            BlockPosition cellSize = new BlockPosition(
                     dimensions.width(), dimensions.height(), dimensions.depth());
             for (JigsawPlanarDirection planarDirection : topology.directions()) {
-                IrisDirection direction = planarDirection.irisDirection();
+                JigsawDirection direction = planarDirection.direction();
                 piece.getConnectors().add(new IrisJigsawConnector()
                         .setPosition(IrisJigsawConnector.canonicalPlanarPosition(cellSize, direction))
                         .setDirection(direction)
-                        .setTop(IrisDirection.UP_POSITIVE_Y)
+                        .setTop(JigsawDirection.UP_POSITIVE_Y)
                         .setPool(normalizedPool)
                         .setName("iris:planar")
                         .setTargetName("iris:planar")
@@ -632,11 +631,11 @@ public final class JigsawStudioGraphEditor {
             Path packRoot,
             String structureKey,
             String pieceKey,
-            IrisPosition position,
+            BlockPosition position,
             String channel
     ) throws IOException {
         String normalizedPiece = JigsawStudioProjectCreator.Options.requireResourceKey(pieceKey);
-        IrisPosition connectorPosition = Objects.requireNonNull(position, "Jigsaw connector position");
+        BlockPosition connectorPosition = Objects.requireNonNull(position, "Jigsaw connector position");
         String normalizedChannel = normalizeChannel(channel);
         OwnedGraph graph = loadOwnedGraph(packRoot, structureKey);
         String pieceResource = "jigsaw-pieces/" + normalizedPiece + ".json";
@@ -669,8 +668,8 @@ public final class JigsawStudioGraphEditor {
         }
         if (!found) {
             throw new IOException("Piece '" + normalizedPiece + "' has no connector at "
-                    + connectorPosition.getX() + "," + connectorPosition.getY() + ","
-                    + connectorPosition.getZ());
+                    + connectorPosition.x() + "," + connectorPosition.y() + ","
+                    + connectorPosition.z());
         }
         return write(graph, bundle.build());
     }
@@ -1301,7 +1300,7 @@ public final class JigsawStudioGraphEditor {
                     connectorResize.targetCanonical(),
                     resizedSourceDimensions,
                     quarterTurns);
-            connectorResize.connector().setPosition(sourcePosition.toIrisPosition());
+            connectorResize.connector().setPosition(sourcePosition.toBlockPosition());
             if (!connectorResize.sourceCanonical().equals(connectorResize.targetCanonical())) {
                 relocatedConnectors++;
             }
@@ -1370,9 +1369,9 @@ public final class JigsawStudioGraphEditor {
         List<ConnectorResize> planned = new ArrayList<>(connectors.size());
         Set<LocalPosition> sourcePositions = new LinkedHashSet<>();
         Set<LocalPosition> targetPositions = new LinkedHashSet<>();
-        IrisPosition sourceSize = dimensionsPosition(sourceDimensions);
-        IrisPosition canonicalSize = dimensionsPosition(canonicalDimensions);
-        IrisPosition targetSize = dimensionsPosition(targetDimensions);
+        BlockPosition sourceSize = dimensionsPosition(sourceDimensions);
+        BlockPosition canonicalSize = dimensionsPosition(canonicalDimensions);
+        BlockPosition targetSize = dimensionsPosition(targetDimensions);
         for (int index = 0; index < connectors.size(); index++) {
             IrisJigsawConnector connector = connectors.get(index);
             if (connector == null || connector.getPosition() == null || connector.getDirection() == null
@@ -1396,7 +1395,7 @@ public final class JigsawStudioGraphEditor {
                     sourceDimensions.width(),
                     sourceDimensions.depth(),
                     quarterTurns);
-            IrisDirection canonicalDirection = rotateHorizontalDirection(
+            JigsawDirection canonicalDirection = rotateHorizontalDirection(
                     connector.getDirection(),
                     quarterTurns);
             LocalPosition expectedSource = LocalPosition.from(IrisJigsawConnector.canonicalPlanarPosition(
@@ -1585,7 +1584,7 @@ public final class JigsawStudioGraphEditor {
         };
     }
 
-    private static IrisDirection rotateHorizontalDirection(IrisDirection direction, int quarterTurns) {
+    private static JigsawDirection rotateHorizontalDirection(JigsawDirection direction, int quarterTurns) {
         JigsawPlanarDirection planarDirection = switch (direction) {
             case NORTH_NEGATIVE_Z -> JigsawPlanarDirection.NORTH;
             case EAST_POSITIVE_X -> JigsawPlanarDirection.EAST;
@@ -1594,11 +1593,11 @@ public final class JigsawStudioGraphEditor {
             case UP_POSITIVE_Y, DOWN_NEGATIVE_Y -> throw new IllegalArgumentException(
                     "Planar connector direction must be horizontal");
         };
-        return planarDirection.rotateClockwise(quarterTurns).irisDirection();
+        return planarDirection.rotateClockwise(quarterTurns).direction();
     }
 
-    private static IrisPosition dimensionsPosition(JigsawStudioCellDimensions dimensions) {
-        return new IrisPosition(dimensions.width(), dimensions.height(), dimensions.depth());
+    private static BlockPosition dimensionsPosition(JigsawStudioCellDimensions dimensions) {
+        return new BlockPosition(dimensions.width(), dimensions.height(), dimensions.depth());
     }
 
     private static boolean inside(LocalPosition position, JigsawStudioCellDimensions dimensions) {
@@ -1831,20 +1830,12 @@ public final class JigsawStudioGraphEditor {
     }
 
     private record LocalPosition(int x, int y, int z) {
-        private static LocalPosition from(IrisPosition position) {
-            return new LocalPosition(position.getX(), position.getY(), position.getZ());
-        }
-
         private static LocalPosition from(BlockPosition position) {
             return new LocalPosition(position.x(), position.y(), position.z());
         }
 
         private BlockPosition toBlockPosition() {
             return new BlockPosition(x, y, z);
-        }
-
-        private IrisPosition toIrisPosition() {
-            return new IrisPosition(x, y, z);
         }
 
         private String describe() {

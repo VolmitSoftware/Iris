@@ -127,7 +127,7 @@ public final class IrisModuleHost {
                 .reservingFolders(IrisData.ownFolderNames().toArray(String[]::new))
                 .bundlingJars(bundledJars())
                 .copyingJarsTo(jarCopyRoot())
-                .loggingTo(new IrisApiLogger(PackModules.class.getName()));
+                .loggingTo(IrisApiLogger.showingEachMessageOnce(PackModules.class.getName()));
     }
 
     /**

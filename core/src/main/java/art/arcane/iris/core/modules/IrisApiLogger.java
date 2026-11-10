@@ -26,6 +26,8 @@ import com.volmit.host.ModuleLogs;
 
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Writes IrisApi's pack load log, the module summary and the missing-classes warning, to Iris's log.
@@ -37,9 +39,23 @@ final class IrisApiLogger implements System.Logger {
     private static final ModuleLog HOST_LOG = ModuleLogs.labelled(HOST_MODULE_LABEL, new IrisApiLogger(HOST_MODULE_LABEL));
 
     private final String name;
+    private final Set<String> shownMessages;
 
     IrisApiLogger(String name) {
+        this(name, null);
+    }
+
+    private IrisApiLogger(String name, Set<String> shownMessages) {
         this.name = name;
+        this.shownMessages = shownMessages;
+    }
+
+    /**
+     * A log that shows each distinct message once and later copies only as debug lines. Iris loads the same pack many
+     * times while starting, and its module summary only says something new when the modules change.
+     */
+    static IrisApiLogger showingEachMessageOnce(String name) {
+        return new IrisApiLogger(name, ConcurrentHashMap.newKeySet());
     }
 
     /** The log of Iris itself, for the world code that is not any module's. */
@@ -83,12 +99,21 @@ final class IrisApiLogger implements System.Logger {
         emit(level, parameters == null || parameters.length == 0 ? format : MessageFormat.format(format, parameters));
     }
 
-    private static void emit(Level level, String message) {
+    private void emit(Level level, String message) {
+        if (isRepeat(message)) {
+            IrisLogging.debug(message);
+            return;
+        }
         switch (level) {
             case ERROR -> IrisLogging.error(message);
             case WARNING -> IrisLogging.warn(message);
             case INFO -> IrisLogging.info(message);
             default -> IrisLogging.debug(message);
         }
+    }
+
+    private boolean isRepeat(String message) {
+        boolean reachesPlatformLog = IrisPlatforms.isBound();
+        return shownMessages != null && reachesPlatformLog && !shownMessages.add(message);
     }
 }

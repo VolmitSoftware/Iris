@@ -270,6 +270,21 @@ public class PackValidatorStructureGraphTest {
     }
 
     @Test
+    public void reportsAPoolBelowItsMinimumWeightByItsFieldAndNotOnlyAsMissing() throws Exception {
+        File pack = pack("\"structures\":[{\"structures\":[\"castle\"]}]");
+        write(pack, "structures/castle.json", "{\"startPool\":\"castle/start\"}");
+        write(pack, "jigsaw-pools/castle/start.json", "{\"pieces\":[{\"piece\":\"castle/start\",\"weight\":0}]}");
+        write(pack, "jigsaw-pieces/castle/start.json", "{\"object\":\"castle/start\"}");
+        writeObjectHeader(pack, "objects/castle/start.iob", 3, 9, 3);
+
+        List<String> errors = blockingErrors(pack);
+
+        assertTrue(errors.toString(), errors.contains(
+                "jigsaw-pools/castle/start.json: Jigsaw pool 'castle/start' cannot be loaded: "
+                        + "pieces[0].weight is 0; it must be at least 1"));
+    }
+
+    @Test
     public void reportsMalformedJigsawPoolJson() throws Exception {
         assertSingleErrorStartsWith("jigsaw-pools/castle/start.json: Jigsaw pool 'castle/start' cannot be loaded: ",
                 "jigsaw-pools/castle/start.json");

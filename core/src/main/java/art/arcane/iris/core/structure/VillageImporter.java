@@ -29,7 +29,7 @@ import art.arcane.iris.core.structure.authoring.StructureWriteResult;
 import art.arcane.iris.engine.framework.structure.StructureGraphValidationException;
 import art.arcane.iris.engine.framework.structure.StructureResourceBundleGraphCompiler;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import com.volmit.object.GeneratedObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.volmit.geometry.BlockFace;
@@ -129,7 +129,7 @@ public final class VillageImporter {
 
         Map<String, Map<String, Object>> emittedPools = new LinkedHashMap<>();
         Map<String, Map<String, Object>> emittedPieces = new LinkedHashMap<>();
-        Map<String, IrisObject> emittedObjects = new LinkedHashMap<>();
+        Map<String, GeneratedObject> emittedObjects = new LinkedHashMap<>();
         Map<String, ImportedTemplate> importedTemplates = new LinkedHashMap<>();
         Set<StructureCapability> capabilities = new HashSet<>();
         capabilities.add(StructureCapability.BLOCKS);
@@ -318,8 +318,8 @@ public final class VillageImporter {
                     ? StructureSource.Kind.VANILLA : StructureSource.Kind.DATAPACK;
             StructureSource source = new StructureSource(sourceKind, sourceKey, structure.gameVersion(), "");
             Map<String, byte[]> objectResources = new LinkedHashMap<>();
-            for (Map.Entry<String, IrisObject> entry : emittedObjects.entrySet()) {
-                objectResources.put(entry.getKey(), serialize(entry.getValue()));
+            for (Map.Entry<String, GeneratedObject> entry : emittedObjects.entrySet()) {
+                objectResources.put(entry.getKey(), pack.objects().encode(entry.getValue()));
             }
             Map<String, Object> rootStructure = structureJson(
                     structureKey.toString(),
@@ -398,7 +398,7 @@ public final class VillageImporter {
     }
 
     record ImportedTemplate(
-            IrisObject object,
+            GeneratedObject object,
             int blocks,
             int nonAirBlocks,
             List<Map<String, Object>> connectors,
@@ -693,12 +693,6 @@ public final class VillageImporter {
             return StructureCapability.FEATURE_ELEMENTS;
         }
         return StructureCapability.BLOCKS;
-    }
-
-    private static byte[] serialize(IrisObject object) throws IOException {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        object.write(output);
-        return output.toByteArray();
     }
 
     private static Result failed(String message, List<StructureLoss> losses) {

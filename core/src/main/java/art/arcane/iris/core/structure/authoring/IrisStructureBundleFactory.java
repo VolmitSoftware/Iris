@@ -1,10 +1,10 @@
 package art.arcane.iris.core.structure.authoring;
 
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.volmit.object.GeneratedObject;
+import com.volmit.tooling.ObjectCodec;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,7 +26,8 @@ public final class IrisStructureBundleFactory {
                 .backend(StructureBackend.SNAPSHOT)
                 .capabilities(activeOptions.capabilities())
                 .losses(activeOptions.losses())
-                .resource("objects/" + activeOptions.resourceKey() + ".iob", serialize(activeOptions.object()))
+                .resource("objects/" + activeOptions.resourceKey() + activeOptions.codec().extension(),
+                        activeOptions.codec().encode(activeOptions.object()))
                 .textResource("jigsaw-pieces/" + activeOptions.resourceKey() + ".json",
                         GSON.toJson(pieceJson(activeOptions.resourceKey())));
         if (!activeOptions.objectOnly()) {
@@ -37,12 +38,6 @@ public final class IrisStructureBundleFactory {
                             GSON.toJson(structureJson(activeOptions)));
         }
         return bundle.build();
-    }
-
-    private static byte[] serialize(IrisObject object) throws IOException {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        object.write(output);
-        return output.toByteArray();
     }
 
     private static Map<String, Object> pieceJson(String resourceKey) {
@@ -78,7 +73,8 @@ public final class IrisStructureBundleFactory {
             StructureKey bundleKey,
             StructureSource source,
             String resourceKey,
-            IrisObject object,
+            GeneratedObject object,
+            ObjectCodec codec,
             int maxSpan,
             String placeMode,
             boolean objectOnly,
@@ -90,6 +86,7 @@ public final class IrisStructureBundleFactory {
             Objects.requireNonNull(source);
             Objects.requireNonNull(resourceKey);
             Objects.requireNonNull(object);
+            Objects.requireNonNull(codec);
             Objects.requireNonNull(placeMode);
             Objects.requireNonNull(capabilities);
             Objects.requireNonNull(losses);

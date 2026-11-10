@@ -4,10 +4,18 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.core.modules.BlockEntities;
+import art.arcane.iris.engine.object.prefab.TileData;
+import art.arcane.volmlib.util.collection.KMap;
+import com.google.gson.Gson;
 import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockBox;
 import com.volmit.geometry.BlockPosition;
+import com.volmit.object.BlockEntityData;
 import com.volmit.object.GeneratedObject;
+import com.volmit.object.ObjectBlock;
+import com.volmit.object.ObjectMarker;
+import com.volmit.resource.ResourceId;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,9 +28,11 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -73,6 +83,40 @@ public class IrisObjectCodecTest {
             assertEquals(blocks + " blocks", blocksOf(decoded), blocksOf(again));
             assertEquals(decoded.bounds(), again.bounds());
         }
+    }
+
+    @Test
+    public void aTileSurvivesTheRoundTripWithItsContent() throws IOException {
+        TileData.TileReader previousReader = TileData.bindPlatformReader(
+                in -> new TileData(in.readUTF(), new Gson().fromJson(in.readUTF(), KMap.class)));
+        try {
+            KMap<String, Object> properties = new KMap<>();
+            properties.put("CustomName", "vault");
+            properties.put("Lock", "key");
+            BlockEntityData chest = BlockEntities.of(new TileData("minecraft:chest", properties));
+            GeneratedObject original = new GeneratedObject(new BlockBox(-2, -1, -2, 3, 2, 3), new BlockPosition(0, 0, 0),
+                    List.of(new ObjectBlock(new BlockPosition(1, 0, -1), new BlockState("minecraft:chest"), Optional.of(chest)),
+                            new ObjectBlock(new BlockPosition(0, 1, 0), new BlockState("minecraft:stone")),
+                            new ObjectBlock(new BlockPosition(-2, -1, 2), new BlockState("minecraft:oak_planks"))),
+                    List.of());
+
+            GeneratedObject again = codec.decode(codec.encode(original));
+
+            assertEquals(original.bounds(), again.bounds());
+            assertEquals(original.anchor(), again.anchor());
+            assertEquals(original.blocks(), again.blocks());
+            assertEquals(original.markers(), again.markers());
+        } finally {
+            TileData.restorePlatformReader(previousReader);
+        }
+    }
+
+    @Test
+    public void anObjectWithMarkersIsRefusedInsteadOfLosingThem() {
+        GeneratedObject marked = new GeneratedObject(new BlockBox(0, 0, 0, 1, 1, 1), new BlockPosition(0, 0, 0), List.of(),
+                List.of(new ObjectMarker(new BlockPosition(0, 0, 0), ResourceId.parse("test:spawn"), Map.of())));
+
+        assertThrows(IOException.class, () -> codec.encode(marked));
     }
 
     private static Map<BlockPosition, BlockState> blocksOf(GeneratedObject object) {

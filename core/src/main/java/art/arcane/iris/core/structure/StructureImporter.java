@@ -30,7 +30,7 @@ import art.arcane.iris.core.structure.authoring.StructureWriteMode;
 import art.arcane.iris.core.structure.authoring.StructureWriteResult;
 import art.arcane.iris.engine.framework.structure.StructureGraphValidationException;
 import art.arcane.iris.engine.framework.structure.StructureResourceBundleGraphCompiler;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import com.volmit.object.GeneratedObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.volmit.block.BlockState;
@@ -104,7 +104,7 @@ public final class StructureImporter {
     }
 
     record CapturedStructure(
-            IrisObject object,
+            GeneratedObject object,
             int blocks,
             int nonAirBlocks,
             int tiles,
@@ -182,7 +182,7 @@ public final class StructureImporter {
             return new Result(false, "Failed to capture structure " + key + ": " + e.getMessage(), 0, List.of(), true);
         }
 
-        IrisObject object = captured.object();
+        GeneratedObject object = captured.object();
         int count = captured.blocks();
         int tiles = captured.tiles();
         int w = captured.width();
@@ -203,7 +203,7 @@ public final class StructureImporter {
                     ? StructureSource.Kind.VANILLA : StructureSource.Kind.DATAPACK;
             StructureSource source = StructureSource.of(sourceKind, sourceKey);
             IrisStructureBundleFactory.SinglePieceOptions options = new IrisStructureBundleFactory.SinglePieceOptions(
-                    bundleKey, source, name, object, Math.max(w, d), "CENTER_HEIGHT", objectOnly,
+                    bundleKey, source, name, object, pack.objects(), Math.max(w, d), "CENTER_HEIGHT", objectOnly,
                     captured.capabilities(), losses);
             StructureResourceBundle bundle = IrisStructureBundleFactory.singlePiece(options);
             if (!objectOnly) {
@@ -241,7 +241,7 @@ public final class StructureImporter {
         int w = Math.max(1, size.x());
         int h = Math.max(1, size.y());
         int d = Math.max(1, size.z());
-        IrisObject object = new IrisObject(w, h, d);
+        DeclaredObjects.Builder object = DeclaredObjects.builder(w, h, d);
         int count = 0;
         int nonAirBlocks = 0;
         int tiles = 0;
@@ -275,13 +275,13 @@ public final class StructureImporter {
             } else if (material.equals(STRUCTURE_BLOCK)) {
                 continue;
             }
-            object.setUnsignedState(x, y, z, placed);
+            object.state(x, y, z, placed);
             count++;
             if (!isAir(placed)) {
                 nonAirBlocks++;
             }
             if (!structural && block.blockEntity().isPresent()) {
-                object.setUnsignedBlockEntity(x, y, z, block.blockEntity().get());
+                object.blockEntity(x, y, z, block.blockEntity().get());
                 tiles++;
             }
         }
@@ -292,7 +292,7 @@ public final class StructureImporter {
             capabilities.add(StructureCapability.BLOCK_ENTITIES);
         }
         return new CapturedStructure(
-                object,
+                object.build(),
                 count,
                 nonAirBlocks,
                 tiles,
@@ -523,12 +523,13 @@ public final class StructureImporter {
             ToolPack pack,
             String name,
             String vanillaSource,
-            IrisObject object,
+            GeneratedObject object,
             String placeMode,
             Mode mode
     ) {
         Mode activeMode = mode == null ? Mode.ADD_ONLY : mode;
-        int span = Math.max(object.getW(), object.getD());
+        BlockPosition size = DeclaredObjects.sizeOf(object);
+        int span = Math.max(size.x(), size.z());
         try {
             StructureKey sourceKey = StructureKey.parse(vanillaSource, "minecraft");
             StructureSource.Kind sourceKind = sourceKey.namespace().equals("minecraft")
@@ -538,6 +539,7 @@ public final class StructureImporter {
                     StructureSource.of(sourceKind, sourceKey),
                     name,
                     object,
+                    pack.objects(),
                     span,
                     placeMode,
                     false,
@@ -554,7 +556,7 @@ public final class StructureImporter {
                         writeResult.failure().isPresent());
             }
             return new Result(true, "Captured '" + vanillaSource + "' as '" + name + "'"
-                    + writeResultNote(writeResult), object.getBlocks().size(), List.of());
+                    + writeResultNote(writeResult), object.blocks().size(), List.of());
         } catch (StructureGraphValidationException e) {
             return new Result(false, "Failed writing capture for '" + name + "': " + e.getMessage(), 0, List.of());
         } catch (Throwable e) {

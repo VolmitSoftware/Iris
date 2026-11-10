@@ -20,7 +20,8 @@ package art.arcane.iris.core.structure;
 
 import art.arcane.iris.core.structure.tooling.SenderText;
 import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.object.GeneratedObject;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.tooling.CapturedStructure;
@@ -104,14 +105,15 @@ public final class StructureCaptureImporter {
             for (String key : targets) {
                 String name = StructureImporter.deriveName(key);
                 try {
-                    IrisObject object = captureOne(area, key, cellIndex++);
-                    if (object == null || object.getBlocks().isEmpty()) {
+                    GeneratedObject captured = captureOne(area, key, cellIndex++);
+                    if (captured == null || captured.blocks().isEmpty()) {
                         skipped++;
                         SenderText.send(sender, TextColor.YELLOW, "[skip] " + key
                                 + ": did not place a capturable structure here (too large, wrong dimension, or no valid placement in a flat world). Stays vanilla-generated.");
                         continue;
                     }
-                    object.shrinkwrap();
+                    GeneratedObject object = DeclaredObjects.shrinkwrapped(captured);
+                    BlockPosition size = DeclaredObjects.sizeOf(object);
                     StructureImporter.Result result = StructureImporter.writeSinglePieceStructure(
                             pack, name, key, object, "CENTER_HEIGHT", activeMode);
                     if (!result.success()) {
@@ -121,7 +123,7 @@ public final class StructureCaptureImporter {
                     }
                     imported++;
                     SenderText.send(sender, TextColor.GRAY, "[capture] " + key + " -> objects/" + name + ".iob ("
-                            + object.getW() + "x" + object.getH() + "x" + object.getD() + ")");
+                            + size.x() + "x" + size.y() + "x" + size.z() + ")");
                 } catch (Throwable e) {
                     failed++;
                     SenderText.send(sender, TextColor.RED, "[fail] " + key + ": " + e.getMessage());
@@ -174,19 +176,19 @@ public final class StructureCaptureImporter {
         return normalized;
     }
 
-    private static IrisObject captureOne(PlatformStructures.CaptureArea area, String key, int cellIndex) {
+    private static GeneratedObject captureOne(PlatformStructures.CaptureArea area, String key, int cellIndex) {
         long seed = key.hashCode() * 0x9E3779B97F4A7C15L + cellIndex * 0x100000001B3L + 0x5DEECE66DL;
         Optional<CapturedStructure> captured = area.capture(ResourceId.parse(key), seed, MAX_SPAN);
         return captured.map(StructureCaptureImporter::objectOf).orElse(null);
     }
 
-    private static IrisObject objectOf(CapturedStructure captured) {
-        IrisObject object = new IrisObject(captured.size().x(), captured.size().y(), captured.size().z());
+    private static GeneratedObject objectOf(CapturedStructure captured) {
+        DeclaredObjects.Builder object = DeclaredObjects.builder(captured.size().x(), captured.size().y(), captured.size().z());
         for (TemplateBlock block : captured.blocks()) {
-            object.setUnsignedState(block.position().x(), block.position().y(), block.position().z(), block.state());
+            object.state(block.position().x(), block.position().y(), block.position().z(), block.state());
             block.blockEntity().ifPresent(entity ->
-                    object.setUnsignedBlockEntity(block.position().x(), block.position().y(), block.position().z(), entity));
+                    object.blockEntity(block.position().x(), block.position().y(), block.position().z(), entity));
         }
-        return object;
+        return object.build();
     }
 }

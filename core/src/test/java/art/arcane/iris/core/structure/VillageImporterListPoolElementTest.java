@@ -20,7 +20,6 @@ package art.arcane.iris.core.structure;
 
 import art.arcane.iris.core.structure.authoring.StructureCapability;
 import art.arcane.iris.core.structure.authoring.StructureLoss;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import org.junit.Test;
 
 import java.util.List;
@@ -275,7 +274,7 @@ public class VillageImporterListPoolElementTest {
     @Test
     public void omittedTemplateContributesNoBlocksOrCapturedCapabilities() {
         VillageImporter.ImportedTemplate imported = new VillageImporter.ImportedTemplate(
-                new IrisObject(3, 3, 3),
+                DeclaredObjects.empty(3, 3, 3),
                 27,
                 4,
                 List.of(),

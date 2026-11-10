@@ -10,12 +10,14 @@ interface StatusBarProps {
   status: MapStatus | null
   notice: string | null
   usage: ServerUsage | null
+  /** How far a scene view's reading has come, 0 to 1, or null when it is not reading. */
+  progress: number | null
 }
 
 const NUMBER = new Intl.NumberFormat('en-US')
 
 /** What the map shows, what it is busy with, and where the cursor is (v3e StudioStatusBar). */
-export function StatusBar({ viewLabel, status, notice, usage }: StatusBarProps): React.JSX.Element {
+export function StatusBar({ viewLabel, status, notice, usage, progress }: StatusBarProps): React.JSX.Element {
   const drawing = status !== null && status.tilesReady < status.tilesTotal
   return (
     <footer className="flex h-6 shrink-0 items-center gap-6 border-t bg-card px-3 text-[11.5px] text-secondary-text tabular-nums">
@@ -31,12 +33,9 @@ export function StatusBar({ viewLabel, status, notice, usage }: StatusBarProps):
         )}
       </span>
       <span className="flex min-w-0 flex-1 items-center justify-center gap-2 truncate">
-        {notice ?? (drawing ? `Drawing ${status.tilesReady} of ${status.tilesTotal} tiles` : '')}
-        {notice === null && drawing && (
-          <span className="h-1 w-24 overflow-hidden rounded-full bg-secondary">
-            <span className="block h-full bg-primary" style={{ width: `${(status.tilesReady / status.tilesTotal) * 100}%` }} />
-          </span>
-        )}
+        {notice ?? (drawing ? `Drawing ${status.tilesReady} of ${status.tilesTotal} tiles` : progress !== null ? 'Reading' : '')}
+        {notice === null && drawing && <ProgressBar fraction={status.tilesReady / status.tilesTotal} />}
+        {notice === null && !drawing && progress !== null && <ProgressBar fraction={progress} />}
       </span>
       {usage !== null && <UsageReadout usage={usage} />}
       {status !== null && (
@@ -46,6 +45,14 @@ export function StatusBar({ viewLabel, status, notice, usage }: StatusBarProps):
         </span>
       )}
     </footer>
+  )
+}
+
+function ProgressBar({ fraction }: { fraction: number }): React.JSX.Element {
+  return (
+    <span className="h-1 w-24 overflow-hidden rounded-full bg-secondary">
+      <span className="block h-full bg-primary" style={{ width: `${fraction * 100}%` }} />
+    </span>
   )
 }
 

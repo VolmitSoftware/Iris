@@ -1,5 +1,5 @@
 import { RotateCw } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -10,6 +10,7 @@ import { BlockColors } from '../scene/blockColors'
 import { BlockLooks } from '../scene/blockLooks'
 import { BlockModels } from '../scene/blockModels'
 import { BridgeAssets } from '../scene/BridgeAssets'
+import { PendingWork } from '../scene/pendingWork'
 import { SavedTerrain, type ReadSavedTile, type SavedTerrainColoring } from '../scene/savedTerrain'
 import { savedTileSource, type SavedLayer } from '../scene/savedTileSource'
 import { TerrainAtlas } from '../scene/terrainAtlas'
@@ -28,11 +29,13 @@ interface SavedWorldStudioProps {
   /** The studio's own world, whose saved copy is chosen first. */
   world: WorldInfo
   onSummary(summary: string | null): void
+  /** How far the tiles being read have come, 0 to 1, or null when none are. */
+  onProgress(progress: number | null): void
   tell(message: string): void
 }
 
 /** A world as its region files hold it, in 3D, around the region nearest its origin (v3e's saved world explorer). */
-export function SavedWorldStudio({ client, world, onSummary, tell }: SavedWorldStudioProps): React.JSX.Element {
+export function SavedWorldStudio({ client, world, onSummary, onProgress, tell }: SavedWorldStudioProps): React.JSX.Element {
   const worlds = useSavedWorlds(client, tell)
   const [chosenId, setChosenId] = useState<string | null>(null)
   const chosen = worlds.find((candidate) => candidate.id === chosenId) ?? ownWorldAmong(worlds, world) ?? worlds[0] ?? null
@@ -63,6 +66,13 @@ export function SavedWorldStudio({ client, world, onSummary, tell }: SavedWorldS
   )
   const { content, pending } = useTerrainStream(tileSource, COARSEST_SAVED_LEVEL, focus, layer, style, tell)
   const reading = looking || pending > 0
+  const tileWork = useRef(new PendingWork())
+
+  useEffect(() => {
+    const completion = tileWork.current.completion(pending)
+    onProgress(pending > 0 ? completion : null)
+  }, [pending, onProgress])
+  useEffect(() => () => onProgress(null), [onProgress])
 
   useEffect(() => {
     if (chosen === null || start === null) {

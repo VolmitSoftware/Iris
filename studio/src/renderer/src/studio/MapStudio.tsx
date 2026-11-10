@@ -65,6 +65,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   const [area, setArea] = useState<WorldRect | null>(null)
   const [packRevision, setPackRevision] = useState(0)
   const [sceneSummary, setSceneSummary] = useState<string | null>(null)
+  const [sceneProgress, setSceneProgress] = useState<number | null>(null)
   const loadSceneViews = useCallback(() => client.sceneViews(), [client])
   const loadPatternViews = useCallback(() => client.patternViews(), [client])
   const sceneViews = useModuleViews(loadSceneViews, packRevision)
@@ -235,7 +236,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         ) : viewId === WORLD_3D.id ? (
           <WorldStudio3D client={client} world={world} mapArea={area} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : viewId === SAVED_WORLD.id ? (
-          <SavedWorldStudio client={client} world={world} onSummary={setSceneSummary} tell={tell} />
+          <SavedWorldStudio client={client} world={world} onSummary={setSceneSummary} onProgress={setSceneProgress} tell={tell} />
         ) : viewId === NOISE.id ? (
           <NoiseStudio client={client} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : (
@@ -290,7 +291,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
           </>
         )}
       </div>
-      <StatusBar viewLabel={statusLabel(view.label, previewName, showsMap ? null : sceneSummary)} status={showsMap ? status : null} notice={notice} usage={usage} />
+      <StatusBar viewLabel={statusLabel(view.label, previewName, showsMap ? null : sceneSummary)} status={showsMap ? status : null} notice={notice} usage={usage} progress={showsMap ? null : sceneProgress} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} views={views} />
       <ShortcutSettings open={settingsOpen} onOpenChange={setSettingsOpen} views={views} />
     </div>

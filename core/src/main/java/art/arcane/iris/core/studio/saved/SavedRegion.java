@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.stream.IntStream;
 
 /**
  * What the view needs of one region file, 512 by 512 columns: the ground's top block under any water, its block and
@@ -95,13 +96,10 @@ final class SavedRegion {
         return new SavedColumn(groundY[index], waterSurfaceY[index], blocks.get(blockIds[index]), biomes.get(biomeIds[index]));
     }
 
-    /** Reads every chunk not read yet, for what is measured over the whole region. */
+    /** Reads every chunk not read yet, on all cores, for what is measured over the whole region. */
     void readAll() {
-        for (int chunkZ = 0; chunkZ < RegionFile.CHUNKS_ACROSS; chunkZ++) {
-            for (int chunkX = 0; chunkX < RegionFile.CHUNKS_ACROSS; chunkX++) {
-                readChunk(chunkX, chunkZ);
-            }
-        }
+        IntStream.range(0, CHUNK_COUNT).parallel()
+                .forEach(chunk -> readChunk(chunk % RegionFile.CHUNKS_ACROSS, chunk / RegionFile.CHUNKS_ACROSS));
     }
 
     private void readChunk(int chunkX, int chunkZ) {

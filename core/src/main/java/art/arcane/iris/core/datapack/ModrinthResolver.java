@@ -32,6 +32,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -42,6 +43,7 @@ public final class ModrinthResolver {
     private static final String API = "https://api.modrinth.com/v2";
     private static final String USER_AGENT = "VolmitSoftware/Iris (datapack-ingest)";
     private static final String DATAPACK_LOADER = "datapack";
+    private static final String DEFAULT_DIRECT_FILENAME = "datapack.zip";
     private static final int MAX_API_RESPONSE_CHARS = 8 * 1024 * 1024;
 
     private ModrinthResolver() {
@@ -228,20 +230,31 @@ public final class ModrinthResolver {
     }
 
     private static ResolvedDatapack directResolve(String url) {
-        String filename = url;
-        int slash = filename.lastIndexOf('/');
-        if (slash >= 0) {
-            filename = filename.substring(slash + 1);
-        }
-        int query = filename.indexOf('?');
-        if (query >= 0) {
-            filename = filename.substring(0, query);
-        }
-        if (filename.isBlank()) {
-            filename = "datapack.zip";
-        }
+        String filename = directFilename(url);
         String identity = directIdentity(url);
         return new ResolvedDatapack(url, filename, null, "direct-" + identity, "direct", null, true);
+    }
+
+    private static String directFilename(String url) {
+        try {
+            URI uri = new URI(url);
+            if ("file".equalsIgnoreCase(uri.getScheme())) {
+                Path fileName = Path.of(uri).getFileName();
+                return fileName == null || fileName.toString().isBlank()
+                        ? DEFAULT_DIRECT_FILENAME
+                        : fileName.toString();
+            }
+            String path = uri.getPath();
+            if (path != null && !path.isBlank()) {
+                int slash = path.lastIndexOf('/');
+                String fileName = slash >= 0 ? path.substring(slash + 1) : path;
+                if (!fileName.isBlank()) {
+                    return fileName;
+                }
+            }
+        } catch (IllegalArgumentException | URISyntaxException ignored) {
+        }
+        return DEFAULT_DIRECT_FILENAME;
     }
 
     static String directIdentity(String url) {

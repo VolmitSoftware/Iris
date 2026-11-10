@@ -204,7 +204,7 @@ public class IrisStructureLocateCommandContractTest {
         assertTrue(method.contains("non-generating structure candidate(s) and their reasons to the server console"));
         assertTrue(method.contains("no chunks were searched"));
         assertTrue(method.indexOf("DatapackIngestService.installed()") > method.indexOf("J.a(() ->"));
-        assertTrue(source.contains("engine.getDimension().getDatapackImports()"));
+        assertTrue(source.contains("DatapackIngestService.configuredImports(engine.getDimension())"));
         assertTrue(source.contains("snapshot.configuredImportUrls().contains(importUrl)"));
         assertTrue(source.contains("ModuleServices.structureKeys(engine.getData())"));
         assertFalse(method.contains("commandSender.sendMessage(exclusion"));

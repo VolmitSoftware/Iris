@@ -8,6 +8,9 @@ import org.junit.Test;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
@@ -102,6 +105,25 @@ public class ModrinthResolverTest {
 
         assertTrue(resolved.isDirect());
         assertFalse(resolved.getVersionId().isBlank());
+    }
+
+    @Test
+    public void fileUrlResolvesAsDirectArchiveWithDecodedFilename() throws Exception {
+        Path directory = Files.createTempDirectory("iris-local-resolver");
+        Path archive = directory.resolve("local pack.zip");
+        try {
+            Files.writeString(archive, "archive", StandardCharsets.UTF_8);
+
+            ModrinthResolver.ResolvedDatapack resolved = ModrinthResolver.resolve(
+                    archive.toUri().toASCIIString(), "26.2");
+
+            assertTrue(resolved.isDirect());
+            assertEquals("local pack.zip", resolved.getFileName());
+            assertFalse(resolved.getVersionId().isBlank());
+        } finally {
+            Files.deleteIfExists(archive);
+            Files.deleteIfExists(directory);
+        }
     }
 
     @Test

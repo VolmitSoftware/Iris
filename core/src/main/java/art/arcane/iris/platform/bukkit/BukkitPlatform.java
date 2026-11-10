@@ -103,6 +103,14 @@ public final class BukkitPlatform implements IrisPlatform {
         PLUGIN = plugin;
     }
 
+    public static void releaseHost() {
+        PLUGIN = null;
+        HUD_BAR = null;
+        HUD_LANES = null;
+        CONSOLE = null;
+        BRIDGE = null;
+    }
+
     public static Plugin plugin() {
         Plugin plugin = PLUGIN;
         if (plugin == null) {

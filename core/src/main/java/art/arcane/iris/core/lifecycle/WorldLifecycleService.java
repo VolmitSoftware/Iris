@@ -51,6 +51,12 @@ public final class WorldLifecycleService {
         this.worldBackendByKey = new ConcurrentHashMap<>();
     }
 
+    public static void reset() {
+        synchronized (WorldLifecycleService.class) {
+            instance = null;
+        }
+    }
+
     public static WorldLifecycleService get() {
         WorldLifecycleService current = instance;
         if (current != null) {

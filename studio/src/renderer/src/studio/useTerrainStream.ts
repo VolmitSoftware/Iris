@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Box3 } from 'three'
 import type { TileSource } from '../map/TileStore'
+import type { GroundInView } from '../scene/groundInView'
 import { TerrainStream, type TerrainStyle } from '../scene/terrainStream'
 import type { ViewportContent } from './SceneViewport'
 
@@ -17,7 +18,7 @@ export function useTerrainStream<Tile, Layer>(
   layer: Layer | null,
   style: TerrainStyle<Tile> | null,
   tell: (message: string) => void
-): { content: ViewportContent | null; pending: number } {
+): { content: ViewportContent | null; pending: number; stream: TerrainStream<Tile, Layer> | null } {
   const [stream, setStream] = useState<TerrainStream<Tile, Layer> | null>(null)
   const [pending, setPending] = useState(0)
   const latestTell = useRef(tell)
@@ -42,5 +43,28 @@ export function useTerrainStream<Tile, Layer>(
     }
   }, [stream, style])
 
-  return { content: stream?.content ?? null, pending }
+  return { content: stream?.content ?? null, pending, stream }
+}
+
+// The camera drifts and tiles arrive in bursts; the ground it sees is read once they have rested this long.
+const GROUND_REST_MILLIS = 250
+
+/** The ground the camera of a stream looks at, read once the view has rested; the last reading stays until the next one. */
+export function useGroundInView<Tile, Layer>(stream: TerrainStream<Tile, Layer> | null): GroundInView | null {
+  const [ground, setGround] = useState<GroundInView | null>(null)
+  useEffect(() => {
+    if (stream === null) {
+      return
+    }
+    let timer: number | undefined
+    const stopWatching = stream.onSightChanged(() => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => setGround(stream.groundInView()), GROUND_REST_MILLIS)
+    })
+    return () => {
+      stopWatching()
+      window.clearTimeout(timer)
+    }
+  }, [stream])
+  return ground
 }

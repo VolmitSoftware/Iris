@@ -61,6 +61,21 @@ export function countShares(tiles: PlacedTile[], area: WorldArea, byHeight: bool
     .sort((first, second) => second.fraction - first.fraction)
 }
 
+/** The shares of the height bands the {@code heights} fall in, highest band first. */
+export function heightBandShares(heights: readonly number[], seaLevel: number): Share[] {
+  const counts = new Map<number, number>()
+  for (const height of heights) {
+    const band = bandIndexOf(height, seaLevel)
+    counts.set(band, (counts.get(band) ?? 0) + 1)
+  }
+  return [...counts]
+    .sort(([firstBand], [secondBand]) => secondBand - firstBand)
+    .map(([band, count]) => {
+      const { key, name, color } = HEIGHT_BANDS[band]
+      return { subject: { kind: 'HEIGHT', key, name }, color, fraction: count / heights.length }
+    })
+}
+
 function subjectAt(tile: MapTile, cell: number, byHeight: boolean, seaLevel: number): { subject: Highlight; color: number } | null {
   if (byHeight) {
     if (tile.heights === null) {

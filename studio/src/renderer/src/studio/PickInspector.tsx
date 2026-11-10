@@ -9,45 +9,53 @@ import { NoiseChart, percent } from './NoiseChart'
 // The chosen display reads like the toolbar's switched-on toggles.
 const DISPLAY_ITEM = 'h-7 text-[12px] data-[state=on]:bg-selection data-[state=on]:text-foreground'
 
+/** How the map draws the picks, for a view that recolours its tiles. */
+export interface PickDisplayChoice {
+  /** What the map shows when it draws the picks: "Regions" or "Biomes". */
+  picksLabel: string
+  value: PickDisplay
+  onChange(display: PickDisplay): void
+}
+
 interface PickInspectorProps {
   /** What is inspected: "Regions", "Biomes", or the previewed region's name. */
   title: string
-  /** What the map shows when it draws the picks: "Regions" or "Biomes". */
-  picksLabel: string
   /** The latest measurement of the view; null until the first one arrives. */
   inspection: PickInspection | null
-  display: PickDisplay
-  onDisplay(display: PickDisplay): void
+  /** Absent in a view that draws no map tiles, such as the 3D world. */
+  display?: PickDisplayChoice
 }
 
 /**
  * How noise picks the regions or biomes in view, measured against what is in view, with a switch for how the map
  * draws the picks (v3e PickInspectorPanel).
  */
-export function PickInspector({ title, picksLabel, inspection, display, onDisplay }: PickInspectorProps): React.JSX.Element {
+export function PickInspector({ title, inspection, display }: PickInspectorProps): React.JSX.Element {
   return (
     <section className="flex min-h-0 flex-[7] flex-col border-b">
       <header className="px-4 pt-2.5 pb-2.5">
         <h2 className="truncate text-[13px] font-semibold">{title}</h2>
         <p className="truncate text-[11.5px] text-secondary-text">{inspection?.detail ?? 'Measuring what is in view…'}</p>
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          size="sm"
-          className="mt-2 w-full"
-          value={display}
-          onValueChange={(value) => value !== '' && onDisplay(value as PickDisplay)}
-        >
-          <ToggleGroupItem value="picks" className={DISPLAY_ITEM}>
-            {picksLabel}
-          </ToggleGroupItem>
-          <ToggleGroupItem value="noise" className={DISPLAY_ITEM}>
-            Noise
-          </ToggleGroupItem>
-          <ToggleGroupItem value="both" className={DISPLAY_ITEM}>
-            Both
-          </ToggleGroupItem>
-        </ToggleGroup>
+        {display !== undefined && (
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            className="mt-2 w-full"
+            value={display.value}
+            onValueChange={(value) => value !== '' && display.onChange(value as PickDisplay)}
+          >
+            <ToggleGroupItem value="picks" className={DISPLAY_ITEM}>
+              {display.picksLabel}
+            </ToggleGroupItem>
+            <ToggleGroupItem value="noise" className={DISPLAY_ITEM}>
+              Noise
+            </ToggleGroupItem>
+            <ToggleGroupItem value="both" className={DISPLAY_ITEM}>
+              Both
+            </ToggleGroupItem>
+          </ToggleGroup>
+        )}
       </header>
       <ScrollArea className="min-h-0 flex-1 border-t">
         <div className="px-4 pb-2">{inspection !== null && <Sections sections={inspection.sections} />}</div>

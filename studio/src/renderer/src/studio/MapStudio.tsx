@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ThemeChoice } from '../../../shared/bridge'
 import type { BridgeClient, MapLayerQuery, WorldRect } from '../bridge/BridgeClient'
-import type { MapHover, MapLabel, Marker, ModuleViewInfo, PickDisplay, PickInspection, ServerUsage, ViewInfo, WorldInfo } from '../bridge/types'
+import type { MapHover, MapLabel, Marker, ModuleViewInfo, PickDisplay, ServerUsage, ViewInfo, WorldInfo } from '../bridge/types'
 import type { Share } from '../map/census'
 import type { MapController, MapStatus, MapToggles } from '../map/MapController'
 import type { Highlight } from '../map/tileStyle'
@@ -19,13 +19,12 @@ import { WorldStudio3D } from './WorldStudio3D'
 import { actionForKey, isTypingInto, viewForKey, type ShortcutAction } from './shortcuts'
 import { StatusBar } from './StatusBar'
 import { StudioToolbar } from './StudioToolbar'
+import { usePickInspection } from './usePickInspection'
 import { ViewList } from './ViewList'
 
 const KEYBOARD_ZOOM_FACTOR = 2 ** 0.25
 const ENTITY_POLL_MILLIS = 2000
 const NOTICE_MILLIS = 4000
-// Measuring the picks in view samples thousands of spots, so it waits for the map to rest.
-const INSPECTION_REST_MILLIS = 350
 /** The views whose spots a noise picks, which the pick inspector explains. */
 const PICK_VIEWS = new Set(['biomes', 'regions'])
 
@@ -273,18 +272,15 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
           {inspectsPicks && (
             <PickInspector
               title={previewName ?? view.label}
-              picksLabel={viewId === 'regions' && layer.preview === null ? 'Regions' : 'Biomes'}
               inspection={inspection}
-              display={pickDisplay}
-              onDisplay={setPickDisplay}
+              display={{ picksLabel: viewId === 'regions' && layer.preview === null ? 'Regions' : 'Biomes', value: pickDisplay, onChange: setPickDisplay }}
             />
           )}
           <Legend
             className={inspectsPicks ? 'flex-[3]' : 'flex-1'}
             title={legendTitle(layer)}
             shares={shares}
-            highlight={highlight}
-            onSelect={(subject) => setHighlight((current) => (sameSubject(current, subject) ? null : subject))}
+            selection={{ highlight, onSelect: (subject) => setHighlight((current) => (sameSubject(current, subject) ? null : subject)) }}
           />
         </aside>
           </>
@@ -379,38 +375,6 @@ function usePreviewableRegions(client: BridgeClient, packRevision: number): MapL
     }
   }, [client, packRevision])
   return regions
-}
-
-/**
- * Measures how the noise picks what the view shows, once the map has rested on an area for a moment; the last
- * measurement stays up until the next one arrives, so panning does not blank the panel.
- */
-function usePickInspection(
-  client: BridgeClient,
-  layer: MapLayerQuery,
-  area: WorldRect | null,
-  enabled: boolean,
-  packRevision: number
-): PickInspection | null {
-  const [inspection, setInspection] = useState<PickInspection | null>(null)
-  useEffect(() => setInspection(null), [layer, packRevision])
-  useEffect(() => {
-    if (!enabled || area === null) {
-      return
-    }
-    const stop = new AbortController()
-    const timer = window.setTimeout(() => {
-      client
-        .picks(layer, area, stop.signal)
-        .then(setInspection)
-        .catch(() => undefined)
-    }, INSPECTION_REST_MILLIS)
-    return () => {
-      window.clearTimeout(timer)
-      stop.abort()
-    }
-  }, [client, layer, area, enabled, packRevision])
-  return inspection
 }
 
 /** Players, usage and hotloads from the server; the first world event only says the world runs, which is known. */

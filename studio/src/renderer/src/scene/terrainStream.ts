@@ -2,6 +2,8 @@ import { Box3, Group, Vector3 } from 'three'
 import { TileStore, type TileSource } from '../map/TileStore'
 import type { CameraLink, ViewportContent } from '../studio/SceneViewport'
 import { CameraSight } from './cameraSight'
+import type { ColumnField } from './columnField'
+import { groundInView, type GroundInView } from './groundInView'
 import { marchOntoSurface } from './surfaceMarch'
 import { planCover, type Cover, type DrawnTile, type TileState } from './terrainCover'
 import { buildTerrainMesh, type TerrainMesh, type TerrainSurface } from './terrainMesh'
@@ -55,6 +57,7 @@ export class TerrainStream<Tile, Layer> {
   private readonly group = new Group()
   private readonly store: TileStore<Tile, Layer, never>
   private readonly drawn = new Map<string, DrawnMesh<Tile>>()
+  private readonly sightListeners = new Set<() => void>()
   private standIns = new Map<string, Tile>()
   private layer: Layer | null = null
   private style: TerrainStyle<Tile> | null = null
@@ -69,7 +72,7 @@ export class TerrainStream<Tile, Layer> {
     this.content = {
       object: this.group,
       bounds: options.focus,
-      surfaceAlong: (ray, reach) => marchOntoSurface(ray, reach, (this.style?.topY ?? 0) + ABOVE_TOP_BLOCKS, (x, z) => this.surfaceTopOver(x, z)),
+      surfaceAlong: (ray, reach) => marchOntoSurface(ray, reach, (this.style?.topY ?? 0) + ABOVE_TOP_BLOCKS, (x, z) => this.finestTopOver(x, z, (field) => field.surfaceTopOver(x, z))),
       follow: (camera) => this.follow(camera)
     }
   }
@@ -85,6 +88,23 @@ export class TerrainStream<Tile, Layer> {
     this.replan()
   }
 
+  /** Tells the listener whenever what the camera sees may have changed: it moved, or ground arrived; returns how to stop. */
+  onSightChanged(listener: () => void): () => void {
+    this.sightListeners.add(listener)
+    return () => this.sightListeners.delete(listener)
+  }
+
+  /** The ground the camera looks at now, or null while none is drawn there. */
+  groundInView(): GroundInView | null {
+    if (this.camera === null || this.style === null) {
+      return null
+    }
+    return groundInView(this.camera.view(), this.style.topY + ABOVE_TOP_BLOCKS, {
+      surfaceTopOver: (x, z) => this.finestTopOver(x, z, (field) => field.surfaceTopOver(x, z)),
+      groundTopOver: (x, z) => this.finestTopOver(x, z, (field) => field.groundTopOver(x, z))
+    })
+  }
+
   /** Draws the tiles another way, without sampling them again. */
   restyle(style: TerrainStyle<Tile>): void {
     this.style = style
@@ -94,6 +114,7 @@ export class TerrainStream<Tile, Layer> {
 
   dispose(): void {
     this.disposed = true
+    this.sightListeners.clear()
     if (this.continuation !== null) {
       clearTimeout(this.continuation)
     }
@@ -123,6 +144,7 @@ export class TerrainStream<Tile, Layer> {
     this.store.want(cover.wanted.map(addressOf), layer)
     this.draw(cover, layer, this.style)
     this.reportPending()
+    this.sightListeners.forEach((listener) => listener())
   }
 
   private stateOf(tile: TerrainTile, layer: Layer): TileState {
@@ -213,9 +235,11 @@ export class TerrainStream<Tile, Layer> {
     }
   }
 
-  private surfaceTopOver(worldX: number, worldZ: number): number | null {
+  // The finest drawn tile that knows the block answers; coarser ones have holes where finer ones are drawn.
+  private finestTopOver(worldX: number, worldZ: number, topOf: (field: ColumnField) => number | null): number | null {
     for (let level = 0; level <= this.options.coarsestLevel; level++) {
-      const top = this.drawn.get(tileKey(tileContaining(worldX, worldZ, level)))?.mesh.field.surfaceTopOver(worldX, worldZ) ?? null
+      const field = this.drawn.get(tileKey(tileContaining(worldX, worldZ, level)))?.mesh.field
+      const top = field === undefined ? null : topOf(field)
       if (top !== null) {
         return top
       }

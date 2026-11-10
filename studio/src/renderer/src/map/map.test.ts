@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { decodeTile, gridIndex } from '../bridge/tileDecoding'
 import type { MapLabel, MapTile } from '../bridge/types'
-import { countShares } from './census'
+import { countShares, heightBandShares } from './census'
 import { bandIndexOf, HEIGHT_BANDS, heightColor } from './heightColors'
 import { arrowCorners } from './playerArrow'
 import { stylePixels, type TileStyle } from './tileStyle'
@@ -213,6 +213,18 @@ describe('census', () => {
 
     expect(shares).toHaveLength(1)
     expect(shares[0].subject).toMatchObject({ kind: 'HEIGHT', name: '0–8 above sea' })
+  })
+
+  it('shares spot heights between their bands, highest band first', () => {
+    const shares = heightBandShares([64, 64, 64, 500, 30], 63)
+
+    expect(shares.map((share) => share.subject.name)).toEqual(['300+ above sea', '0–8 above sea', '10–40 below sea'])
+    expect(shares.map((share) => share.fraction)).toEqual([0.2, 0.6, 0.2])
+    expect(shares[1].color).toBe(HEIGHT_BANDS[bandIndexOf(64, 63)].color)
+  })
+
+  it('has no shares for no heights', () => {
+    expect(heightBandShares([], 63)).toEqual([])
   })
 })
 

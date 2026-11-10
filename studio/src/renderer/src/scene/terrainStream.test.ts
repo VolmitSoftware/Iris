@@ -163,6 +163,26 @@ describe('terrain stream', () => {
     expect(stream.content.surfaceAlong!(ray, 1000)!.y).toBeCloseTo(71, 3)
   })
 
+  it('reads the height of the ground the camera looks at once it is drawn, and tells when the view may have changed', async () => {
+    const { stream, camera, moved } = setUp()
+    const sightChanges = vi.fn()
+    stream.onSightChanged(sightChanges)
+    stream.restyle(flatStyle)
+    expect(stream.groundInView()).toBeNull()
+    stream.showLayer({ name: 'one', height: 70, gate: open })
+    await settle()
+    expect(sightChanges).toHaveBeenCalled()
+    const seen = stream.groundInView()!
+    expect(new Set(seen.heights)).toEqual(new Set([70]))
+    expect(seen.area.maxX).toBeGreaterThan(seen.area.minX)
+
+    camera.position.set(40_000, 664, 360)
+    camera.lookAt(new Vector3(40_000, 64, 0))
+    moved()
+    await settle()
+    expect(stream.groundInView()!.area.minX).toBeGreaterThan(seen.area.maxX)
+  })
+
   it('stops drawing when it is let go', async () => {
     const { stream, stopFollowing, requested } = setUp()
     stream.restyle(flatStyle)

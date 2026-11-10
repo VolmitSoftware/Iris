@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import type { BridgeClient, WorldRect } from '../bridge/BridgeClient'
+import type { BridgeClient, MapLayerQuery, WorldRect } from '../bridge/BridgeClient'
 import type { MapTile, WorldInfo } from '../bridge/types'
+import { heightBandShares } from '../map/census'
 import { mapTileSource, type TileLayer } from '../map/mapTileSource'
+import type { GroundInView } from '../scene/groundInView'
 import { MapTerrain, type MapTerrainColoring } from '../scene/mapTerrain'
 import { focusAround, type TerrainStyle } from '../scene/terrainStream'
 import { TILE_COLUMNS } from '../scene/terrainTiles'
+import { Legend } from './Legend'
+import { PickInspector } from './PickInspector'
 import { SceneViewport } from './SceneViewport'
-import { useTerrainStream } from './useTerrainStream'
+import { usePickInspection } from './usePickInspection'
+import { useGroundInView, useTerrainStream } from './useTerrainStream'
 
 const NUMBER = new Intl.NumberFormat('en-US')
 // The map's coarsest tiles are 4096 blocks a pixel, which is level 12.
@@ -26,7 +31,10 @@ interface WorldStudio3DProps {
   tell(message: string): void
 }
 
-/** The terrain around where the map looked, in 3D and without an edge, coloured by biome, region or height (v3e's 3D world view). */
+/**
+ * The terrain around where the map looked, in 3D and without an edge, coloured by biome, region or height, beside how
+ * the noise picks the biomes or regions the camera sees, or how much of that ground lies at each height (v3e's 3D world view).
+ */
 export function WorldStudio3D({ client, world, mapArea, packRevision, onSummary, tell }: WorldStudio3DProps): React.JSX.Element {
   const [coloring, setColoring] = useState<MapTerrainColoring>('biomes')
   const centre = useMemo(() => centreOf(mapArea), [mapArea])
@@ -44,7 +52,13 @@ export function WorldStudio3D({ client, world, mapArea, packRevision, onSummary,
     }),
     [coloring, world.fluidHeight, world.minY, world.height]
   )
-  const { content, pending } = useTerrainStream(source, COARSEST_LEVEL, focus, layer, style, tell)
+  const { content, pending, stream } = useTerrainStream(source, COARSEST_LEVEL, focus, layer, style, tell)
+  const ground = useGroundInView(stream)
+  const heightShares = useMemo(() => heightBandShares(ground?.heights ?? [], world.fluidHeight), [ground, world.fluidHeight])
+  const inspectsPicks = coloring !== 'height'
+  const pickLayer = useMemo<MapLayerQuery>(() => ({ view: coloring, preview: null }), [coloring])
+  const area = useAreaOf(ground)
+  const inspection = usePickInspection(client, pickLayer, area, inspectsPicks, packRevision)
 
   useEffect(() => {
     onSummary(`Around ${NUMBER.format(centre.x)}, ${NUMBER.format(centre.z)}`)
@@ -52,33 +66,51 @@ export function WorldStudio3D({ client, world, mapArea, packRevision, onSummary,
   }, [centre, onSummary])
 
   return (
-    <div className="relative min-w-0 flex-1">
-      <SceneViewport content={content} framing={content} />
-      <ToggleGroup
-        type="single"
-        variant="outline"
-        size="sm"
-        className="absolute top-3 left-3 bg-card/90"
-        value={coloring}
-        onValueChange={(value) => value !== '' && setColoring(value as MapTerrainColoring)}
-      >
-        <ToggleGroupItem value="biomes" className={COLORING_ITEM}>
-          Biomes
-        </ToggleGroupItem>
-        <ToggleGroupItem value="regions" className={COLORING_ITEM}>
-          Regions
-        </ToggleGroupItem>
-        <ToggleGroupItem value="height" className={COLORING_ITEM}>
-          Height
-        </ToggleGroupItem>
-      </ToggleGroup>
-      {pending > 0 && (
-        <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card/90 px-3 py-1.5 text-[12px] text-secondary-text">
-          Sampling the terrain
-        </div>
-      )}
-    </div>
+    <>
+      <div className="relative min-w-0 flex-1">
+        <SceneViewport content={content} framing={content} />
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          size="sm"
+          className="absolute top-3 left-3 bg-card/90"
+          value={coloring}
+          onValueChange={(value) => value !== '' && setColoring(value as MapTerrainColoring)}
+        >
+          <ToggleGroupItem value="biomes" className={COLORING_ITEM}>
+            Biomes
+          </ToggleGroupItem>
+          <ToggleGroupItem value="regions" className={COLORING_ITEM}>
+            Regions
+          </ToggleGroupItem>
+          <ToggleGroupItem value="height" className={COLORING_ITEM}>
+            Height
+          </ToggleGroupItem>
+        </ToggleGroup>
+        {pending > 0 && (
+          <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card/90 px-3 py-1.5 text-[12px] text-secondary-text">
+            Sampling the terrain
+          </div>
+        )}
+      </div>
+      <aside className="flex w-[250px] shrink-0 flex-col border-l bg-card">
+        {inspectsPicks ? (
+          <PickInspector title={coloring === 'regions' ? 'Regions' : 'Biomes'} inspection={inspection} />
+        ) : (
+          <Legend title="Heights in view" shares={heightShares} emptyText="Looking at the ground…" className="flex-1" />
+        )}
+      </aside>
+    </>
   )
+}
+
+// The same box is the same area, so the measurement is not asked for again while only the heights in it change.
+function useAreaOf(ground: GroundInView | null): WorldRect | null {
+  const minX = ground?.area.minX
+  const minZ = ground?.area.minZ
+  const maxX = ground?.area.maxX
+  const maxZ = ground?.area.maxZ
+  return useMemo(() => (minX === undefined || minZ === undefined || maxX === undefined || maxZ === undefined ? null : { minX, minZ, maxX, maxZ }), [minX, minZ, maxX, maxZ])
 }
 
 function centreOf(area: WorldRect | null): { x: number; z: number } {

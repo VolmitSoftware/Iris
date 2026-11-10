@@ -72,9 +72,22 @@ export class ColumnField {
 
   /** The face shown to the sky over the world block, or null where the field has none. */
   surfaceTopOver(worldX: number, worldZ: number): number | null {
-    const column = Math.floor((worldX - this.originX) / this.blocksPerColumn)
-    const row = Math.floor((worldZ - this.originZ) / this.blocksPerColumn)
-    return this.surfaceTop(column, row)
+    return this.surfaceTop(this.columnOf(worldX), this.rowOf(worldZ))
+  }
+
+  /** The top face of the ground under any water over the world block, or null where the field has none. */
+  groundTopOver(worldX: number, worldZ: number): number | null {
+    const column = this.columnOf(worldX)
+    const row = this.rowOf(worldZ)
+    return this.hasGround(column, row) ? this.groundTop[this.indexOf(column, row)] : null
+  }
+
+  private columnOf(worldX: number): number {
+    return Math.floor((worldX - this.originX) / this.blocksPerColumn)
+  }
+
+  private rowOf(worldZ: number): number {
+    return Math.floor((worldZ - this.originZ) / this.blocksPerColumn)
   }
 
   private holeMask(holes: readonly ColumnArea[]): Uint8Array {

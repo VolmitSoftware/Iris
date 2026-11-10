@@ -107,7 +107,11 @@ public final class BlocksModule implements IrisModule {
             data = edited.data();
             blockEntity = edited.blockEntity();
         }
-        data = prepared.rotate(data);
+        BlockState rotated = prepared.rotate(data);
+        if (isDroppedByRotation(data, rotated)) {
+            return;
+        }
+        data = rotated;
         int x = placement.x() + offset.x();
         int y = anchorY + offset.y();
         int z = placement.z() + offset.z();
@@ -150,6 +154,11 @@ public final class BlocksModule implements IrisModule {
             data = data.withProperty(PERSISTENT, TRUE);
         }
         return data;
+    }
+
+    /** A block that turned into air had no valid orientation: it is left out with its block entity, even for structure pieces that write air. */
+    static boolean isDroppedByRotation(BlockState source, BlockState rotated) {
+        return !AIR_MATERIALS.contains(source.material().toString()) && AIR_MATERIALS.contains(rotated.material().toString());
     }
 
     private static boolean shouldWrite(PlacementWorld world, BlockState data, int x, int y, int z, boolean structurePiece) {

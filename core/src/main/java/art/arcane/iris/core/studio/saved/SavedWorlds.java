@@ -45,11 +45,13 @@ public final class SavedWorlds {
 
     private final Path levelRoot;
     private final SavedGround ground;
+    private final CustomBlocks customBlocks;
     private final Map<String, SavedWorld> opened = new ConcurrentHashMap<>();
 
-    SavedWorlds(Path levelRoot, SavedGround ground) {
+    SavedWorlds(Path levelRoot, SavedGround ground, CustomBlocks customBlocks) {
         this.levelRoot = levelRoot;
         this.ground = ground;
+        this.customBlocks = customBlocks;
     }
 
     /** The server's saved worlds; their regions stay in memory between requests. */
@@ -58,7 +60,8 @@ public final class SavedWorlds {
         if (current == null) {
             synchronized (SavedWorlds.class) {
                 if (shared == null) {
-                    shared = new SavedWorlds(IrisWorldStorage.levelRoot().toPath(), SavedGround.platform());
+                    CustomBlocks customBlocks = CustomBlocks.platform();
+                    shared = new SavedWorlds(IrisWorldStorage.levelRoot().toPath(), SavedGround.platform(customBlocks), customBlocks);
                 }
                 current = shared;
             }
@@ -93,7 +96,7 @@ public final class SavedWorlds {
         if (list().stream().noneMatch(info -> info.id().equals(id))) {
             throw new NoSuchElementException("No saved world " + id);
         }
-        return opened.computeIfAbsent(id, known -> new SavedWorld(levelRoot.resolve(known).resolve(REGION_FOLDER).normalize(), ground));
+        return opened.computeIfAbsent(id, known -> new SavedWorld(levelRoot.resolve(known).resolve(REGION_FOLDER).normalize(), ground, customBlocks));
     }
 
     private List<Info> dimensionFolders() {

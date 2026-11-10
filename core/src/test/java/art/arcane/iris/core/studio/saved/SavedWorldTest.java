@@ -18,6 +18,8 @@
 
 package art.arcane.iris.core.studio.saved;
 
+import art.arcane.iris.core.link.CustomBlockLook;
+import art.arcane.iris.core.link.Identifier;
 import art.arcane.volmlib.util.nbt.io.NBTSerializer;
 import art.arcane.volmlib.util.nbt.io.NamedTag;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
@@ -47,8 +49,10 @@ public class SavedWorldTest {
     private static final int SECTIONS = 8;
     private static final int MIN_Y = MIN_SECTION * 16;
     private static final List<String> PALETTE = List.of("minecraft:air", "minecraft:stone", "minecraft:oak_log",
-            "minecraft:oak_leaves", "minecraft:water", "minecraft:snow");
+            "minecraft:oak_leaves", "minecraft:water", "minecraft:snow", "minecraft:tripwire", "minecraft:tripwire");
     private static final int AIR = 0;
+    private static final int ATTACHED_TRIPWIRE = 6;
+    private static final int DETACHED_TRIPWIRE = 7;
     private static final int STONE = 1;
     private static final int LOG = 2;
     private static final int LEAVES = 3;
@@ -61,13 +65,16 @@ public class SavedWorldTest {
     private static final int POND_FLOOR = 0;
     private static final int POND_SURFACE = 5;
     private static final SavedGround STONE_IS_GROUND = block -> block.equals("minecraft:stone") || block.equals("minecraft:snow");
+    private static final SavedGround ETOPIA_GRASS_IS_GROUND = block -> STONE_IS_GROUND.isGround(block) || block.equals("etopia:grass_block");
+    private static final CustomBlocks ETOPIA_GRASS = new CustomBlocks(List.of(
+            new CustomBlockLook(new Identifier("etopia", "grass_block"), "minecraft:tripwire[attached=true]")));
 
     @Rule
     public TemporaryFolder folders = new TemporaryFolder();
 
     @Test
     public void groundIsTheTopWholeBlockUnderTreesAndWater() throws IOException {
-        SavedWorld world = new SavedWorld(regionFolderWithOneChunk(), STONE_IS_GROUND);
+        SavedWorld world = new SavedWorld(regionFolderWithOneChunk(), STONE_IS_GROUND, CustomBlocks.NONE);
 
         SavedRegion.SavedColumn underTree = world.columnAt(0, 0);
         assertEquals(TREE_GROUND_TOP, underTree.groundY());
@@ -84,7 +91,7 @@ public class SavedWorldTest {
 
     @Test
     public void snowCountsAsGroundOnTheGroundButNotOnATree() throws IOException {
-        SavedWorld world = new SavedWorld(regionFolderWithOneChunk(), STONE_IS_GROUND);
+        SavedWorld world = new SavedWorld(regionFolderWithOneChunk(), STONE_IS_GROUND, CustomBlocks.NONE);
 
         assertEquals(TREE_GROUND_TOP, world.columnAt(0, 0).groundY());
         SavedRegion.SavedColumn snowyGround = world.columnAt(2, 0);
@@ -93,8 +100,30 @@ public class SavedWorldTest {
     }
 
     @Test
+    public void aPluginBlockIsNamedAsItsPluginNamesItWhereItsBorrowedStateIsSaved() throws IOException {
+        SavedWorld world = new SavedWorld(regionFolderWithOneChunk(), ETOPIA_GRASS_IS_GROUND, ETOPIA_GRASS);
+
+        SavedRegion.SavedColumn plugin = world.columnAt(3, 0);
+        assertEquals(PLAIN_GROUND_TOP + 1, plugin.groundY());
+        assertEquals("etopia:grass_block", plugin.block());
+
+        SavedRegion.SavedColumn otherState = world.columnAt(5, 0);
+        assertEquals(PLAIN_GROUND_TOP, otherState.groundY());
+        assertEquals("minecraft:stone", otherState.block());
+    }
+
+    @Test
+    public void withoutPluginBlocksTheBorrowedStateIsOnlyItsVanillaBlock() throws IOException {
+        SavedWorld world = new SavedWorld(regionFolderWithOneChunk(), ETOPIA_GRASS_IS_GROUND, CustomBlocks.NONE);
+
+        SavedRegion.SavedColumn borrowed = world.columnAt(3, 0);
+        assertEquals(PLAIN_GROUND_TOP, borrowed.groundY());
+        assertEquals("minecraft:stone", borrowed.block());
+    }
+
+    @Test
     public void chunksWithUnfinishedTerrainOrNoFileHaveNoGround() throws IOException {
-        SavedWorld world = new SavedWorld(regionFolderWithOneChunk(), STONE_IS_GROUND);
+        SavedWorld world = new SavedWorld(regionFolderWithOneChunk(), STONE_IS_GROUND, CustomBlocks.NONE);
 
         assertNull(world.columnAt(16, 0));
         assertNull(world.columnAt(-1, -1));
@@ -102,7 +131,7 @@ public class SavedWorldTest {
 
     @Test
     public void theViewStartsInTheMiddleOfTheRegionNearestTheOrigin() throws IOException {
-        SavedWorld.Start start = new SavedWorld(regionFolderWithOneChunk(), STONE_IS_GROUND).start().orElseThrow();
+        SavedWorld.Start start = new SavedWorld(regionFolderWithOneChunk(), STONE_IS_GROUND, CustomBlocks.NONE).start().orElseThrow();
 
         assertEquals(256, start.centerX());
         assertEquals(256, start.centerZ());
@@ -114,7 +143,7 @@ public class SavedWorldTest {
 
     @Test
     public void aTileSamplesOneColumnEveryFewBlocksAndNamesEachBlockOnce() throws IOException {
-        SavedWorld world = new SavedWorld(regionFolderWithOneChunk(), STONE_IS_GROUND);
+        SavedWorld world = new SavedWorld(regionFolderWithOneChunk(), STONE_IS_GROUND, CustomBlocks.NONE);
 
         SavedTile tile = SavedTile.sample(world, 0, 0, 2, 16);
 
@@ -132,7 +161,7 @@ public class SavedWorldTest {
         writeRegion(level.resolve("region"));
         writeRegion(level.resolve("dimensions/iris/demo/region"));
         Files.createDirectories(level.resolve("dimensions/iris/empty/region"));
-        SavedWorlds worlds = new SavedWorlds(level, STONE_IS_GROUND);
+        SavedWorlds worlds = new SavedWorlds(level, STONE_IS_GROUND, CustomBlocks.NONE);
 
         assertEquals(List.of(new SavedWorlds.Info(".", "overworld", "minecraft"),
                 new SavedWorlds.Info("dimensions/iris/demo", "demo", "iris")), worlds.list());
@@ -191,8 +220,8 @@ public class SavedWorldTest {
         return bytes.toByteArray();
     }
 
-    // Column (0, 0) is a log on stone with snowy leaves on top, (1, 0) a pond on stone, (2, 0) snow on stone, every
-    // other column stone to y 5.
+    // Column (0, 0) is a log on stone with snowy leaves on top, (1, 0) a pond on stone, (2, 0) snow on stone, (3, 0) an
+    // attached and (5, 0) a detached tripwire on stone, every other column stone to y 5.
     private static CompoundTag chunk(String status) {
         CompoundTag root = new CompoundTag();
         root.putString("Status", status);
@@ -212,7 +241,7 @@ public class SavedWorldTest {
         if (x == 0 && z == 0) {
             return SNOWY_TREE_TOP;
         }
-        if (x == 2 && z == 0) {
+        if ((x == 2 || x == 3 || x == 5) && z == 0) {
             return PLAIN_GROUND_TOP + 1;
         }
         return x == 1 && z == 0 ? POND_SURFACE : PLAIN_GROUND_TOP;
@@ -227,6 +256,9 @@ public class SavedWorldTest {
         }
         if (x == 2 && z == 0) {
             return y <= PLAIN_GROUND_TOP ? STONE : y == PLAIN_GROUND_TOP + 1 ? SNOW : AIR;
+        }
+        if ((x == 3 || x == 5) && z == 0) {
+            return y <= PLAIN_GROUND_TOP ? STONE : y == PLAIN_GROUND_TOP + 1 ? (x == 3 ? ATTACHED_TRIPWIRE : DETACHED_TRIPWIRE) : AIR;
         }
         return y <= PLAIN_GROUND_TOP ? STONE : AIR;
     }
@@ -249,9 +281,15 @@ public class SavedWorldTest {
     // Water is written the way 26.1 writes a block without properties among others: its bare name under an empty key.
     private static ListTag<CompoundTag> blockPalette() {
         ListTag<CompoundTag> palette = new ListTag<>(CompoundTag.class);
-        for (String block : PALETTE) {
+        for (int index = 0; index < PALETTE.size(); index++) {
+            String block = PALETTE.get(index);
             CompoundTag entry = new CompoundTag();
             entry.putString(block.equals("minecraft:water") ? "" : "Name", block);
+            if (index == ATTACHED_TRIPWIRE || index == DETACHED_TRIPWIRE) {
+                CompoundTag properties = new CompoundTag();
+                properties.putString("attached", index == ATTACHED_TRIPWIRE ? "true" : "false");
+                entry.put("Properties", properties);
+            }
             palette.add(entry);
         }
         return palette;

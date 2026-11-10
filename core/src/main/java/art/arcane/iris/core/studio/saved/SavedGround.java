@@ -55,28 +55,35 @@ interface SavedGround {
     }
 
     /** Asks the server's block registry; a block it doesn't know is ground, so a column never runs down to the floor. */
-    static SavedGround platform() {
-        return new PlatformGround();
+    static SavedGround platform(CustomBlocks customBlocks) {
+        return new PlatformGround(customBlocks);
     }
 
     final class PlatformGround implements SavedGround {
         private static final List<String> TRUNK_SUFFIXES = List.of("_log", "_wood", "_stem", "_hyphae", "_mushroom_block");
 
         private final Map<String, Boolean> groundByBlock = new ConcurrentHashMap<>();
+        private final CustomBlocks customBlocks;
+
+        PlatformGround(CustomBlocks customBlocks) {
+            this.customBlocks = customBlocks;
+        }
 
         @Override
         public boolean isGround(String block) {
-            return groundByBlock.computeIfAbsent(block, PlatformGround::looksLikeGround);
+            return groundByBlock.computeIfAbsent(block, this::looksLikeGround);
         }
 
-        private static boolean looksLikeGround(String block) {
+        // A plugin's block has the shape of the block it borrows, like a tripwire for grass, and whole blocks all borrow the
+        // same few, like mushroom blocks, so only its own name can tell a trunk from the ground.
+        private boolean looksLikeGround(String block) {
             if (isThin(block)) {
                 return true;
             }
             if (TRUNK_SUFFIXES.stream().anyMatch(block::endsWith)) {
                 return false;
             }
-            PlatformBlockState state = B.getStateOrNull(block, false);
+            PlatformBlockState state = B.getStateOrNull(customBlocks.shownBlockOf(block).orElse(block), false);
             return state == null || state.isOccluding();
         }
     }

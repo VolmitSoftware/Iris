@@ -77,8 +77,8 @@ final class SavedRegion {
         Arrays.fill(waterSurfaceY, (short) NO_WATER);
     }
 
-    static SavedRegion of(RegionFile file, SavedGround ground) {
-        return new SavedRegion((chunkX, chunkZ) -> file.chunk(chunkX, chunkZ).flatMap(SavedChunk::of), ground);
+    static SavedRegion of(RegionFile file, SavedGround ground, CustomBlocks customBlocks) {
+        return new SavedRegion((chunkX, chunkZ) -> file.chunk(chunkX, chunkZ).flatMap(root -> SavedChunk.of(root, customBlocks)), ground);
     }
 
     /**

@@ -47,13 +47,15 @@ public final class SavedWorld {
 
     private final Path regionFolder;
     private final SavedGround ground;
+    private final CustomBlocks customBlocks;
     private final Cache<Long, OpenRegion> regions = Caffeine.newBuilder()
             .maximumSize(heapShareCount())
             .build();
 
-    SavedWorld(Path regionFolder, SavedGround ground) {
+    SavedWorld(Path regionFolder, SavedGround ground, CustomBlocks customBlocks) {
         this.regionFolder = regionFolder;
         this.ground = ground;
+        this.customBlocks = customBlocks;
     }
 
     static boolean holdsRegionFiles(Path folder) {
@@ -119,7 +121,7 @@ public final class SavedWorld {
         if (written == null) {
             return NOTHING_SAVED;
         }
-        return new OpenRegion(SavedRegion.of(new RegionFile(file), ground), written);
+        return new OpenRegion(SavedRegion.of(new RegionFile(file), ground, customBlocks), written);
     }
 
     private static FileTime lastWritten(Path file) {

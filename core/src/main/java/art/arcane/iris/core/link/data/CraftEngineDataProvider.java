@@ -2,6 +2,7 @@ package art.arcane.iris.core.link.data;
 
 import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 
+import art.arcane.iris.core.link.CustomBlockLook;
 import art.arcane.iris.core.link.ExternalDataProvider;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.nms.INMS;
@@ -34,8 +35,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
@@ -45,6 +49,7 @@ import java.util.stream.Stream;
 
 public class CraftEngineDataProvider extends ExternalDataProvider implements Listener {
     private static final String PERSISTENT_PROPERTY = "persistent";
+    private static final String GENERATED_RESOURCE_PACK = "generated/resource_pack.zip";
     private static final BlockProperty[] FURNITURE_PROPERTIES = new BlockProperty[]{
             BlockProperty.ofBoolean("randomYaw", false),
             BlockProperty.ofDouble("yaw", 0, 0, 360f, false, true),
@@ -168,6 +173,27 @@ public class CraftEngineDataProvider extends ExternalDataProvider implements Lis
     public boolean hasBlockTag(@NotNull BlockData data, @NotNull NamespacedKey tag) {
         ImmutableBlockState state = customStateOf(data);
         return state != null && state.settings().tags().contains(Key.of(tag.getNamespace(), tag.getKey()));
+    }
+
+    // A block's states can look alike, like leaves of every distance, and the first of them stands in for the rest.
+    @Override
+    public @NotNull List<CustomBlockLook> getCustomBlocks() {
+        Map<String, CustomBlockLook> looksByShownState = new LinkedHashMap<>();
+        for (BlockDefinition block : CraftEngineBlocks.loadedBlocks().values()) {
+            Identifier id = new Identifier(block.id().namespace(), block.id().value());
+            for (ImmutableBlockState state : block.variantProvider().states()) {
+                String shownAs = state.visualBlockState().getAsString();
+                looksByShownState.putIfAbsent(shownAs, new CustomBlockLook(id, shownAs));
+            }
+        }
+        return List.copyOf(looksByShownState.values());
+    }
+
+    // PackManager#resourcePackPath went away in CraftEngine's later versions, which set this path in their workflows.
+    @Override
+    public @NotNull Optional<Path> getResourcePack() {
+        Path pack = getPlugin().getDataFolder().toPath().resolve(GENERATED_RESOURCE_PACK);
+        return Files.isRegularFile(pack) ? Optional.of(pack) : Optional.empty();
     }
 
     private static ImmutableBlockState customStateOf(BlockData data) {

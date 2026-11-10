@@ -24,6 +24,7 @@ import art.arcane.volmlib.util.nbt.tag.StringTag;
 import art.arcane.volmlib.util.nbt.tag.Tag;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -42,6 +43,7 @@ final class SavedChunk {
     private static final int BIOME_CELLS_ACROSS = 4;
     private static final int SMALLEST_BLOCK_INDEX_BITS = 4;
     private static final String SURFACE_HEIGHTMAP = "WORLD_SURFACE";
+    private static final List<String> PROPERTY_KEYS = List.of("Properties", "properties");
     // Terrain and heightmaps are final from the features stage on; pregenerated chunks no player visited stop short of full.
     private static final Set<String> FINISHED_TERRAIN_STATUSES = Stream.of("features", "initialize_light", "light", "spawn",
                     "heightmaps", "full")
@@ -52,16 +54,18 @@ final class SavedChunk {
     private final long[] surfaceHeights;
     private final int surfaceBits;
     private final Map<Integer, CompoundTag> sectionsByY;
+    private final CustomBlocks customBlocks;
 
-    private SavedChunk(int minY, long[] surfaceHeights, int surfaceBits, Map<Integer, CompoundTag> sectionsByY) {
+    private SavedChunk(int minY, long[] surfaceHeights, int surfaceBits, Map<Integer, CompoundTag> sectionsByY, CustomBlocks customBlocks) {
         this.minY = minY;
         this.surfaceHeights = surfaceHeights;
         this.surfaceBits = surfaceBits;
         this.sectionsByY = sectionsByY;
+        this.customBlocks = customBlocks;
     }
 
     /** The chunk, or empty where its terrain is not finished yet or it has no surface heightmap. */
-    static Optional<SavedChunk> of(CompoundTag root) {
+    static Optional<SavedChunk> of(CompoundTag root, CustomBlocks customBlocks) {
         if (!FINISHED_TERRAIN_STATUSES.contains(root.getString("Status"))) {
             return Optional.empty();
         }
@@ -73,7 +77,7 @@ final class SavedChunk {
         int lowestSection = root.containsKey("yPos") ? root.getInt("yPos") : lowestKey(sections);
         int minY = lowestSection * BLOCKS_ACROSS;
         int worldHeight = (highestKey(sections) - lowestSection + 1) * BLOCKS_ACROSS;
-        return Optional.of(new SavedChunk(minY, surface, heightmapBits(worldHeight, surface.length), sections));
+        return Optional.of(new SavedChunk(minY, surface, heightmapBits(worldHeight, surface.length), sections, customBlocks));
     }
 
     int minY() {
@@ -85,7 +89,7 @@ final class SavedChunk {
         return minY + (int) PackedIndices.get(surfaceHeights, surfaceBits, z * BLOCKS_ACROSS + x) - 1;
     }
 
-    /** The block's name, such as {@code minecraft:stone}, without its properties. */
+    /** The block's name, such as {@code minecraft:stone}, without its properties; a plugin's block is named as its plugin does. */
     String blockAt(int x, int y, int z) {
         CompoundTag section = sectionsByY.get(Math.floorDiv(y, BLOCKS_ACROSS));
         if (section == null || !section.containsKey("block_states")) {
@@ -123,13 +127,31 @@ final class SavedChunk {
     }
 
     // A block with properties is a compound naming it under Name; since 26.1 a block without them may be its bare name.
-    private static String nameOf(Tag<?> block) {
-        return switch (block) {
-            case StringTag name -> name.getValue();
+    private String nameOf(Tag<?> block) {
+        String name = switch (block) {
+            case StringTag text -> text.getValue();
             case CompoundTag compound when !compound.getString("Name").isEmpty() -> compound.getString("Name");
             case CompoundTag compound when !compound.getString("").isEmpty() -> compound.getString("");
             case null, default -> UNKNOWN;
         };
+        return customBlocks.nameSavedAs(name, () -> propertiesOf(block));
+    }
+
+    private static Map<String, String> propertiesOf(Tag<?> block) {
+        Map<String, String> properties = new HashMap<>();
+        if (!(block instanceof CompoundTag compound)) {
+            return properties;
+        }
+        for (String key : PROPERTY_KEYS) {
+            if (compound.containsKey(key)) {
+                compound.getCompoundTag(key).forEach((name, value) -> {
+                    if (value instanceof StringTag text) {
+                        properties.put(name, text.getValue());
+                    }
+                });
+            }
+        }
+        return properties;
     }
 
     private static Map<Integer, CompoundTag> sectionsByY(CompoundTag root) {

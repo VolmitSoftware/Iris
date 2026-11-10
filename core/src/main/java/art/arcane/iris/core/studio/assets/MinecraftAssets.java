@@ -18,12 +18,15 @@
 
 package art.arcane.iris.core.studio.assets;
 
+import art.arcane.iris.core.link.CustomBlockSource;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.IrisServices;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.zip.ZipEntry;
@@ -36,6 +39,7 @@ import java.util.zip.ZipFile;
  */
 public final class MinecraftAssets {
     private static final String ASSET_FOLDER = "assets/";
+    private static final String MINECRAFT_ASSET_FOLDER = ASSET_FOLDER + "minecraft/";
     private static final MinecraftAssets SHARED = new MinecraftAssets();
 
     private CompletableFuture<ZipFile> clientJar;
@@ -48,8 +52,9 @@ public final class MinecraftAssets {
     }
 
     /**
-     * The asset file at {@code path} in the client jar, such as {@code assets/minecraft/textures/block/stone.png};
-     * empty when the client has no such file or the path leaves its asset folder.
+     * The asset file at {@code path} in the client jar, such as {@code assets/minecraft/textures/block/stone.png}, or
+     * for another namespace in the resource packs of the server's plugins; empty when there is no such file or the path
+     * leaves the asset folder.
      *
      * @throws NotReadyException while the client jar is still being fetched, or when fetching it failed; the next call
      *                           after a failure tries again
@@ -57,6 +62,9 @@ public final class MinecraftAssets {
     public Optional<byte[]> read(String path) throws IOException {
         if (!isAssetPath(path)) {
             return Optional.empty();
+        }
+        if (!path.startsWith(MINECRAFT_ASSET_FOLDER)) {
+            return readFromPacks(pluginResourcePacks(), path);
         }
         ZipFile jar = openedJar();
         ZipEntry entry = jar.getEntry(path);
@@ -66,6 +74,25 @@ public final class MinecraftAssets {
         try (InputStream content = jar.getInputStream(entry)) {
             return Optional.of(content.readAllBytes());
         }
+    }
+
+    private static List<Path> pluginResourcePacks() {
+        CustomBlockSource plugins = IrisServices.getOrNull(CustomBlockSource.class);
+        return plugins == null ? List.of() : plugins.resourcePacks();
+    }
+
+    static Optional<byte[]> readFromPacks(List<Path> packs, String path) throws IOException {
+        for (Path pack : packs) {
+            try (ZipFile zip = new ZipFile(pack.toFile())) {
+                ZipEntry entry = zip.getEntry(path);
+                if (entry != null && !entry.isDirectory()) {
+                    try (InputStream content = zip.getInputStream(entry)) {
+                        return Optional.of(content.readAllBytes());
+                    }
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     static boolean isAssetPath(String path) {

@@ -20,6 +20,8 @@ package art.arcane.iris.core.service;
 
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
+import art.arcane.iris.core.link.CustomBlockLook;
+import art.arcane.iris.core.link.CustomBlockSource;
 import art.arcane.iris.core.link.ExternalDataProvider;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.link.data.DataType;
@@ -41,6 +43,7 @@ import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.MissingResourceException;
@@ -49,7 +52,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.stream.Collectors;
 
-public class ExternalDataSVC implements IrisService {
+public class ExternalDataSVC implements IrisService, CustomBlockSource {
     private static final String PROVIDER_PACKAGE = "art.arcane.iris.core.link.data.";
     private static final List<ProviderDefinition> BUILT_IN_PROVIDERS = List.of(
             new ProviderDefinition("CraftEngine", PROVIDER_PACKAGE + "CraftEngineDataProvider"),
@@ -132,6 +135,21 @@ public class ExternalDataSVC implements IrisService {
             IrisLogging.error(e.getMessage() + " - [" + e.getClassName() + ":" + e.getKey() + "]");
             return Optional.empty();
         }
+    }
+
+    @Override
+    public List<CustomBlockLook> blocks() {
+        return activeProviders.stream()
+                .flatMap(provider -> provider.getCustomBlocks().stream())
+                .toList();
+    }
+
+    @Override
+    public List<Path> resourcePacks() {
+        return activeProviders.stream()
+                .map(ExternalDataProvider::getResourcePack)
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     public Optional<List<BlockProperty>> getBlockProperties(final Identifier key) {

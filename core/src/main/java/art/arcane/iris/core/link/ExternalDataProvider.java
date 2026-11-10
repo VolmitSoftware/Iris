@@ -24,10 +24,12 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.MissingResourceException;
+import java.util.Optional;
 
 @Getter
 @RequiredArgsConstructor
@@ -131,6 +133,22 @@ public abstract class ExternalDataProvider {
      */
     public boolean hasBlockTag(@NotNull BlockData data, @NotNull NamespacedKey tag) {
         return false;
+    }
+
+    /**
+     * @return One look for every vanilla block state the provider's blocks are saved to region files as
+     */
+    @NotNull
+    public List<CustomBlockLook> getCustomBlocks() {
+        return List.of();
+    }
+
+    /**
+     * @return The resource pack holding the models of the provider's blocks, or nothing when it has none on disk
+     */
+    @NotNull
+    public Optional<Path> getResourcePack() {
+        return Optional.empty();
     }
 
     /**

@@ -1,4 +1,4 @@
-import { Box3, BufferAttribute, BufferGeometry, DoubleSide, Group, Mesh, MeshBasicMaterial, Vector3 } from 'three'
+import { Box3, BufferAttribute, BufferGeometry, DoubleSide, Group, Mesh, MeshBasicMaterial, Vector3, type Ray } from 'three'
 import type { ViewportContent } from '../studio/SceneViewport'
 
 /**
@@ -30,6 +30,8 @@ const WALL_DEPTH_BLOCKS = 8
 const WALL_TOP_LIGHT = 0.55
 const WALL_BASE_LIGHT = 0.25
 const NO_VALUE = Number.NaN
+const MARCH_STEPS_PER_CELL = 2
+const MARCH_REFINEMENTS = 16
 
 /**
  * The surface as ground lit by its slopes, see-through water over it, and walls round the rim down to below the lowest
@@ -47,8 +49,9 @@ export function buildTerrainMesh(surface: TerrainSurface): TerrainMesh {
   const group = new Group()
   group.add(new Mesh(ground, groundMaterial), new Mesh(landWalls, groundMaterial), new Mesh(water, waterMaterial), new Mesh(seaWalls, waterMaterial))
   const geometries = [ground, water, landWalls, seaWalls]
+  const bounds = field.bounds(base)
   return {
-    content: { object: group, bounds: field.bounds(base) },
+    content: { object: group, bounds, surfaceAlong: (ray) => field.surfaceAlong(ray, bounds) },
     dispose: () => {
       geometries.forEach((geometry) => geometry.dispose())
       groundMaterial.dispose()
@@ -184,6 +187,72 @@ class HeightField {
       new Vector3(this.surface.worldX(0), base, this.surface.worldZ(0)),
       new Vector3(this.surface.worldX(columns - 1), highest, this.surface.worldZ(rows - 1))
     )
+  }
+
+  /**
+   * Where the ray first comes down onto the ground or the water over it, found by marching along it through the
+   * {@code bounds}, so a pick does not have to test every triangle. A ray that starts below the surface inside the
+   * bounds, or runs over holes and out of the field, finds nothing there.
+   */
+  surfaceAlong(ray: Ray, bounds: Box3): Vector3 | null {
+    const start = bounds.containsPoint(ray.origin) ? ray.origin.clone() : ray.intersectBox(bounds, new Vector3())
+    if (start === null) {
+      return null
+    }
+    const cell = Math.abs(this.surface.worldX(1) - this.surface.worldX(0)) || 1
+    const step = cell / MARCH_STEPS_PER_CELL
+    const reach = bounds.getSize(new Vector3()).length()
+    const pointAt = (distance: number): Vector3 => ray.direction.clone().multiplyScalar(distance).add(start)
+    const isBelow = (point: Vector3): boolean => {
+      const top = this.topAt(point.x, point.z)
+      return top !== null && point.y <= top
+    }
+    if (isBelow(start)) {
+      return bounds.containsPoint(ray.origin) ? null : start
+    }
+    for (let distance = step; distance <= reach; distance += step) {
+      if (!isBelow(pointAt(distance))) {
+        continue
+      }
+      let above = distance - step
+      let below = distance
+      for (let refinement = 0; refinement < MARCH_REFINEMENTS; refinement++) {
+        const middle = (above + below) / 2
+        if (isBelow(pointAt(middle))) {
+          below = middle
+        } else {
+          above = middle
+        }
+      }
+      return pointAt(below)
+    }
+    return null
+  }
+
+  /** The height of the ground, or of the water over it, at a place in the field, blended between its four vertices. */
+  private topAt(x: number, z: number): number | null {
+    const { columns, rows } = this.surface
+    if (columns < 2 || rows < 2) {
+      return null
+    }
+    const columnAt = (x - this.surface.worldX(0)) / ((this.surface.worldX(columns - 1) - this.surface.worldX(0)) / (columns - 1))
+    const rowAt = (z - this.surface.worldZ(0)) / ((this.surface.worldZ(rows - 1) - this.surface.worldZ(0)) / (rows - 1))
+    if (!(columnAt >= 0 && columnAt <= columns - 1 && rowAt >= 0 && rowAt <= rows - 1)) {
+      return null
+    }
+    const column = Math.min(Math.floor(columnAt), columns - 2)
+    const row = Math.min(Math.floor(rowAt), rows - 2)
+    const [alongColumn, alongRow] = [columnAt - column, rowAt - row]
+    const northWest = row * columns + column
+    const tops = [northWest, northWest + 1, northWest + columns, northWest + columns + 1].map((vertex) =>
+      Number.isNaN(this.water[vertex]) ? this.ground[vertex] : Math.max(this.ground[vertex], this.water[vertex])
+    )
+    if (tops.some(Number.isNaN)) {
+      return null
+    }
+    const north = tops[0] + (tops[1] - tops[0]) * alongColumn
+    const south = tops[2] + (tops[3] - tops[2]) * alongColumn
+    return north + (south - north) * alongRow
   }
 
   /** The two triangles of each grid square whose four corners pass {@code wanted}. */

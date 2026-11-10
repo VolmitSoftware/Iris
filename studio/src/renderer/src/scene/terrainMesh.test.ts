@@ -1,4 +1,4 @@
-import type { Mesh } from 'three'
+import { Ray, Vector3, type Mesh } from 'three'
 import { describe, expect, it } from 'vitest'
 import { buildTerrainMesh, type TerrainSurface } from './terrainMesh'
 
@@ -46,5 +46,29 @@ describe('terrain mesh', () => {
     const [, landWalls] = meshes()
     // The rim has eight segments; the two at the hole's corner fall away.
     expect(triangles(landWalls)).toBe(6 * 2)
+  })
+})
+
+describe('terrain surface picking', () => {
+  const content = buildTerrainMesh(surface).content
+  const pick = (origin: Vector3, direction: Vector3): Vector3 | null => content.surfaceAlong!(new Ray(origin, direction.normalize()))
+
+  it('finds where a slanted ray meets the water over the pond', () => {
+    const hit = pick(new Vector3(-7, WATER + 10, 3), new Vector3(1, -1, 0))!
+    expect(hit.x).toBeCloseTo(3, 3)
+    expect(hit.y).toBeCloseTo(WATER, 3)
+    expect(hit.z).toBeCloseTo(3, 3)
+  })
+
+  it('finds nothing over a hole, beside the field, or from below the ground', () => {
+    expect(pick(new Vector3(1, 30, 1), new Vector3(0, -1, 0))).toBeNull()
+    expect(pick(new Vector3(100, 30, 3), new Vector3(0, -1, 0))).toBeNull()
+    expect(pick(new Vector3(3, GROUND - 2, 3), new Vector3(0, 1, 0))).toBeNull()
+  })
+
+  it('meets the wall where a ray comes in from the side below the rim', () => {
+    const hit = pick(new Vector3(-10, GROUND - 1, 3), new Vector3(1, 0, 0))!
+    expect(hit.x).toBeCloseTo(0, 3)
+    expect(hit.y).toBeCloseTo(GROUND - 1, 3)
   })
 })

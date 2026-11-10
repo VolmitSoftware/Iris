@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { Box3, PerspectiveCamera, Scene, Sphere, Vector3, WebGLRenderer, type Object3D } from 'three'
+import { Box3, MOUSE, PerspectiveCamera, Ray, Scene, Sphere, Vector3, WebGLRenderer, type Object3D } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { surfaceAlong } from '../scene/surfacePick'
 
 const FIELD_OF_VIEW_DEGREES = 45
 // Looking down at the scene from the south east, as v3e's object view opens.
@@ -14,6 +15,8 @@ const NEAR_CLIP_PER_ORBIT_DISTANCE = 0.01
 export interface ViewportContent {
   object: Object3D
   bounds: Box3
+  /** Where a ray first meets what is drawn, or null; without it the viewport casts the ray at the object's meshes. */
+  surfaceAlong?(ray: Ray): Vector3 | null
 }
 
 interface SceneViewportProps {
@@ -22,7 +25,7 @@ interface SceneViewportProps {
   framing?: unknown
 }
 
-/** Something in 3D: drag to turn around it, right drag to move, scroll to come closer. Drawn only when it changes. */
+/** Something in 3D: drag to turn around what is in the middle, right drag to move, scroll to come closer to the cursor. Drawn only when it changes. */
 export function SceneViewport({ content, framing }: SceneViewportProps): React.JSX.Element {
   const host = useRef<HTMLDivElement>(null)
   const stage = useRef<Stage | null>(null)
@@ -59,6 +62,9 @@ class Stage {
     host.appendChild(this.renderer.domElement)
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
     this.controls.enableDamping = true
+    this.controls.zoomToCursor = true
+    this.controls.mouseButtons = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN }
+    this.renderer.domElement.addEventListener('pointerdown', (event) => this.pivotOnSurfaceInMiddle(event))
     this.controls.addEventListener('change', () => {
       this.fitNearClipToOrbit()
       this.requestFrame()
@@ -97,6 +103,22 @@ class Stage {
     this.camera.position.copy(sphere.center).addScaledVector(VIEW_DIRECTION, distance)
     this.camera.far = distance * 10 + sphere.radius * 4
     this.controls.update()
+    this.fitNearClipToOrbit()
+    this.requestFrame()
+  }
+
+  // The pivot slides along the line of sight, so the picture stays put while turning now goes around what is there.
+  private pivotOnSurfaceInMiddle(event: PointerEvent): void {
+    const turns = event.button === 0 && !event.shiftKey && !event.ctrlKey && !event.metaKey
+    if (!turns || this.shown === null) {
+      return
+    }
+    const ray = new Ray(this.camera.getWorldPosition(new Vector3()), this.camera.getWorldDirection(new Vector3()))
+    const hit = surfaceAlong(this.shown, ray, this.camera.far)
+    if (hit === null) {
+      return
+    }
+    this.controls.target.copy(hit)
     this.fitNearClipToOrbit()
     this.requestFrame()
   }

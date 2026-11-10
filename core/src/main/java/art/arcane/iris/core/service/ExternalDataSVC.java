@@ -27,7 +27,10 @@ import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.link.data.DataType;
 import art.arcane.iris.core.nms.container.BlockProperty;
 import art.arcane.iris.core.nms.container.Pair;
+import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.platform.PlatformChunkGenerator;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.util.common.plugin.IrisService;
@@ -50,6 +53,7 @@ import java.util.MissingResourceException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class ExternalDataSVC implements IrisService, CustomBlockSource {
@@ -68,6 +72,52 @@ public class ExternalDataSVC implements IrisService, CustomBlockSource {
 
     private final KList<ExternalDataProvider> providers = new KList<>();
     private final KList<ExternalDataProvider> activeProviders = new KList<>();
+    private final AtomicBoolean placeholdersHandedOut = new AtomicBoolean();
+
+    /**
+     * Whether a key that no provider claims may still belong to a provider that has not loaded its
+     * content; if so, the caller gets a placeholder via {@link #placeholderWhileProvidersLoad()}.
+     */
+    public boolean isAwaitingProviderContent() {
+        return activeProviders.stream().anyMatch(ExternalDataProvider::isLoadingContent);
+    }
+
+    /** Records that a block was resolved to a placeholder, so the engines using it reload once providers have loaded. */
+    public void placeholderWhileProvidersLoad() {
+        placeholdersHandedOut.set(true);
+    }
+
+    /** Reloads the Iris worlds that resolved a block while a provider was still loading, now that it has loaded. */
+    public void onProviderContentLoaded(ExternalDataProvider provider) {
+        if (isAwaitingProviderContent() || !placeholdersHandedOut.getAndSet(false)) {
+            return;
+        }
+        J.s(() -> {
+            List<Engine> engines = runningEngines();
+            IrisLogging.info("%s loaded its blocks; reloading %d Iris world(s) that used them.",
+                    provider.getPluginId(), engines.size());
+            J.a(() -> engines.forEach(ExternalDataSVC::reloadAfterProviderContent));
+        });
+    }
+
+    private static List<Engine> runningEngines() {
+        return Bukkit.getWorlds().stream()
+                .filter(IrisToolbelt::isIrisWorld)
+                .map(IrisToolbelt::access)
+                .filter(Objects::nonNull)
+                .map(PlatformChunkGenerator::getEngine)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private static void reloadAfterProviderContent(Engine engine) {
+        try {
+            engine.hotloadSilently();
+        } catch (RuntimeException failure) {
+            IrisLogging.reportError("Could not reload Iris world " + engine.getWorld().name()
+                    + " after its plugin blocks loaded.", failure);
+        }
+    }
 
     @Override
     public void onEnable() {

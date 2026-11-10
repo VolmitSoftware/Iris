@@ -47,6 +47,11 @@ public abstract class ExternalDataProvider {
         return getPlugin() != null && getPlugin().isEnabled();
     }
 
+    /** Whether the plugin is enabled but has not loaded its blocks and items yet, so a key it may own cannot be judged missing. */
+    public boolean isLoadingContent() {
+        return false;
+    }
+
     public abstract void init();
 
     /**

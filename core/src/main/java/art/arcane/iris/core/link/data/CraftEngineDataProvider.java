@@ -11,6 +11,7 @@ import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.util.common.data.IrisCustomData;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.RNG;
@@ -32,6 +33,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.server.ServerLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -57,12 +59,33 @@ public class CraftEngineDataProvider extends ExternalDataProvider implements Lis
             BlockProperty.ofDouble("pitch", 0, 0, 360f, false, true),
     };
 
+    private volatile boolean contentLoaded;
+
     public CraftEngineDataProvider() {
         super("CraftEngine");
     }
 
     @Override
     public void init() {
+        contentLoaded = !CraftEngineBlocks.loadedBlocks().isEmpty() || !CraftEngineItems.loadedItems().isEmpty();
+    }
+
+    @Override
+    public boolean isLoadingContent() {
+        return !contentLoaded;
+    }
+
+    @EventHandler
+    public void onServerLoad(ServerLoadEvent event) {
+        markContentLoaded();
+    }
+
+    private void markContentLoaded() {
+        if (contentLoaded) {
+            return;
+        }
+        contentLoaded = true;
+        IrisServices.get(ExternalDataSVC.class).onProviderContentLoaded(this);
     }
 
     @Override
@@ -102,6 +125,7 @@ public class CraftEngineDataProvider extends ExternalDataProvider implements Lis
     @EventHandler
     public void onReload(CraftEngineReloadEvent event) {
         INMS.get().forgetBlockRules();
+        markContentLoaded();
     }
 
     @Override

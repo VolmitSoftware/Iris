@@ -106,6 +106,10 @@ public final class BukkitBlockResolution {
             if (bd.isPresent() && shouldPreventLeafDecay()) {
                 return external.withoutDecay(bd.get());
             }
+            if (bd.isEmpty() && external.isAwaitingProviderContent()) {
+                external.placeholderWhileProvidersLoad();
+                return BukkitBlockResolution.getAir();
+            }
             return bd.orElse(null);
         }
 

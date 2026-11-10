@@ -993,7 +993,16 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         StudioBridges.closeAll();
 
         try {
-            PregeneratorJob.shutdownAndWait(SERVER_STOP_PREGEN_TIMEOUT_MILLIS);
+            if (J.isFolia()) {
+                PregeneratorJob.shutdownAndWait(SERVER_STOP_PREGEN_TIMEOUT_MILLIS);
+            } else {
+                List<World> worlds = Bukkit.getWorlds();
+                PregeneratorJob.shutdownAndWait(SERVER_STOP_PREGEN_TIMEOUT_MILLIS, () -> {
+                    for (World world : worlds) {
+                        INMS.get().pollChunkTask(world);
+                    }
+                });
+            }
         } catch (Throwable e) {
             Iris.reportError("Failed to quiesce the Iris pregenerator before server shutdown.", e);
         }

@@ -70,6 +70,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private static final long CLOSE_DRAIN_WARNING_SECONDS = 20L;
     private static final long CLOSE_DRAIN_TIMEOUT_SECONDS = 60L;
     private static final long FLUSH_TIMEOUT_SECONDS = 120L;
+    private static final long FLUSH_STOP_POLL_MILLIS = 100L;
     private final World world;
     private final IrisRuntimeSchedulerMode runtimeSchedulerMode;
     private final IrisPaperLikeBackendMode paperLikeBackendMode;
@@ -349,6 +350,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     private void evictRegion(long c) {
+        if (IrisToolbelt.isServerStopping()) {
+            return;
+        }
         if (!evictedRegions.add(c)) {
             return;
         }
@@ -418,6 +422,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     private void flushAllRemainingChunks() {
+        if (IrisToolbelt.isServerStopping()) {
+            return;
+        }
         List<Long> keys = new ArrayList<>(regionChunks.keySet());
 
         if (foliaRuntime) {
@@ -428,6 +435,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         CompletableFuture<Void> flush = J.sfut(() -> {
+            if (IrisToolbelt.isServerStopping()) {
+                return;
+            }
             for (Long rk : keys) {
                 if (!evictedRegions.add(rk)) {
                     continue;
@@ -451,7 +461,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         });
 
         try {
-            flush.get(FLUSH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            awaitFlushUnlessServerStops(flush);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             IrisLogging.warn("Interrupted while flushing pregen chunks for " + world.getName() + ".");
@@ -460,6 +470,22 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                     + "s, continuing shutdown. " + keys.size() + " region(s) queued.");
         } catch (Throwable e) {
             IrisLogging.reportError(e);
+        }
+    }
+
+    private static void awaitFlushUnlessServerStops(CompletableFuture<Void> flush) throws Exception {
+        long started = System.nanoTime();
+        long timeoutNanos = TimeUnit.SECONDS.toNanos(FLUSH_TIMEOUT_SECONDS);
+        while (!IrisToolbelt.isServerStopping()) {
+            long remainingNanos = timeoutNanos - (System.nanoTime() - started);
+            if (remainingNanos <= 0L) {
+                throw new TimeoutException();
+            }
+            try {
+                flush.get(Math.min(remainingNanos, TimeUnit.MILLISECONDS.toNanos(FLUSH_STOP_POLL_MILLIS)), TimeUnit.NANOSECONDS);
+                return;
+            } catch (TimeoutException pollElapsed) {
+            }
         }
     }
 

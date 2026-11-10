@@ -1132,6 +1132,18 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
+    public boolean pollChunkTask(World world) {
+        if (J.isFolia()) {
+            return false;
+        }
+        ServerLevel level = ((CraftWorld) world).getHandle();
+        if (Thread.currentThread() != level.getServer().getRunningThread()) {
+            throw new IllegalStateException("Native chunk tasks can only be polled from the server thread.");
+        }
+        return level.getChunkSource().pollTask();
+    }
+
+    @Override
     public void flushChunkIO(World world) {
         try {
             ServerLevel level = ((CraftWorld) world).getHandle();

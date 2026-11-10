@@ -43,6 +43,7 @@ import art.arcane.iris.util.common.scheduling.J;
 import java.awt.Color;
 import java.awt.EventQueue;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -57,6 +58,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
     // 60s permit drain + 120s flush + plate reclaim), or a routine drain trips the deadline
     // and aborts the engine shutdown sequence mid-teardown.
     private static final long WORLD_SHUTDOWN_TIMEOUT_MILLIS = 200_000L;
+    private static final long PENDING_TASK_POLL_MILLIS = 1L;
     private static final Color COLOR_EXISTS = parseColor("#4d7d5b");
     private static final Color COLOR_BLACK = parseColor("#4d7d5b");
     private static final Color COLOR_MANTLE = parseColor("#3c2773");
@@ -203,6 +205,29 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         return shutdownAndWait(inst, timeoutMs);
     }
 
+    public static boolean shutdownAndWait(long timeoutMs, Runnable processPendingTasks) {
+        Objects.requireNonNull(processPendingTasks, "processPendingTasks");
+        PregeneratorJob inst = instance.get();
+        if (inst == null) {
+            return false;
+        }
+
+        inst.pregenerator.close();
+        inst.worker.interrupt();
+        long started = System.nanoTime();
+        long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(Math.max(1L, timeoutMs));
+        try {
+            while (inst.worker.isAlive() && System.nanoTime() - started < timeoutNanos) {
+                processPendingTasks.run();
+                inst.worker.join(PENDING_TASK_POLL_MILLIS);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while stopping the Iris pregenerator.", e);
+        }
+        return finishShutdown(inst, timeoutMs);
+    }
+
     private static boolean shutdownAndWait(PregeneratorJob inst, long timeoutMs) {
         inst.pregenerator.close();
         inst.worker.interrupt();
@@ -212,6 +237,10 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while stopping the Iris pregenerator.", e);
         }
+        return finishShutdown(inst, timeoutMs);
+    }
+
+    private static boolean finishShutdown(PregeneratorJob inst, long timeoutMs) {
         if (inst.worker.isAlive()) {
             throw new IllegalStateException("Timed out while stopping the Iris pregenerator after "
                     + Math.max(1L, timeoutMs) + "ms.");

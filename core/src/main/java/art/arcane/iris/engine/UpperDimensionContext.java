@@ -166,9 +166,7 @@ public class UpperDimensionContext implements DataProvider {
         inferredStreams.put(InferredType.SEA, seaBiomeStream);
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
 
-        ProceduralStream<InferredType> bridgeStream = upperDim.getContinentalStyle()
-                .create(rng.nextParallelRNG(234234565), upperData)
-                .bake().scale(1D / upperDim.getContinentZoom()).bake().stream()
+        ProceduralStream<InferredType> bridgeStream = ContinentGenerator.create(upperDim, rng, upperData).stream()
                 .convert(v -> v >= upperDim.getLandChance() ? InferredType.SEA : InferredType.LAND);
 
         ProceduralStream<IrisBiome> proceduralBaseBiomeStream = bridgeStream

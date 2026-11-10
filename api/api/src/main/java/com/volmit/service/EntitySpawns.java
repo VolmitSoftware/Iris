@@ -93,7 +93,8 @@ public interface EntitySpawns {
     /**
      * One entity to spawn at a block. The host spawns it only if the block's light level lies in the range (when the
      * range is restricted) and, when {@code checkSurface}, the block below suits the entity's {@code surface} and the
-     * space the entity needs is free.
+     * space the entity needs is free. An entity of a fluid surface is always checked, and needs the block it spawns in
+     * and the space it fills to be that fluid.
      *
      * @param at           world X and Z, Y the height above the dimension's bottom
      * @param entity       what to spawn
@@ -126,6 +127,11 @@ public interface EntitySpawns {
         /** Solid ground or water. */
         OVERWORLD,
         /** Within lava. */
-        LAVA
+        LAVA;
+
+        /** Whether the entity lives in the fluid, so the block it spawns in must be that fluid. */
+        public boolean isFluid() {
+            return this == WATER || this == LAVA;
+        }
     }
 }

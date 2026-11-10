@@ -22,6 +22,7 @@ import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.spawn.EntitySpawn;
+import art.arcane.iris.builtin.spawn.SpawnGroup;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.builtin.spawn.SpawnSurface;
 import art.arcane.iris.builtin.spawn.Spawner;
@@ -155,28 +156,47 @@ public final class EntitySpawning implements EntitySpawns {
 
     private Optional<Plan> planChunkSpawn(PackWorld world, RunningWorld running, Chunk chunk, Candidate chosen) {
         EntitySpawn spawn = chosen.spawn();
+        EntityDefinition entity = entityOf(world, chosen);
+        if (entity == null) {
+            return Optional.empty();
+        }
         int count = LootResolver.inclusive(RNG.r, spawn.minSpawns(), spawn.maxSpawns());
         List<Attempt> attempts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             int x = (chunk.chunkX() * CHUNK_SIZE) + RNG.r.i(CHUNK_SIZE);
             int z = (chunk.chunkZ() * CHUNK_SIZE) + RNG.r.i(CHUNK_SIZE);
-            BlockPosition at = spawnPosition(running, chosen.spawner(), chunk.chunkX(), chunk.chunkZ(), x, z);
+            BlockPosition at = spawnPosition(running, chosen.spawner(), entity.surface(), chunk.chunkX(), chunk.chunkZ(), x, z);
             if (at != null) {
-                addAttempt(attempts, world, chosen, at, true);
+                addAttempt(attempts, world, chosen, entity, at, true);
             }
         }
         return attempts.isEmpty() ? Optional.empty() : Optional.of(new Plan(world.resources().idOf(chosen.key()), chunk.chunkX(), chunk.chunkZ(), false, attempts));
     }
 
-    /** Where a spawner of its group puts an entity at the column; null when it has no place for one. */
-    private static BlockPosition spawnPosition(RunningWorld running, Spawner spawner, int chunkX, int chunkZ, int x, int z) {
-        int height = running.highest(x, z, true);
-        int heightWithFluid = running.highest(x, z, false);
-        return switch (spawner.group()) {
-            case NORMAL -> new BlockPosition(x, heightWithFluid + 1, z);
-            case CAVE -> caveSpawnPosition(running, chunkX, chunkZ);
-            case UNDERWATER, BEACH -> new BlockPosition(x, RNG.r.i(height + 1, heightWithFluid), z);
-        };
+    /** Where a spawner of its group puts an entity of the surface at the column; null when it has no place for one. */
+    private static BlockPosition spawnPosition(RunningWorld running, Spawner spawner, SpawnSurface surface, int chunkX, int chunkZ, int x, int z) {
+        if (spawner.group() == SpawnGroup.CAVE) {
+            return caveSpawnPosition(running, chunkX, chunkZ);
+        }
+        int floor = running.highest(x, z, true);
+        int top = running.highest(x, z, false);
+        Integer y = surfaceSpawnY(spawner.group(), surface, floor, top);
+        return y == null ? null : new BlockPosition(x, y, z);
+    }
+
+    /**
+     * The height an entity of the surface spawns at in a column whose solid ground ends at {@code floor} and whose
+     * fluid or ground ends at {@code top}; null when the column has no room for it. Entities that need fluid are
+     * placed within it, whichever the group.
+     */
+    static Integer surfaceSpawnY(SpawnGroup group, SpawnSurface surface, int floor, int top) {
+        if (group == SpawnGroup.CAVE) {
+            return null;
+        }
+        if (group == SpawnGroup.NORMAL && !surface.isFluid()) {
+            return top + 1;
+        }
+        return top > floor ? LootResolver.inclusive(RNG.r, floor + 1, top) : null;
     }
 
     static BlockPosition caveSpawnPosition(RunningWorld running, int chunkX, int chunkZ) {
@@ -199,6 +219,11 @@ public final class EntitySpawning implements EntitySpawns {
         }
         EntitySpawn spawn = RarityWeighting.expand(candidates, EntitySpawn::rarity).getRandom();
 
+        EntityDefinition entity = entityOf(world, new Candidate(spawnerKey, spawner, spawn));
+        if (entity == null) {
+            return Optional.empty();
+        }
+
         BlockPosition position = marker.position();
         int chunkX = PowerOfTwoCoordinates.blockToChunkFloor(position.x());
         int chunkZ = PowerOfTwoCoordinates.blockToChunkFloor(position.z());
@@ -214,7 +239,7 @@ public final class EntitySpawning implements EntitySpawns {
         List<Attempt> attempts = new ArrayList<>();
         BlockPosition above = new BlockPosition(position.x(), position.y() + AIR_ABOVE_MARKER, position.z());
         for (int i = 0; i < count; i++) {
-            addAttempt(attempts, world, new Candidate(spawnerKey, spawner, spawn), above, false);
+            addAttempt(attempts, world, new Candidate(spawnerKey, spawner, spawn), entity, above, false);
         }
         return attempts.isEmpty() ? Optional.empty() : Optional.of(new Plan(marker.spawner(), chunkX, chunkZ, exhaustsMarker, attempts));
     }
@@ -223,16 +248,20 @@ public final class EntitySpawning implements EntitySpawns {
         return marker.exhaustionChance() > RNG.r.nextDouble();
     }
 
-    private void addAttempt(List<Attempt> attempts, PackWorld world, Candidate candidate, BlockPosition at, boolean checkSurface) {
+    private static EntityDefinition entityOf(PackWorld world, Candidate candidate) {
         EntityDefinition entity = SpawnResources.entity(world.resources(), candidate.spawn().entity());
         if (entity == null) {
             world.log().debug("      You are trying to spawn an entity that does not exist!");
-            return;
         }
+        return entity;
+    }
 
+    /** Entities that need fluid are always checked: the fluid is what keeps them where they can live. */
+    private void addAttempt(List<Attempt> attempts, PackWorld world, Candidate candidate, EntityDefinition entity, BlockPosition at, boolean checkSurface) {
         Range light = candidate.spawner().allowedLightLevels();
+        boolean checked = checkSurface || entity.surface().isFluid();
         resolution(world).resolve(entity, entityRandom(world).rng()).ifPresent(spec -> attempts.add(new Attempt(at, spec,
-                surfaceOf(entity.surface()), (int) Math.ceil(light.min()), (int) Math.floor(light.max()), checkSurface)));
+                surfaceOf(entity.surface()), (int) Math.ceil(light.min()), (int) Math.floor(light.max()), checked)));
     }
 
     private static EntityResolution resolution(PackWorld world) {

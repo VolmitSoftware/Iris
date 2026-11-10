@@ -34,6 +34,7 @@ final class DecoratorCore {
     private static final long SEED_OFFSET = 29356788L;
     private static final long PART_FACTOR = 10439677L;
     private static final String HALF = "half";
+    private static final ResourceId VINE = ResourceId.parse("minecraft:vine");
     private static final ResourceId WEEPING_VINES = ResourceId.parse("minecraft:weeping_vines");
     private static final ResourceId WEEPING_VINES_PLANT = ResourceId.parse("minecraft:weeping_vines_plant");
     private static final ResourceId TWISTING_VINES = ResourceId.parse("minecraft:twisting_vines");
@@ -49,6 +50,9 @@ final class DecoratorCore {
             new Face(BlockFace.DOWN, "down", 0, -1, 0));
     private static final Map<BlockFace, BlockFace> OPPOSITES = Map.of(BlockFace.NORTH, BlockFace.SOUTH, BlockFace.SOUTH, BlockFace.NORTH,
             BlockFace.EAST, BlockFace.WEST, BlockFace.WEST, BlockFace.EAST, BlockFace.UP, BlockFace.DOWN, BlockFace.DOWN, BlockFace.UP);
+    private static final Face UP_FACE = FACES.get(4);
+    private static final Face DOWN_FACE = FACES.get(5);
+    private static final List<Face> SIDE_FACES = FACES.subList(0, 4);
     private static final int CHUNK_LAST = 15;
 
     static final ThreadLocal<PlaceOpts> SCRATCH_OPTS = ThreadLocal.withInitial(PlaceOpts::new);
@@ -360,15 +364,20 @@ final class DecoratorCore {
     }
 
     /**
-     * A vine placed at {@code x}, {@code y}, {@code z} (the chunk's local column {@code rX}, {@code rZ}) faces the neighbours that
-     * can hold it: the blocks the mantle planned there, else the chunk's own blocks. A vine with no such neighbour faces down,
-     * or up when it cannot face down. Any other block is returned as it is.
+     * A vine placed at {@code x}, {@code y}, {@code z} (the chunk's local column {@code rX}, {@code rZ}) keeps the side faces its
+     * pack gave it where a sturdy neighbour or the vine above holds them, and faces up under a sturdy ceiling. A vine none of its side
+     * faces can hold faces the neighbours that can hold it instead, down, or up when it cannot face down. Any other block is returned
+     * as it is.
      */
     static BlockState fixFacesForHunk(DecorationScene scene, BlockState b, int rX, int rZ, int x, int y, int z) {
         if (b == null || !scene.has(BlockTrait.VINE, b)) {
             return b;
         }
-        Hunk<BlockState> hunk = scene.blocks();
+        BlockState kept = keepSupportedSides(scene, b, rX, rZ, x, y, z);
+        if (kept != null) {
+            return kept;
+        }
+
         BlockState fixed = b;
         for (Face face : FACES) {
             if (b.properties().containsKey(face.property())) {
@@ -378,30 +387,9 @@ final class DecoratorCore {
 
         boolean found = false;
         for (Face face : FACES) {
-            int yy = y + face.dy();
-            BlockFace opposite = OPPOSITES.get(face.face());
-
-            BlockState planned = scene.plannedAt(x + face.dx(), yy, z + face.dz());
-            BlockState support = planned == null ? AIR : planned;
-            if (scene.registry().canAttach(b, support, opposite)) {
-                if (b.properties().containsKey(face.property())) {
-                    found = true;
-                    fixed = fixed.withProperty(face.property(), "true");
-                }
-                continue;
-            }
-
-            int xx = rX + face.dx();
-            int zz = rZ + face.dz();
-            if (xx < 0 || xx > CHUNK_LAST || zz < 0 || zz > CHUNK_LAST || yy < 0 || yy >= hunk.height()) {
-                continue;
-            }
-
-            if (scene.registry().canAttach(b, hunk.get(xx, yy, zz), opposite)) {
-                if (b.properties().containsKey(face.property())) {
-                    found = true;
-                    fixed = fixed.withProperty(face.property(), "true");
-                }
+            if (b.properties().containsKey(face.property()) && holds(scene, b, face, rX, rZ, x, y, z)) {
+                found = true;
+                fixed = fixed.withProperty(face.property(), "true");
             }
         }
         if (!found) {
@@ -411,6 +399,68 @@ final class DecoratorCore {
             }
         }
         return fixed;
+    }
+
+    private static BlockState keepSupportedSides(DecorationScene scene, BlockState b, int rX, int rZ, int x, int y, int z) {
+        boolean vine = VINE.equals(b.material());
+        boolean ceiling = holds(scene, b, UP_FACE, rX, rZ, x, y, z);
+        BlockState kept = b;
+        boolean heldSide = false;
+        for (Face face : SIDE_FACES) {
+            if (!isSet(b, face)) {
+                continue;
+            }
+            if (holds(scene, b, face, rX, rZ, x, y, z) || vine && (ceiling || vineAboveCarries(scene, face, rX, rZ, x, y, z))) {
+                heldSide = true;
+            } else {
+                kept = kept.withProperty(face.property(), "false");
+            }
+        }
+        if (!heldSide) {
+            return null;
+        }
+        if (b.properties().containsKey(UP_FACE.property())) {
+            kept = kept.withProperty(UP_FACE.property(), String.valueOf(ceiling));
+        }
+        if (isSet(b, DOWN_FACE) && !holds(scene, b, DOWN_FACE, rX, rZ, x, y, z)) {
+            kept = kept.withProperty(DOWN_FACE.property(), "false");
+        }
+        return kept;
+    }
+
+    private static boolean isSet(BlockState block, Face face) {
+        return "true".equals(block.properties().get(face.property()));
+    }
+
+    /** Whether the neighbour on {@code face}, the block the mantle planned there else the chunk's own, can hold {@code b}. */
+    private static boolean holds(DecorationScene scene, BlockState b, Face face, int rX, int rZ, int x, int y, int z) {
+        int yy = y + face.dy();
+        BlockFace opposite = OPPOSITES.get(face.face());
+
+        BlockState planned = scene.plannedAt(x + face.dx(), yy, z + face.dz());
+        if (scene.registry().canAttach(b, planned == null ? AIR : planned, opposite)) {
+            return true;
+        }
+
+        Hunk<BlockState> hunk = scene.blocks();
+        int xx = rX + face.dx();
+        int zz = rZ + face.dz();
+        if (xx < 0 || xx > CHUNK_LAST || zz < 0 || zz > CHUNK_LAST || yy < 0 || yy >= hunk.height()) {
+            return false;
+        }
+        return scene.registry().canAttach(b, hunk.get(xx, yy, zz), opposite);
+    }
+
+    private static boolean vineAboveCarries(DecorationScene scene, Face face, int rX, int rZ, int x, int y, int z) {
+        if (carries(scene.plannedAt(x, y + 1, z), face)) {
+            return true;
+        }
+        Hunk<BlockState> hunk = scene.blocks();
+        return y + 1 < hunk.height() && carries(hunk.get(rX, y + 1, rZ), face);
+    }
+
+    private static boolean carries(BlockState block, Face face) {
+        return block != null && VINE.equals(block.material()) && isSet(block, face);
     }
 
     static boolean canGoOn(DecorationScene scene, BlockState decorator, BlockState surface) {

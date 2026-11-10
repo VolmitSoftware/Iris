@@ -465,12 +465,14 @@ public final class ModdedWorldManager implements EngineWorldManager {
     }
 
     private static boolean surfaceAllows(ContentSpawns.Attempt attempt, ServerLevel level) {
-        BlockState below = level.getBlockState(new BlockPos(attempt.x(), attempt.worldY() - 1, attempt.z()));
-        return matchesSurface(attempt.surface(), below)
-                && ModdedEntitySpawner.isAreaClearForSpawn(level, attempt.entity(), attempt.x(), attempt.worldY(), attempt.z());
+        int surfaceY = attempt.surface().isFluid() ? attempt.worldY() : attempt.worldY() - 1;
+        BlockState surfaceBlock = level.getBlockState(new BlockPos(attempt.x(), surfaceY, attempt.z()));
+        return matchesSurface(attempt.surface(), surfaceBlock)
+                && ModdedEntitySpawner.isAreaClearForSpawn(level, attempt.entity(), attempt.surface(),
+                attempt.x(), attempt.worldY(), attempt.z());
     }
 
-    private static boolean matchesSurface(ContentSpawns.Surface surface, BlockState below) {
+    static boolean matchesSurface(ContentSpawns.Surface surface, BlockState below) {
         if (ModdedBlockResolution.isSolid(below)) {
             return surface == ContentSpawns.Surface.LAND || surface == ContentSpawns.Surface.OVERWORLD
                     || (surface == ContentSpawns.Surface.ANIMAL && isAnimalGround(below));

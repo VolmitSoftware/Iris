@@ -248,8 +248,7 @@ public class IrisComplex implements DataProvider {
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
         bridgeStream = focusBiome != null ? ProceduralStream.of((x, z) -> focusBiome.getInferredType(),
                 Interpolated.of(a -> 0D, a -> focusBiome.getInferredType())) :
-                engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565), getData())
-                        .bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
+                ContinentGenerator.create(engine.getDimension(), rng, getData()).stream()
                         .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND)
                         .cache2D("bridgeStream", engine, cacheSize);
         ProceduralStream<IrisBiome> proceduralBaseBiomeStream = focusBiome != null ? ProceduralStream.of((x, z) -> implode(focusBiome, x, z),
@@ -703,9 +702,19 @@ public class IrisComplex implements DataProvider {
         if (generators.length == 0) {
             return 0D;
         }
+        if (!Double.isFinite(low) || !Double.isFinite(high)) {
+            throw new IllegalStateException("Terrain generator bounds were not finite at " + x + "," + z
+                    + " (generator=" + generators[0].getLoadKey() + ", bounds=" + low + ".." + high + ").");
+        }
         double height = 0D;
         for (IrisGenerator generator : generators) {
-            height += M.lerp(low, high, generator.getHeight(x, z, seed));
+            double noise = generator.getHeight(x, z, seed);
+            if (!Double.isFinite(noise)) {
+                throw new IllegalStateException("Terrain generator noise was not finite at " + x + "," + z
+                        + " (generator=" + generator.getLoadKey() + ", noise=" + noise
+                        + ", bounds=" + low + ".." + high + ").");
+            }
+            height += M.lerp(low, high, noise);
         }
         return height / generators.length;
     }

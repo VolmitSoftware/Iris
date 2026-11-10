@@ -73,6 +73,7 @@ import java.util.Objects;
 @EqualsAndHashCode(callSuper = false)
 public class IrisBiome extends IrisRegistrant implements IRare {
     private static final int BIOME_GENERATOR_CACHE_SIZE = 8;
+    private static final int CHILDREN_SEED_SALT = 2137;
 
     private final transient AtomicCache<KMap<String, IrisBiomeGeneratorLink>> genCache = new AtomicCache<>();
     private final transient AtomicCache<KMap<String, Integer>> genCacheMax = new AtomicCache<>();
@@ -296,7 +297,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     public CNG getChildrenGenerator(RNG random, int sig, double scale) {
         double childScale = getChildStyle().isSeeded() ? 1 : scale;
-        return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137), getLoader()).bake().scale(childScale).bake());
+        return childrenCell.aquire(() -> getChildStyle().createScaledGenerator(random.nextParallelRNG(sig * CHILDREN_SEED_SALT), getLoader(), childScale));
     }
 
     public boolean isLand() {

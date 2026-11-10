@@ -54,36 +54,6 @@ public final class SimdSupport {
         return vector == null ? new ScalarSimdKernels() : vector;
     }
 
-    private static final NoiseKernels2D NOISE_KERNELS_2D = selectNoiseKernels2D();
-
-    public static NoiseKernels2D noiseKernels2D() {
-        return NOISE_KERNELS_2D;
-    }
-
-    public static NoiseKernels2D createVectorNoiseKernels2D() {
-        if (!MODULE_PRESENT) {
-            return null;
-        }
-        try {
-            Class<?> cls = Class.forName("art.arcane.iris.util.simd.VectorNoiseKernels2D");
-            boolean profitable = (boolean) cls.getMethod("profitable").invoke(null);
-            if (!profitable) {
-                return null;
-            }
-            return (NoiseKernels2D) cls.getDeclaredConstructor().newInstance();
-        } catch (Throwable e) {
-            return null;
-        }
-    }
-
-    private static NoiseKernels2D selectNoiseKernels2D() {
-        if (!simdEnabledInSettings()) {
-            return new ScalarNoiseKernels2D();
-        }
-        NoiseKernels2D vector = createVectorNoiseKernels2D();
-        return vector == null ? new ScalarNoiseKernels2D() : vector;
-    }
-
     private static boolean simdEnabledInSettings() {
         try {
             return IrisSettings.get().getPerformance().isSimdKernels();

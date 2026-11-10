@@ -104,6 +104,10 @@ public class IrisGeneratorStyle {
         return createNoCache(rng, data, false, 0, false, resolveEngine(data));
     }
 
+    public CNG createScaledGenerator(RNG rng, IrisData data, double scaleFactor) {
+        return createNoCache(rng, data).bake().scale(scaleFactor).bake();
+    }
+
     public CNG createForPrebake(RNG rng, IrisData data, int fallbackCacheSize) {
         return createNoCache(rng, data, false, Math.max(0, fallbackCacheSize), true, resolveEngine(data));
     }

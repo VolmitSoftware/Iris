@@ -47,7 +47,7 @@ public final class FloatingIslandBoundarySampler {
     }
 
     public ResourceId parent(int x, int z) {
-        return parentField(x, z, EDGE_TAPER_WIDTH).parent(x, z);
+        return source.sample(x, z);
     }
 
     public double edgeFade(ResourceId parent, int x, int z) {
@@ -227,10 +227,6 @@ public final class FloatingIslandBoundarySampler {
             this.distance = new byte[geometry.area()];
             this.viable = new boolean[geometry.area()];
             build(source);
-        }
-
-        private ResourceId parent(int x, int z) {
-            return parents[geometry.index(x - minX, z - minZ)];
         }
 
         private int edgeDistance(ResourceId expected, int x, int z) {

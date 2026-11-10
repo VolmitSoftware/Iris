@@ -22,6 +22,7 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.core.content.ContentEntity;
 import art.arcane.iris.core.content.ContentItem;
+import art.arcane.iris.core.content.ContentSpawns;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.math.RNG;
@@ -248,7 +249,8 @@ public final class ModdedEntitySpawner {
         }
     }
 
-    static boolean isAreaClearForSpawn(ServerLevel level, ContentEntity entity, int blockX, int blockY, int blockZ) {
+    static boolean isAreaClearForSpawn(ServerLevel level, ContentEntity entity, ContentSpawns.Surface surface,
+                                       int blockX, int blockY, int blockZ) {
         if (entity.isSpecial()) {
             return true;
         }
@@ -256,8 +258,31 @@ public final class ModdedEntitySpawner {
         if (type == null) {
             return true;
         }
+        if (surface.isFluid()) {
+            return isFluidAreaClearForSpawn(blockX, blockY, blockZ, type.getWidth(), type.getHeight(),
+                    position -> ModdedWorldManager.matchesSurface(surface, level.getBlockState(position)));
+        }
         return isAreaClearForSpawn(blockX, blockY, blockZ, type.getWidth(), type.getHeight(),
                 position -> level.getBlockState(position).is(Blocks.AIR));
+    }
+
+    static boolean isFluidAreaClearForSpawn(int blockX, int blockY, int blockZ,
+                                           float width, float height, Predicate<BlockPos> isFluid) {
+        int startX = (int) Math.floor(blockX + 0.5 - width / 2D);
+        int endX = (int) Math.floor(Math.nextDown(blockX + 0.5 + width / 2D));
+        int endY = (int) Math.floor(Math.nextDown(blockY + 0.5 + height));
+        int startZ = (int) Math.floor(blockZ + 0.5 - width / 2D);
+        int endZ = (int) Math.floor(Math.nextDown(blockZ + 0.5 + width / 2D));
+        for (int x = startX; x <= endX; x++) {
+            for (int y = blockY; y <= endY; y++) {
+                for (int z = startZ; z <= endZ; z++) {
+                    if (!isFluid.test(new BlockPos(x, y, z))) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     static boolean isAreaClearForSpawn(int blockX, int blockY, int blockZ, float width, float height, Predicate<BlockPos> isAir) {

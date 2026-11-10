@@ -52,6 +52,34 @@ public class ModdedEntitySpawnerParityTest {
     }
 
     @Test
+    public void fractionalFluidVolumeIncludesHorizontalEdgesAndCenteredHeight() {
+        Set<BlockPos> checked = new HashSet<>();
+
+        assertTrue(ModdedEntitySpawner.isFluidAreaClearForSpawn(-1, 78, -1, 1.3F, 0.8F, position -> {
+            checked.add(position);
+            return true;
+        }));
+
+        assertEquals(18, checked.size());
+        assertTrue(checked.contains(new BlockPos(-2, 79, -2)));
+        assertTrue(checked.contains(new BlockPos(0, 78, 0)));
+        assertFalse(ModdedEntitySpawner.isFluidAreaClearForSpawn(-1, 78, -1, 1.3F, 0.8F,
+                position -> !position.equals(new BlockPos(-2, 79, -2))));
+    }
+
+    @Test
+    public void exactUpperBoundaryDoesNotRequireFluidOutsideTheBody() {
+        Set<BlockPos> checked = new HashSet<>();
+
+        assertTrue(ModdedEntitySpawner.isFluidAreaClearForSpawn(0, 78, 0, 1F, 0.5F, position -> {
+            checked.add(position);
+            return true;
+        }));
+
+        assertEquals(Set.of(new BlockPos(0, 78, 0)), checked);
+    }
+
+    @Test
     public void spawnSafetyRequiresTheTargetChunkAndAllEightNeighbors() {
         Set<Long> loaded = new HashSet<>();
         for (int x = 4; x <= 6; x++) {

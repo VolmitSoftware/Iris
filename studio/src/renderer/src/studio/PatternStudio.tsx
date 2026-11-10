@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
+import { IdeIcon } from '@/components/IdeIcon'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -68,18 +68,18 @@ export function PatternStudio({ client, view, packRevision, onSummary, tell }: P
           {entry !== null && entry.depths > 1 && (
             <>
               <Button variant="ghost" size="icon-sm" title="Higher" onClick={() => chooseDepth(depth - 1)}>
-                <ChevronLeft />
+                <IdeIcon name="chevronLeft" />
               </Button>
               <span className="px-1">
                 Depth {depth + 1} of {entry.depths}
               </span>
               <Button variant="ghost" size="icon-sm" title="Deeper" onClick={() => chooseDepth(depth + 1)}>
-                <ChevronRight />
+                <IdeIcon name="chevronRight" />
               </Button>
             </>
           )}
           <Button variant="ghost" size="icon-sm" title="Back to 0, 0" onClick={() => viewRef.current?.resetView()}>
-            <RotateCcw />
+            <IdeIcon name="reset" />
           </Button>
         </div>
         {status !== null && entry !== null && <div className={cn(PILL, 'right-3 bottom-3 tabular-nums')}>{readout(status)}</div>}

@@ -1,21 +1,22 @@
-import { Box, Circle, Flower2, GitCommitVertical, GitFork, Group, Link2, Paintbrush, Sparkles, type LucideIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuShortcut, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '@/components/ui/context-menu'
+import { IdeIcon, type IdeIconName } from '@/components/IdeIcon'
 import { cn } from '@/lib/utils'
 import type { GraphEdit, GraphNode, JsonPath } from '../bridge/types'
 import { idOf, isWithin, layoutNodes, NODE_HEIGHT, NODE_WIDTH, type NodeLayout, type PlacedNode } from '../editor/nodeLayout'
 import { useKeyText } from './useBindings'
 
-const KIND_ICONS: Record<string, LucideIcon> = {
-  Object: Box,
-  Stem: GitCommitVertical,
-  Blob: Circle,
-  Branches: GitFork,
-  Cluster: Sparkles,
-  Group: Group,
-  'Shared part': Link2,
-  Material: Paintbrush,
-  Decoration: Flower2
+const PART_ICON: IdeIconName = 'views/procedural'
+const KIND_ICONS: Record<string, IdeIconName> = {
+  Object: 'views/objects',
+  Stem: PART_ICON,
+  Blob: PART_ICON,
+  Branches: PART_ICON,
+  Cluster: PART_ICON,
+  Group: 'groups',
+  'Shared part': 'symlink',
+  Material: 'views/palettes',
+  Decoration: 'views/land-biomes'
 }
 const FIT_MARGIN = 24
 const LARGEST_FIT_SCALE = 1
@@ -171,7 +172,7 @@ export function NodeCanvas({ roots, fileKey, selectedId, locked, showAllRef, onS
 
 function NodeBox({ placed, selected, target, offset }: { placed: PlacedNode; selected: boolean; target: boolean; offset: { x: number; y: number } | null }): React.JSX.Element {
   const { node } = placed
-  const Icon = KIND_ICONS[node.kind] ?? Box
+  const icon = KIND_ICONS[node.kind] ?? PART_ICON
   const detail = node.roles.length > 0 ? node.roles.join(', ') : node.title === node.kind ? null : node.kind
   return (
     <div
@@ -189,7 +190,7 @@ function NodeBox({ placed, selected, target, offset }: { placed: PlacedNode; sel
         cursor: node.movable ? 'grab' : 'default'
       }}
     >
-      <Icon className="size-4 shrink-0 text-secondary-text" />
+      <IdeIcon name={icon} />
       <div className="min-w-0 leading-tight">
         <div className="truncate text-[12.5px] font-medium">{node.title}</div>
         {detail !== null && <div className="truncate text-[11px] text-secondary-text">{detail}</div>}

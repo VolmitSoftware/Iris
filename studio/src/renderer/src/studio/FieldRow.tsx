@@ -1,4 +1,4 @@
-import { RotateCcw } from 'lucide-react'
+import { IdeIcon } from '@/components/IdeIcon'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { SettingOption } from '../bridge/types'
@@ -23,7 +23,7 @@ export function FieldRow({ option, value, locked, onUnset, problem, children }: 
         <div className="flex min-w-0 flex-[6] items-center gap-1">
           {children}
           <Button variant="ghost" size="icon-sm" title="Unset" className={cn('size-6 shrink-0', value === undefined && 'invisible')} disabled={locked} onClick={onUnset}>
-            <RotateCcw className="size-3.5" />
+            <IdeIcon name="reset" className="size-3.5" />
           </Button>
         </div>
       </div>

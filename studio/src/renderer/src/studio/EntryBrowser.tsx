@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { IdeIcon } from '@/components/IdeIcon'
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu'
@@ -84,7 +84,7 @@ export function EntryBrowser({ title, entries, current, onSelect, fileActions, c
           <h2 className="min-w-0 flex-1 truncate text-[13px] font-semibold">{title}</h2>
           {fileActions !== undefined && (
             <Button variant="ghost" size="icon-xs" title="New entry in the chosen one's folder" onClick={() => fileActions.onCreate(folderPrefixOf(current ?? ''))}>
-              <Plus />
+              <IdeIcon name="add" />
             </Button>
           )}
         </div>

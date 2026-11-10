@@ -1,5 +1,5 @@
-import { CircleHelp, Grid3x3, LocateFixed, LogOut, Monitor, Moon, Mountain, PawPrint, RefreshCw, Settings, Spline, Sun, ZoomIn } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { IdeIcon } from '@/components/IdeIcon'
 import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Separator } from '@/components/ui/separator'
@@ -27,7 +27,6 @@ interface StudioToolbarProps {
   onDisconnect(): void
 }
 
-const THEME_ICONS: Record<ThemeChoice, ReactNode> = { system: <Monitor />, light: <Sun />, dark: <Moon /> }
 const THEME_NAMES: Record<ThemeChoice, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
 const TEXT_BUTTON = "h-7 gap-1.5 px-2 text-[12.5px] font-normal [&_svg:not([class*='size-'])]:size-3.5"
 
@@ -43,20 +42,20 @@ export function StudioToolbar(props: StudioToolbarProps): React.JSX.Element {
       </span>
       <IconHint hint={THEME_NAMES[props.theme.choice]}>
         <Button variant="ghost" size="sm" className={TEXT_BUTTON} onClick={props.theme.next}>
-          {THEME_ICONS[props.theme.choice]} Theme
+          Theme
         </Button>
       </IconHint>
       <ToolButton action="help" hint="Show every mouse and key shortcut" onClick={props.onHelp}>
-        <CircleHelp />
+        <IdeIcon name="help" />
       </ToolButton>
       <IconHint hint="Change the studio's keys">
         <Button variant="ghost" size="sm" className={TEXT_BUTTON} onClick={props.onSettings}>
-          <Settings /> Settings
+          Settings
         </Button>
       </IconHint>
       <IconHint hint="Back to the world list">
         <Button variant="ghost" size="icon-sm" onClick={props.onDisconnect}>
-          <LogOut />
+          <IdeIcon name="exit" />
         </Button>
       </IconHint>
     </header>
@@ -68,26 +67,26 @@ function MapTools(props: StudioToolbarProps): React.JSX.Element {
   return (
     <>
       <ToolButton action="refresh" hint="Redraw the map with the latest pack files" onClick={props.onRefresh}>
-        <RefreshCw />
+        <IdeIcon name="refresh" />
       </ToolButton>
       <ToolButton action="resetZoom" hint="Go back to the default zoom" onClick={props.onResetZoom}>
-        <ZoomIn />
+        <IdeIcon name="zoomIn" />
       </ToolButton>
       <ToolToggle action="grid" hint="Show chunk and region borders" pressed={toggles.grid} onPressed={() => onToggle('grid')}>
-        <Grid3x3 /> Grid
+        <IdeIcon name="grid" className="size-3.5" /> Grid
       </ToolToggle>
       <ToolToggle action="entities" hint="Show mobs and other entities" pressed={toggles.entities} disabled={!props.hasPlayers} onPressed={() => onToggle('entities')}>
-        <PawPrint /> Entities
+        <IdeIcon name="user" className="size-3.5" /> Entities
       </ToolToggle>
       <ToolToggle action="follow" hint="Keep your player in the middle" pressed={toggles.follow} disabled={!props.hasPlayers} onPressed={() => onToggle('follow')}>
-        <LocateFixed /> Follow
+        <IdeIcon name="locate" className="size-3.5" /> Follow
       </ToolToggle>
       <Separator orientation="vertical" className="mx-1 h-5! bg-input" />
       <ToolToggle action="shading" hint="Shade hills and valleys" pressed={toggles.shading} onPressed={() => onToggle('shading')}>
-        <Mountain /> Shading
+        <IdeIcon name="views/height" className="size-3.5" /> Shading
       </ToolToggle>
       <ToolToggle action="borders" hint="Outline the regions on every view" pressed={toggles.regionBorders} onPressed={() => onToggle('regionBorders')}>
-        <Spline /> Borders
+        <IdeIcon name="views/regions" className="size-3.5" /> Borders
       </ToolToggle>
     </>
   )

@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react'
+import { IdeIcon } from '@/components/IdeIcon'
 import { useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -92,7 +92,7 @@ function RegionSection({ section, open, onToggle }: { section: PickSection; open
   return (
     <div className="border-b last:border-b-0">
       <button className="-mx-1.5 flex w-[calc(100%+12px)] items-center gap-2 rounded-md px-1.5 py-2 text-left hover:bg-accent" onClick={onToggle}>
-        <ChevronRight className={`size-3.5 shrink-0 text-secondary-text transition-transform ${open ? 'rotate-90' : ''}`} />
+        <IdeIcon name="chevronRight" className={`size-3.5 transition-transform ${open ? 'rotate-90' : ''}`} />
         {region !== null && <span className="size-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: hexColor(region.color) }} />}
         <span className="min-w-0 flex-1 truncate font-medium">{region?.name ?? 'Regions'}</span>
         <span className="shrink-0 text-[11.5px] text-secondary-text tabular-nums">

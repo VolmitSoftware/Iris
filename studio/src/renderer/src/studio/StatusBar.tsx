@@ -1,4 +1,4 @@
-import { MemoryStick, Zap } from 'lucide-react'
+import { IdeIcon } from '@/components/IdeIcon'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import type { ServerUsage } from '../bridge/types'
@@ -61,12 +61,12 @@ function UsageReadout({ usage }: { usage: ServerUsage }): React.JSX.Element {
   return (
     <span className="flex items-center gap-4">
       <Reading
-        icon={<Zap className="size-3.5" />}
+        icon={<IdeIcon name="lightning" className="size-3.5" />}
         value={formatCpu(usage)}
         high={cpuIsHigh(usage)}
         hint={`Server CPU, 100% per busy thread, ${usage.threads} threads in all`}
       />
-      <Reading icon={<MemoryStick className="size-3.5" />} value={formatHeap(usage)} high={heapIsHigh(usage)} hint="Java memory the server uses, of its maximum" />
+      <Reading icon={<IdeIcon name="memory" className="size-3.5" />} value={formatHeap(usage)} high={heapIsHigh(usage)} hint="Java memory the server uses, of its maximum" />
     </span>
   )
 }

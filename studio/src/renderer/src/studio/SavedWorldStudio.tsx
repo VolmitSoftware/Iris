@@ -1,4 +1,4 @@
-import { RotateCw } from 'lucide-react'
+import { IdeIcon } from '@/components/IdeIcon'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -108,7 +108,7 @@ export function SavedWorldStudio({ client, world, onSummary, onProgress, tell }:
             </ToggleGroupItem>
           </ToggleGroup>
           <Button variant="outline" size="icon-sm" className="bg-card/90" title="Read again" disabled={reading} onClick={() => setReadings((count) => count + 1)}>
-            <RotateCw />
+            <IdeIcon name="refresh" />
           </Button>
         </div>
         {reading && chosen !== null && <div className={PILL}>Reading {chosen.name}</div>}

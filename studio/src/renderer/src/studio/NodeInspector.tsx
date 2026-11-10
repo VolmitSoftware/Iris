@@ -1,4 +1,4 @@
-import { ChevronRight, Plus, RotateCcw, Spline, Trash2 } from 'lucide-react'
+import { IdeIcon } from '@/components/IdeIcon'
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -107,23 +107,23 @@ function FoldHeader({ fold, context }: { fold: SettingsFold; context: SectionCon
   return (
     <div className="flex h-7 items-center gap-1" style={{ paddingLeft: (fold.depth - 1) * FOLD_INDENT_PX }}>
       <button type="button" className="flex min-w-0 flex-1 items-center gap-1 text-left" onClick={() => onToggle(id)}>
-        <ChevronRight className={cn('size-3.5 shrink-0 text-secondary-text transition-transform', unfolded && 'rotate-90')} />
+        <IdeIcon name="chevronRight" className={cn('size-3.5 transition-transform', unfolded && 'rotate-90')} />
         <span className="shrink-0 text-[12px] font-medium">{fold.title}</span>
         {!unfolded && <span className="min-w-0 truncate text-[11px] text-secondary-text">{fold.summary}</span>}
       </button>
       {fold.kind === 'list' && (
         <Button variant="ghost" size="icon-sm" title="Add an item" className="size-6 shrink-0" disabled={locked} onClick={() => onEdit({ op: 'append', list: fold.path, literal: '{}' })}>
-          <Plus className="size-3.5" />
+          <IdeIcon name="add" className="size-3.5" />
         </Button>
       )}
       {holder !== null && (
         <Button variant="ghost" size="icon-sm" title="Unset" className="size-6 shrink-0" disabled={locked} onClick={() => onEdit({ op: 'unset', object: holder.object, key: holder.key })}>
-          <RotateCcw className="size-3.5" />
+          <IdeIcon name="reset" className="size-3.5" />
         </Button>
       )}
       {fold.kind === 'item' && (
         <Button variant="ghost" size="icon-sm" title="Delete the item" className="size-6 shrink-0" disabled={locked} onClick={() => onEdit({ op: 'delete', path: fold.path })}>
-          <Trash2 className="size-3.5" />
+          <IdeIcon name="delete" className="size-3.5" />
         </Button>
       )}
     </div>
@@ -251,7 +251,7 @@ function TypedField(props: FieldProps): React.JSX.Element {
             onToggleCurve()
           }}
         >
-          <Spline className="size-3.5" />
+          <IdeIcon name="views/noise" className="size-3.5" />
         </Button>
       )}
     </FieldRow>

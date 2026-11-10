@@ -1,4 +1,4 @@
-import { Dices, RotateCcw, Search } from 'lucide-react'
+import { IdeIcon } from '@/components/IdeIcon'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -104,7 +104,7 @@ export function NoiseStudio({ client, packRevision, onSummary, tell }: NoiseStud
           </ToggleGroup>
           {display === 'flat' && (
             <Button variant="outline" size="icon-sm" className="bg-card/90" title="Back to 0, 0" onClick={() => controllerRef.current?.resetView()}>
-              <RotateCcw />
+              <IdeIcon name="reset" />
             </Button>
           )}
           {display === 'terrain' && source?.blockRange === null && <ReliefControl blocks={reliefBlocks} onChange={setReliefBlocks} />}
@@ -160,7 +160,7 @@ function SeedField({ seed, usesSeed, onChange }: { seed: string; usesSeed: boole
           onKeyDown={(event) => event.key === 'Enter' && commit()}
         />
         <Button variant="outline" size="icon-sm" title="Random seed" disabled={!usesSeed} onClick={() => onChange(randomSeed())}>
-          <Dices />
+          <IdeIcon name="refresh" />
         </Button>
       </div>
       {!usesSeed && <p className="pt-1.5 text-[11.5px] text-secondary-text">Keeps the world&apos;s seed</p>}
@@ -225,7 +225,9 @@ function SourceList({ sources, current, onSelect }: { sources: NoiseSource[]; cu
   return (
     <section className="flex min-h-0 flex-1 flex-col border-t">
       <div className="relative px-3 pt-2.5 pb-1.5">
-        <Search className="pointer-events-none absolute top-[15px] left-5 size-3.5 text-muted-foreground" />
+        <span className="pointer-events-none absolute top-[15px] left-5">
+          <IdeIcon name="search" className="size-3.5" />
+        </span>
         <Input value={filter} placeholder="Search" className="h-7 pl-7 text-[12px] md:text-[12px]" onChange={(event) => setFilter(event.target.value)} />
       </div>
       <ScrollArea className="min-h-0 flex-1">

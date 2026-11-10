@@ -1,4 +1,4 @@
-import { Lock, Redo2, Undo2 } from 'lucide-react'
+import { IdeIcon } from '@/components/IdeIcon'
 import { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import type { GraphNode } from '../bridge/types'
@@ -30,16 +30,16 @@ export function NodePane({ editor, entryKey, selected, onSelect }: NodePaneProps
         <span className="flex-1" />
         {state?.locked != null && (
           <span className="flex shrink-0 items-center gap-1 text-[11.5px] whitespace-nowrap text-secondary-text" title={state.locked}>
-            <Lock className="size-3.5" />
+            <IdeIcon name="locked" className="size-3.5" />
             Read only
           </span>
         )}
         {editor.saving && <span className="text-[11.5px] text-secondary-text">Saving…</span>}
         <Button variant="ghost" size="icon-sm" title="Undo (Ctrl+Z)" disabled={locked || !editor.canUndo} onClick={editor.undo}>
-          <Undo2 />
+          <IdeIcon name="undo" />
         </Button>
         <Button variant="ghost" size="icon-sm" title="Redo (Ctrl+Shift+Z)" disabled={locked || !editor.canRedo} onClick={editor.redo}>
-          <Redo2 />
+          <IdeIcon name="redo" />
         </Button>
       </header>
       <div className="relative min-h-0 flex-1">

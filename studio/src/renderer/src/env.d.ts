@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import type { StudioHost } from '../../shared/bridge'
 
 declare global {

@@ -1,6 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
+import { IdeIcon } from "@/components/IdeIcon"
 import { ContextMenu as ContextMenuPrimitive } from "radix-ui"
 
 function ContextMenu({
@@ -69,7 +69,9 @@ function ContextMenuSubTrigger({
       {...props}
     >
       {children}
-      <ChevronRightIcon className="ml-auto" />
+      <span className="ml-auto">
+        <IdeIcon name="chevronRight" />
+      </span>
     </ContextMenuPrimitive.SubTrigger>
   )
 }
@@ -152,7 +154,7 @@ function ContextMenuCheckboxItem({
     >
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <ContextMenuPrimitive.ItemIndicator>
-          <CheckIcon className="size-4" />
+          <IdeIcon name="checked" />
         </ContextMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -176,7 +178,7 @@ function ContextMenuRadioItem({
     >
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <ContextMenuPrimitive.ItemIndicator>
-          <CircleIcon className="size-2 fill-current" />
+          <span className="size-1.5 rounded-full bg-current" />
         </ContextMenuPrimitive.ItemIndicator>
       </span>
       {children}

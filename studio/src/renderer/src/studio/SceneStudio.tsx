@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { IdeIcon } from '@/components/IdeIcon'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -165,13 +165,13 @@ function SceneArea({ entry, variant, shown, status, onVariant, onPick }: SceneAr
         {entry !== null && entry.variants > 1 && (
           <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card/90 p-1 text-[12px] tabular-nums">
             <Button variant="ghost" size="icon-sm" title="Previous variant" onClick={() => onVariant(variant - 1)}>
-              <ChevronLeft />
+              <IdeIcon name="chevronLeft" />
             </Button>
             <span className="px-1">
               Variant {variant + 1} of {entry.variants}
             </span>
             <Button variant="ghost" size="icon-sm" title="Next variant" onClick={() => onVariant(variant + 1)}>
-              <ChevronRight />
+              <IdeIcon name="chevronRight" />
             </Button>
           </div>
         )}

@@ -1,4 +1,4 @@
-import { ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { IdeIcon } from '@/components/IdeIcon'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,7 +42,7 @@ export function CurveField(props: CurveFieldProps): React.JSX.Element {
           onClick={onToggle}
         >
           <Sparkline value={value} />
-          <ChevronRight className={cn('size-3.5 shrink-0 text-secondary-text transition-transform', open && 'rotate-90')} />
+          <IdeIcon name="chevronRight" className={cn('size-3.5 transition-transform', open && 'rotate-90')} />
         </button>
       </FieldRow>
       {open && <CurveEditor value={value} locked={locked} onWrite={(next) => onSet(JSON.stringify(next))} />}
@@ -92,12 +92,12 @@ function PointsEditor({ keys, locked, onWrite }: { keys: Keyframe[]; locked: boo
           <NumberBox label="at" value={t} disabled={locked} onCommit={(next) => next !== undefined && onWrite(withKeyframe(keys, index, [next, value]))} />
           <NumberBox label="value" value={value} disabled={locked} onCommit={(next) => next !== undefined && onWrite(withKeyframe(keys, index, [t, next]))} />
           <Button variant="ghost" size="icon-sm" title="Remove the point" className="size-6 shrink-0" disabled={locked || keys.length <= 1} onClick={() => onWrite(withoutKeyframe(keys, index))}>
-            <Trash2 className="size-3.5" />
+            <IdeIcon name="delete" className="size-3.5" />
           </Button>
         </div>
       ))}
       <Button variant="ghost" size="xs" disabled={locked} onClick={() => onWrite(withAddedKeyframe(keys))}>
-        <Plus /> Point
+        <IdeIcon name="add" className="size-3.5" /> Point
       </Button>
     </>
   )

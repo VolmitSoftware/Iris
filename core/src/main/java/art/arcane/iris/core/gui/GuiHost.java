@@ -33,10 +33,13 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class GuiHost {
     private static final AtomicBoolean DESKTOP_QUIT_GUARD_INSTALLED = new AtomicBoolean(false);
+    private static final long WINDOW_CLOSE_WAIT_SECONDS = 5L;
     private static final Set<JFrame> MANAGED_FRAMES = ConcurrentHashMap.newKeySet();
     private static volatile Provider provider = new Provider() {
     };
@@ -119,11 +122,33 @@ public final class GuiHost {
 
     static void closeDesktopWindowsAndCancelQuit(QuitResponse response) {
         response.cancelQuit();
+        EventQueue.invokeLater(GuiHost::disposeWindows);
+    }
+
+    public static void closeWindows() {
+        if (MANAGED_FRAMES.isEmpty()) {
+            return;
+        }
+
+        CountDownLatch closed = new CountDownLatch(1);
         EventQueue.invokeLater(() -> {
-            for (JFrame frame : MANAGED_FRAMES) {
-                frame.dispose();
+            try {
+                disposeWindows();
+            } finally {
+                closed.countDown();
             }
         });
+        try {
+            closed.await(WINDOW_CLOSE_WAIT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static void disposeWindows() {
+        for (JFrame frame : MANAGED_FRAMES) {
+            frame.dispose();
+        }
     }
 
     /**

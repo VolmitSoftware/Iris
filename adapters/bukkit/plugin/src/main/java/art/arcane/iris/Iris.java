@@ -56,6 +56,7 @@ import art.arcane.iris.core.link.MultiverseCoreLink;
 import art.arcane.iris.core.agent.AttachSignal;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.gui.BukkitGuiHost;
+import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.core.service.BoardSVC;
 import art.arcane.iris.core.service.CommandSVC;
@@ -845,6 +846,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             return;
         }
         BukkitGuiHost.install();
+        postShutdown(GuiHost::closeWindows);
         // super.onEnable() already registers this instance as a listener.
         super.onEnable();
         if (IrisStartupValidation.isRestartRequired()) {

@@ -183,6 +183,7 @@ public final class ModdedEngineBootstrap {
         failure = runStopStage(failure, "block break handler", ModdedBlockBreakHandler::clear);
         failure = runStopStage(failure, "studio bridges", StudioBridges::closeAll);
         failure = runStopStage(failure, "studio commands", ModdedStudioCommands::clear);
+        failure = runStopStage(failure, "gui windows", GuiHost::closeWindows);
         failure = runStopStage(failure, "gui host", ModdedGuiHost::clear);
         failure = runStopStage(failure, "services", () -> services().disableAll());
         reportStopFailure("stopping", failure);

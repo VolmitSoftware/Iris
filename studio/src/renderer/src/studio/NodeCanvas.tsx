@@ -1,9 +1,10 @@
 import { Box, Circle, Flower2, GitCommitVertical, GitFork, Group, Link2, Paintbrush, Sparkles, type LucideIcon } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '@/components/ui/context-menu'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuShortcut, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '@/components/ui/context-menu'
 import { cn } from '@/lib/utils'
 import type { GraphEdit, GraphNode, JsonPath } from '../bridge/types'
 import { idOf, isWithin, layoutNodes, NODE_HEIGHT, NODE_WIDTH, type NodeLayout, type PlacedNode } from '../editor/nodeLayout'
+import { useKeyText } from './useBindings'
 
 const KIND_ICONS: Record<string, LucideIcon> = {
   Object: Box,
@@ -48,18 +49,27 @@ interface NodeCanvasProps {
   fileKey: string
   selectedId: string | null
   locked: boolean
+  /** Filled with the way to fit every node into view, for the keys that live outside the canvas. */
+  showAllRef: React.RefObject<(() => void) | null>
   onSelect(node: GraphNode | null): void
   onEdit(edit: GraphEdit): void
 }
 
 /** The file as a tree of nodes: drag the background to look around, drag a node onto another to grow it from there. */
-export function NodeCanvas({ roots, fileKey, selectedId, locked, onSelect, onEdit }: NodeCanvasProps): React.JSX.Element {
+export function NodeCanvas({ roots, fileKey, selectedId, locked, showAllRef, onSelect, onEdit }: NodeCanvasProps): React.JSX.Element {
   const layout = useMemo(() => layoutNodes(roots), [roots])
   const frame = useRef<HTMLDivElement>(null)
   const [camera, setCamera] = useCamera(frame, layout, fileKey)
   const [drag, setDrag] = useState<NodeDrag | null>(null)
   const [menuNode, setMenuNode] = useState<GraphNode | null>(null)
   const pan = useRef<{ x: number; y: number } | null>(null)
+  const showAll = useCallback(() => setCamera(fitted(frame.current!, layout)), [setCamera, layout])
+  useEffect(() => {
+    showAllRef.current = showAll
+    return () => {
+      showAllRef.current = null
+    }
+  }, [showAllRef, showAll])
 
   const canvasPoint = (clientX: number, clientY: number): { x: number; y: number } => {
     const bounds = frame.current!.getBoundingClientRect()
@@ -138,7 +148,7 @@ export function NodeCanvas({ roots, fileKey, selectedId, locked, onSelect, onEdi
               onSelect(placed.node)
             }
           }}
-          onDoubleClick={(event) => nodeAt(layout, canvasPoint(event.clientX, event.clientY)) === null && setCamera(fitted(frame.current!, layout))}
+          onDoubleClick={(event) => nodeAt(layout, canvasPoint(event.clientX, event.clientY)) === null && showAll()}
         >
           <div className="absolute top-0 left-0 origin-top-left" style={{ transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})` }}>
             <Wires layout={layout} />
@@ -211,6 +221,7 @@ function Wires({ layout }: { layout: NodeLayout }): React.JSX.Element {
 }
 
 function NodeMenu({ node, locked, onEdit }: { node: GraphNode; locked: boolean; onEdit(edit: GraphEdit): void }): React.JSX.Element {
+  const keyText = useKeyText()
   const removable = node.duplicable
   return (
     <ContextMenuContent className="min-w-[180px]">
@@ -228,10 +239,12 @@ function NodeMenu({ node, locked, onEdit }: { node: GraphNode; locked: boolean; 
       )}
       <ContextMenuItem disabled={locked || !node.duplicable} onSelect={() => onEdit({ op: 'duplicate', path: node.path })}>
         Duplicate
+        <ContextMenuShortcut>{keyText('duplicateNode')}</ContextMenuShortcut>
       </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem variant="destructive" disabled={locked || !removable} onSelect={() => onEdit({ op: 'delete', path: node.path })}>
         Delete
+        <ContextMenuShortcut>{keyText('deleteNode')}</ContextMenuShortcut>
       </ContextMenuItem>
     </ContextMenuContent>
   )

@@ -15,6 +15,9 @@ export type ShortcutAction =
   | 'help'
   | 'undo'
   | 'redo'
+  | 'deleteNode'
+  | 'duplicateNode'
+  | 'showAllNodes'
 
 export type ShortcutGroup = 'Views' | 'Everywhere' | 'Map' | 'Node editor'
 
@@ -46,7 +49,7 @@ export const SHORTCUTS: ShortcutDefinition[] = [
   { id: 'zoomIn', label: 'Zoom in', group: 'Everywhere', chords: ['=', '+'] },
   { id: 'zoomOut', label: 'Zoom out', group: 'Everywhere', chords: ['-'] },
   { id: 'resetZoom', label: 'Reset zoom', group: 'Everywhere', chords: ['\\'] },
-  { id: 'dismiss', label: 'Clear the highlight', group: 'Everywhere', chords: ['Escape'] },
+  { id: 'dismiss', label: 'Clear the highlight or the chosen node', group: 'Everywhere', chords: ['Escape'] },
   { id: 'follow', label: 'Follow your player', group: 'Map', chords: ['f'] },
   { id: 'grid', label: 'Chunk and region grid', group: 'Map', chords: ['g'] },
   { id: 'entities', label: 'Show entities', group: 'Map', chords: ['e'] },
@@ -55,7 +58,10 @@ export const SHORTCUTS: ShortcutDefinition[] = [
   { id: 'borders', label: 'Region borders', group: 'Map', chords: ['b'] },
   { id: 'help', label: 'Show the shortcuts', group: 'Map', chords: ['/', '?'] },
   { id: 'undo', label: 'Undo', group: 'Node editor', chords: ['ctrl+z'] },
-  { id: 'redo', label: 'Redo', group: 'Node editor', chords: ['ctrl+y', 'ctrl+shift+z'] }
+  { id: 'redo', label: 'Redo', group: 'Node editor', chords: ['ctrl+y', 'ctrl+shift+z'] },
+  { id: 'deleteNode', label: 'Delete the chosen node', group: 'Node editor', chords: ['Delete', 'Backspace'] },
+  { id: 'duplicateNode', label: 'Duplicate the chosen node', group: 'Node editor', chords: ['ctrl+d'] },
+  { id: 'showAllNodes', label: 'Show every node', group: 'Node editor', chords: ['f', 'Home'] }
 ]
 
 /** The key of each view; 4 stays free for the 3D world, as in v3e. */
@@ -88,7 +94,10 @@ const GROUP_SCOPES: Record<ShortcutGroup, { windowWide: boolean; nodeEditor: boo
   'Node editor': { windowWide: false, nodeEditor: true }
 }
 
-const VIEW_ID_PREFIX = 'view:'
+const NODE_EDITOR_ACTIONS = ['undo', 'redo', 'deleteNode', 'duplicateNode', 'showAllNodes', 'dismiss'] as const
+export type NodeEditorAction = (typeof NODE_EDITOR_ACTIONS)[number]
+
+const VIEW_ID_PREFIX ='view:'
 const MODIFIER_PREFIXES = ['ctrl+', 'alt+', 'shift+'] as const
 const MODIFIER_KEYS = new Set(['Control', 'Shift', 'Alt', 'Meta', 'AltGraph', 'CapsLock', 'Dead', 'Unidentified'])
 const KEY_NAMES: Record<string, string> = { Escape: 'Esc', ' ': 'Space' }
@@ -183,6 +192,11 @@ export function windowShortcutFor(press: KeyPress, rows: ShortcutRow[], bindings
     return null
   }
   return rows.filter((row) => GROUP_SCOPES[row.group].windowWide).find((row) => chordsOf(row.id, bindings).includes(chord))?.id ?? null
+}
+
+/** The node editor shortcut a key press triggers, if any. */
+export function nodeEditorActionFor(press: KeyPress, bindings: Bindings): NodeEditorAction | null {
+  return NODE_EDITOR_ACTIONS.find((action) => matches(press, action, bindings)) ?? null
 }
 
 /** The other shortcuts the chord already triggers where {@code row} works too. */

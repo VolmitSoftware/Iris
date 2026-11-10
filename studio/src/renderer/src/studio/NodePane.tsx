@@ -1,10 +1,10 @@
 import { Lock, Redo2, Undo2 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import type { GraphNode } from '../bridge/types'
 import type { NodeEditor } from '../editor/useNodeEditor'
 import { NodeCanvas } from './NodeCanvas'
-import { isTypingInto, matches } from './shortcuts'
+import { isTypingInto, nodeEditorActionFor, type NodeEditorAction } from './shortcuts'
 import { useBindings } from './useBindings'
 
 interface NodePaneProps {
@@ -19,7 +19,8 @@ interface NodePaneProps {
 export function NodePane({ editor, entryKey, selected, onSelect }: NodePaneProps): React.JSX.Element {
   const { state } = editor
   const locked = state === null || state.locked !== null
-  useEditorKeys(editor, selected, locked)
+  const showAllRef = useRef<(() => void) | null>(null)
+  useEditorKeys(editor, selected, locked, showAllRef, onSelect)
 
   return (
     <section className="flex min-h-0 flex-[9] flex-col border-t">
@@ -55,6 +56,7 @@ export function NodePane({ editor, entryKey, selected, onSelect }: NodePaneProps
             fileKey={entryKey}
             selectedId={selected === null ? null : JSON.stringify(selected.path)}
             locked={locked}
+            showAllRef={showAllRef}
             onSelect={onSelect}
             onEdit={editor.edit}
           />
@@ -64,29 +66,42 @@ export function NodePane({ editor, entryKey, selected, onSelect }: NodePaneProps
   )
 }
 
-function useEditorKeys(editor: NodeEditor, selected: GraphNode | null, locked: boolean): void {
+function useEditorKeys(
+  editor: NodeEditor,
+  selected: GraphNode | null,
+  locked: boolean,
+  showAllRef: React.RefObject<(() => void) | null>,
+  onSelect: (node: GraphNode | null) => void
+): void {
   const { undo, redo, edit } = editor
   const bindings = useBindings()
   useEffect(() => {
-    if (locked) {
-      return
-    }
-    const down = (event: KeyboardEvent): void => {
-      if (isTypingInto(event.target)) {
-        return
-      }
-      if (matches(event, 'undo', bindings)) {
+    const editSelected = (action: NodeEditorAction, event: KeyboardEvent): void => {
+      if (action === 'undo') {
         event.preventDefault()
         undo()
-      } else if (matches(event, 'redo', bindings)) {
+      } else if (action === 'redo') {
         event.preventDefault()
         redo()
-      } else if (event.key === 'Delete' && selected !== null && selected.duplicable) {
+      } else if (selected !== null && selected.duplicable) {
         event.preventDefault()
-        edit({ op: 'delete', path: selected.path })
+        edit({ op: action === 'deleteNode' ? 'delete' : 'duplicate', path: selected.path })
       }
     }
-    window.addEventListener('keydown', down)
-    return () => window.removeEventListener('keydown', down)
-  }, [undo, redo, edit, selected, locked, bindings])
+    // Captured, so the editor's keys come before the window's own: F fits the nodes instead of following the player.
+    const down = (event: KeyboardEvent): void => {
+      const action = isTypingInto(event.target) ? null : nodeEditorActionFor(event, bindings)
+      if (action === 'dismiss') {
+        onSelect(null)
+      } else if (action === 'showAllNodes' && showAllRef.current !== null) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        showAllRef.current()
+      } else if (action !== null && action !== 'showAllNodes' && !locked) {
+        editSelected(action, event)
+      }
+    }
+    window.addEventListener('keydown', down, true)
+    return () => window.removeEventListener('keydown', down, true)
+  }, [undo, redo, edit, selected, locked, bindings, showAllRef, onSelect])
 }

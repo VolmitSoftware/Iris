@@ -8,6 +8,7 @@ import {
   isChord,
   keyTextOf,
   matches,
+  nodeEditorActionFor,
   sanitizeBindings,
   shortcutRows,
   viewShortcutId,
@@ -82,6 +83,24 @@ describe('shortcuts', () => {
     expect(matches(press('z', { ctrlKey: true, shiftKey: true }), 'redo', {})).toBe(true)
     expect(matches(press('z', { ctrlKey: true }), 'undo', { undo: ['ctrl+u'] })).toBe(false)
     expect(matches(press('Control', { ctrlKey: true }), 'undo', {})).toBe(false)
+  })
+
+  it('finds the node editor action of a key press, by default and once rebound', () => {
+    expect(nodeEditorActionFor(press('d', { ctrlKey: true }), {})).toBe('duplicateNode')
+    expect(nodeEditorActionFor(press('F'), {})).toBe('showAllNodes')
+    expect(nodeEditorActionFor(press('Home'), {})).toBe('showAllNodes')
+    expect(nodeEditorActionFor(press('Escape'), {})).toBe('dismiss')
+    expect(nodeEditorActionFor(press('Delete'), {})).toBe('deleteNode')
+    expect(nodeEditorActionFor(press('Backspace'), {})).toBe('deleteNode')
+    expect(nodeEditorActionFor(press('d'), {})).toBeNull()
+    expect(nodeEditorActionFor(press('f'), { showAllNodes: ['a'] })).toBeNull()
+    expect(nodeEditorActionFor(press('a'), { showAllNodes: ['a'] })).toBe('showAllNodes')
+  })
+
+  it('keeps the node editor keys out of the map shortcuts, which share F', () => {
+    expect(windowShortcutFor(press('f'), ROWS, {})).toBe('follow')
+    expect(ROWS.find((row) => row.id === 'showAllNodes')!.group).toBe('Node editor')
+    expect(clashesWith(ROWS.find((row) => row.id === 'showAllNodes')!, 'f', ROWS, {})).toEqual([])
   })
 
   it('reports the shortcuts a new key would clash with, only where both work together', () => {

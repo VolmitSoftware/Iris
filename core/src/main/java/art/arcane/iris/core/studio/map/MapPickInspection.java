@@ -69,7 +69,7 @@ public final class MapPickInspection {
                 regions.add(complex.getRegionStyleStream().get(x, z));
             }
         });
-        return new Inspection("Region noise by rarity", List.of(new Section(null, 1D, 0, List.of(regions.spread()))));
+        return new Inspection("Region noise by weight", List.of(new Section(null, 1D, 0, List.of(regions.spread()))));
     }
 
     // The previewed region owns every spot, so each spot's biome list is the one its surface needs.
@@ -80,7 +80,7 @@ public final class MapPickInspection {
         }
         RegionSamples samples = new RegionSamples(engine, MapView.REGIONS, region);
         area.forEachSpot((x, z) -> samples.add(complex.surfacePickAsIfIn(region, x, z).list(), x, z));
-        return new Inspection("Biome noise by rarity", List.of(samples.section(1)));
+        return new Inspection("Biome noise by weight", List.of(samples.section(1)));
     }
 
     // Each region picks the base biomes on its ground from the list the continent chose there.
@@ -115,7 +115,7 @@ public final class MapPickInspection {
         area.forEachSpot((x, z) -> children.add(ChildPicks.from(complex, focus, x, z)));
         List<Spread> spreads = children.mostSampledFirst();
         Section section = new Section(MapPickPath.biomeLabel(engine, view, focus), 1D, distinctOptions(spreads), spreads);
-        return new Inspection("Child noise by rarity", List.of(section));
+        return new Inspection("Child noise by weight", List.of(section));
     }
 
     private static int distinctOptions(List<Spread> spreads) {

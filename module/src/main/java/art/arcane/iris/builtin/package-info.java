@@ -30,7 +30,7 @@
  * <p>
  * Besides those, it holds what Iris and the built-ins jar must share, since each sees its own copy
  * of every other class: narrow facades only Iris's own built-ins use, interfaces Iris's worlds implement
- * ({@link art.arcane.iris.builtin.structure.StructureHost}), and the seed purposes of the built-in features
+ * ({@link art.arcane.iris.builtin.structure.StructureVerifier}), and the seed purposes of the built-in features
  * ({@link art.arcane.iris.builtin.IrisSeedPurposes}). Keep them few: each is a promise.
  * <p>
  * The placement stages ({@code iris:prepare} to {@code iris:snow}) run in the pack's placement graph, which

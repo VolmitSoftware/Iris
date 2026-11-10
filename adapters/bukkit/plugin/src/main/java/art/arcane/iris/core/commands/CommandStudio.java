@@ -26,6 +26,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.localization.IrisMessages;
 import art.arcane.iris.core.studio.bridge.StudioBridge;
 import art.arcane.iris.core.studio.bridge.StudioBridges;
+import art.arcane.iris.core.pack.PackDownloader;
 import art.arcane.iris.core.project.IrisProject;
 import art.arcane.iris.core.project.IrisCodeWorkspace;
 import art.arcane.iris.core.project.StudioEditor;
@@ -151,9 +152,15 @@ public class CommandStudio implements DirectorExecutor {
 
     @Director(description = "Open VSCode/Zed for a dimension", descriptionKey = "iris.director.commandstudio.director.open_editor_dimension", aliases = {"vscode", "vsc"})
     public void editor(
-            @Param(defaultValue = "default", description = "The dimension to open VSCode/Zed for", descriptionKey = "iris.director.commandstudio.param.dimension_open_editor", aliases = "dim", customHandler = DimensionHandler.class)
+            @Param(defaultValue = "null", description = "The dimension to open VSCode/Zed for (defaults to the open studio, else the default world type)", descriptionKey = "iris.director.commandstudio.param.dimension_open_editor", aliases = "dim", customHandler = NullableDimensionHandler.class)
             IrisDimension dimension
     ) {
+        StudioSVC studio = Iris.service(StudioSVC.class);
+        String pack = dimension != null ? dimension.getLoadKey() : packForEditor(studio);
+        if (!PackDownloader.isPackPresent(studio.getWorkspaceFolder(), pack)) {
+            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_COULD_NOT_RESOLVE_PACK_DIMENSION, MessageArgument.untrusted("value", pack)));
+            return;
+        }
         StudioEditor editor = StudioEditorLauncher.configuredEditor();
         if (editor == StudioEditor.NONE) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_NO_EDITOR_SET));
@@ -164,8 +171,15 @@ public class CommandStudio implements DirectorExecutor {
             return;
         }
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_EDITOR_PACK,
-                MessageArgument.untrusted("editor", editor.displayName()), MessageArgument.untrusted("value", dimension.getName())));
-        Iris.service(StudioSVC.class).openEditor(sender(), dimension.getLoadKey());
+                MessageArgument.untrusted("editor", editor.displayName()), MessageArgument.untrusted("value", pack)));
+        studio.openEditor(sender(), pack);
+    }
+
+    private static String packForEditor(StudioSVC studio) {
+        if (studio.isProjectOpen()) {
+            return studio.getActiveProject().getName();
+        }
+        return IrisSettings.get().getGenerator().getDefaultWorldType();
     }
 
     @Director(description = "Close an open studio project", descriptionKey = "iris.director.commandstudio.director.close_open_studio_project", aliases = {"x"}, sync = true)

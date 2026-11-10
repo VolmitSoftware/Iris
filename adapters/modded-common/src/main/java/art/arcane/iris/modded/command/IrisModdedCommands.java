@@ -36,6 +36,7 @@ import art.arcane.iris.modded.ModdedForcedDatapack;
 import art.arcane.iris.modded.ModdedLoader;
 import art.arcane.iris.modded.ModdedScheduler;
 import art.arcane.iris.modded.ModdedServerLevels;
+import art.arcane.iris.modded.ModdedTeleportDeadline;
 import art.arcane.iris.modded.ModdedWorldgenIds;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KMap;
@@ -58,6 +59,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
 import art.arcane.volmlib.util.localization.MessageArgument;
@@ -135,7 +137,8 @@ public final class IrisModdedCommands {
                 dimensionId,
                 8.5D,
                 Double.MIN_VALUE,
-                8.5D);
+                8.5D,
+                ModdedTeleportDeadline.fromNow());
         teleport.whenComplete((success, failure) -> {
             if (Boolean.TRUE.equals(success) && failure == null) {
                 return;
@@ -144,12 +147,41 @@ public final class IrisModdedCommands {
                 ModdedIrisLog.error("Iris teleport into '{}' failed for {}",
                         dimensionId, player.getUUID(), failure);
             }
-            server.execute(() -> fail(source, IrisLanguage.plain(
-                    ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORT_FAILED_DIMENSION_IS_NOT_LOADED,
-                    MessageArgument.untrusted("dimensionId", dimensionId))));
+            server.execute(() -> fail(source, teleportFailure(dimensionId, player.getScoreboardName(), failure,
+                    ModdedDimensionManager.level(server, dimensionId) != null,
+                    server.getPlayerList().getPlayer(player.getUUID()) != null)));
         });
         ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORTING, MessageArgument.untrusted("value", player.getScoreboardName()), MessageArgument.untrusted("dimensionId", dimensionId)));
         return 1;
+    }
+
+    static String teleportFailure(String dimensionId, String playerName, Throwable failure,
+                                  boolean dimensionLoaded, boolean playerOnline) {
+        if (failure != null) {
+            return IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORT_FAILED_REASON,
+                    MessageArgument.untrusted("dimensionId", dimensionId),
+                    MessageArgument.untrusted("reason", failureReason(failure)));
+        }
+        if (!dimensionLoaded) {
+            return IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORT_FAILED_DIMENSION_IS_NOT_LOADED,
+                    MessageArgument.untrusted("dimensionId", dimensionId));
+        }
+        if (!playerOnline) {
+            return IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORT_CANCELLED_PLAYER_OFFLINE,
+                    MessageArgument.untrusted("dimensionId", dimensionId),
+                    MessageArgument.untrusted("value", playerName));
+        }
+        return IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORT_REFUSED,
+                MessageArgument.untrusted("dimensionId", dimensionId));
+    }
+
+    private static String failureReason(Throwable failure) {
+        Throwable cause = failure;
+        while (cause instanceof CompletionException && cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        String message = cause.getMessage();
+        return message == null || message.isBlank() ? cause.getClass().getSimpleName() : message;
     }
 
     static int evacuate(CommandSourceStack source, ServerLevel target) {

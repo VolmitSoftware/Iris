@@ -25,6 +25,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.iris.modded.ModdedIrisLog;
+import art.arcane.iris.modded.ModdedTeleportDeadline;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -37,7 +38,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public final class ModdedVisionOverlay implements GuiOverlay {
@@ -103,7 +103,7 @@ public final class ModdedVisionOverlay implements GuiOverlay {
                     blockX + 0.5D,
                     surfaceY,
                     blockZ + 0.5D,
-                    System.nanoTime() + TimeUnit.SECONDS.toNanos(10L));
+                    ModdedTeleportDeadline.fromNow());
             UUID playerId = player.getUUID();
             teleport.whenComplete((success, failure) -> {
                 if (failure != null) {

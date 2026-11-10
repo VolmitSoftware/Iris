@@ -2,6 +2,7 @@ import { DoubleSide, FrontSide, Group, Mesh, MeshBasicMaterial } from 'three'
 import { groundFaces, waterFaces } from './columnFaces'
 import { ColumnField } from './columnField'
 import type { ColumnArea } from './terrainTiles'
+import { WATER_SURFACE_COLOR, WATER_SURFACE_OPACITY } from './waterTint'
 
 /**
  * Terrain to draw as columns, row by row from the north west: the ground, the water over it, and the ground's colour.
@@ -28,12 +29,9 @@ export interface TerrainMesh {
   dispose(): void
 }
 
-const WATER_COLOR = 0x3f76e4
-const WATER_OPACITY = 0.55
-
 /**
  * The surface as columns with their faces merged where neighbours show the same one, flat-shaded as Minecraft shades
- * blocks, with see-through water over them. Sides on the edge reach down to {@code base}, so tiles of ground next to
+ * blocks, with the ground under water sunk toward a deep colour and a light sheet of water over it. Sides on the edge reach down to {@code base}, so tiles of ground next to
  * each other leave no cracks. The columns in {@code holes} are left out, for finer ground to fill.
  */
 export function buildTerrainMesh(surface: TerrainSurface, base: number, holes: readonly ColumnArea[] = []): TerrainMesh {
@@ -45,7 +43,7 @@ export function buildTerrainMesh(surface: TerrainSurface, base: number, holes: r
   const ground = groundFaces(field, base).geometry()
   const water = waterFaces(field).geometry()
   const groundMaterial = new MeshBasicMaterial({ vertexColors: true, side: FrontSide })
-  const waterMaterial = new MeshBasicMaterial({ color: WATER_COLOR, transparent: true, opacity: WATER_OPACITY, depthWrite: false, side: DoubleSide })
+  const waterMaterial = new MeshBasicMaterial({ color: WATER_SURFACE_COLOR, transparent: true, opacity: WATER_SURFACE_OPACITY, depthWrite: false, side: DoubleSide })
   group.add(new Mesh(ground, groundMaterial), new Mesh(water, waterMaterial))
   return {
     object: group,

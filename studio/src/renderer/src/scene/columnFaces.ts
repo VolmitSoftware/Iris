@@ -1,5 +1,6 @@
 import type { ColumnField } from './columnField'
 import { QuadBatch, type Vec3 } from './quadBatch'
+import { submergedTint, sunk, tintAt } from './waterTint'
 
 // Light on each face, as Minecraft shades blocks: tops full, north and south sides lighter than east and west.
 const TOP_LIGHT = 1
@@ -11,6 +12,8 @@ interface Span {
   bottom: number
   top: number
   color: number
+  /** The top face of the water the span lies under, or null where it lies in the open. */
+  water: number | null
 }
 
 interface Side {
@@ -30,13 +33,14 @@ const SIDES: readonly Side[] = [
 /**
  * The ground as block faces: the top of every column, and the sides where a column stands above its neighbour, or
  * above {@code base} at the field's edge and next to columns where nothing is known. Neighbouring columns showing the
- * same face in the same colour are one face.
+ * same face in the same colour are one face. Ground under water is sunk toward a deep colour, the more the further down
+ * it lies.
  */
 export function groundFaces(field: ColumnField, base: number): QuadBatch {
   const batch = new QuadBatch(true)
   addTops(field, batch, (column, row) => {
     const top = field.hasGround(column, row) ? field.groundTop[field.indexOf(column, row)] : null
-    return top === null ? null : { bottom: top, top, color: field.color[field.indexOf(column, row)] }
+    return top === null ? null : { bottom: top, top, color: field.color[field.indexOf(column, row)], water: field.waterTopAt(column, row) }
   })
   addSides(field, batch, (column, row, side) => {
     if (!field.hasGround(column, row)) {
@@ -45,7 +49,11 @@ export function groundFaces(field: ColumnField, base: number): QuadBatch {
     const top = field.groundTop[field.indexOf(column, row)]
     const [nextColumn, nextRow] = [column + side.columnStep, row + side.rowStep]
     const bottom = field.hasGround(nextColumn, nextRow) ? field.groundTop[field.indexOf(nextColumn, nextRow)] : base
-    return bottom < top ? { bottom, top, color: field.color[field.indexOf(column, row)] } : null
+    if (bottom >= top) {
+      return null
+    }
+    const water = field.waterTopAt(column, row) ?? field.waterTopAt(nextColumn, nextRow)
+    return { bottom, top, color: field.color[field.indexOf(column, row)], water }
   })
   return batch
 }
@@ -57,19 +65,12 @@ export function groundFaces(field: ColumnField, base: number): QuadBatch {
  */
 export function waterFaces(field: ColumnField): QuadBatch {
   const batch = new QuadBatch(false)
-  const waterAt = (column: number, row: number): number | null => {
-    if (!field.contains(column, row)) {
-      return null
-    }
-    const top = field.waterTop[field.indexOf(column, row)]
-    return Number.isNaN(top) ? null : top
-  }
   addTops(field, batch, (column, row) => {
-    const top = waterAt(column, row)
-    return top === null ? null : { bottom: top, top, color: WATER_COLOR }
+    const top = field.waterTopAt(column, row)
+    return top === null ? null : { bottom: top, top, color: WATER_COLOR, water: null }
   })
   addSides(field, batch, (column, row, side) => {
-    const top = waterAt(column, row)
+    const top = field.waterTopAt(column, row)
     if (top === null) {
       return null
     }
@@ -78,7 +79,7 @@ export function waterFaces(field: ColumnField): QuadBatch {
       return null
     }
     const bottom = Math.max(next, field.groundTop[field.indexOf(column, row)])
-    return bottom < top ? { bottom, top, color: WATER_COLOR } : null
+    return bottom < top ? { bottom, top, color: WATER_COLOR, water: null } : null
   })
   return batch
 }
@@ -87,7 +88,7 @@ function addTops(field: ColumnField, batch: QuadBatch, spanAt: (column: number, 
   for (let row = 0; row < field.rows; row++) {
     mergeRuns(field.columns, (column) => spanAt(column, row), (first, count, span) => {
       const step = field.blocksPerColumn
-      batch.add([field.originX + first * step, span.top, field.originZ + row * step], [count * step, 0, 0], [0, 0, step], shaded(span.color, TOP_LIGHT))
+      batch.add([field.originX + first * step, span.top, field.originZ + row * step], [count * step, 0, 0], [0, 0, step], topColor(span))
     })
   }
 }
@@ -101,10 +102,39 @@ function addSides(field: ColumnField, batch: QuadBatch, spanAt: (column: number,
       const columnOf = (step: number): number => (runsAlongRow ? step : lane)
       const rowOf = (step: number): number => (runsAlongRow ? lane : step)
       mergeRuns(length, (step) => spanAt(columnOf(step), rowOf(step), side), (first, count, span) => {
-        batch.add(...sideQuad(field, side, columnOf(first), rowOf(first), count, span), shaded(span.color, side.light))
+        const light = shaded(span.color, side.light)
+        for (const part of sideParts(span)) {
+          batch.add(...sideQuad(field, side, columnOf(first), rowOf(first), count, part), sunk(light, part.bottomTint), sunk(light, part.topTint))
+        }
       })
     }
   }
+}
+
+function topColor(span: Span): Vec3 {
+  const light = shaded(span.color, TOP_LIGHT)
+  return span.water === null ? light : sunk(light, tintAt(span.water - span.top))
+}
+
+interface SidePart extends Span {
+  /** How much of the deep colour covers the bottom and the top of the part. */
+  bottomTint: number
+  topTint: number
+}
+
+// A side reaching above the water is cut at its surface: only the part below sinks, deeper toward its bottom.
+function sideParts(span: Span): SidePart[] {
+  const { bottom, top, water } = span
+  if (water === null || water <= bottom) {
+    return [{ ...span, bottomTint: 0, topTint: 0 }]
+  }
+  if (water >= top) {
+    return [{ ...span, bottomTint: submergedTint(water - bottom), topTint: submergedTint(water - top) }]
+  }
+  return [
+    { ...span, top: water, bottomTint: submergedTint(water - bottom), topTint: submergedTint(0) },
+    { ...span, bottom: water, bottomTint: 0, topTint: 0 }
+  ]
 }
 
 // The corner a side starts from is the one on its left as seen from outside, so it runs and rises into view.
@@ -144,7 +174,7 @@ function mergeRuns(length: number, spanAt: (index: number) => Span | null, emit:
 }
 
 function sameSpan(span: Span, other: Span | null): boolean {
-  return other !== null && other.top === span.top && other.bottom === span.bottom && other.color === span.color
+  return other !== null && other.top === span.top && other.bottom === span.bottom && other.color === span.color && other.water === span.water
 }
 
 function shaded(color: number, light: number): Vec3 {

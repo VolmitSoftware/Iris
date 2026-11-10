@@ -21,9 +21,9 @@ export class QuadBatch {
 
   /**
    * A quad from {@code origin} along {@code along} and {@code up}; it faces the way {@code up} crosses {@code along}.
-   * Colours are red, green and blue from 0 to 1.
+   * Colours are red, green and blue from 0 to 1; the corners at the far end of {@code up} take {@code topColor}.
    */
-  add(origin: Vec3, along: Vec3, up: Vec3, color: Vec3 | null): void {
+  add(origin: Vec3, along: Vec3, up: Vec3, color: Vec3 | null, topColor: Vec3 | null = color): void {
     this.reserveOne()
     const first = this.quads * VERTICES_PER_QUAD * COMPONENTS
     for (let corner = 0; corner < VERTICES_PER_QUAD; corner++) {
@@ -31,8 +31,9 @@ export class QuadBatch {
       for (let axis = 0; axis < COMPONENTS; axis++) {
         const at = first + corner * COMPONENTS + axis
         this.positions[at] = origin[axis] + along[axis] * alongSteps + up[axis] * upSteps
-        if (this.colors !== null && color !== null) {
-          this.colors[at] = color[axis]
+        const cornerColor = upSteps === 1 ? topColor : color
+        if (this.colors !== null && cornerColor !== null) {
+          this.colors[at] = cornerColor[axis]
         }
       }
     }

@@ -61,6 +61,15 @@ export class ColumnField {
     return this.groundTop.some((top) => !Number.isNaN(top))
   }
 
+  /** The top face of the water over the column, or null where it is dry, holds none or lies outside the field. */
+  waterTopAt(column: number, row: number): number | null {
+    if (!this.contains(column, row)) {
+      return null
+    }
+    const top = this.waterTop[this.indexOf(column, row)]
+    return Number.isNaN(top) ? null : top
+  }
+
   /** The face the column shows to the sky: its water where it has some, else its ground; null where nothing is known. */
   surfaceTop(column: number, row: number): number | null {
     if (!this.hasGround(column, row)) {

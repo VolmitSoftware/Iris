@@ -58,6 +58,7 @@ import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.gui.BukkitGuiHost;
 import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.gui.PregeneratorJob;
+import art.arcane.iris.core.service.BlockRulesSVC;
 import art.arcane.iris.core.service.BoardSVC;
 import art.arcane.iris.core.service.CommandSVC;
 import art.arcane.iris.core.service.DatapackStructureScopeSVC;
@@ -635,7 +636,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         // Explicit, ordered service list: the previous reflective jar scan gave hash-ordered
         // enable/disable and paid a full-jar class sweep at boot. Infrastructure first,
         // engine/world services next, commands last.
-        List<IrisService> orderedServices = List.of(
+        List<IrisService> orderedServices = new ArrayList<>(List.of(
                 new PreservationSVC(),
                 new GlobalCacheSVC(),
                 new LogFilterSVC(),
@@ -658,7 +659,11 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 new IrisProtocolService(),
                 new IrisApiEventSVC(),
                 new CommandSVC()
-        );
+        ));
+        if (BlockRulesSVC.isSupported()) {
+            int commandServiceIndex = orderedServices.size() - 1;
+            orderedServices.add(commandServiceIndex, new BlockRulesSVC());
+        }
         for (IrisService i : orderedServices) {
             Class<? extends IrisService> serviceType = i.getClass().asSubclass(IrisService.class);
             services.put(serviceType, i);

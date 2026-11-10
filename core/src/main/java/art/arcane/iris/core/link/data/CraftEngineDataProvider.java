@@ -4,6 +4,7 @@ import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 
 import art.arcane.iris.core.link.ExternalDataProvider;
 import art.arcane.iris.core.link.Identifier;
+import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.nms.container.BlockProperty;
 import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.volmlib.util.cache.CacheKey;
@@ -15,6 +16,7 @@ import art.arcane.volmlib.util.math.RNG;
 import net.momirealms.craftengine.bukkit.api.CraftEngineBlocks;
 import net.momirealms.craftengine.bukkit.api.CraftEngineFurniture;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
+import net.momirealms.craftengine.bukkit.api.event.CraftEngineReloadEvent;
 import net.momirealms.craftengine.bukkit.item.BukkitItemDefinition;
 import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
@@ -27,6 +29,8 @@ import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -39,7 +43,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-public class CraftEngineDataProvider extends ExternalDataProvider {
+public class CraftEngineDataProvider extends ExternalDataProvider implements Listener {
     private static final String PERSISTENT_PROPERTY = "persistent";
     private static final BlockProperty[] FURNITURE_PROPERTIES = new BlockProperty[]{
             BlockProperty.ofBoolean("randomYaw", false),
@@ -88,6 +92,11 @@ public class CraftEngineDataProvider extends ExternalDataProvider {
         }
 
         return item.buildBukkitItem();
+    }
+
+    @EventHandler
+    public void onReload(CraftEngineReloadEvent event) {
+        INMS.get().forgetBlockRules();
     }
 
     @Override

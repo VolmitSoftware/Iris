@@ -34,6 +34,10 @@ final class GroundSurvival {
         }
     }
 
+    void forgetRules() {
+        restsOnGround.clear();
+    }
+
     // Wall and ceiling blocks fail on every ground, which says nothing about the ground they were decorated onto.
     private boolean restsOnGround(BlockState plant) {
         return restsOnGround.computeIfAbsent(plant, this::survivesOnSomeGround);

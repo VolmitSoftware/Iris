@@ -113,14 +113,15 @@ public class SurfaceSmoothingTest {
     }
 
     @Test
-    public void foliageThatLostItsGroundGoesButDecorationsStay() {
+    public void foliageStaysEvenWhereTheServerSaysItsGroundRejectsIt() {
+        BlockState fern = block("minecraft:fern");
         BlockState poppy = block("minecraft:poppy");
-        ApiChunk chunk = ground((x, z) -> GROUND).set(X, GROUND + 1, Z, block("minecraft:fern")).set(X + 2, GROUND + 1, Z, poppy);
+        ApiChunk chunk = ground((x, z) -> GROUND).set(X, GROUND + 1, Z, fern).set(X + 2, GROUND + 1, Z, poppy);
 
         chunk.generate(new PostModule());
 
-        assertEquals("stone holds no fern", AIR, chunk.get(X, GROUND + 1, Z));
-        assertEquals("perfection, not post, removes decorations", poppy, chunk.get(X + 2, GROUND + 1, Z));
+        assertEquals("post no longer removes foliage", fern, chunk.get(X, GROUND + 1, Z));
+        assertEquals(poppy, chunk.get(X + 2, GROUND + 1, Z));
     }
 
     /** A chunk of stone up to {@code heights}, the terrain's surface. */

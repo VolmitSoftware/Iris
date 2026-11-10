@@ -1666,6 +1666,11 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
+    public void forgetBlockRules() {
+        groundSurvival.forgetRules();
+    }
+
+    @Override
     public KMap<Material, List<BlockProperty>> getBlockProperties() {
         KMap<Material, List<BlockProperty>> states = new KMap<>();
 

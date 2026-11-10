@@ -49,7 +49,6 @@ final class SurfaceSmoothing {
     private static final ResourceId CAVE_AIR_ID = ResourceId.parse("minecraft:cave_air");
     private static final ResourceId WATER_ID = ResourceId.parse("minecraft:water");
     private static final ResourceId SNOW_ID = ResourceId.parse("minecraft:snow");
-    private static final ResourceId DEAD_BUSH_ID = ResourceId.parse("minecraft:dead_bush");
     private static final String SLAB_SUFFIX = "_slab";
     private static final String WATERLOGGED = "waterlogged";
     private static final String TRUE = "true";
@@ -168,7 +167,7 @@ final class SurfaceSmoothing {
             h = placeSlab(x, z, h, ha, hb, hc, hd);
         }
         settleWaterlogging(x, z, h);
-        settleFoliage(x, z, h);
+        settleVine(x, z, h);
     }
 
     private int removeFloatingNib(int x, int z, int h, int ha, int hb, int hc, int hd) {
@@ -273,16 +272,10 @@ final class SurfaceSmoothing {
         }
     }
 
-    private void settleFoliage(int x, int z, int h) {
+    private void settleVine(int x, int z, int h) {
         BlockState block = get(x, h + 1, z);
         if (has(block, BlockTrait.VINE)) {
             connectVine(x, h + 1, z, block);
-        }
-        if (!has(block, BlockTrait.FOLIAGE) && !block.material().equals(DEAD_BUSH_ID)) {
-            return;
-        }
-        if (!registry.canPlaceOn(block, get(x, h, z)) && !has(block, BlockTrait.DECORATION)) {
-            set(x, h + 1, z, AIR);
         }
     }
 

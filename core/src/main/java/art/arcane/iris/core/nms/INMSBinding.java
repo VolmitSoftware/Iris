@@ -290,6 +290,10 @@ public interface INMSBinding {
         return BukkitBlockResolution.canPlaceOnto(plant.getMaterial(), ground.getMaterial());
     }
 
+    /** Drops answers remembered from the server's block rules, which a resource reload may have changed. */
+    default void forgetBlockRules() {
+    }
+
     private void validateDimensionTypes(WorldCreator c) {
         if (!(c.generator() instanceof PlatformChunkGenerator generator)) {
             return;

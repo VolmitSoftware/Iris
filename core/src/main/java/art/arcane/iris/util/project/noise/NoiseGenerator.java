@@ -27,6 +27,14 @@ public interface NoiseGenerator {
 
     double noise(double x, double y, double z);
 
+    default double noiseOf(int dimensions, double x, double y, double z) {
+        return noise(x, y, z);
+    }
+
+    default double noiseSignedOf(int dimensions, double x, double y, double z) {
+        return noiseSigned(x, y, z);
+    }
+
     default double noiseSigned(double x) {
         return (noise(x) * 2D) - 1D;
     }

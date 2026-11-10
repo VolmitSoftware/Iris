@@ -660,7 +660,7 @@ public class CNG {
         double scale = effectiveScale;
 
         if (fracture == null || noscale) {
-            return generator.noise(
+            return generator.noiseOf(dim.length,
                     (dim.length > 0 ? dim[0] : 0D) * scale,
                     (dim.length > 1 ? dim[1] : 0D) * scale,
                     (dim.length > 2 ? dim[2] : 0D) * scale) * opacity;
@@ -682,7 +682,7 @@ public class CNG {
             z += axialFractureOffset(THIRD_AXIS_OFFSET, dim);
         }
 
-        return generator.noise(x * scale, y * scale, z * scale) * opacity;
+        return generator.noiseOf(dim.length, x * scale, y * scale, z * scale) * opacity;
     }
 
     private double axialFractureOffset(double axisOffset, double[] dim) {
@@ -711,12 +711,12 @@ public class CNG {
         double scl = effectiveScale;
 
         if (fracture == null || noscale) {
-            return generator.noise(x * scl, z * scl, 0D) * opacity;
+            return generator.noiseOf(2, x * scl, z * scl, 0D) * opacity;
         }
 
         double fx = x + ((fracture.noiseFast2D(x, z) - 0.5D) * fscale);
         double fz = z + ((fracture.noiseFast2D(x + SECOND_AXIS_OFFSET, z + SECOND_AXIS_OFFSET) - 0.5D) * fscale);
-        return generator.noise(fx * scl, fz * scl, 0D) * opacity;
+        return generator.noiseOf(2, fx * scl, fz * scl, 0D) * opacity;
     }
 
     private double getNoise(double x, double y, double z) {
@@ -1126,12 +1126,12 @@ public class CNG {
         CNG localFracture = fracture;
 
         if (localFracture == null || noscale) {
-            return signedWithOpacity(localGenerator.noiseSigned(x * scl, z * scl, 0D));
+            return signedWithOpacity(localGenerator.noiseSignedOf(2, x * scl, z * scl, 0D));
         }
 
         double fx = x + (localFracture.noiseFastSigned2D(x, z) * signedFractureScale);
         double fz = z + (localFracture.noiseFastSigned2D(x + SECOND_AXIS_OFFSET, z + SECOND_AXIS_OFFSET) * signedFractureScale);
-        return signedWithOpacity(localGenerator.noiseSigned(fx * scl, fz * scl, 0D));
+        return signedWithOpacity(localGenerator.noiseSignedOf(2, fx * scl, fz * scl, 0D));
     }
 
     private double getSignedNoise(double x, double y, double z) {

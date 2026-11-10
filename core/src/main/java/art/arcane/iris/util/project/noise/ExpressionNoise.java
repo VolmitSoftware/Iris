@@ -44,4 +44,14 @@ public class ExpressionNoise implements NoiseGenerator {
     public double noise(double x, double y, double z) {
         return expression.evaluate(rng, x, y, z);
     }
+
+    @Override
+    public double noiseOf(int dimensions, double x, double y, double z) {
+        return dimensions == 2 ? noise(x, y) : noise(x, y, z);
+    }
+
+    @Override
+    public double noiseSignedOf(int dimensions, double x, double y, double z) {
+        return dimensions == 2 ? noiseSigned(x, y) : noiseSigned(x, y, z);
+    }
 }

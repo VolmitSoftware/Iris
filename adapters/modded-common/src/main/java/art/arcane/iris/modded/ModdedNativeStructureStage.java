@@ -21,6 +21,7 @@ package art.arcane.iris.modded;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
+import art.arcane.iris.engine.mantle.DeferredPlacementRecords;
 import art.arcane.iris.engine.framework.NativeStructureLayouts;
 import art.arcane.iris.engine.framework.nativefit.NativeStructureFitting;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
@@ -401,7 +402,7 @@ final class ModdedNativeStructureStage {
                                        String structureId, NativePlacement placement) {
         Engine current = generator.engine();
         int runtimeMinY = world.getMinY();
-        WorldGenLevel boundedWorld = ModdedNativeStructureWorldgenAccess.create(
+        ModdedNativeStructureWorldgenAccess boundedWorld = ModdedNativeStructureWorldgenAccess.create(
                 world, chunkPos,
                 worldgenSurfaceHeight(current, runtimeMinY),
                 worldgenFloorHeight(current, runtimeMinY));
@@ -413,6 +414,7 @@ final class ModdedNativeStructureStage {
                     generator.getSeaLevel(), area.minY(), area.maxY() + 1);
             start.placeInChunk(boundedWorld, structureManager, generator, random, area, chunkPos);
         } finally {
+            DeferredPlacementRecords.clearWritten(current, boundedWorld.writtenBlocks());
             world.setCurrentlyGenerating(null);
         }
     }

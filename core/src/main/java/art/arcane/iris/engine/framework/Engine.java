@@ -275,7 +275,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         }
 
         IrisBiome caveBiome = getCaveBiome(x, z);
-        if (caveBiome == null) {
+        if (caveBiome == null || isCaveBiomePlaceholder(caveBiome)) {
             return surfaceBiome;
         }
 
@@ -291,6 +291,11 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         }
 
         return caveBiome;
+    }
+
+    /** The cave biome stream answers with a biome no pack file defines where the region lists no cave biomes. */
+    private static boolean isCaveBiomePlaceholder(IrisBiome caveBiome) {
+        return caveBiome.getLoadKey() == null;
     }
 
     @BlockCoordinates

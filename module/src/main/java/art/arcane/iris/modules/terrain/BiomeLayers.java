@@ -26,6 +26,7 @@ import art.arcane.volmlib.util.math.RNG;
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
+import com.volmit.generation.GenerationFailures;
 import com.volmit.noise.NoiseFactory;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
@@ -301,7 +302,7 @@ public final class BiomeLayers {
         try {
             blocks.add(layer.get(random, index + j, (wx + j) / blocksPerSample, j, (wz - j) / blocksPerSample));
         } catch (Throwable e) {
-            log.error("A biome layer failed to pick a block", e);
+            GenerationFailures.skipPlacement(log, e, "layer block", "biome layer " + index, "at " + (long) wx + "," + (long) wz + " depth " + j);
         }
     }
 

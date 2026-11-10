@@ -20,6 +20,7 @@ package art.arcane.iris.engine.decorator;
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.ModuleLog;
+import com.volmit.generation.GenerationFailures;
 import com.volmit.geometry.BlockFace;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
@@ -90,7 +91,7 @@ final class DecoratorCore {
                     }
                 }
             } catch (Throwable e) {
-                log.error("A decorator failed to pick for the column", e);
+                GenerationFailures.skipPlacement(log, e, "decorator", "chance gate", "at " + realX + "," + realZ);
             }
         }
 
@@ -148,7 +149,7 @@ final class DecoratorCore {
                 data.set(x, lowerY, z, lower);
                 data.set(x, upperY, z, upper);
             } catch (Throwable e) {
-                scene.log().error("Failed to place a two-block plant", e);
+                GenerationFailures.skipPlacement(scene.log(), e, "decoration", bd.toString(), "at " + realX + "," + lowerY + "," + realZ);
             }
             return;
         }
@@ -318,7 +319,7 @@ final class DecoratorCore {
                 data.set(xf, lowerY, zf, lower);
                 data.set(xf, upperY, zf, upper);
             } catch (Throwable e) {
-                scene.log().error("Failed to place a two-block plant", e);
+                GenerationFailures.skipPlacement(scene.log(), e, "decoration", bd.toString(), "at " + xf + "," + lowerY + "," + zf);
             }
             return;
         }

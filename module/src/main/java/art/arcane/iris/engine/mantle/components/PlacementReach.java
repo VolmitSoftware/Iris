@@ -31,6 +31,7 @@ import art.arcane.iris.modules.objects.ObjectSize;
 import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
+import com.volmit.generation.GenerationFailures;
 import com.volmit.geometry.BlockBox;
 import com.volmit.resource.PackResources;
 
@@ -93,6 +94,7 @@ final class PlacementReach {
             }
             return reach;
         } catch (Throwable failure) {
+            GenerationFailures.rethrowEngineFailure(failure);
             log.error("Failed to work out the reach of an object placement", failure);
             return 0;
         }

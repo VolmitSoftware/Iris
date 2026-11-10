@@ -24,6 +24,7 @@ import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.project.matter.TileWrapper;
 import com.google.common.collect.ImmutableList;
+import com.volmit.generation.GenerationFailures;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.tools.WorldMaintenance;
@@ -963,6 +964,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
         try {
             setData(pos.getX(), pos.getY(), pos.getZ(), data);
         } catch (Throwable e) {
+            GenerationFailures.rethrowEngineFailure(e);
             // Reached per position while an object writes past the edge of the writer window, which is
             // how a large object is clipped. Nothing here is actionable from outside the engine.
             IrisLogging.debug("No set? " + data.toString() + " for " + pos.toString());

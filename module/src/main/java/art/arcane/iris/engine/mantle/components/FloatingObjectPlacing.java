@@ -40,6 +40,7 @@ import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.Level;
 import com.volmit.config.PackSettings;
+import com.volmit.generation.GenerationFailures;
 import com.volmit.geometry.BlockBox;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.resource.ResourceId;
@@ -402,6 +403,7 @@ public final class FloatingObjectPlacing {
                 }
             }
         } catch (Throwable e) {
+            GenerationFailures.rethrowEngineFailure(e);
             log.error("Failed to work out the reach of the floating biomes' objects", e);
         }
         return maxObjectExtent;
@@ -462,6 +464,7 @@ public final class FloatingObjectPlacing {
                 reach = Math.max(reach, placementRadius(ResolvedFloatingChild.topObjects(child, surface)));
                 reach = Math.max(reach, placementRadius(ResolvedFloatingChild.bottomObjects(child)));
             } catch (Throwable e) {
+                GenerationFailures.rethrowEngineFailure(e);
                 log.error("Failed to work out the reach of a floating biome's objects", e);
             }
             return reach;
@@ -492,6 +495,7 @@ public final class FloatingObjectPlacing {
                 }
                 return reach;
             } catch (Throwable e) {
+                GenerationFailures.rethrowEngineFailure(e);
                 log.error("Failed to size a floating object", e);
                 return 0;
             }

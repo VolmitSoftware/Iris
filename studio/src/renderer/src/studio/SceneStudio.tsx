@@ -18,6 +18,7 @@ import { INTS_PER_BLOCK, type BlockScene } from '../scene/sceneDecoding'
 import { buildSceneMesh, type SceneMesh } from '../scene/sceneMesh'
 import { BakeMeter, useBakeTiming } from './BakeMeter'
 import { EntryBrowser } from './EntryBrowser'
+import { useEntryFiles } from './EntryFileDialogs'
 import { NodeInspector } from './NodeInspector'
 import { NodePane } from './NodePane'
 import { SceneViewport, type PickedSurface } from './SceneViewport'
@@ -48,6 +49,8 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
   const [chosen, setChosen] = useState<{ key: string; variant: number } | null>(null)
   const entry = entries.find((candidate) => candidate.key === chosen?.key) ?? entries[0] ?? null
   const variant = entry !== null && chosen?.key === entry.key ? Math.min(chosen.variant, entry.variants - 1) : 0
+  const entryKeys = useMemo(() => entries.map((candidate) => candidate.key), [entries])
+  const files = useEntryFiles(client, view.id, entryKeys, (key) => setChosen({ key, variant: 0 }), tell)
   const [farLeavesOnly, setFarLeavesOnly] = useState(false)
   const chooseVariant = (next: number): void => {
     if (entry !== null) {
@@ -122,7 +125,15 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
         )}
       </div>
       <aside className={cn('flex shrink-0 flex-col border-l bg-card', view.editable ? 'w-[300px]' : 'w-[250px]')}>
-        <EntryBrowser className={selected === null ? 'flex-[7]' : 'flex-[3]'} title={view.label} entries={entries} current={entry?.key ?? null} onSelect={(key) => setChosen({ key, variant: 0 })} />
+        <EntryBrowser
+          className={selected === null ? 'flex-[7]' : 'flex-[3]'}
+          title={view.label}
+          entries={entries}
+          current={entry?.key ?? null}
+          onSelect={(key) => setChosen({ key, variant: 0 })}
+          fileActions={view.creatable ? files.actions : undefined}
+        />
+        {files.dialogs}
         {view.baked && entry !== null && <BakeMeter timing={bakeTiming} />}
         {selected !== null && editor.state !== null ? (
           <NodeInspector key={JSON.stringify(selected.path)} node={selected} state={editor.state} values={values} suggestions={suggestions} onEdit={editor.edit} />

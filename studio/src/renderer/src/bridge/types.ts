@@ -33,9 +33,10 @@ export interface SceneEntry {
   variants: number
 }
 
-/** A scene view as the server lists it; `editable` when its entries can be edited as nodes, `baked` when their bake can be timed, `parts` when a block can be traced to the part that placed it. */
+/** A scene view as the server lists it; `editable` when its entries can be edited as nodes, `creatable` when they can also be created and deleted, `baked` when their bake can be timed, `parts` when a block can be traced to the part that placed it. */
 export interface SceneViewInfo extends ModuleViewInfo {
   editable: boolean
+  creatable: boolean
   baked: boolean
   parts: boolean
 }

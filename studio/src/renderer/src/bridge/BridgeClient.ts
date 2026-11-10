@@ -160,6 +160,23 @@ export class BridgeClient {
     return this.json(`scene-write?${new URLSearchParams({ view: viewId, key })}`, { method: 'POST', body: JSON.stringify({ revision, text }) })
   }
 
+  /** Writes a new entry from its view's starter; it is listed once the pack has reloaded. Refused when the key can't name a new one. */
+  async sceneCreate(viewId: string, key: string): Promise<void> {
+    await this.json(`scene-create?${new URLSearchParams({ view: viewId, key })}`, { method: 'POST' })
+  }
+
+  /** The pack files that still name the entry, such as the biomes that place it. */
+  async sceneUses(viewId: string, key: string): Promise<string[]> {
+    const uses = await this.json<{ files: string[] }>(`scene-uses?${new URLSearchParams({ view: viewId, key })}`)
+    return uses.files
+  }
+
+  /** Moves the entry's file to the trash; says where it went. */
+  async sceneDelete(viewId: string, key: string): Promise<string> {
+    const trashed = await this.json<{ to: string }>(`scene-delete?${new URLSearchParams({ view: viewId, key })}`, { method: 'POST' })
+    return trashed.to
+  }
+
   /** What a setting naming an entry of a platform registry (reference) or a resource of the pack (resource) may be typed as, sorted. */
   suggestions(of: { reference: string } | { resource: string }): Promise<string[]> {
     return this.json(`suggestions?${new URLSearchParams(of)}`)

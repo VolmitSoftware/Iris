@@ -534,7 +534,9 @@ final class RuinScenes implements SceneView {
   settings (`NodeSettings`, shown as the pack's schema describes their type), the nodes it holds and the `Edits` the
   studio may make (a child list to move nodes into, whether it moves, the `Addition`s it offers). Places in the file
   are `JsonPath`s of `Key` and `Index` steps. The studio writes the file itself, rewriting only what changes; the
-  view never writes.
+  view never writes. A view whose entries the studio may create and delete returns a `SceneCreation` from
+  `creation()`: the resource kind of its files, the starter JSON of a new entry and the text other files name an
+  entry by; the studio does the writing, listing of uses and trashing.
 - Absent values are empty, never blank or `-1`: an entry without a group, a node that draws no part of the scene
   (`GraphNode.part()`), a column a pattern places nothing at (`BlockPattern.pickAt`).
 

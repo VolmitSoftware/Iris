@@ -237,6 +237,9 @@ public final class StudioBridge implements AutoCloseable {
             case "scene-file" -> sendJson(exchange, STATUS_OK, sceneFile(get(exchange).engine(), query));
             case "scene-edit" -> sendJson(exchange, STATUS_OK, sceneEdit(exchange, query));
             case "scene-write" -> sendJson(exchange, STATUS_OK, sceneWrite(exchange, query));
+            case "scene-create" -> sendJson(exchange, STATUS_OK, sceneCreate(exchange, query));
+            case "scene-uses" -> sendJson(exchange, STATUS_OK, sceneUses(get(exchange).engine(), query));
+            case "scene-delete" -> sendJson(exchange, STATUS_OK, sceneDelete(exchange, query));
             case "suggestions" -> sendJson(exchange, STATUS_OK, suggestions(get(exchange).engine(), query));
             case "scene-entries" -> sendJson(exchange, STATUS_OK, sceneEntries(get(exchange).engine(), query));
             case "scene-bake" -> sendJson(exchange, STATUS_OK, sceneBake(get(exchange).engine(), query));
@@ -343,7 +346,7 @@ public final class StudioBridge implements AutoCloseable {
         StudioEditors editors = StudioEditors.of(engine);
         StudioScenes scenes = StudioScenes.of(engine);
         return scenes.views().stream()
-                .map(view -> new SceneViewInfo(view.id(), view.label(), view.description(), editors.edits(view.id()), scenes.isBaked(view.id()), scenes.hasParts(view.id())))
+                .map(view -> new SceneViewInfo(view.id(), view.label(), view.description(), editors.edits(view.id()), editors.edits(view.id()) && editors.creates(view.id()), scenes.isBaked(view.id()), scenes.hasParts(view.id())))
                 .toList();
     }
 
@@ -369,8 +372,25 @@ public final class StudioBridge implements AutoCloseable {
         });
     }
 
+    private MessageBody sceneCreate(HttpExchange exchange, Query query) throws IOException {
+        Engine engine = post(exchange).engine();
+        return editing(() -> {
+            StudioEditors.of(engine).create(query.text("view"), query.text("key"));
+            return new MessageBody("Created " + query.text("key"));
+        });
+    }
+
+    private static UsesBody sceneUses(Engine engine, Query query) throws IOException {
+        return editing(() -> new UsesBody(StudioEditors.of(engine).usesOf(query.text("view"), query.text("key"))));
+    }
+
+    private TrashedBody sceneDelete(HttpExchange exchange, Query query) throws IOException {
+        Engine engine = post(exchange).engine();
+        return editing(() -> new TrashedBody(StudioEditors.of(engine).delete(query.text("view"), query.text("key"))));
+    }
+
     // A refused edit is the user's to fix, so it answers with why rather than as a failure of the bridge.
-    private static StudioEditors.EditorState editing(EditorTask task) throws IOException {
+    private static <T> T editing(EditorTask<T> task) throws IOException {
         try {
             return task.run();
         } catch (NoSuchElementException unknown) {
@@ -385,8 +405,8 @@ public final class StudioBridge implements AutoCloseable {
     }
 
     @FunctionalInterface
-    private interface EditorTask {
-        StudioEditors.EditorState run() throws IOException;
+    private interface EditorTask<T> {
+        T run() throws IOException;
     }
 
     private static String readBody(HttpExchange exchange) throws IOException {
@@ -783,8 +803,14 @@ public final class StudioBridge implements AutoCloseable {
     private record ErrorBody(String error) {
     }
 
-    /** A scene view as the studio lists it; {@code editable} when its entries can be edited as nodes, {@code baked} when their bake can be timed, {@code parts} when the blocks of a scene can be told by the part that placed them. */
-    private record SceneViewInfo(String id, String label, String description, boolean editable, boolean baked, boolean parts) {
+    /** A scene view as the studio lists it; {@code editable} when its entries can be edited as nodes, {@code creatable} when they can also be created and deleted, {@code baked} when their bake can be timed, {@code parts} when the blocks of a scene can be told by the part that placed them. */
+    private record SceneViewInfo(String id, String label, String description, boolean editable, boolean creatable, boolean baked, boolean parts) {
+    }
+
+    private record UsesBody(List<String> files) {
+    }
+
+    private record TrashedBody(String to) {
     }
 
     /** A {@link SceneEntry} as the studio reads it, with a blank group for none. */

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import type { GraphNode } from '../bridge/types'
 import type { NodeEditor } from '../editor/useNodeEditor'
 import { NodeCanvas } from './NodeCanvas'
-import { isTypingInto, nodeEditorActionFor, type NodeEditorAction } from './shortcuts'
+import { isInEntryBrowser, isTypingInto, nodeEditorActionFor, type NodeEditorAction } from './shortcuts'
 import { useBindings } from './useBindings'
 
 interface NodePaneProps {
@@ -91,6 +91,9 @@ function useEditorKeys(
     // Captured, so the editor's keys come before the window's own: F fits the nodes instead of following the player.
     const down = (event: KeyboardEvent): void => {
       const action = isTypingInto(event.target) ? null : nodeEditorActionFor(event, bindings)
+      if (action === 'deleteNode' && isInEntryBrowser(event.target)) {
+        return
+      }
       if (action === 'dismiss') {
         onSelect(null)
       } else if (action === 'showAllNodes' && showAllRef.current !== null) {

@@ -20,4 +20,9 @@ public interface EditableSceneView extends SceneView {
      * @throws IllegalArgumentException when {@code text} does not hold what this view edits
      */
     NodeGraph graph(PackWorld world, String key, JsonText text);
+
+    /** How the studio creates and removes entries of this view; empty when it may not, which is the default. */
+    default Optional<SceneCreation> creation() {
+        return Optional.empty();
+    }
 }

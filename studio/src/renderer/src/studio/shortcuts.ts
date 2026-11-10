@@ -223,6 +223,11 @@ export function isTypingInto(target: EventTarget | null): boolean {
   return target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement
 }
 
+/** Whether a key press goes to the list of a view's entries, where Delete is for the entry and not the chosen node. */
+export function isInEntryBrowser(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest('[data-entry-browser]') !== null
+}
+
 function sharesKeys(first: ShortcutGroup, second: ShortcutGroup): boolean {
   const a = GROUP_SCOPES[first]
   const b = GROUP_SCOPES[second]

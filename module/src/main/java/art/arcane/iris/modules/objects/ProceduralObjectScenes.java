@@ -31,6 +31,7 @@ import com.volmit.tooling.BlockParts;
 import com.volmit.tooling.EditableSceneView;
 import com.volmit.tooling.JsonText;
 import com.volmit.tooling.NodeGraph;
+import com.volmit.tooling.SceneCreation;
 import com.volmit.tooling.SceneEntry;
 import com.volmit.tooling.SceneFile;
 import com.volmit.world.PackWorld;
@@ -46,6 +47,24 @@ import java.util.Optional;
 public final class ProceduralObjectScenes implements EditableSceneView {
     private static final ResourceId ID = ResourceId.parse("iris:objects/procedural");
     private static final char FOLDER_SEPARATOR = '/';
+    private static final String STARTER = """
+            {
+                "materials": [
+                    {"role": "wood", "block": "minecraft:oak_log"},
+                    {"role": "leaves", "block": "minecraft:oak_leaves"}
+                ],
+                "parts": [
+                    {
+                        "role": "wood",
+                        "stem": {"length": [6, 9], "radius": 0.5},
+                        "children": [
+                            {"role": "leaves", "mode": "FILL", "blob": {"radius": 3}}
+                        ]
+                    }
+                ]
+            }
+            """;
+    private static final SceneCreation CREATION = new SceneCreation(ProceduralObjectCatalog.DEFINITIONS, STARTER, ProceduralObjectCatalog.KEY_PREFIX);
 
     @Override
     public ResourceId id() {
@@ -117,6 +136,11 @@ public final class ProceduralObjectScenes implements EditableSceneView {
         ProceduralObject read = world.resources().find(ProceduralObjectCatalog.DEFINITIONS, world.resources().idOf(key))
                 .orElseGet(ProceduralObject::new);
         return ProceduralObjectGraph.of(key.substring(key.lastIndexOf(FOLDER_SEPARATOR) + 1), text, read);
+    }
+
+    @Override
+    public Optional<SceneCreation> creation() {
+        return Optional.of(CREATION);
     }
 
     private static BakeRun runOf(BakeProfile profile) {

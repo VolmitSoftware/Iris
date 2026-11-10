@@ -25,6 +25,7 @@ import com.volmit.tooling.GraphNode;
 import com.volmit.tooling.JsonPath;
 import com.volmit.tooling.JsonText;
 import com.volmit.tooling.NodeGraph;
+import com.volmit.tooling.SceneCreation;
 import com.volmit.tooling.SceneFile;
 
 import java.io.IOException;
@@ -116,6 +117,49 @@ public final class StudioEditors {
         currentText(file, revision);
         JsonText.parse(text);
         return save(viewId, key, file, text);
+    }
+
+    /** Whether entries of {@code viewId} can be created and removed from the studio. */
+    public boolean creates(String viewId) {
+        return views.ask(viewId, "tell whether entries are created", view -> view.creation().isPresent());
+    }
+
+    /**
+     * Writes a new entry {@code key} of the view from its starter text. The entry shows once the pack has reloaded.
+     *
+     * @throws EditsLockedException when the world is not a studio world
+     * @throws IllegalArgumentException naming why, when {@code key} can't name a new entry
+     * @throws NoSuchElementException when there is no such view, or its entries can't be created
+     */
+    public void create(String viewId, String key) throws IOException {
+        requireStudioWorld();
+        files(viewId).create(key);
+    }
+
+    /**
+     * The files of the pack that still name entry {@code key}, which a removal would leave without it.
+     *
+     * @throws NoSuchElementException when there is no such view, or its entries can't be removed
+     */
+    public List<String> usesOf(String viewId, String key) throws IOException {
+        return files(viewId).usesOf(key);
+    }
+
+    /**
+     * Moves entry {@code key} to the trash and tells where it went.
+     *
+     * @throws EditsLockedException when the world is not a studio world
+     * @throws NoSuchElementException when there is no such view, or the entry has no file
+     */
+    public String delete(String viewId, String key) throws IOException {
+        requireStudioWorld();
+        return files(viewId).moveToTrash(key);
+    }
+
+    private SceneFiles files(String viewId) {
+        SceneCreation creation = views.ask(viewId, "tell how entries are created", EditableSceneView::creation)
+                .orElseThrow(() -> new NoSuchElementException("The entries of " + viewId + " can't be created or removed"));
+        return new SceneFiles(packFolder, creation, SceneFiles.systemTrash());
     }
 
     private void requireStudioWorld() {

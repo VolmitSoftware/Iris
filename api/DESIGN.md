@@ -1373,6 +1373,10 @@ API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSet
   reads as nodes (`NodeGraph`). The studio makes every write, so one implementation keeps the author's layout,
   checks the result is still JSON, refuses edits outside a studio world and moves the file in atomically for the pack
   watcher. `JsonText` is in the API because a view reads positions from it; splicing text is not.
+- **Creating and deleting are the host's too.** A view says only how its entries are made (`SceneCreation`: the kind
+  whose folder holds the files, the JSON a new one starts as, and the prefix other files name an entry by). The host
+  checks the key is a folder-safe name, writes the file, lists the files that still name an entry before it goes, and
+  moves it to the trash, so a view never touches the pack's files.
 - **Paths are typed.** A `JsonPath` step is a `Key` or an `Index`, so a view cannot write a step the file cannot hold.
 - **The wire is the host's.** The studio protocol may encode an absent part or block as it likes (Iris sends `-1`);
   the API types say absent with `Optional`/`OptionalInt`.

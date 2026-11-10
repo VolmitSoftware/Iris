@@ -5,7 +5,8 @@
 #
 # VolmLib is normally picked up as a composite build straight from source, so this is
 # only needed when you build with -PuseLocalVolmLib=false, or when another tool has to
-# resolve VolmLib from ~/.m2 rather than from the included build.
+# resolve VolmLib from ~/.m2 rather than from the included build. Gradle reads ~/.m2 only
+# when -PuseMavenLocal=true is passed or the composite VolmLib is off (-PuseLocalVolmLib=false).
 #
 # The lookup mirrors settings.gradle: it walks up from this script looking for a
 # VolmLib checkout sitting beside the project root. Set VOLMLIB_DIR to override.

@@ -8,7 +8,7 @@ import art.arcane.iris.engine.framework.structure.StructureAssemblyStatus;
 import art.arcane.iris.engine.framework.structure.StructureGraphCompilation;
 import art.arcane.iris.engine.framework.structure.StructureResourceBundleGraphCompiler;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
+import com.volmit.geometry.BlockPosition;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.JsonObject;
@@ -31,6 +31,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class JigsawStudioProjectCreatorTest {
+    private static final com.volmit.tooling.ObjectCodec CODEC = new art.arcane.iris.core.tooling.IrisObjectCodec();
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -43,9 +45,9 @@ public class JigsawStudioProjectCreatorTest {
                 JigsawStudioCompatibilityTarget.VANILLA_PORTABLE,
                 new JigsawStudioCellDimensions(24, 12, 18));
 
-        StructureResourceBundleGraphCompiler.requireViable(JigsawStudioProjectCreator.bundle(options));
+        StructureResourceBundleGraphCompiler.requireViable(JigsawStudioProjectCreator.bundle(CODEC, options));
 
-        StructureWriteResult created = JigsawStudioProjectCreator.create(temporaryDirectory, options);
+        StructureWriteResult created = JigsawStudioProjectCreator.create(temporaryDirectory, CODEC, options);
 
         assertTrue(created.successful());
         assertTrue(Files.isRegularFile(temporaryDirectory.resolve("structures/settlement/test.json")));
@@ -99,7 +101,7 @@ public class JigsawStudioProjectCreatorTest {
                 .getAsJsonObject().get("pool").getAsString());
         assertTrue(cross.getAsJsonArray("themes").isEmpty());
 
-        StructureWriteResult duplicate = JigsawStudioProjectCreator.create(temporaryDirectory, options);
+        StructureWriteResult duplicate = JigsawStudioProjectCreator.create(temporaryDirectory, CODEC, options);
         assertFalse(duplicate.successful());
         assertEquals(StructureWriteResult.Status.ADD_ONLY_CONFLICT, duplicate.status());
 
@@ -153,7 +155,7 @@ public class JigsawStudioProjectCreatorTest {
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(16, 16, 16));
 
-        assertTrue(JigsawStudioProjectCreator.create(temporaryDirectory, options).successful());
+        assertTrue(JigsawStudioProjectCreator.create(temporaryDirectory, CODEC, options).successful());
         assertTrue(JigsawStudioStructureEditor.updateRequireCaps(
                 temporaryDirectory,
                 "caps/default",
@@ -177,7 +179,7 @@ public class JigsawStudioProjectCreatorTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(16, 16, 16));
-        StructureResourceBundle source = JigsawStudioProjectCreator.bundle(options);
+        StructureResourceBundle source = JigsawStudioProjectCreator.bundle(CODEC, options);
         StructureResourceBundle.Builder builder = StructureResourceBundle.builder(source.key())
                 .source(source.source())
                 .backend(source.backend())
@@ -200,7 +202,7 @@ public class JigsawStudioProjectCreatorTest {
         for (long seed : List.of(0L, 1337L)) {
             StructureAssemblyResult result = StructureAssembler.forCompilation(
                     compilation,
-                    new IrisPosition(0, 64, 0)).assemble(new RNG(seed));
+                    new BlockPosition(0, 64, 0)).assemble(new RNG(seed));
 
             assertEquals(result.detail(), StructureAssemblyStatus.COMPLETE, result.status());
         }
@@ -215,7 +217,7 @@ public class JigsawStudioProjectCreatorTest {
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(15, 15, 15));
 
-        StructureWriteResult result = JigsawStudioProjectCreator.create(temporaryDirectory, options);
+        StructureWriteResult result = JigsawStudioProjectCreator.create(temporaryDirectory, CODEC, options);
 
         assertTrue(result.successful());
         JsonObject startPool = JsonParser.parseString(Files.readString(
@@ -255,10 +257,10 @@ public class JigsawStudioProjectCreatorTest {
                 .getAsJsonObject().getAsJsonObject("position").get("y").getAsInt());
 
         StructureGraphCompilation compilation = StructureResourceBundleGraphCompiler.compile(
-                JigsawStudioProjectCreator.bundle(options)).getFirst();
+                JigsawStudioProjectCreator.bundle(CODEC, options)).getFirst();
         StructureAssemblyResult preview = StructureAssembler.forCompilation(
                 compilation,
-                new IrisPosition(0, 0, 0)).assemble(new RNG(1337L));
+                new BlockPosition(0, 0, 0)).assemble(new RNG(1337L));
         assertEquals(preview.detail(), StructureAssemblyStatus.COMPLETE, preview.status());
         assertTrue(preview.pieces().size() > 1);
         assertTrue(preview.pieces().size() <= 96);
@@ -272,7 +274,7 @@ public class JigsawStudioProjectCreatorTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(16, 16, 16));
-        assertTrue(JigsawStudioProjectCreator.create(temporaryDirectory, options).successful());
+        assertTrue(JigsawStudioProjectCreator.create(temporaryDirectory, CODEC, options).successful());
         Path pool = temporaryDirectory.resolve("jigsaw-pools/settlement/test/pieces.json");
 
         StructureWriteResult terminalPool = JigsawStudioGraphEditor.createPool(
@@ -308,6 +310,7 @@ public class JigsawStudioProjectCreatorTest {
 
         assertTrue(JigsawStudioGraphEditor.createPiece(
                 temporaryDirectory,
+                CODEC,
                 "settlement/test",
                 "settlement/test/pieces",
                 "settlement/test/side",
@@ -328,7 +331,7 @@ public class JigsawStudioProjectCreatorTest {
                 temporaryDirectory,
                 "settlement/test",
                 "settlement/test/side",
-                new IrisPosition(8, 8, 0),
+                new BlockPosition(8, 8, 0),
                 "village/road").successful());
         JsonObject channeledPiece = JsonParser.parseString(Files.readString(
                 temporaryDirectory.resolve("jigsaw-pieces/settlement/test/side.json"),
@@ -362,10 +365,11 @@ public class JigsawStudioProjectCreatorTest {
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(12, 10, 14));
-        assertTrue(JigsawStudioProjectCreator.create(temporaryDirectory, options).successful());
+        assertTrue(JigsawStudioProjectCreator.create(temporaryDirectory, CODEC, options).successful());
 
         StructureWriteResult result = JigsawStudioGraphEditor.createPiece(
                 temporaryDirectory,
+                CODEC,
                 "stronghold/test",
                 "stronghold/test/start",
                 "stronghold/test/hall",
@@ -413,6 +417,7 @@ public class JigsawStudioProjectCreatorTest {
 
         assertTrue(JigsawStudioGraphEditor.resizePieceObject(
                 temporaryDirectory,
+                CODEC,
                 "stronghold/test",
                 "stronghold/test/hall",
                 new JigsawStudioCellDimensions(16, 12, 18)).writeResult().successful());
@@ -444,9 +449,10 @@ public class JigsawStudioProjectCreatorTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(10, 6, 14));
-        assertTrue(JigsawStudioProjectCreator.create(temporaryDirectory, options).successful());
+        assertTrue(JigsawStudioProjectCreator.create(temporaryDirectory, CODEC, options).successful());
         assertTrue(JigsawStudioGraphEditor.createPiece(
                 temporaryDirectory,
+                CODEC,
                 "settlement/rectangular",
                 "settlement/rectangular/pieces",
                 "settlement/rectangular/east-end",
@@ -461,6 +467,7 @@ public class JigsawStudioProjectCreatorTest {
 
         JigsawStudioGraphEditor.VariantResizeResult resized = JigsawStudioGraphEditor.resizePieceObject(
                 temporaryDirectory,
+                CODEC,
                 "settlement/rectangular",
                 "settlement/rectangular/east-end",
                 new JigsawStudioCellDimensions(12, 8, 18));
@@ -485,7 +492,7 @@ public class JigsawStudioProjectCreatorTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(16, 16, 16));
-        assertTrue(JigsawStudioProjectCreator.create(temporaryDirectory, options).successful());
+        assertTrue(JigsawStudioProjectCreator.create(temporaryDirectory, CODEC, options).successful());
 
         List<String> pools = JigsawStudioGraphEditor.ownedPoolKeys(
                 temporaryDirectory,
@@ -498,6 +505,7 @@ public class JigsawStudioProjectCreatorTest {
         assertEquals("settlement/test/variants/end/variant-1", firstKey);
         assertTrue(JigsawStudioGraphEditor.duplicatePiece(
                 temporaryDirectory,
+                CODEC,
                 "settlement/test",
                 "settlement/test/end",
                 firstKey).successful());

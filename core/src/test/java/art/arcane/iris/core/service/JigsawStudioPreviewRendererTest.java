@@ -5,13 +5,20 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioMode;
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
+import art.arcane.iris.engine.framework.structure.ObjectFrame;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
 import art.arcane.iris.spi.PlatformBlockState;
-import org.bukkit.World;
+import com.volmit.ModuleLog;
+import com.volmit.block.BlockRegistry;
+import com.volmit.object.PackObjects;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
+import com.volmit.tooling.world.ToolWorld;
 import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -25,15 +32,17 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class JigsawStudioPreviewRendererTest {
+    private final BlockRegistry registry = mock(BlockRegistry.class);
+
     @Test
     public void planUsesPlacedPieceCenterAndExactBlockState() throws Exception {
         PlatformBlockState stone = mock(PlatformBlockState.class);
         when(stone.key()).thenReturn("minecraft:stone");
         IrisObject object = new IrisObject(3, 3, 3);
         object.setUnsigned(2, 1, 0, stone);
-        PlacedStructurePiece piece = piece(object, 100, 70, -40, ObjectTurn.of(0, 0, 0));
+        PlacedStructurePiece piece = piece(object, 100, 70, -40, PieceTurn.NONE);
 
-        JigsawStudioPreviewRenderer.PreviewPlan plan = JigsawStudioPreviewRenderer.plan(List.of(piece));
+        JigsawStudioPreviewRenderer.PreviewPlan plan = JigsawStudioPreviewRenderer.plan(List.of(piece), packOf(object));
 
         assertEquals(1, plan.blocks().size());
         assertEquals(
@@ -56,7 +65,7 @@ public class JigsawStudioPreviewRendererTest {
         object.setUnsigned(0, 0, 0, structureVoid);
 
         JigsawStudioPreviewRenderer.PreviewPlan plan = JigsawStudioPreviewRenderer.plan(List.of(
-                piece(object, 0, 65, 0, ObjectTurn.of(0, 0, 0))));
+                piece(object, 0, 65, 0, PieceTurn.NONE)), packOf(object));
 
         assertTrue(plan.blocks().isEmpty());
         assertFalse(plan.bounds().isEmpty());
@@ -64,7 +73,7 @@ public class JigsawStudioPreviewRendererTest {
 
     @Test
     public void emptyAssemblyProducesAnEmptyPlan() throws Exception {
-        JigsawStudioPreviewRenderer.PreviewPlan plan = JigsawStudioPreviewRenderer.plan(List.of());
+        JigsawStudioPreviewRenderer.PreviewPlan plan = JigsawStudioPreviewRenderer.plan(List.of(), packOf(new IrisObject(1, 1, 1)));
 
         assertTrue(plan.blocks().isEmpty());
         assertTrue(plan.bounds().isEmpty());
@@ -77,7 +86,7 @@ public class JigsawStudioPreviewRendererTest {
                 10,
                 10,
                 10,
-                ObjectTurn.of(0, 0, 0));
+                PieceTurn.NONE);
 
         PlacedStructurePiece planar = JigsawStudioService.alignPreviewPieces(
                 List.of(source),
@@ -111,11 +120,9 @@ public class JigsawStudioPreviewRendererTest {
 
     @Test
     public void forgettingARequestDropsTrackingWithoutWorldCleanup() {
-        World world = mock(World.class);
-        UUID worldId = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        ToolWorld world = mock(ToolWorld.class);
         UUID requestId = UUID.fromString("22222222-2222-2222-2222-222222222222");
-        when(world.getUID()).thenReturn(worldId);
-        JigsawStudioPreviewRenderer renderer = new JigsawStudioPreviewRenderer();
+        JigsawStudioPreviewRenderer renderer = new JigsawStudioPreviewRenderer(mock(ModuleLog.class));
         renderer.render(
                 world,
                 requestId,
@@ -132,19 +139,31 @@ public class JigsawStudioPreviewRendererTest {
         verifyNoInteractions(world);
     }
 
+    /** A pack whose only object, {@code preview}, is {@code object}, and whose blocks are {@link #registry}. */
+    private PackResources packOf(IrisObject object) {
+        PackResources pack = mock(PackResources.class);
+        PackObjects objects = mock(PackObjects.class);
+        when(pack.idOf("preview")).thenReturn(ResourceId.parse("test:preview"));
+        when(pack.objects()).thenReturn(objects);
+        when(objects.object(ResourceId.parse("test:preview"))).thenReturn(Optional.of(object));
+        when(pack.blocks()).thenReturn(registry);
+        return pack;
+    }
+
     private static PlacedStructurePiece piece(
             IrisObject object,
             int x,
             int y,
             int z,
-            ObjectTurn rotation
+            PieceTurn rotation
     ) {
         int minimumX = x - object.getW() / 2;
         int minimumY = y - object.getH() / 2;
         int minimumZ = z - object.getD() / 2;
         return new PlacedStructurePiece(
                 new IrisJigsawPiece().setObject("preview"),
-                object,
+                "preview",
+                new ObjectFrame(object.getW(), object.getH(), object.getD()),
                 x,
                 y,
                 z,

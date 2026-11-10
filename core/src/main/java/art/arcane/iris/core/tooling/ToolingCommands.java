@@ -20,10 +20,12 @@ package art.arcane.iris.core.tooling;
 
 import art.arcane.iris.core.modules.IrisValidationContext;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.spi.IrisServices;
 import com.volmit.host.CommandRegistration;
 import com.volmit.resource.PlatformRegistries;
 import com.volmit.tooling.Argument;
 import com.volmit.tooling.Command;
+import com.volmit.tooling.PlatformStructures;
 import com.volmit.world.PackWorld;
 
 import java.util.ArrayList;
@@ -55,11 +57,18 @@ public final class ToolingCommands {
     private final PackDirectory packs;
     private final Executor workers;
     private final Supplier<Optional<PlatformRegistries>> platform;
+    private final Supplier<Optional<PlatformStructures>> platformStructures;
 
     public ToolingCommands(PackDirectory packs, Executor workers, Supplier<Optional<PlatformRegistries>> platform) {
+        this(packs, workers, platform, Optional::empty);
+    }
+
+    public ToolingCommands(PackDirectory packs, Executor workers, Supplier<Optional<PlatformRegistries>> platform,
+                           Supplier<Optional<PlatformStructures>> platformStructures) {
         this.packs = packs;
         this.workers = workers;
         this.platform = platform;
+        this.platformStructures = platformStructures;
     }
 
     /** The dispatcher of the bound platform, with daemon worker threads created as commands need them. */
@@ -70,7 +79,8 @@ public final class ToolingCommands {
             worker.setDaemon(true);
             return worker;
         });
-        return new ToolingCommands(PackDirectory.ofBoundPlatform(), workers, IrisValidationContext::boundPlatformRegistries);
+        return new ToolingCommands(PackDirectory.ofBoundPlatform(), workers, IrisValidationContext::boundPlatformRegistries,
+                () -> Optional.ofNullable(IrisServices.getOrNull(PlatformStructures.class)));
     }
 
     /** Whether {@code word} opens the module branch of the {@code /iris} root, {@code module} or its alias {@code m}. */
@@ -223,7 +233,8 @@ public final class ToolingCommands {
     }
 
     private CommandRun contextOf(ToolingSender sender, ResolvedPack pack, LocatedCommand located) {
-        return new CommandRun(sender, pack.served().toolPack(located.root().module().log()), pack.world(), platform.get());
+        return new CommandRun(sender, pack.served().toolPack(located.root().module().log()), pack.world(), platform.get(),
+                platformStructures.get());
     }
 
     private static void parseArguments(LocatedCommand located, CommandRun context) throws CommandFailure {

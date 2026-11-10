@@ -19,6 +19,7 @@
 package art.arcane.iris.core.service;
 
 import art.arcane.iris.core.project.IrisProject;
+import art.arcane.iris.core.toolworld.BukkitToolWorldService;
 import art.arcane.iris.core.tooling.IrisServedPack;
 import art.arcane.iris.core.tooling.SenderWorld;
 import art.arcane.iris.core.tooling.ServedPack;
@@ -30,6 +31,7 @@ import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.iris.util.common.scheduling.J;
+import com.volmit.tooling.world.ToolPlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -39,13 +41,13 @@ import java.util.Optional;
  * A Bukkit sender of a tooling command. It reads the world the sender stands in and the open studio when it is built, which
  * the adapter does on the thread that received the command, and delivers messages on the sender's own thread.
  */
-final class BukkitToolingSender implements ToolingSender {
+public final class BukkitToolingSender implements ToolingSender {
     private final CommandSender sender;
     private final VolmitSender messages;
     private final Optional<SenderWorld> world;
     private final Optional<ServedPack> openStudioPack;
 
-    BukkitToolingSender(CommandSender sender) {
+    public BukkitToolingSender(CommandSender sender) {
         this.sender = sender;
         this.messages = new VolmitSender(sender);
         this.world = standingWorld(sender);
@@ -75,6 +77,15 @@ final class BukkitToolingSender implements ToolingSender {
     @Override
     public <T> Optional<T> extension(Class<T> type) {
         return type.isInstance(sender) ? Optional.of(type.cast(sender)) : Optional.empty();
+    }
+
+    @Override
+    public Optional<ToolPlayer> player() {
+        BukkitToolWorldService toolWorlds = IrisServices.getOrNull(BukkitToolWorldService.class);
+        if (!(sender instanceof Player player) || toolWorlds == null) {
+            return Optional.empty();
+        }
+        return Optional.of(toolWorlds.playerOf(player));
     }
 
     @Override

@@ -60,7 +60,6 @@ public class IrisShutdownOrderingTest {
         assertTrue("Server-stop quiescence must leave queued Paper generation admitted",
                 quiesce.contains("generator.quiesceForServerShutdown()"));
         assertOrdered(quiesce,
-                "jigsawStudioService.quiesceForServerShutdown()",
                 "PregeneratorJob.shutdownAndWait",
                 "generator.quiesceForServerShutdown()");
         assertOrdered(onDisable,
@@ -123,32 +122,21 @@ public class IrisShutdownOrderingTest {
     }
 
     @Test
-    public void jigsawStudio_quiescesOnceBeforeDeferredServiceTeardown() throws Exception {
-        String source = Files.readString(Path.of(System.getProperty("iris.jigsawStudioSvcSource")));
-        String enable = section(source, "public void onEnable()", "public void onDisable()");
-        String disable = section(source, "public void onDisable()", "public void quiesceForServerShutdown()");
-        String quiesce = section(source, "public void quiesceForServerShutdown()", "public void register(");
-        String register = section(source, "public void register(", "public void activationCommitted(");
-        String activation = section(source, "public void activationCommitted(", "public void markChunkGenerated(");
-        String chunkGenerated = section(source, "public void markChunkGenerated(", "private void markChunkAvailable(");
+    public void jigsawStudio_quiescesThroughItsToolWorldBeforeTheWorldIsUnloaded() throws Exception {
+        String startup = Files.readString(Path.of(System.getProperty("iris.startupSource")));
+        String toolWorlds = Files.readString(Path.of(System.getProperty("iris.toolWorldServiceSource")));
+        String studio = Files.readString(Path.of(System.getProperty("iris.jigsawStudioSvcSource")));
+        String disable = section(toolWorlds, "public void onDisable()", "public ToolWorlds worldsOf");
+        String closing = section(studio, "CompletableFuture<Void> closing(", "private boolean markDirty(");
 
-        assertOrdered(enable, "disableStarted.set(false)", "enabled = true");
-        assertTrue("Deferred service teardown must reuse the idempotent early disable",
-                disable.contains("quiesceForServerShutdown();"));
-        assertOrdered(quiesce,
-                "disableStarted.compareAndSet(false, true)",
-                "finalizeAllJigsawTileWatches()",
-                "drainAutosavesBeforeDisable()",
-                "enabled = false",
-                "activeMenuController.closeAll()",
-                "previewRenderer.removeAll()",
-                "studios.clear()");
-        assertTrue("Registration must reject work after shutdown begins",
-                occurrences(register, "!enabled || disableStarted.get()") >= 2);
-        assertTrue("Activation must reject work after shutdown begins",
-                activation.contains("!enabled || disableStarted.get()"));
-        assertTrue("Chunk-generation callbacks must reject work after shutdown begins",
-                occurrences(chunkGenerated, "!enabled || disableStarted.get()") >= 2);
+        assertFalse("Iris no longer holds or quiesces a studio itself", startup.contains("JigsawStudio"));
+        assertOrdered(disable,
+                "awaitClosing(open)",
+                "open.forEach(BukkitToolWorld::unloaded)");
+        assertTrue("The host asks every tool world to get ready to close", toolWorlds.contains("world.prepareReplacement(Optional.empty())"));
+        assertOrdered(closing,
+                "drainAutosavesBeforeRemoval(studios.get(worldId))",
+                "awaitCloseForReplacement(");
     }
 
     private static String section(String source, String startMarker, String endMarker) {

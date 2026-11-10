@@ -18,16 +18,15 @@
 
 package art.arcane.iris.engine.object.structure.jigsaw;
 
-import art.arcane.iris.engine.object.KeyedResource;
+import com.volmit.config.Desc;
+import com.volmit.config.Required;
+import com.volmit.config.ResourceRef;
 import com.volmit.object.GeneratedObject;
-import art.arcane.iris.engine.object.annotations.ArrayType;
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.RegistryListResource;
-import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.volmlib.util.collection.KList;
+
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
@@ -36,19 +35,17 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Desc("A jigsaw piece. A piece is a single Iris object plus the connection points (connectors) that let the assembler attach other pieces to it.")
 @Data
-@EqualsAndHashCode(callSuper = false)
-public class IrisJigsawPiece extends KeyedResource {
+public class IrisJigsawPiece {
     @Desc("Optional author-facing name shown by Jigsaw Studio. The resource key is shown when this is blank.")
     private String displayName = "";
 
     @Required
-    @RegistryListResource(GeneratedObject.class)
+    @ResourceRef(GeneratedObject.class)
     @Desc("The object (schematic) that makes up this piece.")
     private String object = "";
 
-    @ArrayType(type = IrisJigsawConnector.class, min = 1)
     @Desc("The jigsaw connection points on this piece.")
-    private KList<IrisJigsawConnector> connectors = new KList<>();
+    private List<IrisJigsawConnector> connectors = new KList<>();
 
     @Desc("If true, this piece may be rotated around the Y axis when placed so the assembler can match its connectors. Disable for pieces that must keep a fixed orientation.")
     private boolean rotatable = true;
@@ -56,9 +53,8 @@ public class IrisJigsawPiece extends KeyedResource {
     @Desc("If true, this piece's object bounds block overlapping jigsaw pieces. Disable for connector-only scaffolds whose stored volume is intentionally shared with physical pieces.")
     private boolean collidable = true;
 
-    @ArrayType(type = String.class, min = 1)
     @Desc("Theme keys that may select this piece. An empty list makes the piece available to every selected theme.")
-    private KList<String> themes = new KList<>();
+    private List<String> themes = new KList<>();
 
     @Desc("Deterministic depth, placement-count, and terminal-role rules for this piece.")
     private IrisJigsawPieceRules rules = new IrisJigsawPieceRules();
@@ -80,15 +76,5 @@ public class IrisJigsawPiece extends KeyedResource {
 
     public IrisJigsawPieceRules resolvedRules() {
         return rules == null ? new IrisJigsawPieceRules() : rules;
-    }
-
-    @Override
-    public String getFolderName() {
-        return "jigsaw-pieces";
-    }
-
-    @Override
-    public String getTypeName() {
-        return "Jigsaw Piece";
     }
 }

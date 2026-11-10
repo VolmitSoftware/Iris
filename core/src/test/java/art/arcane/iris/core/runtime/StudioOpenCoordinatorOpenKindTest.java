@@ -60,8 +60,8 @@ public class StudioOpenCoordinatorOpenKindTest {
     }
 
     @Test
-    public void jigsawStudioLeavesWorkspaceClosedAndUsesItsDestinationTeleport() {
-        StudioOpenCoordinator.StudioOpenKind kind = StudioOpenCoordinator.StudioOpenKind.JIGSAW;
+    public void toolWorldsOpenLikeAJigsawStudioWithTheirOwnDestinationTeleport() {
+        StudioOpenCoordinator.StudioOpenKind kind = StudioOpenCoordinator.StudioOpenKind.TOOL;
 
         assertFalse(kind.openWorkspace());
         assertFalse(kind.teleportThroughStandardEntry());
@@ -79,11 +79,11 @@ public class StudioOpenCoordinatorOpenKindTest {
                         project,
                         null,
                         1337L,
-                        StudioOpenCoordinator.StudioOpenKind.JIGSAW,
+                        StudioOpenCoordinator.StudioOpenKind.TOOL,
                         null,
                         null);
 
-        assertEquals(StudioOpenCoordinator.StudioOpenKind.JIGSAW, request.openKind());
+        assertEquals(StudioOpenCoordinator.StudioOpenKind.TOOL, request.openKind());
         assertTrue(request.requestedAtNanos() > 0L);
     }
 
@@ -119,7 +119,7 @@ public class StudioOpenCoordinatorOpenKindTest {
         int serviceEnd = service.indexOf("public void open(VolmitSender", serviceStart);
         String serviceMethod = service.substring(serviceStart, serviceEnd);
         int transitionAdmission = serviceMethod.indexOf("studioTransitions.submit(() ->");
-        int projectCapture = serviceMethod.indexOf("IrisProject project = activeProject");
+        int projectCapture = serviceMethod.indexOf("IrisProject project = currentProject()");
         int nativeDelegation = coordinatorMethod.indexOf(
                 "WorldRuntimeControlService.get().teleportInMode(player, entry, GameMode.SPECTATOR)");
 

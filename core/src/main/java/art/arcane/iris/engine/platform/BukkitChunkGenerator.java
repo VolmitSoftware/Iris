@@ -28,6 +28,7 @@ import java.util.concurrent.Semaphore;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.IrisWorldStorage;
 import art.arcane.iris.core.IrisWorlds;
 import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.core.loader.IrisData;
@@ -35,8 +36,7 @@ import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.project.PackHotloadFolder;
 import art.arcane.iris.core.project.PackHotloadGuard;
 import art.arcane.iris.core.runtime.ObjectStudioActivation;
-import art.arcane.iris.core.runtime.jigsaw.JigsawStudioActivation;
-import art.arcane.iris.core.runtime.jigsaw.JigsawStudioSession;
+import art.arcane.iris.core.runtime.StudioPainterSlots;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.IrisEngine;
@@ -53,7 +53,7 @@ import art.arcane.iris.engine.object.world.dimension.IrisDimensionRuntimeContrac
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.engine.object.runtime.StudioMode;
 import art.arcane.iris.engine.platform.studio.StudioGenerator;
-import art.arcane.iris.engine.platform.studio.generators.JigsawStudioGenerator;
+import art.arcane.iris.engine.platform.studio.generators.PainterStudioGenerator;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -92,6 +92,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -129,8 +130,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private volatile Engine engine;
     private volatile Looper hotloader;
     private volatile StudioMode lastMode;
-    private volatile UUID lastJigsawStudioRequestId;
-    private volatile boolean jigsawStudioActive;
+    private volatile StudioPainterSlots.Slot lastPainterSlot;
+    private volatile boolean paintedStudioActive;
     private volatile DummyBiomeProvider dummyBiomeProvider;
     private volatile Throwable initializationFailure;
     private volatile IrisDimension validatedDimension;
@@ -158,7 +159,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
         });
         this.initializationFailure = null;
-        this.jigsawStudioActive = false;
+        this.paintedStudioActive = false;
         this.validatedDimension = null;
         this.validatedWorldContract = null;
         this.closing = false;
@@ -343,23 +344,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     private void setupEngine() {
         lastMode = StudioMode.NORMAL;
-        lastJigsawStudioRequestId = null;
+        lastPainterSlot = null;
         EngineTarget engineTarget = getTarget();
-        String packKey = engineTarget.getDimension().getLoadKey();
-        JigsawStudioActivation.Request request = studio
-                ? JigsawStudioActivation.getGeneratorRequest(packKey)
-                : null;
-        JigsawStudioSession session = request == null
-                ? null
-                : JigsawStudioActivation.getGeneratorSession(packKey);
-        jigsawStudioActive = request != null
-                && session != null
-                && session.sessionId().equals(request.requestId());
+        paintedStudioActive = paintedStudioSlot().isPresent();
         IrisEngine createdEngine = new IrisEngine(
                 engineTarget,
-                selectInitializationMode(studio, jigsawStudioActive));
+                selectInitializationMode(studio, paintedStudioActive));
         createdEngine.setNativeStructureVolumeQueriesEnabled(shouldGenerateNativeStructures(
-                jigsawStudioActive,
+                paintedStudioActive,
                 studioEntryBootstrapActive.get(),
                 initializationFailure != null));
         engine = createdEngine;
@@ -367,11 +359,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         targetCache.reset();
     }
 
-    static IrisEngine.InitializationMode selectInitializationMode(boolean studio, boolean jigsawStudioActive) {
+    static IrisEngine.InitializationMode selectInitializationMode(boolean studio, boolean paintedStudioActive) {
         if (!studio) {
             return IrisEngine.InitializationMode.RUNTIME;
         }
-        return jigsawStudioActive
+        return paintedStudioActive
                 ? IrisEngine.InitializationMode.JIGSAW_STUDIO
                 : IrisEngine.InitializationMode.STUDIO;
     }
@@ -435,7 +427,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             getWorld().setRawWorldSeed(world.getSeed());
             setupEngine();
             setup.set(true);
-            this.hotloader = shouldRunStudioHotload(studio, closing, jigsawStudioActive) ? new Looper() {
+            this.hotloader = shouldRunStudioHotload(studio, closing, paintedStudioActive) ? new Looper() {
                 @Override
                 protected long loop() {
                     Engine activeEngine = engine;
@@ -587,7 +579,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         Engine activeEngine = engine;
         if (activeEngine instanceof IrisEngine irisEngine) {
             irisEngine.setNativeStructureVolumeQueriesEnabled(shouldGenerateNativeStructures(
-                    jigsawStudioActive,
+                    paintedStudioActive,
                     false,
                     initializationFailure != null));
         }
@@ -598,13 +590,13 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         return studioEntryBootstrapActive.get();
     }
 
-    public boolean isJigsawStudioActive() {
-        return jigsawStudioActive;
+    public boolean isPaintedStudioActive() {
+        return paintedStudioActive;
     }
 
     @Override
     public void hotload() {
-        if (!shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
+        if (!shouldRunStudioHotload(isStudio(), closing, paintedStudioActive)) {
             return;
         }
 
@@ -612,7 +604,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private void hotloadFromWatcher() {
-        if (!shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
+        if (!shouldRunStudioHotload(isStudio(), closing, paintedStudioActive)) {
             return;
         }
         withExclusiveControlFuture(() -> getEngine().hotload(), 30L, TimeUnit.SECONDS).join();
@@ -627,8 +619,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         return withExclusiveControlFuture(activeEngine::hotloadComplex, acquisitionTimeout, unit);
     }
 
-    static boolean shouldRunStudioHotload(boolean studio, boolean closing, boolean jigsawStudioActive) {
-        return studio && !closing && !jigsawStudioActive;
+    static boolean shouldRunStudioHotload(boolean studio, boolean closing, boolean paintedStudioActive) {
+        return studio && !closing && !paintedStudioActive;
     }
 
     public GenerationStagePermit acquireGenerationStage(String operation) {
@@ -956,24 +948,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private void computeStudioGenerator() {
-        String packKey = getEngine().getDimension().getLoadKey();
-        JigsawStudioActivation.Request jigsawRequest = studio
-                ? JigsawStudioActivation.getGeneratorRequest(packKey)
-                : null;
-        if (jigsawRequest != null) {
-            JigsawStudioSession session = JigsawStudioActivation.getGeneratorSession(packKey);
-            if (session != null && session.sessionId().equals(jigsawRequest.requestId())) {
-                if (!jigsawRequest.requestId().equals(lastJigsawStudioRequestId)) {
-                    setStudioGenerator(new JigsawStudioGenerator(getEngine(), jigsawRequest, session));
-                    lastJigsawStudioRequestId = jigsawRequest.requestId();
-                    lastMode = null;
-                }
-                return;
-            }
-        }
-        if (lastJigsawStudioRequestId != null) {
-            lastJigsawStudioRequestId = null;
-            lastMode = null;
+        if (installPaintedStudioGenerator()) {
+            return;
         }
         // Gson nulls unknown enum names, so a pack carrying a removed or typo'd studioMode must not NPE the generator.
         // Pack-declared studio modes are studio-only: a shipped pack that forgot to reset
@@ -988,6 +964,31 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             lastMode = desired;
             desired.inject(this);
         }
+    }
+
+    private Optional<StudioPainterSlots.Slot> paintedStudioSlot() {
+        if (!studio || world.identity() == null) {
+            return Optional.empty();
+        }
+        return StudioPainterSlots.slotOf(IrisWorldStorage.logicalName(WorldIdentity.parse(world.identity())));
+    }
+
+    /** Makes the generator the tool's painter while a slot is installed for this world; false when none is. */
+    private boolean installPaintedStudioGenerator() {
+        Optional<StudioPainterSlots.Slot> slot = paintedStudioSlot();
+        if (slot.isEmpty()) {
+            if (lastPainterSlot != null) {
+                lastPainterSlot = null;
+                lastMode = null;
+            }
+            return false;
+        }
+        if (slot.get() != lastPainterSlot) {
+            setStudioGenerator(new PainterStudioGenerator(slot.get()));
+            lastPainterSlot = slot.get();
+            lastMode = null;
+        }
+        return true;
     }
 
     @NotNull
@@ -1014,17 +1015,17 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public boolean shouldGenerateStructures() {
         return shouldGenerateNativeStructures(
-                jigsawStudioActive,
+                paintedStudioActive,
                 studioEntryBootstrapActive.get(),
                 initializationFailure != null);
     }
 
     static boolean shouldGenerateNativeStructures(
-            boolean jigsawStudioActive,
+            boolean paintedStudioActive,
             boolean studioEntryBootstrapActive,
             boolean initializationFailed
     ) {
-        return !jigsawStudioActive && !studioEntryBootstrapActive && !initializationFailed;
+        return !paintedStudioActive && !studioEntryBootstrapActive && !initializationFailed;
     }
 
     @Override

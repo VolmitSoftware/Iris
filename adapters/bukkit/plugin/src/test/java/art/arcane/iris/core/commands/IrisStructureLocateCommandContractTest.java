@@ -228,15 +228,14 @@ public class IrisStructureLocateCommandContractTest {
 
     @Test
     public void bulkStructureImportRestrictsCaptureWithoutChangingStandaloneCapture() throws IOException {
-        String source = Files.readString(Path.of(System.getProperty("iris.commandStructureSource")));
-        int importStart = source.indexOf("public void importAll(");
-        int importEnd = source.indexOf("@Director(name = \"capture\"", importStart);
-        int captureStart = source.indexOf("public void capture(", importEnd);
+        String source = Files.readString(Path.of(System.getProperty("iris.importCommandsSource")));
+        int importStart = source.indexOf("private static void runImportAll(");
+        int captureStart = source.indexOf("private static void runCapture(", importStart);
+        int importEnd = captureStart;
         int captureEnd = source.length();
 
         assertTrue(importStart >= 0);
         assertTrue(importEnd > importStart);
-        assertTrue(captureStart > importEnd);
         assertTrue(captureEnd > captureStart);
         String importMethod = source.substring(importStart, importEnd);
         String captureMethod = source.substring(captureStart, captureEnd);

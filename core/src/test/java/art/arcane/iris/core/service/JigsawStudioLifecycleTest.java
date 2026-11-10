@@ -1,7 +1,5 @@
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.runtime.jigsaw.JigsawStudioActivation;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBay;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCompatibilityTarget;
@@ -11,103 +9,67 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioPieceRules;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioSession;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariant;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariantCatalog;
-import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.platform.studio.generators.JigsawStudioGenerator;
-import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.collection.KMap;
-import org.bukkit.World;
-import org.bukkit.event.entity.CreatureSpawnEvent;
+import com.volmit.ModuleLog;
 import org.junit.After;
 import org.junit.Test;
-import org.mockito.MockedStatic;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 
 public class JigsawStudioLifecycleTest {
     private static final UUID OWNER = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID OTHER_OWNER = UUID.fromString("22222222-2222-2222-2222-222222222222");
+    private static final long REPLACEMENT_WAIT_SECONDS = 10L;
+
+    private final JigsawStudioService service = new JigsawStudioService(mock(ModuleLog.class));
+    private final JigsawStudioRegistry registry = service.registry();
 
     @After
-    public void clearLifecycle() {
-        JigsawStudioActivation.finishOpen(OWNER);
-        JigsawStudioActivation.finishOpen(OTHER_OWNER);
-        JigsawStudioActivation.deactivate("overworld");
+    public void stopStudio() {
+        registry.finishOpen(OWNER);
+        registry.finishOpen(OTHER_OWNER);
+        registry.deactivate("overworld");
     }
 
     @Test
     public void openingLeaseAndActivationOwnerAreCentralized() {
-        assertTrue(JigsawStudioActivation.tryBeginOpen(OWNER));
-        assertFalse(JigsawStudioActivation.tryBeginOpen(OTHER_OWNER));
-        JigsawStudioActivation.finishOpen(OTHER_OWNER);
-        assertEquals(OWNER, JigsawStudioActivation.openingOwnerId());
+        assertTrue(registry.tryBeginOpen(OWNER));
+        assertFalse(registry.tryBeginOpen(OTHER_OWNER));
+        registry.finishOpen(OTHER_OWNER);
+        assertEquals(OWNER, registry.openingOwnerId());
 
-        JigsawStudioActivation.Request request = activateOwnedStudio();
+        JigsawStudioRequest request = activateOwnedStudio();
 
         assertEquals(OWNER, request.ownerId());
-        assertEquals(OWNER, JigsawStudioActivation.activeOwnerId());
-        JigsawStudioActivation.finishOpen(OWNER);
-        assertNull(JigsawStudioActivation.openingOwnerId());
-        assertFalse(JigsawStudioActivation.tryBeginOpen(OTHER_OWNER));
-    }
-
-    @Test
-    public void studioRejectsNaturalCreatureSpawns() {
-        assertTrue(JigsawStudioService.isNaturalStudioSpawn(
-                CreatureSpawnEvent.SpawnReason.NATURAL));
-        assertFalse(JigsawStudioService.isNaturalStudioSpawn(
-                CreatureSpawnEvent.SpawnReason.CUSTOM));
-        assertFalse(JigsawStudioService.isNaturalStudioSpawn(
-                CreatureSpawnEvent.SpawnReason.SPAWNER));
-    }
-
-    @Test
-    public void committedStudioActivationDisablesNaturalMobSpawning() throws IOException {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/service/JigsawStudioService.java")).replace("\r\n", "\n");
-        int registerStart = source.indexOf("public void register(");
-        int commitStart = source.indexOf("public void activationCommitted(", registerStart);
-        int commitEnd = source.indexOf("public void markChunkGenerated(", commitStart);
-        int helperStart = source.indexOf("static void disableNaturalStudioSpawning(", commitEnd);
-        String register = source.substring(registerStart, commitStart);
-        String commit = source.substring(commitStart, commitEnd);
-        String helper = source.substring(helperStart);
-
-        assertFalse(register.contains("disableNaturalStudioSpawning(world)"));
-        assertTrue(commit.contains("disableNaturalStudioSpawning(world)"));
-        assertTrue(helper.contains("setGameRule(GameRules.SPAWN_MOBS, false)"));
+        assertEquals(OWNER, registry.activeOwnerId());
+        registry.finishOpen(OWNER);
+        assertNull(registry.openingOwnerId());
+        assertFalse(registry.tryBeginOpen(OTHER_OWNER));
     }
 
     @Test
     public void closeAuthorizationChecksOwnerDirtyStateAndSaveBarrierAtomically() {
-        assertTrue(JigsawStudioActivation.tryBeginOpen(OWNER));
-        JigsawStudioActivation.Request request = activateOwnedStudio();
-        JigsawStudioActivation.finishOpen(OWNER);
-        JigsawStudioSession session = JigsawStudioActivation.getSession(request.requestId());
-        JigsawStudioService service = new JigsawStudioService();
+        assertTrue(registry.tryBeginOpen(OWNER));
+        JigsawStudioRequest request = activateOwnedStudio();
+        registry.finishOpen(OWNER);
+        JigsawStudioSession session = registry.getSession(request.requestId());
 
         assertEquals(
                 JigsawStudioService.CloseStart.NOT_OWNER,
@@ -147,62 +109,44 @@ public class JigsawStudioLifecycleTest {
     }
 
     @Test
-    public void ownerReplacementWaitsForAutosaveThenClaimsClose() {
-        assertTrue(JigsawStudioActivation.tryBeginOpen(OWNER));
-        JigsawStudioActivation.Request request = activateOwnedStudio();
-        JigsawStudioActivation.finishOpen(OWNER);
-        JigsawStudioSession session = JigsawStudioActivation.getSession(request.requestId());
-        JigsawStudioService service = new JigsawStudioService();
+    public void ownerReplacementWaitsForAutosaveThenClaimsClose() throws Exception {
+        assertTrue(registry.tryBeginOpen(OWNER));
+        JigsawStudioRequest request = activateOwnedStudio();
+        registry.finishOpen(OWNER);
+        JigsawStudioSession session = registry.getSession(request.requestId());
         assertEquals(
                 JigsawStudioSession.DirtyStatus.MARKED,
                 session.markWorkcellDirty(JigsawStudioLayout.SPATIAL_WORKCELL_ID).status());
-        AtomicReference<Runnable> retry = new AtomicReference<>();
 
-        try (MockedStatic<J> scheduling = mockStatic(J.class)) {
-            scheduling.when(() -> J.s(any(Runnable.class), eq(5))).thenAnswer(invocation -> {
-                retry.set(invocation.getArgument(0));
-                return null;
-            });
-            CompletableFuture<Void> readiness = service.awaitCloseForReplacement(
-                    request.requestId(), OWNER);
+        CompletableFuture<Void> readiness = service.awaitCloseForReplacement(request.requestId(), OWNER);
 
-            assertFalse(readiness.isDone());
-            assertTrue(retry.get() != null);
-            JigsawStudioSession.SaveStart save = session.beginSave(
-                    JigsawStudioLayout.SPATIAL_WORKCELL_ID);
-            assertEquals(JigsawStudioSession.SaveStatus.STARTED, save.status());
-            assertTrue(session.markWorkcellSaved(save.identity().orElseThrow()));
-            retry.get().run();
+        assertFalse(readiness.isDone());
+        JigsawStudioSession.SaveStart save = session.beginSave(JigsawStudioLayout.SPATIAL_WORKCELL_ID);
+        assertEquals(JigsawStudioSession.SaveStatus.STARTED, save.status());
+        assertTrue(session.markWorkcellSaved(save.identity().orElseThrow()));
 
-            readiness.join();
-            assertNull(service.closeProtectionFailure(request.requestId()));
-        }
+        readiness.get(REPLACEMENT_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertNull(service.closeProtectionFailure(request.requestId()));
     }
 
     @Test
     public void nonOwnerReplacementFailsWithoutWaiting() {
-        assertTrue(JigsawStudioActivation.tryBeginOpen(OWNER));
-        JigsawStudioActivation.Request request = activateOwnedStudio();
-        JigsawStudioActivation.finishOpen(OWNER);
-        JigsawStudioService service = new JigsawStudioService();
+        assertTrue(registry.tryBeginOpen(OWNER));
+        JigsawStudioRequest request = activateOwnedStudio();
+        registry.finishOpen(OWNER);
 
-        try (MockedStatic<J> scheduling = mockStatic(J.class)) {
-            CompletableFuture<Void> readiness = service.awaitCloseForReplacement(
-                    request.requestId(), OTHER_OWNER);
+        CompletableFuture<Void> readiness = service.awaitCloseForReplacement(request.requestId(), OTHER_OWNER);
 
-            assertTrue(readiness.isCompletedExceptionally());
-            scheduling.verifyNoInteractions();
-        }
+        assertTrue(readiness.isCompletedExceptionally());
     }
 
     @Test
     public void lateJigsawGuiMutationKeepsCloseBehindTheFinalSnapshotAndAutosaveBarriers()
             throws ReflectiveOperationException {
-        assertTrue(JigsawStudioActivation.tryBeginOpen(OWNER));
-        JigsawStudioActivation.Request request = activateOwnedStudio();
-        JigsawStudioActivation.finishOpen(OWNER);
-        JigsawStudioSession session = JigsawStudioActivation.getSession(request.requestId());
-        JigsawStudioService service = new JigsawStudioService();
+        assertTrue(registry.tryBeginOpen(OWNER));
+        JigsawStudioRequest request = activateOwnedStudio();
+        registry.finishOpen(OWNER);
+        JigsawStudioSession session = registry.getSession(request.requestId());
         KMap<String, Object> baseline = new KMap<>();
         baseline.put("name", "iris:start");
         KMap<String, Object> updated = new KMap<>();
@@ -214,21 +158,11 @@ public class JigsawStudioLifecycleTest {
                 UUID.class, UUID.class, int.class, int.class, int.class);
         constructor.setAccessible(true);
         Object key = constructor.newInstance(request.requestId(), UUID.randomUUID(), 1, 64, 1);
-        Class<?> studioType = Class.forName(JigsawStudioService.class.getName() + "$ActiveStudio");
-        Constructor<?> studioConstructor = studioType.getDeclaredConstructor(
-                UUID.class,
-                World.class,
-                Engine.class,
-                JigsawStudioGenerator.class,
-                ConcurrentHashMap.class,
-                Set.class,
-                AtomicLong.class);
-        studioConstructor.setAccessible(true);
-        World world = mock(World.class);
-        Object studio = studioConstructor.newInstance(
+        FakeToolWorld world = new FakeToolWorld("jigsaw-" + request.requestId());
+        world.schedulingFails = true;
+        JigsawStudioService.ActiveStudio studio = new JigsawStudioService.ActiveStudio(
                 UUID.randomUUID(),
                 world,
-                mock(Engine.class),
                 mock(JigsawStudioGenerator.class),
                 new ConcurrentHashMap<>(),
                 ConcurrentHashMap.newKeySet(),
@@ -236,7 +170,7 @@ public class JigsawStudioLifecycleTest {
         Class<?> watchType = Class.forName(JigsawStudioService.class.getName() + "$JigsawTileWatch");
         Constructor<?> watchConstructor = watchType.getDeclaredConstructor(
                 keyType,
-                studioType,
+                JigsawStudioService.ActiveStudio.class,
                 UUID.class,
                 String.class,
                 KMap.class,
@@ -257,19 +191,11 @@ public class JigsawStudioLifecycleTest {
         Map<Object, Object> watches = (Map<Object, Object>) watchesField.get(service);
         watches.put(key, watch);
 
-        try (MockedStatic<J> scheduling = mockStatic(J.class)) {
-            scheduling.when(() -> J.isOwnedByCurrentRegion(any(World.class), anyInt(), anyInt()))
-                    .thenReturn(false);
-            scheduling.when(() -> J.runRegion(
-                    any(World.class), anyInt(), anyInt(), any(Runnable.class)))
-                    .thenReturn(false);
-            assertEquals(
-                    JigsawStudioService.CloseStart.OPERATION_IN_PROGRESS,
-                    service.tryBeginClose(request.requestId(), OWNER, false));
-            assertTrue(service.closeProtectionFailure(request.requestId()).contains("finalizing"));
-            assertEquals(1, watches.size());
-            scheduling.verify(() -> J.s(any(Runnable.class), eq(5)));
-        }
+        assertEquals(
+                JigsawStudioService.CloseStart.OPERATION_IN_PROGRESS,
+                service.tryBeginClose(request.requestId(), OWNER, false));
+        assertTrue(service.closeProtectionFailure(request.requestId()).contains("finalizing"));
+        assertEquals(1, watches.size());
 
         watches.clear();
         assertEquals(
@@ -282,10 +208,9 @@ public class JigsawStudioLifecycleTest {
 
     @Test
     public void exportLeaseSerializesSavesAndCloseAgainstThePinnedRequest() {
-        assertTrue(JigsawStudioActivation.tryBeginOpen(OWNER));
-        JigsawStudioActivation.Request request = activateOwnedStudio();
-        JigsawStudioActivation.finishOpen(OWNER);
-        JigsawStudioService service = new JigsawStudioService();
+        assertTrue(registry.tryBeginOpen(OWNER));
+        JigsawStudioRequest request = activateOwnedStudio();
+        registry.finishOpen(OWNER);
 
         assertEquals(
                 JigsawStudioService.ExportStart.NOT_OWNER,
@@ -365,14 +290,14 @@ public class JigsawStudioLifecycleTest {
         assertEquals(end.stableId(), session.selectedBayId().orElseThrow());
     }
 
-    private static JigsawStudioActivation.Request activateOwnedStudio() {
-        return JigsawStudioActivation.activate(
+    private JigsawStudioRequest activateOwnedStudio() {
+        return registry.activate(
                 "overworld",
                 "stronghold",
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(16, 16, 16),
-                mock(IrisData.class),
+                StudioToolPacks.toolPack(),
                 JigsawStudioLayout.create(
                         JigsawStudioMode.SPATIAL_JIGSAW,
                         new JigsawStudioCellDimensions(16, 16, 16),

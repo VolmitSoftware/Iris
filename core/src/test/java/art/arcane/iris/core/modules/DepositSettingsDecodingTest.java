@@ -63,7 +63,7 @@ public class DepositSettingsDecodingTest {
         Path snippets = Files.createDirectories(packFolder.resolve("snippet/iris/deposit/deposit"));
         Files.writeString(snippets.resolve("diamonds.json"), "{\"maxHeight\": 16, \"palette\": [{\"block\": \"minecraft:diamond_ore\"}]}");
         pack = LoadedPack.load(packFolder, ModuleHost.of(BuiltInPack.allBuiltIns())
-                .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE).copyingJarsTo(folder.newFolder("copies").toPath()));
+                .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGES).copyingJarsTo(folder.newFolder("copies").toPath()));
         decoder = new ModuleSettingsDecoder(pack.catalog(), packFolder, Gson::new);
     }
 

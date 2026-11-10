@@ -47,6 +47,10 @@ import art.arcane.iris.core.lifecycle.WorldLifecycleService;
 import art.arcane.iris.core.runtime.BukkitEnginePlatformHooks;
 import art.arcane.iris.core.runtime.WorldDeletionQueue;
 import art.arcane.iris.core.runtime.WorldRuntimeControlService;
+import art.arcane.iris.core.toolworld.BukkitToolWorldService;
+import art.arcane.iris.core.structure.BukkitPlatformStructures;
+import art.arcane.iris.core.tooling.ToolWorldsHost;
+import com.volmit.tooling.PlatformStructures;
 import art.arcane.iris.api.terrain.IrisTerrainService;
 import art.arcane.iris.core.link.CustomBlockSource;
 import art.arcane.iris.core.link.IrisPapiInstaller;
@@ -72,7 +76,6 @@ import art.arcane.iris.core.service.IrisEngineSVC;
 import art.arcane.iris.core.service.IrisIntegrationService;
 import art.arcane.iris.core.service.IrisProtocolService;
 import art.arcane.iris.core.service.IrisTerrainSVC;
-import art.arcane.iris.core.service.JigsawStudioService;
 import art.arcane.iris.core.service.LogFilterSVC;
 import art.arcane.iris.core.service.MultiverseSVC;
 import art.arcane.iris.core.service.ObjectSVC;
@@ -645,7 +648,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 new EditSVC(),
                 new ObjectSVC(),
                 new ObjectStudioSaveService(),
-                new JigsawStudioService(),
                 new StudioSVC(),
                 new DatapackStructureScopeSVC(),
                 new IrisEngineSVC(),
@@ -655,6 +657,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 new EntityRiseSVC(),
                 new WandSVC(),
                 new BoardSVC(),
+                new BukkitToolWorldService(),
                 new IrisIntegrationService(),
                 new MultiverseSVC(),
                 new IrisProtocolService(),
@@ -670,6 +673,8 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             services.put(serviceType, i);
             IrisServices.register(serviceType, i);
         }
+        IrisServices.register(ToolWorldsHost.class, services.get(BukkitToolWorldService.class));
+        IrisServices.register(PlatformStructures.class, new BukkitPlatformStructures());
         IrisServices.register(BlockEditAccess.class, services.get(EditSVC.class));
         IrisServices.register(CustomBlockSource.class, services.get(ExternalDataSVC.class));
         IrisServices.register(PreservationRegistry.class, services.get(PreservationSVC.class));
@@ -998,14 +1003,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
 
     private void quiesceRuntimeForServerShutdown(String reason) {
         serverStopTeardownDeferred.set(true);
-        JigsawStudioService jigsawStudioService = IrisServices.getOrNull(JigsawStudioService.class);
-        if (jigsawStudioService != null) {
-            try {
-                jigsawStudioService.quiesceForServerShutdown();
-            } catch (Throwable e) {
-                Iris.reportError("Failed to quiesce Jigsaw Studio before server shutdown.", e);
-            }
-        }
         StudioSVC studioService = IrisServices.getOrNull(StudioSVC.class);
         if (studioService != null) {
             studioService.quiesceDownloadsForShutdown();

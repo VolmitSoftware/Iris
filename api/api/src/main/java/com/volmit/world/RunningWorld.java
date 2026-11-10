@@ -3,6 +3,7 @@ package com.volmit.world;
 import com.volmit.config.FeatureSettings;
 import com.volmit.data.SavedKey;
 import com.volmit.geometry.BlockPosition;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.placement.PlacementRecord;
 import com.volmit.resource.ResourceId;
 import java.util.List;
@@ -42,6 +43,15 @@ public interface RunningWorld {
      * keeps no generation data any more. Y is the height above the dimension's bottom.
      */
     Optional<PlacementRecord> placementAt(int worldX, int y, int worldZ);
+
+    /**
+     * The void the cave carver planned at the block, as the world holds it now; empty where none was, or when the block's
+     * chunk keeps no generation data any more, and on a platform that cannot read it. Y is the height above the
+     * dimension's bottom.
+     */
+    default Optional<CarvedVoid> carvedAt(int worldX, int y, int worldZ) {
+        return Optional.empty();
+    }
 
     /**
      * The value the module keeps with this world across restarts under {@code key}: the host's one instance of it for

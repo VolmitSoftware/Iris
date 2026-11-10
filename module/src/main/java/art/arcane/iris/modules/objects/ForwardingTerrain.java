@@ -91,6 +91,16 @@ public abstract class ForwardingTerrain implements PlacementTerrain {
     }
 
     @Override
+    public void clearBlock(int x, int y, int z) {
+        delegate.clearBlock(x, y, z);
+    }
+
+    @Override
+    public void clearAttached(int x, int y, int z) {
+        delegate.clearAttached(x, y, z);
+    }
+
+    @Override
     public Optional<PlacementRecord> placementAt(int x, int y, int z) {
         return delegate.placementAt(x, y, z);
     }

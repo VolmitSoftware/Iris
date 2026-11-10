@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.object.structure.jigsaw;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
 @Desc("Declares the resource compatibility target of an Iris jigsaw structure.")
 public enum IrisJigsawCompatibility {

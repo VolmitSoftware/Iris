@@ -1,12 +1,13 @@
 package art.arcane.iris.core.runtime.jigsaw;
 
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.volmlib.util.math.IrisBlockVector;
+import art.arcane.iris.core.structure.DeclaredObjects;
+import art.arcane.iris.core.tooling.IrisObjectCodec;
+import com.volmit.block.BlockState;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.tooling.ObjectCodec;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -32,6 +33,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class JigsawStudioGraphEditorResizeTest {
+    private static final ObjectCodec CODEC = new IrisObjectCodec();
+
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -47,6 +50,7 @@ public class JigsawStudioGraphEditorResizeTest {
         JigsawStudioGraphEditor.VariantResizeResult result =
                 JigsawStudioGraphEditor.resizePieceObject(
                         packRoot,
+                        CODEC,
                         "resize/atomic",
                         "resize/atomic/variants/corner/variant-2",
                         new JigsawStudioCellDimensions(7, 4, 9));
@@ -55,12 +59,10 @@ public class JigsawStudioGraphEditorResizeTest {
         assertEquals(new JigsawStudioCellDimensions(16, 16, 16), result.previousDimensions());
         assertEquals(new JigsawStudioCellDimensions(7, 4, 9), result.dimensions());
         assertEquals(2, result.relocatedConnectors());
-        assertEquals(new IrisBlockVector(16, 16, 16), IrisObject.sampleSize(
-                packRoot.resolve("objects/resize/atomic/corner.iob").toFile()));
-        assertEquals(new IrisBlockVector(7, 4, 9), IrisObject.sampleSize(
-                packRoot.resolve("objects/resize/atomic/variants/corner/variant-2.iob").toFile()));
-        assertEquals(new IrisBlockVector(16, 16, 16), IrisObject.sampleSize(
-                packRoot.resolve("objects/resize/atomic/end.iob").toFile()));
+        assertEquals(new BlockPosition(16, 16, 16), sizeOf(packRoot.resolve("objects/resize/atomic/corner.iob")));
+        assertEquals(new BlockPosition(7, 4, 9),
+                sizeOf(packRoot.resolve("objects/resize/atomic/variants/corner/variant-2.iob")));
+        assertEquals(new BlockPosition(16, 16, 16), sizeOf(packRoot.resolve("objects/resize/atomic/end.iob")));
 
         JsonObject structure = readJson(packRoot.resolve("structures/resize/atomic.json"));
         JsonObject workcell = workcell(structure.getAsJsonArray("planarWorkcells"), "CORNER");
@@ -70,8 +72,8 @@ public class JigsawStudioGraphEditorResizeTest {
         JsonArray connectors = readJson(packRoot.resolve(
                         "jigsaw-pieces/resize/atomic/variants/corner/variant-2.json"))
                 .getAsJsonArray("connectors");
-        assertEquals(new IrisPosition(3, 2, 0), connectorPosition(connectors, "NORTH_NEGATIVE_Z"));
-        assertEquals(new IrisPosition(6, 2, 4), connectorPosition(connectors, "EAST_POSITIVE_X"));
+        assertEquals(new BlockPosition(3, 2, 0), connectorPosition(connectors, "NORTH_NEGATIVE_Z"));
+        assertEquals(new BlockPosition(6, 2, 4), connectorPosition(connectors, "EAST_POSITIVE_X"));
     }
 
     @Test
@@ -119,12 +121,11 @@ public class JigsawStudioGraphEditorResizeTest {
 
     @Test
     public void preservesCanonicalCoordinatesForRotatedVariantsAndMovesExplicitAirUnderlays() throws Exception {
-        IrisObject source = new IrisObject(7, 3, 5);
-        PlatformBlockState explicitAir = state("minecraft:air", true);
-        PlatformBlockState stone = state("minecraft:stone", false);
-        source.setUnsigned(6, 1, 2, explicitAir);
-        source.setUnsigned(4, 1, 1, stone);
-        IrisJigsawPiece piece = endPiece(IrisDirection.EAST_POSITIVE_X, new IrisPosition(6, 1, 2));
+        BlockState explicitAir = new BlockState("minecraft:air");
+        BlockState stone = new BlockState("minecraft:stone");
+        JigsawStudioObject source = new JigsawStudioObject(7, 3, 5,
+                Map.of(new BlockPosition(6, 1, 2), explicitAir, new BlockPosition(4, 1, 1), stone), Map.of());
+        IrisJigsawPiece piece = endPiece(JigsawDirection.EAST_POSITIVE_X, new BlockPosition(6, 1, 2));
 
         JigsawStudioGraphEditor.PlanarPieceObjectResize result =
                 JigsawStudioGraphEditor.resizePlanarPieceObject(
@@ -134,22 +135,21 @@ public class JigsawStudioGraphEditorResizeTest {
                         new JigsawStudioCellDimensions(9, 3, 11),
                         "resize/rotated-east");
 
-        IrisObject resized = result.object();
-        assertEquals(11, resized.getW());
-        assertEquals(3, resized.getH());
-        assertEquals(9, resized.getD());
+        JigsawStudioObject resized = result.object();
+        assertEquals(11, resized.width());
+        assertEquals(3, resized.height());
+        assertEquals(9, resized.depth());
         assertEquals(1, result.relocatedConnectors());
-        assertEquals(new IrisPosition(10, 1, 4), piece.getConnectors().getFirst().getPosition());
-        assertSame(explicitAir, blockAt(resized, 10, 1, 4));
-        assertFalse(resized.getBlocks().containsKey(resized.getSigned(10, 1, 2)));
-        assertSame(stone, blockAt(resized, 8, 1, 1));
+        assertEquals(new BlockPosition(10, 1, 4), piece.getConnectors().getFirst().getPosition());
+        assertEquals(explicitAir, blockAt(resized, 10, 1, 4));
+        assertFalse(resized.blocks().containsKey(new BlockPosition(10, 1, 2)));
+        assertEquals(stone, blockAt(resized, 8, 1, 1));
     }
 
     @Test
     public void rejectsExplicitAirOutsideShrunkBoundsWithoutMutatingTheSource() {
-        IrisObject source = new IrisObject(8, 4, 8);
-        PlatformBlockState explicitAir = state("minecraft:air", true);
-        source.setUnsigned(7, 1, 1, explicitAir);
+        BlockState explicitAir = new BlockState("minecraft:air");
+        JigsawStudioObject source = new JigsawStudioObject(8, 4, 8, Map.of(new BlockPosition(7, 1, 1), explicitAir), Map.of());
         IrisJigsawPiece piece = new IrisJigsawPiece().setObject("resize/blank");
 
         IOException failure = assertThrows(
@@ -162,19 +162,18 @@ public class JigsawStudioGraphEditorResizeTest {
                         "resize/blank"));
 
         assertTrue(failure.getMessage().contains("including explicit air"));
-        assertEquals(8, source.getW());
-        assertSame(explicitAir, blockAt(source, 7, 1, 1));
+        assertEquals(8, source.width());
+        assertEquals(explicitAir, blockAt(source, 7, 1, 1));
     }
 
     @Test
     public void rejectsConnectorDestinationCollisionsBeforeChangingThePiece() {
-        IrisObject source = new IrisObject(5, 3, 5);
-        PlatformBlockState underlay = state("minecraft:air", true);
-        PlatformBlockState collision = state("minecraft:stone", false);
-        source.setUnsigned(2, 1, 0, underlay);
-        source.setUnsigned(3, 1, 0, collision);
-        IrisPosition originalPosition = new IrisPosition(2, 1, 0);
-        IrisJigsawPiece piece = endPiece(IrisDirection.NORTH_NEGATIVE_Z, originalPosition.copy());
+        BlockState underlay = new BlockState("minecraft:air");
+        BlockState collision = new BlockState("minecraft:stone");
+        JigsawStudioObject source = new JigsawStudioObject(5, 3, 5,
+                Map.of(new BlockPosition(2, 1, 0), underlay, new BlockPosition(3, 1, 0), collision), Map.of());
+        BlockPosition originalPosition = new BlockPosition(2, 1, 0);
+        IrisJigsawPiece piece = endPiece(JigsawDirection.NORTH_NEGATIVE_Z, originalPosition);
 
         IOException failure = assertThrows(
                 IOException.class,
@@ -187,8 +186,8 @@ public class JigsawStudioGraphEditorResizeTest {
 
         assertTrue(failure.getMessage().contains("destination contains a stored block"));
         assertEquals(originalPosition, piece.getConnectors().getFirst().getPosition());
-        assertSame(underlay, blockAt(source, 2, 1, 0));
-        assertSame(collision, blockAt(source, 3, 1, 0));
+        assertEquals(underlay, blockAt(source, 2, 1, 0));
+        assertEquals(collision, blockAt(source, 3, 1, 0));
     }
 
     private Path createPlanarProject(String structureKey) throws Exception {
@@ -198,11 +197,11 @@ public class JigsawStudioGraphEditorResizeTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(16, 16, 16));
-        assertTrue(JigsawStudioProjectCreator.create(packRoot, options).successful());
+        assertTrue(JigsawStudioProjectCreator.create(packRoot, CODEC, options).successful());
         return packRoot;
     }
 
-    private static IrisJigsawPiece endPiece(IrisDirection direction, IrisPosition position) {
+    private static IrisJigsawPiece endPiece(JigsawDirection direction, BlockPosition position) {
         IrisJigsawPiece piece = new IrisJigsawPiece().setObject("resize/end");
         piece.getConnectors().add(new IrisJigsawConnector()
                 .setDirection(direction)
@@ -220,15 +219,12 @@ public class JigsawStudioGraphEditorResizeTest {
         return sources;
     }
 
-    private static PlatformBlockState state(String key, boolean air) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
-        when(state.key()).thenReturn(key);
-        when(state.isAir()).thenReturn(air);
-        return state;
+    private static BlockState blockAt(JigsawStudioObject object, int x, int y, int z) {
+        return object.blocks().get(new BlockPosition(x, y, z));
     }
 
-    private static PlatformBlockState blockAt(IrisObject object, int x, int y, int z) {
-        return object.getBlocks().get(object.getSigned(x, y, z));
+    private static BlockPosition sizeOf(Path objectFile) throws IOException {
+        return DeclaredObjects.sizeOf(CODEC.decode(Files.readAllBytes(objectFile)));
     }
 
     private static JsonObject readJson(Path path) throws IOException {
@@ -245,14 +241,14 @@ public class JigsawStudioGraphEditorResizeTest {
         throw new AssertionError("Missing planar workcell " + archetype);
     }
 
-    private static IrisPosition connectorPosition(JsonArray connectors, String direction) {
+    private static BlockPosition connectorPosition(JsonArray connectors, String direction) {
         for (int index = 0; index < connectors.size(); index++) {
             JsonObject connector = connectors.get(index).getAsJsonObject();
             if (!direction.equals(connector.get("direction").getAsString())) {
                 continue;
             }
             JsonObject position = connector.getAsJsonObject("position");
-            return new IrisPosition(
+            return new BlockPosition(
                     position.get("x").getAsInt(),
                     position.get("y").getAsInt(),
                     position.get("z").getAsInt());

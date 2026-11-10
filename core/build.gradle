@@ -318,7 +318,8 @@ List<String> dependencyBuildMetadata = [
 // what its own Bukkit jar leaves out of VolmLib, which only Iris knows.
 String builtinModulesJarName = 'iris-builtins.jar'
 // The packages pack modules may use besides the IrisApi; IrisModuleHost.EXPOSED_PACKAGES lists the same.
-List<String> builtinExposedPackages = ['art.arcane.iris.builtin', 'art.arcane.volmlib', 'com.google.gson']
+List<String> builtinExposedPackages = ['art.arcane.iris.builtin', 'art.arcane.iris.core.structure.authoring', 'art.arcane.volmlib',
+    'com.google.gson']
 Provider<RegularFile> bundledBuiltinModulesJar = layout.buildDirectory.file("builtin-modules/${builtinModulesJarName}")
 
 configurations {

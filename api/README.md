@@ -259,6 +259,9 @@ PackBiome dunes = resources.require(PackResources.BIOMES, resources.idOf("desert
   list, set or array of them, and studio completes the kind's keys. Packs write the key either way; a `ResourceId`
   field holds the pack's id of it. Built-in kinds may read into a class the host describes
   itself, as built-in settings may hold one.
+- `PackResources.services(type)` gives the providers of a service that the pack's modules registered, for code that holds
+  only the resources, such as a locator listing structures. It asks the modules that own a kind what the kind means, as
+  `PackWorld.services` does; it is empty where the host cannot ask, and the list does not change for the snapshot.
 
 ```
 Resource kind example:castle/keep of module example:castle from modules/castle.jar reads folder 'biomes', which the host reads itself; give the kind a folder of its own
@@ -294,6 +297,9 @@ if (!outcome.isPlaced()) {
   `PlacementRecord`: the object's id, the module's number for this placement of it and, for a piece of a structure, the
   structure's id. A module may wrap the terrain to hold or filter writes; a mantle stage gets one for its invocation from
   `MantleGenerationContext.placementTerrain()`.
+- `clearBlock(x, y, z)` takes a block a placement wrote back, so the terrain shows through; the block entity, placement
+  record and markers kept beside it stay until `clearAttached(x, y, z)` takes them back, whether or not a block is still
+  written there. A terrain that cannot take them back throws `UnsupportedOperationException`.
 - `name` labels the placement (the object's key). `settings` is the placement as the pack wrote it, a JSON object: the
   host reads from it the settings other modules declare at `Level.PLACEMENT`, so their stages see them like those of any
   other level. The module that owns the placement type declares it once in `setup`, with the JSON names of its own
@@ -464,13 +470,19 @@ final class RuinsObjects implements ObjectsAt {
   values in what they return are `Optional`s.
 - A service that answers about the world as it runs, outside any chunk, reads `world.running()`: the layout over every
   column (`layout()`, a `TerrainSampler`), the settings at a column and what a biome declares (`settings()`), the
-  highest block now, the cave floors the mantle marked, the time and weather (`sky()`, empty until the platform has
+  highest block now, the cave floors the mantle marked, the void the cave carver planned at a block (`carvedAt`, in
+  heights above the bottom; empty where none was, when the chunk keeps no generation data any more and on a platform
+  that cannot read it), the time and weather (`sky()`, empty until the platform has
   the world), the platform's loot tables and whether the world is a debug (studio) world. It is empty for a tool's
   world, which nothing runs.
 - Each service says how several providers combine, with `@Service(Providers.X)`: `ALL` (the host asks every provider
   and combines the answers), `FIRST` (the host asks in order until one answers) or `ONE` (at most one provider per
   pack; a second fails the pack load, naming both modules). Providers are in module id order, each module's in
   registration order.
+- A module asks another module's service with `services(type)`, on the `PackWorld` a stage or service gets, on the
+  `ValidationContext` a validator gets and on the `ToolPack` a command gets. It returns the pack's providers in that
+  order, empty when no module provides the service, and fails with `IllegalArgumentException` for an interface that is
+  not a `@Service`. Pass the world you hold to the provider's methods.
 
 | Service | Providers | What the host asks |
 | --- | --- | --- |
@@ -484,6 +496,7 @@ final class RuinsObjects implements ObjectsAt {
 | `ProtectedFloor` | `ONE` | Whether the lowest layer of the world (height 0) belongs to the module that shapes the terrain, such as a bedrock floor it writes itself. The host then discards the blocks other placements and stages write there. Asked once per world; no provider protects nothing. |
 | `AmbientEffects` | `ALL` | The effects due for a player standing at a position: a `Sound`, `Particles`, `Command`s and a `Potion` per `Effect`, every random choice already made (offsets, scatter, duration). The host asks now and then, carries out the parts the platform has, and keeps a stronger potion effect the player already has. |
 | `VanillaStructures` | `ALL` | Rules, starts, shifts and reaches for the platform's own structures, fitting the terrain to the starts in one chunk through the `BlockAccess` the host hands over, and finding the starts a module makes of them (see Vanilla structures). |
+| `DatapackStructureImport` | `FIRST` | Turns the structures and templates a datapack brought into editable resources of the pack once the host installed it (`importAll`, answering a `DatapackImportReport` of imported, skipped and failed sources, the bundles that landed and whether a failure may pass on a retry). Re-importing a source replaces what an earlier import made of it; with no provider the host leaves the datapack's structures pending. |
 | `VanillaFeatures` | `ALL` | Whether the platform runs its own placed features (ores, trees, plants, springs) over a world's terrain, and which decoration steps (`DecorationStep`) and features it skips there. Off unless a module turns it on; any module may refuse a step or a feature. Asked once per world, step and feature. |
 
 ```
@@ -567,6 +580,9 @@ private void info(CommandContext context) {
   constant written in lower case with `-`), `resource` (an id of a `ResourceKind` in the pack) and `registered` (an id in
   one of the platform's registries, by `Reference`). `orElse` makes an argument optional; an optional argument may not
   come before a required one. `suggesting` adds completions. Read a value with `context.get(argument)`.
+  `Argument.reading(name, reader)` takes one word and turns it into any value with a `Reader`, which throws
+  `IllegalArgumentException` saying why it cannot, for a value only the command's module can check, such as a resource of
+  a kind its neighbour registers; it completes nothing until `suggesting` gives it candidates.
 - The host resolves the pack before it parses the line: `pack=<name>` taken out of the arguments, else the pack of the
   sender's world, else the pack of the sender's open studio, else it fails with `Name a pack: pack=<name>`. A command
   exists only for packs whose jars contain its module. `context.pack()` is that pack, `context.world()` the sender's
@@ -582,6 +598,76 @@ private void info(CommandContext context) {
   and writes pack objects in the host's object format (`ObjectCodec`).
 - A root command's name and each alias are root names. One that another module of the pack took fails the pack load,
   naming both modules. A host without commands, such as a build check, accepts the registration and ignores it.
+- `Sender.player()` is the sender as a `ToolPlayer` (see Tool worlds), empty for the console and on a platform without
+  tool worlds.
+- `CommandContext.platformStructures()` is the platform's structures for the tools that turn them into pack resources,
+  empty on a platform that has none. `PlatformStructures` lists the registered structures and structure sets and the
+  loadable templates (`templates`, `template`, `structures`, `structureSets`), reads a registered jigsaw structure and a
+  template pool (`jigsaw` answering `JigsawStructureInfo`, `pool` answering `TemplatePool` with its members, fallback and
+  the connectors of each element), and generates structures that have no template in a throwaway area
+  (`supportsCapture`, `openCaptureArea`: a closable `CaptureArea` places one structure after another in a scratch area
+  and `capture(structure, seed, maxSpan)` reads each back, empty when the box is wider or taller than `maxSpan`, and
+  `close` removes the area). A template or a captured structure is a list of `TemplateBlock` with
+  `BlockState` and `BlockEntityData`. A reader throws `StructureAccessException` when the platform's registries cannot be
+  read, and says whether asking again may help.
+
+## Tool worlds
+
+A tool that shows or edits what it builds in a world, such as a jigsaw studio, opens a tool world through
+`ToolPack.worlds()`, in `com.volmit.tooling.world`. The package is neutral, so the same tool runs on every platform that
+implements it; a platform without tool worlds answers with a failed future.
+A host that refuses to open a world for a reason the user or the pack's author can fix, such as a pack with blocking
+errors, completes `open` with `ToolWorldDenied`; its message is for the user, so a tool reports it and logs no stack trace.
+
+```java
+ToolWorlds worlds = context.pack().worlds();
+ChunkPainter painter = (chunkX, chunkZ, canvas) -> {
+    for (int x = 0; x < 16; x++) {
+        for (int z = 0; z < 16; z++) {
+            canvas.set(x, canvas.minY() + 1, z, BlockState.parse("minecraft:smooth_stone"));
+        }
+    }
+};
+worlds.open(new ToolWorldSpec("scratch", painter, new ToolWorldListener() { }))
+        .thenAccept(world -> context.sender().player().ifPresent(player ->
+                player.teleport(world, 8, world.minY() + 2, 8, 0, 0)));
+```
+
+- The world's chunks come only from the `ChunkPainter`, which the host calls from its generation threads, several at once,
+  and again for `ToolWorld.repaint`. A painter keeps no per-call state and does not keep the `ChunkCanvas`. Block entities
+  go through `canvas.set(..., BlockEntityData)` and are applied once the chunk is live.
+- It is a studio world of the tool's pack with generation swapped for the painter, so its height range is the pack
+  dimension's (`minY()`, `maxY()`). Every Y in this package is the world's own Y, not the height above the bottom that
+  `PackWorld` counts. There is no natural mob spawning, weather, daylight cycle, portal, vanilla structure or feature.
+- `ToolWorldListener` is how the tool hears about the world: players entering, leaving and moving to another block,
+  sneaking, using their hand (`ToolUse`), commands, loaded chunks, and every change to blocks (`BlockChange` with a
+  `Cause`). Each method returns `true` to allow or `false` to cancel where it decides, and `blockChanging` freezes the
+  world unless the tool overrides it. Calls come on the thread that owns the player or the position, and must return
+  quickly.
+- A tool world takes the pack's studio slot: opening another studio, the studio close command and a server stop go
+  through the world. `closeRefusal()` lets the tool veto such a close with a message (an unsaved edit, a running
+  save), and `closing(by)` lets it finish its work before another studio replaces it; the host closes the world when
+  that future completes.
+- On a platform that splits a world across threads (Folia), `ToolWorld.owns(at)` says whether the calling thread may
+  touch the block, `run`/`call` get a task there, and `block`, `blockEntity` and `setBlock` fail with
+  `IllegalStateException` elsewhere. `ToolPlayer` readers are valid on the player's own thread (`ToolPlayer.run`); its
+  changing methods are safe from any thread.
+- `ToolPlayer` also gives items (`ToolItem`, whose payload the host keeps on the item), a chest-style menu (`ToolMenu`
+  of `MenuButton`s), chat messages, an action bar, a sidebar, sounds and dust `Particle`s. `give` answers whether the item
+  fitted; one that did not is neither given nor dropped. `targetBlock(maxDistance)` is the block the player looks at,
+  fluids not counting. `ToolWorld.close()` sends every player back to where they came
+  from and deletes the world.
+- Styled text is `ToolText`, a list of spans with a `TextColor` (the sixteen named colours; none keeps the platform's
+  default) and bold, italic and strikethrough. Build it with `ToolText.builder().gray("Size: ").white("16x16x16").build()`
+  or `ToolText.plain`/`ToolText.colored`; `plainText()` drops the style. Item names and lore, menu titles, sidebar lines,
+  the action bar and `ToolPlayer.message` take it; an empty sidebar title keeps the platform's own. Text of a span is
+  shown as it is, so it needs no escaping. An item the host reads back carries its name and lore as plain text.
+- `ToolWorldListener` also hears `teleported(player, to)` whenever a player arrives by other means than walking (join,
+  world change, respawn, a teleport or portal by anyone, inside the world too), at the time it happens, after `entered`
+  for a player coming in; `containerChanged(player, at)` when a container's inventory was closed or a furnace or brewing
+  stand started working, which no `blockChanging` announced; and `blockChanging` carries in `BlockChange.positions` what
+  a protected area is checked against and in `BlockChange.changed` the blocks whose content changes, which differ for a
+  piston. `ToolWorld.loaded(chunk)` asks the platform whether a chunk is loaded.
 
 ## Module jars
 
@@ -686,8 +772,8 @@ The host loads a part through its own class loader, `ToolingPartLoader`, a child
 classes from the same jar copy, hands the platform's api packages to the platform's loader and everything else to the
 pack's loader, so a part gets the same `Class` objects the modules registered. The adapter opens it
 (`LoadedPack.openToolingPart`) and closes it before the pack; closing it leaves the pack's loader open. The generation
-loader never sees `com.volmit.tooling.<platform>`, the platform parts of the tooling api; `com.volmit.tooling` itself stays
-visible.
+loader never sees `com.volmit.tooling.<platform>`, the platform parts of the tooling api; `com.volmit.tooling` itself and
+the neutral `com.volmit.tooling.world` stay visible.
 
 ## Settings for studio
 
@@ -880,6 +966,8 @@ Every method has a default that changes nothing, so a provider implements only w
   structure, `JigsawOverrides` for jigsaw structures and a `StartMemo`.
   The context gives the world (`PackWorld`) and a `TerrainSampler` over the chunk. Answer from the world and chunk
   only: the host asks again when it locates structures and when it checks starts it finds in the world.
+  `VanillaStructureContext.world()` is the world a rule decides for, empty when the host asks before any world exists,
+  such as for the setup of a dimension; a rule that needs the world answers its default then.
 - `shift(start, context)`: how many blocks one of the platform's own starts moves up or down before the host
   publishes it. A `PlatformStart` gives its bounds, whether the platform generates it underground, whether the host
   aligns it itself (ocean monuments to the sea, desert and jungle temples to the terrain; a shift then applies on top),

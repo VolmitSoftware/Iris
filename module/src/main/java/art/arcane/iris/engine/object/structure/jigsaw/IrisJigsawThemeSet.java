@@ -1,8 +1,8 @@
 package art.arcane.iris.engine.object.structure.jigsaw;
 
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MinNumber;
-import art.arcane.iris.engine.object.annotations.Required;
+import com.volmit.config.Desc;
+import com.volmit.config.MinNumber;
+import com.volmit.config.Required;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

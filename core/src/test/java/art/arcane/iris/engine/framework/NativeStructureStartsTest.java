@@ -127,7 +127,7 @@ public class NativeStructureStartsTest {
         for (int chunkX = -GRID_RADIUS_CHUNKS; chunkX <= GRID_RADIUS_CHUNKS; chunkX++) {
             for (int chunkZ = -GRID_RADIUS_CHUNKS; chunkZ <= GRID_RADIUS_CHUNKS; chunkZ++) {
                 List<NativeStructureStartPlan> plans = NativeStructureStarts.plansAt(engine, chunkX, chunkZ);
-                List<NativeStartPlanner.Plan> modulePlans = NativeStartPlanner.plansAt(engine, chunkX, chunkZ);
+                List<NativeStartPlanner.Plan> modulePlans = NativeStartPlanner.plansAt(engine.getGeneration().world(), chunkX, chunkZ);
                 assertEquals(modulePlans.size(), plans.size());
                 for (int index = 0; index < plans.size(); index++) {
                     NativeStructureStartPlan plan = plans.get(index);

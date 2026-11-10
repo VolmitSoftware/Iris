@@ -180,9 +180,9 @@ public class ExportClosureComparisonTest {
             biomes.forEach(closure::followSettingsOf);
             closure.follow(placements);
             Exported generic = new Exported(
-                    new TreeSet<>(closure.keysOf(IrisStructure.class)),
-                    new TreeSet<>(closure.keysOf(IrisJigsawPool.class)),
-                    new TreeSet<>(closure.keysOf(IrisJigsawPiece.class)),
+                    new TreeSet<>(closure.keysOf(StructureResources.STRUCTURES.id())),
+                    new TreeSet<>(closure.keysOf(StructureResources.POOLS.id())),
+                    new TreeSet<>(closure.keysOf(StructureResources.PIECES.id())),
                     new TreeSet<>(closure.keysOf(LootTable.class)),
                     new TreeSet<>(closure.objectKeys()), true, List.of());
 

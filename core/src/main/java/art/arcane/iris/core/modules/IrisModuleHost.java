@@ -19,7 +19,6 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.spi.IrisPlatforms;
 import com.volmit.IrisModule;
 import com.volmit.ModuleLog;
@@ -52,8 +51,14 @@ public final class IrisModuleHost {
      * and Gson, which every platform Iris runs on provides.
      */
     public static final List<String> SHARED_LIBRARY_PACKAGES = List.of("art.arcane.volmlib", "com.google.gson");
+    /**
+     * The structure file transactions Iris's datapack ingest and the jigsaw module's tools both run, which each would
+     * otherwise see as a copy of its own; exposed with its subpackages.
+     */
+    public static final String STRUCTURE_FILES_PACKAGE = "art.arcane.iris.core.structure.authoring";
     /** Every package pack modules may use besides the IrisApi. {@code exposedHostPackages} in IrisModule's build lists the same. */
-    public static final List<String> EXPOSED_PACKAGES = Stream.concat(Stream.of(BUILT_IN_API_PACKAGE), SHARED_LIBRARY_PACKAGES.stream()).toList();
+    public static final List<String> EXPOSED_PACKAGES = Stream.concat(Stream.of(BUILT_IN_API_PACKAGE, STRUCTURE_FILES_PACKAGE),
+            SHARED_LIBRARY_PACKAGES.stream()).toList();
     /**
      * The ids of the built-in modules that ship in the built-ins jar ({@code iris-builtins.jar}, listed in
      * {@code IrisModule/builtin-modules.txt}) instead of being compiled into Iris. Every pack loads them from the jar Iris
@@ -62,9 +67,15 @@ public final class IrisModuleHost {
     public static final List<String> JAR_MODULE_IDS = List.of("iris:post", "iris:perfection", "iris:matter", "iris:loot",
             "iris:spawn", "iris:prepare", "iris:anchor", "iris:validate", "iris:bore", "iris:blocks", "iris:stilt", "iris:vacuum",
             "iris:snow", "iris:vanilla-features", "iris:carve", "iris:deposit", "iris:decorant", "iris:terrain", "iris:objects",
-            "iris:floating");
-    /** Iris's pack object model: built-in settings may hold these classes, which Iris reads and describes itself. */
-    public static final String HOST_TYPE_PACKAGE = "art.arcane.iris.engine.object";
+            "iris:floating", "iris:structure", "iris:jigsaw");
+    /**
+     * Iris's pack object model: built-in settings may hold these classes, which Iris reads and describes itself. The
+     * structure model (engine.object.structure) is not among them: it speaks the api's vocabulary and its module describes it.
+     */
+    public static final String[] HOST_TYPE_PACKAGES = Stream.of("annotations", "compatibility", "image", "material", "noise",
+                    "placement", "prefab", "runtime", "terrain", "value", "world")
+            .map(subpackage -> "art.arcane.iris.engine.object." + subpackage)
+            .toArray(String[]::new);
     private static final String[] JAR_COPY_FOLDER = {"cache", "module-jars"};
     private static final String BUNDLED_JAR_RESOURCE = "/" + MissingBuiltInModules.JAR_NAME;
     private static final String BUNDLED_JAR_TEMPORARY_PREFIX = "iris-built-in-modules-";
@@ -84,11 +95,10 @@ public final class IrisModuleHost {
 
     /**
      * Modules Iris registers itself, not from the built-ins jar: those that are Iris (they write the layout's platform
-     * biomes, record the platform's custom blocks and answer for Iris's structure model) and {@code iris:structure}, whose
-     * resources Iris's jigsaw studio reads as the same classes. A pack never replaces them.
+     * biomes and record the platform's custom blocks). A pack never replaces them.
      */
     private static List<IrisModule> hostModules() {
-        return List.of(new BiomeModule(), new CustomModule(), new StructureModule(), new StructureModelModule());
+        return List.of(new BiomeModule(), new CustomModule());
     }
 
     /** Iris's own log, labelled {@code [iris]}, for host code that calls module classes outside any module's stage, service or hook. */
@@ -98,14 +108,14 @@ public final class IrisModuleHost {
 
     /** Whether {@code type} is one of Iris's own classes that built-in settings may hold. */
     public static boolean isHostType(Class<?> type) {
-        return type.getName().startsWith(HOST_TYPE_PACKAGE + ".");
+        return Stream.of(HOST_TYPE_PACKAGES).anyMatch(hostPackage -> type.getName().startsWith(hostPackage + "."));
     }
 
     private static ModuleHost build() {
         return ModuleHost.of(builtInModules())
                 .exposing(EXPOSED_PACKAGES.toArray(String[]::new))
                 .reservingFields(ModuleTargets.reservedFields())
-                .describingHostTypesIn(HOST_TYPE_PACKAGE)
+                .describingHostTypesIn(HOST_TYPE_PACKAGES)
                 .reservingFolders(IrisData.ownFolderNames().toArray(String[]::new))
                 .bundlingJars(bundledJars())
                 .copyingJarsTo(jarCopyRoot())

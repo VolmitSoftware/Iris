@@ -12,6 +12,7 @@ import com.volmit.hunk.Hunk;
 import com.volmit.mantle.Mantle;
 import com.volmit.placement.Placements;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.Stage;
 import com.volmit.support.TestContexts;
@@ -73,6 +74,18 @@ class ExtensionsTest {
         assertEquals(Optional.of(new WorldOffer("iris")), view.extension(WorldOffer.class));
     }
 
+    @Test
+    void aModulesViewOfAWorldAnswersTheSeedPurposesTheHostAnswers() {
+        var world = new OfferingWorld(new WorldOffer("iris"));
+        PackWorld view = ModuleWorld.of(world, ModuleLogs.discarding());
+
+        assertEquals(HOST_SEED, view.seed(HOST_SEED_PURPOSE), "the host decides the seed of a purpose it knows");
+        assertEquals(world.seed(ResourceId.parse("test:other")), view.seed(ResourceId.parse("test:other")));
+    }
+
+    private static final ResourceId HOST_SEED_PURPOSE = ResourceId.parse("test:host-seed");
+    private static final long HOST_SEED = 31337L;
+
     private static final class OfferingWorld implements PackWorld {
         private final WorldStates states = new WorldStates();
         private final WorldOffer offer;
@@ -82,12 +95,14 @@ class ExtensionsTest {
         }
 
         public long seed() { return TestContexts.SEED; }
+        @Override public long seed(ResourceId purpose) { return purpose.equals(HOST_SEED_PURPOSE) ? HOST_SEED : PackWorld.super.seed(purpose); }
         public PackResources resources() { throw new AssertionError("Unused resources"); }
         public PackSettings settings() { throw new AssertionError("Unused settings"); }
         public int minWorldY() { return 0; }
         public Optional<RunningWorld> running() { return Optional.empty(); }
         public Placements placements() { throw new AssertionError("Unused placements"); }
         public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) { return states.state(type, () -> create.apply(this)); }
+        public <S> List<S> services(Class<S> service) { return List.of(); }
         public ModuleLog log() { return ModuleLogs.discarding(); }
 
         @Override

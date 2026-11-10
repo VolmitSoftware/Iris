@@ -1,23 +1,16 @@
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
-import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.builtin.structure.StructureAnchorMode;
 import art.arcane.iris.builtin.structure.StructurePlacement;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.volmlib.util.matter.MatterCavern;
-import org.junit.After;
-import org.junit.Before;
+import com.volmit.mantle.CarvedVoid;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntPredicate;
 
 import static art.arcane.iris.engine.framework.StructurePlacementFixtures.placement;
@@ -27,31 +20,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class StructureCaveAnchorResolverTest {
-    @Before
-    public void bindPlatform() {
-        IrisPlatforms.unbind();
-        PlatformBlockState block = mock(PlatformBlockState.class);
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(registries.block(anyString())).thenReturn(block);
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.bind(platform);
-    }
-
-    @After
-    public void unbindPlatform() {
-        IrisPlatforms.unbind();
-    }
+    private final AtomicInteger surfaceReads = new AtomicInteger();
 
     @Test
     public void floorRequiresSolidBoundaryAndUpwardClearance() {
@@ -143,33 +114,33 @@ public class StructureCaveAnchorResolverTest {
 
     @Test
     public void dryCaveUnderSubmergedSurfaceUsesAnchorCavernState() {
-        Engine engine = engineWithFloorAnchor(new MatterCavern(true, "", (byte) 0), 0);
+        StructureTestWorld world = worldWithFloorAnchor(CarvedVoid.OPEN, 0);
 
         StructureCaveAnchorResolver.Anchor anchor = StructureCaveAnchorResolver.resolve(
-                engine, floorPlacement(false), 0, 0, new RNG(87234L));
+                world, floorPlacement(false), 0, 0, new RNG(87234L));
 
         assertNotNull(anchor);
         assertEquals(-54, anchor.y());
-        verify(engine, never()).getHeight(anyInt(), anyInt(), eq(true));
+        assertEquals(0, surfaceReads.get());
     }
 
     @Test
     public void wetCaveUnderDrySurfaceIsRejectedAtTheAnchor() {
-        Engine engine = engineWithFloorAnchor(new MatterCavern(true, "", (byte) 1), 200);
+        StructureTestWorld world = worldWithFloorAnchor(CarvedVoid.FLUID, 200);
 
         StructureCaveAnchorResolver.Anchor anchor = StructureCaveAnchorResolver.resolve(
-                engine, floorPlacement(false), 0, 0, new RNG(87234L));
+                world, floorPlacement(false), 0, 0, new RNG(87234L));
 
         assertNull(anchor);
-        verify(engine, never()).getHeight(anyInt(), anyInt(), eq(true));
+        assertEquals(0, surfaceReads.get());
     }
 
     @Test
     public void dryPolicyHonorsExplicitLiquidsAndDefaultLavaHeight() {
-        MatterCavern air = new MatterCavern(true, "", (byte) 0);
-        MatterCavern water = new MatterCavern(true, "", (byte) 1);
-        MatterCavern lava = new MatterCavern(true, "", (byte) 2);
-        MatterCavern forcedAir = new MatterCavern(true, "", (byte) 3);
+        CarvedVoid air = CarvedVoid.OPEN;
+        CarvedVoid water = CarvedVoid.FLUID;
+        CarvedVoid lava = CarvedVoid.LAVA;
+        CarvedVoid forcedAir = CarvedVoid.AIR;
 
         assertFalse(StructureCaveAnchorResolver.acceptsAnchorFluid(false, air, 8, 8));
         assertTrue(StructureCaveAnchorResolver.acceptsAnchorFluid(false, air, 9, 8));
@@ -177,30 +148,22 @@ public class StructureCaveAnchorResolverTest {
         assertFalse(StructureCaveAnchorResolver.acceptsAnchorFluid(false, lava, 20, 8));
         assertTrue(StructureCaveAnchorResolver.acceptsAnchorFluid(false, forcedAir, 0, 8));
         assertTrue(StructureCaveAnchorResolver.acceptsAnchorFluid(true, water, 20, 8));
-        assertFalse(StructureCaveAnchorResolver.acceptsAnchorFluid(
-                true, new MatterCavern(false, "", (byte) 0), 20, 8));
+        assertFalse(StructureCaveAnchorResolver.acceptsAnchorFluid(true, null, 20, 8));
     }
 
-    private static Engine engineWithFloorAnchor(MatterCavern anchorCavern, int surfaceHeight) {
-        Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
-        IrisDimension dimension = mock(IrisDimension.class);
-        MatterCavern carvedAir = new MatterCavern(true, "", (byte) 0);
-        when(engine.getMinHeight()).thenReturn(-64);
-        when(engine.getHeight()).thenReturn(384);
-        when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(surfaceHeight);
-        when(engine.getDimension()).thenReturn(dimension);
-        when(dimension.getFluidHeight()).thenReturn(127);
-        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(new CaveLavaHeightSettings(8)));
-        when(engine.getMantle().getMantle().get(
-                anyInt(), anyInt(), anyInt(), eq(MatterCavern.class)))
-                .thenAnswer(invocation -> {
-                    int mantleY = invocation.getArgument(1);
+    private StructureTestWorld worldWithFloorAnchor(CarvedVoid anchorVoid, int surfaceHeight) {
+        return new StructureTestWorld()
+                .fluidHeight(127)
+                .highest((x, z) -> {
+                    surfaceReads.incrementAndGet();
+                    return surfaceHeight;
+                })
+                .carved((x, mantleY, z) -> {
                     if (mantleY == 10) {
-                        return anchorCavern;
+                        return Optional.of(anchorVoid);
                     }
-                    return mantleY == 11 || mantleY == 12 ? carvedAir : null;
+                    return mantleY == 11 || mantleY == 12 ? Optional.of(CarvedVoid.OPEN) : Optional.empty();
                 });
-        return engine;
     }
 
     private static StructurePlacement floorPlacement(boolean underwater) {

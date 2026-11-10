@@ -326,7 +326,8 @@ the part then gets the same `Class` objects the modules registered, where a sibl
 defines into a `ClassCastException`. The caller opens and closes it; closing it never closes the pack's loader.
 
 `ExposedPackages` carves out every `com.volmit.tooling.<platform>` package like `com.volmit.host`: only a part sees a
-platform's tooling api. `com.volmit.tooling` itself, the neutral api, stays exposed. Enabling parts lazily, mounting their
+platform's tooling api. `com.volmit.tooling` itself, the neutral api, stays exposed, and so does
+`com.volmit.tooling.world`, the one neutral subpackage (Tool worlds). Enabling parts lazily, mounting their
 commands and listeners, and disabling them belongs to the platform adapter, not to the host.
 
 ### Namespaces
@@ -1136,7 +1137,7 @@ each world a state store and tells modules when worlds start and stop.
   seeds its existing worlds were generated with, and every other id by the specification.
 - **The running world.** `PackWorld.running()` is the world as it runs now, for services and lifecycle hooks, which have
   no chunk to ask: the layout over every column as a `TerrainSampler`, the settings at a column and of a biome as
-  `FeatureSettings`, the highest block now, the cave floors the mantle marked, the sky (time and weather), the platform's
+  `FeatureSettings`, the highest block now, the cave floors the mantle marked, the void the cave carver planned at a block (`carvedAt`), the sky (time and weather), the platform's
   loot tables and whether it is a debug world. It reuses the chunk vocabulary instead of a second one: Iris's built-ins
   read the same through a facade (`LiveWorld`, with its own `Level`, `BiomeKind` and `Sky`), now deleted. Empty for a
   tool's world, which nothing runs. Which biome a block "is in" (cave below the surface, else surface) stays a module
@@ -1236,6 +1237,12 @@ from a sapling, which drops a block has. A module answers such questions through
 - **Lookup.** The host asks the pack's catalog: `services(type)` for every provider, `service(type)` for the one
   provider of a `ONE` service. Looking up a type that is not marked fails, and so does `service` for a service that may
   have several providers.
+- **Modules ask each other.** `PackWorld`, `ValidationContext` and `ToolPack` carry the same `services(type)`, so a
+  module reaches another module's service without a host extension. It returns the providers only, unscoped: the caller
+  passes the world it holds, and the provider's log is the host's concern when the host calls it, not the caller's.
+  `service(type)` for a `ONE` service is not repeated there, since `services(type).stream().findFirst()` says the same
+  and the api keeps one lookup. `PackResources.services(type)` is the same for code that holds only the resources (a
+  locator listing structures asks the modules that own the kinds), and is empty where the host cannot ask.
 - **Threading.** The host may call a provider from any thread, several at once. A provider that searches long
   (`StructureLocator.locate`) is called off the server's main thread.
 - **Loot, drops, entities, trees.** `Loot` (`ALL`) asks in two steps, which tables a container draws from and what a
@@ -1310,11 +1317,11 @@ A module jar sees three things besides the JDK and its own pack's jars, and noth
    question, and none hands out an engine.
 
 **The extension point.** A built-in reaches its facade through one door: `PackWorld.extension(type)` for what belongs to
-a world (Iris's structure host), `InvocationContext.extension(type)` for what belongs to one invocation (the
+a world, `InvocationContext.extension(type)` for what belongs to one invocation (the
 platform chunk Iris generates), and `PackSettings.extension(type)` for what is worked out
 from a pack's settings before any world exists (how far a feature reaches). Each returns an `Optional`, empty by default,
 so a host offers what it has and a module states what it requires:
-`world.extension(StructureHost.class).orElseThrow()`. Why one door:
+`world.extension(Facade.class).orElseThrow()`. Why one door:
 
 - **No thread-locals.** Facades used to be bound to the current thread (`IrisChunk.current()`, `ObjectPlacement.current()`),
   which only worked while the host's own code had bound them and broke silently on another thread. The context a stage
@@ -1337,7 +1344,7 @@ Iris's own built-ins hold to this at compile time: IrisModule is a build of its 
 `com.volmit:iris-api`, VolmLib, Gson and the JDK, never `iris-host` or Iris, and its jar passes `ModuleJarCheck`
 before Iris bundles it. Iris depends on IrisModule, not the reverse. What the built-ins cannot do through the API they
 ask through the facades of item 3, which Iris implements; the classes that need Iris itself (the layout model, the
-structure placer behind `StructureHost`) are Iris's and live there.
+placement service) are Iris's and live there.
 
 ### Iris extensions, with the reason each is not api yet
 
@@ -1352,10 +1359,6 @@ API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSet
   the placement's JSON. Iris still reads it when it places an object itself with the pack's rules: the jigsaw placer, the
   structure place commands and its tests (`ModuleObjectPlacement`). Pasting an object is not one of them: a paste writes
   the object's blocks turned by a fixed angle (`IrisObject.paste`). It goes when the structures move into their module.
-- **`StructureHost`** (world). Iris's structure assembler, locator and placer, and the loot tables of a structure for the
-  loot of its pieces. The structure model (structures, pools, pieces) is `iris:structure`'s own resource kinds, which Iris
-  registers with its own modules because its jigsaw studio reads them. Its surface is already API vocabulary; it goes when
-  the placer can write through the API.
 - **Random parameters (`RNG`) in these facades and `loot.LootResolver`**. They are the legacy streams existing worlds were
   generated from. They go when a world format change lets them be stage streams.
 
@@ -1405,6 +1408,55 @@ the typed arguments; parsing, completion, permission and threads are the host's.
 - **Names are checked early.** `Command` rejects bad names, duplicate children and aliases, an optional argument before a
   required one, and anything after a rest-of-line argument when the tree is built. Two modules claiming one root name or
   alias fail the pack load, naming both.
+
+## Tool worlds
+
+`com.volmit.tooling.world` is what an in-world tool, the jigsaw studio first, needs from a platform and nothing more.
+It exists so the tool lives in a module and runs on every platform: a tool that imported Bukkit could not.
+
+- **The world is a studio world with a painter.** The host opens a studio world of the tool's pack and swaps its
+  generation for a `ChunkPainter`. That keeps one way to create, load, unload and delete worlds per platform, and the
+  platform's own height range, instead of a second kind of world. The cost is that heights are the pack dimension's.
+- **Platform Y.** A tool world is not a `PackWorld`: it is the platform's world as players see it, so positions use the
+  world's own Y, and `minY()`/`maxY()` say its range. Converting to the height above the bottom would make every
+  position a tool shows a player disagree with the coordinates on their screen.
+- **Painters are pure, listeners are threaded.** A painter is called from generation threads, so it reads shared state
+  only. A listener is called on the thread that owns the player or the position, so a module never needs a lock for
+  platform state, and `owns`/`run`/`call` exist for the rest. Splitting a world by region is the platform's right
+  (Folia); the api makes it visible instead of pretending to one thread.
+- **Cancel by return value.** `blockChanging`, `used` and `command` return whether to allow. The host maps every platform
+  event onto `BlockChange.Cause` and cancels on `false`, so a tool freezes a bay or lets edits through without knowing which
+  event it was. The default for blocks is frozen: a world that forgets to answer cannot be damaged.
+- **The host keeps the boring guarantees.** No natural spawning, weather, daylight, portals, vanilla structures or
+  features; players go back where they came from on close; the world is deleted on close and what is left is deleted at
+  the next start; an item's payload survives. A tool that had to do these itself would do them differently on every
+  platform.
+- **Items, menus, sidebars are values.** `ToolItem`, `ToolMenu` and the sidebar lines are plain data the host draws with
+  its own widgets (VolmLib windows and scoreboards on Bukkit). Their text is `ToolText`: spans of a named colour
+  (`TextColor`) and a few styles, so no colour codes or components cross the api, and the host maps the spans onto
+  whatever its platform draws text with.
+- **The platform's structures are one capability.** Registries, resource managers and structure managers differ by
+  platform and version, and some are reached only by reflection. `PlatformStructures` is the one door for the tools that
+  import them, and answers in api types (`BlockState`, `BlockEntityData`, `ResourceId`), so an importer holds only
+  model-building logic. Capturing a structure needs a scratch area that has to be removed, so it is a `CaptureArea` the
+  tool closes, and not a call that leaves the area to the platform. A platform without the capability gives
+  `CommandContext.platformStructures()` empty and the tool says so.
+- **A platform may not have it.** `ToolWorlds.open` then returns a failed future and `Sender.player()` is empty, so a tool
+  tells its user instead of failing at class loading. The package is exposed to pack modules, unlike the platform
+  packages below `com.volmit.tooling`.
+- **A refusal is not a fault.** `ToolWorldDenied` is how a host says no for a reason the user can fix (a pack with
+  blocking errors); a tool prints its message and logs nothing, so a mistake of the pack's author does not look like a bug
+  of the tool.
+- **Answers a tool needs back.** `ToolPlayer.give` says whether the item fitted, because a menu that hands out a tool the
+  player never got would look like it worked; `targetBlock` exists because only the platform can ray-trace against the
+  blocks the player sees. `teleported` and `containerChanged` report what no `blockChanging` announces, so a tool that
+  protects an area hears every way in and every inventory that changed.
+- **Importing a datapack is a service.** `DatapackStructureImport` (`FIRST`) lets the host, which installs datapacks and
+  knows nothing about jigsaw, hand the structures it found to whichever module turns them into pack resources. A pack
+  without a provider leaves them pending, like a retryable failure, and `DatapackImportReport.retryRequired` tells the
+  host which kind of failure it saw.
+- **Reading a command word.** `Argument.reading` exists for a value that only the command's module can check, such as a
+  resource of a kind a neighbouring module registered; the built-in argument types cover what the host can check itself.
 
 ## Not implemented
 

@@ -1,5 +1,7 @@
 package art.arcane.iris.core.tooling;
 
+import com.volmit.tooling.world.ToolPlayer;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -36,6 +38,11 @@ final class RecordingSender implements ToolingSender {
 
     @Override
     public <T> Optional<T> extension(Class<T> type) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<ToolPlayer> player() {
         return Optional.empty();
     }
 

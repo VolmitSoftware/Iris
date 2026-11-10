@@ -54,13 +54,14 @@ public class VillageImporterListPoolElementRuntimeContractTest {
                 StructureTemplatePool.Projection.RIGID
         );
 
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(towers);
+        PoolElementReader.PoolElementResolution resolution = PoolElementReader.resolvePoolElement(towers);
         Map<String, Object> entry = VillageImporter.piecePoolEntry(
                 "qa/pillager_outpost/piece/minecraft/pillager_outpost/watchtower",
                 1
         );
         StructureLoss loss = VillageImporter.listElementFallbackLoss(
-                resolution,
+                resolution.listLevels(),
+                resolution.omittedElements(),
                 "minecraft:pillager_outpost/towers"
         );
         Map<String, Object> basePlatePiece = VillageImporter.pieceJson(
@@ -103,7 +104,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
         StructurePoolElement waystone = StructurePoolElement
                 .legacy("dungeons_and_taverns:waystones/waystone_scaffold")
                 .apply(StructureTemplatePool.Projection.RIGID);
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(waystone);
+        PoolElementReader.PoolElementResolution resolution = PoolElementReader.resolvePoolElement(waystone);
         VillageImporter.PoolMemberNormalization normalization = VillageImporter.normalizePoolMember(
                 "dungeons_and_taverns:waystones",
                 "qa/pool/dungeons_and_taverns/waystones",
@@ -130,7 +131,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
         StructurePoolElement orphan = StructurePoolElement
                 .legacy("test:orphan_house")
                 .apply(StructureTemplatePool.Projection.RIGID);
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(orphan);
+        PoolElementReader.PoolElementResolution resolution = PoolElementReader.resolvePoolElement(orphan);
         VillageImporter.PoolMemberNormalization normalization = VillageImporter.normalizePoolMember(
                 "test:orphan_pool",
                 "qa/pool/test/orphan_pool",
@@ -160,7 +161,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
         StructurePoolElement start = StructurePoolElement
                 .legacy("test:air_start")
                 .apply(StructureTemplatePool.Projection.RIGID);
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(start);
+        PoolElementReader.PoolElementResolution resolution = PoolElementReader.resolvePoolElement(start);
         VillageImporter.PoolMemberNormalization normalization = VillageImporter.normalizePoolMember(
                 "test:start",
                 "qa/pool/test/start",
@@ -184,7 +185,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
         StructurePoolElement inert = StructurePoolElement
                 .legacy("test:mixed_air_inert")
                 .apply(StructureTemplatePool.Projection.RIGID);
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(inert);
+        PoolElementReader.PoolElementResolution resolution = PoolElementReader.resolvePoolElement(inert);
         VillageImporter.PoolMemberNormalization normalization = VillageImporter.normalizePoolMember(
                 "test:mixed",
                 "qa/pool/test/mixed",
@@ -214,8 +215,8 @@ public class VillageImporterListPoolElementRuntimeContractTest {
         StructurePoolElement nonAirElement = StructurePoolElement
                 .legacy("test:mixed_non_air_primary")
                 .apply(StructureTemplatePool.Projection.RIGID);
-        VillageImporter.PoolElementResolution allAirResolution = VillageImporter.resolvePoolElement(allAirElement);
-        VillageImporter.PoolElementResolution nonAirResolution = VillageImporter.resolvePoolElement(nonAirElement);
+        PoolElementReader.PoolElementResolution allAirResolution = PoolElementReader.resolvePoolElement(allAirElement);
+        PoolElementReader.PoolElementResolution nonAirResolution = PoolElementReader.resolvePoolElement(nonAirElement);
         VillageImporter.PoolMemberNormalization allAir = VillageImporter.normalizePoolMember(
                 "test:mixed",
                 "qa/pool/test/mixed",
@@ -257,8 +258,8 @@ public class VillageImporterListPoolElementRuntimeContractTest {
         StructurePoolElement nonAirElement = StructurePoolElement
                 .legacy("test:non_air_primary")
                 .apply(StructureTemplatePool.Projection.RIGID);
-        VillageImporter.PoolElementResolution allAirResolution = VillageImporter.resolvePoolElement(allAirElement);
-        VillageImporter.PoolElementResolution nonAirResolution = VillageImporter.resolvePoolElement(nonAirElement);
+        PoolElementReader.PoolElementResolution allAirResolution = PoolElementReader.resolvePoolElement(allAirElement);
+        PoolElementReader.PoolElementResolution nonAirResolution = PoolElementReader.resolvePoolElement(nonAirElement);
         VillageImporter.PoolMemberNormalization allAir = VillageImporter.normalizePoolMember(
                 "test:primary",
                 "qa/pool/test/primary",

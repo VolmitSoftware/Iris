@@ -1,8 +1,9 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.structure.StructureCarveShape;
-import art.arcane.iris.util.project.noise.CNG;
-import art.arcane.volmlib.util.math.RNG;
+import art.arcane.iris.core.modules.IrisTestNoise;
+import com.volmit.noise.NoiseSampler;
+import com.volmit.noise.NoiseStyle;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -10,6 +11,16 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class StructureCarveEnvelopeTest {
+    private static final com.volmit.noise.NoiseFactory NOISE = IrisTestNoise.factory();
+
+    private static NoiseSampler signature(long seed) {
+        return NOISE.sampler(NoiseStyle.of("IRIS"), seed);
+    }
+
+    private static NoiseSampler singleOctave(long seed) {
+        return NOISE.sampler(NoiseStyle.of("SIMPLEX"), seed);
+    }
+
     @Test
     public void exactStructureFootprintAlwaysCarves() {
         assertTrue(StructureCarveEnvelope.shouldCarveOverboreCell(
@@ -65,7 +76,7 @@ public class StructureCarveEnvelopeTest {
 
     @Test
     public void erodedCeilingStaysInsideTheAdvertisedCarveShapeExtension() {
-        CNG roll = CNG.signature(new RNG(4242L));
+        NoiseSampler roll = signature(4242L);
 
         for (double strength : new double[]{0.25D, 0.5D, 1D}) {
             int limit = StructureCarveShape.ERODED.maximumCeilingExtension(10, strength);
@@ -81,7 +92,7 @@ public class StructureCarveEnvelopeTest {
 
     @Test
     public void floorModulationNeverCutsPastTheConfiguredPadding() {
-        CNG roll = CNG.signature(new RNG(9001L));
+        NoiseSampler roll = signature(9001L);
 
         assertEquals(0D, StructureCarveEnvelope.erodedDownReach(null, 0.05D, 1D, 0, 0, 0), 0D);
         assertEquals(6D, StructureCarveEnvelope.erodedDownReach(null, 0.05D, 0D, 0, 0, 6), 0D);
@@ -99,7 +110,7 @@ public class StructureCarveEnvelopeTest {
 
     @Test
     public void lobedSideReachWandersInsideTheConfiguredPaddingBand() {
-        CNG lobe = new CNG(new RNG(1337L), 1D, 1);
+        NoiseSampler lobe = singleOctave(1337L);
         double lowest = 14D;
         double highest = 0D;
 
@@ -118,7 +129,7 @@ public class StructureCarveEnvelopeTest {
 
     @Test
     public void zeroLobeStrengthKeepsTheUniformPadding() {
-        CNG lobe = new CNG(new RNG(1337L), 1D, 1);
+        NoiseSampler lobe = singleOctave(1337L);
 
         for (int x = -64; x <= 64; x++) {
             for (int z = -64; z <= 64; z++) {
@@ -133,7 +144,7 @@ public class StructureCarveEnvelopeTest {
 
     @Test
     public void lobeWavelengthSpansTensOfBlocksAtTheDerivedFrequency() {
-        CNG lobe = new CNG(new RNG(20250729L), 1D, 1);
+        NoiseSampler lobe = singleOctave(20250729L);
         int span = 2048;
         int crossings = 0;
         double previous = 0D;
@@ -153,7 +164,7 @@ public class StructureCarveEnvelopeTest {
 
     @Test
     public void ceilingLobeIsHalfTheWallLobe() {
-        CNG lobe = new CNG(new RNG(4242L), 1D, 1);
+        NoiseSampler lobe = singleOctave(4242L);
 
         for (int x = -96; x <= 96; x += 3) {
             for (int z = -96; z <= 96; z += 3) {
@@ -170,7 +181,7 @@ public class StructureCarveEnvelopeTest {
 
     @Test
     public void lobeSamplingIsAPureFunctionOfTheColumn() {
-        CNG lobe = new CNG(new RNG(77L), 1D, 1);
+        NoiseSampler lobe = singleOctave(77L);
 
         for (int x = -32; x <= 32; x += 7) {
             for (int z = -32; z <= 32; z += 7) {

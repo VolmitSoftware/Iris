@@ -69,6 +69,13 @@ public interface PackResources {
         return ResourceId.ofPackKey(packId().namespace(), key);
     }
 
+    /** The providers of {@code service} that the pack's modules registered, in module id order, so a module that holds only the
+     * resources, such as a locator listing structures, can ask the modules that own the kinds. Empty by default.
+     */
+    default <S> List<S> services(Class<S> service) {
+        return List.of();
+    }
+
     /** {@link #find} for a resource that must exist: a missing one throws NoSuchElementException naming kind and id. */
     default <T> T require(ResourceKind<T> kind, ResourceId id) {
         return find(kind, id).orElseThrow(() -> new NoSuchElementException("Missing " + kind.id() + " resource: " + id));

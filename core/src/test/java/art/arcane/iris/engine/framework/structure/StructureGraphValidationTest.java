@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.framework.structure;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.ClasspathPack;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -45,7 +46,7 @@ public class StructureGraphValidationTest {
         Path pack = temporaryFolder.newFolder("pack").toPath();
         write(pack, "structures/castle.json", "{\"startPool\":\"castle/start\"}");
         write(pack, "jigsaw-pools/castle/start.json",
-                "{\"pieces\":[{\"piece\":\"castle/start\",\"weight\":0}]}");
+                "{\"pieces\":[{\"piece\":\"castle/start\",\"weight\":1}]}");
         write(pack, "jigsaw-pieces/castle/start.json",
                 "{\"object\":\"castle/start\",\"connectors\":[{\"position\":{\"x\":2,\"y\":0,\"z\":0},"
                         + "\"direction\":\"NORTH_NEGATIVE_Z\",\"pool\":\"castle/start\",\"name\":\"path\",\"targetName\":\"path\"}]}");
@@ -53,8 +54,22 @@ public class StructureGraphValidationTest {
 
         StructureGraphValidation.Validation validation = validate(pack, null);
 
-        assertTrue(validation.errors().stream().anyMatch(message -> message.contains("non-positive weight 0")));
-        assertTrue(validation.errors().stream().anyMatch(message -> message.contains("outside object bounds")));
+        assertTrue(validation.errors().toString(), validation.errors().stream().anyMatch(message -> message.contains("outside object bounds")));
+    }
+
+    @Test
+    public void aNonPositiveWeightFailsTheLoadOfItsPool() throws Exception {
+        Path pack = temporaryFolder.newFolder("pack").toPath();
+        write(pack, "structures/castle.json", "{\"startPool\":\"castle/start\"}");
+        write(pack, "jigsaw-pools/castle/start.json",
+                "{\"pieces\":[{\"piece\":\"castle/start\",\"weight\":0}]}");
+        IrisData data = ClasspathPack.open(pack.toFile(), temporaryFolder);
+        try {
+            assertThrows(IllegalStateException.class, () -> data.getPackResources().find(
+                    StructureResources.POOLS, data.getPackResources().idOf("castle/start")));
+        } finally {
+            data.close();
+        }
     }
 
     @Test
@@ -319,10 +334,10 @@ public class StructureGraphValidationTest {
                         && message.contains("seed 0")));
     }
 
-    private static StructureGraphValidation.Validation validate(Path pack, Set<String> activeStructureKeys) {
-        IrisData data = IrisData.openValidation(pack.toFile());
+    private StructureGraphValidation.Validation validate(Path pack, Set<String> activeStructureKeys) throws Exception {
+        IrisData data = ClasspathPack.open(pack.toFile(), temporaryFolder);
         try {
-            return StructureGraphValidation.validate(data, activeStructureKeys);
+            return StructureGraphValidation.validate(data.getPackResources(), pack.toFile(), activeStructureKeys);
         } finally {
             data.close();
         }

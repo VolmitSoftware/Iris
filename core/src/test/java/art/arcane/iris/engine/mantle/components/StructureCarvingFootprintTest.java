@@ -1,12 +1,15 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.engine.framework.PlacedStructurePiece;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.volmlib.util.math.IrisBlockVector;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.engine.framework.structure.assembly.AssembledPiece;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.resource.ResourceId;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -14,17 +17,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class StructureCarvingFootprintTest {
     @Test
     public void preservesIrregularFootprintInsteadOfFillingItsBoundingBox() {
-        PlacedStructurePiece piece = piece(10, 40, 20, ObjectTurn.of(0, 0, 0),
+        Piece piece = piece(10, 40, 20, PieceTurn.NONE,
                 block(0, 0, 0), block(1, 0, 0), block(2, 0, 0),
                 block(0, 0, 1), block(0, 0, 2));
 
-        StructureCarvingFootprint footprint = StructureCarvingFootprint.from(pieces(piece), 0);
+        StructureCarvingFootprint footprint = footprintOf(pieces(piece), 0);
 
         assertNotNull(footprint);
         assertEquals(10, footprint.minX());
@@ -39,11 +40,11 @@ public class StructureCarvingFootprintTest {
 
     @Test
     public void reportsExactDistanceAndNearestColumnHeights() {
-        PlacedStructurePiece piece = piece(0, 0, 0, ObjectTurn.of(0, 0, 0),
+        Piece piece = piece(0, 0, 0, PieceTurn.NONE,
                 block(0, 10, 0), block(0, 12, 0),
                 block(4, 30, 0), block(4, 35, 0));
 
-        StructureCarvingFootprint footprint = StructureCarvingFootprint.from(pieces(piece), 2);
+        StructureCarvingFootprint footprint = footprintOf(pieces(piece), 2);
         StructureCarvingFootprint.Column nearestRight = footprint.sample(3, 2);
         StructureCarvingFootprint.Column tied = footprint.sample(2, 0);
 
@@ -59,12 +60,12 @@ public class StructureCarvingFootprintTest {
 
     @Test
     public void rotatesAndMergesOverlappingColumns() {
-        PlacedStructurePiece rotated = piece(10, 20, 30, ObjectTurn.of(0, 90, 0),
+        Piece rotated = piece(10, 20, 30, PieceTurn.aroundY(90),
                 block(2, 1, 0));
-        PlacedStructurePiece overlapping = piece(10, 5, 28, ObjectTurn.of(0, 0, 0),
+        Piece overlapping = piece(10, 5, 28, PieceTurn.NONE,
                 block(0, 3, 0), block(0, 9, 0));
 
-        StructureCarvingFootprint footprint = StructureCarvingFootprint.from(
+        StructureCarvingFootprint footprint = footprintOf(
                 pieces(rotated, overlapping), 0);
 
         assertNotNull(footprint);
@@ -82,18 +83,18 @@ public class StructureCarvingFootprintTest {
         int[][] sourceBlocks = new int[][]{
                 block(0, 2, 0), block(3, 4, 1), block(1, 6, 4), block(5, 8, 5)
         };
-        PlacedStructurePiece piece = piece(
-                -8, 30, 11, ObjectTurn.of(0, 0, 0), sourceBlocks);
+        Piece piece = piece(
+                -8, 30, 11, PieceTurn.NONE, sourceBlocks);
 
-        StructureCarvingFootprint footprint = StructureCarvingFootprint.from(pieces(piece), 3);
+        StructureCarvingFootprint footprint = footprintOf(pieces(piece), 3);
 
         assertNotNull(footprint);
         for (int z = footprint.minZ(); z <= footprint.maxZ(); z++) {
             for (int x = footprint.minX(); x <= footprint.maxX(); x++) {
                 long expected = Long.MAX_VALUE;
                 for (int[] source : sourceBlocks) {
-                    long deltaX = (long) x - (piece.getX() + source[0]);
-                    long deltaZ = (long) z - (piece.getZ() + source[2]);
+                    long deltaX = (long) x - (piece.assembled.x() + source[0]);
+                    long deltaZ = (long) z - (piece.assembled.z() + source[2]);
                     expected = Math.min(expected, deltaX * deltaX + deltaZ * deltaZ);
                 }
                 assertEquals(expected, footprint.distanceSquaredAt(x, z));
@@ -103,23 +104,22 @@ public class StructureCarvingFootprintTest {
 
     @Test
     public void returnsNullForEmptyInvalidOrOversizedInputs() {
-        assertNull(StructureCarvingFootprint.from(null, 0));
-        assertNull(StructureCarvingFootprint.from(new KList<>(), 0));
+        assertNull(footprintOf(null, 0));
+        assertNull(footprintOf(new ArrayList<>(), 0));
 
-        KList<PlacedStructurePiece> invalidPieces = new KList<>();
-        invalidPieces.add((PlacedStructurePiece) null);
-        invalidPieces.add(new PlacedStructurePiece(
-                null, null, 0, 0, 0, null, 0, 0, 0, 0, 0, 0));
-        assertNull(StructureCarvingFootprint.from(invalidPieces, 0));
+        List<Piece> invalidPieces = new ArrayList<>();
+        invalidPieces.add(null);
+        invalidPieces.add(new Piece(piece(0, 0, 0, PieceTurn.NONE).assembled, null));
+        assertNull(footprintOf(invalidPieces, 0));
 
-        PlacedStructurePiece piece = piece(0, 0, 0, ObjectTurn.of(0, 0, 0), block(0, 0, 0));
-        assertNull(StructureCarvingFootprint.from(pieces(piece), 2, 24));
-        PlacedStructurePiece overflowing = piece(
-                Integer.MAX_VALUE, 0, 0, ObjectTurn.of(0, 0, 0), block(1, 0, 0));
-        assertNull(StructureCarvingFootprint.from(pieces(overflowing), 0));
+        Piece piece = piece(0, 0, 0, PieceTurn.NONE, block(0, 0, 0));
+        assertNull(footprintOf(pieces(piece), 2, 24));
+        Piece overflowing = piece(
+                Integer.MAX_VALUE, 0, 0, PieceTurn.NONE, block(1, 0, 0));
+        assertNull(footprintOf(pieces(overflowing), 0));
 
         try {
-            StructureCarvingFootprint.from(pieces(piece), -1);
+            footprintOf(pieces(piece), -1);
             fail("Expected negative padding to fail");
         } catch (IllegalArgumentException e) {
             assertEquals("padding must be non-negative", e.getMessage());
@@ -128,9 +128,9 @@ public class StructureCarvingFootprintTest {
 
     @Test
     public void includesTheEntirePaddingBoundary() {
-        PlacedStructurePiece piece = piece(7, 14, -4, ObjectTurn.of(0, 0, 0), block(0, 0, 0));
+        Piece piece = piece(7, 14, -4, PieceTurn.NONE, block(0, 0, 0));
 
-        StructureCarvingFootprint footprint = StructureCarvingFootprint.from(pieces(piece), 2, 25);
+        StructureCarvingFootprint footprint = footprintOf(pieces(piece), 2, 25);
 
         assertNotNull(footprint);
         assertEquals(5, footprint.minX());
@@ -148,17 +148,12 @@ public class StructureCarvingFootprintTest {
 
     @Test
     public void explicitAirDoesNotExpandTheExteriorFootprint() {
-        IrisObject object = new IrisObject(1, 1, 1);
-        PlatformBlockState solid = mock(PlatformBlockState.class);
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        when(air.isAir()).thenReturn(true);
-        object.getBlocks().put(new IrisBlockVector(0, 0, 0), solid);
-        object.getBlocks().put(new IrisBlockVector(8, 4, 8), air);
-        PlacedStructurePiece piece = new PlacedStructurePiece(
-                null, object, 10, 20, 30, ObjectTurn.of(0, 0, 0),
-                10, 20, 30, 18, 24, 38);
+        Piece piece = new Piece(new AssembledPiece(new ResourceId("test", "piece"), 10, 20, 30, PieceTurn.NONE,
+                10, 20, 30, 18, 24, 38), List.of(
+                new StructurePieceColumns.PieceBlock(new BlockPosition(0, 0, 0), false),
+                new StructurePieceColumns.PieceBlock(new BlockPosition(8, 4, 8), true)));
 
-        StructureCarvingFootprint footprint = StructureCarvingFootprint.from(pieces(piece), 0);
+        StructureCarvingFootprint footprint = footprintOf(pieces(piece), 0);
 
         assertNotNull(footprint);
         assertEquals(10, footprint.minX());
@@ -167,23 +162,40 @@ public class StructureCarvingFootprintTest {
         assertEquals(30, footprint.maxZ());
     }
 
-    private static PlacedStructurePiece piece(int x, int y, int z, ObjectTurn rotation,
-                                              int[]... blocks) {
-        IrisObject object = new IrisObject(1, 1, 1);
-        PlatformBlockState state = mock(PlatformBlockState.class);
-        for (int[] block : blocks) {
-            object.getBlocks().put(new IrisBlockVector(block[0], block[1], block[2]), state);
-        }
-        return new PlacedStructurePiece(
-                null, object, x, y, z, rotation, x, y, z, x, y, z);
+    private record Piece(AssembledPiece assembled, List<StructurePieceColumns.PieceBlock> blocks) {
     }
 
-    private static KList<PlacedStructurePiece> pieces(PlacedStructurePiece... pieces) {
-        KList<PlacedStructurePiece> result = new KList<>();
-        for (PlacedStructurePiece piece : pieces) {
-            result.add(piece);
+    private static StructureCarvingFootprint footprintOf(List<Piece> pieces, int padding) {
+        return footprintOf(pieces, padding, StructureCarvingFootprint.DEFAULT_MAX_CELLS);
+    }
+
+    private static StructureCarvingFootprint footprintOf(List<Piece> pieces, int padding, int maxCells) {
+        Map<AssembledPiece, List<StructurePieceColumns.PieceBlock>> blocksOf = new IdentityHashMap<>();
+        List<AssembledPiece> assembled = pieces == null ? null : new ArrayList<>();
+        if (pieces != null) {
+            for (Piece piece : pieces) {
+                if (piece == null) {
+                    assembled.add(null);
+                    continue;
+                }
+                assembled.add(piece.assembled);
+                blocksOf.put(piece.assembled, piece.blocks);
+            }
         }
-        return result;
+        return StructureCarvingFootprint.fromColumns(
+                sink -> StructurePieceColumns.emit(assembled, blocksOf::get, sink), padding, maxCells);
+    }
+
+    private static Piece piece(int x, int y, int z, PieceTurn turn, int[]... blocks) {
+        List<StructurePieceColumns.PieceBlock> pieceBlocks = new ArrayList<>();
+        for (int[] block : blocks) {
+            pieceBlocks.add(new StructurePieceColumns.PieceBlock(new BlockPosition(block[0], block[1], block[2]), false));
+        }
+        return new Piece(new AssembledPiece(new ResourceId("test", "piece"), x, y, z, turn, x, y, z, x, y, z), pieceBlocks);
+    }
+
+    private static List<Piece> pieces(Piece... pieces) {
+        return new ArrayList<>(List.of(pieces));
     }
 
     private static int[] block(int x, int y, int z) {

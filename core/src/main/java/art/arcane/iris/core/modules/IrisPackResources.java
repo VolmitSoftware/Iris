@@ -167,6 +167,11 @@ public final class IrisPackResources implements PackResources {
         return kindOf(kind).ids();
     }
 
+    @Override
+    public <S> List<S> services(Class<S> service) {
+        return PackServices.of(data).providers(service);
+    }
+
     /**
      * The ids of the resources of the kind {@code kindId} names, for Iris's own tools that list a module's resources
      * without the module's class for them, which the plugin's classes cannot reach when the kind ships in a module jar.

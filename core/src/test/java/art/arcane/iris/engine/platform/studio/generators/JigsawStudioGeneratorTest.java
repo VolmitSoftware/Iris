@@ -1,13 +1,9 @@
 package art.arcane.iris.engine.platform.studio.generators;
 
 import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.core.modules.ModuleResourceFixture;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarArchetype;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarDirection;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarTopology;
-import art.arcane.iris.core.runtime.jigsaw.JigsawStudioActivation;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBay;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCompatibilityTarget;
@@ -18,59 +14,56 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioPieceRules;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioSession;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariant;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariantCatalog;
-import art.arcane.iris.engine.data.chunk.TerrainChunk;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.core.service.JigsawStudioRequest;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.ObjectTurn;
-import art.arcane.iris.engine.object.value.IrisPosition;
+import art.arcane.iris.engine.framework.structure.assembly.PieceTurn;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
-import art.arcane.iris.engine.object.prefab.TileData;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.collection.KMap;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.generator.ChunkGenerator.ChunkData;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.object.BlockEntityData;
+import com.volmit.object.GeneratedObject;
+import com.volmit.object.ObjectBlock;
+import com.volmit.object.PackObjects;
+import com.volmit.object.PlaceableObject;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
+import com.volmit.tooling.ToolPack;
+import com.volmit.tooling.world.ChunkCanvas;
 import org.junit.Test;
-import org.mockito.MockedStatic;
 
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 public class JigsawStudioGeneratorTest {
+    private static final String PACK_NAMESPACE = "test";
+
     @Test
-    @SuppressWarnings("unchecked")
     public void connectorBlocksAreHiddenByDefaultAndCanBeShownPerWorkcell() {
-        IrisData source = mock(IrisData.class);
-        ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        ModuleResourceFixture resources = ModuleResourceFixture.serve(source);
-        when(source.getObjectLoader()).thenReturn(objectLoader);
+        PackFixture pack = new PackFixture();
         IrisJigsawConnector connector = new IrisJigsawConnector()
-                .setPosition(new IrisPosition(1, 1, 1))
-                .setDirection(IrisDirection.NORTH_NEGATIVE_Z)
-                .setTop(IrisDirection.UP_POSITIVE_Y)
+                .setPosition(new BlockPosition(1, 1, 1))
+                .setDirection(JigsawDirection.NORTH_NEGATIVE_Z)
+                .setTop(JigsawDirection.UP_POSITIVE_Y)
                 .setPool("test/start")
                 .setName("door")
                 .setTargetName("door")
@@ -80,11 +73,9 @@ public class JigsawStudioGeneratorTest {
                 .setObject("test/room")
                 .setConnectors(new KList<>());
         piece.getConnectors().add(connector);
-        PlatformBlockState stone = mock(PlatformBlockState.class);
-        IrisObject object = new IrisObject(3, 3, 3);
-        object.setUnsigned(1, 1, 1, stone);
-        resources.resource(StructureResources.PIECES, "test/room", piece);
-        when(objectLoader.load("test/room", false)).thenReturn(object);
+        BlockState stone = BlockState.parse("minecraft:stone");
+        pack.piece("test/room", piece);
+        pack.object("test/room", object(3, 3, 3, new PlacedBlock(1, 1, 1, stone, null)));
         JigsawStudioVariant variant = new JigsawStudioVariant(
                 "test/room",
                 "test/room",
@@ -98,7 +89,7 @@ public class JigsawStudioGeneratorTest {
                 new JigsawStudioPieceRules(0, 30, 0, 0, false),
                 List.of());
         GeneratorFixture fixture = fixture(
-                source,
+                pack,
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 new JigsawStudioCellDimensions(3, 3, 3),
                 new JigsawStudioVariantCatalog(List.of(variant)));
@@ -111,52 +102,10 @@ public class JigsawStudioGeneratorTest {
                 workcell.stableId()).connectorsVisible());
         assertSame(stone, stateAt(fixture.generator(), worldX, worldY, worldZ));
 
-        PlatformBlockState marker = mock(PlatformBlockState.class);
+        BlockState marker = BlockState.parse("minecraft:jigsaw[orientation=north_up]");
+        when(pack.blocks.find("minecraft:jigsaw[orientation=north_up]")).thenReturn(Optional.of(marker));
         fixture.generator().getSession().setConnectorsVisible(workcell.stableId(), true);
-        try (MockedStatic<B> blocks = mockStatic(B.class)) {
-            blocks.when(() -> B.getState("minecraft:jigsaw[orientation=north_up]")).thenReturn(marker);
-            assertSame(marker, stateAt(fixture.generator(), worldX, worldY, worldZ));
-        }
-    }
-
-    @Test
-    public void serviceRegistrationIsPublishedAfterTheRegistrationFinishes() throws Exception {
-        GeneratorFixture fixture = fixture(
-                JigsawStudioMode.PLANAR_JIGSAW,
-                new JigsawStudioCellDimensions(3, 3, 3),
-                JigsawStudioVariantCatalog.empty());
-        CountDownLatch registrationStarted = new CountDownLatch(1);
-        CountDownLatch releaseRegistration = new CountDownLatch(1);
-        CountDownLatch secondStarted = new CountDownLatch(1);
-        CountDownLatch secondFinished = new CountDownLatch(1);
-        AtomicInteger registrations = new AtomicInteger();
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        try {
-            Future<?> first = executor.submit(() -> fixture.generator().publishServiceRegistration(() -> {
-                registrations.incrementAndGet();
-                registrationStarted.countDown();
-                await(releaseRegistration);
-            }));
-            assertTrue(registrationStarted.await(5, TimeUnit.SECONDS));
-            Future<?> second = executor.submit(() -> {
-                secondStarted.countDown();
-                fixture.generator().publishServiceRegistration(registrations::incrementAndGet);
-                secondFinished.countDown();
-            });
-            assertTrue(secondStarted.await(5, TimeUnit.SECONDS));
-            assertFalse(secondFinished.await(250, TimeUnit.MILLISECONDS));
-
-            releaseRegistration.countDown();
-            first.get(5, TimeUnit.SECONDS);
-            second.get(5, TimeUnit.SECONDS);
-
-            assertEquals(1, registrations.get());
-            assertEquals(0L, secondFinished.getCount());
-        } finally {
-            releaseRegistration.countDown();
-            executor.shutdownNow();
-            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
-        }
+        assertSame(marker, stateAt(fixture.generator(), worldX, worldY, worldZ));
     }
 
     @Test
@@ -319,7 +268,7 @@ public class JigsawStudioGeneratorTest {
         JigsawStudioBay cross = fixture.layout().get("workcell/cross");
         int chunkX = (cross.bounds().originX() + 32) >> 4;
         int chunkZ = (cross.bounds().originZ() + 32) >> 4;
-        RecordingTerrainChunk chunk = new RecordingTerrainChunk(-64, 320);
+        RecordingCanvas chunk = new RecordingCanvas(-64, 320);
 
         fixture.generator().paintChunk(chunk, chunkX, chunkZ);
 
@@ -330,16 +279,12 @@ public class JigsawStudioGeneratorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void rendersSourceVariantInCanonicalOrientationAndRotatesFinalState() {
-        IrisData source = mock(IrisData.class);
-        ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        ModuleResourceFixture resources = ModuleResourceFixture.serve(source);
-        when(source.getObjectLoader()).thenReturn(objectLoader);
+        PackFixture pack = new PackFixture();
         IrisJigsawConnector connector = new IrisJigsawConnector()
-                .setPosition(new IrisPosition(2, 1, 1))
-                .setDirection(IrisDirection.EAST_POSITIVE_X)
-                .setTop(IrisDirection.UP_POSITIVE_Y)
+                .setPosition(new BlockPosition(2, 1, 1))
+                .setDirection(JigsawDirection.EAST_POSITIVE_X)
+                .setTop(JigsawDirection.UP_POSITIVE_Y)
                 .setPool("village/start")
                 .setName("door")
                 .setTargetName("door")
@@ -349,19 +294,13 @@ public class JigsawStudioGeneratorTest {
                 .setObject("village/east")
                 .setConnectors(new KList<>());
         piece.getConnectors().add(connector);
-        IrisObject object = new IrisObject(3, 3, 3);
-        PlatformBlockState sourceBlock = mock(PlatformBlockState.class);
-        when(sourceBlock.nativeHandle()).thenReturn(mock(BlockData.class));
-        KMap<String, Object> tileProperties = new KMap<>();
-        tileProperties.put("CustomName", "QA Chest");
-        TileData sourceTile = new TileData("minecraft:chest", tileProperties);
-        object.setUnsigned(0, 0, 0, sourceBlock);
-        object.setUnsignedTile(0, 0, 0, sourceTile);
-        resources.resource(StructureResources.PIECES, "village/east", piece);
-        when(objectLoader.load("village/east", false)).thenReturn(object);
+        BlockState sourceBlock = BlockState.parse("minecraft:chest");
+        BlockEntityData sourceTile = new BlockEntityData(new ResourceId("iris", "tile"), 1, new byte[]{1, 2, 3});
+        pack.piece("village/east", piece);
+        pack.object("village/east", object(3, 3, 3, new PlacedBlock(0, 0, 0, sourceBlock, sourceTile)));
         JigsawStudioVariant variant = planarVariant("village/east", JigsawPlanarTopology.EAST_END);
         GeneratorFixture fixture = fixture(
-                source,
+                pack,
                 JigsawStudioMode.PLANAR_JIGSAW,
                 new JigsawStudioCellDimensions(3, 3, 3),
                 new JigsawStudioVariantCatalog(List.of(variant)));
@@ -373,25 +312,20 @@ public class JigsawStudioGeneratorTest {
         JigsawStudioGenerator.RenderedConnector rotated = rendered.connectors().getFirst();
         assertEquals(1, rotated.x());
         assertEquals(0, rotated.z());
-        assertEquals(IrisDirection.NORTH_NEGATIVE_Z, rotated.connector().getDirection());
+        assertEquals(JigsawDirection.NORTH_NEGATIVE_Z, rotated.connector().getDirection());
         assertEquals("north_up", rotated.orientation());
         assertTrue(rotated.connector().getFinalState().contains("facing=north"));
         JigsawStudioGenerator.RenderedBlock rotatedBlock = rendered.blocks().getFirst();
-        assertEquals(sourceTile, rotatedBlock.tileData());
-        assertNotSame(sourceTile, rotatedBlock.tileData());
+        assertEquals(sourceTile, rotatedBlock.blockEntity());
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void invalidRotatedFinalStateFailsRenderPrecisely() {
-        IrisData source = mock(IrisData.class);
-        ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        ModuleResourceFixture resources = ModuleResourceFixture.serve(source);
-        when(source.getObjectLoader()).thenReturn(objectLoader);
+        PackFixture pack = new PackFixture();
         IrisJigsawConnector connector = new IrisJigsawConnector()
-                .setPosition(new IrisPosition(2, 1, 1))
-                .setDirection(IrisDirection.EAST_POSITIVE_X)
-                .setTop(IrisDirection.UP_POSITIVE_Y)
+                .setPosition(new BlockPosition(2, 1, 1))
+                .setDirection(JigsawDirection.EAST_POSITIVE_X)
+                .setTop(JigsawDirection.UP_POSITIVE_Y)
                 .setPool("village/start")
                 .setName("door")
                 .setTargetName("door")
@@ -401,11 +335,11 @@ public class JigsawStudioGeneratorTest {
                 .setObject("village/east")
                 .setConnectors(new KList<>());
         piece.getConnectors().add(connector);
-        resources.resource(StructureResources.PIECES, "village/east", piece);
-        when(objectLoader.load("village/east", false)).thenReturn(new IrisObject(3, 3, 3));
+        pack.piece("village/east", piece);
+        pack.object("village/east", object(3, 3, 3));
         JigsawStudioVariant variant = planarVariant("village/east", JigsawPlanarTopology.EAST_END);
         GeneratorFixture fixture = fixture(
-                source,
+                pack,
                 JigsawStudioMode.PLANAR_JIGSAW,
                 new JigsawStudioCellDimensions(3, 3, 3),
                 new JigsawStudioVariantCatalog(List.of(variant)));
@@ -418,17 +352,13 @@ public class JigsawStudioGeneratorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void renderCacheIncludesLoadGenerationAndSupportsExplicitInvalidation() {
-        IrisData source = mock(IrisData.class);
-        ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        ModuleResourceFixture resources = ModuleResourceFixture.serve(source);
-        when(source.getObjectLoader()).thenReturn(objectLoader);
+        PackFixture pack = new PackFixture();
         IrisJigsawPiece piece = new IrisJigsawPiece()
                 .setObject("stronghold/hall")
                 .setConnectors(new KList<>());
-        resources.resource(StructureResources.PIECES, "stronghold/hall", piece);
-        when(objectLoader.load("stronghold/hall", false)).thenReturn(new IrisObject(3, 3, 3));
+        pack.piece("stronghold/hall", piece);
+        pack.object("stronghold/hall", object(3, 3, 3));
         JigsawStudioVariant variant = new JigsawStudioVariant(
                 "stronghold/hall",
                 "stronghold/hall",
@@ -442,7 +372,7 @@ public class JigsawStudioGeneratorTest {
                 new JigsawStudioPieceRules(0, 30, 0, 0, false),
                 List.of());
         GeneratorFixture fixture = fixture(
-                source,
+                pack,
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 new JigsawStudioCellDimensions(3, 3, 3),
                 new JigsawStudioVariantCatalog(List.of(variant)));
@@ -459,14 +389,14 @@ public class JigsawStudioGeneratorTest {
     @Test
     public void mapsAllVanillaJigsawOrientations() {
         assertEquals("north_up", JigsawStudioGenerator.orientation(
-                IrisDirection.NORTH_NEGATIVE_Z, IrisDirection.UP_POSITIVE_Y));
+                JigsawDirection.NORTH_NEGATIVE_Z, JigsawDirection.UP_POSITIVE_Y));
         assertEquals("up_east", JigsawStudioGenerator.orientation(
-                IrisDirection.UP_POSITIVE_Y, IrisDirection.EAST_POSITIVE_X));
+                JigsawDirection.UP_POSITIVE_Y, JigsawDirection.EAST_POSITIVE_X));
         assertEquals("down_west", JigsawStudioGenerator.orientation(
-                IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.WEST_NEGATIVE_X));
+                JigsawDirection.DOWN_NEGATIVE_Y, JigsawDirection.WEST_NEGATIVE_X));
     }
 
-    private static PlatformBlockState stateAt(
+    private static BlockState stateAt(
             JigsawStudioGenerator generator,
             int worldX,
             int worldY,
@@ -474,20 +404,9 @@ public class JigsawStudioGeneratorTest {
     ) {
         int chunkX = worldX >> 4;
         int chunkZ = worldZ >> 4;
-        RecordingTerrainChunk chunk = new RecordingTerrainChunk(-64, 320);
+        RecordingCanvas chunk = new RecordingCanvas(-64, 320);
         generator.paintChunk(chunk, chunkX, chunkZ);
-        return chunk.getBlockData(worldX - (chunkX << 4), worldY, worldZ - (chunkZ << 4));
-    }
-
-    private static void await(CountDownLatch latch) {
-        try {
-            if (!latch.await(5, TimeUnit.SECONDS)) {
-                throw new IllegalStateException("Timed out waiting for Jigsaw Studio registration");
-            }
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted while waiting for Jigsaw Studio registration", exception);
-        }
+        return chunk.blockAt(worldX - (chunkX << 4), worldY, worldZ - (chunkZ << 4));
     }
 
     private static GeneratorFixture fixture(
@@ -495,42 +414,42 @@ public class JigsawStudioGeneratorTest {
             JigsawStudioCellDimensions dimensions,
             JigsawStudioVariantCatalog catalog
     ) {
-        return fixture(mock(IrisData.class), mode, dimensions, catalog);
+        return fixture(new PackFixture(), mode, dimensions, catalog);
     }
 
     private static GeneratorFixture fixture(
-            IrisData source,
+            PackFixture pack,
             JigsawStudioMode mode,
             JigsawStudioCellDimensions dimensions,
             JigsawStudioVariantCatalog catalog
     ) {
-        Engine engine = mock(Engine.class);
         UUID requestId = UUID.randomUUID();
         JigsawStudioLayout layout = JigsawStudioLayout.create(mode, dimensions, catalog);
-        JigsawStudioActivation.Request request = new JigsawStudioActivation.Request(
+        JigsawStudioRequest request = new JigsawStudioRequest(
                 requestId,
                 "overworld",
                 "test/structure",
                 mode,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 dimensions,
-                source,
+                pack.pack,
+                Path.of("pack"),
                 null);
         JigsawStudioSession session = new JigsawStudioSession(
                 requestId,
                 "overworld",
                 "test/structure",
                 layout);
-        PlatformBlockState lightFloor = mock(PlatformBlockState.class);
-        PlatformBlockState darkFloor = mock(PlatformBlockState.class);
-        PlatformBlockState frame = mock(PlatformBlockState.class);
-        PlatformBlockState topologyBase = mock(PlatformBlockState.class);
-        PlatformBlockState topologyPath = mock(PlatformBlockState.class);
-        PlatformBlockState connectorCap = mock(PlatformBlockState.class);
-        PlatformBlockState invalidMarker = mock(PlatformBlockState.class);
-        PlatformBlockState controlChest = mock(PlatformBlockState.class);
+        BlockState lightFloor = BlockState.parse("minecraft:smooth_stone");
+        BlockState darkFloor = BlockState.parse("minecraft:polished_deepslate");
+        BlockState frame = BlockState.parse("minecraft:white_concrete");
+        BlockState topologyBase = BlockState.parse("minecraft:light_gray_wool");
+        BlockState topologyPath = BlockState.parse("minecraft:red_wool");
+        BlockState connectorCap = BlockState.parse("minecraft:sea_lantern");
+        BlockState invalidMarker = BlockState.parse("minecraft:red_stained_glass");
+        BlockState controlChest = BlockState.parse("minecraft:chest[facing=south,type=single,waterlogged=false]");
         JigsawStudioGenerator generator = new JigsawStudioGenerator(
-                engine,
+                pack.pack,
                 request,
                 session,
                 lightFloor,
@@ -569,7 +488,7 @@ public class JigsawStudioGeneratorTest {
 
     private static String renderFinalState(
             String finalState,
-            ObjectTurn rotation,
+            PieceTurn rotation,
             int quarterTurns
     ) {
         if (finalState.equals("minecraft:not_a_real_block")) {
@@ -581,83 +500,113 @@ public class JigsawStudioGeneratorTest {
         return finalState;
     }
 
+    private static TestObject object(int width, int height, int depth, PlacedBlock... placed) {
+        BlockPosition center = new BlockPosition(width / 2, height / 2, depth / 2);
+        List<ObjectBlock> blocks = new ArrayList<>();
+        for (PlacedBlock block : placed) {
+            blocks.add(new ObjectBlock(
+                    new BlockPosition(block.x() - center.x(), block.y() - center.y(), block.z() - center.z()),
+                    block.state(),
+                    Optional.ofNullable(block.blockEntity())));
+        }
+        BlockBox bounds = new BlockBox(
+                -center.x(), -center.y(), -center.z(),
+                width - center.x(), height - center.y(), depth - center.z());
+        GeneratedObject geometry = new GeneratedObject(bounds, new BlockPosition(0, 0, 0), blocks, List.of());
+        return new TestObject(width, height, depth, center, geometry);
+    }
+
+    /** A block at its coordinates inside the object, counted from the object's own corner. */
+    private record PlacedBlock(int x, int y, int z, BlockState state, BlockEntityData blockEntity) {
+    }
+
+    private record TestObject(int width, int height, int depth, BlockPosition center, GeneratedObject geometry)
+            implements PlaceableObject {
+        @Override
+        public String name() {
+            return "test-object";
+        }
+    }
+
+    /** A pack whose pieces and objects a test sets by key, and whose block registry knows every block. */
+    private static final class PackFixture {
+        final ToolPack pack = mock(ToolPack.class);
+        final PackResources resources = mock(PackResources.class);
+        final PackObjects objects = mock(PackObjects.class);
+        final BlockRegistry blocks = mock(BlockRegistry.class);
+
+        PackFixture() {
+            when(pack.resources()).thenReturn(resources);
+            when(resources.objects()).thenReturn(objects);
+            when(resources.blocks()).thenReturn(blocks);
+            when(resources.idOf(anyString())).thenAnswer(invocation -> idOf(invocation.getArgument(0)));
+            when(blocks.find(anyString())).thenAnswer(invocation ->
+                    Optional.of(BlockState.parse(invocation.getArgument(0))));
+            when(blocks.rotate(any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(blocks.tryRotate(any(), any())).thenAnswer(invocation -> Optional.of(invocation.getArgument(0)));
+        }
+
+        void piece(String key, IrisJigsawPiece piece) {
+            when(resources.find(StructureResources.PIECES, idOf(key))).thenReturn(Optional.of(piece));
+        }
+
+        void object(String key, PlaceableObject object) {
+            when(objects.object(idOf(key))).thenReturn(Optional.of(object));
+        }
+
+        private static ResourceId idOf(String key) {
+            return ResourceId.ofPackKey(PACK_NAMESPACE, key);
+        }
+    }
+
     private record GeneratorFixture(
             JigsawStudioGenerator generator,
             JigsawStudioLayout layout,
-            PlatformBlockState frame,
-            PlatformBlockState topologyBase,
-            PlatformBlockState topologyPath,
-            PlatformBlockState connectorCap,
-            PlatformBlockState controlChest
+            BlockState frame,
+            BlockState topologyBase,
+            BlockState topologyPath,
+            BlockState connectorCap,
+            BlockState controlChest
     ) {
     }
 
-    private static final class RecordingTerrainChunk implements TerrainChunk {
-        private final int minHeight;
-        private final int maxHeight;
-        private final Map<String, PlatformBlockState> blocks = new HashMap<>();
+    private static final class RecordingCanvas implements ChunkCanvas {
+        private final int minY;
+        private final int maxY;
+        private final Map<String, BlockState> blocks = new HashMap<>();
 
-        private RecordingTerrainChunk(int minHeight, int maxHeight) {
-            this.minHeight = minHeight;
-            this.maxHeight = maxHeight;
+        private RecordingCanvas(int minY, int maxY) {
+            this.minY = minY;
+            this.maxY = maxY;
         }
 
         @Override
-        public PlatformBiome getBiome(int x, int y, int z) {
-            return null;
+        public int minY() {
+            return minY;
         }
 
         @Override
-        public void setBiome(int x, int y, int z, PlatformBiome biome) {
+        public int maxY() {
+            return maxY;
         }
 
         @Override
-        public int getMinHeight() {
-            return minHeight;
+        public void set(int x, int y, int z, BlockState state) {
+            blocks.put(key(x, y, z), state);
         }
 
         @Override
-        public int getMaxHeight() {
-            return maxHeight;
+        public void set(int x, int y, int z, BlockState state, BlockEntityData data) {
+            set(x, y, z, state);
         }
 
-        @Override
-        public void setBlock(int x, int y, int z, PlatformBlockState blockData) {
-            blocks.put(key(x, y, z), blockData);
-        }
-
-        @Override
-        public void setRegion(
-                int xMin,
-                int yMin,
-                int zMin,
-                int xMax,
-                int yMax,
-                int zMax,
-                PlatformBlockState blockData
-        ) {
-            for (int x = xMin; x < xMax; x++) {
-                for (int y = yMin; y < yMax; y++) {
-                    for (int z = zMin; z < zMax; z++) {
-                        setBlock(x, y, z, blockData);
-                    }
-                }
-            }
-        }
-
-        @Override
-        public PlatformBlockState getBlockData(int x, int y, int z) {
+        private BlockState blockAt(int x, int y, int z) {
             return blocks.get(key(x, y, z));
         }
 
-        @Override
-        public ChunkData getChunkData() {
-            return null;
-        }
-
-        private int countState(PlatformBlockState state) {
+        private int countState(BlockState state) {
             int count = 0;
-            for (PlatformBlockState block : blocks.values()) {
+            for (BlockState block : blocks.values()) {
                 if (block == state) {
                     count++;
                 }

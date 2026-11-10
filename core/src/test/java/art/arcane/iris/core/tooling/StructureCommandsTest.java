@@ -2,7 +2,8 @@ package art.arcane.iris.core.tooling;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
-import art.arcane.iris.core.modules.StructureModelModule;
+import art.arcane.iris.modules.jigsaw.JigsawModule;
+import art.arcane.iris.core.structure.FakePlatformStructures;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.object.structure.IrisStructure;
@@ -51,7 +52,7 @@ public class StructureCommandsTest {
 
         packFolder = temporaryFolder.newFolder("overworld");
         data = mock(IrisData.class);
-        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
+        ModuleResourceFixture.serveModules(data, new JigsawModule(), new StructureModule());
         when(data.getDataFolder()).thenReturn(packFolder);
         IrisStructure emptyCastle = new IrisStructure();
         emptyCastle.setStartPool("ghost-pool");
@@ -70,7 +71,9 @@ public class StructureCommandsTest {
             public List<String> names() {
                 return List.of("overworld");
             }
-        }, Runnable::run, Optional::empty);
+        }, Runnable::run, Optional::empty, () -> Optional.of(new FakePlatformStructures()
+                .withStructures("minecraft:village", "example:castle")
+                .withStructureSets("minecraft:villages")));
     }
 
     @After

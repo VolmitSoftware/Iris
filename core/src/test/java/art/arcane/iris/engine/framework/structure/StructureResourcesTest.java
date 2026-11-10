@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.framework.structure;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.ClasspathPack;
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.core.modules.IrisModuleHost;
 import art.arcane.iris.core.project.ModuleResourceSchemas;
@@ -39,17 +40,17 @@ public class StructureResourcesTest {
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
-    public void theStructureModuleOwnsTheKindsAndTheirValidator() throws Exception {
-        IrisData data = IrisData.openValidation(castlePack("owned").toFile());
+    public void theJigsawModuleOwnsTheKindsAndTheirValidator() throws Exception {
+        IrisData data = ClasspathPack.open(castlePack("owned").toFile(), temporaryFolder);
         try {
             var catalog = data.getModules().pack().catalog();
 
             var kinds = catalog.resourceKinds().stream().map(ResourceKindRegistration::kind)
-                    .filter(kind -> kind.id().toString().startsWith("iris:structure/")).toList();
-            assertEquals(List.of("iris:structure/piece", "iris:structure/pool", "iris:structure/structure"),
+                    .filter(kind -> kind.id().toString().startsWith("iris:jigsaw/")).toList();
+            assertEquals(List.of("iris:jigsaw/piece", "iris:jigsaw/pool", "iris:jigsaw/structure"),
                     kinds.stream().map(kind -> kind.id().toString()).toList());
             assertEquals(List.of("jigsaw-pieces", "jigsaw-pools", "structures"), kinds.stream().map(kind -> kind.folder()).toList());
-            assertTrue(catalog.validators().stream().map(ValidatorRegistration::validator).anyMatch(StructureValidator.class::isInstance));
+            assertTrue(catalog.validators().stream().map(ValidatorRegistration::validator).anyMatch(JigsawValidator.class::isInstance));
             assertFalse(data.getLoaders().containsKey(IrisStructure.class));
             assertFalse(data.getLoaders().containsKey(IrisJigsawPool.class));
             assertFalse(data.getLoaders().containsKey(IrisJigsawPiece.class));
@@ -60,7 +61,7 @@ public class StructureResourcesTest {
 
     @Test
     public void theStructureModuleListsThePacksStructuresForIrissIndexThroughItsLocator() throws Exception {
-        IrisData data = IrisData.openValidation(castlePack("listed").toFile());
+        IrisData data = ClasspathPack.open(castlePack("listed").toFile(), temporaryFolder);
         try {
             assertEquals(Set.of(new ResourceId("listed", "castle")), new StructureLocating().structures(data.getPackResources()));
             assertEquals(Set.of("castle"), ModuleServices.structureKeys(data));
@@ -72,13 +73,12 @@ public class StructureResourcesTest {
     @Test
     public void structuresPoolsAndPiecesAreReadThroughPackResources() throws Exception {
         Path pack = castlePack("castles");
-        IrisData data = IrisData.openValidation(pack.toFile());
+        IrisData data = ClasspathPack.open(pack.toFile(), temporaryFolder);
         try {
             IrisStructure castle = StructureResources.structure(data.getPackResources(),"castle");
 
             assertEquals("castle/start", castle.getStartPool());
             assertEquals(5, castle.getMaxDepth());
-            assertEquals("castle", castle.getLoadKey());
             assertSame(castle, data.getPackResources().find(StructureResources.STRUCTURES, new ResourceId("castles", "castle")).orElseThrow());
             assertEquals("castle/start", StructureResources.pool(data.getPackResources(), "castle/start").getPieces().getFirst().getPiece());
             assertEquals("castle/start", StructureResources.piece(data.getPackResources(), "castle/start").getObject());
@@ -95,7 +95,7 @@ public class StructureResourcesTest {
     public void aBrokenStructureIsAbsentToLookupsButAnErrorToPackResources() throws Exception {
         Path pack = castlePack("broken");
         write(pack, "structures/ruin.json", "{\"maxDepth\":");
-        IrisData data = IrisData.openValidation(pack.toFile());
+        IrisData data = ClasspathPack.open(pack.toFile(), temporaryFolder);
         try {
             assertNull(StructureResources.structure(data.getPackResources(),"ruin"));
             assertThrows(IllegalStateException.class,
@@ -108,7 +108,7 @@ public class StructureResourcesTest {
     @Test
     public void rewrittenFilesAreReadAgainAfterInvalidationDumpAndHotload() throws Exception {
         Path pack = castlePack("reloaded");
-        IrisData data = IrisData.openValidation(pack.toFile());
+        IrisData data = ClasspathPack.open(pack.toFile(), temporaryFolder);
         try {
             assertEquals(5, StructureResources.structure(data.getPackResources(),"castle").getMaxDepth());
             write(pack, "structures/castle.json", "{\"startPool\":\"castle/start\",\"maxDepth\":9}");
@@ -126,7 +126,7 @@ public class StructureResourcesTest {
             data.close();
         }
 
-        IrisData runtime = IrisData.openRuntime(pack.toFile());
+        IrisData runtime = ClasspathPack.openRuntime(pack.toFile(), temporaryFolder);
         try {
             assertEquals(3, StructureResources.structure(runtime.getPackResources(),"castle").getMaxDepth());
             write(pack, "structures/castle.json", "{\"startPool\":\"castle/start\",\"maxDepth\":2}");
@@ -140,7 +140,7 @@ public class StructureResourcesTest {
     @Test
     public void studioDescribesStructuresAsIrisDoesAndCompletesTheirPools() throws Exception {
         Path pack = castlePack("studio");
-        IrisData data = IrisData.openValidation(pack.toFile());
+        IrisData data = ClasspathPack.open(pack.toFile(), temporaryFolder);
         try (SchemaTestPlatform ignored = SchemaTestPlatform.bind(temporaryFolder.getRoot())) {
             List<JSONObject> entries = ModuleResourceSchemas.entries(data, true);
 
@@ -149,7 +149,7 @@ public class StructureResourcesTest {
                     entries.stream().map(entry -> entry.getString("url")).filter(url -> url.contains("jigsaw") || url.contains("structures-")).toList());
             JSONObject structures = new JSONObject(Files.readString(pack.resolve(".iris/schema/structures-schema.json")));
             JSONObject startPool = structures.getJSONObject("properties").getJSONObject("startPool");
-            assertEquals("#/definitions/erzjigsaw-pools", startPool.getString("$ref"));
+            assertEquals("#/definitions/erzjigsaw-pools", startPool.optString("$ref", startPool.toString()));
             assertEquals("[\"castle/start\"]",
                     structures.getJSONObject("definitions").getJSONObject("erzjigsaw-pools").getJSONArray("enum").toString());
         } finally {

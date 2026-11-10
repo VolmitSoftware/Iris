@@ -22,7 +22,8 @@ import art.arcane.iris.builtin.loot.ObjectLoot;
 import art.arcane.iris.builtin.loot.ObjectVanillaLoot;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.structure.StructureHost;
+import art.arcane.iris.engine.framework.structure.assembly.StructureAssembly;
+import art.arcane.iris.engine.framework.structure.assembly.StructureStamp;
 import com.volmit.config.Level;
 import com.volmit.config.SettingsStack;
 import com.volmit.placement.PlacementRecord;
@@ -82,15 +83,25 @@ final class PlacedObjectLoot {
 
     /** A structure piece's object gives every table its structure names, each once. */
     private static Optional<ObjectPlacement> structurePlacement(PackWorld world, ResourceId structure, ResourceId object) {
-        Optional<List<String>> tables = world.extension(StructureHost.class).orElseThrow().lootTables(structure);
-        if (tables.isEmpty() || world.resources().objects().object(object).isEmpty()) {
+        Optional<StructureStamp> stamp = stampOf(world, structure);
+        if (stamp.isEmpty() || world.resources().objects().object(object).isEmpty()) {
             return Optional.empty();
         }
         List<ObjectLoot> loot = new ArrayList<>();
-        for (String table : tables.get()) {
+        for (String table : stamp.get().loot()) {
             loot.add(new ObjectLoot(table, STRUCTURE_TABLE_WEIGHT));
         }
         return Optional.of(ObjectPlacement.builder().place(List.of(object.path())).loot(loot).build());
+    }
+
+    private static Optional<StructureStamp> stampOf(PackWorld world, ResourceId structure) {
+        for (StructureAssembly provider : world.services(StructureAssembly.class)) {
+            Optional<StructureStamp> stamp = provider.stamp(world.resources(), structure);
+            if (stamp.isPresent()) {
+                return stamp;
+            }
+        }
+        return Optional.empty();
     }
 
     private static Optional<ObjectPlacement> columnPlacement(PackResources resources, SettingsStack<ObjectSettings> declared,

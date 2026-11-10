@@ -42,12 +42,11 @@ public class StudioPlayerModeContractTest {
         String objectCommands = Files.readString(Path.of(
                 "src/main/java/art/arcane/iris/core/commands/CommandObject.java")).replace("\r\n", "\n");
         String jigsawCommands = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/commands/CommandJigsaw.java")).replace("\r\n", "\n");
+                System.getProperty("iris.studioLifecycleCommandsSource"))).replace("\r\n", "\n");
 
         assertTrue(objectCommands.contains("GameMode.CREATIVE"));
         assertTrue(objectCommands.contains("StudioOpenCoordinator.StudioOpenKind.OBJECT"));
-        assertTrue(jigsawCommands.contains("GameMode.CREATIVE"));
+        assertTrue(jigsawCommands.contains("player.creative(true)"));
         assertFalse(objectCommands.contains("GameMode.SPECTATOR"));
-        assertFalse(jigsawCommands.contains("GameMode.SPECTATOR"));
-    }
+        assertFalse(jigsawCommands.contains("GameMode.SPECTATOR"));    }
 }

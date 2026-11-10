@@ -1,6 +1,6 @@
 package art.arcane.iris.core.runtime.jigsaw;
 
-import art.arcane.iris.engine.object.value.IrisPosition;
+import com.volmit.geometry.BlockPosition;
 import org.junit.Test;
 
 import java.util.EnumMap;
@@ -86,17 +86,17 @@ public class JigsawPlanarTopologyTest {
                 new JigsawStudioPieceRules(0, 30, 0, 0, false),
                 List.of());
         JigsawStudioCellDimensions sourceDimensions = new JigsawStudioCellDimensions(3, 3, 5);
-        IrisPosition source = new IrisPosition(2, 1, 1);
+        BlockPosition source = new BlockPosition(2, 1, 1);
 
-        IrisPosition canonical = east.sourceToCanonicalPosition(source, sourceDimensions);
-        IrisPosition restored = east.canonicalToSourcePosition(canonical, sourceDimensions);
+        BlockPosition canonical = east.sourceToCanonicalPosition(source, sourceDimensions);
+        BlockPosition restored = east.canonicalToSourcePosition(canonical, sourceDimensions);
 
         assertEquals(new JigsawStudioCellDimensions(5, 3, 3), east.canonicalDimensions(sourceDimensions));
-        assertEquals(1, canonical.getX());
-        assertEquals(1, canonical.getY());
-        assertEquals(0, canonical.getZ());
-        assertEquals(source.getX(), restored.getX());
-        assertEquals(source.getY(), restored.getY());
-        assertEquals(source.getZ(), restored.getZ());
+        assertEquals(1, canonical.x());
+        assertEquals(1, canonical.y());
+        assertEquals(0, canonical.z());
+        assertEquals(source.x(), restored.x());
+        assertEquals(source.y(), restored.y());
+        assertEquals(source.z(), restored.z());
     }
 }

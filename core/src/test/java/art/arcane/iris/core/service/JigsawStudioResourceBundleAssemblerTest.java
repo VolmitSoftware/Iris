@@ -11,11 +11,11 @@ import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.core.structure.authoring.StructureWriteMode;
 import art.arcane.iris.core.structure.authoring.StructureWriteOptions;
 import art.arcane.iris.core.structure.authoring.StructureWriteResult;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
+import com.volmit.geometry.BlockPosition;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -90,7 +90,7 @@ public class JigsawStudioResourceBundleAssemblerTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(16, 16, 16));
-        assertTrue(JigsawStudioProjectCreator.create(packRoot, options).successful());
+        assertTrue(JigsawStudioProjectCreator.create(packRoot, new art.arcane.iris.core.tooling.IrisObjectCodec(), options).successful());
         String pieceKey = structureKey + "/end";
         IrisJigsawPiece piece = new Gson().fromJson(
                 Files.readString(
@@ -238,7 +238,7 @@ public class JigsawStudioResourceBundleAssemblerTest {
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(4, 4, 4));
-        StructureWriteResult result = JigsawStudioProjectCreator.create(packRoot, options);
+        StructureWriteResult result = JigsawStudioProjectCreator.create(packRoot, new art.arcane.iris.core.tooling.IrisObjectCodec(), options);
         assertTrue(result.successful());
         return packRoot;
     }
@@ -275,9 +275,9 @@ public class JigsawStudioResourceBundleAssemblerTest {
 
     private static IrisJigsawConnector connector() {
         return new IrisJigsawConnector()
-                .setPosition(new IrisPosition(0, 0, 0))
-                .setDirection(IrisDirection.NORTH_NEGATIVE_Z)
-                .setTop(IrisDirection.UP_POSITIVE_Y)
+                .setPosition(new BlockPosition(0, 0, 0))
+                .setDirection(JigsawDirection.NORTH_NEGATIVE_Z)
+                .setTop(JigsawDirection.UP_POSITIVE_Y)
                 .setPool("fort/start")
                 .setName("iris:door")
                 .setTargetName("iris:door")

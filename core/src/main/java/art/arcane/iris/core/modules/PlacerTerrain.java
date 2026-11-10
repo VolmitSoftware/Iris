@@ -121,6 +121,19 @@ final class PlacerTerrain implements PlacementTerrain {
     }
 
     @Override
+    public void clearBlock(int x, int y, int z) {
+        placer.clearBlock(x, y, z);
+        if (written != null) {
+            written.remove(new BlockPosition(x, y, z));
+        }
+    }
+
+    @Override
+    public void clearAttached(int x, int y, int z) {
+        placer.clearAttached(x, y, z);
+    }
+
+    @Override
     public boolean isCarved(int x, int y, int z) {
         return placer.isCarved(x, y, z);
     }

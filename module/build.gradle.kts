@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.bundling.ZipEntryCompression
 import org.gradle.jvm.tasks.Jar
 import java.io.ByteArrayOutputStream
 
@@ -54,7 +55,8 @@ val builtinModulesJarName = "iris-builtins.jar"
 val builtinModuleEntryFile = "com.volmit.IrisModule"
 val builtinModulesFile = layout.projectDirectory.file("builtin-modules.txt").asFile
 // The packages an Iris host exposes to pack modules besides the API (Iris's IrisModuleHost.EXPOSED_PACKAGES).
-val exposedHostPackages = listOf("art.arcane.iris.builtin", "art.arcane.volmlib", "com.google.gson")
+val exposedHostPackages = listOf("art.arcane.iris.builtin", "art.arcane.iris.core.structure.authoring", "art.arcane.volmlib",
+    "com.google.gson")
 
 data class BuiltinModulesList(val moduleClasses: List<String>, val classPatterns: List<String>)
 
@@ -101,6 +103,8 @@ val packageBuiltinModules = tasks.register<Jar>("packageBuiltinModules") {
     description = "Packages the listed built-in modules and classes before they are checked."
     archiveFileName.set(builtinModulesJarName)
     destinationDirectory.set(builtinModulesBuild.map { it.dir("unchecked") })
+    // Iris's own jar compresses this one as a whole, which squeezes more out of the classes than compressing them twice.
+    entryCompression = ZipEntryCompression.STORED
     inputs.file(builtinModulesFile)
     from(sourceSets.main.map { it.java.classesDirectory }) {
         include(builtinPackagedPatterns)

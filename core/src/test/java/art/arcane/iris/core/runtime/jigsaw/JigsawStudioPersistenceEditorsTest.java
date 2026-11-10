@@ -36,6 +36,8 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class JigsawStudioPersistenceEditorsTest {
+    private static final com.volmit.tooling.ObjectCodec CODEC = new art.arcane.iris.core.tooling.IrisObjectCodec();
+
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -129,7 +131,7 @@ public class JigsawStudioPersistenceEditorsTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 JigsawStudioCompatibilityTarget.VANILLA_PORTABLE,
                 new JigsawStudioCellDimensions(16, 16, 16));
-        assertTrue(JigsawStudioProjectCreator.create(packRoot, options).successful());
+        assertTrue(JigsawStudioProjectCreator.create(packRoot, CODEC, options).successful());
 
         assertTrue(JigsawStudioStructureEditor.updateLimits(
                 packRoot,
@@ -184,6 +186,7 @@ public class JigsawStudioPersistenceEditorsTest {
 
         StructureWriteResult duplicated = JigsawStudioGraphEditor.duplicatePiece(
                 packRoot,
+                CODEC,
                 "variant/end",
                 sourcePiece,
                 targetPiece);
@@ -243,6 +246,7 @@ public class JigsawStudioPersistenceEditorsTest {
 
         StructureWriteResult created = JigsawStudioGraphEditor.createBlankVariant(
                 packRoot,
+                CODEC,
                 "variant/cross",
                 sourcePiece,
                 targetPiece);
@@ -455,7 +459,7 @@ public class JigsawStudioPersistenceEditorsTest {
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(16, 16, 16));
-        assertTrue(JigsawStudioProjectCreator.create(packRoot, options).successful());
+        assertTrue(JigsawStudioProjectCreator.create(packRoot, CODEC, options).successful());
 
         JigsawStudioGraphEditor.VariantFamilyCreation creation = JigsawStudioGraphEditor.duplicateActiveFamily(
                 packRoot,
@@ -479,7 +483,7 @@ public class JigsawStudioPersistenceEditorsTest {
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(15, 15, 15));
-        assertTrue(JigsawStudioProjectCreator.create(packRoot, options).successful());
+        assertTrue(JigsawStudioProjectCreator.create(packRoot, CODEC, options).successful());
 
         Map<String, String> sources = new LinkedHashMap<>();
         sources.put(JigsawStudioLayout.SPATIAL_WORKCELL_ID, "spatial/row/start");
@@ -537,7 +541,7 @@ public class JigsawStudioPersistenceEditorsTest {
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(16, 16, 16));
-        assertTrue(JigsawStudioProjectCreator.create(spatialRoot, spatialOptions).successful());
+        assertTrue(JigsawStudioProjectCreator.create(spatialRoot, CODEC, spatialOptions).successful());
         Path spatialObject = spatialRoot.resolve("objects/labels/spatial/start.iob");
         byte[] spatialBefore = Files.readAllBytes(spatialObject);
 
@@ -572,7 +576,7 @@ public class JigsawStudioPersistenceEditorsTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(16, 16, 16));
-        StructureWriteResult result = JigsawStudioProjectCreator.create(packRoot, options);
+        StructureWriteResult result = JigsawStudioProjectCreator.create(packRoot, CODEC, options);
         assertTrue(result.successful());
         return packRoot;
     }

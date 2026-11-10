@@ -42,9 +42,9 @@ import art.arcane.iris.core.project.IrisPackageCompiler;
 import art.arcane.iris.core.project.IrisCodeWorkspace;
 import art.arcane.iris.core.project.IrisProjectCopier;
 import art.arcane.iris.core.runtime.StudioOpenCoordinator;
+import art.arcane.iris.core.runtime.StudioSlotOccupant;
 import art.arcane.iris.core.runtime.TransientWorldCleanupSupport;
 import art.arcane.iris.core.runtime.WorldDeletionQueue;
-import art.arcane.iris.core.runtime.jigsaw.JigsawStudioActivation;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -100,6 +100,7 @@ public class StudioSVC implements IrisService {
     private final StudioTransitionQueue studioTransitions = new StudioTransitionQueue();
     private final Object downloadAdmissionMonitor = new Object();
     private volatile IrisProject activeProject;
+    private volatile StudioSlotOccupant activeToolWorld;
     private volatile CompletableFuture<StudioOpenCoordinator.StudioOpenResult> activeOpen;
     private PackDownloadExecution activeDownload;
     private boolean downloadAdmissionOpen;
@@ -125,8 +126,9 @@ public class StudioSVC implements IrisService {
         boolean stopping = IrisToolbelt.isServerStopping();
         LinkedHashSet<String> worldNamesToDelete = new LinkedHashSet<>(TransientWorldCleanupSupport.collectTransientStudioWorldNames(IrisWorldStorage.levelRoot()));
 
-        if (activeProject != null) {
-            PlatformChunkGenerator activeProvider = activeProject.getActiveProvider();
+        IrisProject openProject = currentProject();
+        if (openProject != null) {
+            PlatformChunkGenerator activeProvider = openProject.getActiveProvider();
             if (activeProvider != null) {
                 String activeWorldName = IrisWorldStorage.logicalName(
                         WorldIdentity.parse(activeProvider.getTarget().getWorld().identity()));
@@ -475,13 +477,20 @@ public class StudioSVC implements IrisService {
     }
 
     public boolean isProjectOpen() {
-        return activeProject != null && activeProject.isOpen();
+        IrisProject project = currentProject();
+        return project != null && project.isOpen();
+    }
+
+    /** The studio project in the slot: the project of the open tool world, or the one opened as a project. */
+    private IrisProject currentProject() {
+        StudioSlotOccupant toolWorld = activeToolWorld;
+        return toolWorld == null ? activeProject : toolWorld.project();
     }
 
     public CompletableFuture<Boolean> teleportToActiveProject(Player player) {
         Player target = Objects.requireNonNull(player, "Studio teleport player");
         return studioTransitions.submit(() -> {
-            IrisProject project = activeProject;
+            IrisProject project = currentProject();
             if (project == null || !project.isOpen()) {
                 return CompletableFuture.failedFuture(new IllegalStateException(
                         "No active Studio project is available for teleport."));
@@ -511,11 +520,28 @@ public class StudioSVC implements IrisService {
         }
     }
 
-    private static BrokenPackException reportPackAdmissionFailure(
+    public static BrokenPackException reportPackAdmissionFailure(
             VolmitSender sender,
             String dimm,
             StudioOpenCoordinator.StudioOpenKind openKind
     ) {
+        PackAdmission admission = admitPack(dimm, openKind);
+        admission.messages().forEach(sender::sendMessage);
+        return admission.failure();
+    }
+
+    /** Why a studio of the pack {@code dimm} may not open, as the lines {@link #reportPackAdmissionFailure} would send; empty when it may. */
+    public static Optional<String> packAdmissionDenial(String dimm, StudioOpenCoordinator.StudioOpenKind openKind) {
+        PackAdmission admission = admitPack(dimm, openKind);
+        return admission.failure() == null ? Optional.empty() : Optional.of(String.join("\n", admission.messages()));
+    }
+
+    /** Whether the pack may open a studio, and the messages that tell its sender so; {@code failure} is null when it may. */
+    private record PackAdmission(BrokenPackException failure, List<String> messages) {
+    }
+
+    private static PackAdmission admitPack(String dimm, StudioOpenCoordinator.StudioOpenKind openKind) {
+        List<String> messages = new ArrayList<>();
         boolean force = openKind == StudioOpenCoordinator.StudioOpenKind.FORCED_STANDARD;
         Optional<String> unforcedStartupDenial = ServerConfigurator.worldCreationDenialReason(false);
         Optional<String> startupDenial = ServerConfigurator.worldCreationDenialReason(force);
@@ -528,20 +554,20 @@ public class StudioSVC implements IrisService {
                 packName, startupDenial, validation);
         if (failure == null) {
             if (force && unforcedStartupDenial.isPresent()) {
-                sender.sendMessage("Force-opening Studio with the currently loaded registry state. The open may fail; restart remains required.");
+                messages.add("Force-opening Studio with the currently loaded registry state. The open may fail; restart remains required.");
             }
-            return null;
+            return new PackAdmission(null, messages);
         }
         if (startupDenial.isPresent()) {
-            sender.sendMessage(startupDenial.get());
-            return failure;
+            messages.add(startupDenial.get());
+            return new PackAdmission(failure, messages);
         }
-        sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_CANNOT_OPEN_STUDIO_PACK_HAS_BLOCKING_ERRORS, MessageArgument.untrusted("dimm", String.valueOf(dimm))));
+        messages.add(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_CANNOT_OPEN_STUDIO_PACK_HAS_BLOCKING_ERRORS, MessageArgument.untrusted("dimm", String.valueOf(dimm))));
         for (String reason : failure.getReasons()) {
-            sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_MESSAGE, MessageArgument.untrusted("reason", String.valueOf(reason))));
+            messages.add(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_MESSAGE, MessageArgument.untrusted("reason", String.valueOf(reason))));
         }
-        sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_FIX_PACK_RUN_IRIS_PACK_VALIDATE_REVALIDATE, MessageArgument.untrusted("dimm", String.valueOf(packName))));
-        return failure;
+        messages.add(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_FIX_PACK_RUN_IRIS_PACK_VALIDATE_REVALIDATE, MessageArgument.untrusted("dimm", String.valueOf(packName))));
+        return new PackAdmission(failure, messages);
     }
 
     static void retainPackRestartRequirement(PackDownloader.PackInstallResult result) {
@@ -600,91 +626,6 @@ public class StudioSVC implements IrisService {
                     J.s(() -> sender.sendMessage(IrisLanguage.text(
                             BukkitRuntimeMessages.STUDIO_S_V_C_FAILED_OPEN_STUDIO_WORLD_2,
                             MessageArgument.untrusted("error", String.valueOf(errorDetail(throwable))))));
-                });
-    }
-
-    public CompletableFuture<StudioOpenCoordinator.StudioOpenResult> openTracked(
-            VolmitSender sender,
-            long seed,
-            String dimension,
-            StudioOpenCoordinator.StudioOpenKind openKind,
-            Runnable beforeOpen,
-            Consumer<World> onDone
-    ) {
-        long requestedAtNanos = System.nanoTime();
-        BrokenPackException failure = reportPackAdmissionFailure(sender, dimension, openKind);
-        if (failure != null) {
-            return CompletableFuture.failedFuture(failure);
-        }
-        return studioTransitions.submit(() -> replaceActiveProjectTracked(
-                sender,
-                seed,
-                dimension,
-                Objects.requireNonNull(openKind, "Studio open kind"),
-                Objects.requireNonNull(beforeOpen, "Studio before-open callback"),
-                Objects.requireNonNull(onDone, "Studio open completion callback"),
-                requestedAtNanos));
-    }
-
-    private CompletableFuture<StudioOpenCoordinator.StudioOpenResult> replaceActiveProjectTracked(
-            VolmitSender sender,
-            long seed,
-            String dimension,
-            StudioOpenCoordinator.StudioOpenKind openKind,
-            Runnable beforeOpen,
-            Consumer<World> onDone,
-            long requestedAtNanos
-    ) {
-        return closeActiveProject().thenCompose(closeResult -> {
-            if (closeResult == null) {
-                return CompletableFuture.failedFuture(
-                        new IllegalStateException("Studio close completed without a result."));
-            }
-            if (closeResult.failureCause() != null) {
-                return CompletableFuture.failedFuture(closeResult.failureCause());
-            }
-            beforeOpen.run();
-            return beginStudioOpenTracked(
-                    sender,
-                    seed,
-                    dimension,
-                    openKind,
-                    onDone,
-                    requestedAtNanos);
-        });
-    }
-
-    private CompletableFuture<StudioOpenCoordinator.StudioOpenResult> beginStudioOpenTracked(
-            VolmitSender sender,
-            long seed,
-            String dimension,
-            StudioOpenCoordinator.StudioOpenKind openKind,
-            Consumer<World> onDone,
-            long requestedAtNanos
-    ) {
-        IrisProject project = new IrisProject(new File(getWorkspaceFolder(), dimension));
-        activeProject = project;
-        CompletableFuture<StudioOpenCoordinator.StudioOpenResult> opening;
-        try {
-            opening = project.open(sender, seed, openKind, onDone, requestedAtNanos);
-        } catch (IrisException exception) {
-            if (activeProject == project) {
-                activeProject = null;
-            }
-            return CompletableFuture.failedFuture(exception);
-        }
-
-        activeOpen = opening;
-        return opening.thenApply(result -> Objects.requireNonNull(
-                        result,
-                        "Studio open completed without a result."))
-                .whenComplete((result, throwable) -> {
-                    if (activeOpen == opening) {
-                        activeOpen = null;
-                    }
-                    if (throwable != null && activeProject == project && !project.isOpen()) {
-                        activeProject = null;
-                    }
                 });
     }
 
@@ -791,19 +732,13 @@ public class StudioSVC implements IrisService {
     CompletableFuture<StudioOpenCoordinator.StudioCloseResult> closeActiveProjectForReplacement(
             VolmitSender sender
     ) {
-        IrisProject project = activeProject;
-        if (project == null) {
+        StudioSlotOccupant toolWorld = activeToolWorld;
+        if (toolWorld == null || !sender.isPlayer()) {
             return closeActiveProject();
         }
-        JigsawStudioActivation.Request request = JigsawStudioActivation.getRequest(project.getName());
-        if (request == null || !sender.isPlayer()) {
-            return closeActiveProject();
-        }
-        UUID ownerId = sender.player().getUniqueId();
-        return JigsawStudioService.get()
-                .awaitCloseForReplacement(request.requestId(), ownerId)
+        return toolWorld.prepareReplacement(Optional.of(sender.player().getUniqueId()))
                 .thenCompose(ignored -> {
-                    if (activeProject != project) {
+                    if (activeToolWorld != toolWorld) {
                         return CompletableFuture.failedFuture(new IllegalStateException(
                                 "The active Studio project changed while replacement was waiting to close."));
                     }
@@ -811,7 +746,62 @@ public class StudioSVC implements IrisService {
                 });
     }
 
+    /**
+     * Gives the studio slot to a tool world: closes what holds the slot now, then runs {@code opening}, which creates the
+     * world. The slot is free again when the opening fails, or when the world is {@link #releaseStudioSlot gone}.
+     */
+    public CompletableFuture<Void> occupyStudioSlot(
+            StudioSlotOccupant occupant,
+            Supplier<CompletableFuture<?>> opening
+    ) {
+        Objects.requireNonNull(occupant, "Studio slot occupant");
+        Objects.requireNonNull(opening, "Studio slot opening");
+        return studioTransitions.submit(() -> closeActiveProject().thenCompose(closeResult -> {
+            if (closeResult == null) {
+                return CompletableFuture.<Void>failedFuture(
+                        new IllegalStateException("Studio close completed without a result."));
+            }
+            if (closeResult.failureCause() != null) {
+                return CompletableFuture.<Void>failedFuture(closeResult.failureCause());
+            }
+            activeToolWorld = occupant;
+            return opening.get().<Void>handle((opened, failure) -> {
+                if (failure == null) {
+                    return null;
+                }
+                releaseStudioSlot(occupant);
+                throw failure instanceof java.util.concurrent.CompletionException completion
+                        ? completion
+                        : new java.util.concurrent.CompletionException(failure);
+            });
+        }));
+    }
+
+    /** Frees the studio slot when {@code occupant} still holds it. */
+    public void releaseStudioSlot(StudioSlotOccupant occupant) {
+        if (activeToolWorld == occupant) {
+            activeToolWorld = null;
+        }
+    }
+
+    private CompletableFuture<StudioOpenCoordinator.StudioCloseResult> closeToolWorld(StudioSlotOccupant toolWorld) {
+        Optional<String> refusal = toolWorld.closeRefusal();
+        if (refusal.isPresent()) {
+            return CompletableFuture.failedFuture(new IllegalStateException(refusal.get()));
+        }
+        return toolWorld.close().handle((ignored, failure) -> {
+            if (failure == null) {
+                releaseStudioSlot(toolWorld);
+            }
+            return new StudioOpenCoordinator.StudioCloseResult(null, failure == null, failure == null, false, failure);
+        });
+    }
+
     private CompletableFuture<StudioOpenCoordinator.StudioCloseResult> closeActiveProject() {
+        StudioSlotOccupant toolWorld = activeToolWorld;
+        if (toolWorld != null) {
+            return closeToolWorld(toolWorld);
+        }
         IrisProject project = activeProject;
         if (project == null) {
             return CompletableFuture.completedFuture(new StudioOpenCoordinator.StudioCloseResult(
@@ -821,15 +811,6 @@ public class StudioSVC implements IrisService {
                     false,
                     null
             ));
-        }
-
-        JigsawStudioActivation.Request jigsawRequest = JigsawStudioActivation.getRequest(project.getName());
-        if (jigsawRequest != null) {
-            String protectionFailure = JigsawStudioService.get()
-                    .closeProtectionFailure(jigsawRequest.requestId());
-            if (protectionFailure != null) {
-                return CompletableFuture.failedFuture(new IllegalStateException(protectionFailure));
-            }
         }
 
         IrisLogging.debug("Closing Active Project");
@@ -1537,12 +1518,12 @@ public class StudioSVC implements IrisService {
     }
 
     public IrisProject getActiveProject() {
-        return activeProject;
+        return currentProject();
     }
 
     public void updateWorkspace() {
         if (isProjectOpen()) {
-            new IrisCodeWorkspace(activeProject).updateWorkspace();
+            new IrisCodeWorkspace(currentProject()).updateWorkspace();
         }
     }
 }

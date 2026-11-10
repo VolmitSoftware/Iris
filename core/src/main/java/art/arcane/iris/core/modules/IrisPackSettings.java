@@ -19,7 +19,6 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.builtin.structure.StructureHost;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -40,8 +39,8 @@ import java.util.Optional;
 /**
  * The settings an engine's pack declares, for working out mantle stage reaches when the pack loads and for vanilla
  * structure hooks: the engine's dimension, then every region it can reach, then every biome. Iris's built-in modules
- * decide from Iris's own pack data instead of module settings; they reach it through the object, floating and structure
- * hosts the settings offer as {@linkplain #extension extensions}.
+ * decide from Iris's own pack data instead of module settings; they reach it through the engine the settings offer as an
+ * {@linkplain #extension extension}.
  */
 public final class IrisPackSettings implements PackSettings {
     static final String DIMENSION = "dimension";
@@ -71,15 +70,9 @@ public final class IrisPackSettings implements PackSettings {
         return HostExtensions.as(type, offered(type));
     }
 
-    /** The engine is offered only for the structure built-ins, which drive Iris's structure locator themselves. */
+    /** The engine is offered only for the built-ins that read Iris's own pack data. */
     private Object offered(Class<?> type) {
-        if (type == Engine.class) {
-            return engine;
-        }
-        if (type == StructureHost.class) {
-            return new IrisStructureHost(engine, IrisApiLogger.hostLog());
-        }
-        return null;
+        return type == Engine.class ? engine : null;
     }
 
     @Override

@@ -3,7 +3,12 @@ package art.arcane.iris.core.structure.export;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.engine.framework.structure.StructureGraphResolver;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
+import art.arcane.iris.engine.framework.structure.ObjectFrame;
+import com.volmit.block.BlockState;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.object.BlockEntityData;
+import com.volmit.resource.ResourceId;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawCompatibility;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
@@ -12,22 +17,13 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceEntry;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceRules;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.prefab.TileData;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.nbt.io.NBTUtil;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
 import art.arcane.volmlib.util.nbt.tag.ListTag;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -48,31 +44,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class VanillaJigsawDatapackExporterTest {
-    private static PlatformBlockState stone;
+    private static final BlockState STONE = new BlockState("minecraft:stone");
+    private static final BlockState AIR = new BlockState("minecraft:air");
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-    @BeforeClass
-    public static void bindPlatform() {
-        IrisPlatforms.unbind();
-        stone = blockState("minecraft:stone");
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(registries.block(anyString())).thenReturn(stone);
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.bind(platform);
-    }
-
-    @AfterClass
-    public static void unbindPlatform() {
-        IrisPlatforms.unbind();
-    }
 
     @Test
     public void exportsComplete26_2DirectoryAndConnectorTemplate() throws Exception {
@@ -166,22 +144,21 @@ public class VanillaJigsawDatapackExporterTest {
     @Test
     public void preservesExplicitAirAndStructureVoidConnectorFinalStates() throws Exception {
         TestGraph graph = terminalGraph();
-        PlatformBlockState air = blockState("minecraft:air");
-        IrisObject object = graph.objects.get("objects/start");
-        object.setUnsigned(0, 1, 1, air);
+        graph.objects.put("objects/start", ObjectContents.plain(3, 3, 3,
+                Map.of(new BlockPosition(1, 1, 1), STONE, new BlockPosition(0, 1, 1), AIR), Map.of()));
         IrisJigsawPiece piece = graph.pieces.get("pieces/start");
         piece.getConnectors().add(new IrisJigsawConnector()
-                .setPosition(new IrisPosition(0, 1, 1))
-                .setDirection(IrisDirection.WEST_NEGATIVE_X)
-                .setTop(IrisDirection.UP_POSITIVE_Y)
+                .setPosition(new BlockPosition(0, 1, 1))
+                .setDirection(JigsawDirection.WEST_NEGATIVE_X)
+                .setTop(JigsawDirection.UP_POSITIVE_Y)
                 .setPool("pools/terminal")
                 .setName("studio:air")
                 .setTargetName("studio:door")
                 .setFinalState("minecraft:air"));
         piece.getConnectors().add(new IrisJigsawConnector()
-                .setPosition(new IrisPosition(2, 1, 1))
-                .setDirection(IrisDirection.EAST_POSITIVE_X)
-                .setTop(IrisDirection.UP_POSITIVE_Y)
+                .setPosition(new BlockPosition(2, 1, 1))
+                .setDirection(JigsawDirection.EAST_POSITIVE_X)
+                .setTop(JigsawDirection.UP_POSITIVE_Y)
                 .setPool("pools/terminal")
                 .setName("studio:void")
                 .setTargetName("studio:door")
@@ -211,7 +188,8 @@ public class VanillaJigsawDatapackExporterTest {
     @Test
     public void rejectsTilePayloadWithoutPublishingPartialOutput() {
         TestGraph graph = terminalGraph();
-        graph.objects.get("objects/start").setUnsignedTile(0, 0, 0, mock(TileData.class));
+        graph.objects.put("objects/start", ObjectContents.plain(3, 3, 3, Map.of(new BlockPosition(1, 1, 1), STONE),
+                Map.of(new BlockPosition(0, 0, 0), new BlockEntityData(ResourceId.parse("test:tile"), 0, new byte[0]))));
         Path output = temporaryFolder.getRoot().toPath().resolve("rejected-pack");
 
         VanillaJigsawExportResult result = new VanillaJigsawDatapackExporter().export(
@@ -310,18 +288,18 @@ public class VanillaJigsawDatapackExporterTest {
         VanillaJigsawExportSource source = VanillaJigsawExportSource.forStructure(
                 "test_structure",
                 graph.structure,
-                graph);
+                graph,
+                graph.objects::get);
         return VanillaJigsawExportRequest.builder(source, output);
     }
 
     private static TestGraph connectorGraph() {
         TestGraph graph = new TestGraph();
-        IrisObject object = new IrisObject(3, 3, 3);
-        object.setUnsigned(1, 1, 0, stone);
+        ObjectContents object = ObjectContents.plain(3, 3, 3, Map.of(new BlockPosition(1, 1, 0), STONE), Map.of());
         IrisJigsawConnector connector = new IrisJigsawConnector()
-                .setPosition(new IrisPosition(1, 1, 0))
-                .setDirection(IrisDirection.NORTH_NEGATIVE_Z)
-                .setTop(IrisDirection.UP_POSITIVE_Y)
+                .setPosition(new BlockPosition(1, 1, 0))
+                .setDirection(JigsawDirection.NORTH_NEGATIVE_Z)
+                .setTop(JigsawDirection.UP_POSITIVE_Y)
                 .setPool("pools/terminal")
                 .setName("studio:source")
                 .setTargetName("studio:door")
@@ -338,9 +316,7 @@ public class VanillaJigsawDatapackExporterTest {
 
     private static TestGraph terminalGraph() {
         TestGraph graph = new TestGraph();
-        IrisObject object = new IrisObject(3, 3, 3);
-        object.setUnsigned(1, 1, 1, stone);
-        graph.objects.put("objects/start", object);
+        graph.objects.put("objects/start", ObjectContents.plain(3, 3, 3, Map.of(new BlockPosition(1, 1, 1), STONE), Map.of()));
         graph.pieces.put("pieces/start", piece("objects/start"));
         graph.pools.put("pools/start", pool(entry("pieces/start", 1)));
         graph.structure = structure("pools/start");
@@ -349,7 +325,6 @@ public class VanillaJigsawDatapackExporterTest {
 
     private static IrisStructure structure(String startPool) {
         IrisStructure structure = new IrisStructure();
-        structure.setLoadKey("test_structure");
         structure.setStartPool(startPool);
         structure.setMaxDepth(4);
         structure.setMaxSizeChunks(4);
@@ -377,13 +352,6 @@ public class VanillaJigsawDatapackExporterTest {
         return new IrisJigsawPieceEntry().setEmpty(true).setWeight(weight);
     }
 
-    private static PlatformBlockState blockState(String key) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
-        when(state.key()).thenReturn(key);
-        when(state.namespace()).thenReturn(key.substring(0, key.indexOf(':')));
-        return state;
-    }
-
     private static JsonObject json(Path path) throws IOException {
         return JsonParser.parseString(Files.readString(path, StandardCharsets.UTF_8)).getAsJsonObject();
     }
@@ -398,7 +366,7 @@ public class VanillaJigsawDatapackExporterTest {
     private static final class TestGraph implements StructureGraphResolver {
         private final Map<String, IrisJigsawPool> pools = new LinkedHashMap<>();
         private final Map<String, IrisJigsawPiece> pieces = new LinkedHashMap<>();
-        private final Map<String, IrisObject> objects = new LinkedHashMap<>();
+        private final Map<String, ObjectContents> objects = new LinkedHashMap<>();
         private IrisStructure structure;
 
         @Override
@@ -412,8 +380,9 @@ public class VanillaJigsawDatapackExporterTest {
         }
 
         @Override
-        public IrisObject loadObject(String key) {
-            return objects.get(key);
+        public ObjectFrame loadObject(String key) {
+            ObjectContents contents = objects.get(key);
+            return contents == null ? null : new ObjectFrame(contents.width(), contents.height(), contents.depth());
         }
     }
 }

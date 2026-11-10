@@ -117,6 +117,15 @@ public final class Argument<T> {
         });
     }
 
+    /** One word that {@code reader} turns into the value, for a value only the command's module can check, such as a resource
+     * of a kind its module's neighbour registers. {@code reader} fails with an IllegalArgumentException that says why; the
+     * argument completes nothing until {@link #suggesting} gives it candidates.
+     */
+    public static <T> Argument<T> reading(String name, Reader<T> reader) {
+        Objects.requireNonNull(reader, "reader");
+        return of(name, false, reader::read, (partial, context) -> List.of());
+    }
+
     /** An id registered in the platform's {@code registry}, such as {@link Reference#STRUCTURE}; completes
      * {@link PlatformRegistries#ids}. Written as the platform writes it, {@code minecraft:village_plains}, or without the
      * {@code minecraft:} namespace.
@@ -242,6 +251,12 @@ public final class Argument<T> {
 
     private static String registryName(Reference registry) {
         return registry.name().toLowerCase(Locale.ROOT).replace('_', ' ');
+    }
+
+    /** Turns the word a sender typed into the argument's value. */
+    @FunctionalInterface
+    public interface Reader<T> {
+        T read(String text, CommandContext context);
     }
 
     private interface Parser<T> {

@@ -85,7 +85,6 @@ final class ModdedCommandHelp {
                 Entry.group("pack", ModdedHelpMessages.GROUP_PACK_PACK_VALIDATION_AND_MAINTENANCE, "pk"),
                 Entry.group("world", ModdedHelpMessages.GROUP_WORLD_RUNTIME_IRIS_DIMENSION_CREATION_REMOVAL_AND_STATUS, "w"),
                 Entry.group("datapack", ModdedHelpMessages.GROUP_DATAPACK_WORLD_DATAPACK_INSTALL_AND_STATUS_HELPERS, "datapacks", "dp"),
-                Entry.group("structure", ModdedHelpMessages.GROUP_STRUCTURE_IRIS_STRUCTURE_IMPORT_AND_CAPTURE_TOOLS, "struct", "str"),
                 Entry.command(ToolingCommands.BRANCH, "<root> <command...>", ModdedHelpMessages.COMMAND_MODULE_RUN_A_MODULE_COMMAND_OR_LIST_THEM, ToolingCommands.BRANCH_ALIAS),
                 Entry.command("goldenhash", "[radius] [threads] [capture|verify]", ModdedHelpMessages.COMMAND_GOLDENHASH_GENERATE_DETERMINISTIC_BLOCK_HASHES_FOR_PARITY_TESTING, "gold"),
                 Entry.group("developer", ModdedHelpMessages.GROUP_DEVELOPER_DEVELOPER_DIAGNOSTICS_NETWORK_INTERFACES_REGION_FILE_SCAN, "dev")
@@ -185,12 +184,6 @@ final class ModdedCommandHelp {
         ));
         SECTIONS.put("datapacks", SECTIONS.get("datapack"));
         SECTIONS.put("dp", SECTIONS.get("datapack"));
-        SECTIONS.put("structure", List.of(
-                Entry.command("import", "", ModdedHelpMessages.COMMAND_IMPORT_EXPLAIN_BUKKIT_STRUCTURE_IMPORT_WORKFLOW, "import-all", "reimport", "imp", "all"),
-                Entry.command("capture", "", ModdedHelpMessages.COMMAND_CAPTURE_EXPLAIN_BUKKIT_STRUCTURE_CAPTURE_WORKFLOW, "cap")
-        ));
-        SECTIONS.put("struct", SECTIONS.get("structure"));
-        SECTIONS.put("str", SECTIONS.get("structure"));
         SECTIONS.put("developer", List.of(
                 Entry.command("network", "", ModdedHelpMessages.COMMAND_NETWORK_LIST_NETWORK_INTERFACES_AND_THEIR_ADDRESSES, "ip")
         ));

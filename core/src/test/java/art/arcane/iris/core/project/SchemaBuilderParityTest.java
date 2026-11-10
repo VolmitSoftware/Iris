@@ -19,7 +19,7 @@
 package art.arcane.iris.core.project;
 
 import art.arcane.iris.builtin.structure.StructureSettings;
-import art.arcane.iris.core.modules.StructureModelModule;
+import art.arcane.iris.modules.jigsaw.JigsawModule;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.core.loader.IrisData;
@@ -516,7 +516,7 @@ public class SchemaBuilderParityTest {
         LoadedPack pack = mock(LoadedPack.class);
         PackModuleSet moduleSet = mock(PackModuleSet.class);
         when(pack.schema()).thenReturn(modules);
-        when(pack.catalog()).thenReturn(ModuleResourceFixture.catalogOf(new StructureModelModule(), new StructureModule()));
+        when(pack.catalog()).thenReturn(ModuleResourceFixture.catalogOf(new JigsawModule(), new StructureModule()));
         when(moduleSet.pack()).thenReturn(pack);
         when(data.getModules()).thenReturn(moduleSet);
         ModuleResourceFixture.serve(data);
@@ -889,7 +889,7 @@ public class SchemaBuilderParityTest {
         try (LoadedPack pack = LoadedPack.load(Files.createDirectory(root.resolve("pack")),
                 ModuleHost.of(modules)
                         .exposing(IrisModuleHost.EXPOSED_PACKAGES.toArray(String[]::new))
-                        .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE)
+                        .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGES)
                         .copyingJarsTo(Files.createDirectory(root.resolve("copies"))))) {
             return pack.schema();
         }

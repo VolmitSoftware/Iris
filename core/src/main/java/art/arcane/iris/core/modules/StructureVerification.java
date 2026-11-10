@@ -18,14 +18,13 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.structure.StructureVerifier;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
 import art.arcane.iris.engine.framework.StructureReachability;
 import com.volmit.config.Reference;
-import com.volmit.tooling.Argument;
 import com.volmit.tooling.CommandContext;
-import com.volmit.tooling.Sender;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,16 +35,11 @@ import java.util.TreeSet;
 /**
  * {@code /iris module structure verify}: for every structure the platform registers and every structure the pack's modules place,
  * whether it can generate in the world the sender stands in, searching around the world origin for those the pack places.
- * Native eligibility is decided without the platform's blocking locate.
+ * Native eligibility is decided without the platform's blocking locate. The command is {@code iris:structure}'s; the world
+ * offers this to it as its {@link StructureVerifier}.
  */
 final class StructureVerification {
-    private static final long DEFAULT_RADIUS_CHUNKS = 48L;
-    private static final long MAX_RADIUS_CHUNKS = 1000L;
     private static final int ORIGIN_BLOCK = 0;
-
-    static final Argument<Long> RADIUS = Argument.integer("radius", 1, MAX_RADIUS_CHUNKS)
-            .orElse(DEFAULT_RADIUS_CHUNKS)
-            .describe("Search radius in chunks around the world origin (larger is much slower)");
 
     private final Engine engine;
     private final CommandContext context;
@@ -64,15 +58,8 @@ final class StructureVerification {
         this.radiusChunks = radiusChunks;
     }
 
-    static void run(CommandContext context) {
-        Sender sender = context.sender();
-        Engine engine = context.world().flatMap(world -> world.extension(Engine.class)).orElse(null);
-        if (engine == null) {
-            sender.error("Stand in a world generated with this pack: verify reads the running world");
-            return;
-        }
-        int radiusChunks = Math.toIntExact(context.get(RADIUS));
-        sender.info("Verifying structures within " + radiusChunks + " chunks of the world origin...");
+    static void run(Engine engine, CommandContext context, int radiusChunks) {
+        context.sender().info("Verifying structures within " + radiusChunks + " chunks of the world origin...");
         new StructureVerification(engine, context, radiusChunks).report();
     }
 

@@ -4,6 +4,7 @@ import com.volmit.config.PackSettings;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.PlatformRegistries;
 
+import java.util.List;
 import java.util.Optional;
 
 /** The pack one {@link Validator} checks, as the host would load it, and where it reports what it finds. Valid
@@ -24,6 +25,16 @@ public interface ValidationContext {
      * such as a build or a data pack compile before the server starts. A check against them is skipped when empty.
      */
     Optional<PlatformRegistries> platform();
+
+    /**
+     * The providers of {@code service} that the pack's modules registered, in module id order and each module's in the
+     * order it registered them; empty when no module provides it. This is how a validator asks another module, such as
+     * whether a module knows a structure the pack names.
+     *
+     * @param service an interface marked {@link com.volmit.service.Service}
+     * @throws IllegalArgumentException when {@code service} is not such an interface
+     */
+    <S> List<S> services(Class<S> service);
 
     /** Records {@code problem}. An {@link Severity#ERROR} stops the pack from loading once every validator has run. */
     void report(Problem problem);

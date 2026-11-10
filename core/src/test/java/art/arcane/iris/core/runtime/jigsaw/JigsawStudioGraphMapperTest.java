@@ -2,13 +2,13 @@ package art.arcane.iris.core.runtime.jigsaw;
 
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.core.structure.authoring.StructureBackend;
 import art.arcane.iris.core.structure.authoring.StructureKey;
 import art.arcane.iris.core.structure.authoring.StructureOwnershipManifest;
 import art.arcane.iris.core.structure.authoring.StructureSource;
-import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawDirection;
+import art.arcane.iris.core.service.StudioToolPacks;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawMode;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
@@ -17,7 +17,6 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceRules;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcell;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetype;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Rule;
@@ -44,8 +43,8 @@ public class JigsawStudioGraphMapperTest {
     @Test
     public void horizontalConnectorsMapToPlanarTopology() {
         IrisJigsawPiece corner = new IrisJigsawPiece().setConnectors(new KList<>());
-        corner.getConnectors().add(connector(IrisDirection.NORTH_NEGATIVE_Z));
-        corner.getConnectors().add(connector(IrisDirection.EAST_POSITIVE_X));
+        corner.getConnectors().add(connector(JigsawDirection.NORTH_NEGATIVE_Z));
+        corner.getConnectors().add(connector(JigsawDirection.EAST_POSITIVE_X));
 
         assertEquals(JigsawPlanarTopology.NORTH_EAST_CORNER,
                 JigsawStudioGraphMapper.topologyOf(corner));
@@ -54,8 +53,8 @@ public class JigsawStudioGraphMapperTest {
     @Test
     public void verticalConnectorsDoNotChangePlanarMask() {
         IrisJigsawPiece end = new IrisJigsawPiece().setConnectors(new KList<>());
-        end.getConnectors().add(connector(IrisDirection.WEST_NEGATIVE_X));
-        end.getConnectors().add(connector(IrisDirection.UP_POSITIVE_Y));
+        end.getConnectors().add(connector(JigsawDirection.WEST_NEGATIVE_X));
+        end.getConnectors().add(connector(JigsawDirection.UP_POSITIVE_Y));
 
         assertEquals(JigsawPlanarTopology.WEST_END,
                 JigsawStudioGraphMapper.topologyOf(end));
@@ -72,7 +71,7 @@ public class JigsawStudioGraphMapperTest {
         start.getPieces().add(new IrisJigsawPieceEntry("village/end", 7));
         start.getPieces().add(new IrisJigsawPieceEntry("village/east", 5));
         resources.resource(StructureResources.POOLS, "village/start", start);
-        IrisJigsawPiece endPiece = planarPiece("village/end", IrisDirection.NORTH_NEGATIVE_Z)
+        IrisJigsawPiece endPiece = planarPiece("village/end", JigsawDirection.NORTH_NEGATIVE_Z)
                 .setRules(new IrisJigsawPieceRules()
                         .setMinimumDepth(1)
                         .setMaximumDepth(4)
@@ -82,13 +81,12 @@ public class JigsawStudioGraphMapperTest {
         endPiece.getThemes().add("spruce");
         resources.resource(StructureResources.PIECES, "village/end", endPiece);
         resources.resource(StructureResources.PIECES, "village/east", planarPiece(
-                "village/east", IrisDirection.EAST_POSITIVE_X));
+                "village/east", JigsawDirection.EAST_POSITIVE_X));
         IrisStructure structure = new IrisStructure()
                 .setStartPool("village/start")
                 .setMode(IrisJigsawMode.PLANAR_JIGSAW);
 
-        JigsawStudioVariantCatalog catalog = JigsawStudioGraphMapper.catalog(
-                data, structure, JigsawStudioMode.PLANAR_JIGSAW);
+        JigsawStudioVariantCatalog catalog = planarCatalog(data, Path.of("pack"), "village/demo", structure);
         JigsawStudioVariant end = catalog.find("village/end").orElseThrow();
         JigsawStudioVariant east = catalog.find("village/east").orElseThrow();
 
@@ -110,14 +108,13 @@ public class JigsawStudioGraphMapperTest {
         when(data.getDataFolder()).thenReturn(root.toFile());
         ModuleResourceFixture resources = ModuleResourceFixture.serve(data);
         resources.resource(StructureResources.PIECES, "village/orphan", planarPiece(
-                "village/orphan", IrisDirection.NORTH_NEGATIVE_Z));
+                "village/orphan", JigsawDirection.NORTH_NEGATIVE_Z));
         resources.resource(StructureResources.PIECES, "village/incomplete", planarPiece(
-                "village/incomplete", IrisDirection.EAST_POSITIVE_X));
+                "village/incomplete", JigsawDirection.EAST_POSITIVE_X));
 
         IrisStructure structure = new IrisStructure()
                 .setStartPool("village/start")
                 .setMode(IrisJigsawMode.PLANAR_JIGSAW);
-        structure.setLoadKey("village/demo");
         StructureKey key = new StructureKey("iris", "village/demo");
         String hash = "0".repeat(64);
         StructureOwnershipManifest manifest = new StructureOwnershipManifest(
@@ -135,8 +132,7 @@ public class JigsawStudioGraphMapperTest {
         Files.createDirectories(manifestPath.getParent());
         Files.write(manifestPath, manifest.toJson());
 
-        JigsawStudioVariantCatalog catalog = JigsawStudioGraphMapper.catalog(
-                data, structure, JigsawStudioMode.PLANAR_JIGSAW);
+        JigsawStudioVariantCatalog catalog = planarCatalog(data, root, "village/demo", structure);
         JigsawStudioVariant orphan = catalog.find("village/orphan").orElseThrow();
         JigsawStudioVariant incomplete = catalog.find("village/incomplete").orElseThrow();
 
@@ -155,12 +151,11 @@ public class JigsawStudioGraphMapperTest {
         when(data.getDataFolder()).thenReturn(root.toFile());
         ModuleResourceFixture resources = ModuleResourceFixture.serve(data);
         resources.resource(StructureResources.PIECES, "village/managed", planarPiece(
-                "village/managed", IrisDirection.NORTH_NEGATIVE_Z));
+                "village/managed", JigsawDirection.NORTH_NEGATIVE_Z));
 
         IrisStructure structure = new IrisStructure()
                 .setStartPool("village/start")
                 .setMode(IrisJigsawMode.PLANAR_JIGSAW);
-        structure.setLoadKey("village/managed");
         StructureKey key = new StructureKey("iris", "village/managed");
         String hash = "0".repeat(64);
         String sourcePath = "data/example/worldgen/template_pool/village/start.json";
@@ -188,10 +183,7 @@ public class JigsawStudioGraphMapperTest {
         Files.createDirectories(manifestPath.getParent());
         Files.write(manifestPath, manifest.toJson());
 
-        JigsawStudioVariantCatalog catalog = JigsawStudioGraphMapper.catalog(
-                data,
-                structure,
-                JigsawStudioMode.PLANAR_JIGSAW);
+        JigsawStudioVariantCatalog catalog = planarCatalog(data, root, "village/managed", structure);
         JigsawStudioVariant managed = catalog.find("village/managed").orElseThrow();
 
         assertFalse(managed.owned());
@@ -203,9 +195,7 @@ public class JigsawStudioGraphMapperTest {
     @SuppressWarnings("unchecked")
     public void spatialLayoutExpandsToFitLargestReachableObject() {
         IrisData data = mock(IrisData.class);
-        ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        when(data.getObjectLoader()).thenReturn(objectLoader);
-        when(objectLoader.load("stronghold/tall-room")).thenReturn(new IrisObject(24, 32, 20));
+        ModuleResourceFixture.serve(data).object("stronghold/tall-room", 24, 32, 20);
         JigsawStudioVariant variant = new JigsawStudioVariant(
                 "stronghold/tall-room",
                 "stronghold/tall-room",
@@ -220,7 +210,7 @@ public class JigsawStudioGraphMapperTest {
                 List.of());
 
         JigsawStudioCellDimensions dimensions = JigsawStudioGraphMapper.expandSpatialDimensions(
-                data,
+                new JigsawStudioGraphMapper.Source(data.getPackResources(), Path.of("pack"), "stronghold"),
                 new JigsawStudioVariantCatalog(List.of(variant)),
                 new JigsawStudioCellDimensions(16, 16, 16));
 
@@ -231,16 +221,14 @@ public class JigsawStudioGraphMapperTest {
     @SuppressWarnings("unchecked")
     public void mapsAuthorLabelsAndCanonicalPerVariantDimensionsIndependently() {
         IrisData data = mock(IrisData.class);
-        ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
         ModuleResourceFixture resources = ModuleResourceFixture.serve(data);
-        when(data.getObjectLoader()).thenReturn(objectLoader);
         IrisJigsawPool start = new IrisJigsawPool().setPieces(new KList<>());
         start.getPieces().add(new IrisJigsawPieceEntry("village/east-gate", 1));
         resources.resource(StructureResources.POOLS, "village/start", start);
-        IrisJigsawPiece gate = planarPiece("village/east-gate", IrisDirection.EAST_POSITIVE_X)
+        IrisJigsawPiece gate = planarPiece("village/east-gate", JigsawDirection.EAST_POSITIVE_X)
                 .setDisplayName("East Gatehouse");
         resources.resource(StructureResources.PIECES, "village/east-gate", gate);
-        when(objectLoader.load("village/east-gate")).thenReturn(new IrisObject(7, 3, 5));
+        resources.object("village/east-gate", 7, 3, 5);
         IrisStructure structure = new IrisStructure()
                 .setStartPool("village/start")
                 .setMode(IrisJigsawMode.PLANAR_JIGSAW);
@@ -255,7 +243,7 @@ public class JigsawStudioGraphMapperTest {
                     true));
         }
 
-        JigsawStudioLayout layout = JigsawStudioGraphMapper.map(data, structure);
+        JigsawStudioLayout layout = map(data, structure);
         JigsawStudioBay workcell = layout.get(JigsawPlanarArchetype.END.stableId());
         JigsawStudioVariant variant = layout.variantCatalog().find("village/east-gate").orElseThrow();
 
@@ -276,7 +264,7 @@ public class JigsawStudioGraphMapperTest {
                 .setMode(IrisJigsawMode.SPATIAL_JIGSAW)
                 .setSpatialWorkcellDisplayName("Stronghold Rooms");
 
-        JigsawStudioBay workcell = JigsawStudioGraphMapper.map(data, structure)
+        JigsawStudioBay workcell = map(data, structure)
                 .get(JigsawStudioLayout.SPATIAL_WORKCELL_ID);
 
         assertEquals("Spatial", workcell.canonicalDisplayName());
@@ -302,7 +290,7 @@ public class JigsawStudioGraphMapperTest {
                     archetype != IrisJigsawWorkcellArchetype.TEE));
         }
 
-        JigsawStudioLayout layout = JigsawStudioGraphMapper.map(data, structure);
+        JigsawStudioLayout layout = map(data, structure);
 
         assertEquals(new JigsawStudioCellDimensions(11, 9, 13),
                 layout.get("workcell/corner").bounds().dimensions());
@@ -312,7 +300,16 @@ public class JigsawStudioGraphMapperTest {
         assertTrue(layout.variants(layout.get("workcell/tee")).isEmpty());
     }
 
-    private static IrisJigsawPiece planarPiece(String objectKey, IrisDirection direction) {
+    private static JigsawStudioVariantCatalog planarCatalog(IrisData data, Path root, String structureKey, IrisStructure structure) {
+        return JigsawStudioGraphMapper.catalog(StudioToolPacks.toolPack(data.getPackResources()), root, structureKey,
+                structure, JigsawStudioMode.PLANAR_JIGSAW);
+    }
+
+    private static JigsawStudioLayout map(IrisData data, IrisStructure structure) {
+        return JigsawStudioGraphMapper.map(StudioToolPacks.toolPack(data.getPackResources()), Path.of("pack"), "structure", structure);
+    }
+
+    private static IrisJigsawPiece planarPiece(String objectKey, JigsawDirection direction) {
         IrisJigsawPiece piece = new IrisJigsawPiece()
                 .setObject(objectKey)
                 .setConnectors(new KList<>());
@@ -320,7 +317,7 @@ public class JigsawStudioGraphMapperTest {
         return piece;
     }
 
-    private static IrisJigsawConnector connector(IrisDirection direction) {
+    private static IrisJigsawConnector connector(JigsawDirection direction) {
         return new IrisJigsawConnector().setDirection(direction);
     }
 }

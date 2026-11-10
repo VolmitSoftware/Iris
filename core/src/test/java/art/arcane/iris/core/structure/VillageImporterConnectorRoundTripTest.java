@@ -12,13 +12,18 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceEntry;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.core.structure.export.ObjectContents;
+import art.arcane.iris.engine.framework.structure.ObjectFrame;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.spi.PlatformBlockState;
+import com.volmit.block.BlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.nbt.io.NBTUtil;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
 import com.google.gson.Gson;
+import com.volmit.geometry.BlockFace;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.resource.ResourceId;
+import com.volmit.tooling.TemplatePool;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -31,8 +36,6 @@ import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class VillageImporterConnectorRoundTripTest {
     private static final String FINAL_STATE =
@@ -43,22 +46,19 @@ public class VillageImporterConnectorRoundTripTest {
 
     @Test
     public void vanillaNbtMetadataSurvivesIrisPieceAndVanillaExport() throws Exception {
-        FakeJigsawBlockInfo jigsaw = new FakeJigsawBlockInfo(-29, -17);
-        FakeStructureBlockInfo info = new FakeStructureBlockInfo(new FakeCompoundTag(FINAL_STATE));
-        VillageImporter.ConnectorMetadata metadata = VillageImporter.readConnectorMetadata(jigsaw, info);
-        Map<String, Object> importedConnector = VillageImporter.connectorJson(
-                1,
-                1,
-                0,
-                "north",
-                "up",
-                "minecraft:terminal",
-                "roundtrip",
+        TemplatePool.JigsawConnector jigsaw = new TemplatePool.JigsawConnector(
+                new BlockPosition(1, 1, 0),
+                BlockFace.NORTH,
+                BlockFace.UP,
+                Optional.of(ResourceId.parse("minecraft:terminal")),
                 "minecraft:source",
                 "minecraft:door",
-                "ALIGNED",
-                metadata
+                true,
+                Optional.of(FINAL_STATE),
+                -17,
+                -29
         );
+        Map<String, Object> importedConnector = VillageImporter.connectorJson(jigsaw, "roundtrip");
 
         Map<String, Object> importedPiece = new LinkedHashMap<>();
         importedPiece.put("object", "objects/start");
@@ -76,7 +76,8 @@ public class VillageImporterConnectorRoundTripTest {
         VanillaJigsawExportSource source = VanillaJigsawExportSource.forStructure(
                 "metadata",
                 graph.structure,
-                graph
+                graph,
+                graph.objects::get
         );
         VanillaJigsawExportResult result = new VanillaJigsawDatapackExporter().export(
                 VanillaJigsawExportRequest.builder(source, output)
@@ -97,11 +98,8 @@ public class VillageImporterConnectorRoundTripTest {
 
     private static TestGraph graph(IrisJigsawPiece piece, IrisJigsawConnector connector) {
         TestGraph graph = new TestGraph();
-        IrisObject object = new IrisObject(3, 3, 3);
-        PlatformBlockState finalState = mock(PlatformBlockState.class);
-        when(finalState.key()).thenReturn(connector.getFinalState());
-        object.setUnsigned(1, 1, 0, finalState);
-        graph.objects.put("objects/start", object);
+        graph.objects.put("objects/start", ObjectContents.plain(3, 3, 3,
+                Map.of(new BlockPosition(1, 1, 0), BlockState.parse(connector.getFinalState())), Map.of()));
         graph.pieces.put("pieces/start", piece);
         graph.pools.put("pools/start", new IrisJigsawPool().setPieces(new KList<>(
                 new IrisJigsawPieceEntry("pieces/start", 1)
@@ -116,26 +114,13 @@ public class VillageImporterConnectorRoundTripTest {
                 .setBranchFailurePolicy(IrisJigsawBranchFailurePolicy.TERMINATE_BRANCH)
                 .setCompatibility(IrisJigsawCompatibility.VANILLA_PORTABLE)
                 .setPlaceMode(ObjectPlaceMode.STRUCTURE_PIECE);
-        graph.structure.setLoadKey("metadata");
         return graph;
-    }
-
-    private record FakeJigsawBlockInfo(int placementPriority, int selectionPriority) {
-    }
-
-    private record FakeStructureBlockInfo(FakeCompoundTag nbt) {
-    }
-
-    private record FakeCompoundTag(String finalState) {
-        public Optional<String> getString(String key) {
-            return "final_state".equals(key) ? Optional.of(finalState) : Optional.empty();
-        }
     }
 
     private static final class TestGraph implements StructureGraphResolver {
         private final Map<String, IrisJigsawPool> pools = new LinkedHashMap<>();
         private final Map<String, IrisJigsawPiece> pieces = new LinkedHashMap<>();
-        private final Map<String, IrisObject> objects = new LinkedHashMap<>();
+        private final Map<String, ObjectContents> objects = new LinkedHashMap<>();
         private IrisStructure structure;
 
         @Override
@@ -149,8 +134,9 @@ public class VillageImporterConnectorRoundTripTest {
         }
 
         @Override
-        public IrisObject loadObject(String key) {
-            return objects.get(key);
+        public ObjectFrame loadObject(String key) {
+            ObjectContents contents = objects.get(key);
+            return contents == null ? null : new ObjectFrame(contents.width(), contents.height(), contents.depth());
         }
     }
 }

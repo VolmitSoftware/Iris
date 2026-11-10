@@ -122,7 +122,7 @@ public class JigsawStudioManagedAuthoringGuardTest {
                 JigsawStudioMode.PLANAR_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 new JigsawStudioCellDimensions(16, 16, 16));
-        StructureWriteResult result = JigsawStudioProjectCreator.create(packRoot, options);
+        StructureWriteResult result = JigsawStudioProjectCreator.create(packRoot, new art.arcane.iris.core.tooling.IrisObjectCodec(), options);
         assertTrue(result.successful());
         return packRoot;
     }

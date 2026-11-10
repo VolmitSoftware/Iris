@@ -28,7 +28,7 @@ import com.volmit.resource.ResourceKind;
 import java.util.List;
 
 /**
- * The resource kinds of {@code iris:structure}, which keep the folders and files Iris packs have always used, and
+ * The resource kinds of {@code iris:jigsaw}, which keep the folders and files Iris packs have always used, and
  * lookups by pack key for code that names structures, pools and pieces by key. Every lookup goes through the pack's
  * {@link PackResources}, so it sees the pack's current snapshot: a hotload, or a tool that rewrote the files and asked
  * for a new snapshot, reads them again.
@@ -38,11 +38,11 @@ import java.util.List;
  */
 public final class StructureResources {
     /** Jigsaw structures, in {@code structures/}. */
-    public static final ResourceKind<IrisStructure> STRUCTURES = ResourceKind.of("iris:structure/structure", "structures", IrisStructure.class);
+    public static final ResourceKind<IrisStructure> STRUCTURES = ResourceKind.of("iris:jigsaw/structure", "structures", IrisStructure.class);
     /** Jigsaw pools a structure starts from and connectors lead to, in {@code jigsaw-pools/}. */
-    public static final ResourceKind<IrisJigsawPool> POOLS = ResourceKind.of("iris:structure/pool", "jigsaw-pools", IrisJigsawPool.class);
+    public static final ResourceKind<IrisJigsawPool> POOLS = ResourceKind.of("iris:jigsaw/pool", "jigsaw-pools", IrisJigsawPool.class);
     /** Jigsaw pieces pools hold, each an object with connectors, in {@code jigsaw-pieces/}. */
-    public static final ResourceKind<IrisJigsawPiece> PIECES = ResourceKind.of("iris:structure/piece", "jigsaw-pieces", IrisJigsawPiece.class);
+    public static final ResourceKind<IrisJigsawPiece> PIECES = ResourceKind.of("iris:jigsaw/piece", "jigsaw-pieces", IrisJigsawPiece.class);
 
     private StructureResources() {
     }

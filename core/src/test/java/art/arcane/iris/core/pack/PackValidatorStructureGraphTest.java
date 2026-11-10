@@ -53,7 +53,13 @@ public class PackValidatorStructureGraphTest {
         write(pack, "structures/regional.json", "{}");
         write(pack, "structures/library.json", "{}");
 
-        assertEquals(Set.of("active", "regional"), StructureValidator.placedStructureKeys(pack));
+        art.arcane.iris.core.loader.IrisData data = art.arcane.iris.core.loader.IrisData.openValidation(pack);
+        try {
+            assertEquals(Set.of("active", "regional"), StructureValidator.placedStructureKeys(
+                    art.arcane.iris.core.modules.IrisValidationContext.forPack(data)));
+        } finally {
+            data.close();
+        }
     }
 
     @Test
@@ -261,6 +267,21 @@ public class PackValidatorStructureGraphTest {
     @Test
     public void reportsMalformedStructureJson() throws Exception {
         assertSingleErrorStartsWith("structures/castle.json: Structure 'castle' cannot be loaded: ", "structures/castle.json");
+    }
+
+    @Test
+    public void reportsAPoolBelowItsMinimumWeightByItsFieldAndNotOnlyAsMissing() throws Exception {
+        File pack = pack("\"structures\":[{\"structures\":[\"castle\"]}]");
+        write(pack, "structures/castle.json", "{\"startPool\":\"castle/start\"}");
+        write(pack, "jigsaw-pools/castle/start.json", "{\"pieces\":[{\"piece\":\"castle/start\",\"weight\":0}]}");
+        write(pack, "jigsaw-pieces/castle/start.json", "{\"object\":\"castle/start\"}");
+        writeObjectHeader(pack, "objects/castle/start.iob", 3, 9, 3);
+
+        List<String> errors = blockingErrors(pack);
+
+        assertTrue(errors.toString(), errors.contains(
+                "jigsaw-pools/castle/start.json: Jigsaw pool 'castle/start' cannot be loaded: "
+                        + "pieces[0].weight is 0; it must be at least 1"));
     }
 
     @Test
@@ -548,6 +569,7 @@ public class PackValidatorStructureGraphTest {
     }
 
     private void write(File root, String relative, String content) throws Exception {
+        art.arcane.iris.core.modules.BuiltInModulesJar.installInto(root.toPath());
         Path path = root.toPath().resolve(relative);
         Files.createDirectories(path.getParent());
         Files.writeString(path, content, StandardCharsets.UTF_8);

@@ -34,6 +34,7 @@ import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedScheduler;
 import art.arcane.iris.modded.ModdedWorkspaceGenerator;
+import art.arcane.iris.modded.toolworld.ModdedToolWorldService;
 import art.arcane.iris.util.common.parallel.BurstExecutor;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.volmlib.util.collection.KMap;
@@ -56,6 +57,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -329,10 +331,16 @@ public final class ModdedStudioCommands {
         UUID owner = player == null ? CONSOLE_OWNER : player.getUUID();
         String dimensionId = player == null ? studioConsoleDimensionId() : studioDimensionId(player);
         MinecraftServer server = source.getServer();
+        Optional<String> toolWorldRefusal = ModdedToolWorldService.studioChangeRefusal();
+        if (toolWorldRefusal.isPresent()) {
+            IrisModdedCommands.fail(source, toolWorldRefusal.get());
+            return 0;
+        }
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_STUDIO_SEED, MessageArgument.untrusted("pack", pack), MessageArgument.untrusted("seed", seed)));
         CompletableFuture<Void> transition = TRANSITIONS.submit(
                 owner,
-                () -> openTransition(source, server, owner, dimensionId, pack, seed));
+                () -> ModdedToolWorldService.closeForStudioChange(Optional.ofNullable(player))
+                        .thenCompose(ignored -> openTransition(source, server, owner, dimensionId, pack, seed)));
         reportOpenFailure(source, server, dimensionId, pack, transition);
         return 1;
     }
@@ -531,7 +539,13 @@ public final class ModdedStudioCommands {
         ServerPlayer player = source.getPlayer();
         MinecraftServer server = source.getServer();
         UUID owner = player == null ? CONSOLE_OWNER : player.getUUID();
-        TRANSITIONS.submit(owner, () -> closeTransition(source, server, owner));
+        Optional<String> toolWorldRefusal = ModdedToolWorldService.studioChangeRefusal();
+        if (toolWorldRefusal.isPresent()) {
+            IrisModdedCommands.fail(source, toolWorldRefusal.get());
+            return 0;
+        }
+        TRANSITIONS.submit(owner, () -> ModdedToolWorldService.closeForStudioChange(Optional.ofNullable(player))
+                .thenCompose(ignored -> closeTransition(source, server, owner)));
         return 1;
     }
 

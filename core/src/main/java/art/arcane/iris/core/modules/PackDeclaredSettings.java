@@ -28,9 +28,11 @@ import com.volmit.config.PackSettings;
 import com.volmit.config.SettingsStack;
 import com.volmit.resource.PackResources;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The settings a whole pack declares, for validators: every dimension of the pack, then every region, then every
@@ -49,6 +51,12 @@ final class PackDeclaredSettings implements PackSettings {
     @Override
     public PackResources resources() {
         return data.getPackResources();
+    }
+
+    /** The pack's folder is offered as a {@link File}, for checks that read the files of the pack as written. */
+    @Override
+    public <T> Optional<T> extension(Class<T> type) {
+        return HostExtensions.as(type, type == File.class ? data.getDataFolder() : null);
     }
 
     @Override

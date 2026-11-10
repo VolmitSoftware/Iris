@@ -28,6 +28,7 @@ import art.arcane.iris.engine.framework.nativefit.NativeFitStart;
 import art.arcane.iris.engine.framework.nativefit.NativeFitTrait;
 import art.arcane.iris.engine.framework.nativefit.NativeStructureFitting;
 import art.arcane.iris.engine.framework.nativefit.NativeTemplateCells;
+import com.volmit.IrisModule;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.host.DiscoveredModule;
@@ -62,6 +63,7 @@ import java.util.Optional;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 /**
  * The pack's {@link VanillaStructures} providers fitting the platform's starts into a chunk: the platform code's view
@@ -92,14 +94,16 @@ public final class ModuleStructureFitting implements NativeStructureFitting {
                 () -> engine.getGeneration().world());
     }
 
-    /** The built-in modules' registrations only: their stage graph needs the modules of the built-ins jar too. */
-    public static NativeStructureFitting builtInModules() {
+    /**
+     * Iris's own modules' and {@code modules}' registrations only, whose classes the caller names because they ship in the
+     * built-ins jar: their stage graph needs the rest of the jar too.
+     */
+    public static NativeStructureFitting ofModules(IrisModule... modules) {
         ModuleRegistry registry = new ModuleRegistry();
-        IrisModuleHost.builtInModules().forEach(module -> ModuleSetups.run(DiscoveredModule.builtIn(module), new StageGraphBuilder(), registry));
-        return new ModuleStructureFitting(registry.freeze().registrations(VanillaStructures.class), () -> {
-            throw new IllegalStateException("The built-in modules fit outside a world here: a start needs its memo"
-                    + " and a fit without palettes");
-        });
+        Stream.concat(IrisModuleHost.builtInModules().stream(), Stream.of(modules))
+                .forEach(module -> ModuleSetups.run(DiscoveredModule.builtIn(module), new StageGraphBuilder(), registry));
+        FitlessWorld fitless = new FitlessWorld();
+        return new ModuleStructureFitting(registry.freeze().registrations(VanillaStructures.class), () -> fitless);
     }
 
     @Override

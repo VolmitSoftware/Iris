@@ -86,8 +86,6 @@ public class CommandIris implements DirectorExecutor {
     private CommandStudio studio;
     private CommandPregen pregen;
     private CommandObject object;
-    private CommandStructure structure;
-    private CommandJigsaw jigsaw;
     private CommandWhat what;
     private CommandEdit edit;
     private CommandDeveloper developer;

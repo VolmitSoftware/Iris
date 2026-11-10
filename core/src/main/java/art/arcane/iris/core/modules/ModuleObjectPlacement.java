@@ -99,7 +99,7 @@ public final class ModuleObjectPlacement {
         }
         long worldSeed = rng.nextLong();
         try (ToolWorld toolWorld = new ToolWorld(worldSeed, data.getPackResources(), new PackDeclaredSettings(data),
-                world -> new IrisPlacements(data, null, () -> world))) {
+                PackServices.of(data), world -> new IrisPlacements(data, null, () -> world))) {
             return run.placeIn(toolWorld, terrain);
         }
     }

@@ -24,11 +24,13 @@ import art.arcane.iris.spi.PlatformWorld;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.slices.MarkerMatter;
 import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings;
 import com.volmit.data.SavedKey;
 import com.volmit.geometry.BlockPosition;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.placement.PlacementRecord;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.RunningWorld;
@@ -137,6 +139,12 @@ final class IrisRunningWorld implements RunningWorld {
         } finally {
             chunk.release();
         }
+    }
+
+    @Override
+    public Optional<CarvedVoid> carvedAt(int worldX, int y, int worldZ) {
+        MatterCavern cavern = engine.getMantle().getMantle().get(worldX, y, worldZ, MatterCavern.class);
+        return Optional.ofNullable(cavern).map(carved -> CarvedVoids.toApi(carved, packIds()));
     }
 
     @Override

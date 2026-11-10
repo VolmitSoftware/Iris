@@ -6,17 +6,12 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioMode;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioPieceRules;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolAction;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolPayload;
-import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.util.common.scheduling.J;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.entity.Player;
-import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.plugin.java.JavaPlugin;
+import com.volmit.ModuleLog;
+import com.volmit.tooling.world.TextColor;
+import com.volmit.tooling.world.ToolPlayer;
+import com.volmit.tooling.world.ToolText;
+import org.junit.After;
 import org.junit.Test;
-import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -30,17 +25,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class JigsawStudioMenuControllerTest {
+    private final JigsawStudioScheduler scheduler = new JigsawStudioScheduler(mock(ModuleLog.class));
+    private final FakeToolWorld studioWorld = new FakeToolWorld("jigsaw");
     private static final UUID WORLD_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final UUID REQUEST_ID = UUID.fromString("77777777-7777-7777-7777-777777777777");
     private static final JigsawStudioPieceRules RULES = new JigsawStudioPieceRules(1, 12, 2, 8, false);
@@ -81,7 +74,7 @@ public class JigsawStudioMenuControllerTest {
                 false,
                 List.of(active));
 
-        assertEquals(ChatColor.GREEN + "Autosaved", JigsawStudioMenuController.workcellStatus(fresh));
+        assertEquals(ToolText.colored(TextColor.GREEN, "Autosaved"), JigsawStudioMenuController.workcellStatus(fresh));
     }
 
     @Test
@@ -92,10 +85,10 @@ public class JigsawStudioMenuControllerTest {
                 List.of(),
                 List.of());
 
-        assertEquals(Material.JIGSAW, JigsawStudioMenuController.variantMaterial(active));
-        assertEquals(Material.EMERALD,
+        assertEquals(JigsawStudioMenuIcon.JIGSAW, JigsawStudioMenuController.variantMaterial(active));
+        assertEquals(JigsawStudioMenuIcon.EMERALD,
                 JigsawStudioMenuController.evaluationMaterial(JigsawStudioEvaluationState.VALID));
-        assertEquals(Material.TARGET,
+        assertEquals(JigsawStudioMenuIcon.TARGET,
                 JigsawStudioMenuController.RuleField.MINIMUM_PLACEMENTS.material());
     }
 
@@ -245,29 +238,26 @@ public class JigsawStudioMenuControllerTest {
     @Test
     public void stagesMultipleCellSizeEditsAndAppliesOneRelayoutWithoutClosing() throws Exception {
         UUID playerId = UUID.fromString("55555555-5555-5555-5555-555555555555");
-        Player player = mock(Player.class);
+        FakeToolPlayer player = new FakeToolPlayer(playerId, "editor", studioWorld);
         JigsawStudioMenuController.Actions actions = mock(JigsawStudioMenuController.Actions.class);
         JigsawStudioMenuState.Variant active = variant("pieces/corner", true, List.of(), List.of());
         JigsawStudioMenuState.Workcell workcell = workcell(active);
         JigsawStudioMenuState state = state(JigsawStudioMenuState.Evaluation.pending(), workcell);
-        JigsawStudioMenuController controller = new JigsawStudioMenuController(
-                mock(JavaPlugin.class),
-                actions);
+        JigsawStudioMenuController controller = new JigsawStudioMenuController(actions, scheduler);
         Method resize = JigsawStudioMenuController.class.getDeclaredMethod(
                 "resizeWorkcell",
-                Player.class,
+                ToolPlayer.class,
                 UUID.class,
                 String.class,
                 JigsawStudioMenuController.DimensionAxis.class,
                 int.class);
         Method apply = JigsawStudioMenuController.class.getDeclaredMethod(
                 "applyWorkcellResize",
-                Player.class,
+                ToolPlayer.class,
                 UUID.class,
                 String.class);
         resize.setAccessible(true);
         apply.setAccessible(true);
-        when(player.getUniqueId()).thenReturn(playerId);
         when(actions.menuState(player)).thenReturn(Optional.of(state));
         when(actions.updateWorkcellDimensions(
                 player,
@@ -293,19 +283,13 @@ public class JigsawStudioMenuControllerTest {
                 player,
                 workcell.stableId(),
                 new JigsawStudioCellDimensions(25, 20, 18));
-        try (MockedStatic<J> scheduling = mockStatic(J.class)) {
-            scheduling.when(() -> J.runEntity(
-                    same(player),
-                    any(Runnable.class),
-                    eq(2))).thenReturn(true);
 
-            apply.invoke(controller, player, REQUEST_ID, workcell.stableId());
+        apply.invoke(controller, player, REQUEST_ID, workcell.stableId());
 
-            verify(actions).updateWorkcellDimensions(
-                    player,
-                    workcell.stableId(),
-                    new JigsawStudioCellDimensions(25, 20, 18));
-        }
+        verify(actions).updateWorkcellDimensions(
+                player,
+                workcell.stableId(),
+                new JigsawStudioCellDimensions(25, 20, 18));
     }
 
     @Test
@@ -530,59 +514,32 @@ public class JigsawStudioMenuControllerTest {
 
     @Test
     public void openMarshalsToThePlayerRegionBeforeReadingStudioState() {
-        Player player = mock(Player.class);
+        FakeToolPlayer player = new FakeToolPlayer(UUID.randomUUID(), "editor", studioWorld);
+        player.ownedElsewhere = true;
         JigsawStudioMenuController.Actions actions = mock(JigsawStudioMenuController.Actions.class);
-        JigsawStudioMenuController controller = new JigsawStudioMenuController(
-                mock(JavaPlugin.class),
-                actions);
+        JigsawStudioMenuController controller = new JigsawStudioMenuController(actions, scheduler);
 
-        try (MockedStatic<J> scheduling = mockStatic(J.class)) {
-            scheduling.when(() -> J.isOwnedByCurrentRegion(player)).thenReturn(false);
-            scheduling.when(() -> J.runEntity(same(player), any(Runnable.class))).thenReturn(true);
+        assertTrue(controller.open(player));
+        verifyNoInteractions(actions);
 
-            assertTrue(controller.open(player));
-            verifyNoInteractions(actions);
-        }
+        player.runWaiting();
+        verify(actions).menuState(player);
     }
 
     @Test
-    public void changedWorldClosesTheActiveMenuLease() throws ReflectiveOperationException {
+    public void leavingTheStudioClosesTheMenuAndHidesTheSidebar() throws ReflectiveOperationException {
         UUID playerId = UUID.fromString("33333333-3333-3333-3333-333333333333");
-        UUID worldId = UUID.fromString("44444444-4444-4444-4444-444444444444");
-        Player player = mock(Player.class);
-        World world = mock(World.class);
-        Location location = mock(Location.class);
-        PlayerChangedWorldEvent event = mock(PlayerChangedWorldEvent.class);
+        FakeToolPlayer player = new FakeToolPlayer(playerId, "editor", studioWorld);
         JigsawStudioMenuController menu = mock(JigsawStudioMenuController.class);
-        BoardSVC board = mock(BoardSVC.class);
-        JigsawStudioService service = new JigsawStudioService();
-        BoardSVC previousBoard = IrisServices.getOrNull(BoardSVC.class);
-
-        when(event.getPlayer()).thenReturn(player);
-        when(player.getUniqueId()).thenReturn(playerId);
-        when(player.getWorld()).thenReturn(world);
-        when(player.getLocation()).thenReturn(location);
-        when(world.getUID()).thenReturn(worldId);
-        when(location.getWorld()).thenReturn(world);
-
+        JigsawStudioService service = new JigsawStudioService(mock(ModuleLog.class));
         Field menuField = JigsawStudioService.class.getDeclaredField("menuController");
         menuField.setAccessible(true);
         menuField.set(service, menu);
-        IrisServices.register(BoardSVC.class, board);
-        try (MockedStatic<J> scheduling = mockStatic(J.class)) {
-            scheduling.when(() -> J.isOwnedByCurrentRegion(player)).thenReturn(true);
 
-            service.onPlayerChangedWorld(event);
+        service.playerLeft(player);
 
-            verify(menu).close(player);
-            verify(board).clearJigsawContext(player);
-        } finally {
-            if (previousBoard == null) {
-                IrisServices.remove(BoardSVC.class);
-            } else {
-                IrisServices.register(BoardSVC.class, previousBoard);
-            }
-        }
+        verify(menu).close(player);
+        assertEquals(1, player.sidebarsHidden);
     }
 
     private JigsawStudioMenuState state(

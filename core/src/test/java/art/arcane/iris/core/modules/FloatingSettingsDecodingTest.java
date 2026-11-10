@@ -68,7 +68,7 @@ public class FloatingSettingsDecodingTest {
         packFolder = Path.of(FloatingSettingsDecodingTest.class.getResource(PACK).toURI());
         pack = LoadedPack.load(packFolder, ModuleHost.of(BuiltInPack.allBuiltIns())
                 .reservingFields(ModuleTargets.reservedFields())
-                .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE).copyingJarsTo(folder.newFolder("copies").toPath()));
+                .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGES).copyingJarsTo(folder.newFolder("copies").toPath()));
         decoder = new ModuleSettingsDecoder(pack.catalog(), packFolder, Gson::new);
     }
 

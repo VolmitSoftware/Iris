@@ -1,34 +1,36 @@
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.project.IrisProject;
 import art.arcane.iris.core.runtime.StudioOpenCoordinator;
-import art.arcane.iris.core.runtime.jigsaw.JigsawStudioActivation;
+import art.arcane.iris.core.runtime.StudioSlotOccupant;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCellDimensions;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioCompatibilityTarget;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioLayout;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioMode;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioVariantCatalog;
-import art.arcane.iris.platform.bukkit.BukkitPlatform;
-import art.arcane.iris.util.common.plugin.VolmitPlugin;
+import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.util.common.plugin.VolmitSender;
+import com.volmit.ModuleLog;
+import org.bukkit.entity.Player;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.MockedStatic;
-import org.bukkit.entity.Player;
 
+import java.io.File;
 import java.lang.reflect.Field;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,47 +39,37 @@ public class StudioSVCJigsawProtectionTest {
     private static final UUID OWNER = UUID.fromString("33333333-3333-3333-3333-333333333333");
 
     private JigsawStudioService jigsawService;
-    private MockedStatic<BukkitPlatform> bukkitPlatform;
 
     @Before
-    public void enableJigsawService() {
-        VolmitPlugin plugin = mock(VolmitPlugin.class);
-        bukkitPlatform = mockStatic(BukkitPlatform.class);
-        bukkitPlatform.when(BukkitPlatform::volmitPlugin).thenReturn(plugin);
-        jigsawService = new JigsawStudioService();
-        jigsawService.onEnable();
+    public void startJigsawService() {
+        jigsawService = new JigsawStudioService(mock(ModuleLog.class));
     }
 
     @After
     public void clearLifecycle() {
-        jigsawService.onDisable();
-        JigsawStudioActivation.finishOpen(OWNER);
-        JigsawStudioActivation.deactivate("overworld");
-        bukkitPlatform.close();
+        jigsawService.registry().finishOpen(OWNER);
+        jigsawService.registry().deactivate("overworld");
     }
 
     @Test
-    public void directStudioCloseRequiresJigsawCloseAuthorization() throws ReflectiveOperationException {
-        JigsawStudioActivation.Request request = activateOwnedStudio();
-        IrisProject project = mock(IrisProject.class);
-        when(project.getName()).thenReturn("overworld");
+    public void directStudioCloseRequiresJigsawCloseAuthorization() {
+        JigsawStudioRequest request = activateOwnedStudio();
+        AtomicBoolean closed = new AtomicBoolean();
+        StudioSlotOccupant occupant = occupantOf(request, closed);
         StudioSVC studio = new StudioSVC();
-        setActiveProject(studio, project);
+        studio.occupyStudioSlot(occupant, () -> CompletableFuture.completedFuture(null)).join();
 
         CompletionException blocked = assertThrows(CompletionException.class, () -> studio.close().join());
 
         assertTrue(blocked.getCause().getMessage().contains("owner-controlled"));
-        verify(project, never()).close();
+        assertFalse(closed.get());
 
         assertEquals(
                 JigsawStudioService.CloseStart.STARTED,
                 jigsawService.tryBeginClose(request.requestId(), OWNER, false));
-        StudioOpenCoordinator.StudioCloseResult closeResult = successfulClose();
-        when(project.close()).thenReturn(CompletableFuture.completedFuture(closeResult));
 
-        assertEquals(closeResult, studio.close().join());
-        assertNull(studio.getActiveProject());
-        verify(project).close();
+        assertTrue(studio.close().join().successful());
+        assertTrue(closed.get());
     }
 
     @Test
@@ -95,41 +87,101 @@ public class StudioSVCJigsawProtectionTest {
     }
 
     @Test
-    public void ownerCanReplaceJigsawStudioThroughOrdinaryStudioOpen() throws ReflectiveOperationException {
-        activateOwnedStudio();
-        IrisProject project = mock(IrisProject.class);
-        when(project.getName()).thenReturn("overworld");
-        StudioOpenCoordinator.StudioCloseResult closeResult = successfulClose();
-        when(project.close()).thenReturn(CompletableFuture.completedFuture(closeResult));
+    public void anOpenJigsawStudioIsTheOpenStudioProjectToEveryoneWhoAsks() {
+        JigsawStudioRequest request = activateOwnedStudio();
+        AtomicBoolean closed = new AtomicBoolean();
+        StudioSVC studio = new StudioSVC();
+        StudioSlotOccupant occupant = occupantOf(request, closed);
+        studio.occupyStudioSlot(occupant, () -> CompletableFuture.completedFuture(null)).join();
+
+        assertFalse(studio.isProjectOpen());
+        occupant.project().setActiveProvider(mock(PlatformChunkGenerator.class));
+        assertTrue(studio.isProjectOpen());
+        assertSame(occupant.project(), studio.getActiveProject());
+
+        jigsawService.tryBeginClose(request.requestId(), OWNER, false);
+        studio.close().join();
+        occupant.project().setActiveProvider(null);
+        assertFalse(studio.isProjectOpen());
+        assertNull(studio.getActiveProject());
+    }
+
+    @Test
+    public void ownerCanReplaceJigsawStudioThroughOrdinaryStudioOpen() {
+        JigsawStudioRequest request = activateOwnedStudio();
+        AtomicBoolean closed = new AtomicBoolean();
+        StudioSVC studio = new StudioSVC();
+        studio.occupyStudioSlot(occupantOf(request, closed), () -> CompletableFuture.completedFuture(null)).join();
         Player player = mock(Player.class);
         when(player.getUniqueId()).thenReturn(OWNER);
         VolmitSender sender = mock(VolmitSender.class);
         when(sender.isPlayer()).thenReturn(true);
         when(sender.player()).thenReturn(player);
-        StudioSVC studio = new StudioSVC();
-        setActiveProject(studio, project);
 
-        assertEquals(closeResult, studio.closeActiveProjectForReplacement(sender).join());
-        assertNull(studio.getActiveProject());
-        verify(project).close();
+        assertTrue(studio.closeActiveProjectForReplacement(sender).join().successful());
+        assertTrue(closed.get());
     }
 
-    private static JigsawStudioActivation.Request activateOwnedStudio() {
-        assertTrue(JigsawStudioActivation.tryBeginOpen(OWNER));
+    @Test
+    public void aStudioThatRefusesToCloseKeepsTheSlotAndNeverClosesTheProject() throws ReflectiveOperationException {
+        JigsawStudioRequest request = activateOwnedStudio();
+        AtomicBoolean closed = new AtomicBoolean();
+        StudioSVC studio = new StudioSVC();
+        studio.occupyStudioSlot(occupantOf(request, closed), () -> CompletableFuture.completedFuture(null)).join();
+        IrisProject project = mock(IrisProject.class);
+        setActiveProject(studio, project);
+
+        assertThrows(CompletionException.class, () -> studio.close().join());
+
+        verify(project, never()).close();
+        assertFalse(closed.get());
+    }
+
+    /** The occupant the Bukkit host makes of a tool world: it asks the studio and closes the world. */
+    private StudioSlotOccupant occupantOf(JigsawStudioRequest request, AtomicBoolean closed) {
+        IrisProject project = new IrisProject(new File("overworld"));
+        return new StudioSlotOccupant() {
+            @Override
+            public IrisProject project() {
+                return project;
+            }
+
+            @Override
+            public Optional<String> closeRefusal() {
+                return jigsawService.closeRefusal(request.requestId());
+            }
+
+            @Override
+            public CompletableFuture<Void> prepareReplacement(Optional<UUID> requestedBy) {
+                return jigsawService.closing(request.requestId(), requestedBy.map(id ->
+                        new FakeToolPlayer(id, "owner", new FakeToolWorld("jigsaw"))));
+            }
+
+            @Override
+            public CompletableFuture<Void> close() {
+                closed.set(true);
+                return CompletableFuture.completedFuture(null);
+            }
+        };
+    }
+
+    private JigsawStudioRequest activateOwnedStudio() {
+        JigsawStudioRegistry registry = jigsawService.registry();
+        assertTrue(registry.tryBeginOpen(OWNER));
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(16, 16, 16);
-        JigsawStudioActivation.Request request = JigsawStudioActivation.activate(
+        JigsawStudioRequest request = registry.activate(
                 "overworld",
                 "stronghold",
                 JigsawStudioMode.SPATIAL_JIGSAW,
                 JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
                 dimensions,
-                mock(IrisData.class),
-        JigsawStudioLayout.create(
-                JigsawStudioMode.SPATIAL_JIGSAW,
-                dimensions,
-                JigsawStudioVariantCatalog.empty()),
+                StudioToolPacks.toolPack(),
+                JigsawStudioLayout.create(
+                        JigsawStudioMode.SPATIAL_JIGSAW,
+                        dimensions,
+                        JigsawStudioVariantCatalog.empty()),
                 OWNER);
-        JigsawStudioActivation.finishOpen(OWNER);
+        registry.finishOpen(OWNER);
         return request;
     }
 

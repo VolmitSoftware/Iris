@@ -6,8 +6,8 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawCompatibility;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawMode;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
-import art.arcane.iris.engine.object.value.IrisPosition;
 import com.google.gson.Gson;
+import com.volmit.geometry.BlockPosition;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -25,7 +25,7 @@ public class IrisJigsawModelMetadataTest {
         assertEquals(IrisJigsawCompatibility.IRIS_EXTENDED, structure.resolvedCompatibility());
         assertEquals(IrisJigsawBranchFailurePolicy.FAIL_ASSEMBLY,
                 structure.resolvedBranchFailurePolicy());
-        assertEquals(new IrisPosition(15, 15, 15), structure.getCellSize());
+        assertEquals(new BlockPosition(15, 15, 15), structure.getCellSize());
         assertEquals("", connector.getChannel());
         assertEquals("minecraft:air", connector.getFinalState());
         assertEquals(0, connector.getSelectionPriority());
@@ -57,7 +57,7 @@ public class IrisJigsawModelMetadataTest {
         assertEquals(IrisJigsawCompatibility.IRIS_EXTENDED, structure.resolvedCompatibility());
         assertEquals(IrisJigsawBranchFailurePolicy.FAIL_ASSEMBLY,
                 structure.resolvedBranchFailurePolicy());
-        assertEquals(new IrisPosition(15, 15, 15), structure.getCellSize());
+        assertEquals(new BlockPosition(15, 15, 15), structure.getCellSize());
         assertEquals("", connector.getChannel());
         assertEquals("minecraft:air", connector.getFinalState());
         assertEquals(0, connector.getSelectionPriority());

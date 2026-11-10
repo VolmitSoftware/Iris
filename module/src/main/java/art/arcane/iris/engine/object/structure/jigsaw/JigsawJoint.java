@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.structure.jigsaw;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
 @Desc("How a jigsaw connection may be rotated when matching two pieces together.")
 public enum JigsawJoint {

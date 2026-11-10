@@ -42,6 +42,8 @@ class ExposedPackagesTest {
         assertTrue(exposed.exposes("com.volmit.tooling.Command$Builder"));
         assertFalse(exposed.exposes("com.volmit.tooling.bukkit.BukkitToolPart"));
         assertFalse(exposed.exposes("com.volmit.tooling.modded.deep.ModdedToolPart"));
+        assertTrue(exposed.exposes("com.volmit.tooling.world.ToolWorld"), "the world api for tools is neutral");
+        assertFalse(exposed.exposes("com.volmit.tooling.worldly.BukkitToolPart"));
         assertTrue(exposed.exposes("com.volmit.toolingx.Other"));
         assertTrue(exposed.exposes("com.volmit.tool.bukkit.Other"));
     }

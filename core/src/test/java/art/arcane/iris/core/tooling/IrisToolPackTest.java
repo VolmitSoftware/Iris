@@ -1,9 +1,16 @@
 package art.arcane.iris.core.tooling;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.PackModuleSet;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.IrisServices;
 import com.volmit.ModuleLog;
+import com.volmit.host.FeatureCatalog;
+import com.volmit.host.LoadedPack;
+import com.volmit.service.Providers;
+import com.volmit.service.Service;
+import com.volmit.tooling.world.ToolWorlds;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -14,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -136,6 +144,45 @@ public class IrisToolPackTest {
         assertEquals(new File(new File(packsFolder, "exports"), "overworld").toPath().toAbsolutePath().normalize(), output);
         assertTrue(output.toFile().isDirectory());
         assertFalse(output.startsWith(packFolder.toPath()));
+    }
+
+    @Test
+    public void aPlatformWithoutToolWorldsAnswersThatTheyAreNotSupported() {
+        IrisServices.remove(ToolWorldsHost.class);
+
+        ToolWorlds worlds = pack.worlds();
+
+        assertSame(UnsupportedToolWorlds.INSTANCE, worlds);
+        assertTrue(worlds.find("any").isEmpty());
+    }
+
+    @Test
+    public void aPlatformWithToolWorldsAnswersWithThoseOfThePacksFolder() {
+        ToolWorlds overworldWorlds = mock(ToolWorlds.class);
+        IrisServices.register(ToolWorldsHost.class, (ToolWorldsHost) packName -> "overworld".equals(packName) ? overworldWorlds : null);
+        try {
+            assertSame(overworldWorlds, pack.worlds());
+        } finally {
+            IrisServices.remove(ToolWorldsHost.class);
+        }
+    }
+
+    @Test
+    public void servicesAreTheProvidersOfThePacksModules() {
+        Probe probe = new Probe() { };
+        FeatureCatalog catalog = mock(FeatureCatalog.class);
+        LoadedPack loaded = mock(LoadedPack.class);
+        PackModuleSet modules = mock(PackModuleSet.class);
+        when(catalog.services(Probe.class)).thenReturn(List.of(probe));
+        when(loaded.catalog()).thenReturn(catalog);
+        when(modules.pack()).thenReturn(loaded);
+        when(data.getModules()).thenReturn(modules);
+
+        assertEquals(List.of(probe), pack.services(Probe.class));
+    }
+
+    @Service(Providers.ALL)
+    interface Probe {
     }
 
     @Test

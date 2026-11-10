@@ -9,6 +9,8 @@ import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleRegistry;
 import com.volmit.host.ModuleSetups;
 import com.volmit.host.StageGraphBuilder;
+import com.volmit.geometry.BlockBox;
+import com.volmit.object.PackObjects;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 
@@ -46,6 +48,8 @@ public final class ModuleResourceFixture {
     public static synchronized ModuleResourceFixture serve(IrisData data) {
         IrisPackResources resources = mock(IrisPackResources.class);
         when(data.getPackResources()).thenReturn(resources);
+        when(resources.objects()).thenReturn(mock(PackObjects.class));
+        when(resources.services(any())).thenAnswer(invocation -> PackServices.of(data).providers((Class<?>) invocation.getArgument(0)));
         when(resources.idOf(anyString())).thenAnswer(invocation -> idOf(invocation.getArgument(0)));
         when(resources.keyOf(any(ResourceId.class))).thenAnswer(invocation -> keyOf(invocation.getArgument(0)));
         when(resources.keyOf(any(ResourceKind.class), any(ResourceId.class))).thenAnswer(invocation -> keyOf(invocation.getArgument(1)));
@@ -105,6 +109,12 @@ public final class ModuleResourceFixture {
         List<ResourceId> kindIds = ids.computeIfAbsent(kind, ignored -> new ArrayList<>());
         kindIds.add(id);
         when(resources.ids(kind)).thenReturn(kindIds.stream().sorted().toList());
+        return this;
+    }
+
+    /** Serves a pack object {@code key} declared {@code width} by {@code height} by {@code depth}. */
+    public ModuleResourceFixture object(String key, int width, int height, int depth) {
+        when(resources.objects().sizeOf(idOf(key))).thenReturn(Optional.of(new BlockBox(0, 0, 0, width, height, depth)));
         return this;
     }
 

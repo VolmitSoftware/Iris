@@ -1,6 +1,7 @@
 package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.framework.NativeStartMemo;
+import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.framework.nativefit.NativeStructureFitting;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.SharedConstants;
@@ -140,7 +141,7 @@ public class NativeStructureFitPinTest {
 
     /** The built-in modules load once for every scenario. */
     private static final class BuiltInFitting {
-        private static final NativeStructureFitting FITTING = NativeStructureFitting.builtInModules();
+        private static final NativeStructureFitting FITTING = NativeStructureFitting.ofModules(new StructureModule());
     }
 
     /**

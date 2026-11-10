@@ -1,5 +1,6 @@
 package com.volmit.tooling;
 
+import com.volmit.tooling.world.ToolPlayer;
 import java.util.Optional;
 
 /**
@@ -21,4 +22,7 @@ public interface Sender {
 
     /** The platform's own sender as {@code type}, such as a Bukkit {@code Player}; empty when it is not one. For platform parts. */
     <T> Optional<T> extension(Class<T> type);
+
+    /** The sender as a player of the platform; empty for the console, a command block, or a platform without tool worlds. */
+    Optional<ToolPlayer> player();
 }

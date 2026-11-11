@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 final class ManagedPackModules {
     private static final String UNMANAGED_KEY = "pack-without-modules-manifest:";
     private static final String NEEDS_NEWER_IRIS_KEY = "pack-needs-newer-iris:";
+    private static final String RESTORE_COMMAND = "/iris std update %s force=true";
 
     private final File packFolder;
     private final ShippedModules shipped;
@@ -62,12 +63,17 @@ final class ManagedPackModules {
      * @throws PackModuleManifest.ManifestFormatException when {@code modules.json} is not a manifest
      */
     ModuleUpdateReport bringUpToDate() {
-        return bringUpToDate(Policy.PATCHES_ONLY);
+        return logged(() -> PackModuleUpdates.bringUpToDate(packFolder.toPath(), shipped, Policy.PATCHES_ONLY));
     }
 
     /** Takes every update Iris ships, new minor and major versions included; the update command runs it. */
     ModuleUpdateReport takeEveryUpdate() {
-        return bringUpToDate(Policy.TAKING_EVERY_UPDATE);
+        return logged(() -> PackModuleUpdates.bringUpToDate(packFolder.toPath(), shipped, Policy.TAKING_EVERY_UPDATE));
+    }
+
+    /** Like {@link #takeEveryUpdate} after listing every module Iris ships in {@code modules.json}; the forced update command runs it. */
+    ModuleUpdateReport restoreShippedModules() {
+        return logged(() -> PackModuleUpdates.restoreShippedModules(packFolder.toPath(), shipped));
     }
 
     /** Writes the versions the pack loaded, and warns about modules the manifest lists that no jar provides. */
@@ -91,9 +97,13 @@ final class ManagedPackModules {
         return worldFolder().map(world -> "World " + world.getFileName()).orElse("Pack " + packFolder.getName());
     }
 
-    private ModuleUpdateReport bringUpToDate(Policy policy) {
+    private interface JarUpdate {
+        ModuleUpdateReport run() throws IOException;
+    }
+
+    private ModuleUpdateReport logged(JarUpdate update) {
         try {
-            ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(packFolder.toPath(), shipped, policy);
+            ModuleUpdateReport report = update.run();
             log(report);
             return report;
         } catch (IOException failure) {
@@ -118,9 +128,16 @@ final class ManagedPackModules {
 
     private void warnAboutMissingManifest() {
         IrisLogging.warnOnce(UNMANAGED_KEY + packFolder.getAbsolutePath(), "%s has no %s, so Iris installs and updates no modules"
-                + " for it. A pack without modules generates only its layout (biomes and heights). /iris std create writes the file"
-                + " for a new pack; for this one, add %s with the modules it uses%s", label(), PackModuleManifest.FILE_NAME,
-                PackModuleManifest.FILE_NAME, exampleManifest());
+                + " for it. A pack without modules generates only its layout (biomes and heights). %s", label(),
+                PackModuleManifest.FILE_NAME, howToAddManifest());
+    }
+
+    private String howToAddManifest() {
+        if (worldFolder().isEmpty()) {
+            return "Run " + RESTORE_COMMAND.formatted(packFolder.getName()) + " to give it every module Iris ships, or add "
+                    + PackModuleManifest.FILE_NAME + " with the modules it uses.";
+        }
+        return "Add " + PackModuleManifest.FILE_NAME + " with the modules it uses" + exampleManifest();
     }
 
     private String exampleManifest() {

@@ -214,9 +214,13 @@ Iris bundles the folder of jars in its plugin and never loads a module from ther
 ```
 
 The file belongs to the pack's author. The version beside a module is the one the pack was built and tested with, and
-Iris never rewrites the file. `/iris std create` writes one that lists every module Iris ships. A module Iris does not
-ship, such as `acme:rivers`, is listed the same way; its author's jar goes into `modules/` by hand and Iris never touches
-it. A pack without `modules.json` gets no modules from Iris and is told so once.
+Iris changes the file only when asked. `/iris std create` writes one that lists every module Iris ships. A module Iris
+does not ship, such as `acme:rivers`, is listed the same way; its author's jar goes into `modules/` by hand and Iris never
+touches it. A pack without `modules.json` gets no modules from Iris and is told so once.
+
+`/iris std update <pack> force=true` gives a pack the built-ins back. It adds every module Iris ships that `modules.json`
+does not list, at the version Iris ships, and writes the file when the pack has none. What the file already lists and
+pins stays as it is. Then it updates like the plain command.
 
 What is installed right now is in `modules.lock.json`, which Iris writes when it changes a jar and after every load. Comparing the two files shows
 what a pack was built with and what it runs on.

@@ -111,6 +111,12 @@ public final class PackModuleSet implements AutoCloseable {
         return lastUpdates;
     }
 
+    /** Like {@link #takeEveryUpdate()}, after adding every module Iris ships that the pack's {@code modules.json} lacks. */
+    public synchronized ModuleUpdateReport restoreShippedModules() {
+        lastUpdates = managed.restoreShippedModules();
+        return lastUpdates;
+    }
+
     /** What the last update of the pack's jars did and what it kept: at the last load, or at {@link #takeEveryUpdate()} since. */
     public synchronized ModuleUpdateReport lastUpdates() {
         return lastUpdates;

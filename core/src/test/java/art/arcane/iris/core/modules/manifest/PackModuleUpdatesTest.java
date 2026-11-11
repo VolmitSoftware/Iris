@@ -89,6 +89,32 @@ public class PackModuleUpdatesTest {
     }
 
     @Test
+    public void restoringGivesAPackWithoutAManifestEveryShippedModule() throws IOException {
+        Path pack = folder.newFolder("unmanaged").toPath();
+        ShippedModules shipped = BuiltInModuleJars.shipped();
+
+        ModuleUpdateReport report = PackModuleUpdates.restoreShippedModules(pack, shipped);
+
+        assertEquals(PackModuleManifest.listingAll(shipped), PackModuleManifest.read(pack).orElseThrow());
+        assertEquals(Outcome.INSTALLED, outcomeOf(report, TERRAIN));
+        assertEquals(shipped.jars().stream().map(ShippedJar::file).sorted().toList(), jarsOf(pack));
+    }
+
+    @Test
+    public void restoringAddsTheMissingShippedModulesAndKeepsWhatTheManifestSays() throws IOException {
+        Path pack = packListing(Map.of(MATTER, "1.0.0", "acme:rivers", "0.9.0"), Set.of(MATTER));
+        ShippedModules shipped = BuiltInModuleJars.shipped();
+
+        PackModuleUpdates.restoreShippedModules(pack, shipped);
+
+        PackModuleManifest restored = PackModuleManifest.read(pack).orElseThrow();
+        assertEquals("0.9.0", restored.modules().get("acme:rivers"));
+        assertEquals(shipped.module(TERRAIN).orElseThrow().version(), restored.modules().get(TERRAIN));
+        assertEquals(Set.of(MATTER), restored.pinned());
+        assertTrue(jarsOf(pack).contains("iris-terrain.jar"));
+    }
+
+    @Test
     public void aPackWhoseJarsAreTheShippedOnesIsNotWrittenTo() throws IOException {
         Path pack = installedPack("current");
 

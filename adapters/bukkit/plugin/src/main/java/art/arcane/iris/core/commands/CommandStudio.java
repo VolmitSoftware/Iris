@@ -688,9 +688,13 @@ public class CommandStudio implements DirectorExecutor {
     @Director(description = "Update a pack's modules to the versions this Iris ships", descriptionKey = "iris.director.commandstudio.director.update_pack_modules")
     public void update(
             @Param(description = "The pack to update", descriptionKey = "iris.director.commandstudio.param.dimension_update_modules", contextual = true, contextualOverride = true, defaultValue = "default", customHandler = DimensionHandler.class)
-            IrisDimension dimension
+            IrisDimension dimension,
+            @Param(defaultValue = "false", description = "Also add every module Iris ships that the pack does not list", descriptionKey = "iris.director.commandstudio.param.force_restore_shipped_modules", aliases = "f")
+            boolean force
     ) {
-        KeptModuleUpdates.takeForPack(dimension.getLoader()).forEach(sender()::sendMessage);
+        IrisData data = dimension.getLoader();
+        List<String> lines = force ? KeptModuleUpdates.restoreForPack(data) : KeptModuleUpdates.takeForPack(data);
+        lines.forEach(sender()::sendMessage);
     }
 
     @Director(aliases = "find-objects", description = "Capture an IGenData chunk report for nearby chunks", descriptionKey = "iris.director.commandstudio.director.capture_igendata_chunk_report_nearby_chunks", origin = DirectorOrigin.PLAYER)

@@ -61,6 +61,13 @@ public record PackModuleManifest(Map<String, String> modules, Set<String> pinned
         return new PackModuleManifest(modules, Set.of());
     }
 
+    /** This manifest plus every module Iris ships that it does not list, at the version Iris ships. */
+    public PackModuleManifest listingEveryShippedModule(ShippedModules shipped) {
+        Map<String, String> listed = new LinkedHashMap<>(modules);
+        listingAll(shipped).modules().forEach(listed::putIfAbsent);
+        return new PackModuleManifest(listed, pinned);
+    }
+
     /**
      * Empty for a pack without the file.
      *

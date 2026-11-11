@@ -26,6 +26,7 @@ import art.arcane.volmlib.util.localization.MessageArgument;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Takes the module updates a pack kept back because they are more than a patch, for the update commands: a pack's
@@ -41,11 +42,29 @@ public final class KeptModuleUpdates {
      * hotloads on its own when the jars change. Returns what to tell the sender, one line each.
      */
     public static List<String> takeForPack(IrisData data) {
-        List<String> lines = take(data, false);
-        if (data.getModules().reloadIfJarsChanged()) {
+        return updatePack(data, PackModuleSet::takeEveryUpdate);
+    }
+
+    /**
+     * Like {@link #takeForPack}, after adding every module Iris ships that the pack's {@code modules.json} lacks, and
+     * writing the file for a pack without one. What the file already lists and pins stays.
+     */
+    public static List<String> restoreForPack(IrisData data) {
+        return updatePack(data, PackModuleSet::restoreShippedModules);
+    }
+
+    private static List<String> updatePack(IrisData data, Function<PackModuleSet, ModuleUpdateReport> update) {
+        PackModuleSet modules = data.getModules();
+        ModuleUpdateReport report = update.apply(modules);
+        if (modules.reloadIfJarsChanged()) {
             data.hotloaded();
         }
-        return lines;
+        if (!report.managed()) {
+            return List.of(IrisLanguage.text(IrisMessages.PACK_UPDATE_UNMANAGED, MessageArgument.untrusted("pack", modules.label())),
+                    IrisLanguage.text(IrisMessages.PACK_UPDATE_HOW_TO_RESTORE,
+                            MessageArgument.untrusted("pack", data.getDataFolder().getName())));
+        }
+        return describe(modules, report, false);
     }
 
     /**
@@ -77,16 +96,16 @@ public final class KeptModuleUpdates {
 
     /** Like {@link #takeForPack} for a running world, which keeps the modules it loaded until the server restarts. */
     public static List<String> takeForWorld(IrisData data) {
-        return take(data, true);
-    }
-
-    private static List<String> take(IrisData data, boolean loadsAtRestart) {
         PackModuleSet modules = data.getModules();
         ModuleUpdateReport report = modules.takeEveryUpdate();
-        MessageArgument pack = MessageArgument.untrusted("pack", modules.label());
         if (!report.managed()) {
-            return List.of(IrisLanguage.text(IrisMessages.PACK_UPDATE_UNMANAGED, pack));
+            return List.of(IrisLanguage.text(IrisMessages.PACK_UPDATE_UNMANAGED, MessageArgument.untrusted("pack", modules.label())));
         }
+        return describe(modules, report, true);
+    }
+
+    private static List<String> describe(PackModuleSet modules, ModuleUpdateReport report, boolean loadsAtRestart) {
+        MessageArgument pack = MessageArgument.untrusted("pack", modules.label());
         if (report.written().isEmpty() && report.kept().isEmpty()) {
             return List.of(IrisLanguage.text(IrisMessages.PACK_UPDATE_CURRENT, pack));
         }

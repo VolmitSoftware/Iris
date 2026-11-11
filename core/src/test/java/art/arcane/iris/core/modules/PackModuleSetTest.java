@@ -77,7 +77,7 @@ public class PackModuleSetTest {
         String warnings = warningsWhile(() -> new PackModuleSet(pack, Gson::new).pack());
 
         assertTrue(warnings, warnings.contains("[Iris/WARN] Pack without-manifest has no modules.json, so Iris installs and updates no modules for it."));
-        assertTrue(warnings, warnings.contains("/iris std create writes the file for a new pack"));
+        assertTrue(warnings, warnings.contains("Run /iris std update without-manifest force=true to give it every module Iris ships"));
     }
 
     @Test

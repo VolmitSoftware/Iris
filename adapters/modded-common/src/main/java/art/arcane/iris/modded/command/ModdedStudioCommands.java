@@ -80,6 +80,7 @@ public final class ModdedStudioCommands {
     private static final Pattern STUDIO_ID_SANITIZER = Pattern.compile("[^a-z0-9_-]");
     private static final String STUDIO_NAMESPACE = "irisworldgen";
     private static final String STUDIO_PREFIX = "studio_";
+    private static final String FORCE_UPDATE = "force=true";
     private static final String DEFAULT_TEMPLATE = "example";
     private static final UUID CONSOLE_OWNER = new UUID(0L, 0L);
     private static final Map<UUID, String> STUDIOS = new ConcurrentHashMap<>();
@@ -127,9 +128,11 @@ public final class ModdedStudioCommands {
         root.then(workspaceTree("vscode"));
         root.then(workspaceTree("vsc"));
         root.then(Commands.literal("update")
-                .executes((CommandContext<CommandSourceStack> context) -> updateModules(context.getSource(), null))
+                .executes((CommandContext<CommandSourceStack> context) -> updateModules(context.getSource(), null, false))
                 .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes((CommandContext<CommandSourceStack> context) -> updateModules(context.getSource(), StringArgumentType.getString(context, "pack")))));
+                        .executes((CommandContext<CommandSourceStack> context) -> updateModules(context.getSource(), StringArgumentType.getString(context, "pack"), false))
+                        .then(Commands.literal(FORCE_UPDATE)
+                                .executes((CommandContext<CommandSourceStack> context) -> updateModules(context.getSource(), StringArgumentType.getString(context, "pack"), true)))));
         root.then(message("importvanilla", "Vanilla tree/object/structure capture generates features in throwaway Bukkit worlds via NMS; run /iris studio importvanilla on a Bukkit server against this pack, then copy the pack folder over."));
         root.then(message("importv", "Vanilla tree/object/structure capture generates features in throwaway Bukkit worlds via NMS; run /iris studio importvanilla on a Bukkit server against this pack, then copy the pack folder over."));
         root.then(message("iv", "Vanilla tree/object/structure capture generates features in throwaway Bukkit worlds via NMS; run /iris studio importvanilla on a Bukkit server against this pack, then copy the pack folder over."));
@@ -246,12 +249,14 @@ public final class ModdedStudioCommands {
         return 1;
     }
 
-    private static int updateModules(CommandSourceStack source, String pack) {
+    private static int updateModules(CommandSourceStack source, String pack, boolean restoreShippedModules) {
         File folder = resolvePack(source, pack);
         if (folder == null) {
             return 0;
         }
-        KeptModuleUpdates.takeForPack(IrisData.get(folder)).forEach(line -> IrisModdedCommands.ok(source, IrisLogging.clean(line)));
+        IrisData data = IrisData.get(folder);
+        List<String> lines = restoreShippedModules ? KeptModuleUpdates.restoreForPack(data) : KeptModuleUpdates.takeForPack(data);
+        lines.forEach(line -> IrisModdedCommands.ok(source, IrisLogging.clean(line)));
         return 1;
     }
 

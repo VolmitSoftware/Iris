@@ -38,6 +38,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 
 /**
@@ -115,6 +116,26 @@ public final class PackModuleUpdates {
             return ModuleUpdateReport.unmanaged();
         }
         return new PackModuleUpdates(packFolder, manifest.get(), PackModuleLock.read(packFolder), shipped, policy).bringUpToDate();
+    }
+
+    /**
+     * Brings back the modules Iris ships to a pack that lost some or never had a {@code modules.json}: adds each one the
+     * manifest does not list, writing the file when there is none, then takes every update. What the manifest already
+     * lists and pins stays as it is.
+     *
+     * @throws PackModuleManifest.ManifestFormatException when the pack's {@code modules.json} is not a manifest
+     */
+    public static ModuleUpdateReport restoreShippedModules(Path packFolder, ShippedModules shipped) throws IOException {
+        Optional<PackModuleManifest> current = PackModuleManifest.read(packFolder);
+        if (shipped.isEmpty()) {
+            return bringUpToDate(packFolder, shipped, Policy.TAKING_EVERY_UPDATE);
+        }
+        PackModuleManifest restored = current.orElseGet(() -> new PackModuleManifest(Map.of(), Set.of()))
+                .listingEveryShippedModule(shipped);
+        if (current.isEmpty() || !current.get().equals(restored)) {
+            restored.write(packFolder);
+        }
+        return bringUpToDate(packFolder, shipped, Policy.TAKING_EVERY_UPDATE);
     }
 
     /**

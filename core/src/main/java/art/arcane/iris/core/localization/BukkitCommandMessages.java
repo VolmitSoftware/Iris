@@ -36,6 +36,10 @@ public final class BukkitCommandMessages {
     public static final TextKey COMMAND_STUDIO_IMPORTVANILLA_COMPLETE_OBJECTS_STRUCTURES_WRITTEN_FAILED = text("iris.bukkit.commandstudio.importvanilla_complete_objects_structures_written_failed");
     public static final TextKey COMMAND_STUDIO_TREES_OBJECTS_ARE_UNDER_OBJECTS_VANILLA_REFERENCE_THEM_FROM_BIOME = text("iris.bukkit.commandstudio.trees_objects_are_under_objects_vanilla_reference_them_from_biome");
     public static final TextKey COMMAND_STUDIO_NO_OPEN_STUDIO_PROJECTS = text("iris.bukkit.commandstudio.no_open_studio_projects");
+    public static final TextKey COMMAND_STUDIO_NAME_PACK_OUTSIDE_STUDIO = text("iris.bukkit.commandstudio.name_pack_outside_studio");
+    public static final TextKey COMMAND_STUDIO_HOTLOADING = text("iris.bukkit.commandstudio.hotloading");
+    public static final TextKey COMMAND_STUDIO_HOTLOADED = text("iris.bukkit.commandstudio.hotloaded");
+    public static final TextKey COMMAND_STUDIO_HOTLOAD_FAILED = text("iris.bukkit.commandstudio.hotload_failed");
     public static final TextKey COMMAND_STUDIO_CLOSING_STUDIO = text("iris.bukkit.commandstudio.closing_studio");
     public static final TextKey COMMAND_STUDIO_STUDIO_CLOSE_FAILED = text("iris.bukkit.commandstudio.studio_close_failed");
     public static final TextKey COMMAND_STUDIO_STUDIO_CLOSE_FAILED_2 = text("iris.bukkit.commandstudio.studio_close_failed_2");

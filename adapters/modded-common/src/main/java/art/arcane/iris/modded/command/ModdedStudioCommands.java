@@ -207,9 +207,10 @@ public final class ModdedStudioCommands {
         String worldName = level.dimension().identifier().toString();
         try {
             StudioBridge bridge = StudioBridges.open(worldName, () -> boundEngine(server, level, openerId), openerId);
-            StudioWindow.show(bridge);
-            IrisModdedCommands.ok(source, IrisLanguage.plain(IrisMessages.STUDIO_MAP_READY,
-                    MessageArgument.untrusted("world", worldName), MessageArgument.untrusted("link", bridge.link())));
+            if (!StudioWindow.show(bridge)) {
+                IrisModdedCommands.ok(source, IrisLanguage.plain(IrisMessages.STUDIO_MAP_READY,
+                        MessageArgument.untrusted("world", worldName), MessageArgument.untrusted("link", bridge.link())));
+            }
             return 1;
         } catch (IOException error) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(IrisMessages.STUDIO_MAP_FAILED, MessageArgument.untrusted("value", String.valueOf(error.getMessage()))));

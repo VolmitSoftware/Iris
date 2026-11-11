@@ -49,6 +49,16 @@ public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
         return CompletableFuture.completedFuture(null);
     }
 
+    /** A hotload someone asked for, completing when it is done or failed. */
+    default CompletableFuture<Void> hotloadOnRequest() {
+        try {
+            hotload();
+            return CompletableFuture.completedFuture(null);
+        } catch (Throwable failure) {
+            return CompletableFuture.failedFuture(failure);
+        }
+    }
+
     default CompletableFuture<Void> hotloadComplexAsync(long acquisitionTimeout, TimeUnit unit) {
         if (acquisitionTimeout <= 0L) {
             throw new IllegalArgumentException("Complex hotload acquisition timeout must be positive.");

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Decides whether a pack hotload may run. A hotload is skipped, logged and announced to studio clients while any
@@ -32,16 +33,25 @@ public final class PackHotloadGuard {
     }
 
     public boolean allowsHotload(Collection<File> touched) {
-        Map<File, String> blocking = unreadable.recheck(touched);
-        if (blocking.isEmpty()) {
-            return true;
-        }
-        blocking.forEach(this::reportSkipped);
-        return false;
+        return skipReason(touched).isEmpty();
     }
 
-    private void reportSkipped(File file, String reason) {
-        String message = "Hotload skipped, " + packFolder.toPath().relativize(file.toPath()) + ": " + reason;
+    /** The first unreadable file and what is wrong with it, empty when the hotload may run. Every skip is logged and announced. */
+    public Optional<String> skipReason(Collection<File> touched) {
+        Map<File, String> blocking = unreadable.recheck(touched);
+        List<String> unreadableFiles = blocking.entrySet().stream()
+                .map(unreadableFile -> describeUnreadable(unreadableFile.getKey(), unreadableFile.getValue()))
+                .toList();
+        unreadableFiles.forEach(this::reportSkipped);
+        return unreadableFiles.stream().findFirst();
+    }
+
+    private String describeUnreadable(File file, String reason) {
+        return packFolder.toPath().relativize(file.toPath()) + ": " + reason;
+    }
+
+    private void reportSkipped(String unreadableFile) {
+        String message = "Hotload skipped, " + unreadableFile;
         IrisLogging.warn("%s", message);
         announce(message);
     }

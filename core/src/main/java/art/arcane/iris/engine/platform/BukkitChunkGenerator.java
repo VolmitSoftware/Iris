@@ -110,10 +110,12 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private static final int LOAD_LOCKS = Runtime.getRuntime().availableProcessors() * 4;
     private static final long HOTLOAD_LOOP_DELAY_MS = 250L;
     private static final long HOTLOAD_MAINTENANCE_DELAY_MS = 4000L;
+    private static final long HOTLOAD_ACQUISITION_TIMEOUT_SECONDS = 30L;
     private final GenerationStageGate loadLock;
     private final IrisWorld world;
     private final File dataLocation;
     private final String dimensionKey;
+    private final PackHotloadGuard hotloadGuard;
     private final ReactiveFolder folder;
     private final ReentrantLock lock = new ReentrantLock();
     private final KList<BlockPopulator> populators;
@@ -152,7 +154,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.studioEntryBootstrapActive = new AtomicBoolean(studio);
         this.dataLocation = dataLocation;
         this.dimensionKey = dimensionKey;
-        PackHotloadGuard hotloadGuard = new PackHotloadGuard(dataLocation);
+        this.hotloadGuard = new PackHotloadGuard(dataLocation);
         this.folder = PackHotloadFolder.watch(dataLocation, (created, changed, deleted) -> {
             if (hotloadGuard.allowsHotload(PackHotloadGuard.touched(created, changed))) {
                 hotloadFromWatcher();
@@ -607,7 +609,20 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         if (!shouldRunStudioHotload(isStudio(), closing, paintedStudioActive)) {
             return;
         }
-        withExclusiveControlFuture(() -> getEngine().hotload(), 30L, TimeUnit.SECONDS).join();
+        withExclusiveControlFuture(() -> getEngine().hotload(), HOTLOAD_ACQUISITION_TIMEOUT_SECONDS, TimeUnit.SECONDS).join();
+    }
+
+    /** Skipped like the watcher's hotload while a pack file does not parse. */
+    @Override
+    public CompletableFuture<Void> hotloadOnRequest() {
+        if (!shouldRunStudioHotload(isStudio(), closing, paintedStudioActive)) {
+            return CompletableFuture.failedFuture(new IllegalStateException("this studio cannot hotload right now"));
+        }
+        Optional<String> skipReason = hotloadGuard.skipReason(List.of());
+        if (skipReason.isPresent()) {
+            return CompletableFuture.failedFuture(new IllegalStateException(skipReason.get()));
+        }
+        return withExclusiveControlFuture(() -> getEngine().hotload(), HOTLOAD_ACQUISITION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     @Override

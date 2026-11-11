@@ -136,7 +136,6 @@ public final class BukkitCommandMessagesExtended {
     public static final TextKey COMMAND_STRUCTURE_COULD_NOT_RESOLVE_PACK_DIMENSION_3 = text("iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3");
     public static final TextKey COMMAND_STRUCTURE_CAPTURED_STRUCTURES_PLACE_THEM_FROM_STRUCTURES_LIST_REGENERATE_CHUNKS_DELETE = text("iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete");
     public static final TextKey COMMAND_STUDIO_OPENING_STUDIO_PACK_SEED = text("iris.bukkit.commandstudio.opening_studio_pack_seed");
-    public static final TextKey COMMAND_STUDIO_PROVIDE_DIMENSION_PACK_IRIS_STD_IMPORTVANILLA_PACK_DIMENSION = text("iris.bukkit.commandstudio.provide_dimension_pack_iris_std_importvanilla_pack_dimension");
     public static final TextKey COMMAND_STUDIO_COULD_NOT_RESOLVE_PACK_DIMENSION = text("iris.bukkit.commandstudio.could_not_resolve_pack_dimension");
     public static final TextKey COMMAND_STUDIO_OPENING_EDITOR_PACK = text("iris.bukkit.commandstudio.opening_editor_pack");
     public static final TextKey COMMAND_STUDIO_PACK_HAS_VERSION = text("iris.bukkit.commandstudio.pack_has_version");

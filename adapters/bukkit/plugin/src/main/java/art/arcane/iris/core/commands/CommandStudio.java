@@ -20,6 +20,7 @@ package art.arcane.iris.core.commands;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
+import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.gui.ImageMapStudioGUI;
 import art.arcane.iris.core.loader.IrisData;
@@ -129,23 +130,23 @@ public class CommandStudio implements DirectorExecutor {
 
     @Director(description = "Import vanilla trees, mushrooms & objects from the server into a pack's objects/vanilla folder", descriptionKey = "iris.director.commandstudio.director.import_vanilla_trees_mushrooms_objects_structures_jigsaw_from_server_into_pack_s", aliases = {"importv", "iv"}, origin = DirectorOrigin.BOTH)
     public void importvanilla(
-            @Param(description = "The dimension pack to import vanilla content into", descriptionKey = "iris.director.commandstudio.param.dimension_pack_import_vanilla_content_into", aliases = {"pack", "dim"}, customHandler = DimensionHandler.class)
+            @Param(defaultValue = "null", description = "The dimension pack to import vanilla content into", descriptionKey = "iris.director.commandstudio.param.dimension_pack_import_vanilla_content_into", aliases = {"pack", "dim"}, customHandler = NullableDimensionHandler.class)
             IrisDimension dimension,
             @Param(description = "How many variants to capture per tree/object feature", descriptionKey = "iris.director.commandstudio.param.how_many_variants_capture_per_tree_object_feature", defaultValue = "3")
             int variants
     ) {
-        if (dimension == null) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_PROVIDE_DIMENSION_PACK_IRIS_STD_IMPORTVANILLA_PACK_DIMENSION));
+        IrisDimension pack = namedOrCurrentPack(dimension);
+        if (pack == null) {
             return;
         }
-        IrisData data = dimension.getLoader();
+        IrisData data = pack.getLoader();
         if (data == null) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_COULD_NOT_RESOLVE_PACK_DIMENSION, MessageArgument.untrusted("value", dimension.getLoadKey())));
+            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_COULD_NOT_RESOLVE_PACK_DIMENSION, MessageArgument.untrusted("value", pack.getLoadKey())));
             return;
         }
 
         VolmitSender sender = sender();
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_IMPORTING_VANILLA_CONTENT_INTO, MessageArgument.untrusted("value", dimension.getLoadKey())));
+        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_IMPORTING_VANILLA_CONTENT_INTO, MessageArgument.untrusted("value", pack.getLoadKey())));
 
         FeatureImporter.Report features = FeatureImporter.importAllObjectFeatures(data, variants, sender);
 
@@ -214,6 +215,28 @@ public class CommandStudio implements DirectorExecutor {
         }));
     }
 
+    @Director(description = "Hotload the studio you are in", descriptionKey = "iris.director.commandstudio.director.hotload_studio", aliases = {"reload", "h"})
+    public void hotload() {
+        VolmitSender commandSender = sender();
+        PlatformChunkGenerator studio = currentStudio();
+        if (studio == null || studio.getEngine() == null) {
+            commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_NO_OPEN_STUDIO_PROJECTS));
+            return;
+        }
+
+        String pack = studio.getEngine().getDimension().getLoadKey();
+        commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_HOTLOADING, MessageArgument.untrusted("value", pack)));
+        studio.hotloadOnRequest().whenComplete((ignored, failure) -> J.s(() -> reportHotload(commandSender, pack, failure)));
+    }
+
+    private static void reportHotload(VolmitSender commandSender, String pack, Throwable failure) {
+        if (failure != null) {
+            commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_HOTLOAD_FAILED, MessageArgument.untrusted("value", String.valueOf(failure.getMessage()))));
+            return;
+        }
+        commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_HOTLOADED, MessageArgument.untrusted("value", pack)));
+    }
+
     @Director(description = "Toggle your Studio debug scoreboard", descriptionKey = "iris.director.commandstudio.director.toggle_your_studio_debug_scoreboard", aliases = {"board", "sidebar", "sb"}, origin = DirectorOrigin.PLAYER)
     public void scoreboard() {
         Player target = player();
@@ -253,18 +276,26 @@ public class CommandStudio implements DirectorExecutor {
 
     @Director(description = "Get the version of a pack", descriptionKey = "iris.director.commandstudio.director.get_version_pack")
     public void version(
-            @Param(defaultValue = "default", description = "The dimension get the version of", descriptionKey = "iris.director.commandstudio.param.dimension_get_version", aliases = "dim", contextual = true, contextualOverride = true, customHandler = DimensionHandler.class)
+            @Param(defaultValue = "null", description = "The dimension get the version of", descriptionKey = "iris.director.commandstudio.param.dimension_get_version", aliases = "dim", customHandler = NullableDimensionHandler.class)
             IrisDimension dimension
     ) {
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_PACK_HAS_VERSION, MessageArgument.untrusted("value", dimension.getName()), MessageArgument.untrusted("value2", dimension.getVersion())));
+        IrisDimension pack = namedOrCurrentPack(dimension);
+        if (pack == null) {
+            return;
+        }
+        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_PACK_HAS_VERSION, MessageArgument.untrusted("value", pack.getName()), MessageArgument.untrusted("value2", pack.getVersion())));
     }
 
     @Director(description = "List the modules a pack loads", descriptionKey = "iris.director.commandstudio.director.list_pack_modules")
     public void modules(
-            @Param(description = "The pack to list the modules of", descriptionKey = "iris.director.commandstudio.param.dimension_list_modules", aliases = "dim", customHandler = DimensionHandler.class)
+            @Param(defaultValue = "null", description = "The pack to list the modules of", descriptionKey = "iris.director.commandstudio.param.dimension_list_modules", aliases = "dim", customHandler = NullableDimensionHandler.class)
             IrisDimension dimension
     ) {
-        PackModulesListing.describe(dimension.getLoader()).lines().forEach(sender()::sendMessage);
+        IrisDimension pack = namedOrCurrentPack(dimension);
+        if (pack == null) {
+            return;
+        }
+        PackModulesListing.describe(pack.getLoader()).lines().forEach(sender()::sendMessage);
     }
 
     @Director(description = "Open the image-map studio (External GUI)", descriptionKey = "iris.director.commandstudio.director.open_image_map_studio_external_gui", aliases = {"imap"})
@@ -279,12 +310,13 @@ public class CommandStudio implements DirectorExecutor {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_MUST_HAVE_SERVER_LAUNCHED_GUIS_ENABLED_SETTINGS));
             return;
         }
-        if (!IrisToolbelt.isIrisWorld(world)) {
+        World target = irisWorldOrCurrent(world);
+        if (target == null) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_NEED_BE_SPECIFY_IRIS_GENERATED_WORLD));
             return;
         }
 
-        Engine activeEngine = IrisToolbelt.access(world).getEngine();
+        Engine activeEngine = IrisToolbelt.access(target).getEngine();
         ImageMapStudioGUI.launch(activeEngine);
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_IMAGE_MAP_STUDIO));
     }
@@ -406,18 +438,20 @@ public class CommandStudio implements DirectorExecutor {
             @Param(name = "world", description = "The world to open the generator for", descriptionKey = "iris.director.commandstudio.param.world_open_generator", contextual = true, contextualOverride = true)
             World world
     ) {
-        if (!IrisToolbelt.isIrisWorld(world)) {
+        World target = irisWorldOrCurrent(world);
+        if (target == null) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_NEED_BE_SPECIFY_IRIS_GENERATED_WORLD));
             return;
         }
 
         UUID openerId = sender().isPlayer() ? player().getUniqueId() : null;
-        PlatformChunkGenerator generator = IrisToolbelt.access(world);
+        PlatformChunkGenerator generator = IrisToolbelt.access(target);
         try {
-            StudioBridge bridge = StudioBridges.open(world.getName(), generator::getEngine, openerId);
-            StudioWindow.show(bridge);
-            sender().sendMessage(IrisLanguage.text(IrisMessages.STUDIO_MAP_READY,
-                    MessageArgument.untrusted("world", world.getName()), MessageArgument.untrusted("link", bridge.link())));
+            StudioBridge bridge = StudioBridges.open(target.getName(), generator::getEngine, openerId);
+            if (!StudioWindow.show(bridge)) {
+                sender().sendMessage(IrisLanguage.text(IrisMessages.STUDIO_MAP_READY,
+                        MessageArgument.untrusted("world", target.getName()), MessageArgument.untrusted("link", bridge.link())));
+            }
         } catch (IOException error) {
             sender().sendMessage(IrisLanguage.text(IrisMessages.STUDIO_MAP_FAILED, MessageArgument.untrusted("value", String.valueOf(error.getMessage()))));
         }
@@ -425,19 +459,27 @@ public class CommandStudio implements DirectorExecutor {
 
     @Director(description = "Package a dimension into a compressed format", descriptionKey = "iris.director.commandstudio.director.package_dimension_into_compressed_format", aliases = "package")
     public void pkg(
-            @Param(name = "dimension", description = "The dimension pack to compress", descriptionKey = "iris.director.commandstudio.param.dimension_pack_compress", contextual = true, contextualOverride = true, defaultValue = "default", customHandler = DimensionHandler.class)
+            @Param(name = "dimension", description = "The dimension pack to compress", descriptionKey = "iris.director.commandstudio.param.dimension_pack_compress", aliases = "dim", defaultValue = "null", customHandler = NullableDimensionHandler.class)
             IrisDimension dimension,
             @Param(name = "minify", description = "Whether or not to minify the pack", descriptionKey = "iris.director.commandstudio.param.whether_not_minify_pack", defaultValue = "true")
             boolean minify
     ) {
-        Iris.service(StudioSVC.class).compilePackage(sender(), dimension.getLoadKey(), minify);
+        IrisDimension pack = namedOrCurrentPack(dimension);
+        if (pack == null) {
+            return;
+        }
+        Iris.service(StudioSVC.class).compilePackage(sender(), pack.getLoadKey(), minify);
     }
 
     @Director(description = "Profiles the performance of a dimension", descriptionKey = "iris.director.commandstudio.director.profiles_performance_dimension", origin = DirectorOrigin.PLAYER)
     public void profile(
-            @Param(description = "The dimension to profile", descriptionKey = "iris.director.commandstudio.param.dimension_profile", contextual = true, contextualOverride = true, defaultValue = "default", customHandler = DimensionHandler.class)
-            IrisDimension dimension
+            @Param(name = "dimension", description = "The dimension to profile", descriptionKey = "iris.director.commandstudio.param.dimension_profile", aliases = "dim", defaultValue = "null", customHandler = NullableDimensionHandler.class)
+            IrisDimension named
     ) {
+        IrisDimension dimension = namedOrCurrentPack(named);
+        if (dimension == null) {
+            return;
+        }
         // Todo: Make this more accurate
         File pack = dimension.getLoadFile().getParentFile().getParentFile();
         File report = Iris.instance.getDataFile("profile.txt");
@@ -687,12 +729,16 @@ public class CommandStudio implements DirectorExecutor {
 
     @Director(description = "Update a pack's modules to the versions this Iris ships", descriptionKey = "iris.director.commandstudio.director.update_pack_modules")
     public void update(
-            @Param(description = "The pack to update", descriptionKey = "iris.director.commandstudio.param.dimension_update_modules", contextual = true, contextualOverride = true, defaultValue = "default", customHandler = DimensionHandler.class)
+            @Param(description = "The pack to update", descriptionKey = "iris.director.commandstudio.param.dimension_update_modules", aliases = "dim", defaultValue = "null", customHandler = NullableDimensionHandler.class)
             IrisDimension dimension,
             @Param(defaultValue = "false", description = "Also add every module Iris ships that the pack does not list", descriptionKey = "iris.director.commandstudio.param.force_restore_shipped_modules", aliases = "f")
             boolean force
     ) {
-        IrisData data = dimension.getLoader();
+        IrisDimension pack = namedOrCurrentPack(dimension);
+        if (pack == null) {
+            return;
+        }
+        IrisData data = pack.getLoader();
         List<String> lines = force ? KeptModuleUpdates.restoreForPack(data) : KeptModuleUpdates.takeForPack(data);
         lines.forEach(sender()::sendMessage);
     }
@@ -840,6 +886,45 @@ public class CommandStudio implements DirectorExecutor {
             return true;
         }
         return false;
+    }
+
+    /** The studio the sender stands in, else the open studio; null when no studio is open. */
+    private PlatformChunkGenerator currentStudio() {
+        if (sender().isPlayer() && IrisToolbelt.isStudio(world())) {
+            return IrisToolbelt.access(world());
+        }
+        IrisProject project = Iris.service(StudioSVC.class).getActiveProject();
+        return project == null ? null : project.getActiveProvider();
+    }
+
+    /** The Iris world the sender stands in, else the open studio; null when there is neither. */
+    private Engine currentIrisEngine() {
+        PlatformChunkGenerator generator = sender().isPlayer() && IrisToolbelt.isIrisWorld(world())
+                ? IrisToolbelt.access(world())
+                : currentStudio();
+        return generator == null ? null : generator.getEngine();
+    }
+
+    /** The pack named, else the current Iris world's; null after asking the sender to name one. */
+    private IrisDimension namedOrCurrentPack(IrisDimension named) {
+        if (named != null) {
+            return named;
+        }
+        Engine current = currentIrisEngine();
+        if (current == null) {
+            sender().sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_NAME_PACK_OUTSIDE_STUDIO));
+            return null;
+        }
+        return current.getDimension();
+    }
+
+    /** The world given when it is an Iris world, else the current Iris world; null when there is neither. */
+    private World irisWorldOrCurrent(World given) {
+        if (given != null && IrisToolbelt.isIrisWorld(given)) {
+            return given;
+        }
+        Engine current = currentIrisEngine();
+        return current == null ? null : BukkitWorldBinding.world(current.getWorld());
     }
 
     /**

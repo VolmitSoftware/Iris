@@ -167,7 +167,7 @@ function SceneArea({ title, entry, variant, shown, status, onVariant, onPick }: 
   return (
     <ViewIsland
       className="flex-[11]"
-      title={entry === null ? title : entry.name}
+      title={entry === null ? title : `${title} · ${entry.name}`}
       tools={
         entry !== null &&
         entry.variants > 1 && (

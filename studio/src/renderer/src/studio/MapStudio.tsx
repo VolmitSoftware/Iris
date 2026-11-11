@@ -18,12 +18,12 @@ import { SceneStudio } from './SceneStudio'
 import { WorldStudio3D } from './WorldStudio3D'
 import { isTypingInto, shortcutRows, viewOfShortcutId, windowShortcutFor, type ShortcutAction } from './shortcuts'
 import { ShortcutSettings } from './ShortcutSettings'
-import { Panel, SidebarPanel, SidebarSlot, ViewIsland } from './Sidebar'
+import { Panel, ShownViewIcon, SidebarPanel, SidebarSlot, ViewIsland } from './Sidebar'
 import { StatusBar } from './StatusBar'
 import { MapTools, StudioToolbar } from './StudioToolbar'
 import { useBindings } from './useBindings'
 import { usePickInspection } from './usePickInspection'
-import { ViewList } from './ViewList'
+import { ViewList, viewIcon } from './ViewList'
 
 const KEYBOARD_ZOOM_FACTOR = 2 ** 0.25
 const ENTITY_POLL_MILLIS = 2000
@@ -214,6 +214,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   return (
     <div className="window-frame flex h-full flex-col">
       <StudioToolbar world={world} theme={theme} onHelp={() => setHelpOpen(true)} onSettings={() => setSettingsOpen(true)} onDisconnect={onDisconnect} />
+      <ShownViewIcon.Provider value={viewIcon(viewId)}>
       <SidebarSlot.Provider value={sidebarSlot}>
       <div className="flex min-h-0 flex-1 gap-1.5 px-1.5">
         <ViewList views={views} current={viewId} onSelect={selectView} slotRef={setSidebarSlot} />
@@ -300,6 +301,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         )}
       </div>
       </SidebarSlot.Provider>
+      </ShownViewIcon.Provider>
       <StatusBar viewLabel={statusLabel(view.label, previewName, showsMap ? null : sceneSummary)} status={showsMap ? status : null} notice={notice} usage={usage} progress={showsMap ? null : sceneProgress} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} views={views} />
       <ShortcutSettings open={settingsOpen} onOpenChange={setSettingsOpen} views={views} />

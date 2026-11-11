@@ -45,7 +45,7 @@ export function ConnectScreen({ connecting, error, onConnect, onLink }: ConnectS
   }, [onConnect])
 
   return (
-    <div className="flex h-full items-center justify-center bg-background">
+    <div className="window-frame flex h-full items-center justify-center">
       <div className="w-[440px] rounded-xl border border-overlay-border bg-card p-6 shadow-lg">
         <h1 className="text-[15px] font-semibold">Open a world</h1>
         <p className="mt-1 text-secondary-text">

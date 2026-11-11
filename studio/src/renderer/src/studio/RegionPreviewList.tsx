@@ -21,7 +21,7 @@ export function RegionPreviewList({ regions, current, onSelect }: RegionPreviewL
   const shown = wanted === '' ? regions : regions.filter((region) => `${region.name} ${region.key}`.toLowerCase().includes(wanted))
   return (
     <section>
-      <h2 className="px-2 pt-1 pb-1.5 text-[11px] font-semibold text-muted-foreground">Preview a region</h2>
+      <h2 className="px-2 pt-1 pb-2 text-[13px] font-semibold">Preview a region</h2>
       {regions.length >= SEARCHABLE_FROM_REGIONS && (
         <Input
           className="mb-1 h-7 text-[12px]"

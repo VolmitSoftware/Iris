@@ -212,10 +212,10 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   )
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="window-frame flex h-full flex-col">
       <StudioToolbar world={world} theme={theme} onHelp={() => setHelpOpen(true)} onSettings={() => setSettingsOpen(true)} onDisconnect={onDisconnect} />
       <SidebarSlot.Provider value={sidebarSlot}>
-      <div className="flex min-h-0 flex-1 gap-1.5 p-1.5">
+      <div className="flex min-h-0 flex-1 gap-1.5 px-1.5">
         <ViewList views={views} current={viewId} onSelect={selectView} slotRef={setSidebarSlot} />
         {viewId === 'regions' && regions.length > 1 && (
           <SidebarPanel className="flex-1 overflow-y-auto p-1.5">

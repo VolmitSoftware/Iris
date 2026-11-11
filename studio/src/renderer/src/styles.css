@@ -4,7 +4,7 @@
 
 /* The studio's colours, taken from the Swing studio (StudioTheme) so both look alike. */
 :root {
-  --background: #ffffff;
+  --background: #dfe2e8;
   --foreground: #000000;
   --card: #f7f8fa;
   --card-foreground: #000000;
@@ -28,7 +28,7 @@
   --input: #c9ccd6;
   --ring: #3574f0;
   --overlay-border: #dfe1e5;
-  --map-background: #e4e6eb;
+  --map-background: #eceef2;
   --radius: 10px;
 }
 
@@ -57,7 +57,7 @@
   --input: #4e5157;
   --ring: #3574f0;
   --overlay-border: #43454a;
-  --map-background: #16171a;
+  --map-background: #25272a;
 }
 
 @theme inline {
@@ -108,4 +108,11 @@
   body {
     @apply bg-background text-foreground text-[13px] antialiased select-none;
   }
+}
+
+/* The window around the islands: its colour, tinted with the accent from the top left corner as IntelliJ's islands theme does. */
+.window-frame {
+  background:
+    radial-gradient(ellipse 55% 45% at 0% 0%, color-mix(in srgb, var(--primary) 16%, transparent), transparent),
+    var(--background);
 }

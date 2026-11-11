@@ -1,5 +1,7 @@
+import { Fragment } from 'react'
 import { IdeIcon, type IdeIconName } from '@/components/IdeIcon'
 import { Kbd } from '@/components/ui/kbd'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import type { ViewInfo } from '../bridge/types'
 import { viewShortcutId } from './shortcuts'
@@ -25,43 +27,56 @@ interface ViewListProps {
   views: ViewInfo[]
   current: string
   onSelect(view: string): void
-  /** Receives the element the shown view fills with its own lists, under the views. */
+  /** Receives the element the shown view fills with its own lists, beside the views. */
   slotRef(element: HTMLElement | null): void
 }
 
-/** The left island: the views the server offers in their groups, then the shown view's own lists. */
+/**
+ * The views the server offers, as a stripe of buttons on the window's edge in their groups, and beside it the island
+ * the shown view fills with its own lists, which is not there for a view without any (IntelliJ's tool window stripe).
+ */
 export function ViewList({ views, current, onSelect, slotRef }: ViewListProps): React.JSX.Element {
   const groups = [...new Set(views.map((view) => view.groupLabel))]
   return (
-    <div className="flex w-60 shrink-0 flex-col overflow-hidden rounded-lg bg-card">
-      <nav className="flex shrink-0 flex-col gap-2 overflow-y-auto p-1.5">
-        {groups.map((group) => (
-          <section key={group}>
-            <h2 className="px-2 pt-1 pb-1 text-[11px] font-semibold text-muted-foreground">{group}</h2>
+    <>
+      <nav className="flex w-8 shrink-0 flex-col items-center gap-1.5 overflow-y-auto">
+        {groups.map((group, index) => (
+          <Fragment key={group}>
+            {index > 0 && <span className="my-0.5 h-px w-5 shrink-0 bg-input" />}
             {views
               .filter((view) => view.groupLabel === group)
               .map((view) => (
-                <ViewRow key={view.id} view={view} selected={view.id === current} onSelect={() => onSelect(view.id)} />
+                <ViewButton key={view.id} view={view} selected={view.id === current} onSelect={() => onSelect(view.id)} />
               ))}
-          </section>
+          </Fragment>
         ))}
       </nav>
-      <div ref={slotRef} className="flex min-h-0 flex-1 flex-col border-t empty:hidden" />
-    </div>
+      <div ref={slotRef} className="flex w-60 shrink-0 flex-col overflow-hidden rounded-lg bg-card empty:hidden" />
+    </>
   )
 }
 
-function ViewRow({ view, selected, onSelect }: { view: ViewInfo; selected: boolean; onSelect(): void }): React.JSX.Element {
+function ViewButton({ view, selected, onSelect }: { view: ViewInfo; selected: boolean; onSelect(): void }): React.JSX.Element {
   const keyText = useKeyText()(viewShortcutId(view.id))
   return (
-    <button
-      onClick={onSelect}
-      title={view.description}
-      className={cn('flex h-[26px] w-full items-center gap-2 rounded-md px-2 text-left', selected ? 'bg-selection' : 'hover:bg-accent')}
-    >
-      <IdeIcon name={VIEW_ICONS[view.id] ?? FALLBACK_ICON} className="size-3.5" />
-      <span className="min-w-0 flex-1 truncate">{view.label}</span>
-      {keyText !== '' && <Kbd className="h-4 min-w-4 border border-input/60 bg-transparent text-[10px] uppercase">{keyText}</Kbd>}
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={onSelect}
+          aria-label={view.label}
+          aria-pressed={selected}
+          className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg', selected ? 'bg-primary [&_img]:brightness-0 [&_img]:invert' : 'hover:bg-selection')}
+        >
+          <IdeIcon name={VIEW_ICONS[view.id] ?? FALLBACK_ICON} className="size-[18px]" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="flex max-w-64 flex-col items-start gap-0.5">
+        <span className="flex items-center gap-2 font-medium">
+          {view.label}
+          {keyText !== '' && <Kbd className="uppercase">{keyText}</Kbd>}
+        </span>
+        <span className="text-secondary-text">{view.description}</span>
+      </TooltipContent>
+    </Tooltip>
   )
 }

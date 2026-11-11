@@ -66,20 +66,20 @@ export function MapTools({ toggles, hasPlayers, onToggle, onRefresh, onResetZoom
   return (
     <>
       <ToolToggle action="grid" hint="Show chunk and region borders" pressed={toggles.grid} onPressed={() => onToggle('grid')}>
-        <IdeIcon name="grid" className="size-3.5" /> Grid
+        <IdeIcon name="grid" />
       </ToolToggle>
       <ToolToggle action="borders" hint="Outline the regions on every view" pressed={toggles.regionBorders} onPressed={() => onToggle('regionBorders')}>
-        <IdeIcon name="views/regions" className="size-3.5" /> Borders
+        <IdeIcon name="views/regions" />
       </ToolToggle>
       <ToolToggle action="shading" hint="Shade hills and valleys" pressed={toggles.shading} onPressed={() => onToggle('shading')}>
-        <IdeIcon name="views/height" className="size-3.5" /> Shading
+        <IdeIcon name="views/height" />
       </ToolToggle>
       <Separator orientation="vertical" className="mx-1 h-4!" />
       <ToolToggle action="entities" hint="Show mobs and other entities" pressed={toggles.entities} disabled={!hasPlayers} onPressed={() => onToggle('entities')}>
-        <IdeIcon name="user" className="size-3.5" /> Entities
+        <IdeIcon name="user" />
       </ToolToggle>
       <ToolToggle action="follow" hint="Keep your player in the middle" pressed={toggles.follow} disabled={!hasPlayers} onPressed={() => onToggle('follow')}>
-        <IdeIcon name="locate" className="size-3.5" /> Follow
+        <IdeIcon name="locate" />
       </ToolToggle>
       <Separator orientation="vertical" className="mx-1 h-4!" />
       <ToolButton action="resetZoom" hint="Go back to the default zoom" onClick={onResetZoom}>
@@ -134,7 +134,7 @@ function ToolToggle({ action, hint, pressed, disabled, onPressed, children }: To
           pressed={pressed}
           disabled={disabled}
           onPressedChange={onPressed}
-          className="h-7 gap-1.5 px-2 text-[12.5px] font-normal hover:bg-accent hover:text-foreground data-[state=on]:bg-selection data-[state=on]:text-foreground [&_svg:not([class*='size-'])]:size-3.5"
+          className="size-7 min-w-7 p-0 hover:bg-accent hover:text-foreground data-[state=on]:bg-selection data-[state=on]:text-foreground [&_svg:not([class*='size-'])]:size-3.5"
         >
           {children}
         </Toggle>

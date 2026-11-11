@@ -16,8 +16,9 @@ export function SidebarPanel({ className, children }: { className?: string; chil
   return createPortal(<section className={cn('flex min-h-0 flex-col overflow-hidden', className)}>{children}</section>, slot)
 }
 
-/** One choice of a switch in an island's header: plain until chosen, like the header's other buttons. */
-export const HEADER_CHOICE = 'h-7 flex-none rounded-md! px-2.5 text-[12.5px] font-normal hover:bg-accent hover:text-foreground data-[state=on]:bg-selection data-[state=on]:text-foreground'
+/** One choice of a switch in an island's header: plain until chosen and outlined then, as IntelliJ's tabs are. */
+export const HEADER_CHOICE =
+  'h-7 flex-none rounded-md! border border-transparent px-2.5 text-[12.5px] font-normal hover:bg-accent hover:text-foreground data-[state=on]:border-input data-[state=on]:bg-transparent data-[state=on]:text-foreground'
 
 interface StepperProps {
   /** Where the steps are now: "Variant 2 of 5". */

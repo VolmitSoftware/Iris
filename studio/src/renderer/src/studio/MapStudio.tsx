@@ -18,9 +18,9 @@ import { SceneStudio } from './SceneStudio'
 import { WorldStudio3D } from './WorldStudio3D'
 import { isTypingInto, shortcutRows, viewOfShortcutId, windowShortcutFor, type ShortcutAction } from './shortcuts'
 import { ShortcutSettings } from './ShortcutSettings'
-import { Panel, SidebarPanel, SidebarSlot } from './Sidebar'
+import { Panel, SidebarPanel, SidebarSlot, ViewIsland } from './Sidebar'
 import { StatusBar } from './StatusBar'
-import { StudioToolbar } from './StudioToolbar'
+import { MapTools, StudioToolbar } from './StudioToolbar'
 import { useBindings } from './useBindings'
 import { usePickInspection } from './usePickInspection'
 import { ViewList } from './ViewList'
@@ -213,20 +213,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <StudioToolbar
-        title={view.label}
-        world={world}
-        toggles={toggles}
-        hasPlayers={world.hasPlayers}
-        mapTools={showsMap}
-        theme={theme}
-        onToggle={toggle}
-        onRefresh={() => runShortcut('refresh')}
-        onResetZoom={() => runShortcut('resetZoom')}
-        onHelp={() => setHelpOpen(true)}
-        onSettings={() => setSettingsOpen(true)}
-        onDisconnect={onDisconnect}
-      />
+      <StudioToolbar world={world} theme={theme} onHelp={() => setHelpOpen(true)} onSettings={() => setSettingsOpen(true)} onDisconnect={onDisconnect} />
       <SidebarSlot.Provider value={sidebarSlot}>
       <div className="flex min-h-0 flex-1 gap-1.5 p-1.5">
         <ViewList views={views} current={viewId} onSelect={selectView} slotRef={setSidebarSlot} />
@@ -240,14 +227,25 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         ) : patternView !== null ? (
           <PatternStudio client={client} view={patternView} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : viewId === WORLD_3D.id ? (
-          <WorldStudio3D client={client} world={world} mapArea={area} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
+          <WorldStudio3D title={view.label} client={client} world={world} mapArea={area} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : viewId === SAVED_WORLD.id ? (
-          <SavedWorldStudio client={client} world={world} onSummary={setSceneSummary} onProgress={setSceneProgress} tell={tell} />
+          <SavedWorldStudio title={view.label} client={client} world={world} onSummary={setSceneSummary} onProgress={setSceneProgress} tell={tell} />
         ) : viewId === NOISE.id ? (
-          <NoiseStudio client={client} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
+          <NoiseStudio title={view.label} client={client} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : (
           <>
-        <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg">
+        <ViewIsland
+          title={previewName === null ? view.label : `${view.label} · ${previewName}`}
+          tools={
+            <MapTools
+              toggles={toggles}
+              hasPlayers={world.hasPlayers}
+              onToggle={toggle}
+              onRefresh={() => runShortcut('refresh')}
+              onResetZoom={() => runShortcut('resetZoom')}
+            />
+          }
+        >
           <MapCanvas
             client={client}
             world={world}
@@ -278,7 +276,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
               </div>
             </div>
           )}
-        </div>
+        </ViewIsland>
         <div className="flex w-[250px] shrink-0 flex-col gap-1.5">
           {inspectsPicks && (
             <Panel className="min-h-0 flex-[7]">

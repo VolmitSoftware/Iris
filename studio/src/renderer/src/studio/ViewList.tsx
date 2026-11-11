@@ -37,7 +37,7 @@ export function ViewList({ views, current, onSelect, slotRef }: ViewListProps): 
       <nav className="flex shrink-0 flex-col gap-2 overflow-y-auto p-1.5">
         {groups.map((group) => (
           <section key={group}>
-            <h2 className="px-2 pt-1 pb-1 text-[10.5px] font-semibold tracking-wider text-muted-foreground uppercase">{group}</h2>
+            <h2 className="px-2 pt-1 pb-1 text-[11px] font-semibold text-muted-foreground">{group}</h2>
             {views
               .filter((view) => view.groupLabel === group)
               .map((view) => (

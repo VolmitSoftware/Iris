@@ -1,4 +1,3 @@
-import { IdeIcon } from '@/components/IdeIcon'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -22,7 +21,7 @@ import { EntryBrowser } from './EntryBrowser'
 import { useEntryFiles } from './EntryFileDialogs'
 import { NodeInspector } from './NodeInspector'
 import { NodePane } from './NodePane'
-import { Panel, SidebarPanel } from './Sidebar'
+import { Panel, SidebarPanel, Stepper, ViewIsland } from './Sidebar'
 import { SceneViewport, type PickedSurface } from './SceneViewport'
 
 const NUMBER = new Intl.NumberFormat('en-US')
@@ -119,6 +118,7 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
       </SidebarPanel>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <SceneArea
+          title={view.label}
           entry={entry}
           variant={variant}
           shown={shown}
@@ -151,6 +151,8 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
 }
 
 interface SceneAreaProps {
+  /** What the island is called while no entry is chosen. */
+  title: string
   entry: SceneEntry | null
   variant: number
   shown: ShownScene | null
@@ -161,29 +163,31 @@ interface SceneAreaProps {
   onPick?(picked: PickedSurface): void
 }
 
-function SceneArea({ entry, variant, shown, status, onVariant, onPick }: SceneAreaProps): React.JSX.Element {
+function SceneArea({ title, entry, variant, shown, status, onVariant, onPick }: SceneAreaProps): React.JSX.Element {
   return (
-    <div className="relative min-h-0 flex-[11] overflow-hidden rounded-lg">
+    <ViewIsland
+      className="flex-[11]"
+      title={entry === null ? title : entry.name}
+      tools={
+        entry !== null &&
+        entry.variants > 1 && (
+          <Stepper
+            label={`Variant ${variant + 1} of ${entry.variants}`}
+            backHint="Previous variant"
+            onHint="Next variant"
+            onBack={() => onVariant(variant - 1)}
+            onOn={() => onVariant(variant + 1)}
+          />
+        )
+      }
+    >
       <SceneViewport content={shown?.mesh.content ?? null} framing={shown?.scene} onPick={onPick} />
-        {entry !== null && entry.variants > 1 && (
-          <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card p-1 text-[12px] tabular-nums">
-            <Button variant="ghost" size="icon-sm" title="Previous variant" onClick={() => onVariant(variant - 1)}>
-              <IdeIcon name="chevronLeft" />
-            </Button>
-            <span className="px-1">
-              Variant {variant + 1} of {entry.variants}
-            </span>
-            <Button variant="ghost" size="icon-sm" title="Next variant" onClick={() => onVariant(variant + 1)}>
-              <IdeIcon name="chevronRight" />
-            </Button>
-          </div>
-        )}
         {status !== null && (
           <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card px-3 py-1.5 text-[12px] text-secondary-text">
             {status}
           </div>
         )}
-    </div>
+    </ViewIsland>
   )
 }
 

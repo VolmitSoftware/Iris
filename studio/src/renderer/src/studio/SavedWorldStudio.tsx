@@ -16,16 +16,17 @@ import { savedTileSource, type SavedLayer } from '../scene/savedTileSource'
 import { TerrainAtlas } from '../scene/terrainAtlas'
 import { focusAround, type TerrainStyle } from '../scene/terrainStream'
 import { SceneViewport } from './SceneViewport'
-import { SidebarPanel } from './Sidebar'
+import { Separator } from '@/components/ui/separator'
+import { HEADER_CHOICE, SidebarPanel, ViewIsland } from './Sidebar'
 import { useTerrainStream } from './useTerrainStream'
 
 const NUMBER = new Intl.NumberFormat('en-US')
 // Saved tiles are read at up to 16 blocks a pixel, which is level 4.
 const COARSEST_SAVED_LEVEL = 4
-const COLORING_ITEM = 'h-7 px-3 text-[12px] data-[state=on]:bg-selection data-[state=on]:text-foreground'
 const PILL = 'pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card px-3 py-1.5 text-[12px] text-secondary-text'
 
 interface SavedWorldStudioProps {
+  title: string
   client: BridgeClient
   /** The studio's own world, whose saved copy is chosen first. */
   world: WorldInfo
@@ -36,7 +37,7 @@ interface SavedWorldStudioProps {
 }
 
 /** A world as its region files hold it, in 3D, around the region nearest its origin (v3e's saved world explorer). */
-export function SavedWorldStudio({ client, world, onSummary, onProgress, tell }: SavedWorldStudioProps): React.JSX.Element {
+export function SavedWorldStudio({ title, client, world, onSummary, onProgress, tell }: SavedWorldStudioProps): React.JSX.Element {
   const worlds = useSavedWorlds(client, tell)
   const [chosenId, setChosenId] = useState<string | null>(null)
   const chosen = worlds.find((candidate) => candidate.id === chosenId) ?? ownWorldAmong(worlds, world) ?? worlds[0] ?? null
@@ -86,34 +87,32 @@ export function SavedWorldStudio({ client, world, onSummary, onProgress, tell }:
 
   return (
     <>
-      <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg">
+      <ViewIsland
+        title={chosen === null ? title : `${title} · ${chosen.name}`}
+        tools={
+          <>
+            <ToggleGroup type="single" size="sm" className="gap-0.5" value={coloring} onValueChange={(value) => value !== '' && setColoring(value as SavedTerrainColoring)}>
+              <ToggleGroupItem value="biomes" className={HEADER_CHOICE}>
+                Biomes
+              </ToggleGroupItem>
+              <ToggleGroupItem value="blocks" className={HEADER_CHOICE}>
+                Blocks
+              </ToggleGroupItem>
+              <ToggleGroupItem value="height" className={HEADER_CHOICE}>
+                Height
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <Separator orientation="vertical" className="mx-1 h-4!" />
+            <Button variant="ghost" size="icon-sm" className="size-7" title="Read again" disabled={reading} onClick={() => setReadings((count) => count + 1)}>
+              <IdeIcon name="refresh" />
+            </Button>
+          </>
+        }
+      >
         <SceneViewport content={content} framing={content} />
-        <div className="absolute top-3 left-3 flex items-center gap-2">
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            size="sm"
-            className="bg-card"
-            value={coloring}
-            onValueChange={(value) => value !== '' && setColoring(value as SavedTerrainColoring)}
-          >
-            <ToggleGroupItem value="biomes" className={COLORING_ITEM}>
-              Biomes
-            </ToggleGroupItem>
-            <ToggleGroupItem value="blocks" className={COLORING_ITEM}>
-              Blocks
-            </ToggleGroupItem>
-            <ToggleGroupItem value="height" className={COLORING_ITEM}>
-              Height
-            </ToggleGroupItem>
-          </ToggleGroup>
-          <Button variant="outline" size="icon-sm" className="bg-card" title="Read again" disabled={reading} onClick={() => setReadings((count) => count + 1)}>
-            <IdeIcon name="refresh" />
-          </Button>
-        </div>
         {reading && chosen !== null && <div className={PILL}>Reading {chosen.name}</div>}
         {!reading && chosen !== null && start === null && <div className={PILL}>Nothing finished is saved in {chosen.name}</div>}
-      </div>
+      </ViewIsland>
       <SidebarPanel className="flex-1">
         <header className="px-4 pt-2.5 pb-2.5">
           <h2 className="text-[13px] font-semibold">Saved worlds</h2>

@@ -11,7 +11,7 @@ import { BlockModels } from '../scene/blockModels'
 import { BridgeAssets } from '../scene/BridgeAssets'
 import { BlockIcon } from './BlockIcon'
 import { EntryBrowser } from './EntryBrowser'
-import { Panel, SidebarPanel } from './Sidebar'
+import { Panel, SidebarPanel, Stepper, ViewIsland } from './Sidebar'
 import { TiledCanvas } from './TiledCanvas'
 
 const DEFAULT_NAMESPACE_PREFIX = 'minecraft:'
@@ -62,28 +62,22 @@ export function PatternStudio({ client, view, packRevision, onSummary, tell }: P
 
   return (
     <>
-      <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg">
+      <ViewIsland
+        title={entry === null ? view.label : `${view.label} · ${entry.name}`}
+        tools={
+          <>
+            {entry !== null && entry.depths > 1 && (
+              <Stepper label={`Depth ${depth + 1} of ${entry.depths}`} backHint="Higher" onHint="Deeper" onBack={() => chooseDepth(depth - 1)} onOn={() => chooseDepth(depth + 1)} />
+            )}
+            <Button variant="ghost" size="icon-sm" className="size-7" title="Back to 0, 0" onClick={() => viewRef.current?.resetView()}>
+              <IdeIcon name="reset" />
+            </Button>
+          </>
+        }
+      >
         <TiledCanvas create={createView} viewRef={viewRef} className="absolute inset-0 size-full cursor-grab active:cursor-grabbing" />
-        <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card p-1 text-[12px] tabular-nums">
-          {entry !== null && entry.depths > 1 && (
-            <>
-              <Button variant="ghost" size="icon-sm" title="Higher" onClick={() => chooseDepth(depth - 1)}>
-                <IdeIcon name="chevronLeft" />
-              </Button>
-              <span className="px-1">
-                Depth {depth + 1} of {entry.depths}
-              </span>
-              <Button variant="ghost" size="icon-sm" title="Deeper" onClick={() => chooseDepth(depth + 1)}>
-                <IdeIcon name="chevronRight" />
-              </Button>
-            </>
-          )}
-          <Button variant="ghost" size="icon-sm" title="Back to 0, 0" onClick={() => viewRef.current?.resetView()}>
-            <IdeIcon name="reset" />
-          </Button>
-        </div>
         {status !== null && entry !== null && <div className={cn(PILL, 'right-3 bottom-3 tabular-nums')}>{readout(status)}</div>}
-      </div>
+      </ViewIsland>
       <SidebarPanel className="flex-1">
         <EntryBrowser className="flex-1" title={view.label} entries={entries} current={entry?.key ?? null} onSelect={(key) => setChosen({ key, depth: 0 })} />
       </SidebarPanel>

@@ -12,7 +12,7 @@ import { Legend } from './Legend'
 import { PickInspector } from './PickInspector'
 import { SceneViewport } from './SceneViewport'
 import { usePickInspection } from './usePickInspection'
-import { Panel } from './Sidebar'
+import { HEADER_CHOICE, Panel, ViewIsland } from './Sidebar'
 import { useGroundInView, useLongPending, useTerrainStream } from './useTerrainStream'
 
 const NUMBER = new Intl.NumberFormat('en-US')
@@ -20,9 +20,9 @@ const NUMBER = new Intl.NumberFormat('en-US')
 const COARSEST_LEVEL = 12
 const BLOCKS_ABOVE_FLUID_IN_FOCUS = 96
 const BLOCKS_BELOW_FLUID_IN_FOCUS = 32
-const COLORING_ITEM = 'h-7 px-3 text-[12px] data-[state=on]:bg-selection data-[state=on]:text-foreground'
 
 interface WorldStudio3DProps {
+  title: string
   client: BridgeClient
   world: WorldInfo
   /** Where the map last looked; the terrain opens around its middle, or around the world's centre. */
@@ -36,7 +36,7 @@ interface WorldStudio3DProps {
  * The terrain around where the map looked, in 3D and without an edge, coloured by biome, region or height, beside how
  * the noise picks the biomes or regions the camera sees, or how much of that ground lies at each height (v3e's 3D world view).
  */
-export function WorldStudio3D({ client, world, mapArea, packRevision, onSummary, tell }: WorldStudio3DProps): React.JSX.Element {
+export function WorldStudio3D({ title, client, world, mapArea, packRevision, onSummary, tell }: WorldStudio3DProps): React.JSX.Element {
   const [coloring, setColoring] = useState<MapTerrainColoring>('biomes')
   const centre = useMemo(() => centreOf(mapArea), [mapArea])
   const source = useMemo(() => mapTileSource(client, TILE_COLUMNS), [client])
@@ -69,32 +69,29 @@ export function WorldStudio3D({ client, world, mapArea, packRevision, onSummary,
 
   return (
     <>
-      <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg">
+      <ViewIsland
+        title={title}
+        tools={
+          <ToggleGroup type="single" size="sm" className="gap-0.5" value={coloring} onValueChange={(value) => value !== '' && setColoring(value as MapTerrainColoring)}>
+            <ToggleGroupItem value="biomes" className={HEADER_CHOICE}>
+              Biomes
+            </ToggleGroupItem>
+            <ToggleGroupItem value="regions" className={HEADER_CHOICE}>
+              Regions
+            </ToggleGroupItem>
+            <ToggleGroupItem value="height" className={HEADER_CHOICE}>
+              Height
+            </ToggleGroupItem>
+          </ToggleGroup>
+        }
+      >
         <SceneViewport content={content} framing={content} />
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          size="sm"
-          className="absolute top-3 left-3 bg-card"
-          value={coloring}
-          onValueChange={(value) => value !== '' && setColoring(value as MapTerrainColoring)}
-        >
-          <ToggleGroupItem value="biomes" className={COLORING_ITEM}>
-            Biomes
-          </ToggleGroupItem>
-          <ToggleGroupItem value="regions" className={COLORING_ITEM}>
-            Regions
-          </ToggleGroupItem>
-          <ToggleGroupItem value="height" className={COLORING_ITEM}>
-            Height
-          </ToggleGroupItem>
-        </ToggleGroup>
         {sampling && (
           <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card px-3 py-1.5 text-[12px] text-secondary-text">
             Sampling the terrain
           </div>
         )}
-      </div>
+      </ViewIsland>
       <Panel className="w-[250px]">
         {inspectsPicks ? (
           <PickInspector title={coloring === 'regions' ? 'Regions' : 'Biomes'} inspection={inspection} />

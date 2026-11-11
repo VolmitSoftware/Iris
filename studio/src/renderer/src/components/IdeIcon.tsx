@@ -26,6 +26,7 @@ export type IdeIconName =
   | 'settings'
   | 'stopWatch'
   | 'symlink'
+  | 'theme'
   | 'undo'
   | 'user'
   | 'web'

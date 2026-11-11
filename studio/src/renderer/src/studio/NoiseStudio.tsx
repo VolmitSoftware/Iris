@@ -15,7 +15,8 @@ import { focusAround, type TerrainStyle } from '../scene/terrainStream'
 import { hexColor } from './colors'
 import { SceneViewport } from './SceneViewport'
 import { TiledCanvas } from './TiledCanvas'
-import { Panel, SidebarPanel } from './Sidebar'
+import { Separator } from '@/components/ui/separator'
+import { HEADER_CHOICE, Panel, SidebarPanel, ViewIsland } from './Sidebar'
 import { useLongPending, useTerrainStream } from './useTerrainStream'
 
 type NoiseDisplay = 'flat' | 'terrain'
@@ -30,10 +31,10 @@ const TALLEST_RELIEF_BLOCKS = 4064
 const DEFAULT_RELIEF_BLOCKS = 64
 const RELIEF_STEPS = 1000
 const SWATCH_STEPS = 24
-const TOGGLE_ITEM = 'h-7 px-3 text-[12px] data-[state=on]:bg-selection data-[state=on]:text-foreground'
 const PILL = 'pointer-events-none absolute rounded-md border border-overlay-border bg-card px-3 py-1.5 text-[12px] text-secondary-text'
 
 interface NoiseStudioProps {
+  title: string
   client: BridgeClient
   packRevision: number
   onSummary(summary: string | null): void
@@ -41,7 +42,7 @@ interface NoiseStudioProps {
 }
 
 /** The pack's noise and the built-in styles, from above or as terrain (v3e's noise explorer). */
-export function NoiseStudio({ client, packRevision, onSummary, tell }: NoiseStudioProps): React.JSX.Element {
+export function NoiseStudio({ title, client, packRevision, onSummary, tell }: NoiseStudioProps): React.JSX.Element {
   const sources = useNoiseSources(client, packRevision, tell)
   const [chosenId, setChosenId] = useState<string | null>(null)
   const source = sources.find((candidate) => candidate.id === chosenId) ?? sources[0] ?? null
@@ -84,7 +85,28 @@ export function NoiseStudio({ client, packRevision, onSummary, tell }: NoiseStud
 
   return (
     <>
-      <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg">
+      <ViewIsland
+        title={source === null ? title : `${title} · ${source.name}`}
+        tools={
+          <>
+            {display === 'terrain' && source?.blockRange === null && <ReliefControl blocks={reliefBlocks} onChange={setReliefBlocks} />}
+            {display === 'flat' && (
+              <Button variant="ghost" size="icon-sm" className="size-7" title="Back to 0, 0" onClick={() => controllerRef.current?.resetView()}>
+                <IdeIcon name="reset" />
+              </Button>
+            )}
+            <Separator orientation="vertical" className="mx-1 h-4!" />
+            <ToggleGroup type="single" size="sm" className="gap-0.5" value={display} onValueChange={(value) => value !== '' && showAs(value as NoiseDisplay)}>
+              <ToggleGroupItem value="flat" className={HEADER_CHOICE} title="The noise from above, coloured by value">
+                2D
+              </ToggleGroupItem>
+              <ToggleGroupItem value="terrain" className={HEADER_CHOICE} title="The noise as terrain">
+                3D
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </>
+        }
+      >
         <TiledCanvas
           create={createView}
           viewRef={controllerRef}
@@ -93,24 +115,8 @@ export function NoiseStudio({ client, packRevision, onSummary, tell }: NoiseStud
         {display === 'terrain' && source !== null && terrainFraming !== null && (
           <NoiseTerrainView client={client} source={source} seed={seed} revision={packRevision} framing={terrainFraming} scale={scale} reliefBlocks={reliefBlocks} tell={tell} />
         )}
-        <div className="absolute top-3 left-3 flex items-center gap-2">
-          <ToggleGroup type="single" variant="outline" size="sm" className="bg-card" value={display} onValueChange={(value) => value !== '' && showAs(value as NoiseDisplay)}>
-            <ToggleGroupItem value="flat" className={TOGGLE_ITEM} title="The noise from above, coloured by value">
-              2D
-            </ToggleGroupItem>
-            <ToggleGroupItem value="terrain" className={TOGGLE_ITEM} title="The noise as terrain">
-              3D
-            </ToggleGroupItem>
-          </ToggleGroup>
-          {display === 'flat' && (
-            <Button variant="outline" size="icon-sm" className="bg-card" title="Back to 0, 0" onClick={() => controllerRef.current?.resetView()}>
-              <IdeIcon name="reset" />
-            </Button>
-          )}
-          {display === 'terrain' && source?.blockRange === null && <ReliefControl blocks={reliefBlocks} onChange={setReliefBlocks} />}
-        </div>
         {display === 'flat' && status !== null && source !== null && <div className={cn(PILL, 'right-3 bottom-3 tabular-nums')}>{readout(status, source)}</div>}
-      </div>
+      </ViewIsland>
       <SidebarPanel className="flex-1">
         <header className="px-4 pt-2.5 pb-2.5">
           <h2 className="text-[13px] font-semibold">Noise</h2>
@@ -261,7 +267,7 @@ function ReliefControl({ blocks, onChange }: { blocks: number; onChange(blocks: 
   const span = Math.log(TALLEST_RELIEF_BLOCKS) - Math.log(LOWEST_RELIEF_BLOCKS)
   const step = Math.round(((Math.log(blocks) - Math.log(LOWEST_RELIEF_BLOCKS)) / span) * RELIEF_STEPS)
   return (
-    <label className="flex h-8 items-center gap-2 rounded-md border bg-card px-3 text-[12px] text-secondary-text" title="How many blocks the highest noise rises above the lowest">
+    <label className="flex h-7 items-center gap-2 px-2 text-[12px] text-secondary-text" title="How many blocks the highest noise rises above the lowest">
       Relief
       <input
         type="range"

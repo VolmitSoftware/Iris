@@ -12,82 +12,82 @@ import type { ShortcutAction } from './shortcuts'
 import { useKeyText } from './useBindings'
 
 interface StudioToolbarProps {
-  title: string
   world: WorldInfo
-  toggles: StudioToggles
-  hasPlayers: boolean
-  /** Whether the map's buttons apply: a scene view has no map to redraw, zoom or overlay. */
-  mapTools: boolean
   theme: { choice: ThemeChoice; next: () => void }
-  onToggle(name: keyof StudioToggles): void
-  onRefresh(): void
-  onResetZoom(): void
   onHelp(): void
   onSettings(): void
   onDisconnect(): void
 }
 
 const THEME_NAMES: Record<ThemeChoice, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
-const TEXT_BUTTON = "h-7 gap-1.5 px-2 text-[12.5px] font-normal [&_svg:not([class*='size-'])]:size-3.5"
 
-export function StudioToolbar(props: StudioToolbarProps): React.JSX.Element {
+/** The window's bar: the world the studio is connected to, which leads back to the world list, and the studio's own buttons. */
+export function StudioToolbar({ world, theme, onHelp, onSettings, onDisconnect }: StudioToolbarProps): React.JSX.Element {
   return (
     <header className="flex h-10 shrink-0 items-center gap-1 px-2">
-      <span className="px-1.5 pr-3 text-[14px] font-semibold">{props.title}</span>
-      {props.mapTools && <MapTools {...props} />}
-
-      <div className="flex-1" />
-      <span className="truncate px-2 text-[12px] text-secondary-text" title={`${props.world.dimensionName} · seed ${props.world.seed}`}>
-        {props.world.world}
-      </span>
-      <IconHint hint={THEME_NAMES[props.theme.choice]}>
-        <Button variant="ghost" size="sm" className={TEXT_BUTTON} onClick={props.theme.next}>
-          Theme
+      <IconHint hint="Back to the world list">
+        <Button variant="ghost" size="sm" className="h-7 max-w-[50%] gap-2 px-1.5 text-[13px] font-medium" onClick={onDisconnect}>
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-[5px] bg-primary text-[11px] font-semibold text-primary-foreground uppercase">
+            {world.world.charAt(0)}
+          </span>
+          <span className="truncate">{world.world}</span>
+          <span className="truncate font-normal text-secondary-text">{world.dimensionName}</span>
+          <IdeIcon name="chevronRight" className="size-3.5 rotate-90" />
         </Button>
       </IconHint>
-      <ToolButton action="help" hint="Show every mouse and key shortcut" onClick={props.onHelp}>
+      <div className="flex-1" />
+      <IconHint hint={THEME_NAMES[theme.choice]}>
+        <Button variant="ghost" size="icon-sm" onClick={theme.next}>
+          <IdeIcon name="theme" />
+        </Button>
+      </IconHint>
+      <ToolButton action="help" hint="Show every mouse and key shortcut" onClick={onHelp}>
         <IdeIcon name="help" />
       </ToolButton>
       <IconHint hint="Change the studio's keys">
-        <Button variant="ghost" size="icon-sm" onClick={props.onSettings}>
+        <Button variant="ghost" size="icon-sm" onClick={onSettings}>
           <IdeIcon name="settings" />
-        </Button>
-      </IconHint>
-      <IconHint hint="Back to the world list">
-        <Button variant="ghost" size="icon-sm" onClick={props.onDisconnect}>
-          <IdeIcon name="exit" />
         </Button>
       </IconHint>
     </header>
   )
 }
 
-function MapTools(props: StudioToolbarProps): React.JSX.Element {
-  const { toggles, onToggle } = props
+interface MapToolsProps {
+  toggles: StudioToggles
+  hasPlayers: boolean
+  onToggle(name: keyof StudioToggles): void
+  onRefresh(): void
+  onResetZoom(): void
+}
+
+/** The map's own buttons, for the header of its island. */
+export function MapTools({ toggles, hasPlayers, onToggle, onRefresh, onResetZoom }: MapToolsProps): React.JSX.Element {
   return (
     <>
-      <ToolButton action="refresh" hint="Redraw the map with the latest pack files" onClick={props.onRefresh}>
-        <IdeIcon name="refresh" />
-      </ToolButton>
-      <ToolButton action="resetZoom" hint="Go back to the default zoom" onClick={props.onResetZoom}>
-        <IdeIcon name="zoomIn" />
-      </ToolButton>
       <ToolToggle action="grid" hint="Show chunk and region borders" pressed={toggles.grid} onPressed={() => onToggle('grid')}>
         <IdeIcon name="grid" className="size-3.5" /> Grid
-      </ToolToggle>
-      <ToolToggle action="entities" hint="Show mobs and other entities" pressed={toggles.entities} disabled={!props.hasPlayers} onPressed={() => onToggle('entities')}>
-        <IdeIcon name="user" className="size-3.5" /> Entities
-      </ToolToggle>
-      <ToolToggle action="follow" hint="Keep your player in the middle" pressed={toggles.follow} disabled={!props.hasPlayers} onPressed={() => onToggle('follow')}>
-        <IdeIcon name="locate" className="size-3.5" /> Follow
-      </ToolToggle>
-      <Separator orientation="vertical" className="mx-1 h-5! bg-input" />
-      <ToolToggle action="shading" hint="Shade hills and valleys" pressed={toggles.shading} onPressed={() => onToggle('shading')}>
-        <IdeIcon name="views/height" className="size-3.5" /> Shading
       </ToolToggle>
       <ToolToggle action="borders" hint="Outline the regions on every view" pressed={toggles.regionBorders} onPressed={() => onToggle('regionBorders')}>
         <IdeIcon name="views/regions" className="size-3.5" /> Borders
       </ToolToggle>
+      <ToolToggle action="shading" hint="Shade hills and valleys" pressed={toggles.shading} onPressed={() => onToggle('shading')}>
+        <IdeIcon name="views/height" className="size-3.5" /> Shading
+      </ToolToggle>
+      <Separator orientation="vertical" className="mx-1 h-4!" />
+      <ToolToggle action="entities" hint="Show mobs and other entities" pressed={toggles.entities} disabled={!hasPlayers} onPressed={() => onToggle('entities')}>
+        <IdeIcon name="user" className="size-3.5" /> Entities
+      </ToolToggle>
+      <ToolToggle action="follow" hint="Keep your player in the middle" pressed={toggles.follow} disabled={!hasPlayers} onPressed={() => onToggle('follow')}>
+        <IdeIcon name="locate" className="size-3.5" /> Follow
+      </ToolToggle>
+      <Separator orientation="vertical" className="mx-1 h-4!" />
+      <ToolButton action="resetZoom" hint="Go back to the default zoom" onClick={onResetZoom}>
+        <IdeIcon name="zoomIn" />
+      </ToolButton>
+      <ToolButton action="refresh" hint="Redraw the map with the latest pack files" onClick={onRefresh}>
+        <IdeIcon name="refresh" />
+      </ToolButton>
     </>
   )
 }
@@ -108,7 +108,7 @@ function ToolButton({ action, hint, onClick, children }: { action: ShortcutActio
   const keyText = useKeyText()
   return (
     <IconHint hint={hint} keyText={keyText(action)}>
-      <Button variant="ghost" size="icon-sm" onClick={onClick}>
+      <Button variant="ghost" size="icon-sm" className="size-7" onClick={onClick}>
         {children}
       </Button>
     </IconHint>
@@ -134,7 +134,7 @@ function ToolToggle({ action, hint, pressed, disabled, onPressed, children }: To
           pressed={pressed}
           disabled={disabled}
           onPressedChange={onPressed}
-          className="h-7 gap-1.5 px-2 text-[12.5px] font-normal data-[state=on]:bg-selection data-[state=on]:text-foreground [&_svg:not([class*='size-'])]:size-3.5"
+          className="h-7 gap-1.5 px-2 text-[12.5px] font-normal hover:bg-accent hover:text-foreground data-[state=on]:bg-selection data-[state=on]:text-foreground [&_svg:not([class*='size-'])]:size-3.5"
         >
           {children}
         </Toggle>

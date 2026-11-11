@@ -23,6 +23,8 @@ import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.gui.ImageMapStudioGUI;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.localization.IrisMessages;
+import art.arcane.iris.core.modules.PackModulesListing;
+import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.studio.bridge.StudioBridge;
 import art.arcane.iris.core.studio.bridge.StudioBridges;
 import art.arcane.iris.core.studio.bridge.StudioWindow;
@@ -66,6 +68,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.localization.ModdedCommandMessages;
@@ -97,6 +100,11 @@ public final class ModdedStudioCommands {
                 .executes((CommandContext<CommandSourceStack> context) -> version(context.getSource(), null))
                 .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
                         .executes((CommandContext<CommandSourceStack> context) -> version(context.getSource(), StringArgumentType.getString(context, "pack")))));
+
+        root.then(Commands.literal("modules")
+                .executes((CommandContext<CommandSourceStack> context) -> modules(context.getSource(), null))
+                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes((CommandContext<CommandSourceStack> context) -> modules(context.getSource(), StringArgumentType.getString(context, "pack")))));
 
         root.then(Commands.literal("regions")
                 .executes((CommandContext<CommandSourceStack> context) -> regions(context.getSource(), 500))
@@ -738,6 +746,21 @@ public final class ModdedStudioCommands {
             return 0;
         }
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_PACK_HAS_VERSION, MessageArgument.untrusted("value", dimension.getName()), MessageArgument.untrusted("value2", dimension.getVersion())));
+        return 1;
+    }
+
+    private static int modules(CommandSourceStack source, String pack) {
+        File folder = resolvePack(source, pack);
+        if (folder == null) {
+            return 0;
+        }
+        PackModulesListing.Listing listing = PackModulesListing.describe(IrisData.get(folder));
+        String text = listing.lines().stream().map(IrisLogging::clean).collect(Collectors.joining("\n"));
+        if (!listing.loaded()) {
+            IrisModdedCommands.fail(source, text);
+            return 0;
+        }
+        IrisModdedCommands.ok(source, text);
         return 1;
     }
 

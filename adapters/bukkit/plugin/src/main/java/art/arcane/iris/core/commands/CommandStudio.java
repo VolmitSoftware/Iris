@@ -23,6 +23,7 @@ import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.gui.ImageMapStudioGUI;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.PackModulesListing;
 import art.arcane.iris.core.localization.IrisMessages;
 import art.arcane.iris.core.studio.bridge.StudioBridge;
 import art.arcane.iris.core.studio.bridge.StudioBridges;
@@ -255,6 +256,14 @@ public class CommandStudio implements DirectorExecutor {
             IrisDimension dimension
     ) {
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_PACK_HAS_VERSION, MessageArgument.untrusted("value", dimension.getName()), MessageArgument.untrusted("value2", dimension.getVersion())));
+    }
+
+    @Director(description = "List the modules a pack loads", descriptionKey = "iris.director.commandstudio.director.list_pack_modules")
+    public void modules(
+            @Param(defaultValue = "default", description = "The pack to list the modules of", descriptionKey = "iris.director.commandstudio.param.dimension_list_modules", aliases = "dim", contextual = true, contextualOverride = true, customHandler = DimensionHandler.class)
+            IrisDimension dimension
+    ) {
+        PackModulesListing.describe(dimension.getLoader()).lines().forEach(sender()::sendMessage);
     }
 
     @Director(description = "Open the image-map studio (External GUI)", descriptionKey = "iris.director.commandstudio.director.open_image_map_studio_external_gui", aliases = {"imap"})

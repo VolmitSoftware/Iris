@@ -23,7 +23,7 @@ final class PackModulesSummary {
         List<String> hostModules = new ArrayList<>();
         List<String> ownModules = new ArrayList<>();
         for (var module : modules) {
-            if (isFromHost(module)) {
+            if (module.isBuiltIn()) {
                 hostModules.add(module.info().name());
             } else {
                 ownModules.add(describeOwn(module));
@@ -34,11 +34,6 @@ final class PackModulesSummary {
         appendGroup(text, HOST_LABEL, hostModules);
         appendGroup(text, PACK_LABEL, ownModules);
         return text.toString();
-    }
-
-    private static boolean isFromHost(DiscoveredModule module) {
-        return module.origin().equals(DiscoveredModule.HOST_CLASSPATH)
-                || module.origin().endsWith(PackModules.BUNDLED_ORIGIN_SUFFIX);
     }
 
     private static String describeOwn(DiscoveredModule discovered) {

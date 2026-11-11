@@ -142,6 +142,7 @@ final class ModdedCommandHelp {
         SECTIONS.put("studio", List.of(
                 Entry.command("create", "[name] [template]", ModdedHelpMessages.COMMAND_CREATE_CREATE_A_NEW_PACK_PROJECT, "+"),
                 Entry.command("version", "[pack]", ModdedHelpMessages.COMMAND_VERSION_PRINT_A_PACK_VERSION),
+                Entry.command("modules", "[pack]", ModdedHelpMessages.COMMAND_MODULES_LIST_THE_MODULES_A_PACK_LOADS),
                 Entry.command("regions", "[radius]", ModdedHelpMessages.COMMAND_REGIONS_CALCULATE_NEARBY_REGION_DISTRIBUTION),
                 Entry.command("open", "<pack> [seed]", ModdedHelpMessages.COMMAND_OPEN_OPEN_A_TEMPORARY_STUDIO_DIMENSION_FOR_A_PACK, "o"),
                 Entry.command("close", "", ModdedHelpMessages.COMMAND_CLOSE_CLOSE_THE_OPEN_STUDIO_DIMENSION_AND_DISCARD_ITS_WORLD, "x"),

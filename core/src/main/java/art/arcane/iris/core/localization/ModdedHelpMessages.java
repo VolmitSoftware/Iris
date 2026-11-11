@@ -58,6 +58,7 @@ public final class ModdedHelpMessages {
     public static final TextKey COMMAND_UNDO_UNDO_PASTED_OBJECTS = text("iris.modded.help.entry.command.undo");
     public static final TextKey COMMAND_CREATE_CREATE_A_NEW_PACK_PROJECT = text("iris.modded.help.entry.command.create_2");
     public static final TextKey COMMAND_VERSION_PRINT_A_PACK_VERSION = text("iris.modded.help.entry.command.version_2");
+    public static final TextKey COMMAND_MODULES_LIST_THE_MODULES_A_PACK_LOADS = text("iris.modded.help.entry.command.modules");
     public static final TextKey COMMAND_REGIONS_CALCULATE_NEARBY_REGION_DISTRIBUTION = text("iris.modded.help.entry.command.regions");
     public static final TextKey COMMAND_OPEN_OPEN_A_TEMPORARY_STUDIO_DIMENSION_FOR_A_PACK = text("iris.modded.help.entry.command.open");
     public static final TextKey COMMAND_CLOSE_CLOSE_THE_OPEN_STUDIO_DIMENSION_AND_DISCARD_ITS_WORLD = text("iris.modded.help.entry.command.close");

@@ -44,6 +44,12 @@ public final class IrisMessages {
     public static final TextKey STUDIO_MODULES_ENTRY = text("iris.studio.modules.entry");
     public static final TextKey STUDIO_MODULES_NONE = text("iris.studio.modules.none");
     public static final TextKey STUDIO_MODULES_FAILED = text("iris.studio.modules.failed");
+    public static final TextKey STUDIO_MODULES_KEPT = text("iris.studio.modules.kept");
+    public static final TextKey PACK_UPDATE_UNMANAGED = text("iris.pack.update.unmanaged");
+    public static final TextKey PACK_UPDATE_CURRENT = text("iris.pack.update.current");
+    public static final TextKey PACK_UPDATE_HEADER = text("iris.pack.update.header");
+    public static final TextKey PACK_UPDATE_WRITTEN = text("iris.pack.update.written");
+    public static final TextKey PACK_UPDATE_RESTART = text("iris.pack.update.restart");
     public static final TextKey MODDED_HELP_UNKNOWN_SECTION = text("iris.modded.help.unknown_section");
     public static final TextKey MODDED_HELP_BACK_HOVER = text("iris.modded.help.back_hover");
     public static final TextKey MODDED_HELP_COMMAND_PARAMETER = text("iris.modded.help.command_parameter");

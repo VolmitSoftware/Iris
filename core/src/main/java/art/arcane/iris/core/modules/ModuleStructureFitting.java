@@ -96,7 +96,7 @@ public final class ModuleStructureFitting implements NativeStructureFitting {
 
     /**
      * Iris's own modules' and {@code modules}' registrations only, whose classes the caller names because they ship in the
-     * built-ins jar: their stage graph needs the rest of the jar too.
+     * built-in module jars: their stage graph needs the other built-ins too.
      */
     public static NativeStructureFitting ofModules(IrisModule... modules) {
         ModuleRegistry registry = new ModuleRegistry();

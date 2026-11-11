@@ -29,7 +29,8 @@ import art.arcane.iris.core.DatapackInstallResult;
 import art.arcane.iris.core.lifecycle.LifecycleOperationCoordinator;
 import art.arcane.iris.core.lifecycle.WorldLifecycleService;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.PackBuiltIns;
+import art.arcane.iris.core.modules.manifest.PackModuleUpdates;
+import art.arcane.iris.core.modules.manifest.ShippedModules;
 import art.arcane.iris.core.pack.AtomicDirectoryPublisher;
 import art.arcane.iris.core.pack.BrokenPackException;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
@@ -1241,7 +1242,7 @@ public class StudioSVC implements IrisService {
                       "composite": [{"seed": 310, "style": {"style": "FLAT"}}]
                     }
                     """, StandardCharsets.UTF_8);
-            PackBuiltIns.copyInto(stage);
+            PackModuleUpdates.installAllInto(stage, ShippedModules.bundled());
             publishNewDirectory(stage, target);
             published = true;
             IrisProject project = new IrisProject(target.toFile());

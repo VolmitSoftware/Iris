@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.loot;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.BuiltInModulesJar;
+import art.arcane.iris.core.modules.BuiltInModuleJars;
 import art.arcane.iris.core.project.ModuleResourceSchemas;
 import art.arcane.iris.core.project.SchemaTestPlatform;
 import art.arcane.iris.builtin.loot.LootTable;
@@ -102,7 +102,7 @@ public class LootResourcesTest {
         write(pack.toPath(), "regions/region.json", "{\"landBiomes\":[{\"biome\":\"biome\"}]}");
         write(pack.toPath(), "biomes/biome.json", "{\"name\":\"Biome\"}");
         write(pack.toPath(), "loot/dungeon/chest.json", "{\"name\":\"Chest\",\"loot\":[{\"type\":\"stick\"}]}");
-        BuiltInModulesJar.writeInto(pack.toPath());
+        BuiltInModuleJars.writeInto(pack.toPath());
         return pack.toPath();
     }
 

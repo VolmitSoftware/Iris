@@ -375,7 +375,7 @@ public final class ApiChunk implements GenerationContext {
     }
 
     /**
-     * {@code value} as the {@code type} a module asks for. The built-ins jar loads the settings types only its modules use itself, so
+     * {@code value} as the {@code type} a module asks for. The built-in module jars load the settings types only its modules use itself, so
      * for one of its modules the copy a test declared, Iris's own, becomes the module's, as the pack's decoder would have built it.
      */
     private static <F extends IrisFeature> Optional<F> asDeclared(Class<F> type, IrisFeature value) {

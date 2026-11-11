@@ -54,7 +54,7 @@ public final class CustomModule implements IrisModule {
 
     @Override
     public void setup(ModuleSetup setup) {
-        // Ordering only: iris:perfection ships in the built-ins jar, which a pack may not have.
+        // Ordering only: iris:perfection ships as a module jar, which a pack may not have.
         setup.stages().define(BLOCKS).softAfter(IrisStages.Perfection.SURFACE).run(CustomModule::record);
     }
 

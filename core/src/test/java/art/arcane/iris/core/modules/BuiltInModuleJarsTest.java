@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.manifest.ModuleVersion;
 import art.arcane.iris.engine.modifier.ApiChunk;
 import art.arcane.iris.engine.modifier.MatterModule;
 import com.volmit.IrisModule;
@@ -34,18 +35,21 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 
 import static art.arcane.iris.engine.modifier.ApiChunk.block;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
- * The ported built-ins load from a pack's {@code modules/iris-builtins.jar} through the pack loader, seeing only what a pack
- * module sees, and generate the same chunk as their compiled-in copies.
+ * The ported built-ins load from the jars in a pack's {@code modules} folder through the pack loader, seeing only what a
+ * pack module sees, and generate the same chunk as their compiled-in copies.
  */
-public class BuiltInModulesJarTest {
+public class BuiltInModuleJarsTest {
     private static final int HEIGHT = 64;
     private static final int GROUND = 20;
     private static final int UPPER_DIMENSION = 50;
@@ -55,9 +59,9 @@ public class BuiltInModulesJarTest {
     public TemporaryFolder folder = new TemporaryFolder();
 
     @Test
-    public void theJarsModulesComeFromThePackLoaderInTheListedOrder() throws IOException {
+    public void theJarsModulesComeFromThePackLoaderInJarNameOrder() throws IOException {
         Path pack = BuiltInPack.newPackFolder(folder);
-        List<String> listed = BuiltInModulesJar.writeInto(pack);
+        List<String> listed = BuiltInModuleJars.writeInto(pack);
 
         try (LoadedPack loaded = loadJar(pack)) {
             List<DiscoveredModule> fromJar = loaded.packModules();
@@ -67,20 +71,30 @@ public class BuiltInModulesJarTest {
     }
 
     @Test
-    public void theIdsIrisLooksForAreTheOnesTheJarProvides() throws IOException {
+    public void theIndexNamesTheIdAndVersionEveryModuleReports() throws IOException {
         Path pack = BuiltInPack.newPackFolder(folder);
-        BuiltInModulesJar.writeInto(pack);
+        BuiltInModuleJars.writeInto(pack);
+        Map<String, String> indexed = new TreeMap<>();
+        BuiltInModuleJars.shipped().jars().forEach(jar -> jar.modules().forEach(module -> indexed.put(module.id(), module.version())));
 
         try (LoadedPack loaded = loadJar(pack)) {
-            List<String> provided = loaded.packModules().stream().map(module -> module.info().id().toString()).toList();
-            assertEquals(provided, IrisModuleHost.JAR_MODULE_IDS);
+            Map<String, String> reported = new TreeMap<>();
+            loaded.packModules().forEach(module -> reported.put(module.info().id().toString(), module.info().version()));
+            assertEquals(reported, indexed);
+            assertEquals(BuiltInPack.jarModules().size(), reported.size());
         }
+    }
+
+    @Test
+    public void everyShippedVersionIsOneIrisCanCompare() {
+        BuiltInModuleJars.shipped().jars().forEach(jar -> jar.modules().forEach(module ->
+                assertTrue(module.id() + " " + module.version(), ModuleVersion.parse(module.version()).isPresent())));
     }
 
     @Test
     public void theJarsModulesGenerateWhatTheirCompiledInCopiesGenerate() throws IOException {
         Path pack = BuiltInPack.newPackFolder(folder);
-        BuiltInModulesJar.writeInto(pack);
+        BuiltInModuleJars.writeInto(pack);
         ApiChunk compiledIn = scene();
         ApiChunk fromJar = scene();
 

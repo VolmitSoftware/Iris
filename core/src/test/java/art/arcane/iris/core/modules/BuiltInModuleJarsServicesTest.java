@@ -64,8 +64,8 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** The services of the loot and spawn modules, loaded from the built-ins jar, answer about worlds Iris runs through the live view of the world. */
-public class BuiltInModulesJarServicesTest {
+/** The services of the loot and spawn modules, loaded from their jars in the pack, answer about worlds Iris runs through the live view of the world. */
+public class BuiltInModuleJarsServicesTest {
     private static final int X = 10;
     private static final int Y = 70;
     private static final int Z = -20;
@@ -157,7 +157,7 @@ public class BuiltInModulesJarServicesTest {
 
     private LoadedPack load() throws IOException {
         Path pack = BuiltInPack.newPackFolder(folder);
-        BuiltInModulesJar.writeInto(pack);
+        BuiltInModuleJars.writeInto(pack);
         return LoadedPack.load(pack, ModuleHost.of(List.of())
                 .exposing(IrisModuleHost.EXPOSED_PACKAGES.toArray(String[]::new))
                 .copyingJarsTo(folder.newFolder().toPath()));

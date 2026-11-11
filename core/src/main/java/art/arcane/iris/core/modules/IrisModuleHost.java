@@ -35,8 +35,8 @@ import java.util.stream.Stream;
  * model as host types, the pack folders Iris reads itself, a jar copy directory under the plugin's cache, and
  * Iris's log.
  * <p>
- * The built-in modules that are already ported ship in the built-ins jar ({@code IrisModule/builtin-modules.txt}), which the
- * plugin bundles and every pack loads as if it were in its {@code modules} folder; they are not listed here.
+ * The built-in modules that are already ported ship as pack module jars ({@code IrisModule/builtin-modules.txt}), which the
+ * plugin bundles and installs into the packs that list them ({@code ShippedModules}); they are not listed here.
  */
 public final class IrisModuleHost {
     /** Exposed to pack modules, with its subpackages; see its package documentation. */
@@ -63,16 +63,6 @@ public final class IrisModuleHost {
     public static final List<String> EXPOSED_PACKAGES = Stream.concat(Stream.of(BUILT_IN_API_PACKAGE, STRUCTURE_FILES_PACKAGE),
             SHARED_LIBRARY_PACKAGES.stream()).toList();
     /**
-     * The ids of the built-in modules that ship in the built-ins jar ({@code iris-builtins.jar}, listed in
-     * {@code IrisModule/builtin-modules.txt}) instead of being compiled into Iris. A pack loads them from its own copy of the
-     * jar ({@link PackBuiltIns}), and {@link MissingBuiltInModules} warns when it loads none; a test keeps this equal to the
-     * jar's list.
-     */
-    public static final List<String> JAR_MODULE_IDS = List.of("iris:post", "iris:perfection", "iris:matter", "iris:loot",
-            "iris:spawn", "iris:prepare", "iris:anchor", "iris:validate", "iris:bore", "iris:blocks", "iris:stilt", "iris:vacuum",
-            "iris:snow", "iris:vanilla-features", "iris:carve", "iris:deposit", "iris:decorant", "iris:terrain", "iris:objects",
-            "iris:floating", "iris:structure", "iris:jigsaw");
-    /**
      * Iris's pack object model: built-in settings may hold these classes, which Iris reads and describes itself. The
      * structure model (engine.object.structure) is not among them: it speaks the api's vocabulary and its module describes it.
      */
@@ -96,7 +86,7 @@ public final class IrisModuleHost {
     }
 
     /**
-     * Modules Iris registers itself, not from the built-ins jar: those that are Iris (they write the layout's platform
+     * Modules Iris registers itself, not from a shipped module jar: those that are Iris (they write the layout's platform
      * biomes and record the platform's custom blocks). A pack never replaces them.
      */
     private static List<IrisModule> hostModules() {

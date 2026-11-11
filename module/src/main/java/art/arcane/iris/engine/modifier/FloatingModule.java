@@ -19,7 +19,6 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.modules.BuiltInModulesVersion;
 import art.arcane.iris.modules.floating.FloatingChildSettings;
 import art.arcane.iris.modules.floating.MergeFloatingChildrenSettings;
 import art.arcane.iris.engine.mantle.components.FloatingObjectPlacing;
@@ -38,7 +37,7 @@ import com.volmit.stage.MantleStageContext;
  * placement. The chunk stages' work is done by {@link FloatingIslands}.
  */
 public final class FloatingModule implements IrisModule {
-    private static final String VERSION = BuiltInModulesVersion.VERSION;
+    private static final String VERSION = "1.0.0";
 
     private ModuleLog log;
 
@@ -57,9 +56,9 @@ public final class FloatingModule implements IrisModule {
         var graph = setup.stages();
         graph.define(IrisStages.Floating.OBJECTS).softAfter(IrisStages.Objects.PLACE).reach(this::objectReach)
                 .run(FloatingModule::objects);
-        // Ordering only: iris:post ships in the built-ins jar, which a pack may not have.
+        // Ordering only: iris:post ships as a module jar, which a pack may not have.
         graph.define(IrisStages.Floating.SOLIDS).softAfter(IrisStages.Post.SMOOTH).run(FloatingModule::solids);
-        // Ordering only: iris:decorant ships in the built-ins jar, which a pack may not have.
+        // Ordering only: iris:decorant ships as a module jar, which a pack may not have.
         graph.define(IrisStages.Floating.DECORATE).softAfter(IrisStages.Decorant.DECORATE).run(FloatingModule::decorate);
     }
 

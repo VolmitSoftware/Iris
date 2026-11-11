@@ -24,7 +24,6 @@ import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
 import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
 import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
-import art.arcane.iris.modules.BuiltInModulesVersion;
 import art.arcane.iris.modules.objects.PackObjectScenes;
 import art.arcane.iris.modules.objects.ProceduralObjectScenes;
 import art.arcane.iris.modules.objects.TreeGrowthSettings;
@@ -54,7 +53,7 @@ import java.util.List;
  * the studio with every variant of its procedural objects ({@link PackObjectScenes}, {@link ProceduralObjectScenes}).
  */
 public final class ObjectModule implements IrisModule, ModuleLifecycle {
-    private static final String VERSION = BuiltInModulesVersion.VERSION;
+    private static final String VERSION = "1.0.0";
 
     @Override
     public ModuleInfo info() {
@@ -64,7 +63,7 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
     @Override
     public void setup(ModuleSetup setup) {
         ModuleLog log = setup.log();
-        // Ordering only: iris:carve ships in the built-ins jar, which a pack may not have.
+        // Ordering only: iris:carve ships as a module jar, which a pack may not have.
         setup.stages().define(IrisStages.Objects.PLACE).softAfter(IrisStages.Carve.CAVES).reach(settings -> reach(settings, log))
                 .run(ObjectModule::place);
         var registry = setup.registry();

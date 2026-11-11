@@ -19,7 +19,6 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.modules.BuiltInModulesVersion;
 import art.arcane.iris.modules.terrain.HideOresSettings;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -43,7 +42,7 @@ import java.util.Map;
  * is left, since removing one can strand the one above.
  */
 public final class PerfectionModule implements IrisModule {
-    private static final String VERSION = BuiltInModulesVersion.VERSION;
+    private static final String VERSION = "1.0.0";
     private static final String HALF = "half";
     private static final BlockState AIR = new BlockState("minecraft:air");
     private static final Map<ResourceId, BlockState> ORE_BASES = oreBases();

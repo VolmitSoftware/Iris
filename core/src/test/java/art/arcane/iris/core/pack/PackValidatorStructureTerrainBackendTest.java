@@ -89,7 +89,7 @@ public class PackValidatorStructureTerrainBackendTest {
     }
 
     private void write(File root, String relativePath, String content) throws Exception {
-        art.arcane.iris.core.modules.BuiltInModulesJar.installInto(root.toPath());
+        art.arcane.iris.core.modules.BuiltInModuleJars.installInto(root.toPath());
         Path path = root.toPath().resolve(relativePath);
         Files.createDirectories(path.getParent());
         Files.writeString(path, content, StandardCharsets.UTF_8);

@@ -6,7 +6,7 @@ the Iris API alone (see "Building" below); Iris depends on this project, never t
 
 Ported features are IrisApi modules that every pack loads before its own: object placement
 (`iris:prepare`, `iris:anchor`, `iris:validate`, `iris:bore`, `iris:blocks`, `iris:stilt`,
-`iris:vacuum`, `iris:snow`, shipped in the built-ins jar), the mantle, and chunk generation. Every mantle stage is a pass of Iris's
+`iris:vacuum`, `iris:snow`, shipped as module jars), the mantle, and chunk generation. Every mantle stage is a pass of Iris's
 mantle of its own, in the stage graph's order: `iris:carve/caves`, `iris:objects/place`,
 `iris:floating/objects`, `iris:structure/place`, so a pack's mantle stage can order itself after any of
 them. Chunk generation then runs, in this order: `iris:biome`, `iris:terrain`, `iris:carve` (cutting the
@@ -22,14 +22,14 @@ snippet type may live in either package. A type stays in `art.arcane.iris.builti
 Two of those modules are not in this project: `iris:biome` (writes the layout's platform biomes into the chunk) and
 `iris:custom` (records the platform's custom blocks of content plugins) are Iris itself, so their classes live in Iris
 core (`art.arcane.iris.core.modules.BiomeModule` and `CustomModule`) and Iris registers them (`IrisModuleHost`), not
-the built-ins jar. Their stage constants stay in `art.arcane.iris.builtin.IrisStages`, so packs can still order after them.
+the built-in module jars. Their stage constants stay in `art.arcane.iris.builtin.IrisStages`, so packs can still order after them.
 
 Built-in modules log through the `ModuleLog` IrisApi hands them (`context.log()` in a stage body, `world.log()` in a
 service or hook, `setup.log()` during setup), which labels each line with the module's id, so these sources do not
 use `IrisLogging`. Classes of the host's object model (the host-classes list) and code that only has an engine or pack
 data still log as Iris itself.
 
-Structures are two modules of the built-ins jar. `iris:structure` (`StructureModule`) is where structures go and how they
+Structures are two built-in modules. `iris:structure` (`StructureModule`) is where structures go and how they
 meet the terrain: it declares the structure placement settings and the mantle stage, validates the placements
 (`StructureValidator`), provides `StructureLocator` and `VanillaStructures`, and brings the `/iris module structure`
 commands. It gets the pieces of a structure only from the `StructureAssembly` providers of the pack's modules and knows
@@ -59,7 +59,7 @@ Object place modes are data (`PlaceMode`: height sampling,
 stilt, `VacuumProfile`, `PlaceTrait`s) that the placement stages ask; the pack JSON keeps the mode names.
 `iris:objects` also provides `SaplingGrowth` (`TreeGrowing`: the tree a sapling grows into, as placed blocks, and which
 objects are trees) and says which biomes and regions place an object (`ObjectLocating`, for the object search).
-`iris:objects` ships in the built-ins jar. It declares the settings `objects` (region, biome: the list of `ObjectPlacement`s),
+`iris:objects` ships as a module jar. It declares the settings `objects` (region, biome: the list of `ObjectPlacement`s),
 `proceduralObjects` (region, biome), `treeSettings` (dimension), `requireObjectSurfaceSupport`, `objectSurfaceSupportBuffer`,
 `upperDimensionObjects` and `upperObjectsForcePlace` (dimension), all written as they always were. `ObjectPlacement` is the
 placement itself, read by the module decoder like any settings class, and the one type Iris places with. What a jar cannot do, Iris does through the facades `ObjectHost` and
@@ -83,7 +83,7 @@ The settings of both modules are `builtin.loot` and `builtin.spawn` types of Iri
 `iris:spawn` declares `entitySpawners` (list of spawner keys) for the same and `effects` (list, `iris:spawn/effects`) for
 regions and biomes. The loot tables, spawners, entities and markers are plain module types too (`LootTable`, `Spawner`,
 `EntityDefinition`, `SpawnMarker`). `PlacementLoot` picks the table an object placement gives one of its chests.
-`iris:decorant`, `iris:terrain` and `iris:deposit` ship in the built-ins jar and keep their per-world workers (`BiomeDecorators`, `TerrainShaper`,
+`iris:decorant`, `iris:terrain` and `iris:deposit` ship as module jars and keep their per-world workers (`BiomeDecorators`, `TerrainShaper`,
 `DepositPlacer`) in the world's state store (`context.world().state(...)`); the modules still compiled into Iris reach the same store through
 the `IrisChunk` their invocation offers (`context.extension(IrisChunk.class)`, then `state(...)`) or `engine.getGeneration().state(...)`.
 
@@ -135,7 +135,7 @@ workers: `ResolvedOre`/`ResolvedOres` (blocks and chance noise per world, `Terra
 (`carvingBiome`, a band's biome, a floating child's target and carving) implement `LinkedBiomes`, which is how Iris's biome tree and the biomes a
 dimension reaches learn of them without reading the settings classes; and `iris:carve` provides the `CaveBiomes` service
 (`CaveBiomeBands`), which Iris asks for the dimension's carving band at a position and for a biome's minimum cave depth.
-`iris:floating` ships in the built-ins jar: `FloatingWorld` holds a world's floating children, noise and seeds. It asks the
+`iris:floating` ships as a module jar: `FloatingWorld` holds a world's floating children, noise and seeds. It asks the
 API alone: the running world's layout for a column's surface biome and a biome's height for the `BIOME` top shape
 (`TerrainSampler.biomeHeight`), the chunk's terrain for a child's sky biome (`skyBiome`), which it writes with
 `Mantle.setPlatformBiome`, and `PackWorld.placements()` to place an object floating, on an island's top or hung under it,
@@ -168,35 +168,83 @@ styles, expressions, images), the pack's objects and blocks, and the placement s
 A module this build holds but the jar does not is one Iris registers with its own modules (`IrisModuleHost`): its
 classes are then the ones Iris's own code sees.
 
-`./gradlew check` compiles every source and builds the built-ins jar below, which runs the pack class checks.
+`./gradlew check` compiles every source and builds the module jars below, which runs the pack class checks.
 
-## Built-in modules as a pack module jar
+## Built-in modules as pack module jars
 
-This build packages the built-in modules as an ordinary pack module jar, `build/libs/iris-builtins.jar`, from its own
-classes, and Iris bundles it into the plugin: every pack loads it as if it were in its `modules/` folder (IrisApi's
-`ModuleHost.bundlingJars`). A pack must not hold a copy of it: its classes would be in two jars, so the pack fails to load
-naming both. `./gradlew builtinModulesJar` builds it. `builtin-modules.txt` lists what goes in: `module <class>` lines
-(the jar's entry points, written to `META-INF/services/com.volmit.IrisModule`) and `include <pattern>` lines for further
-classes. Iris asks for the jar by the capability `art.arcane:iris-builtins`; its plugin leaves the jar's classes out of
-its own, and its Bukkit artifact check fails the build if Iris still uses one of them.
-Before the jar is written, `ModuleJarCheck` of IrisApi runs the class checks of a pack load on it, with the packages Iris
-exposes (`art.arcane.iris.builtin`, VolmLib's `art.arcane.volmlib` and Gson's `com.google.gson`, all three on the check's
-classpath, with this build's other classes as the host's); a listed class that uses a class outside the jar and those
-packages fails the task naming the class and what it uses. Iris checks the jar once more before bundling it, against the
-VolmLib classes its Bukkit jar strips (`core/volmlib-left-out-of-bukkit-jar.txt`), which only Iris knows.
+This build packages the built-in modules as ordinary pack module jars, `build/shipped-modules/iris-<name>.jar`, from its
+own classes. `./gradlew shippedModules` builds them. `builtin-modules.txt` lists what goes in: a `jar <name>` line starts
+a jar, `module <class>` lines name its entry points (written to the jar's `META-INF/services/com.volmit.IrisModule`) and
+`include <pattern>` lines add further classes. A class goes into exactly one jar, and the build fails when two jars hold
+the same class. Most jars hold one module. The eight object placement stages share one jar, `iris-placement.jar`, because
+they share most of their classes.
 
-The jar holds `iris:post`, `iris:perfection`, `iris:matter`, `iris:loot`, `iris:spawn`, `iris:vanilla-features` and
-`iris:carve`, `iris:structure`, `iris:jigsaw`, and the object placement stages `iris:prepare`, `iris:anchor`, `iris:validate`, `iris:bore`, `iris:blocks`, `iris:stilt`, `iris:vacuum` and `iris:snow`. They are
-written against IrisApi and `art.arcane.iris.builtin` alone: the chunk's `BlockState` hunk, the block registry's traits and
-`canPlaceOn`, the terrain sampler (heights around the chunk, slope, fluid height, where the upper dimension begins) and the
-mantle's planned blocks; the placement stages read the placement being run through the `ObjectPlacement` facade, and the loot and
-spawn services, which have no chunk to ask, ask the running world (`world.running()`, IrisApi's `RunningWorld`). Without the jar a pack's world has no caves, vanilla
-placed features, loot, block drops, entity spawns or ambient effects, and its biomes' `loot`, `blockDrops`, `entitySpawners` and
-`effects` are not read.
-Iris no longer compiles them in (`IrisModuleHost.generationModules()`); every pack gets them from the bundled jar. A pack
-still loads without them, as with an Iris build that bundles no jar, and Iris warns once per pack folder when a pack loads
-none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, which a test keeps equal to
-`builtin-modules.txt`): add a module to the jar and to that list together.
+Next to the jars the build writes `index.json`, which names each jar's hash and the id and version every module in it
+reports. The id and version come from the module class, so a module's `ModuleInfo` is the only place to change them.
+
+Before the jars ship, `ModuleJarCheck` of IrisApi runs the class checks of a pack load on all of them as one jar, with the
+packages Iris exposes (`art.arcane.iris.builtin`, VolmLib's `art.arcane.volmlib` and Gson's `com.google.gson`, all three
+on the check's classpath, with this build's other classes as the host's). A listed class that uses a class outside the
+jars and those packages fails the task naming the class and what it uses. Iris runs the check once more against the
+VolmLib classes its Bukkit jar strips (`core/volmlib-left-out-of-bukkit-jar.txt`), which only Iris knows. Iris asks for
+the checked one-jar form by the capability `art.arcane:iris-builtins` and for the folder of shipped jars by
+`art.arcane:iris-shipped-modules`. Its plugin leaves the jars' classes out of its own, and its Bukkit artifact check
+fails the build if Iris still uses one of them.
+
+The modules are written against IrisApi and `art.arcane.iris.builtin` alone: the chunk's `BlockState` hunk, the block
+registry's traits and `canPlaceOn`, the terrain sampler (heights around the chunk, slope, fluid height, where the upper
+dimension begins) and the mantle's planned blocks. The placement stages read the placement being run through the
+`ObjectPlacement` facade, and the loot and spawn services, which have no chunk to ask, ask the running world
+(`world.running()`, IrisApi's `RunningWorld`).
+
+### How a pack gets them: modules.json
+
+Iris bundles the folder of jars in its plugin and never loads a module from there. A pack names the modules it uses in
+`modules.json`, and Iris copies the jars of those modules into the pack's `modules/` folder before the pack loads:
+
+```json
+{
+  "modules": {
+    "iris:terrain": "1.0.0",
+    "iris:carve": "1.0.0",
+    "acme:rivers": "0.9.0"
+  },
+  "pinned": []
+}
+```
+
+The file belongs to the pack's author. The version beside a module is the one the pack was built and tested with, and
+Iris never rewrites the file. `/iris std create` writes one that lists every module Iris ships. A module Iris does not
+ship, such as `acme:rivers`, is listed the same way; its author's jar goes into `modules/` by hand and Iris never touches
+it. A pack without `modules.json` gets no modules from Iris and is told so once.
+
+What is installed right now is in `modules.lock.json`, which Iris writes when it changes a jar and after every load. Comparing the two files shows
+what a pack was built with and what it runs on.
+
+### When a module updates
+
+A module's version is `major.minor.patch` with one fixed meaning:
+
+- **major** rises when the same settings place different blocks, or settings stop loading.
+- **minor** rises for new features that leave existing packs generating the same blocks.
+- **patch** rises for fixes that leave the output alone.
+
+When Iris ships a jar that differs from the pack's copy, it replaces the copy before the pack loads and logs one line per
+module. The exceptions:
+
+- A module in `pinned` stays as it is, always.
+- A module the pack holds in a newer version than Iris ships stays. Iris does not downgrade.
+- In a world's copy of a pack (`<world>/iris/pack`), a module whose major version changed stays, because its new chunks
+  would not match the chunks the world has. The world warns on every start until its owner runs `/iris pack update` in
+  it, which takes those updates too. A pack folder under `plugins/Iris/packs` takes every update, so its author tests
+  with what Iris ships.
+- A module that uses classes of a kept module, or whose classes a kept module uses, stays with it. A pack loads all its
+  jars in one class loader, and a jar compiled against the new version of another may not link against the old one. Iris
+  reads the class references from the jars, so nothing declares these links by hand. Many of the built-ins use each
+  other's classes today, so keeping `iris:terrain` keeps most of the others.
+
+Raising the major number is the author's call. Iris cannot tell whether a change alters terrain, so a release that
+changes cave shapes under a minor number updates worlds and leaves a seam at the border of old and new chunks.
 
 `art.arcane.iris.builtin` also holds what the compiled-in built-ins and the jar must share, because each sees its own copy of
 every other class. The facades among them are interfaces Iris implements and offers through IrisApi's extension point, never

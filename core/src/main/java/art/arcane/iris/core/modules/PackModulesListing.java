@@ -37,11 +37,14 @@ public final class PackModulesListing {
     private PackModulesListing() {
     }
 
-    /** Loads the pack's modules when nothing has yet. */
+    /** Loads the pack's modules when nothing has yet. The updates the pack kept back follow its modules. */
     public static Listing describe(IrisData data) {
         String packName = data.getDataFolder().getName();
         try {
-            return new Listing(true, moduleLines(packName, data.getModules().pack().packModules()));
+            List<String> lines = moduleLines(packName, data.getModules().pack().packModules());
+            data.getModules().lastUpdates().kept().forEach(kept -> lines.add(IrisLanguage.text(IrisMessages.STUDIO_MODULES_KEPT,
+                    MessageArgument.untrusted("change", kept.describe()))));
+            return new Listing(true, lines);
         } catch (PackModulesException failure) {
             return new Listing(false, List.of(failureLine(packName, failure)));
         }

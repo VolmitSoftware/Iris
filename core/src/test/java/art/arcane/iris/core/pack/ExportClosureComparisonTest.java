@@ -3,7 +3,7 @@ package art.arcane.iris.core.pack;
 import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.BuiltInModulesJar;
+import art.arcane.iris.core.modules.BuiltInModuleJars;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -138,7 +138,7 @@ public class ExportClosureComparisonTest {
     private Path copyOfComparisonPack(String packFolder) throws Exception {
         Path copy = temporaryFolder.newFolder("real-pack").toPath();
         copyTree(Path.of(packFolder), copy);
-        BuiltInModulesJar.writeInto(copy);
+        BuiltInModuleJars.writeInto(copy);
         return copy;
     }
 
@@ -211,7 +211,7 @@ public class ExportClosureComparisonTest {
         write(pack, "loot/castle/chest.json", "{\"name\":\"Chest\",\"loot\":[{\"type\":\"stick\"}]}");
         write(pack, "objects/castle/keep.iob", "object");
         write(pack, "objects/tree.iob", "object");
-        BuiltInModulesJar.writeInto(pack.toPath());
+        BuiltInModuleJars.writeInto(pack.toPath());
         return pack.toPath();
     }
 

@@ -72,7 +72,7 @@ public final class BuiltInPack {
     }
 
     /**
-     * Compiled-in copies of the built-in modules that ship in the built-ins jar ({@code IrisModule/builtin-modules.txt}), so tests
+     * Compiled-in copies of the built-in modules that ship as module jars ({@code IrisModule/builtin-modules.txt}), so tests
      * that need Iris's whole generation graph get it without building the jar. Until the cut-over the classes are compiled
      * with Iris; {@code BuiltInModulesJarTest} loads the same modules from the jar instead.
      */
@@ -106,7 +106,7 @@ public final class BuiltInPack {
      * Like {@link #serve(IrisData, TemporaryFolder, List)} for a pack folder whose {@code modules} folder may hold module jars:
      * they load through the pack loader after Iris's compiled-in built-ins and {@code packModules}, as in a real pack. The jars see
      * the same packages a real pack's modules see. The jar's built-ins are not added here: put them into {@code packModules}
-     * ({@link #jarModules()}) or the built-ins jar into the pack.
+     * ({@link #jarModules()}) or the built-in module jars into the pack ({@link BuiltInModuleJars}).
      */
     public static LoadedPack serve(IrisData data, TemporaryFolder folder, Path packFolder, List<IrisModule> packModules) throws IOException {
         List<IrisModule> modules = Stream.concat(IrisModuleHost.builtInModules().stream(), packModules.stream()).toList();

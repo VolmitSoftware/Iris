@@ -1,30 +1,48 @@
-# What goes into build/libs/iris-builtins.jar, the built-in modules as a pack module jar.
+# The built-in modules, each as a pack module jar of its own: build/shipped-modules/iris-<name>.jar.
 #
 # A line is one of (blank lines and # comments are ignored):
 #
-#   module <binary class name>   an IrisModule class. It is listed in META-INF/services/com.volmit.IrisModule,
+#   jar <name>                   starts the jar iris-<name>.jar; the lines below it say what goes in.
+#   module <binary class name>   an IrisModule class. It is listed in the jar's META-INF/services/com.volmit.IrisModule,
 #                                and its nested classes are packaged with it.
 #   include <class pattern>      more classes for the jar, as an Ant pattern relative to the class root, such as
 #                                art/arcane/iris/engine/modifier/carve/**   Settings types, helpers and stage
 #                                constants a listed module owns go here.
 #
-# A class here must be one a pack module may have: it may use only the IrisApi, the packages Iris exposes
-# (art.arcane.iris.builtin), the JDK and the other classes of the jar. `./gradlew builtinModulesJar` checks
-# that with IrisApi's pack class checks and fails naming the class and what it uses.
+# A class goes into exactly one jar. A pack loads all its jars in one class loader, so a jar may use the classes of
+# another; Iris then updates those two jars together (PackModuleUpdates). Modules that share most of their classes share
+# a jar, as the eight placement stages do.
 #
-# Moving a module here means removing it from IrisModuleHost.generationModules() in Iris.
+# A class here must be one a pack module may have: it may use only the IrisApi, the packages Iris exposes
+# (art.arcane.iris.builtin), the JDK and the classes of these jars. `./gradlew shippedModules` checks that with
+# IrisApi's pack class checks and fails naming the class and what it uses.
+#
+# A module's version is the one its class reports (ModuleInfo). Raise the major number when the same settings place
+# different blocks or settings stop loading, the minor number for new features and the patch number for fixes that
+# leave the output alone: a world updates on its own only within a major version.
 
-# The settings and helper types only the jar's modules use, which Iris does not expose.
-include art/arcane/iris/modules/**
-
+jar post
 module art.arcane.iris.engine.modifier.PostModule
 include art/arcane/iris/engine/modifier/SurfaceSmoothing*.class
+include art/arcane/iris/modules/post/**
+
+jar perfection
 module art.arcane.iris.engine.modifier.PerfectionModule
+
+jar matter
 module art.arcane.iris.engine.modifier.MatterModule
+
+jar loot
 module art.arcane.iris.engine.loot.LootModule
 include art/arcane/iris/engine/loot/**
+include art/arcane/iris/modules/loot/**
+
+jar spawn
 module art.arcane.iris.engine.spawn.SpawnModule
 include art/arcane/iris/engine/spawn/**
+include art/arcane/iris/modules/spawn/**
+
+jar placement
 module art.arcane.iris.engine.object.placement.PrepareModule
 module art.arcane.iris.engine.object.placement.AnchorModule
 module art.arcane.iris.engine.object.placement.ValidateModule
@@ -40,8 +58,15 @@ include art/arcane/iris/engine/object/placement/ObjectEdits*.class
 include art/arcane/iris/engine/object/placement/ResolvedReplace*.class
 include art/arcane/iris/engine/object/placement/IrisSurfaceSupport*.class
 include art/arcane/iris/engine/object/placement/IrisObjectVacuum.class
+include art/arcane/iris/modules/placement/**
+include art/arcane/iris/modules/blocks/**
+
+jar vanilla-features
 module art.arcane.iris.engine.framework.vanillafeatures.VanillaFeaturesModule
 include art/arcane/iris/engine/framework/vanillafeatures/**
+include art/arcane/iris/modules/vanillafeatures/**
+
+jar carve
 module art.arcane.iris.engine.modifier.CarveModule
 include art/arcane/iris/engine/modifier/CaveApplying*.class
 include art/arcane/iris/engine/modifier/CaveDressing.class
@@ -66,16 +91,28 @@ include art/arcane/iris/engine/object/terrain/carving/CaveProfileSampler*.class
 include art/arcane/iris/engine/object/terrain/carving/DeclaredByLevel.class
 include art/arcane/iris/engine/object/terrain/carving/DeclaredCaveProfiles.class
 include art/arcane/iris/engine/object/terrain/carving/ResolvedCarvingEntry.class
+include art/arcane/iris/modules/carve/**
+
+jar deposit
 module art.arcane.iris.engine.modifier.DepositModule
 include art/arcane/iris/engine/modifier/DepositPlacer*.class
 include art/arcane/iris/engine/modifier/DepositClump*.class
 include art/arcane/iris/engine/modifier/ResolvedDeposit*.class
+include art/arcane/iris/modules/deposit/**
+
+jar decorant
 module art.arcane.iris.engine.actuator.DecorantModule
 include art/arcane/iris/engine/decorator/**
+include art/arcane/iris/modules/decorant/**
+
+jar terrain
 module art.arcane.iris.engine.actuator.TerrainModule
 include art/arcane/iris/engine/actuator/Terrain*.class
 include art/arcane/iris/engine/actuator/ResolvedOre*.class
 include art/arcane/iris/engine/actuator/OreWarmUp*.class
+include art/arcane/iris/modules/terrain/**
+
+jar objects
 module art.arcane.iris.engine.mantle.components.ObjectModule
 include art/arcane/iris/engine/mantle/components/ObjectPlacing*.class
 include art/arcane/iris/engine/mantle/components/ChunkObjectPlacing*.class
@@ -90,6 +127,9 @@ include art/arcane/iris/engine/mantle/components/TreeGrowing*.class
 include art/arcane/iris/engine/mantle/components/ObjectChunk*.class
 include art/arcane/iris/engine/mantle/components/GoldenDebugTerrain*.class
 include art/arcane/iris/engine/procedural/**
+include art/arcane/iris/modules/objects/**
+
+jar floating
 module art.arcane.iris.engine.modifier.FloatingModule
 include art/arcane/iris/engine/modifier/FloatingIslands*.class
 include art/arcane/iris/engine/object/terrain/floating/**
@@ -98,6 +138,9 @@ include art/arcane/iris/engine/mantle/components/FloatingPlacer*.class
 include art/arcane/iris/engine/mantle/components/FloatingIslandSampleResolver*.class
 include art/arcane/iris/engine/mantle/components/IslandFace*.class
 include art/arcane/iris/engine/mantle/components/UndersideTurn*.class
+include art/arcane/iris/modules/floating/**
+
+jar structure
 module art.arcane.iris.engine.mantle.components.StructureModule
 include art/arcane/iris/engine/mantle/components/StructurePlacing*.class
 include art/arcane/iris/engine/mantle/components/StructureCarvingFootprint*.class
@@ -121,6 +164,8 @@ include art/arcane/iris/engine/framework/structure/StructureValidator*.class
 include art/arcane/iris/engine/framework/structure/StructureVanillaStructures*.class
 include art/arcane/iris/engine/framework/structure/StructureWorld*.class
 include art/arcane/iris/core/modules/StructureCommands*.class
+
+jar jigsaw
 module art.arcane.iris.modules.jigsaw.JigsawModule
 include art/arcane/iris/engine/object/structure/**
 include art/arcane/iris/engine/framework/StructureAssembler*.class
@@ -147,3 +192,4 @@ include art/arcane/iris/core/structure/conversion/**
 include art/arcane/iris/core/structure/export/**
 include art/arcane/iris/core/structure/tooling/**
 include art/arcane/iris/core/pack/StructurePackageClosure*.class
+include art/arcane/iris/modules/jigsaw/**

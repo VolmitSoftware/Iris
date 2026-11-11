@@ -163,6 +163,7 @@ final class ModdedCommandHelp {
                 Entry.command("validate", "[pack]", ModdedHelpMessages.COMMAND_VALIDATE_VALIDATE_A_PACK_OR_EVERY_PACK, "v"),
                 Entry.command("cleanup", "<pack> [apply]", ModdedHelpMessages.COMMAND_CLEANUP_PREVIEW_OR_QUARANTINE_UNUSED_RESOURCE_CANDIDATES, "c"),
                 Entry.command("restore", "<pack> [apply]", ModdedHelpMessages.COMMAND_RESTORE_PREVIEW_OR_RESTORE_THE_LATEST_QUARANTINE, "r"),
+                Entry.command("update", "", ModdedHelpMessages.COMMAND_PACK_UPDATE_TAKE_KEPT_MODULE_UPDATES),
                 Entry.command("status", "[pack]", ModdedHelpMessages.COMMAND_STATUS_SHOW_CACHED_VALIDATION_STATUS, "s")
         ));
         SECTIONS.put("pk", SECTIONS.get("pack"));

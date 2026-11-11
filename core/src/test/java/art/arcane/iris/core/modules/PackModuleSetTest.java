@@ -18,6 +18,9 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.core.modules.manifest.PackModuleLock;
+import art.arcane.iris.core.modules.manifest.PackModuleManifest;
+import art.arcane.iris.core.modules.manifest.ShippedModules;
 import art.arcane.iris.spi.IrisPlatforms;
 import com.google.gson.Gson;
 import org.junit.Assume;
@@ -68,13 +71,13 @@ public class PackModuleSetTest {
     }
 
     @Test
-    public void aPackWithoutTheBuiltInsJarIsToldHowToGetThem() throws IOException {
-        File pack = folder.newFolder("without-builtins");
+    public void aPackWithoutAManifestIsToldThatIrisManagesNoModulesForIt() throws IOException {
+        File pack = folder.newFolder("without-manifest");
 
         String warnings = warningsWhile(() -> new PackModuleSet(pack, Gson::new).pack());
 
-        assertTrue(warnings, warnings.contains("[Iris/WARN] Pack without-builtins loads without the built-in modules (iris-builtins.jar)"));
-        assertTrue(warnings, warnings.contains("Put iris-builtins.jar in its modules folder"));
+        assertTrue(warnings, warnings.contains("[Iris/WARN] Pack without-manifest has no modules.json, so Iris installs and updates no modules for it."));
+        assertTrue(warnings, warnings.contains("/iris std create writes the file for a new pack"));
     }
 
     @Test
@@ -88,18 +91,47 @@ public class PackModuleSetTest {
             new PackModuleSet(worldCopy, Gson::new).pack();
         });
 
-        assertEquals(warnings, 1, occurrences(warnings, "Pack original loads without"));
-        assertEquals(warnings, 1, occurrences(warnings, "Pack pack loads without"));
+        assertEquals(warnings, 1, occurrences(warnings, "Pack original has no modules.json"));
+        assertEquals(warnings, 1, occurrences(warnings, "World world has no modules.json"));
     }
 
     @Test
-    public void aPackWithTheBuiltInsJarIsNotWarned() throws IOException {
-        File pack = folder.newFolder("with-builtins");
-        BuiltInModulesJar.writeInto(pack.toPath());
+    public void aPackWithAManifestGetsTheShippedJarsItListsAndARecordOfWhatItLoaded() throws IOException {
+        File pack = folder.newFolder("managed");
+        ShippedModules shipped = BuiltInModuleJars.shipped();
+        PackModuleManifest listed = PackModuleManifest.listingAll(shipped);
+        listed.write(pack.toPath());
 
-        String warnings = warningsWhile(() -> assertFalse(new PackModuleSet(pack, Gson::new).pack().packModules().isEmpty()));
+        String warnings = warningsWhile(() -> {
+            try (PackModuleSet modules = new PackModuleSet(pack, Gson::new, shipped)) {
+                assertEquals(listed.modules().size(), modules.pack().packModules().size());
+            }
+        });
 
-        assertFalse(warnings, warnings.contains("built-in modules"));
+        assertFalse(warnings, warnings.contains("modules.json"));
+        assertEquals(shipped.jars().size(), new File(pack, "modules").list().length);
+        assertEquals(listed.modules(), PackModuleLock.read(pack.toPath()).installed());
+    }
+
+    @Test
+    public void aModuleTheManifestListsButNoJarProvidesIsNamed() throws IOException {
+        File pack = folder.newFolder("third-party");
+        Files.writeString(pack.toPath().resolve("modules.json"), "{\"modules\": {\"acme:rivers\": \"0.9.0\"}}");
+
+        String warnings = warningsWhile(() -> new PackModuleSet(pack, Gson::new, BuiltInModuleJars.shipped()).pack());
+
+        assertTrue(warnings, warnings.contains("Pack third-party: modules.json lists acme:rivers, but no jar in its modules folder provides it."));
+    }
+
+    @Test
+    public void aBrokenManifestFailsTheLoadNamingWhatToFix() throws IOException {
+        File pack = folder.newFolder("broken-manifest");
+        Files.writeString(pack.toPath().resolve("modules.json"), "{\"modules\": [\"iris:matter\"]}");
+        PackModuleSet modules = new PackModuleSet(pack, Gson::new, BuiltInModuleJars.shipped());
+
+        PackModulesException failure = assertThrows(PackModulesException.class, modules::pack);
+
+        assertTrue(failure.getMessage(), failure.getMessage().startsWith("Pack broken-manifest cannot load its modules: modules.json needs a \"modules\" object"));
     }
 
     /** What Iris's log said at WARN while {@code load} ran: with no platform bound it goes to the error stream. */

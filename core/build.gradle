@@ -313,10 +313,14 @@ List<String> dependencyBuildMetadata = [
     'META-INF/versions/*/OSGI-INF/**'
 ]
 
-// The built-in modules as a pack module jar, iris-builtins.jar, which IrisModule builds from its classes and checks as a pack
-// load would. Iris carries it in the plugin, never loading it itself: PackBuiltIns copies it into new packs, which load their
-// own copy. It is checked once more against what Iris's own Bukkit jar leaves out of VolmLib, which only Iris knows.
+// The built-in modules as pack module jars, which IrisModule builds from its classes and checks as a pack load would. Iris
+// carries the folder of them in the plugin, never loading them itself: ShippedModules installs into a pack the jars its
+// modules.json lists, and the pack loads its own copies. IrisModule also hands over all of them as one jar,
+// iris-builtins.jar, which is checked once more against what Iris's own Bukkit jar leaves out of VolmLib, which only Iris
+// knows. That jar is not bundled.
 String builtinModulesJarName = 'iris-builtins.jar'
+// Where the plugin carries the shipped jars and their index.json; ShippedModules.RESOURCE_FOLDER names the same.
+String shippedModulesResourceFolder = 'shipped-modules'
 // The packages pack modules may use besides the IrisApi; IrisModuleHost.EXPOSED_PACKAGES lists the same.
 List<String> builtinExposedPackages = ['art.arcane.iris.builtin', 'art.arcane.iris.core.structure.authoring', 'art.arcane.volmlib',
     'com.google.gson']
@@ -324,6 +328,13 @@ Provider<RegularFile> bundledBuiltinModulesJar = layout.buildDirectory.file("bui
 
 configurations {
     builtinModules {
+        canBeConsumed = false
+        transitive = false
+        attributes {
+            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_RUNTIME))
+        }
+    }
+    shippedModules {
         canBeConsumed = false
         transitive = false
         attributes {
@@ -347,6 +358,11 @@ dependencies {
             requireCapability('art.arcane:iris-builtins')
         }
     }
+    shippedModules('art.arcane:iris-module') {
+        capabilities {
+            requireCapability('art.arcane:iris-shipped-modules')
+        }
+    }
     builtinModulesCheckClasspath('com.volmit:iris-api')
     builtinModulesCheckClasspath('com.volmit:iris-host')
     builtinModulesCheckClasspath('art.arcane:iris-module')
@@ -357,7 +373,7 @@ dependencies {
 def builtinModulesJar = tasks.register('builtinModulesJar', JavaExec) {
     group = 'build'
     description = "Checks IrisModule's ${builtinModulesJarName} against the VolmLib classes the Bukkit jar leaves out and writes" +
-        " it to build/builtin-modules for bundling."
+        " it to build/builtin-modules, where the plugin reads which classes to leave out."
     FileCollection built = configurations.builtinModules
     classpath = configurations.builtinModulesCheckClasspath
     mainClass.set('com.volmit.host.ModuleJarCheck')
@@ -383,8 +399,8 @@ def builtinModulesJar = tasks.register('builtinModulesJar', JavaExec) {
     }
 }
 
-// The class entries of the bundled jar. Those classes load from it only, in each pack's class loader, so the plugin leaves
-// the module artifact's copies out.
+// The class entries of the shipped jars. Those classes load from them only, in each pack's class loader, so the plugin
+// leaves the module artifact's copies out.
 Set<String> builtinJarClassEntries = null
 Closure<Boolean> inBuiltinModulesJar = { FileTreeElement element ->
     if (builtinJarClassEntries == null) {
@@ -395,19 +411,31 @@ Closure<Boolean> inBuiltinModulesJar = { FileTreeElement element ->
     builtinJarClassEntries.contains(element.relativePath.pathString)
 }
 
+// The shipped jars and their index pass through only after the one-jar form of the same classes passed Iris's check.
+def shippedModulesFolder = tasks.register('shippedModulesFolder', Sync) {
+    description = 'Collects the module jars the plugin ships, with their index.json, into build/shipped-modules.'
+    dependsOn(builtinModulesJar)
+    from(configurations.shippedModules)
+    into(layout.buildDirectory.dir('shipped-modules'))
+}
+
 tasks.named('test').configure {
-    inputs.files(builtinModulesJar)
-    systemProperty('iris.builtinModulesJar', bundledBuiltinModulesJar.get().asFile.absolutePath)
+    inputs.files(shippedModulesFolder)
+    systemProperty('iris.shippedModulesFolder', layout.buildDirectory.dir('shipped-modules').get().asFile.absolutePath)
 }
 
 tasks.named('jar', Jar).configure {
-    from(builtinModulesJar)
+    from(shippedModulesFolder) {
+        into(shippedModulesResourceFolder)
+    }
 }
 
 tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar).configure {
     dependsOn(embeddedAgentJar)
     exclude(inBuiltinModulesJar)
-    from(builtinModulesJar)
+    from(shippedModulesFolder) {
+        into(shippedModulesResourceFolder)
+    }
     mergeServiceFiles()
     // minimize() stays off. Caffeine reaches its 520 generated cache and node classes through
     // MethodHandles.Lookup.findClass on a computed name, and the VolmLib command, GUI and hotload

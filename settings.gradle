@@ -26,7 +26,7 @@ apply from: new File(settingsDir, 'gradle/volmlib-resolution.settings.gradle')
 apply from: new File(settingsDir, 'gradle/irisapi-resolution.settings.gradle')
 
 // The built-in modules, from the module folder. They build against the Iris API alone; core depends on their
-// classes and bundles their checked pack module jar (capability art.arcane:iris-builtins).
+// classes and bundles their checked pack module jars (capability art.arcane:iris-shipped-modules).
 includeBuild(new File(settingsDir, 'module').canonicalFile) {
     dependencySubstitution {
         substitute(module('art.arcane:iris-module')).using(project(':'))

@@ -18,13 +18,18 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.core.modules.manifest.PackModuleManifest;
 import com.volmit.host.ModuleLoadException;
 
 import java.io.File;
 
-/** A pack whose modules failed to load. The message names the pack and carries IrisApi's load error. */
+/** A pack whose modules failed to load. The message names the pack and carries IrisApi's load error, or what is wrong with its {@code modules.json}. */
 public final class PackModulesException extends RuntimeException {
     public PackModulesException(File packFolder, ModuleLoadException cause) {
+        super("Pack " + packFolder.getName() + " cannot load its modules: " + cause.getMessage(), cause);
+    }
+
+    public PackModulesException(File packFolder, PackModuleManifest.ManifestFormatException cause) {
         super("Pack " + packFolder.getName() + " cannot load its modules: " + cause.getMessage(), cause);
     }
 }

@@ -14,7 +14,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 /**
- * A pack opened for validation whose built-in modules are the classes of the test class path, not the built-ins jar.
+ * A pack opened for validation whose built-in modules are the classes of the test class path, not the built-in module jars.
  * Tests that call a built-in module's classes directly need this: a jar loads its own copy of every class, so what
  * the pack serves would not be the classes the test names.
  */

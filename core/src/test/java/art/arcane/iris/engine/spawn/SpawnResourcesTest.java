@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.spawn;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.BuiltInModulesJar;
+import art.arcane.iris.core.modules.BuiltInModuleJars;
 import art.arcane.iris.core.project.ModuleResourceSchemas;
 import art.arcane.iris.core.project.SchemaTestPlatform;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -116,7 +116,7 @@ public class SpawnResourcesTest {
         write(pack.toPath(), "entities/zombie.json", "{\"type\":\"minecraft:zombie\"}");
         write(pack.toPath(), "spawners/camp/zombies.json", "{\"spawns\":[{\"entity\":\"zombie\"}]}");
         write(pack.toPath(), "markers/camp.json", "{\"spawners\":[\"camp/zombies\"]}");
-        BuiltInModulesJar.writeInto(pack.toPath());
+        BuiltInModuleJars.writeInto(pack.toPath());
         return pack.toPath();
     }
 

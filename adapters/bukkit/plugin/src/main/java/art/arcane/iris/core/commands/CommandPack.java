@@ -19,6 +19,9 @@
 package art.arcane.iris.core.commands;
 
 import art.arcane.iris.Iris;
+import art.arcane.iris.core.localization.BukkitCommandMessagesExtended;
+import art.arcane.iris.core.modules.KeptModuleUpdates;
+import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
 import art.arcane.iris.core.pack.PackResourceCleanup;
 import art.arcane.iris.core.pack.PackValidationCache;
@@ -30,6 +33,8 @@ import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.volmlib.util.localization.TextKey;
+
+import org.bukkit.World;
 
 import java.io.File;
 import java.io.IOException;
@@ -88,6 +93,18 @@ public class CommandPack implements DirectorExecutor {
         }
         runValidate(s, target);
         persistValidationCache(packsRoot);
+    }
+
+    @Director(description = "Take the module updates a world kept because they change its terrain", descriptionKey = "iris.director.commandpack.director.take_kept_module_updates")
+    public void update(
+            @Param(name = "world", description = "The Iris world whose modules to update", descriptionKey = "iris.director.commandpack.param.world_take_module_updates", contextual = true, contextualOverride = true)
+            World world
+    ) {
+        if (!IrisToolbelt.isIrisWorld(world)) {
+            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_NEED_BE_SPECIFY_IRIS_GENERATED_WORLD));
+            return;
+        }
+        KeptModuleUpdates.take(IrisToolbelt.access(world).getEngine().getData()).forEach(sender()::sendMessage);
     }
 
     @Director(description = "Preview or apply unused-resource cleanup", descriptionKey = "iris.director.commandpack.director.preview_apply_unused_resource_cleanup", aliases = {"c"})

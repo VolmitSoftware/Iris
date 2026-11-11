@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
  * ({@code <level>/dimensions/<namespace>/<world>/iris/pack}) belongs to that world, configured or not. A pack installed
  * in Iris's own folder is used by every configured world that selects one of its dimensions and has no copy of its own.
  */
-final class PackUse {
+public final class PackUse {
     private static final String DIMENSIONS_FOLDER = "dimensions";
     private static final String WORLD_IRIS_FOLDER = "iris";
     private static final String WORLD_PACK_FOLDER = "pack";
@@ -70,13 +70,25 @@ final class PackUse {
                 .orElse(world.toString());
     }
 
-    /** The world whose folder holds the pack at {@code packRoot}, or empty for a pack installed outside any world. */
-    static Optional<WorldSlotKey> worldOwning(Path packRoot) {
+    /**
+     * The folder of the world that {@code packRoot} was copied into ({@code <world>/iris/pack}), wherever that world lies;
+     * empty for a pack installed outside any world.
+     */
+    public static Optional<Path> worldFolderHolding(Path packRoot) {
         Path irisFolder = packRoot.toAbsolutePath().normalize().getParent();
         if (!WORLD_PACK_FOLDER.equals(nameOf(packRoot)) || irisFolder == null || !WORLD_IRIS_FOLDER.equals(nameOf(irisFolder))) {
             return Optional.empty();
         }
-        Path worldFolder = irisFolder.getParent();
+        return Optional.ofNullable(irisFolder.getParent());
+    }
+
+    /** The world whose folder holds the pack at {@code packRoot}, or empty for a pack installed outside any world. */
+    static Optional<WorldSlotKey> worldOwning(Path packRoot) {
+        Optional<Path> holdingWorld = worldFolderHolding(packRoot);
+        if (holdingWorld.isEmpty()) {
+            return Optional.empty();
+        }
+        Path worldFolder = holdingWorld.get();
         for (Path namespace = parentOf(worldFolder); namespace != null; namespace = namespace.getParent()) {
             if (DIMENSIONS_FOLDER.equals(nameOf(namespace.getParent()))) {
                 return slotKey(nameOf(namespace), namespace.relativize(worldFolder));

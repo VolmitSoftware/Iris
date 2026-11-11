@@ -20,7 +20,10 @@ package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.core.modules.KeptModuleUpdates;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
+import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.pack.PackResourceCleanup;
 import art.arcane.iris.core.pack.PackValidationRegistry;
 import art.arcane.iris.core.pack.PackValidationResult;
@@ -83,6 +86,9 @@ public final class ModdedPackCommands {
                         .executes((CommandContext<CommandSourceStack> context) -> restore(context.getSource(), StringArgumentType.getString(context, "pack"), false))
                         .then(Commands.literal("apply")
                                 .executes((CommandContext<CommandSourceStack> context) -> restore(context.getSource(), StringArgumentType.getString(context, "pack"), true)))));
+
+        root.then(Commands.literal("update")
+                .executes((CommandContext<CommandSourceStack> context) -> update(context.getSource())));
 
         root.then(Commands.literal("status")
                 .executes((CommandContext<CommandSourceStack> context) -> status(context.getSource(), null))
@@ -189,6 +195,17 @@ public final class ModdedPackCommands {
         }, "Iris Pack Restore");
         thread.setDaemon(true);
         thread.start();
+        return 1;
+    }
+
+    /** Takes the module updates the sender's world kept because they change its terrain. */
+    private static int update(CommandSourceStack source) {
+        Engine engine = IrisModdedCommands.engineFor(source.getLevel());
+        if (engine == null) {
+            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_5));
+            return 0;
+        }
+        KeptModuleUpdates.take(engine.getData()).forEach(line -> IrisModdedCommands.ok(source, IrisLogging.clean(line)));
         return 1;
     }
 

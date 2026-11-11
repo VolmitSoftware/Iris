@@ -138,6 +138,8 @@ public final class DirectorCommandMessages {
     public static final TextKey COMMAND_PACK_DIRECTOR_PACK_VALIDATION_MAINTENANCE = text("iris.director.commandpack.director.pack_validation_maintenance");
     public static final TextKey COMMAND_PACK_DIRECTOR_VALIDATE_PACK_ALL_PACKS_RE_PUBLISH_RESULTS = text("iris.director.commandpack.director.validate_pack_all_packs_re_publish_results");
     public static final TextKey COMMAND_PACK_PARAM_PACK_FOLDER_NAME_VALIDATE_LEAVE_EMPTY_ALL = text("iris.director.commandpack.param.pack_folder_name_validate_leave_empty_all");
+    public static final TextKey COMMAND_PACK_DIRECTOR_TAKE_KEPT_MODULE_UPDATES = text("iris.director.commandpack.director.take_kept_module_updates");
+    public static final TextKey COMMAND_PACK_PARAM_WORLD_TAKE_MODULE_UPDATES = text("iris.director.commandpack.param.world_take_module_updates");
     public static final TextKey COMMAND_PACK_DIRECTOR_PREVIEW_APPLY_UNUSED_RESOURCE_CLEANUP = text("iris.director.commandpack.director.preview_apply_unused_resource_cleanup");
     public static final TextKey COMMAND_PACK_PARAM_PACK_FOLDER_NAME_CLEAN = text("iris.director.commandpack.param.pack_folder_name_clean");
     public static final TextKey COMMAND_PACK_PARAM_PREVIEW_APPLY = text("iris.director.commandpack.param.preview_apply");

@@ -18,6 +18,9 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.core.modules.manifest.ModuleUpdateReport;
+import art.arcane.iris.core.modules.manifest.PackModuleManifest;
+import art.arcane.iris.core.modules.manifest.ShippedModules;
 import art.arcane.iris.spi.IrisLogging;
 import com.google.gson.Gson;
 import com.volmit.host.LoadedPack;
@@ -31,30 +34,38 @@ import java.util.function.Supplier;
 
 /**
  * The modules of one pack folder, loaded with {@link IrisModuleHost} the first time something needs
- * them and closed with the pack data that owns them. A failed load is reported once and remembered, so
- * every later use fails with the same error instead of loading the jars again. Studio can load them
- * again after the jars in {@code <pack>/modules} change.
+ * them and closed with the pack data that owns them. Before a load, the jars are brought up to what the
+ * pack's {@code modules.json} asks for and Iris ships ({@link ManagedPackModules}). A failed load is reported
+ * once and remembered, so every later use fails with the same error instead of loading the jars again.
+ * Studio can load them again after the jars in {@code <pack>/modules} change.
  */
 public final class PackModuleSet implements AutoCloseable {
     private enum State { NOT_LOADED, LOADED, FAILED, CLOSED }
 
     static final String MODULES_FOLDER = "modules";
     private static final String JAR_EXTENSION = ".jar";
-    private static final String MISSING_BUILT_INS_KEY = "missing-built-in-modules:";
 
     private final File packFolder;
     private final Supplier<Gson> irisGson;
+    private final ManagedPackModules managed;
     private State state = State.NOT_LOADED;
     /** Set only while loaded; volatile so {@link #pack()}, asked on the generation hot path, needs no lock then. */
     private volatile LoadedPack pack;
     private ModuleSettingsDecoder settings;
     private PackModulesException failure;
     private List<String> loadedJars = List.of();
+    private ModuleUpdateReport lastUpdates = new ModuleUpdateReport(false, List.of(), List.of());
 
     /** @param irisGson the pack's own Gson, which reads the Iris classes built-in settings hold */
     public PackModuleSet(File packFolder, Supplier<Gson> irisGson) {
+        this(packFolder, irisGson, ShippedModules.bundled());
+    }
+
+    /** @param shipped the module jars to install and update the pack's from */
+    PackModuleSet(File packFolder, Supplier<Gson> irisGson, ShippedModules shipped) {
         this.packFolder = packFolder;
         this.irisGson = irisGson;
+        this.managed = new ManagedPackModules(packFolder, shipped);
     }
 
     /** The loaded pack, its built-in modules included. */
@@ -91,6 +102,25 @@ public final class PackModuleSet implements AutoCloseable {
         return true;
     }
 
+    /**
+     * Updates the jars of a world's pack, the modules whose update changes its terrain included. The world keeps
+     * generating with the modules it loaded until the server restarts.
+     */
+    public synchronized ModuleUpdateReport takeTerrainChanges() {
+        lastUpdates = managed.takeTerrainChanges();
+        return lastUpdates;
+    }
+
+    /** What the last update of the pack's jars did and what it kept: at the last load, or at {@link #takeTerrainChanges()} since. */
+    public synchronized ModuleUpdateReport lastUpdates() {
+        return lastUpdates;
+    }
+
+    /** "World survival" for a world's copy of a pack, "Pack overworld" for a pack folder. */
+    public String label() {
+        return managed.label();
+    }
+
     @Override
     public synchronized void close() {
         release(State.CLOSED);
@@ -118,24 +148,27 @@ public final class PackModuleSet implements AutoCloseable {
     }
 
     private void load() {
-        loadedJars = jarFingerprint();
         try {
+            lastUpdates = managed.bringUpToDate();
+            loadedJars = jarFingerprint();
             LoadedPack loaded = LoadedPack.load(packFolder.toPath(), IrisModuleHost.get());
             settings = new ModuleSettingsDecoder(loaded.catalog(), packFolder.toPath(), irisGson);
             pack = loaded;
             state = State.LOADED;
-            warnWhenBuiltInModulesAreMissing(loaded);
+            managed.recordLoaded(loaded.packModules());
         } catch (ModuleLoadException loadFailure) {
-            failure = new PackModulesException(packFolder, loadFailure);
-            state = State.FAILED;
-            IrisLogging.error(failure.getMessage());
-            throw failure;
+            fail(new PackModulesException(packFolder, loadFailure));
+        } catch (PackModuleManifest.ManifestFormatException brokenManifest) {
+            fail(new PackModulesException(packFolder, brokenManifest));
         }
     }
 
-    private void warnWhenBuiltInModulesAreMissing(LoadedPack loaded) {
-        MissingBuiltInModules.warning(packFolder, loaded.packModules())
-                .ifPresent(warning -> IrisLogging.warnOnce(MISSING_BUILT_INS_KEY + packFolder.getAbsolutePath(), "%s", warning));
+    private void fail(PackModulesException loadFailure) {
+        loadedJars = jarFingerprint();
+        failure = loadFailure;
+        state = State.FAILED;
+        IrisLogging.error(failure.getMessage());
+        throw failure;
     }
 
     /** Each module jar's name, size and modification time, in name order. */

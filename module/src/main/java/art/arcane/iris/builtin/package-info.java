@@ -25,10 +25,10 @@
  * Keep implementation out of it: stage bodies and anything that uses Iris internals live in the
  * built-in module classes outside this package, which packs cannot see. Settings and output types go in one
  * subpackage per built-in module, named after the module path, such as {@code art.arcane.iris.builtin.spawn}
- * for {@code iris:spawn}. A type only the built-ins jar uses, which Iris itself never reads, lives in
+ * for {@code iris:spawn}. A type only the built-in module jars use, which Iris itself never reads, lives in
  * {@code art.arcane.iris.modules} instead, which Iris does not expose.
  * <p>
- * Besides those, it holds what Iris and the built-ins jar must share, since each sees its own copy
+ * Besides those, it holds what Iris and the built-in module jars must share, since each sees its own copy
  * of every other class: narrow facades only Iris's own built-ins use, interfaces Iris's worlds implement
  * ({@link art.arcane.iris.builtin.structure.StructureVerifier}), and the seed purposes of the built-in features
  * ({@link art.arcane.iris.builtin.IrisSeedPurposes}). Keep them few: each is a promise.

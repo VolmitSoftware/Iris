@@ -1,8 +1,10 @@
 package com.volmit.service;
 
+import com.volmit.placement.PlacementRecord;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /** Which pack objects a module places, predicted without generating anything. The host's object search and its
@@ -25,6 +27,17 @@ public interface ObjectsAt {
      * layout entries that place the object themselves. Only biomes and regions the dimension can reach are named.
      */
     PlacedBy placedBy(PackWorld world, ResourceId object);
+
+    /**
+     * The placement this module plans to cover the block at {@code worldX}, {@code y}, {@code worldZ}, as
+     * {@link com.volmit.placement.PlacementTerrain#recordPlacement} would record it, predicted without generating
+     * anything. Y is the height above the dimension's bottom. The host's block inspection asks for it where generation
+     * recorded nothing at the block ({@link com.volmit.world.RunningWorld#placementAt}). Like {@link #objectsAt}, it is
+     * a prediction. Empty when the module plans nothing there.
+     */
+    default Optional<PlacementRecord> placementAt(PackWorld world, int worldX, int y, int worldZ) {
+        return Optional.empty();
+    }
 
     /** Layout entries that place an object, by their pack ids. */
     record PlacedBy(Set<ResourceId> biomes, Set<ResourceId> regions) {

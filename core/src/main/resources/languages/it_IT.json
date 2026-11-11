@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "Nessuno",
     "iris.runtime.dust.placed_by.object_above": "Posizionato da: oggetto/pilastro '{object}' (sopra la superficie)",
     "iris.runtime.dust.placed_by.decoration_above": "Posizionato da: decorazione/oggetto/pilastro (sopra la superficie)",
+    "iris.runtime.dust.placed_by.structure_piece": "Posizionato da: struttura '{structure}', pezzo '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "Posizionato da: oggetto sepolto '{object}'",
     "iris.runtime.dust.placed_by.terrain": "Posizionato da: strato terreno (profondità {depth} sotto superficie)",
     "iris.runtime.dust.column_object": "Oggetto della colonna: {object} -> questo blocco è probabilmente il pilastro dell'oggetto",

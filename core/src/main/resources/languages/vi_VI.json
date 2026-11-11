@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "không có",
     "iris.runtime.dust.placed_by.object_above": "Được đặt bởi đối tượng/ giây{object}' (mặt trên)",
     "iris.runtime.dust.placed_by.decoration_above": "Đặt theo: trang trí/ thu hút/ Linh tinh (mặt đất)",
+    "iris.runtime.dust.placed_by.structure_piece": "Được đặt bởi công trình '{structure}', phần '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "Đặt theo: đối tượng đã chôn{object}'",
     "iris.runtime.dust.placed_by.terrain": "Đặt theo lớp địa hình ( thâm tím {depth} dưới bề mặt)",
     "iris.runtime.dust.column_object": "Đối tượng cột: {object}  -> khối này có khả năng mà đối tượng của Stilt",

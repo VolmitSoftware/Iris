@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "ei yhtään",
     "iris.runtime.dust.placed_by.object_above": "Sijaitsee: esine/kallistus '{object}\" (pinnan yläpuolella)",
     "iris.runtime.dust.placed_by.decoration_above": "Sijaitsee: sisustus/objekti/kalleus (pinnan yläpuolella)",
+    "iris.runtime.dust.placed_by.structure_piece": "Sijaitsee: rakennelma '{structure}', osa '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "Paikka: haudattu esine '{object}'",
     "iris.runtime.dust.placed_by.terrain": "Sijaitsee: maastokerros (syvyys {depth} pinnan alla)",
     "iris.runtime.dust.column_object": "Sarake: {object}  -> Tämä lohko on todennäköisesti objektin puujuurta",

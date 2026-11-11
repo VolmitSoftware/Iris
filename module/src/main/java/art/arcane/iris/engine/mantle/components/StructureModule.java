@@ -29,6 +29,7 @@ import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLog;
 import com.volmit.ModuleSetup;
+import com.volmit.service.ObjectsAt;
 import com.volmit.service.StructureLocator;
 import com.volmit.service.VanillaStructures;
 import com.volmit.stage.MantleStageContext;
@@ -37,9 +38,10 @@ import com.volmit.stage.MantleStageContext;
  * Module {@code iris:structure}: where structures go and how they meet the terrain. It owns the structure placements a
  * pack declares, the mantle stage that places the structures starting in each chunk, the locator that finds them, the
  * answers about the platform's own structures ({@link StructureVanillaStructures}: the dimension's
- * {@code importedStructures} settings disable, move, fit and set them up, and the pack's placements replace them, place
+ * opt-in {@code importedStructures} settings import, disable, move, fit and set them up, and the pack's placements replace them, place
  * them alongside, start them where their {@code nativeStructures} grids say and fit them into the terrain), the checks of
- * the placements, and the {@code /iris module structure} commands.
+ * the placements, the piece planned at a block for block inspection ({@link StructurePiecesAt}), and the
+ * {@code /iris module structure} commands.
  * <p>
  * It gets the pieces of a structure only from the {@link art.arcane.iris.engine.framework.structure.assembly.StructureAssembly}
  * providers of the pack's modules, such as {@code iris:jigsaw}, and knows none of them.
@@ -63,6 +65,7 @@ public final class StructureModule implements IrisModule {
         registry.registerValidator(new StructureValidator());
         registry.registerService(StructureLocator.class, new StructureLocating());
         registry.registerService(VanillaStructures.class, new StructureVanillaStructures());
+        registry.registerService(ObjectsAt.class, new StructurePiecesAt());
         setup.tooling().registerCommand(StructureCommands.root());
     }
 

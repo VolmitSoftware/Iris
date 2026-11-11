@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "ни одного",
     "iris.runtime.dust.placed_by.object_above": "Помещение: объект/наклон{object}(над поверхностью)",
     "iris.runtime.dust.placed_by.decoration_above": "Размещено: отделка/объект/наклон (над поверхностью)",
+    "iris.runtime.dust.placed_by.structure_piece": "Помещение: структура '{structure}', деталь '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "Местонахождение: Захороненный объект{object}'",
     "iris.runtime.dust.placed_by.terrain": "Расположено: слой местности (глубина {depth} ниже поверхности)",
     "iris.runtime.dust.column_object": "Объект колонки: {object}  -> Этот блок, вероятно, является сваями объекта",

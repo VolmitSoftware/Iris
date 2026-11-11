@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "无",
     "iris.runtime.dust.placed_by.object_above": "位置: 对象/斜体 '{object}'(以上表面)",
     "iris.runtime.dust.placed_by.decoration_above": "由:装饰/物件/斜体(上表面)",
+    "iris.runtime.dust.placed_by.structure_piece": "位置: 结构 '{structure}' 的部件 '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "由: 掩埋对象 '{object}'",
     "iris.runtime.dust.placed_by.terrain": "地形层(深度){depth}(低于表面)",
     "iris.runtime.dust.column_object": "列对象 : {object}  -> 此块可能是天体的斜体",

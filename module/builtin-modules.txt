@@ -143,6 +143,7 @@ include art/arcane/iris/modules/floating/**
 jar structure
 module art.arcane.iris.engine.mantle.components.StructureModule
 include art/arcane/iris/engine/mantle/components/StructurePlacing*.class
+include art/arcane/iris/engine/mantle/components/StructurePiecesAt*.class
 include art/arcane/iris/engine/mantle/components/StructureCarvingFootprint*.class
 include art/arcane/iris/engine/mantle/components/StructureCarveEnvelope*.class
 include art/arcane/iris/engine/mantle/components/StructureFoundationPlanner*.class

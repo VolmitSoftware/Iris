@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "nėra",
     "iris.runtime.dust.placed_by.object_above": "Pateikta: objektas / stilt \"{object}\"(virš paviršiaus)",
     "iris.runtime.dust.placed_by.decoration_above": "Pateikta: dekoravimas / objektas / stilt (virš paviršiaus)",
+    "iris.runtime.dust.placed_by.structure_piece": "Pateikta: struktūra '{structure}', dalis '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "Vieta: palaidotas objektas \"{object}'",
     "iris.runtime.dust.placed_by.terrain": "Vieta: reljefo sluoksnis (gylis {depth} žemiau paviršiaus)",
     "iris.runtime.dust.column_object": "Stulpelių objektas: {object}  -> šis blokas yra tikėtina, kad objekto stilt",

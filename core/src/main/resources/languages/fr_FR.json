@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "aucune",
     "iris.runtime.dust.placed_by.object_above": "Placé par : objet/pilotis '{object}' (au-dessus de la surface)",
     "iris.runtime.dust.placed_by.decoration_above": "Placé par : décoration/objet/pilotis (au-dessus de la surface)",
+    "iris.runtime.dust.placed_by.structure_piece": "Placé par : structure '{structure}', pièce '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "Placé par : objet enterré '{object}'",
     "iris.runtime.dust.placed_by.terrain": "Placé par : couche de terrain (profondeur {depth} sous la surface)",
     "iris.runtime.dust.column_object": "Objet de la colonne : {object} -> ce bloc est probablement le pilotis de cet objet",

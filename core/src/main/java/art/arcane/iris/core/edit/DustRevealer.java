@@ -22,6 +22,7 @@ import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.localization.RuntimeUiMessages;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
@@ -196,8 +197,16 @@ public class DustRevealer {
             ), true));
         }
 
+        ModuleServices.PlannedPlacement structurePiece = objectKey == null
+                ? plannedStructurePiece(engine, x, relativeY, z) : null;
         String placedBy;
-        if (offset > 0) {
+        if (structurePiece != null) {
+            placedBy = IrisLanguage.text(
+                    RuntimeUiMessages.DUST_PLACED_BY_STRUCTURE_PIECE,
+                    MessageArgument.untrusted("structure", structurePiece.structure().orElseThrow()),
+                    MessageArgument.untrusted("object", structurePiece.object())
+            );
+        } else if (offset > 0) {
             placedBy = objectKey != null
                     ? IrisLanguage.text(
                             RuntimeUiMessages.DUST_PLACED_BY_OBJECT_ABOVE,
@@ -223,7 +232,7 @@ public class DustRevealer {
                         objectKey == null ? IrisLanguage.text(RuntimeUiMessages.DUST_NONE) : objectKey
                 )
         ), false));
-        if (objectKey == null) {
+        if (objectKey == null && structurePiece == null) {
             String columnObject = findColumnObject(engine, x, relativeY, z, minHeight);
             lines.add(new DustLine(IrisLanguage.text(
                     columnObject == null
@@ -334,6 +343,12 @@ public class DustRevealer {
         } catch (Throwable ignored) {
             return biome.toString();
         }
+    }
+
+    /** The structure piece a module plans at the block, where generation recorded none; null when no piece covers it. */
+    private static ModuleServices.PlannedPlacement plannedStructurePiece(Engine engine, int x, int relativeY, int z) {
+        ModuleServices.PlannedPlacement planned = safe(() -> ModuleServices.plannedPlacementAt(engine, x, relativeY, z).orElse(null));
+        return planned != null && planned.structure().isPresent() ? planned : null;
     }
 
     private static <T> T safe(Supplier<T> supplier) {

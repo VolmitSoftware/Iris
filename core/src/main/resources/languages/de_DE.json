@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "keine",
     "iris.runtime.dust.placed_by.object_above": "Platziert von: Objekt / Stelze '{object}' (über der Oberfläche)",
     "iris.runtime.dust.placed_by.decoration_above": "Platziert von: Dekoration/Objekt/Stelze (über der Oberfläche)",
+    "iris.runtime.dust.placed_by.structure_piece": "Platziert von: Struktur '{structure}', Teil '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "Platziert von: begrabenes Objekt '{object}'",
     "iris.runtime.dust.placed_by.terrain": "Platziert von: Geländeschicht (Tiefe {depth} unter der Oberfläche)",
     "iris.runtime.dust.column_object": "Spaltenobjekt: {object} -> Dieser Block ist wahrscheinlich die Stelze dieses Objekts",

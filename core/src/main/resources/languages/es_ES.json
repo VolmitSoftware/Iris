@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "ninguno",
     "iris.runtime.dust.placed_by.object_above": "Colocado por: objeto/pilar '{object}' (sobre la superficie)",
     "iris.runtime.dust.placed_by.decoration_above": "Colocado por: decoración/objeto/pilar (sobre la superficie)",
+    "iris.runtime.dust.placed_by.structure_piece": "Colocado por: estructura '{structure}', pieza '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "Colocado por: objeto enterrado '{object}'",
     "iris.runtime.dust.placed_by.terrain": "Colocado por: capa de terreno (profundidad {depth} bajo la superficie)",
     "iris.runtime.dust.column_object": "Objeto de la columna: {object} -> este bloque probablemente sea el pilar de ese objeto",

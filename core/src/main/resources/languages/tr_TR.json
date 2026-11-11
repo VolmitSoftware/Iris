@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "Hiçbir kimse hiçbir şey yok",
     "iris.runtime.dust.placed_by.object_above": "Tarafından Yeri: nesne /{object}\" (üstünde yüzeyi)",
     "iris.runtime.dust.placed_by.decoration_above": "Yer: dekorasyon/object /stilt (üstünde yüzeyi)",
+    "iris.runtime.dust.placed_by.structure_piece": "Tarafından Yeri: yapı '{structure}', parça '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "Yere: gömülü nesne{object}'",
     "iris.runtime.dust.placed_by.terrain": "yerleştirildi by: terrain layer (depth {depth} aşağıda yüzey)",
     "iris.runtime.dust.column_object": "Köşe nesnesi: {object}  -> Bu blok muhtemelen nesnenin stiltünün",

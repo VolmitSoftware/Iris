@@ -150,30 +150,16 @@ public class StructurePlacing {
         ColumnHeights foundationColumns = stilt == null
                 ? null : new ColumnHeights(0);
         boolean supportNonOccluding = stilt != null && stilt.supportNonOccluding();
-        if (placement.isAnchoredUnderground()) {
-            ObjectPlaceMode undergroundMode = mode.placeMode().has(PlaceTrait.CAVE_ANCHORED)
-                    ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
-            for (AssembledPiece p : pieces) {
-                if (placeObject(context, key, stamp, p, undergroundMode, false,
-                        foundationColumns, supportNonOccluding) == REJECTED_PIECE) {
-                    failedPieces++;
-                }
-            }
-        } else if (mode.placeMode().has(PlaceTrait.FREE_HEIGHT)) {
-            for (AssembledPiece p : pieces) {
-                if (placeObject(context, key, stamp, p, ObjectPlaceMode.STRUCTURE_PIECE, false,
-                        foundationColumns, supportNonOccluding) == REJECTED_PIECE) {
-                    failedPieces++;
-                }
-            }
-        } else if (pieces.size() == 1) {
+        if (samplesPieceHeight(placement, stamp, pieces)) {
             if (placeObject(context, key, stamp, pieces.getFirst(), mode, true,
                     foundationColumns, supportNonOccluding) == REJECTED_PIECE) {
                 failedPieces++;
             }
         } else {
+            ObjectPlaceMode pieceMode = placement.isAnchoredUnderground() && mode.placeMode().has(PlaceTrait.CAVE_ANCHORED)
+                    ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
             for (AssembledPiece p : pieces) {
-                if (placeObject(context, key, stamp, p, ObjectPlaceMode.STRUCTURE_PIECE, false,
+                if (placeObject(context, key, stamp, p, pieceMode, false,
                         foundationColumns, supportNonOccluding) == REJECTED_PIECE) {
                     failedPieces++;
                 }
@@ -636,12 +622,26 @@ public class StructurePlacing {
     }
 
     private PlacementRecord structurePlacementRecord(String structureKey, AssembledPiece piece, String objectKey) {
+        return pieceRecord(world.resources(), structureKey, piece, objectKey);
+    }
+
+    /** What placing the piece object {@code objectKey} records beside its blocks; null without a structure or object. */
+    static PlacementRecord pieceRecord(PackResources pack, String structureKey, AssembledPiece piece, String objectKey) {
         if (structureKey == null || structureKey.isBlank() || objectKey == null || objectKey.isBlank()) {
             return null;
         }
-        PackResources pack = world.resources();
         int placementId = structurePlacementId(structureKey, objectKey, piece.x(), piece.y(), piece.z());
         return PlacementRecord.ofPiece(pack.idOf(objectKey), placementId, pack.idOf(structureKey));
+    }
+
+    /**
+     * Whether the placement samples the height of its pieces from the terrain when it places them, rather than placing
+     * them at their planned height: a lone surface piece without free height.
+     */
+    static boolean samplesPieceHeight(StructurePlacement placement, StructureStamp stamp, List<AssembledPiece> pieces) {
+        return !placement.isAnchoredUnderground()
+                && !stamp.placeMode().placeMode().has(PlaceTrait.FREE_HEIGHT)
+                && pieces.size() == 1;
     }
 
     /** How far, in blocks along X and Z, placements may write beyond their chunk. */

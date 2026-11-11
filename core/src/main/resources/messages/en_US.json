@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "none",
     "iris.runtime.dust.placed_by.object_above": "Placed by: object/stilt '{object}' (above surface)",
     "iris.runtime.dust.placed_by.decoration_above": "Placed by: decoration/object/stilt (above surface)",
+    "iris.runtime.dust.placed_by.structure_piece": "Placed by: structure '{structure}' piece '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "Placed by: buried object '{object}'",
     "iris.runtime.dust.placed_by.terrain": "Placed by: terrain layer (depth {depth} below surface)",
     "iris.runtime.dust.column_object": "Column object: {object} -> this block is likely that object's stilt",

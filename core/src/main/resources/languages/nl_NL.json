@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "geen",
     "iris.runtime.dust.placed_by.object_above": "Geplaatst door: object/stilt '{object}\" (boven)",
     "iris.runtime.dust.placed_by.decoration_above": "Geplaatst door: decoratie/object/stilt (bovenzijde)",
+    "iris.runtime.dust.placed_by.structure_piece": "Geplaatst door: structuur '{structure}', onderdeel '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "Geplaatst door: begraven voorwerp '{object}'",
     "iris.runtime.dust.placed_by.terrain": "Geplaatst door: terreinlaag (diepte {depth} onder de oppervlakte)",
     "iris.runtime.dust.column_object": "Kolom object: {object}  -> dit blok is waarschijnlijk de schuif van het object",

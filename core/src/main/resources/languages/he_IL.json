@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "אף אחד לא",
     "iris.runtime.dust.placed_by.object_above": "הוצב על ידי: object/stilt '{object}' (מעל פני השטח)",
     "iris.runtime.dust.placed_by.decoration_above": "הוצב על ידי: decoration/object/stilt (מעל פני השטח)",
+    "iris.runtime.dust.placed_by.structure_piece": "הוצב על ידי: מבנה '{structure}', חלק '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "מקום: קבור אובייקט{object}'",
     "iris.runtime.dust.placed_by.terrain": "מיקום: שכבת שטח (מעמיקה {depth} מתחת לפני השטח)",
     "iris.runtime.dust.column_object": "עמוד: {object}  -> בלוק זה הוא כנראה המבצר של האובייקט",

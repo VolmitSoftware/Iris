@@ -22,7 +22,9 @@ import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.engine.framework.structure.StructureLocating;
 import art.arcane.iris.engine.loot.LootGiving;
+import art.arcane.iris.engine.mantle.components.ObjectLocating;
 import art.arcane.iris.engine.mantle.components.StructureModule;
+import art.arcane.iris.engine.mantle.components.StructurePiecesAt;
 import com.volmit.IrisModule;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.host.FeatureCatalog;
@@ -48,8 +50,11 @@ public class BuiltInServicesTest {
     private static final FeatureCatalog BUILT_INS = ModuleResourceFixture.catalogOf(BuiltInPack.allBuiltIns().toArray(IrisModule[]::new));
 
     @Test
-    public void objectsTellWhichObjectsAChunkGets() {
-        assertEquals(1, BUILT_INS.services(ObjectsAt.class).size());
+    public void objectsAndStructurePiecesTellWhatTheyPlace() {
+        List<ObjectsAt> providers = BUILT_INS.services(ObjectsAt.class);
+        assertEquals(2, providers.size());
+        assertTrue(providers.stream().anyMatch(ObjectLocating.class::isInstance));
+        assertTrue(providers.stream().anyMatch(StructurePiecesAt.class::isInstance));
     }
 
     @Test

@@ -21,6 +21,7 @@ package art.arcane.iris.modded.command;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.localization.RuntimeUiMessages;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.GenerationSessionException;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
@@ -253,6 +254,8 @@ public final class ModdedDustRevealer {
         String objectKey = safe(
                 "object lookup at " + coordinates(pos),
                 () -> engine.getObjectPlacementKey(x, relativeY, z));
+        ModuleServices.PlannedPlacement structurePiece = objectKey == null
+                ? plannedStructurePiece(engine, pos, x, relativeY, z) : null;
         IrisBiome surfaceBiome = safe(
                 "surface biome lookup at " + x + ", " + z,
                 () -> engine.getSurfaceBiome(x, z));
@@ -279,8 +282,9 @@ public final class ModdedDustRevealer {
         ), false));
         if (offset != null && surfaceY != null) {
             lines.add(new DustLine(positionLine(offset, surfaceY), true));
-            lines.add(new DustLine(
-                    placementLine(offset, surfaceRelative, relativeY, objectKey), true));
+            lines.add(new DustLine(structurePiece != null
+                    ? structurePieceLine(structurePiece)
+                    : placementLine(offset, surfaceRelative, relativeY, objectKey), true));
         }
         lines.add(new DustLine(IrisLanguage.plain(
                 RuntimeUiMessages.DUST_OBJECT_AT_BLOCK,
@@ -290,7 +294,7 @@ public final class ModdedDustRevealer {
                                 ? IrisLanguage.plain(RuntimeUiMessages.DUST_NONE)
                                 : objectKey)
         ), false));
-        if (objectKey == null) {
+        if (objectKey == null && structurePiece == null) {
             String columnObject = findColumnObject(engine, x, relativeY, z, minHeight);
             lines.add(new DustLine(IrisLanguage.plain(
                     columnObject == null
@@ -386,6 +390,21 @@ public final class ModdedDustRevealer {
         return IrisLanguage.plain(
                 RuntimeUiMessages.DUST_PLACED_BY_TERRAIN,
                 MessageArgument.trusted("depth", Math.max(0, surfaceRelative - relativeY)));
+    }
+
+    static String structurePieceLine(ModuleServices.PlannedPlacement structurePiece) {
+        return IrisLanguage.plain(
+                RuntimeUiMessages.DUST_PLACED_BY_STRUCTURE_PIECE,
+                MessageArgument.untrusted("structure", structurePiece.structure().orElseThrow()),
+                MessageArgument.untrusted("object", structurePiece.object()));
+    }
+
+    /** The structure piece a module plans at the block, where generation recorded none; null when no piece covers it. */
+    private static ModuleServices.PlannedPlacement plannedStructurePiece(Engine engine, BlockPos pos, int x, int relativeY, int z) {
+        ModuleServices.PlannedPlacement planned = safe(
+                "structure piece lookup at " + coordinates(pos),
+                () -> ModuleServices.plannedPlacementAt(engine, x, relativeY, z).orElse(null));
+        return planned != null && planned.structure().isPresent() ? planned : null;
     }
 
     private static String findColumnObject(Engine engine, int x, int relativeY,

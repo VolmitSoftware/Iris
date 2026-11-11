@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "nenhum",
     "iris.runtime.dust.placed_by.object_above": "Colocado por: objeto/tilt '{object}« (superfície superior)",
     "iris.runtime.dust.placed_by.decoration_above": "Colocado por: decoração/objeto/tilt (superfície superior)",
+    "iris.runtime.dust.placed_by.structure_piece": "Colocado por: estrutura '{structure}', peça '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "Colocado por: objeto enterrado '{object}'",
     "iris.runtime.dust.placed_by.terrain": "Colocado por: camada de terreno (profundidade {depth} abaixo da superfície)",
     "iris.runtime.dust.column_object": "Objeto da coluna: {object}  -> este bloco é provável que o objeto",

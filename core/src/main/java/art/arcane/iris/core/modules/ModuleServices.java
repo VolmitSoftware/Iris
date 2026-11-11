@@ -24,6 +24,7 @@ import com.volmit.host.FeatureCatalog;
 import com.volmit.host.ServiceRegistration;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemDrop;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.AmbientEffects;
@@ -119,6 +120,27 @@ public final class ModuleServices {
             provider.service().objectsAt(provider.world(), chunkX, chunkZ).forEach(id -> keys.add(resources.keyOf(PackResources.OBJECTS, id)));
         }
         return keys;
+    }
+
+    /**
+     * The object, and the structure it is a piece of, that a module plans at the block, as pack keys; empty when none
+     * plans one. Y is the height above the dimension's bottom.
+     */
+    public static Optional<PlannedPlacement> plannedPlacementAt(Engine engine, int x, int y, int z) {
+        IrisPackResources resources = engine.getData().getPackResources();
+        for (Provider<ObjectsAt> provider : providers(engine, ObjectsAt.class)) {
+            Optional<PlacementRecord> planned = provider.service().placementAt(provider.world(), x, y, z);
+            if (planned.isPresent()) {
+                return planned.map(record -> new PlannedPlacement(
+                        resources.keyOf(PackResources.OBJECTS, record.object()),
+                        record.structure().map(resources::keyOf)));
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** A placement a module plans at a block: the object's key and, for a structure piece, the structure's. */
+    public record PlannedPlacement(String object, Optional<String> structure) {
     }
 
     /** The keys of the biomes and regions of the engine's layout that every module says place the object {@code objectKey}. */

@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "なし",
     "iris.runtime.dust.placed_by.object_above": "配置元: object/stilt '{object}'（地表より上）",
     "iris.runtime.dust.placed_by.decoration_above": "配置元: decoration/object/stilt（地表より上）",
+    "iris.runtime.dust.placed_by.structure_piece": "配置元: 構造物 '{structure}' のパーツ '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "配置元: 埋設オブジェクト '{object}'",
     "iris.runtime.dust.placed_by.terrain": "配置元: 地形レイヤー（地表からの深さ {depth}）",
     "iris.runtime.dust.column_object": "列のオブジェクト: {object} -> このブロックはそのオブジェクトの支柱である可能性があります",

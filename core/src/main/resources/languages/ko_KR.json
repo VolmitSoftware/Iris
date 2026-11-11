@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "없음",
     "iris.runtime.dust.placed_by.object_above": "배치 원인: object/stilt '{object}'(표면 위)",
     "iris.runtime.dust.placed_by.decoration_above": "배치 원인: decoration/object/stilt(표면 위)",
+    "iris.runtime.dust.placed_by.structure_piece": "배치 원인: 구조물 '{structure}' 부품 '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "에 의해 장소: 매장된 개체 '{object}'",
     "iris.runtime.dust.placed_by.terrain": "에 의해 배치: 지형 층 (깊이 {depth} 표면의 밑에)",
     "iris.runtime.dust.column_object": "란 목표: {object}  -> 이 블록은 객체의 stilt가 될 가능성이 있습니다.",

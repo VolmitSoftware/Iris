@@ -946,6 +946,7 @@
     "iris.runtime.dust.none": "brak",
     "iris.runtime.dust.placed_by.object_above": "Umieszczone przez: obiekt / stilt '{object}\"(nad powierzchnią)",
     "iris.runtime.dust.placed_by.decoration_above": "Umieszczone przez: dekoracje / obiekt / stilt (nad powierzchnią)",
+    "iris.runtime.dust.placed_by.structure_piece": "Umieszczone przez: struktura '{structure}', element '{object}'",
     "iris.runtime.dust.placed_by.buried_object": "Umieszczone przez: zakopany obiekt \"{object}'",
     "iris.runtime.dust.placed_by.terrain": "Umieszczone przez: warstwa terenu (głębokość {depth} poniżej powierzchni)",
     "iris.runtime.dust.column_object": "Obiekt kolumny: {object}  -> Ten blok jest prawdopodobny.",

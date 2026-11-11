@@ -18,7 +18,7 @@ const DEFAULT_NAMESPACE_PREFIX = 'minecraft:'
 // A layer thinner than the depth shown, or a palette with no block for the spot.
 const NONE_LABEL = 'nothing at this depth'
 
-/** The blocks the shown layer's tiles placed so far by name, each with one full state for its icon, and whether some spots got none. */
+/** The blocks the shown layer's tiles placed so far by name, each with one state to draw its icon as, and whether some spots got none. */
 interface LegendBlocks {
   examples: Map<string, string>
   someNone: boolean
@@ -153,7 +153,7 @@ function usePatternView(
 
 /** The legend with the tile's blocks added, one row per block whatever its state; unchanged when it had them all. */
 function withBlocks(shown: LegendBlocks, tile: PatternBlocks): LegendBlocks {
-  const added = [...tile.colors.keys()].map((block) => [shortName(block), block] as const).filter(([name]) => !shown.examples.has(name))
+  const added = [...tile.drawnAs].map(([block, drawnAs]) => [shortName(block), drawnAs] as const).filter(([name]) => !shown.examples.has(name))
   const someNone = shown.someNone || tile.someNone
   if (added.length === 0 && someNone === shown.someNone) {
     return shown

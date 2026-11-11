@@ -35,9 +35,9 @@ export interface PatternStatus extends TiledFrame {
   spot: PatternSpot
 }
 
-/** The blocks a tile placed with their colours, and whether it left some columns without a block. */
+/** The blocks a tile placed, each with the state it is drawn as, and whether it left some columns without a block. */
 export interface PatternBlocks {
-  colors: Map<string, number>
+  drawnAs: Map<string, string>
   someNone: boolean
 }
 
@@ -89,7 +89,7 @@ function patternTileSource(client: BridgeClient, blockColors: BlockColors, liste
     fetch: async (address, layer, signal) => {
       const picture = await fetchPicture(client, blockColors, address, layer, signal)
       listener.onBlocks(layer, {
-        colors: new Map(picture.pattern.blocks.map((block, index) => [block, picture.colors[index]])),
+        drawnAs: new Map(picture.pattern.blocks.map((block, index) => [block, picture.pattern.drawnAs[index]])),
         someNone: picture.pattern.picks.includes(NO_PATTERN_BLOCK)
       })
       return picture
@@ -109,8 +109,8 @@ async function fetchPicture(client: BridgeClient, blockColors: BlockColors, addr
   const pixelsPerColumn = Math.round(blocksPerColumn / address.blocksPerPixel)
   const columns = PATTERN_TILE_PIXELS / pixelsPerColumn
   const pattern = await client.pattern({ ...layer, tileX: address.tileX, tileZ: address.tileZ, blocksPerColumn, columns }, signal)
-  const colors = await Promise.all(pattern.blocks.map((block) => blockColors.colorOf(block)))
-  const textures = pixelsPerColumn > 1 ? await Promise.all(pattern.blocks.map((block) => blockColors.topTexture(block))) : []
+  const colors = await Promise.all(pattern.drawnAs.map((block) => blockColors.colorOf(block)))
+  const textures = pixelsPerColumn > 1 ? await Promise.all(pattern.drawnAs.map((block) => blockColors.topTexture(block))) : []
   return { pattern, colors, textures, pixelsPerColumn }
 }
 

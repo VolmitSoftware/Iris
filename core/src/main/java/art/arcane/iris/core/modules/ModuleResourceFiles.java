@@ -114,7 +114,7 @@ public final class ModuleResourceFiles<T> {
         if (!IrisModuleHost.isHostType(kind.type())) {
             return;
         }
-        JsonSchemaValidator.validateTopLevelKeys(new JSONObject(json), json, file, typeName, kind.type(), Set.of());
+        data.reportUnknownFields(file, json, typeName, kind.type(), Set.of(), new JSONObject(json));
     }
 
     private void describeOrigin(T resource, String key, File file) {

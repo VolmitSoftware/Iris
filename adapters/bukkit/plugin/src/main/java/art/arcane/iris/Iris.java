@@ -591,15 +591,18 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         };
     }
 
+    /**
+     * Keeps the section-sign colours core writes but reads nothing else as markup: a diagnostic quotes pack files,
+     * whose text may hold tag-like or ampersand sequences that have to show as written.
+     */
     private static void diagnostic(Level level, String message) {
-        String line = IrisLogging.clean(message);
         Iris plugin = instance;
         ComponentLog.log(
                 plugin,
                 Logger.getLogger("Iris"),
                 logPrefix(plugin),
                 level,
-                ComponentText.literal(line),
+                ComponentText.section(message),
                 null);
     }
 

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.studio.bridge;
 
+import art.arcane.iris.core.link.CustomBlockLook;
 import com.google.gson.Gson;
 import com.volmit.block.BlockState;
 import com.volmit.tooling.BlockPattern;
@@ -25,7 +26,10 @@ import com.volmit.tooling.BlockPattern;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * A {@link BlockPattern} as the studio reads it, little endian:
@@ -42,9 +46,19 @@ final class PatternEncoding {
     private PatternEncoding() {
     }
 
-    static byte[] encode(BlockPattern pattern, int blocksPerColumn, Gson gson) {
-        List<String> blocks = pattern.blocks().stream().map(BlockState::key).toList();
-        byte[] header = gson.toJson(new Header(pattern.columns(), blocksPerColumn, blocks, NO_BLOCK))
+    /**
+     * @param pluginLooks the plugin block a server state is with the vanilla state players see in its place; empty for
+     *                    every state that is no plugin's block
+     */
+    static byte[] encode(BlockPattern pattern, int blocksPerColumn, Gson gson, Function<String, Optional<CustomBlockLook>> pluginLooks) {
+        List<String> blocks = new ArrayList<>();
+        List<String> drawnAs = new ArrayList<>();
+        for (BlockState block : pattern.blocks()) {
+            Optional<CustomBlockLook> look = pluginLooks.apply(block.key());
+            blocks.add(look.map(found -> found.id().toString()).orElse(block.key()));
+            drawnAs.add(look.map(CustomBlockLook::shownAs).orElse(block.key()));
+        }
+        byte[] header = gson.toJson(new Header(pattern.columns(), blocksPerColumn, blocks, drawnAs, NO_BLOCK))
                 .getBytes(StandardCharsets.UTF_8);
         int columns = pattern.columns();
         ByteBuffer buffer = ByteBuffer.allocate(aligned(Integer.BYTES + header.length) + columns * columns * Short.BYTES)
@@ -63,6 +77,7 @@ final class PatternEncoding {
         return (bytes + ALIGNMENT_BYTES - 1) / ALIGNMENT_BYTES * ALIGNMENT_BYTES;
     }
 
-    private record Header(int columns, int blocksPerColumn, List<String> blocks, int noBlock) {
+    /** {@code blocks} names each block as the pack does; {@code drawnAs} is the state of each to draw it as. */
+    private record Header(int columns, int blocksPerColumn, List<String> blocks, List<String> drawnAs, int noBlock) {
     }
 }

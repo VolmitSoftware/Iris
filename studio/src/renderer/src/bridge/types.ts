@@ -150,8 +150,10 @@ export interface PatternEntry {
 export interface PatternTile {
   columns: number
   blocksPerColumn: number
-  /** The block states the picks index, as BlockState keys. */
+  /** The block states the picks index, as BlockState keys; a plugin's block by the name the pack gives it. */
   blocks: string[]
+  /** Per block, the state players see and the studio draws: the block itself, or the vanilla state a plugin block borrows. */
+  drawnAs: string[]
   /** Each column's block, or NO_PATTERN_BLOCK where the pattern places none. */
   picks: Int16Array
 }

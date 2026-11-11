@@ -149,6 +149,15 @@ public abstract class ExternalDataProvider {
     }
 
     /**
+     * @param data A block the server holds, which for a plugin block may be a state only the server knows
+     * @return The plugin block it is with the vanilla state players see, or nothing when it is not one of the provider's
+     */
+    @NotNull
+    public Optional<CustomBlockLook> lookOf(@NotNull BlockData data) {
+        return Optional.empty();
+    }
+
+    /**
      * @return The resource pack holding the models of the provider's blocks, or nothing when it has none on disk
      */
     @NotNull

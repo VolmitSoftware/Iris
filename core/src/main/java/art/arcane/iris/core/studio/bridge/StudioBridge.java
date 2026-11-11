@@ -19,6 +19,9 @@
 package art.arcane.iris.core.studio.bridge;
 
 import art.arcane.iris.core.gui.GuiHost;
+import art.arcane.iris.core.link.CustomBlockLook;
+import art.arcane.iris.core.link.CustomBlockSource;
+import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.core.gui.GuiMarker;
 import art.arcane.iris.core.project.StudioEditor;
 import art.arcane.iris.core.project.StudioEditorLauncher;
@@ -500,7 +503,13 @@ public final class StudioBridge implements AutoCloseable {
         } catch (NoSuchElementException unknown) {
             throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
         }
-        return PatternEncoding.encode(pattern.orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No pattern " + key)), blocksPerColumn, gson);
+        return PatternEncoding.encode(pattern.orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No pattern " + key)), blocksPerColumn, gson,
+                StudioBridge::pluginLookOf);
+    }
+
+    private static Optional<CustomBlockLook> pluginLookOf(String state) {
+        CustomBlockSource plugins = IrisServices.getOrNull(CustomBlockSource.class);
+        return plugins == null ? Optional.empty() : plugins.lookOf(state);
     }
 
     private static List<SavedWorlds.Info> savedWorlds(HttpExchange exchange) {

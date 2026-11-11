@@ -6,6 +6,7 @@ interface PatternHeader {
   columns: number
   blocksPerColumn: number
   blocks: string[]
+  drawnAs: string[]
 }
 
 /**
@@ -20,6 +21,7 @@ export function decodePattern(buffer: ArrayBuffer): PatternTile {
     columns: header.columns,
     blocksPerColumn: header.blocksPerColumn,
     blocks: header.blocks,
+    drawnAs: header.drawnAs,
     picks: new Int16Array(buffer, picksAt, header.columns * header.columns)
   }
 }

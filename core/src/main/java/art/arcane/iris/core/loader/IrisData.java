@@ -72,6 +72,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 
+import art.arcane.volmlib.util.json.JSONObject;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -420,6 +422,32 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public void preprocessObject(IrisRegistrant t) {
+    }
+
+    /** States the fields of {@code file} that nothing reads, in the one list of this pack's unread fields. */
+    public void reportUnknownFields(File file, String rawText, String resourceTypeName, Class<?> type, Set<String> moduleKeys,
+                                    JSONObject parsed) {
+        List<UnknownPackFields.Field> unknown = JsonSchemaValidator.unknownTopLevelKeys(parsed, rawText, pathInPack(file),
+                resourceTypeName, type, moduleKeys);
+        if (unknown.isEmpty()) {
+            return;
+        }
+        UnknownPackFields.add(new UnknownPackFields.Pack(dataFolder, modules.label(), loadsModules()), unknown);
+    }
+
+    private String pathInPack(File file) {
+        Path folder = dataFolder.toPath().toAbsolutePath().normalize();
+        Path path = file.toPath().toAbsolutePath().normalize();
+        return path.startsWith(folder) ? folder.relativize(path).toString().replace(File.separatorChar, '/') : file.getPath();
+    }
+
+    /** A pack whose modules failed to load counts as loading them: the failure is reported on its own. */
+    private boolean loadsModules() {
+        try {
+            return !modules.pack().packModules().isEmpty();
+        } catch (RuntimeException failedToLoad) {
+            return true;
+        }
     }
 
     public void close() {

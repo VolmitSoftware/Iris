@@ -213,6 +213,16 @@ public class CraftEngineDataProvider extends ExternalDataProvider implements Lis
         return List.copyOf(looksByShownState.values());
     }
 
+    @Override
+    public @NotNull Optional<CustomBlockLook> lookOf(@NotNull BlockData data) {
+        ImmutableBlockState state = customStateOf(data);
+        if (state == null) {
+            return Optional.empty();
+        }
+        Key owner = state.owner().value().id();
+        return Optional.of(new CustomBlockLook(new Identifier(owner.namespace(), owner.value()), state.visualBlockState().getAsString()));
+    }
+
     // PackManager#resourcePackPath went away in CraftEngine's later versions, which set this path in their workflows.
     @Override
     public @NotNull Optional<Path> getResourcePack() {

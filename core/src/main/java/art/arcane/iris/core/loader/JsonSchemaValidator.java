@@ -5,12 +5,14 @@ import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Warns about JSON a pack file holds that its type ignores, and reports a file that failed to load with the line at fault. */
+/** Finds JSON a pack file holds that its type ignores, and reports a file that failed to load with the line at fault. */
 public final class JsonSchemaValidator {
     private static final int SUGGESTION_MAX_DISTANCE = 4;
 
@@ -18,21 +20,24 @@ public final class JsonSchemaValidator {
     }
 
     /**
-     * Warns about every top-level key that is neither a field of {@code objectClass} nor one of
-     * {@code moduleKeys}, the keys the pack's modules read at this resource's target.
+     * Every top-level key that is neither a field of {@code objectClass} nor one of {@code moduleKeys}, the keys the
+     * pack's modules read at this resource's target; {@code packFile} is the file's path in its pack.
      */
-    public static void validateTopLevelKeys(JSONObject parsed, String rawText, File file, String resourceTypeName, Class<?> objectClass,
-                                     Set<String> moduleKeys) {
+    public static List<UnknownPackFields.Field> unknownTopLevelKeys(JSONObject parsed, String rawText, String packFile, String resourceTypeName,
+                                                                    Class<?> objectClass, Set<String> moduleKeys) {
         if (parsed == null || objectClass == null) {
-            return;
+            return List.of();
         }
         Set<String> fields = JsonFieldNames.of(objectClass);
+        Set<String> known = union(fields, moduleKeys);
+        List<UnknownPackFields.Field> unknown = new ArrayList<>();
         for (String key : parsed.keySet()) {
-            if (fields.contains(key) || moduleKeys.contains(key)) {
+            if (known.contains(key)) {
                 continue;
             }
-            reportUnknownKey(key, rawText, file, resourceTypeName, union(fields, moduleKeys));
+            unknown.add(new UnknownPackFields.Field(resourceTypeName, key, packFile, findLineForKey(rawText, key), closestMatch(key, known)));
         }
+        return unknown;
     }
 
     private static Set<String> union(Set<String> fields, Set<String> moduleKeys) {
@@ -58,27 +63,6 @@ public final class JsonSchemaValidator {
         out.append("Couldn't load ").append(resourceTypeName)
                 .append(C.RED).append(" in ").append(C.WHITE).append(location).append(C.RED)
                 .append(" -> ").append(message);
-        String snippet = buildSnippet(rawText, line);
-        if (snippet != null) {
-            out.append('\n').append(snippet);
-        }
-        IrisLogging.warn(out.toString());
-    }
-
-    private static void reportUnknownKey(String key, String rawText, File file, String resourceTypeName, Set<String> known) {
-        int line = findLineForKey(rawText, key);
-        String suggestion = closestMatch(key, known);
-        StringBuilder out = new StringBuilder();
-        out.append("Unknown ").append(resourceTypeName).append(" field ")
-                .append(C.WHITE).append('"').append(key).append('"').append(C.YELLOW)
-                .append(" in ").append(C.WHITE).append(file.getPath());
-        if (line > 0) {
-            out.append(":").append(line);
-        }
-        out.append(C.YELLOW).append(" (Gson will silently ignore this)");
-        if (suggestion != null) {
-            out.append(". Did you mean ").append(C.WHITE).append('"').append(suggestion).append('"').append(C.YELLOW).append("?");
-        }
         String snippet = buildSnippet(rawText, line);
         if (snippet != null) {
             out.append('\n').append(snippet);

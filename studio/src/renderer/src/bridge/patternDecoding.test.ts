@@ -15,11 +15,18 @@ function encodedPattern(header: object, picks: number[]): ArrayBuffer {
 
 describe('decodePattern', () => {
   it('reads the picks after the padded header, row by row, with no block as -1', () => {
-    const header = { columns: 2, blocksPerColumn: 4, blocks: ['minecraft:grass_block[snowy=false]', 'minecraft:dirt'], noBlock: -1 }
+    const header = {
+      columns: 2,
+      blocksPerColumn: 4,
+      blocks: ['minecraft:grass_block[snowy=false]', 'etopia:grass_block'],
+      drawnAs: ['minecraft:grass_block[snowy=false]', 'minecraft:note_block[note=7]'],
+      noBlock: -1
+    }
     const pattern = decodePattern(encodedPattern(header, [0, -1, 1, 0]))
     expect(pattern.columns).toBe(2)
     expect(pattern.blocksPerColumn).toBe(4)
     expect(pattern.blocks).toEqual(header.blocks)
+    expect(pattern.drawnAs).toEqual(header.drawnAs)
     expect([...pattern.picks]).toEqual([0, NO_PATTERN_BLOCK, 1, 0])
   })
 })

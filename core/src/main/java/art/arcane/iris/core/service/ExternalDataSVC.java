@@ -231,6 +231,20 @@ public class ExternalDataSVC implements IrisService, CustomBlockSource {
     }
 
     @Override
+    public Optional<CustomBlockLook> lookOf(String state) {
+        BlockData data;
+        try {
+            data = Bukkit.createBlockData(state);
+        } catch (IllegalArgumentException notAServerState) {
+            return Optional.empty();
+        }
+        return activeProviders.stream()
+                .map(provider -> provider.lookOf(data))
+                .flatMap(Optional::stream)
+                .findFirst();
+    }
+
+    @Override
     public List<Path> resourcePacks() {
         return activeProviders.stream()
                 .map(ExternalDataProvider::getResourcePack)

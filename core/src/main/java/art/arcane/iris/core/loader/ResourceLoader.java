@@ -431,7 +431,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             JSONObject parsed = new JSONObject(rawText);
             readAsJson = true;
             Optional<Level> moduleTarget = ModuleTargets.ofResource(objectClass);
-            JsonSchemaValidator.validateTopLevelKeys(parsed, rawText, j, resourceTypeName, objectClass, moduleKeys(moduleTarget));
+            getManager().reportUnknownFields(j, rawText, resourceTypeName, objectClass, moduleKeys(moduleTarget), parsed);
             T t = getManager().getGson()
                     .fromJson(preprocess(parsed).toString(0), objectClass);
             moduleTarget.ifPresent(target -> t.setModuleSettings(decodeModuleSettings(target, parsed, name)));

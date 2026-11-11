@@ -52,9 +52,9 @@ public final class MinecraftAssets {
     }
 
     /**
-     * The asset file at {@code path} in the client jar, such as {@code assets/minecraft/textures/block/stone.png}, or
-     * for another namespace in the resource packs of the server's plugins; empty when there is no such file or the path
-     * leaves the asset folder.
+     * The asset file at {@code path}, such as {@code assets/minecraft/textures/block/stone.png}, as players see it: from
+     * the resource packs of the server's plugins, which replace vanilla block states with their blocks' models, and
+     * otherwise from the client jar; empty when there is no such file or the path leaves the asset folder.
      *
      * @throws NotReadyException while the client jar is still being fetched, or when fetching it failed; the next call
      *                           after a failure tries again
@@ -63,8 +63,9 @@ public final class MinecraftAssets {
         if (!isAssetPath(path)) {
             return Optional.empty();
         }
-        if (!path.startsWith(MINECRAFT_ASSET_FOLDER)) {
-            return readFromPacks(pluginResourcePacks(), path);
+        Optional<byte[]> fromPlugins = readFromPacks(pluginResourcePacks(), path);
+        if (fromPlugins.isPresent() || !path.startsWith(MINECRAFT_ASSET_FOLDER)) {
+            return fromPlugins;
         }
         ZipFile jar = openedJar();
         ZipEntry entry = jar.getEntry(path);

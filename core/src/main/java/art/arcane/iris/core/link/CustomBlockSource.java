@@ -20,6 +20,7 @@ package art.arcane.iris.core.link;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * What the studio needs to know of the blocks plugins add, without reaching for the server's plugin API.
@@ -32,6 +33,15 @@ public interface CustomBlockSource {
      * @return one look for every vanilla state some plugin block is saved as
      */
     List<CustomBlockLook> blocks();
+
+    /**
+     * Some plugins generate their blocks as states only the server knows, such as {@code craftengine:custom_7}, and
+     * send players a vanilla state in their place.
+     *
+     * @param state a block state the server holds
+     * @return the plugin block it is with the state players see, or empty when it is no plugin's block
+     */
+    Optional<CustomBlockLook> lookOf(String state);
 
     /**
      * @return the resource packs holding the models of the plugins' blocks, those that have one on disk

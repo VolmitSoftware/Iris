@@ -38,15 +38,19 @@ public class UnreadablePackFilesTest {
     }
 
     @Test
-    public void reportsCommentsBecauseTheLoadersCannotReadThem() throws IOException {
+    public void acceptsCommentsLikeTheLoaders() throws IOException {
         File biome = write("biome.json", """
                 {
-                    // the loaders reject this
-                    "name": "Plains"
+                    // line comment
+                    "name": "Plains", /* block comment */
+                    "children": [
+                        // "commented-out",
+                        "a"
+                    ]
                 }
                 """);
 
-        assertEquals(1, files.recheck(List.of(biome)).size());
+        assertTrue(files.recheck(List.of(biome)).isEmpty());
     }
 
     @Test

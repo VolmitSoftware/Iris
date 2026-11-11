@@ -16,7 +16,7 @@ import {
   type KeyPress
 } from './shortcuts'
 
-const DEFAULT_VIEWS = ['biomes', 'regions', 'height', 'landBiomes', 'seaBiomes', 'caveBiomes'].map((id) => ({ id, label: id }))
+const DEFAULT_VIEWS = ['biomes', 'regions', 'landBiomes', 'seaBiomes', 'caveBiomes'].map((id) => ({ id, label: id }))
 const ROWS = shortcutRows(DEFAULT_VIEWS)
 
 function press(key: string, modifiers: Partial<Omit<KeyPress, 'key'>> = {}): KeyPress {

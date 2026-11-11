@@ -10,7 +10,7 @@ import { coarserTile, previewsFor, renderBlocksPerPixel, screenToWorldX, visible
 const PLAINS: MapLabel = { kind: 'BIOME', key: 'plains', name: 'Plains', color: 0x00ff00 }
 const DESERT: MapLabel = { kind: 'BIOME', key: 'desert', name: 'Desert', color: 0xffff00 }
 const WARM: MapLabel = { kind: 'REGION', key: 'warm', name: 'Warm', color: 0xff0000 }
-const FLAT: TileStyle = { byHeight: false, shading: false, regionBorders: false, highlight: null, seaLevel: 63, pickDisplay: 'picks' }
+const FLAT: TileStyle = { byBlock: false, shading: false, regionBorders: false, highlight: null, seaLevel: 63, pickDisplay: 'picks' }
 
 /** A tile whose left half is plains and right half desert, all in one region, at height 70. */
 function splitTile(size = 4): MapTile {
@@ -27,7 +27,8 @@ function splitTile(size = 4): MapTile {
     subjects,
     regions: new Int16Array(cells).fill(2),
     heights: new Float32Array(cells).fill(70),
-    pickNoise: null
+    pickNoise: null,
+    blocks: null
   }
 }
 
@@ -132,6 +133,22 @@ describe('tile style', () => {
     expect(pixel(pixels, 4, 3, 3)).toBe(DESERT.color)
   })
 
+  it('paints each pixel in the colour of what stands on its ground, or of the ground itself', () => {
+    const tile = splitTile()
+    const cells = tile.subjects.length
+    const cover = new Int16Array(cells).fill(-1)
+    cover[gridIndex(tile, 3, 3)] = 1
+    const blocks = { names: ['stone', 'poppy'], ground: new Int16Array(cells).fill(0), cover, colors: [0x808080, 0xff0000], looks: [] }
+    const pixels = stylePixels({ ...tile, blocks }, { ...FLAT, byBlock: true })
+
+    expect(pixel(pixels, 4, 0, 0)).toBe(0x808080)
+    expect(pixel(pixels, 4, 3, 3)).toBe(0xff0000)
+  })
+
+  it('keeps the label colours of a tile without blocks', () => {
+    expect(pixel(stylePixels(splitTile(), { ...FLAT, byBlock: true }), 4, 0, 0)).toBe(PLAINS.color)
+  })
+
   it('dims everything but the highlight, and tints the highlight edge', () => {
     const pixels = stylePixels(splitTile(), { ...FLAT, highlight: { kind: 'BIOME', key: 'plains', name: 'Plains' } })
 
@@ -194,7 +211,7 @@ describe('viewport', () => {
 describe('census', () => {
   it('shares the visible pixels between the labels', () => {
     const tile = splitTile(4)
-    const shares = countShares([{ tile, worldX: 0, worldZ: 0 }], { minimumX: 0, minimumZ: 0, maximumX: 4, maximumZ: 4 }, false, 63)
+    const shares = countShares([{ tile, worldX: 0, worldZ: 0 }], { minimumX: 0, minimumZ: 0, maximumX: 4, maximumZ: 4 })
 
     expect(shares.map((share) => share.subject.key).sort()).toEqual(['desert', 'plains'])
     expect(shares[0].fraction).toBeCloseTo(0.5)
@@ -202,17 +219,10 @@ describe('census', () => {
   })
 
   it('counts only the part of a tile inside the area, largest share first', () => {
-    const shares = countShares([{ tile: splitTile(4), worldX: 0, worldZ: 0 }], { minimumX: 0, minimumZ: 0, maximumX: 3, maximumZ: 4 }, false, 63)
+    const shares = countShares([{ tile: splitTile(4), worldX: 0, worldZ: 0 }], { minimumX: 0, minimumZ: 0, maximumX: 3, maximumZ: 4 })
 
     expect(shares.map((share) => share.subject.key)).toEqual(['plains', 'desert'])
     expect(shares[0].fraction).toBeCloseTo(2 / 3)
-  })
-
-  it('counts height bands in the height view', () => {
-    const shares = countShares([{ tile: splitTile(4), worldX: 0, worldZ: 0 }], { minimumX: 0, minimumZ: 0, maximumX: 4, maximumZ: 4 }, true, 63)
-
-    expect(shares).toHaveLength(1)
-    expect(shares[0].subject).toMatchObject({ kind: 'HEIGHT', name: '0–8 above sea' })
   })
 
   it('shares spot heights between their bands, highest band first', () => {

@@ -5,6 +5,7 @@ import { decodeSavedTile } from './savedTileDecoding'
 import { decodeTile } from './tileDecoding'
 import type {
   BakeRun,
+  BlockSource,
   EditorState,
   GraphEdit,
   MapHover,
@@ -49,6 +50,8 @@ export interface TileRequest {
   size: number
   heights: boolean
   pickNoise: boolean
+  /** Where the tile's blocks come from, or null for a tile without them. */
+  blocks: BlockSource | null
 }
 
 /** One tile of a pattern: tile (x, z) covers columns × blocksPerColumn blocks from x × that, z × that. */
@@ -136,6 +139,9 @@ export class BridgeClient {
       heights: request.heights ? '1' : '0',
       noise: request.pickNoise ? '1' : '0'
     })
+    if (request.blocks !== null) {
+      query.set('blocks', request.blocks)
+    }
     const response = await this.fetch(`tile?${query}`, { signal })
     return decodeTile(await response.arrayBuffer())
   }

@@ -1,9 +1,9 @@
 import type { BridgeClient, WorldRect } from '../bridge/BridgeClient'
 import { gridIndex } from '../bridge/tileDecoding'
-import { NO_LABEL, type MapLabel, type MapTile, type Marker, type PickDisplay, type WorldInfo } from '../bridge/types'
+import { NO_LABEL, type BlockSource, type MapLabel, type MapTile, type Marker, type PickDisplay, type WorldInfo } from '../bridge/types'
 import { countShares, type PlacedTile, type Share } from './census'
-import { bandIndexOf, HEIGHT_BANDS } from './heightColors'
-import { mapTileSource, type TileLayer } from './mapTileSource'
+import { blockArt, type BlockArt } from '../scene/blockArt'
+import { hasBlocksAt, mapTileSource, type TileLayer } from './mapTileSource'
 import { drawPlayerArrow } from './playerArrow'
 import { drawVisibleTiles } from './tileDrawing'
 import type { Highlight, TileStyle } from './tileStyle'
@@ -51,7 +51,11 @@ export interface MapToggles {
   shading: boolean
   regionBorders: boolean
   grid: boolean
+  /** Colour the map by the block on top of each column, where it is zoomed in far enough. */
+  blocks: boolean
 }
+
+const BLOCK_SOURCE: BlockSource = 'generated'
 
 const CENSUS_INTERVAL_MILLIS = 250
 const CHUNK_BLOCKS = 16
@@ -69,10 +73,11 @@ const ENTITY_RADIUS_PIXELS = 3
  */
 export class MapController {
   private readonly context: CanvasRenderingContext2D
+  private readonly art: BlockArt
   private readonly store: TileStore<MapTile, TileLayer, TileStyle>
   private readonly view: Viewport = { centerX: 0, centerZ: 0, blocksPerPixel: DEFAULT_BLOCKS_PER_PIXEL, width: 1, height: 1 }
   private layer: TileLayer
-  private toggles: MapToggles = { shading: true, regionBorders: false, grid: false }
+  private toggles: MapToggles = { shading: true, regionBorders: false, grid: false, blocks: false }
   private pickDisplay: PickDisplay = 'picks'
   private highlight: Highlight | null = null
   private players: Marker[] = []
@@ -91,12 +96,14 @@ export class MapController {
     private readonly listener: MapListener
   ) {
     this.context = canvas.getContext('2d')!
-    this.layer = { view, preview: null, heights: this.needsHeights(view, this.toggles), pickNoise: false, revision: 0 }
-    this.store = new TileStore(mapTileSource(client, world.tileSize), () => this.redraw(), (message) => listener.onError(message))
+    this.layer = { view, preview: null, heights: this.needsHeights(this.toggles), pickNoise: false, blocks: null, revision: 0 }
+    this.art = blockArt(client, false)
+    this.store = new TileStore(mapTileSource(client, world.tileSize, this.art), () => this.redraw(), (message) => listener.onError(message))
   }
 
   close(): void {
     this.closed = true
+    this.art.dispose()
     window.clearTimeout(this.censusTimer)
     this.store.clear()
   }
@@ -116,7 +123,6 @@ export class MapController {
       ...this.layer,
       view,
       preview: view === 'regions' ? preview : null,
-      heights: this.needsHeights(view, this.toggles),
       pickNoise: this.needsPickNoise(view, this.pickDisplay)
     }
     this.redraw()
@@ -135,13 +141,19 @@ export class MapController {
 
   setToggles(toggles: MapToggles): void {
     this.toggles = toggles
-    this.layer = { ...this.layer, heights: this.needsHeights(this.layer.view, toggles) }
+    this.layer = { ...this.layer, heights: this.needsHeights(toggles), blocks: toggles.blocks ? BLOCK_SOURCE : null }
     this.redraw()
   }
 
-  // Heights are the costly part of a tile, so they are only asked for when something draws with them.
-  private needsHeights(view: string, toggles: MapToggles): boolean {
-    return toggles.shading || view === 'height'
+  /** Whether the map is zoomed in far enough for its tiles to carry blocks. */
+  showsBlocks(): boolean {
+    return hasBlocksAt(BLOCK_SOURCE, this.renderScale())
+  }
+
+  // Heights are the costly part of a tile, so they are only asked for when something draws with them: the relief, and
+  // the sea over the blocks.
+  private needsHeights(toggles: MapToggles): boolean {
+    return toggles.shading || toggles.blocks
   }
 
   setHighlight(highlight: Highlight | null): void {
@@ -213,15 +225,7 @@ export class MapController {
     const pixelZ = Math.min(tile.size - 1, Math.floor((worldZ - address.tileZ * span) / scale))
     const cell = gridIndex(tile, pixelX, pixelZ)
     const region = labelAt(tile.labels, tile.regions[cell])
-    if (this.isHeightView() && tile.heights !== null) {
-      const band = HEIGHT_BANDS[bandIndexOf(tile.heights[cell], this.world.fluidHeight)]
-      return { subject: { kind: 'HEIGHT', key: band.key, name: band.name }, region }
-    }
     return { subject: labelAt(tile.labels, tile.subjects[cell]), region }
-  }
-
-  private isHeightView(): boolean {
-    return this.layer.view === 'height'
   }
 
   private renderScale(): number {
@@ -230,7 +234,7 @@ export class MapController {
 
   private style(): TileStyle {
     return {
-      byHeight: this.isHeightView(),
+      byBlock: this.toggles.blocks,
       shading: this.toggles.shading,
       regionBorders: this.toggles.regionBorders,
       highlight: this.highlight,
@@ -369,7 +373,7 @@ export class MapController {
     }
     const screen = this.screenArea()
     const area = { minimumX: screen.minX, minimumZ: screen.minZ, maximumX: screen.maxX, maximumZ: screen.maxZ }
-    return countShares(placed, area, this.isHeightView(), this.world.fluidHeight)
+    return countShares(placed, area)
   }
 }
 

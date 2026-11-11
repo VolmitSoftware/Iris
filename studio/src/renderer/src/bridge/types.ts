@@ -1,5 +1,7 @@
 /** The shapes the Iris bridge answers with (Iris core, art.arcane.iris.core.studio). */
 
+import type { BlockLook } from '../scene/blockLooks'
+
 export type LabelKind = 'BIOME' | 'REGION'
 
 export interface MapLabel {
@@ -329,6 +331,26 @@ export interface MapTile {
   heights: Float32Array | null
   /** The noise value that settled each cell's pick, 0 to 1 and NaN where nothing picked it; null unless asked for. */
   pickNoise: Float32Array | null
+  /** The block on top of each cell's column; null unless asked for. */
+  blocks: TileBlocks | null
 }
 
+/** Where a tile's blocks come from: the chunks the server generates in memory. */
+export type BlockSource = 'generated'
+
+/** The top of each cell's column: its ground block, and the block standing on it, such as grass. */
+export interface TileBlocks {
+  /** The block states the grids index, as BlockState keys. */
+  names: string[]
+  /** {@link NO_BLOCK} where the column holds no ground. */
+  ground: Int16Array
+  /** {@link NO_BLOCK} where nothing stands on the ground. */
+  cover: Int16Array
+  /** The colour of each named block from above, as 0xRRGGBB; the tile source fills it in. */
+  colors: number[]
+  /** What each named block looks like on a column, where the tile is fine enough to show textures; else empty. */
+  looks: (BlockLook | null)[]
+}
+
+export const NO_BLOCK = -1
 export const NO_LABEL = -1

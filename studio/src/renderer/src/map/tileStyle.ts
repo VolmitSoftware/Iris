@@ -1,8 +1,11 @@
 import { gridIndex } from '../bridge/tileDecoding'
-import { NO_LABEL, type MapTile, type PickDisplay } from '../bridge/types'
-import { bandIndexOf, blend, heightColor } from './heightColors'
+import { NO_BLOCK, NO_LABEL, type MapTile, type PickDisplay, type TileBlocks } from '../bridge/types'
+import { WATER_SURFACE_COLOR } from '../scene/waterTint'
+import { blend } from './heightColors'
 
-/** What a highlight picks out: a biome or region by key, or a height band in the height view. */
+const WATER_OVER_GROUND = 0.65
+
+/** What a highlight picks out: a biome or region by key, or a height band in the 3D world's legend. */
 export interface Highlight {
   kind: 'BIOME' | 'REGION' | 'HEIGHT'
   key: string
@@ -10,8 +13,8 @@ export interface Highlight {
 }
 
 export interface TileStyle {
-  /** Colour by height instead of by label. */
-  byHeight: boolean
+  /** Colour by the block on top of each column instead of by label, where the tile carries its blocks. */
+  byBlock: boolean
   shading: boolean
   regionBorders: boolean
   highlight: Highlight | null
@@ -22,7 +25,7 @@ export interface TileStyle {
 
 export function styleKey(style: TileStyle): string {
   const highlight = style.highlight === null ? '' : `${style.highlight.kind}:${style.highlight.key}`
-  return `${style.byHeight}|${style.shading}|${style.regionBorders}|${highlight}|${style.seaLevel}|${style.pickDisplay}`
+  return `${style.byBlock}|${style.shading}|${style.regionBorders}|${highlight}|${style.seaLevel}|${style.pickDisplay}`
 }
 
 const UNKNOWN_SUBJECT = 0x5a5c62
@@ -55,15 +58,15 @@ export function stylePixels(tile: MapTile, style: TileStyle): Uint8ClampedArray<
   const { size, heights } = tile
   const pixels = new Uint8ClampedArray(size * size * 4)
   const colors = tile.labels.map((label) => label.color)
-  const byHeight = style.byHeight && heights !== null
-  const pickNoise = style.pickDisplay === 'picks' ? null : tile.pickNoise
+  const blocks = style.byBlock ? tile.blocks : null
+  const pickNoise = style.pickDisplay === 'picks' || blocks !== null ? null : tile.pickNoise
   // The bare noise is read by its brightness, which relief shading would mix up.
-  const shading = (style.shading || byHeight) && heights !== null && !(pickNoise !== null && style.pickDisplay === 'noise')
+  const shading = style.shading && heights !== null && !(pickNoise !== null && style.pickDisplay === 'noise')
   const highlighted = highlightCells(tile, style)
   for (let pixelZ = 0; pixelZ < size; pixelZ++) {
     for (let pixelX = 0; pixelX < size; pixelX++) {
       const cell = gridIndex(tile, pixelX, pixelZ)
-      let color = byHeight ? heightColor(heights[cell], style.seaLevel) : labelColor(colors, tile.subjects[cell])
+      let color = blocks === null ? labelColor(colors, tile.subjects[cell]) : blockColor(blocks, cell, heights, style.seaLevel)
       if (pickNoise !== null) {
         color = byNoise(color, pickNoise[cell], style.pickDisplay)
       }
@@ -88,6 +91,13 @@ export function stylePixels(tile: MapTile, style: TileStyle): Uint8ClampedArray<
 
 function labelColor(colors: number[], index: number): number {
   return index === NO_LABEL ? UNKNOWN_SUBJECT : colors[index]
+}
+
+// What stands on the ground is what is seen from above; ground under the sea shows through its water.
+function blockColor(blocks: TileBlocks, cell: number, heights: Float32Array | null, seaLevel: number): number {
+  const top = blocks.cover[cell] === NO_BLOCK ? blocks.ground[cell] : blocks.cover[cell]
+  const color = top === NO_BLOCK ? UNKNOWN_SUBJECT : blocks.colors[top]
+  return heights !== null && heights[cell] < seaLevel ? blend(color, WATER_SURFACE_COLOR, WATER_OVER_GROUND) : color
 }
 
 // Where nothing picked the spot, as on an image map, it keeps its colour.
@@ -122,15 +132,6 @@ function highlightCells(tile: MapTile, style: TileStyle): Uint8Array | null {
     return null
   }
   const cells = new Uint8Array(tile.subjects.length)
-  if (target.kind === 'HEIGHT') {
-    if (tile.heights !== null) {
-      const band = Number(target.key)
-      tile.heights.forEach((height, cell) => {
-        cells[cell] = bandIndexOf(height, style.seaLevel) === band ? 1 : 0
-      })
-    }
-    return cells
-  }
   // Every view knows its regions, so a region can be highlighted in a biome view too.
   const grid = target.kind === tile.subjectKind ? tile.subjects : target.kind === 'REGION' ? tile.regions : null
   const index = tile.labels.findIndex((label) => label.kind === target.kind && label.key === target.key)

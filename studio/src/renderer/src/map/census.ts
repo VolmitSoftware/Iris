@@ -28,10 +28,9 @@ export interface WorldArea {
 const MAXIMUM_COUNTED_PIXELS = 250_000
 
 /**
- * The shares of what the tiles show inside {@code area}, largest first: their subjects (biomes or regions), or their
- * height bands when {@code byHeight} is set.
+ * The shares of what the tiles show inside {@code area}, largest first: their subjects, which are biomes or regions.
  */
-export function countShares(tiles: PlacedTile[], area: WorldArea, byHeight: boolean, seaLevel: number): Share[] {
+export function countShares(tiles: PlacedTile[], area: WorldArea): Share[] {
   const counts = new Map<string, { subject: Highlight; color: number; count: number }>()
   const totalPixels = tiles.reduce((sum, placed) => sum + placed.tile.size * placed.tile.size, 0)
   const stride = Math.max(1, Math.ceil(Math.sqrt(totalPixels / MAXIMUM_COUNTED_PIXELS)))
@@ -44,7 +43,7 @@ export function countShares(tiles: PlacedTile[], area: WorldArea, byHeight: bool
     const endZ = Math.min(tile.size, Math.ceil((area.maximumZ - worldZ) / scale))
     for (let pixelZ = firstZ; pixelZ < endZ; pixelZ += stride) {
       for (let pixelX = firstX; pixelX < endX; pixelX += stride) {
-        const subject = subjectAt(tile, gridIndex(tile, pixelX, pixelZ), byHeight, seaLevel)
+        const subject = subjectAt(tile, gridIndex(tile, pixelX, pixelZ))
         if (subject === null) {
           continue
         }
@@ -76,14 +75,7 @@ export function heightBandShares(heights: readonly number[], seaLevel: number): 
     })
 }
 
-function subjectAt(tile: MapTile, cell: number, byHeight: boolean, seaLevel: number): { subject: Highlight; color: number } | null {
-  if (byHeight) {
-    if (tile.heights === null) {
-      return null
-    }
-    const band = HEIGHT_BANDS[bandIndexOf(tile.heights[cell], seaLevel)]
-    return { subject: { kind: 'HEIGHT', key: band.key, name: band.name }, color: band.color }
-  }
+function subjectAt(tile: MapTile, cell: number): { subject: Highlight; color: number } | null {
   const index = tile.subjects[cell]
   if (index === NO_LABEL) {
     return null

@@ -56,7 +56,7 @@ public final class MapPickPath {
             case LAND_BIOMES -> addListStep(path, engine, view, region, InferredType.LAND, x, z);
             case SEA_BIOMES -> addListStep(path, engine, view, region, InferredType.SEA, x, z);
             case CAVE_BIOMES -> addListStep(path, engine, view, region, InferredType.CAVE, x, z);
-            case BIOMES, REGIONS, HEIGHT -> addBaseBiomeSteps(path, engine, view, region, x, z);
+            case BIOMES, REGIONS -> addBaseBiomeSteps(path, engine, view, region, x, z);
         }
         return path;
     }

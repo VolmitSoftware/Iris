@@ -6,6 +6,7 @@ const DARK_SUFFIX = '_dark'
 
 export type IdeIconName =
   | 'add'
+  | 'blocks'
   | 'checked'
   | 'closeSmall'
   | 'chevronLeft'
@@ -24,6 +25,7 @@ export type IdeIconName =
   | 'reset'
   | 'search'
   | 'settings'
+  | 'shading'
   | 'stopWatch'
   | 'symlink'
   | 'theme'
@@ -33,7 +35,6 @@ export type IdeIconName =
   | 'zoomIn'
   | 'views/biomes'
   | 'views/cave-biomes'
-  | 'views/height'
   | 'views/land-biomes'
   | 'views/noise'
   | 'views/objects'

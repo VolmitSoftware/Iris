@@ -11,7 +11,6 @@ import { useKeyText } from './useBindings'
 const VIEW_ICONS: Record<string, IdeIconName> = {
   biomes: 'views/biomes',
   regions: 'views/regions',
-  height: 'views/height',
   world3d: 'views/world-3d',
   savedWorld: 'views/saved-world',
   landBiomes: 'views/land-biomes',

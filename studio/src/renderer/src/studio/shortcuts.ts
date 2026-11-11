@@ -11,6 +11,7 @@ export type ShortcutAction =
   | 'entities'
   | 'highlight'
   | 'shading'
+  | 'blocks'
   | 'borders'
   | 'help'
   | 'undo'
@@ -55,6 +56,7 @@ export const SHORTCUTS: ShortcutDefinition[] = [
   { id: 'entities', label: 'Show entities', group: 'Map', chords: ['e'] },
   { id: 'highlight', label: 'Highlight what is under the cursor', group: 'Map', chords: ['h'] },
   { id: 'shading', label: 'Terrain shading', group: 'Map', chords: ['s'] },
+  { id: 'blocks', label: 'Generated blocks', group: 'Map', chords: ['k'] },
   { id: 'borders', label: 'Region borders', group: 'Map', chords: ['b'] },
   { id: 'help', label: 'Show the shortcuts', group: 'Map', chords: ['/', '?'] },
   { id: 'undo', label: 'Undo', group: 'Node editor', chords: ['ctrl+z'] },
@@ -68,7 +70,6 @@ export const SHORTCUTS: ShortcutDefinition[] = [
 const VIEW_KEYS: Record<string, Chord> = {
   biomes: '1',
   regions: '2',
-  height: '3',
   world3d: '4',
   landBiomes: '5',
   seaBiomes: '6',

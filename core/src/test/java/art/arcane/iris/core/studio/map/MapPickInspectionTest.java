@@ -68,8 +68,8 @@ public class MapPickInspectionTest {
     }
 
     @Test
-    public void theHeightViewHasNoPicks() {
-        assertThrows(IllegalArgumentException.class, () -> measure(MapLayer.of(MapView.HEIGHT)));
+    public void aBiomeLayerViewHasNoPicks() {
+        assertThrows(IllegalArgumentException.class, () -> measure(MapLayer.of(MapView.LAND_BIOMES)));
     }
 
     @Test

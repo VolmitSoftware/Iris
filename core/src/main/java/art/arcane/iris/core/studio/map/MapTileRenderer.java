@@ -27,6 +27,7 @@ import art.arcane.iris.util.project.stream.ProceduralStream;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,9 +39,11 @@ import java.util.function.BooleanSupplier;
 /** Draws {@link MapTile}s of one engine's world. Safe to use from several threads; each tile is drawn on its caller's. */
 public final class MapTileRenderer {
     private final Engine engine;
+    private final GeneratedChunks generated;
 
     public MapTileRenderer(Engine engine) {
         this.engine = Objects.requireNonNull(engine, "engine");
+        this.generated = new GeneratedChunks(engine);
     }
 
     /**
@@ -69,6 +72,49 @@ public final class MapTileRenderer {
                 : renderView(layer, grid, blocksPerPixel, extras);
     }
 
+    /**
+     * {@code tile}, drawn from ({@code startX}, {@code startZ}), with the block on top of each of its columns from
+     * {@code source}. Where the tile carries heights they become the heights of that ground, which is the terrain's
+     * with what generation put on it.
+     *
+     * @throws IllegalArgumentException when the tile is coarser than the source is drawn at
+     * @throws CancellationException    as soon as {@code cancelled} answers true
+     */
+    public MapTile withBlocks(MapTile tile, double startX, double startZ, BlockSource source, BooleanSupplier cancelled) {
+        double step = tile.blocksPerPixel();
+        if (step > source.largestBlocksPerPixel()) {
+            throw new IllegalArgumentException("Blocks from " + source.id() + " are drawn at " + source.largestBlocksPerPixel()
+                    + " blocks per pixel or finer");
+        }
+        TileGrid grid = new TileGrid(tile.gridSize(), startX - step, startZ - step, step, cancelled);
+        ColumnTops tops = topsOf(source);
+        int cells = grid.size() * grid.size();
+        short[] ground = new short[cells];
+        short[] cover = new short[cells];
+        float[] heights = tile.heights() == null ? null : new float[cells];
+        BlockNames names = new BlockNames();
+        for (int gridZ = 0; gridZ < grid.size(); gridZ++) {
+            checkCancelled(cancelled);
+            int worldZ = (int) Math.floor(grid.worldZ(gridZ));
+            for (int gridX = 0; gridX < grid.size(); gridX++) {
+                int cell = gridZ * grid.size() + gridX;
+                ColumnTops.ColumnTop top = tops.at((int) Math.floor(grid.worldX(gridX)), worldZ);
+                ground[cell] = names.indexOf(top.ground());
+                cover[cell] = names.indexOf(top.cover());
+                if (heights != null) {
+                    heights[cell] = top.groundY();
+                }
+            }
+        }
+        return tile.withBlocks(new MapTile.Blocks(names.names(), ground, cover), heights);
+    }
+
+    private ColumnTops topsOf(BlockSource source) {
+        return switch (source) {
+            case GENERATED -> generated;
+        };
+    }
+
     private MapTile renderView(MapLayer layer, TileGrid grid, double blocksPerPixel, Set<MapTile.Extra> extras) {
         TileLabels labels = new TileLabels(engine, layer.colorType());
         IrisComplex complex = engine.getComplex();
@@ -76,12 +122,12 @@ public final class MapTileRenderer {
         short[] regions = everyCell(grid, (x, z) -> labels.indexOf(regionStream.get(x, z)));
         ProceduralStream<IrisBiome> biomeStream = layer.view().biomeStream(complex);
         short[] subjects = layer.labelsRegions() ? regions : everyCell(grid, (x, z) -> labels.indexOf(biomeStream.get(x, z)));
-        float[] heights = extras.contains(MapTile.Extra.HEIGHTS) || layer.view() == MapView.HEIGHT ? latticeHeights(grid) : null;
+        float[] heights = extras.contains(MapTile.Extra.HEIGHTS) ? latticeHeights(grid) : null;
         float[] pickNoise = extras.contains(MapTile.Extra.PICK_NOISE) && layer.hasPickNoise()
                 ? MapPickNoise.sample(engine, layer, grid)
                 : null;
         MapLabel.Kind subjectKind = layer.labelsRegions() ? MapLabel.Kind.REGION : MapLabel.Kind.BIOME;
-        return new MapTile(grid.size() - 2, blocksPerPixel, subjectKind, labels.labels(), subjects, regions, heights, pickNoise);
+        return new MapTile(grid.size() - 2, blocksPerPixel, subjectKind, labels.labels(), subjects, regions, heights, pickNoise, null);
     }
 
     // Each spot's surface biome hangs on its height, which the lattice gives at a fraction of the exact heights' cost.
@@ -101,7 +147,7 @@ public final class MapTileRenderer {
                 ? MapPickNoise.samplePreview(engine, region, grid, picks)
                 : null;
         float[] requestedHeights = extras.contains(MapTile.Extra.HEIGHTS) ? heights : null;
-        return new MapTile(grid.size() - 2, blocksPerPixel, MapLabel.Kind.BIOME, labels.labels(), subjects, regions, requestedHeights, pickNoise);
+        return new MapTile(grid.size() - 2, blocksPerPixel, MapLabel.Kind.BIOME, labels.labels(), subjects, regions, requestedHeights, pickNoise, null);
     }
 
     private IrisComplex.BiomePick[] previewPicks(TileGrid grid, IrisRegion region, float[] heights) {
@@ -146,6 +192,25 @@ public final class MapTileRenderer {
     @FunctionalInterface
     private interface CellLabeler {
         short indexAt(double worldX, double worldZ);
+    }
+
+    /** The blocks one tile meets, each named once, in the order the tile met them. */
+    private static final class BlockNames {
+        private final Map<String, Short> indices = new HashMap<>();
+        private final List<String> names = new ArrayList<>();
+
+        short indexOf(String block) {
+            return block == null ? MapTile.Blocks.NO_BLOCK : indices.computeIfAbsent(block, this::add);
+        }
+
+        private short add(String block) {
+            names.add(block);
+            return (short) (names.size() - 1);
+        }
+
+        List<String> names() {
+            return List.copyOf(names);
+        }
     }
 
     /** The biomes and regions one tile meets, each labelled once, in the order the tile met them. */

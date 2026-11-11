@@ -5,6 +5,7 @@ import type { MapTile, WorldInfo } from '../bridge/types'
 import { heightBandShares } from '../map/census'
 import { mapTileSource, type TileLayer } from '../map/mapTileSource'
 import type { GroundInView } from '../scene/groundInView'
+import { blockArt } from '../scene/blockArt'
 import { MapTerrain, type MapTerrainColoring } from '../scene/mapTerrain'
 import { focusAround, type TerrainStyle } from '../scene/terrainStream'
 import { TILE_COLUMNS } from '../scene/terrainTiles'
@@ -39,26 +40,33 @@ interface WorldStudio3DProps {
 export function WorldStudio3D({ title, client, world, mapArea, packRevision, onSummary, tell }: WorldStudio3DProps): React.JSX.Element {
   const [coloring, setColoring] = useState<MapTerrainColoring>('biomes')
   const centre = useMemo(() => centreOf(mapArea), [mapArea])
-  const source = useMemo(() => mapTileSource(client, TILE_COLUMNS), [client])
+  const art = useMemo(() => blockArt(client, true), [client])
+  useEffect(() => () => art.dispose(), [art])
+  const source = useMemo(() => mapTileSource(client, TILE_COLUMNS, art), [client, art])
   const focus = useMemo(
     () => focusAround(centre.x, centre.z, world.fluidHeight - BLOCKS_BELOW_FLUID_IN_FOCUS, world.fluidHeight + BLOCKS_ABOVE_FLUID_IN_FOCUS),
     [centre, world.fluidHeight]
   )
-  const layer = useMemo<TileLayer>(() => ({ view: 'biomes', preview: null, heights: true, pickNoise: false, revision: packRevision }), [packRevision])
+  const showsBlocks = coloring === 'blocks'
+  const layer = useMemo<TileLayer>(
+    () => ({ view: 'biomes', preview: null, heights: true, pickNoise: false, blocks: showsBlocks ? 'generated' : null, revision: packRevision }),
+    [packRevision, showsBlocks]
+  )
   const style = useMemo<TerrainStyle<MapTile>>(
     () => ({
-      surfaceOf: (tile, place) => new MapTerrain(tile, place, coloring, world.fluidHeight),
+      surfaceOf: (tile, place) => new MapTerrain(tile, place, coloring, world.fluidHeight, art.atlas ?? undefined),
       floorY: world.minY,
       topY: world.minY + world.height
     }),
-    [coloring, world.fluidHeight, world.minY, world.height]
+    [coloring, world.fluidHeight, world.minY, world.height, art]
   )
   const { content, pending, stream } = useTerrainStream(source, COARSEST_LEVEL, focus, layer, style, tell)
   const sampling = useLongPending(pending)
   const ground = useGroundInView(stream)
   const heightShares = useMemo(() => heightBandShares(ground?.heights ?? [], world.fluidHeight), [ground, world.fluidHeight])
   const inspectsPicks = coloring !== 'height'
-  const pickLayer = useMemo<MapLayerQuery>(() => ({ view: coloring, preview: null }), [coloring])
+  const pickView = coloring === 'regions' ? 'regions' : 'biomes'
+  const pickLayer = useMemo<MapLayerQuery>(() => ({ view: pickView, preview: null }), [pickView])
   const area = useAreaOf(ground)
   const inspection = usePickInspection(client, pickLayer, area, inspectsPicks, packRevision)
 
@@ -81,6 +89,9 @@ export function WorldStudio3D({ title, client, world, mapArea, packRevision, onS
             </ToggleGroupItem>
             <ToggleGroupItem value="height" className={HEADER_CHOICE}>
               Height
+            </ToggleGroupItem>
+            <ToggleGroupItem value="blocks" className={HEADER_CHOICE} title="The blocks the world generates, shown close up">
+              Blocks
             </ToggleGroupItem>
           </ToggleGroup>
         }

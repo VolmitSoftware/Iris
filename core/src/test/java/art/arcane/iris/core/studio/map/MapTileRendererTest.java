@@ -96,10 +96,10 @@ public class MapTileRendererTest {
     }
 
     @Test
-    public void theHeightViewAlwaysHasHeightsAndAFlatWorldStaysFlat() {
+    public void aFlatWorldStaysFlat() {
         heights((x, z) -> 70D);
 
-        MapTile tile = render(MapView.HEIGHT, 0D, 0D, 1D, false);
+        MapTile tile = render(MapView.BIOMES, 0D, 0D, 1D, true);
 
         for (float height : tile.heights()) {
             assertEquals(70F, height, 1e-4F);

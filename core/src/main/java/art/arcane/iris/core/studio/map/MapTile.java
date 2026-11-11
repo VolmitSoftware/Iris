@@ -31,10 +31,27 @@ import java.util.List;
  * @param heights   each cell's terrain height, or null when it was not asked for
  * @param pickNoise each cell's noise value that settled its pick, 0 to 1 and NaN where nothing picked it; null when it
  *                  was not asked for or the layer has none
+ * @param blocks    the block on top of each cell's column, or null when none were asked for
  */
 public record MapTile(int size, double blocksPerPixel, MapLabel.Kind subjectKind, List<MapLabel> labels,
-                      short[] subjects, short[] regions, float[] heights, float[] pickNoise) {
+                      short[] subjects, short[] regions, float[] heights, float[] pickNoise, Blocks blocks) {
     public static final short NO_LABEL = -1;
+
+    /**
+     * The top of each cell's column.
+     *
+     * @param names  the block keys the grids index
+     * @param ground each cell's ground block, or {@link #NO_BLOCK} where the column holds none
+     * @param cover  the block standing on each cell's ground, such as grass, or {@link #NO_BLOCK}
+     */
+    public record Blocks(List<String> names, short[] ground, short[] cover) {
+        public static final short NO_BLOCK = -1;
+    }
+
+    /** This tile with {@code blocks} on top of its columns, at {@code heights} where it carries heights. */
+    MapTile withBlocks(Blocks blocks, float[] heights) {
+        return new MapTile(size, blocksPerPixel, subjectKind, labels, subjects, regions, heights, pickNoise, blocks);
+    }
 
     /** What a tile can carry besides its labels. */
     public enum Extra {

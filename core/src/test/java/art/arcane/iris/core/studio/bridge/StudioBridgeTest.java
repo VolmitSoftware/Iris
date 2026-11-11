@@ -184,8 +184,8 @@ public class StudioBridgeTest {
     }
 
     @Test
-    public void theHeightViewHasNoPicksToInspect() throws Exception {
-        assertEquals(400, get("picks?view=height&minX=0&minZ=0&maxX=10&maxZ=10").statusCode());
+    public void aBiomeLayerViewHasNoPicksToInspect() throws Exception {
+        assertEquals(400, get("picks?view=landBiomes&minX=0&minZ=0&maxX=10&maxZ=10").statusCode());
     }
 
     @Test

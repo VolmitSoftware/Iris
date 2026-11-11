@@ -30,7 +30,6 @@ import java.util.Optional;
 public enum MapView {
     BIOMES("biomes", "Biomes", "The biome at each spot, in the biome's colour", Group.WORLD, RenderType.BIOME),
     REGIONS("regions", "Regions", "The region each spot belongs to", Group.WORLD, RenderType.REGION),
-    HEIGHT("height", "Height", "Terrain height, from deep water to snowy peaks", Group.WORLD, RenderType.HEIGHT),
     LAND_BIOMES("landBiomes", "Land biomes", "The land biome each spot would get, also where the sea is",
             Group.BIOME_LAYERS, RenderType.BIOME_LAND),
     SEA_BIOMES("seaBiomes", "Sea biomes", "The sea biome each spot would get, also where the land is",
@@ -76,9 +75,9 @@ public enum MapView {
         return this == REGIONS;
     }
 
-    /** The colouring biomes and regions get in this view; the height view colours its biomes as the biome view does. */
+    /** The colouring biomes and regions get in this view. */
     RenderType colorType() {
-        return this == HEIGHT ? RenderType.BIOME : colorType;
+        return colorType;
     }
 
     /** The biome each spot is labelled with: the base biome, before the height corrects it near coasts. */
@@ -87,7 +86,7 @@ public enum MapView {
             case LAND_BIOMES -> complex.getLandBiomeStream();
             case SEA_BIOMES -> complex.getSeaBiomeStream();
             case CAVE_BIOMES -> complex.getCaveBiomeStream();
-            case BIOMES, REGIONS, HEIGHT -> complex.getBaseBiomeStream();
+            case BIOMES, REGIONS -> complex.getBaseBiomeStream();
         };
     }
 

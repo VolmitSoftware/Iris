@@ -72,7 +72,10 @@ export function MapTools({ toggles, hasPlayers, onToggle, onRefresh, onResetZoom
         <IdeIcon name="views/regions" />
       </ToolToggle>
       <ToolToggle action="shading" hint="Shade hills and valleys" pressed={toggles.shading} onPressed={() => onToggle('shading')}>
-        <IdeIcon name="views/height" />
+        <IdeIcon name="shading" />
+      </ToolToggle>
+      <ToolToggle action="blocks" hint="Show the blocks the world generates, zoomed in to a block a pixel" pressed={toggles.blocks} onPressed={() => onToggle('blocks')}>
+        <IdeIcon name="blocks" />
       </ToolToggle>
       <Separator orientation="vertical" className="mx-1 h-4!" />
       <ToolToggle action="entities" hint="Show mobs and other entities" pressed={toggles.entities} disabled={!hasPlayers} onPressed={() => onToggle('entities')}>

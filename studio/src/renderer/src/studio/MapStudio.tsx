@@ -47,7 +47,7 @@ export interface StudioToggles extends MapToggles {
 export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps): React.JSX.Element {
   const controller = useRef<MapController | null>(null)
   const [viewId, setViewId] = useState(world.views[0]?.id ?? 'biomes')
-  const [toggles, setToggles] = useState<StudioToggles>({ shading: true, regionBorders: false, grid: false, follow: false, entities: false })
+  const [toggles, setToggles] = useState<StudioToggles>({ shading: true, regionBorders: false, grid: false, blocks: false, follow: false, entities: false })
   const [highlight, setHighlight] = useState<Highlight | null>(null)
   const [status, setStatus] = useState<MapStatus | null>(null)
   const [shares, setShares] = useState<Share[]>([])
@@ -170,6 +170,9 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
           return
         case 'shading':
           toggle('shading')
+          return
+        case 'blocks':
+          toggle('blocks')
           return
         case 'borders':
           toggle('regionBorders')
@@ -314,7 +317,7 @@ const SCENE_GROUP = { group: 'BLOCKS', groupLabel: 'Blocks' }
 const WORLD_3D: ViewInfo = {
   id: 'world3d',
   label: '3D world',
-  description: 'The terrain in 3D, coloured by biome, region or height',
+  description: 'The terrain in 3D, coloured by biome, region or height, or as the blocks the world generates',
   group: 'WORLD',
   groupLabel: 'World'
 }
@@ -335,8 +338,8 @@ const NOISE: ViewInfo = {
 const APP_VIEW_IDS = new Set([WORLD_3D.id, SAVED_WORLD.id, NOISE.id])
 
 function withAppViews(serverViews: ViewInfo[]): ViewInfo[] {
-  const afterHeight = serverViews.findIndex((candidate) => candidate.id === 'height') + 1
-  return [...serverViews.slice(0, afterHeight), WORLD_3D, SAVED_WORLD, ...serverViews.slice(afterHeight)]
+  const afterRegions = serverViews.findIndex((candidate) => candidate.id === 'regions') + 1
+  return [...serverViews.slice(0, afterRegions), WORLD_3D, SAVED_WORLD, ...serverViews.slice(afterRegions)]
 }
 
 function asViewInfo(view: ModuleViewInfo): ViewInfo {
@@ -375,7 +378,7 @@ function legendTitle(layer: MapLayerQuery): string {
   if (layer.view === 'regions' && layer.preview === null) {
     return 'Regions on screen'
   }
-  return layer.view === 'height' ? 'Heights on screen' : 'Biomes on screen'
+  return 'Biomes on screen'
 }
 
 /** The regions the region view can preview, read again after the pack reloads. */

@@ -22,6 +22,7 @@ import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.gui.GuiMarker;
 import art.arcane.iris.core.project.StudioEditor;
 import art.arcane.iris.core.project.StudioEditorLauncher;
+import art.arcane.iris.core.studio.map.BlockSource;
 import art.arcane.iris.core.studio.map.MapHover;
 import art.arcane.iris.core.studio.map.MapLabel;
 import art.arcane.iris.core.studio.map.MapLayer;
@@ -86,6 +87,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
 
 /**
  * A studio app's connection to one world: HTTP on the loopback interface, on a free port, each request carrying the
@@ -591,9 +593,28 @@ public final class StudioBridge implements AutoCloseable {
             throw new RequestError(STATUS_BAD_REQUEST, "The scale is " + SMALLEST_BLOCKS_PER_PIXEL + " to " + LARGEST_BLOCKS_PER_PIXEL + " blocks per pixel");
         }
         double tileBlocks = size * blocksPerPixel;
-        MapTile tile = session.renderer().render(layer, query.whole("x", 0) * tileBlocks, query.whole("z", 0) * tileBlocks,
-                blocksPerPixel, size, tileExtras(query), () -> closed || engine.isClosing() || engine.isClosed());
+        double startX = query.whole("x", 0) * tileBlocks;
+        double startZ = query.whole("z", 0) * tileBlocks;
+        BooleanSupplier cancelled = () -> closed || engine.isClosing() || engine.isClosed();
+        MapTile tile = session.renderer().render(layer, startX, startZ, blocksPerPixel, size, tileExtras(query), cancelled);
+        if (query.has("blocks")) {
+            tile = withBlocks(session, tile, startX, startZ, blockSource(query), cancelled);
+        }
         return MapTileEncoding.encode(tile, gson);
+    }
+
+    private static MapTile withBlocks(StudioWorld.Session session, MapTile tile, double startX, double startZ, BlockSource source,
+                                      BooleanSupplier cancelled) {
+        try {
+            return session.renderer().withBlocks(tile, startX, startZ, source, cancelled);
+        } catch (IllegalArgumentException tooCoarse) {
+            throw new RequestError(STATUS_BAD_REQUEST, tooCoarse.getMessage());
+        }
+    }
+
+    private static BlockSource blockSource(Query query) {
+        return BlockSource.byId(query.text("blocks"))
+                .orElseThrow(() -> new RequestError(STATUS_BAD_REQUEST, "No block source " + query.text("blocks")));
     }
 
     private static Set<MapTile.Extra> tileExtras(Query query) {

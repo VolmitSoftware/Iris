@@ -1,6 +1,7 @@
 package art.arcane.iris.core.loader;
 
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.util.common.format.C;
 
 import java.io.File;
@@ -14,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
@@ -23,7 +25,9 @@ import java.util.stream.Collectors;
  */
 public final class UnknownPackFields {
     private static final long GATHER_PERIOD_MS = 3000;
+    private static final long LONGEST_PLATFORM_WAIT_MS = 120_000;
     private static final int MAX_STATED_FIELDS = 65536;
+    private static final AtomicLong waitedForPlatformMs = new AtomicLong();
     private static final Set<String> STATED = ConcurrentHashMap.newKeySet();
     private static final Map<File, PendingPack> PENDING = new LinkedHashMap<>();
     private static final ScheduledExecutorService REPORTER = Executors.newSingleThreadScheduledExecutor(task -> {
@@ -73,7 +77,12 @@ public final class UnknownPackFields {
         return STATED.add(pack.folder().getAbsolutePath() + "|" + field.file() + "|" + field.key());
     }
 
+    /** The datapack compiler loads packs before Iris is enabled; the report waits for the platform's coloured log. */
     private static void reportPending() {
+        if (!IrisPlatforms.isBound() && waitedForPlatformMs.addAndGet(GATHER_PERIOD_MS) < LONGEST_PLATFORM_WAIT_MS) {
+            REPORTER.schedule(UnknownPackFields::reportPending, GATHER_PERIOD_MS, TimeUnit.MILLISECONDS);
+            return;
+        }
         List<PendingPack> due;
         synchronized (PENDING) {
             due = List.copyOf(PENDING.values());

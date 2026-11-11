@@ -19,7 +19,7 @@
 #
 # A module's version is the one its class reports (ModuleInfo). Raise the major number when the same settings place
 # different blocks or settings stop loading, the minor number for new features and the patch number for fixes that
-# leave the output alone: a world updates on its own only within a major version.
+# leave the output and the settings alone: a pack takes only a patch on its own.
 
 jar post
 module art.arcane.iris.engine.modifier.PostModule

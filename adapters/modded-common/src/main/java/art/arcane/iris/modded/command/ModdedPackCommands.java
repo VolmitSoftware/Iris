@@ -205,7 +205,7 @@ public final class ModdedPackCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_5));
             return 0;
         }
-        KeptModuleUpdates.take(engine.getData()).forEach(line -> IrisModdedCommands.ok(source, IrisLogging.clean(line)));
+        KeptModuleUpdates.takeForWorld(engine.getData()).forEach(line -> IrisModdedCommands.ok(source, IrisLogging.clean(line)));
         return 1;
     }
 

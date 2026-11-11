@@ -95,7 +95,7 @@ public class CommandPack implements DirectorExecutor {
         persistValidationCache(packsRoot);
     }
 
-    @Director(description = "Take the module updates a world kept because they change its terrain", descriptionKey = "iris.director.commandpack.director.take_kept_module_updates")
+    @Director(description = "Update the modules a world kept back", descriptionKey = "iris.director.commandpack.director.take_kept_module_updates")
     public void update(
             @Param(name = "world", description = "The Iris world whose modules to update", descriptionKey = "iris.director.commandpack.param.world_take_module_updates", contextual = true, contextualOverride = true)
             World world
@@ -104,7 +104,7 @@ public class CommandPack implements DirectorExecutor {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_NEED_BE_SPECIFY_IRIS_GENERATED_WORLD));
             return;
         }
-        KeptModuleUpdates.take(IrisToolbelt.access(world).getEngine().getData()).forEach(sender()::sendMessage);
+        KeptModuleUpdates.takeForWorld(IrisToolbelt.access(world).getEngine().getData()).forEach(sender()::sendMessage);
     }
 
     @Director(description = "Preview or apply unused-resource cleanup", descriptionKey = "iris.director.commandpack.director.preview_apply_unused_resource_cleanup", aliases = {"c"})

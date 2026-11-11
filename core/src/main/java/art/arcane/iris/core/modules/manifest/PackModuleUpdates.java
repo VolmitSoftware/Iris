@@ -47,8 +47,8 @@ import java.util.function.Predicate;
  * <ul>
  *   <li>a module the manifest pins,</li>
  *   <li>a module the pack holds in a newer version than Iris ships,</li>
- *   <li>in a world's copy of a pack, a module whose major version changed: its new chunks would not match the chunks the
- *       world has already, so the world's owner decides ({@link Policy#WORLD_TAKING_TERRAIN_CHANGES}),</li>
+ *   <li>a module whose major or minor version changed: it may place different blocks or read settings differently, so
+ *       the pack's author decides ({@link Policy#TAKING_EVERY_UPDATE}). Only a patch is taken unasked,</li>
  *   <li>a module that shares code with one of the above. A pack loads its jars in one class loader, and a jar compiled
  *       against the new version of another may not link against the kept one.</li>
  * </ul>
@@ -56,17 +56,15 @@ import java.util.function.Predicate;
  */
 public final class PackModuleUpdates {
     public enum Policy {
-        /** A pack as its author edits it: it takes every update, so it is tested with what Iris ships. */
-        PACK_FOLDER(false),
-        /** A world's copy of a pack: it keeps the modules whose update would change its terrain. */
-        WORLD(true),
-        /** A world's copy whose owner accepted that new chunks differ from the old ones. */
-        WORLD_TAKING_TERRAIN_CHANGES(false);
+        /** What happens on its own before a pack loads: patches only. */
+        PATCHES_ONLY(true),
+        /** What the pack's author, or a world's owner, asks for with the update command. */
+        TAKING_EVERY_UPDATE(false);
 
-        private final boolean keepsTerrainChanges;
+        private final boolean keepsNewReleases;
 
-        Policy(boolean keepsTerrainChanges) {
-            this.keepsTerrainChanges = keepsTerrainChanges;
+        Policy(boolean keepsNewReleases) {
+            this.keepsNewReleases = keepsNewReleases;
         }
     }
 
@@ -128,7 +126,7 @@ public final class PackModuleUpdates {
             return;
         }
         PackModuleManifest.listingAll(shipped).write(newPackFolder);
-        bringUpToDate(newPackFolder, shipped, Policy.PACK_FOLDER);
+        bringUpToDate(newPackFolder, shipped, Policy.TAKING_EVERY_UPDATE);
     }
 
     private ModuleUpdateReport bringUpToDate() throws IOException {
@@ -168,8 +166,8 @@ public final class PackModuleUpdates {
         if (anyModule(jar, this::isInstalledNewer)) {
             return Outcome.KEPT_NEWER_THAN_SHIPPED;
         }
-        if (policy.keepsTerrainChanges && anyModule(jar, this::changesTerrain)) {
-            return Outcome.KEPT_TERRAIN_CHANGE;
+        if (policy.keepsNewReleases && anyModule(jar, this::isNewRelease)) {
+            return Outcome.KEPT_OUT_OF_DATE;
         }
         return Outcome.UPDATED;
     }
@@ -184,11 +182,11 @@ public final class PackModuleUpdates {
         return installed.isPresent() && offered.isPresent() && installed.get().isNewerThan(offered.get());
     }
 
-    /** A version Iris cannot compare may change terrain, so a world keeps what it has. */
-    private boolean changesTerrain(ShippedModule module) {
+    /** A version Iris cannot compare may be a new release, so the pack keeps what it has. */
+    private boolean isNewRelease(ShippedModule module) {
         Optional<ModuleVersion> installed = installedVersionOf(module);
         Optional<ModuleVersion> offered = ModuleVersion.parse(module.version());
-        return installed.isEmpty() || offered.isEmpty() || !offered.get().placesTheSameBlocksAs(installed.get());
+        return installed.isEmpty() || offered.isEmpty() || !offered.get().isSameReleaseAs(installed.get());
     }
 
     private Optional<ModuleVersion> installedVersionOf(ShippedModule module) {

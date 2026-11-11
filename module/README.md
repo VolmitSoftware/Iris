@@ -226,25 +226,37 @@ what a pack was built with and what it runs on.
 A module's version is `major.minor.patch` with one fixed meaning:
 
 - **major** rises when the same settings place different blocks, or settings stop loading.
-- **minor** rises for new features that leave existing packs generating the same blocks.
-- **patch** rises for fixes that leave the output alone.
+- **minor** rises for new features.
+- **patch** rises for fixes that leave the output and the settings alone.
 
-When Iris ships a jar that differs from the pack's copy, it replaces the copy before the pack loads and logs one line per
-module. The exceptions:
+Before a pack loads, Iris compares its jars with the ones it ships. Only a patch is taken without asking: Iris replaces
+the jar and logs one line per module. A module with a new minor or major version stays as it is and Iris warns once per
+server start that it is out of date, naming the version it ships:
+
+```
+Pack overworld: iris:terrain 1.0.0 is out of date, 2.0.0 is available
+Pack overworld: run /iris std update overworld to update them, then check the pack's settings against the new versions.
+```
+
+`/iris std update <pack>` takes every update for a pack folder, so its author can bring the settings in line with the
+new versions. A studio world of the pack hotloads the new jars. `/iris pack update` does the same for the world the
+sender is in, or `world=<name>`; where a module changed terrain, the world's new chunks will not match the ones it has.
+A running world keeps the modules it loaded, so the new jars load at the next server start. The rule is the same for a
+pack folder and for a world's copy of a pack (`<world>/iris/pack`).
+
+Three things stay even when a command asks:
 
 - A module in `pinned` stays as it is, always.
 - A module the pack holds in a newer version than Iris ships stays. Iris does not downgrade.
-- In a world's copy of a pack (`<world>/iris/pack`), a module whose major version changed stays, because its new chunks
-  would not match the chunks the world has. The world warns on every start until its owner runs `/iris pack update` in
-  it, which takes those updates too. A pack folder under `plugins/Iris/packs` takes every update, so its author tests
-  with what Iris ships.
 - A module that uses classes of a kept module, or whose classes a kept module uses, stays with it. A pack loads all its
   jars in one class loader, and a jar compiled against the new version of another may not link against the old one. Iris
   reads the class references from the jars, so nothing declares these links by hand. Many of the built-ins use each
-  other's classes today, so keeping `iris:terrain` keeps most of the others.
+  other's classes today, so a patch of `iris:carve` waits while `iris:terrain` is out of date.
 
-Raising the major number is the author's call. Iris cannot tell whether a change alters terrain, so a release that
-changes cave shapes under a minor number updates worlds and leaves a seam at the border of old and new chunks.
+A rebuild of the same version, as during development, replaces the jar like a patch.
+
+Raising the right number is the author's call. Iris cannot tell whether a change alters terrain, so a release that
+changes cave shapes under a patch number updates worlds and leaves a seam at the border of old and new chunks.
 
 `art.arcane.iris.builtin` also holds what the compiled-in built-ins and the jar must share, because each sees its own copy of
 every other class. The facades among them are interfaces Iris implements and offers through IrisApi's extension point, never

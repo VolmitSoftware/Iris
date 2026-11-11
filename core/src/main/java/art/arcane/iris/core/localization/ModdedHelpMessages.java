@@ -67,7 +67,7 @@ public final class ModdedHelpMessages {
     public static final TextKey COMMAND_STATUS_SHOW_THE_OPEN_STUDIO_DIMENSION_AND_ITS_PACK = text("iris.modded.help.entry.command.status_studio");
     public static final TextKey COMMAND_MAP_OPEN_THE_VISION_MAP_GUI_ON_THE_SERVER_DISPLAY = text("iris.modded.help.entry.command.map");
     public static final TextKey COMMAND_VSCODE_REGENERATE_THE_CODE_WORKSPACE_FOR_A_PACK_AND_OPEN_IT_IN_YOUR = text("iris.modded.help.entry.command.vscode");
-    public static final TextKey COMMAND_UPDATE_REGENERATE_THE_CODE_WORKSPACE_FOR_A_PACK = text("iris.modded.help.entry.command.update");
+    public static final TextKey COMMAND_UPDATE_UPDATE_PACK_MODULES =text("iris.modded.help.entry.command.update");
     public static final TextKey COMMAND_IMPORTVANILLA_EXPLAIN_VANILLA_IMPORT_WORKFLOW = text("iris.modded.help.entry.command.importvanilla");
     public static final TextKey COMMAND_VALIDATE_VALIDATE_A_PACK_OR_EVERY_PACK = text("iris.modded.help.entry.command.validate");
     public static final TextKey COMMAND_CLEANUP_PREVIEW_OR_QUARANTINE_UNUSED_RESOURCE_CANDIDATES = text("iris.modded.help.entry.command.cleanup");

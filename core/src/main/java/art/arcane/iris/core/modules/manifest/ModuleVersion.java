@@ -24,9 +24,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * A module version as {@code major.minor.patch}. The major number says whether old and new chunks match: it rises when
- * the same settings place different blocks or settings stop loading. Minor is for new features and patch for fixes, both
- * leaving the output of existing packs alone.
+ * A module version as {@code major.minor.patch}. The major number rises when the same settings place different blocks
+ * or settings stop loading, the minor number for new features and the patch number for fixes that leave the output and
+ * the settings alone. Only a patch is safe to take without the pack's author looking.
  */
 public record ModuleVersion(int major, int minor, int patch) implements Comparable<ModuleVersion> {
     private static final Pattern FORMAT = Pattern.compile("(\\d{1,9})(?:\\.(\\d{1,9}))?(?:\\.(\\d{1,9}))?");
@@ -46,8 +46,9 @@ public record ModuleVersion(int major, int minor, int patch) implements Comparab
         return Optional.of(new ModuleVersion(Integer.parseInt(numbers.group(1)), numberOr0(numbers.group(2)), numberOr0(numbers.group(3))));
     }
 
-    public boolean placesTheSameBlocksAs(ModuleVersion other) {
-        return major == other.major;
+    /** Whether only the patch number differs, so the other version is this one with fixes. */
+    public boolean isSameReleaseAs(ModuleVersion other) {
+        return major == other.major && minor == other.minor;
     }
 
     public boolean isNewerThan(ModuleVersion other) {

@@ -155,9 +155,6 @@ public final class BukkitCommandMessagesExtended {
     public static final TextKey COMMAND_STUDIO_NO_STUDIO_WORLD_IS_OPEN = text("iris.bukkit.commandstudio.no_studio_world_is_open");
     public static final TextKey COMMAND_STUDIO_YOU_ARE_ALREADY_STUDIO_WORLD = text("iris.bukkit.commandstudio.you_are_already_studio_world");
     public static final TextKey COMMAND_STUDIO_SENDING_YOU_STUDIO_WORLD = text("iris.bukkit.commandstudio.sending_you_studio_world");
-    public static final TextKey COMMAND_STUDIO_UPDATING_CODE_WORKSPACE = text("iris.bukkit.commandstudio.updating_code_workspace");
-    public static final TextKey COMMAND_STUDIO_UPDATED_CODE_WORKSPACE = text("iris.bukkit.commandstudio.updated_code_workspace");
-    public static final TextKey COMMAND_STUDIO_INVALID_PROJECT_TRY_DELETING_CODE_WORKSPACE_FILE_TRY_AGAIN = text("iris.bukkit.commandstudio.invalid_project_try_deleting_code_workspace_file_try_again");
     public static final TextKey COMMAND_STUDIO_YOU_MUST_BE_IRIS_WORLD = text("iris.bukkit.commandstudio.you_must_be_iris_world");
     public static final TextKey COMMAND_STUDIO_YOU_MUST_BE_IRIS_WORLD_2 = text("iris.bukkit.commandstudio.you_must_be_iris_world_2");
     public static final TextKey COMMAND_STUDIO_CAPTURING_IGENDATA_FROM_NEARBY_CHUNKS = text("iris.bukkit.commandstudio.capturing_igendata_from_nearby_chunks");

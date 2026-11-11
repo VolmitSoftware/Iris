@@ -35,7 +35,7 @@ public record ModuleUpdateReport(boolean managed, List<ModuleChange> changes, Li
         CURRENT(false, false),
         KEPT_PINNED(false, true),
         KEPT_NEWER_THAN_SHIPPED(false, true),
-        KEPT_TERRAIN_CHANGE(false, true),
+        KEPT_OUT_OF_DATE(false, true),
         KEPT_SHARED_CODE(false, true);
 
         private final boolean wroteJar;
@@ -64,7 +64,7 @@ public record ModuleUpdateReport(boolean managed, List<ModuleChange> changes, Li
     public record ModuleChange(String moduleId, Optional<String> installedVersion, String shippedVersion, Outcome outcome,
                                Optional<String> builtWithVersion, Optional<String> keptWith) {
         public String describe() {
-            String installed = installedVersion.orElse("its installed version");
+            String installed = installedVersion.orElse("(version unknown)");
             return switch (outcome) {
                 case INSTALLED -> moduleId + " " + shippedVersion + " installed";
                 case UPDATED -> describeUpdate();
@@ -73,7 +73,7 @@ public record ModuleUpdateReport(boolean managed, List<ModuleChange> changes, Li
                         + PackModuleManifest.FILE_NAME + ")";
                 case KEPT_NEWER_THAN_SHIPPED -> moduleId + " " + installed + " is newer than the " + shippedVersion
                         + " this Iris ships, kept";
-                case KEPT_TERRAIN_CHANGE -> moduleId + " " + shippedVersion + " changes terrain, kept " + installed;
+                case KEPT_OUT_OF_DATE -> moduleId + " " + installed + " is out of date, " + shippedVersion + " is available";
                 case KEPT_SHARED_CODE -> moduleId + " " + shippedVersion + " uses code of " + keptWith.orElse("a kept module")
                         + ", which was kept; kept " + installed;
             };
@@ -114,7 +114,7 @@ public record ModuleUpdateReport(boolean managed, List<ModuleChange> changes, Li
         return changes.stream().filter(change -> change.outcome().keptInstalledJar()).toList();
     }
 
-    public boolean keptTerrainChanges() {
-        return changes.stream().anyMatch(change -> change.outcome() == Outcome.KEPT_TERRAIN_CHANGE);
+    public boolean keptOutOfDate() {
+        return changes.stream().anyMatch(change -> change.outcome() == Outcome.KEPT_OUT_OF_DATE);
     }
 }

@@ -42,7 +42,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-/** A pack's jars follow what Iris ships as far as the pack's manifest and the kind of pack allow. */
+/** A pack's jars take patches on their own and everything else when the update command asks. */
 public class PackModuleUpdatesTest {
     private static final String TERRAIN = "iris:terrain";
     private static final String CARVE = "iris:carve";
@@ -71,7 +71,7 @@ public class PackModuleUpdatesTest {
     public void onlyTheJarsOfListedModulesAreInstalled() throws IOException {
         Path pack = packListing(Map.of(MATTER, "1.0.0", "acme:rivers", "0.9.0"), Set.of());
 
-        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, BuiltInModuleJars.shipped(), Policy.PACK_FOLDER);
+        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, BuiltInModuleJars.shipped(), Policy.PATCHES_ONLY);
 
         assertEquals(List.of("iris-matter.jar"), jarsOf(pack));
         assertEquals(Outcome.INSTALLED, outcomeOf(report, MATTER));
@@ -82,7 +82,7 @@ public class PackModuleUpdatesTest {
     public void aPackWithoutAManifestIsLeftAlone() throws IOException {
         Path pack = folder.newFolder("unmanaged").toPath();
 
-        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, BuiltInModuleJars.shipped(), Policy.PACK_FOLDER);
+        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, BuiltInModuleJars.shipped(), Policy.PATCHES_ONLY);
 
         assertFalse(report.managed());
         assertFalse(Files.exists(pack.resolve("modules")));
@@ -92,53 +92,69 @@ public class PackModuleUpdatesTest {
     public void aPackWhoseJarsAreTheShippedOnesIsNotWrittenTo() throws IOException {
         Path pack = installedPack("current");
 
-        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, BuiltInModuleJars.shipped(), Policy.WORLD);
+        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, BuiltInModuleJars.shipped(), Policy.PATCHES_ONLY);
 
         assertTrue(report.written().isEmpty());
         assertTrue(report.kept().isEmpty());
     }
 
     @Test
-    public void aPackFolderTakesEveryUpdateTerrainChangesIncluded() throws IOException {
+    public void aPatchIsTakenWithoutAsking() throws IOException {
         Path pack = installedPack("pack");
-        ShippedModules next = release(Map.of(TERRAIN, "2.0.0", MATTER, "1.1.0"));
+        ShippedModules next = release(Map.of(TERRAIN, "1.0.1", MATTER, "1.0.7"));
 
-        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, next, Policy.PACK_FOLDER);
+        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, next, Policy.PATCHES_ONLY);
 
         assertEquals(Outcome.UPDATED, outcomeOf(report, TERRAIN));
         assertEquals(Outcome.UPDATED, outcomeOf(report, MATTER));
-        assertEquals("iris:terrain 1.0.0 -> 2.0.0", changeOf(report, TERRAIN).describe());
+        assertEquals("iris:terrain 1.0.0 -> 1.0.1", changeOf(report, TERRAIN).describe());
+        assertTrue(report.kept().isEmpty());
         assertHoldsShippedJar(pack, next, TERRAIN);
     }
 
     @Test
-    public void aWorldKeepsAModuleThatChangesTerrainAndTheModulesThatUseItsCode() throws IOException {
-        Path world = installedPack("world");
+    public void aNewMinorOrMajorVersionIsReportedOutOfDateAndKept() throws IOException {
+        Path pack = installedPack("pack");
         ShippedModules installed = BuiltInModuleJars.shipped();
-        ShippedModules next = release(Map.of(TERRAIN, "2.0.0", CARVE, "1.1.0", MATTER, "1.1.0"));
+        ShippedModules next = release(Map.of(TERRAIN, "2.0.0", MATTER, "1.1.0"));
 
-        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(world, next, Policy.WORLD);
+        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, next, Policy.PATCHES_ONLY);
 
-        assertEquals(Outcome.KEPT_TERRAIN_CHANGE, outcomeOf(report, TERRAIN));
+        assertEquals(Outcome.KEPT_OUT_OF_DATE, outcomeOf(report, TERRAIN));
+        assertEquals(Outcome.KEPT_OUT_OF_DATE, outcomeOf(report, MATTER));
+        assertTrue(report.keptOutOfDate());
+        assertEquals("iris:terrain 1.0.0 is out of date, 2.0.0 is available", changeOf(report, TERRAIN).describe());
+        assertEquals("iris:matter 1.0.0 is out of date, 1.1.0 is available", changeOf(report, MATTER).describe());
+        assertHoldsShippedJar(pack, installed, TERRAIN);
+        assertHoldsShippedJar(pack, installed, MATTER);
+    }
+
+    @Test
+    public void aPatchThatUsesCodeOfAKeptModuleIsKeptWithIt() throws IOException {
+        Path pack = installedPack("pack");
+        ShippedModules installed = BuiltInModuleJars.shipped();
+        ShippedModules next = release(Map.of(TERRAIN, "2.0.0", CARVE, "1.0.1", MATTER, "1.0.1"));
+
+        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, next, Policy.PATCHES_ONLY);
+
+        assertEquals(Outcome.KEPT_OUT_OF_DATE, outcomeOf(report, TERRAIN));
         assertEquals(Outcome.KEPT_SHARED_CODE, outcomeOf(report, CARVE));
         assertEquals(Optional.of(TERRAIN), changeOf(report, CARVE).keptWith());
         assertEquals(Outcome.UPDATED, outcomeOf(report, MATTER));
-        assertTrue(report.keptTerrainChanges());
-        assertEquals("iris:terrain 2.0.0 changes terrain, kept 1.0.0", changeOf(report, TERRAIN).describe());
-        assertEquals("iris:carve 1.1.0 uses code of iris:terrain, which was kept; kept 1.0.0", changeOf(report, CARVE).describe());
-        assertHoldsShippedJar(world, installed, TERRAIN);
-        assertHoldsShippedJar(world, installed, CARVE);
-        assertHoldsShippedJar(world, next, MATTER);
+        assertEquals("iris:carve 1.0.1 uses code of iris:terrain, which was kept; kept 1.0.0", changeOf(report, CARVE).describe());
+        assertHoldsShippedJar(pack, installed, TERRAIN);
+        assertHoldsShippedJar(pack, installed, CARVE);
+        assertHoldsShippedJar(pack, next, MATTER);
     }
 
     @Test
     public void aKeptModuleHoldsBackTheModulesThatReachItsCodeThroughOthers() throws IOException {
-        Path world = installedPack("world");
-        ShippedModules next = release(Map.of(STRUCTURE, "2.0.0", LOOT, "1.1.0", SPAWN, "1.1.0", MATTER, "1.1.0"));
+        Path pack = installedPack("pack");
+        ShippedModules next = release(Map.of(STRUCTURE, "2.0.0", LOOT, "1.0.1", SPAWN, "1.0.1", MATTER, "1.0.1"));
 
-        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(world, next, Policy.WORLD);
+        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, next, Policy.PATCHES_ONLY);
 
-        assertEquals(Outcome.KEPT_TERRAIN_CHANGE, outcomeOf(report, STRUCTURE));
+        assertEquals(Outcome.KEPT_OUT_OF_DATE, outcomeOf(report, STRUCTURE));
         assertEquals(Outcome.KEPT_SHARED_CODE, outcomeOf(report, LOOT));
         assertEquals(Outcome.KEPT_SHARED_CODE, outcomeOf(report, SPAWN));
         assertEquals(Optional.of(STRUCTURE), changeOf(report, SPAWN).keptWith());
@@ -146,43 +162,33 @@ public class PackModuleUpdatesTest {
     }
 
     @Test
-    public void aWorldTakesMinorAndPatchUpdatesOnItsOwn() throws IOException {
-        Path world = installedPack("world");
-        ShippedModules next = release(Map.of(TERRAIN, "1.4.0", CARVE, "1.0.1"));
+    public void theUpdateCommandTakesWhatWasKeptOutOfDate() throws IOException {
+        Path pack = installedPack("pack");
+        ShippedModules next = release(Map.of(TERRAIN, "2.0.0", CARVE, "1.0.1", MATTER, "1.1.0"));
+        PackModuleUpdates.bringUpToDate(pack, next, Policy.PATCHES_ONLY);
 
-        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(world, next, Policy.WORLD);
-
-        assertEquals(Outcome.UPDATED, outcomeOf(report, TERRAIN));
-        assertEquals(Outcome.UPDATED, outcomeOf(report, CARVE));
-        assertTrue(report.kept().isEmpty());
-    }
-
-    @Test
-    public void aWorldWhoseOwnerAcceptsTakesTheTerrainChangesToo() throws IOException {
-        Path world = installedPack("world");
-        ShippedModules next = release(Map.of(TERRAIN, "2.0.0", CARVE, "1.1.0"));
-        PackModuleUpdates.bringUpToDate(world, next, Policy.WORLD);
-
-        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(world, next, Policy.WORLD_TAKING_TERRAIN_CHANGES);
+        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, next, Policy.TAKING_EVERY_UPDATE);
 
         assertEquals(Outcome.UPDATED, outcomeOf(report, TERRAIN));
         assertEquals(Outcome.UPDATED, outcomeOf(report, CARVE));
-        assertHoldsShippedJar(world, next, TERRAIN);
-        assertHoldsShippedJar(world, next, CARVE);
+        assertEquals(Outcome.UPDATED, outcomeOf(report, MATTER));
+        assertEquals("iris:terrain 1.0.0 -> 2.0.0", changeOf(report, TERRAIN).describe());
+        assertHoldsShippedJar(pack, next, TERRAIN);
+        assertEquals("2.0.0", PackModuleLock.read(pack).installed().get(TERRAIN));
     }
 
     @Test
-    public void aPinnedModuleStaysEvenInAPackFolderAndWhenTheWorldsOwnerAccepts() throws IOException {
+    public void aPinnedModuleStaysEvenWhenTheUpdateCommandRuns() throws IOException {
         Path pack = installedPack("pinned");
         PackModuleManifest listed = PackModuleManifest.read(pack).orElseThrow();
         new PackModuleManifest(listed.modules(), Set.of(MATTER)).write(pack);
-        ShippedModules next = release(Map.of(MATTER, "1.1.0"));
+        ShippedModules next = release(Map.of(MATTER, "1.0.1"));
 
         for (Policy policy : Policy.values()) {
             ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, next, policy);
 
             assertEquals(policy.name(), Outcome.KEPT_PINNED, outcomeOf(report, MATTER));
-            assertEquals("iris:matter 1.1.0 is available, kept 1.0.0 (pinned in modules.json)", changeOf(report, MATTER).describe());
+            assertEquals("iris:matter 1.0.1 is available, kept 1.0.0 (pinned in modules.json)", changeOf(report, MATTER).describe());
         }
         assertHoldsShippedJar(pack, BuiltInModuleJars.shipped(), MATTER);
     }
@@ -194,7 +200,7 @@ public class PackModuleUpdatesTest {
         PackModuleUpdates.installAllInto(pack, newer);
         recordInstalled(pack, newer);
 
-        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, BuiltInModuleJars.shipped(), Policy.PACK_FOLDER);
+        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(pack, BuiltInModuleJars.shipped(), Policy.PATCHES_ONLY);
 
         assertEquals(Outcome.KEPT_NEWER_THAN_SHIPPED, outcomeOf(report, MATTER));
         assertEquals("iris:matter 1.2.0 is newer than the 1.0.0 this Iris ships, kept", changeOf(report, MATTER).describe());
@@ -203,11 +209,11 @@ public class PackModuleUpdatesTest {
     }
 
     @Test
-    public void aRebuildOfTheSameVersionReplacesTheJarInAWorldToo() throws IOException {
+    public void aRebuildOfTheSameVersionReplacesTheJar() throws IOException {
         Path world = installedPack("world");
         ShippedModules rebuilt = ShippedRelease.rebuilt(folder.newFolder().toPath(), MATTER);
 
-        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(world, rebuilt, Policy.WORLD);
+        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(world, rebuilt, Policy.PATCHES_ONLY);
 
         assertEquals(Outcome.UPDATED, outcomeOf(report, MATTER));
         assertEquals("iris:matter 1.0.0 replaced by this Iris's build of it", changeOf(report, MATTER).describe());
@@ -215,14 +221,14 @@ public class PackModuleUpdatesTest {
     }
 
     @Test
-    public void aWorldWithoutARecordOfAModulesVersionKeepsItsJar() throws IOException {
+    public void aPackWithoutARecordOfAModulesVersionKeepsItsJar() throws IOException {
         Path world = installedPack("world");
         Files.delete(world.resolve(PackModuleLock.FILE_NAME));
         ShippedModules next = release(Map.of(MATTER, "1.0.1"));
 
-        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(world, next, Policy.WORLD);
+        ModuleUpdateReport report = PackModuleUpdates.bringUpToDate(world, next, Policy.PATCHES_ONLY);
 
-        assertEquals(Outcome.KEPT_TERRAIN_CHANGE, outcomeOf(report, MATTER));
+        assertEquals(Outcome.KEPT_OUT_OF_DATE, outcomeOf(report, MATTER));
     }
 
     @Test
@@ -231,7 +237,7 @@ public class PackModuleUpdatesTest {
         Path thirdParty = pack.resolve("modules").resolve("acme-rivers.jar");
         Files.writeString(thirdParty, "not Iris's to judge", StandardCharsets.UTF_8);
 
-        PackModuleUpdates.bringUpToDate(pack, release(Map.of(MATTER, "1.1.0")), Policy.PACK_FOLDER);
+        PackModuleUpdates.bringUpToDate(pack, release(Map.of(MATTER, "1.1.0")), Policy.TAKING_EVERY_UPDATE);
 
         assertEquals("not Iris's to judge", Files.readString(thirdParty, StandardCharsets.UTF_8));
     }

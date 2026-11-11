@@ -103,15 +103,15 @@ public final class PackModuleSet implements AutoCloseable {
     }
 
     /**
-     * Updates the jars of a world's pack, the modules whose update changes its terrain included. The world keeps
-     * generating with the modules it loaded until the server restarts.
+     * Updates the pack's jars to what Iris ships, new minor and major versions included. Whatever loaded the pack keeps
+     * the modules it loaded until the server restarts.
      */
-    public synchronized ModuleUpdateReport takeTerrainChanges() {
-        lastUpdates = managed.takeTerrainChanges();
+    public synchronized ModuleUpdateReport takeEveryUpdate() {
+        lastUpdates = managed.takeEveryUpdate();
         return lastUpdates;
     }
 
-    /** What the last update of the pack's jars did and what it kept: at the last load, or at {@link #takeTerrainChanges()} since. */
+    /** What the last update of the pack's jars did and what it kept: at the last load, or at {@link #takeEveryUpdate()} since. */
     public synchronized ModuleUpdateReport lastUpdates() {
         return lastUpdates;
     }

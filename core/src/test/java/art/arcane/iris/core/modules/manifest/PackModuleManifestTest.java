@@ -76,8 +76,9 @@ public class PackModuleManifestTest {
         assertEquals(Optional.empty(), ModuleVersion.parse("4.0.1-26.2"));
         assertEquals(Optional.empty(), ModuleVersion.parse("1.0-SNAPSHOT"));
         assertTrue(new ModuleVersion(1, 10, 0).isNewerThan(new ModuleVersion(1, 9, 9)));
-        assertTrue(new ModuleVersion(1, 4, 0).placesTheSameBlocksAs(new ModuleVersion(1, 3, 7)));
-        assertFalse(new ModuleVersion(2, 0, 0).placesTheSameBlocksAs(new ModuleVersion(1, 9, 0)));
+        assertTrue(new ModuleVersion(1, 4, 9).isSameReleaseAs(new ModuleVersion(1, 4, 0)));
+        assertFalse(new ModuleVersion(1, 5, 0).isSameReleaseAs(new ModuleVersion(1, 4, 0)));
+        assertFalse(new ModuleVersion(2, 4, 0).isSameReleaseAs(new ModuleVersion(1, 4, 0)));
     }
 
     @Test

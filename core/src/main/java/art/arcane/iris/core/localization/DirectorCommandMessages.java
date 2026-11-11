@@ -197,8 +197,8 @@ public final class DirectorCommandMessages {
     public static final TextKey COMMAND_STUDIO_PARAM_ENTITY_SPAWN = text("iris.director.commandstudio.param.entity_spawn");
     public static final TextKey COMMAND_STUDIO_PARAM_LOCATION_SPAWN_ENTITY_AT = text("iris.director.commandstudio.param.location_spawn_entity_at");
     public static final TextKey COMMAND_STUDIO_DIRECTOR_TELEPORT_ACTIVE_STUDIO_WORLD = text("iris.director.commandstudio.director.teleport_active_studio_world");
-    public static final TextKey COMMAND_STUDIO_DIRECTOR_UPDATE_YOUR_DIMENSION_PROJECTS_VSCODE_WORKSPACE = text("iris.director.commandstudio.director.update_your_dimension_projects_vscode_workspace");
-    public static final TextKey COMMAND_STUDIO_PARAM_DIMENSION_UPDATE_WORKSPACE = text("iris.director.commandstudio.param.dimension_update_workspace");
+    public static final TextKey COMMAND_STUDIO_DIRECTOR_UPDATE_PACK_MODULES = text("iris.director.commandstudio.director.update_pack_modules");
+    public static final TextKey COMMAND_STUDIO_PARAM_DIMENSION_UPDATE_MODULES = text("iris.director.commandstudio.param.dimension_update_modules");
     public static final TextKey COMMAND_STUDIO_DIRECTOR_CAPTURE_IGENDATA_CHUNK_REPORT_NEARBY_CHUNKS = text("iris.director.commandstudio.director.capture_igendata_chunk_report_nearby_chunks");
     public static final TextKey COMMAND_WHAT_DIRECTOR_IRIS_WHAT = text("iris.director.commandwhat.director.iris_what");
     public static final TextKey COMMAND_WHAT_DIRECTOR_WHAT_IS_MY_HAND = text("iris.director.commandwhat.director.what_is_my_hand");

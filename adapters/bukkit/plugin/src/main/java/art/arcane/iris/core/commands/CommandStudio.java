@@ -23,6 +23,7 @@ import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.gui.ImageMapStudioGUI;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.KeptModuleUpdates;
 import art.arcane.iris.core.modules.PackModulesListing;
 import art.arcane.iris.core.localization.IrisMessages;
 import art.arcane.iris.core.studio.bridge.StudioBridge;
@@ -30,7 +31,6 @@ import art.arcane.iris.core.studio.bridge.StudioBridges;
 import art.arcane.iris.core.studio.bridge.StudioWindow;
 import art.arcane.iris.core.pack.PackDownloader;
 import art.arcane.iris.core.project.IrisProject;
-import art.arcane.iris.core.project.IrisCodeWorkspace;
 import art.arcane.iris.core.project.StudioEditor;
 import art.arcane.iris.core.project.StudioEditorLauncher;
 import art.arcane.iris.core.localization.RuntimeUiMessages;
@@ -684,17 +684,12 @@ public class CommandStudio implements DirectorExecutor {
                 });
     }
 
-    @Director(description = "Update your dimension projects VSCode workspace", descriptionKey = "iris.director.commandstudio.director.update_your_dimension_projects_vscode_workspace")
+    @Director(description = "Update a pack's modules to the versions this Iris ships", descriptionKey = "iris.director.commandstudio.director.update_pack_modules")
     public void update(
-            @Param(description = "The dimension to update the workspace of", descriptionKey = "iris.director.commandstudio.param.dimension_update_workspace", contextual = true, contextualOverride = true, defaultValue = "default", customHandler = DimensionHandler.class)
+            @Param(description = "The pack to update", descriptionKey = "iris.director.commandstudio.param.dimension_update_modules", contextual = true, contextualOverride = true, defaultValue = "default", customHandler = DimensionHandler.class)
             IrisDimension dimension
     ) {
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_UPDATING_CODE_WORKSPACE, MessageArgument.untrusted("value", dimension.getName())));
-        if (new IrisCodeWorkspace(new IrisProject(dimension.getLoader().getDataFolder())).updateWorkspace()) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_UPDATED_CODE_WORKSPACE, MessageArgument.untrusted("value", dimension.getName())));
-        } else {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_INVALID_PROJECT_TRY_DELETING_CODE_WORKSPACE_FILE_TRY_AGAIN, MessageArgument.untrusted("value", dimension.getName())));
-        }
+        KeptModuleUpdates.takeForPack(dimension.getLoader()).forEach(sender()::sendMessage);
     }
 
     @Director(aliases = "find-objects", description = "Capture an IGenData chunk report for nearby chunks", descriptionKey = "iris.director.commandstudio.director.capture_igendata_chunk_report_nearby_chunks", origin = DirectorOrigin.PLAYER)

@@ -28,18 +28,34 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Takes the module updates a world's pack kept because they change its terrain, for the command its owner runs after
- * deciding that new chunks may differ from the old ones. The jars change on disk; the world loads them at the next
- * server start.
+ * Takes the module updates a pack kept back because they are more than a patch, for the update commands: a pack's
+ * author runs one before bringing the pack's settings in line with the new versions, a world's owner after deciding that
+ * new chunks may differ from the old ones.
  */
 public final class KeptModuleUpdates {
     private KeptModuleUpdates() {
     }
 
-    /** Updates the jars of the pack of {@code data} and returns what to tell the sender, one line each. */
-    public static List<String> take(IrisData data) {
+    /**
+     * Updates the jars of the pack folder of {@code data} and loads them into {@code data}; a studio world of the pack
+     * hotloads on its own when the jars change. Returns what to tell the sender, one line each.
+     */
+    public static List<String> takeForPack(IrisData data) {
+        List<String> lines = take(data, false);
+        if (data.getModules().reloadIfJarsChanged()) {
+            data.hotloaded();
+        }
+        return lines;
+    }
+
+    /** Like {@link #takeForPack} for a running world, which keeps the modules it loaded until the server restarts. */
+    public static List<String> takeForWorld(IrisData data) {
+        return take(data, true);
+    }
+
+    private static List<String> take(IrisData data, boolean loadsAtRestart) {
         PackModuleSet modules = data.getModules();
-        ModuleUpdateReport report = modules.takeTerrainChanges();
+        ModuleUpdateReport report = modules.takeEveryUpdate();
         MessageArgument pack = MessageArgument.untrusted("pack", modules.label());
         if (!report.managed()) {
             return List.of(IrisLanguage.text(IrisMessages.PACK_UPDATE_UNMANAGED, pack));
@@ -53,7 +69,7 @@ public final class KeptModuleUpdates {
                 MessageArgument.untrusted("change", change.describe()))));
         report.kept().forEach(change -> lines.add(IrisLanguage.text(IrisMessages.STUDIO_MODULES_KEPT,
                 MessageArgument.untrusted("change", change.describe()))));
-        if (!report.written().isEmpty()) {
+        if (loadsAtRestart && !report.written().isEmpty()) {
             lines.add(IrisLanguage.text(IrisMessages.PACK_UPDATE_RESTART));
         }
         return lines;

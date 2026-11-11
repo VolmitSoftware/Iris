@@ -44,8 +44,8 @@ import java.util.stream.Collectors;
  * in {@code modules.lock.json}.
  */
 final class ManagedPackModules {
-    /** Takes the updates a world kept because they change its terrain; the world's owner runs it. */
-    static final String TAKE_TERRAIN_CHANGES_COMMAND = "/iris pack update";
+    private static final String UPDATE_PACK_COMMAND = "/iris std update ";
+    private static final String UPDATE_WORLD_COMMAND = "/iris pack update";
     private static final String UNMANAGED_KEY = "pack-without-modules-manifest:";
     private static final String KEPT_KEY = "pack-kept-module-update:";
 
@@ -58,18 +58,18 @@ final class ManagedPackModules {
     }
 
     /**
-     * Installs and updates the pack's jars before they load. A pack folder takes every update; a world's copy keeps the
-     * modules whose update would change its terrain.
+     * Installs the pack's missing jars and takes patches before the jars load. A module with a new minor or major
+     * version stays as it is and is reported out of date.
      *
      * @throws PackModuleManifest.ManifestFormatException when {@code modules.json} is not a manifest
      */
     ModuleUpdateReport bringUpToDate() {
-        return bringUpToDate(isWorldCopy() ? Policy.WORLD : Policy.PACK_FOLDER);
+        return bringUpToDate(Policy.PATCHES_ONLY);
     }
 
-    /** Like {@link #bringUpToDate()} for a world whose owner accepts that new chunks will not match the old ones. */
-    ModuleUpdateReport takeTerrainChanges() {
-        return bringUpToDate(Policy.WORLD_TAKING_TERRAIN_CHANGES);
+    /** Takes every update Iris ships, new minor and major versions included; the update command runs it. */
+    ModuleUpdateReport takeEveryUpdate() {
+        return bringUpToDate(Policy.TAKING_EVERY_UPDATE);
     }
 
     /** Writes the versions the pack loaded, and warns about modules the manifest lists that no jar provides. */
@@ -112,10 +112,18 @@ final class ManagedPackModules {
         report.written().forEach(change -> IrisLogging.info("%s: %s", label(), change.describe()));
         report.kept().forEach(change -> warnOncePerStart(change.describe()));
         report.needNewerIris().forEach(change -> warnOncePerStart(change.describeNeedForNewerIris()));
-        if (report.keptTerrainChanges()) {
-            warnOncePerStart("run " + TAKE_TERRAIN_CHANGES_COMMAND + " in that world to take the modules that change terrain."
-                    + " New chunks will then not match the ones it has.");
+        if (report.keptOutOfDate()) {
+            warnOncePerStart(updateAdvice());
         }
+    }
+
+    private String updateAdvice() {
+        if (isWorldCopy()) {
+            return "run " + UPDATE_WORLD_COMMAND + " in that world to update them. Where a module changed terrain, new chunks"
+                    + " will not match the ones the world has.";
+        }
+        return "run " + UPDATE_PACK_COMMAND + packFolder.getName() + " to update them, then check the pack's settings against"
+                + " the new versions.";
     }
 
     /** A server loads a world's pack several times while it starts; what the pack kept is the same each time. */

@@ -150,7 +150,7 @@ final class ModdedCommandHelp {
                 Entry.command("status", "", ModdedHelpMessages.COMMAND_STATUS_SHOW_THE_OPEN_STUDIO_DIMENSION_AND_ITS_PACK),
                 Entry.command("map", "", ModdedHelpMessages.COMMAND_MAP_OPEN_THE_VISION_MAP_GUI_ON_THE_SERVER_DISPLAY, "render"),
                 Entry.command("vscode", "[pack]", ModdedHelpMessages.COMMAND_VSCODE_REGENERATE_THE_CODE_WORKSPACE_FOR_A_PACK_AND_OPEN_IT_IN_YOUR, "vsc"),
-                Entry.command("update", "[pack]", ModdedHelpMessages.COMMAND_UPDATE_REGENERATE_THE_CODE_WORKSPACE_FOR_A_PACK),
+                Entry.command("update", "[pack]", ModdedHelpMessages.COMMAND_UPDATE_UPDATE_PACK_MODULES),
                 Entry.command("importvanilla", "", ModdedHelpMessages.COMMAND_IMPORTVANILLA_EXPLAIN_VANILLA_IMPORT_WORKFLOW, "importv", "iv"),
                 Entry.command("loot", "", ModdedHelpMessages.COMMAND_STUDIO_LOOT_BUKKIT_ONLY),
                 Entry.command("profile", "", ModdedHelpMessages.COMMAND_STUDIO_PROFILE_BUKKIT_ONLY),

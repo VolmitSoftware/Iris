@@ -23,6 +23,7 @@ import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.gui.ImageMapStudioGUI;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.localization.IrisMessages;
+import art.arcane.iris.core.modules.KeptModuleUpdates;
 import art.arcane.iris.core.modules.PackModulesListing;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.studio.bridge.StudioBridge;
@@ -123,9 +124,12 @@ public final class ModdedStudioCommands {
                 .executes((CommandContext<CommandSourceStack> context) -> tpStudio(context.getSource())));
         root.then(Commands.literal("status")
                 .executes((CommandContext<CommandSourceStack> context) -> status(context.getSource())));
-        root.then(workspaceTree("vscode", true));
-        root.then(workspaceTree("vsc", true));
-        root.then(workspaceTree("update", false));
+        root.then(workspaceTree("vscode"));
+        root.then(workspaceTree("vsc"));
+        root.then(Commands.literal("update")
+                .executes((CommandContext<CommandSourceStack> context) -> updateModules(context.getSource(), null))
+                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes((CommandContext<CommandSourceStack> context) -> updateModules(context.getSource(), StringArgumentType.getString(context, "pack")))));
         root.then(message("importvanilla", "Vanilla tree/object/structure capture generates features in throwaway Bukkit worlds via NMS; run /iris studio importvanilla on a Bukkit server against this pack, then copy the pack folder over."));
         root.then(message("importv", "Vanilla tree/object/structure capture generates features in throwaway Bukkit worlds via NMS; run /iris studio importvanilla on a Bukkit server against this pack, then copy the pack folder over."));
         root.then(message("iv", "Vanilla tree/object/structure capture generates features in throwaway Bukkit worlds via NMS; run /iris studio importvanilla on a Bukkit server against this pack, then copy the pack folder over."));
@@ -242,30 +246,36 @@ public final class ModdedStudioCommands {
         return 1;
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> workspaceTree(String name, boolean open) {
-        return Commands.literal(name)
-                .executes((CommandContext<CommandSourceStack> context) -> workspace(context.getSource(), null, open))
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes((CommandContext<CommandSourceStack> context) -> workspace(context.getSource(), StringArgumentType.getString(context, "pack"), open)));
+    private static int updateModules(CommandSourceStack source, String pack) {
+        File folder = resolvePack(source, pack);
+        if (folder == null) {
+            return 0;
+        }
+        KeptModuleUpdates.takeForPack(IrisData.get(folder)).forEach(line -> IrisModdedCommands.ok(source, IrisLogging.clean(line)));
+        return 1;
     }
 
-    private static int workspace(CommandSourceStack source, String pack, boolean open) {
+    private static LiteralArgumentBuilder<CommandSourceStack> workspaceTree(String name) {
+        return Commands.literal(name)
+                .executes((CommandContext<CommandSourceStack> context) -> openWorkspace(context.getSource(), null))
+                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes((CommandContext<CommandSourceStack> context) -> openWorkspace(context.getSource(), StringArgumentType.getString(context, "pack"))));
+    }
+
+    private static int openWorkspace(CommandSourceStack source, String pack) {
         File folder = resolvePack(source, pack);
         if (folder == null) {
             return 0;
         }
         File workspace;
         try {
-            workspace = ModdedWorkspaceGenerator.writeWorkspace(IrisData.get(folder), folder, open);
+            workspace = ModdedWorkspaceGenerator.writeWorkspace(IrisData.get(folder), folder, true);
         } catch (Throwable e) {
             ModdedIrisLog.error("Iris workspace write failed for {}", folder, e);
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_FAILED_WRITE_WORKSPACE, MessageArgument.untrusted("value", folder.getAbsolutePath()), MessageArgument.untrusted("value2", String.valueOf(e.getMessage()))));
             return 0;
         }
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_WORKSPACE_REGENERATED_WITH_JSON_SCHEMAS_AUTOCOMPLETE, MessageArgument.untrusted("value", workspace.getAbsolutePath())));
-        if (!open) {
-            return 1;
-        }
         String unavailable = ModdedGuiHost.editorUnavailableReason();
         if (unavailable != null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_CANNOT_OPEN_FILES_HERE, MessageArgument.untrusted("value", unavailable)));

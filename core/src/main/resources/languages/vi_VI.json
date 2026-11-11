@@ -44,6 +44,8 @@
     "iris.pack.update.header": "§a{pack}:",
     "iris.pack.update.written": "§f  {change}",
     "iris.pack.update.restart": "§aKhởi động lại máy chủ để tải các mô-đun đã cập nhật.",
+    "iris.pack.updates.waiting": "§e{pack} đã giữ lại các bản cập nhật mô-đun:",
+    "iris.pack.updates.how_to_take": "§eChạy /iris std update {pack} để áp dụng chúng, sau đó kiểm tra cài đặt của gói theo các phiên bản mới.",
     "iris.director.commandstudio.director.list_pack_modules": "Liệt kê các mô-đun mà một gói tải",
     "iris.director.commandstudio.param.dimension_list_modules": "Gói cần liệt kê mô-đun",
     "iris.modded.help.entry.command.modules": "Liệt kê các mô-đun mà một gói tải",

@@ -44,6 +44,8 @@
     "iris.pack.update.header": "§a{pack}:",
     "iris.pack.update.written": "§f  {change}",
     "iris.pack.update.restart": "§aGüncellenen modülleri yüklemek için sunucuyu yeniden başlatın.",
+    "iris.pack.updates.waiting": "§e{pack} şu modül güncellemelerini geri tuttu:",
+    "iris.pack.updates.how_to_take": "§eBunları almak için /iris std update {pack} komutunu çalıştırın, ardından paketin ayarlarını yeni sürümlere göre kontrol edin.",
     "iris.director.commandstudio.director.list_pack_modules": "Bir paketin yüklediği modülleri listele",
     "iris.director.commandstudio.param.dimension_list_modules": "Modülleri listelenecek paket",
     "iris.modded.help.entry.command.modules": "Bir paketin yüklediği modülleri listele",

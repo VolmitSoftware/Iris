@@ -40,14 +40,12 @@ import java.util.stream.Collectors;
 
 /**
  * Keeps the module jars of one pack folder in step with its {@code modules.json} and with the jars Iris ships
- * ({@link PackModuleUpdates}), tells the server's owner what changed and what was kept, and records what the pack loaded
- * in {@code modules.lock.json}.
+ * ({@link PackModuleUpdates}), logs the jars it wrote, and records what the pack loaded in {@code modules.lock.json}. What
+ * the pack kept back goes to its author when they open a studio ({@link KeptModuleUpdates#keptAtLoad}), not to the log.
  */
 final class ManagedPackModules {
-    private static final String UPDATE_PACK_COMMAND = "/iris std update ";
-    private static final String UPDATE_WORLD_COMMAND = "/iris pack update";
     private static final String UNMANAGED_KEY = "pack-without-modules-manifest:";
-    private static final String KEPT_KEY = "pack-kept-module-update:";
+    private static final String NEEDS_NEWER_IRIS_KEY = "pack-needs-newer-iris:";
 
     private final File packFolder;
     private final ShippedModules shipped;
@@ -110,25 +108,12 @@ final class ManagedPackModules {
             return;
         }
         report.written().forEach(change -> IrisLogging.info("%s: %s", label(), change.describe()));
-        report.kept().forEach(change -> warnOncePerStart(change.describe()));
         report.needNewerIris().forEach(change -> warnOncePerStart(change.describeNeedForNewerIris()));
-        if (report.keptOutOfDate()) {
-            warnOncePerStart(updateAdvice());
-        }
-    }
-
-    private String updateAdvice() {
-        if (isWorldCopy()) {
-            return "run " + UPDATE_WORLD_COMMAND + " in that world to update them. Where a module changed terrain, new chunks"
-                    + " will not match the ones the world has.";
-        }
-        return "run " + UPDATE_PACK_COMMAND + packFolder.getName() + " to update them, then check the pack's settings against"
-                + " the new versions.";
     }
 
     /** A server loads a world's pack several times while it starts; what the pack kept is the same each time. */
     private void warnOncePerStart(String warning) {
-        IrisLogging.warnOnce(KEPT_KEY + packFolder.getAbsolutePath() + ":" + warning, "%s: %s", label(), warning);
+        IrisLogging.warnOnce(NEEDS_NEWER_IRIS_KEY + packFolder.getAbsolutePath() + ":" + warning, "%s: %s", label(), warning);
     }
 
     private void warnAboutMissingManifest() {
@@ -157,10 +142,6 @@ final class ManagedPackModules {
         IrisLogging.warn("%s: %s lists %s, but no jar in its %s folder provides %s. Iris installs only the modules it ships; put"
                 + " the jar of any other module there yourself.", label(), PackModuleManifest.FILE_NAME, String.join(", ", missing),
                 PackModuleSet.MODULES_FOLDER, missing.size() == 1 ? "it" : "them");
-    }
-
-    private boolean isWorldCopy() {
-        return worldFolder().isPresent();
     }
 
     private Optional<Path> worldFolder() {

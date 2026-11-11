@@ -44,6 +44,8 @@
     "iris.pack.update.header": "§a{pack}:",
     "iris.pack.update.written": "§f  {change}",
     "iris.pack.update.restart": "§aKäynnistä palvelin uudelleen ladataksesi päivitetyt moduulit.",
+    "iris.pack.updates.waiting": "§e{pack} jätti nämä moduulipäivitykset asentamatta:",
+    "iris.pack.updates.how_to_take": "§eSuorita /iris std update {pack} ottaaksesi ne käyttöön ja tarkista sitten paketin asetukset uusia versioita vastaan.",
     "iris.director.commandstudio.director.list_pack_modules": "Listaa moduulit, jotka paketti lataa",
     "iris.director.commandstudio.param.dimension_list_modules": "Paketti, jonka moduulit listataan",
     "iris.modded.help.entry.command.modules": "Listaa moduulit, jotka paketti lataa",

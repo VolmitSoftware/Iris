@@ -44,6 +44,8 @@
     "iris.pack.update.header": "§a{pack}:",
     "iris.pack.update.written": "§f  {change}",
     "iris.pack.update.restart": "§aReinicia o servidor para carregar os módulos atualizados.",
+    "iris.pack.updates.waiting": "§e{pack} reteve as atualizações dos módulos:",
+    "iris.pack.updates.how_to_take": "§eExecuta /iris std update {pack} para as aplicar e depois verifica as definições do pack face às novas versões.",
     "iris.director.commandstudio.director.list_pack_modules": "Listar os módulos que um pack carrega",
     "iris.director.commandstudio.param.dimension_list_modules": "O pack cujos módulos listar",
     "iris.modded.help.entry.command.modules": "Listar os módulos que um pack carrega",

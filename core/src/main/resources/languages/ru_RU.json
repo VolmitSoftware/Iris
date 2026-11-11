@@ -44,6 +44,8 @@
     "iris.pack.update.header": "§a{pack}:",
     "iris.pack.update.written": "§f  {change}",
     "iris.pack.update.restart": "§aПерезапустите сервер, чтобы загрузить обновлённые модули.",
+    "iris.pack.updates.waiting": "§e{pack}: отложены обновления модулей:",
+    "iris.pack.updates.how_to_take": "§eВыполните /iris std update {pack}, чтобы их установить, затем проверьте настройки пака по новым версиям.",
     "iris.director.commandstudio.director.list_pack_modules": "Показать модули, которые загружает пак",
     "iris.director.commandstudio.param.dimension_list_modules": "Пак, модули которого показать",
     "iris.modded.help.entry.command.modules": "Показать модули, которые загружает пак",

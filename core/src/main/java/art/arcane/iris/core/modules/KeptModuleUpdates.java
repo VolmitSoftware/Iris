@@ -48,6 +48,33 @@ public final class KeptModuleUpdates {
         return lines;
     }
 
+    /**
+     * What the pack of {@code data} kept back when its modules loaded, for its author opening a studio: the server's
+     * console does not say it, so whoever only runs the pack is not told to update it. Empty when nothing was kept or
+     * the modules fail to load, which opening the studio reports itself.
+     */
+    public static List<String> keptAtLoad(IrisData data) {
+        PackModuleSet modules = data.getModules();
+        try {
+            modules.pack();
+        } catch (PackModulesException failure) {
+            return List.of();
+        }
+        ModuleUpdateReport report = modules.lastUpdates();
+        if (report.kept().isEmpty()) {
+            return List.of();
+        }
+        List<String> lines = new ArrayList<>();
+        lines.add(IrisLanguage.text(IrisMessages.PACK_UPDATES_WAITING, MessageArgument.untrusted("pack", modules.label())));
+        report.kept().forEach(change -> lines.add(IrisLanguage.text(IrisMessages.STUDIO_MODULES_KEPT,
+                MessageArgument.untrusted("change", change.describe()))));
+        if (report.keptOutOfDate()) {
+            lines.add(IrisLanguage.text(IrisMessages.PACK_UPDATES_HOW_TO_TAKE,
+                    MessageArgument.untrusted("pack", data.getDataFolder().getName())));
+        }
+        return lines;
+    }
+
     /** Like {@link #takeForPack} for a running world, which keeps the modules it loaded until the server restarts. */
     public static List<String> takeForWorld(IrisData data) {
         return take(data, true);

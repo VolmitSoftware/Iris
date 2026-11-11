@@ -44,6 +44,8 @@
     "iris.pack.update.header": "§a{pack}:",
     "iris.pack.update.written": "§f  {change}",
     "iris.pack.update.restart": "§a重新啟動伺服器以載入更新後的模組。",
+    "iris.pack.updates.waiting": "§e{pack} 未自動安裝以下模組更新：",
+    "iris.pack.updates.how_to_take": "§e執行 /iris std update {pack} 來套用這些更新，然後對照新版本檢查該包的設定。",
     "iris.director.commandstudio.director.list_pack_modules": "列出包載入的模組",
     "iris.director.commandstudio.param.dimension_list_modules": "要列出模組的包",
     "iris.modded.help.entry.command.modules": "列出包載入的模組",

@@ -44,6 +44,8 @@
     "iris.pack.update.header": "§a{pack}:",
     "iris.pack.update.written": "§f  {change}",
     "iris.pack.update.restart": "§aPaleiskite serverį iš naujo, kad būtų įkelti atnaujinti moduliai.",
+    "iris.pack.updates.waiting": "§e{pack} sulaikė modulių atnaujinimus:",
+    "iris.pack.updates.how_to_take": "§eĮvykdykite /iris std update {pack}, kad juos įdiegtumėte, tada patikrinkite pakuotės nustatymus pagal naujas versijas.",
     "iris.director.commandstudio.director.list_pack_modules": "Išvardyti modulius, kuriuos įkelia pakuotė",
     "iris.director.commandstudio.param.dimension_list_modules": "Pakuotė, kurios modulius išvardyti",
     "iris.modded.help.entry.command.modules": "Išvardyti modulius, kuriuos įkelia pakuotė",

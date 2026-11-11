@@ -44,6 +44,8 @@
     "iris.pack.update.header": "§a{pack}:",
     "iris.pack.update.written": "§f  {change}",
     "iris.pack.update.restart": "§a更新したモジュールを読み込むにはサーバーを再起動してください。",
+    "iris.pack.updates.waiting": "§e{pack} のモジュール更新を保留しました:",
+    "iris.pack.updates.how_to_take": "§e/iris std update {pack} を実行して適用し、その後パックの設定を新しいバージョンに照らして確認してください。",
     "iris.director.commandstudio.director.list_pack_modules": "パックが読み込むモジュールを一覧表示します",
     "iris.director.commandstudio.param.dimension_list_modules": "モジュールを一覧表示するパック",
     "iris.modded.help.entry.command.modules": "パックが読み込むモジュールを一覧表示します",

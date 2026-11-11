@@ -21,6 +21,8 @@
     "iris.pack.update.header": "§a{pack}:",
     "iris.pack.update.written": "§f  {change}",
     "iris.pack.update.restart": "§aRestart the server to load the updated modules.",
+    "iris.pack.updates.waiting": "§e{pack} kept module updates back:",
+    "iris.pack.updates.how_to_take": "§eRun /iris std update {pack} to take them, then check the pack's settings against the new versions.",
     "iris.command.reload.success": "Hotloaded settings and locale {locale}.",
     "iris.command.reload.failed": "Settings were reloaded, but locale {locale} was rejected; continuing with {activeLocale}.",
     "iris.modded.help.unknown_section": "Unknown Iris help section: {section}",

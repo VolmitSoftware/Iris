@@ -44,6 +44,8 @@
     "iris.pack.update.header": "§a{pack}:",
     "iris.pack.update.written": "§f  {change}",
     "iris.pack.update.restart": "§aHerstart de server om de bijgewerkte modules te laden.",
+    "iris.pack.updates.waiting": "§e{pack} heeft moduleupdates teruggehouden:",
+    "iris.pack.updates.how_to_take": "§eVoer /iris std update {pack} uit om ze over te nemen en controleer daarna de instellingen van het pack tegen de nieuwe versies.",
     "iris.director.commandstudio.director.list_pack_modules": "Toon de modules die een pack laadt",
     "iris.director.commandstudio.param.dimension_list_modules": "Het pack waarvan de modules getoond worden",
     "iris.modded.help.entry.command.modules": "Toon de modules die een pack laadt",

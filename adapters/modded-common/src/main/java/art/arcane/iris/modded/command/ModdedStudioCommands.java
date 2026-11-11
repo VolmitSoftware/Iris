@@ -415,14 +415,11 @@ public final class ModdedStudioCommands {
                         + "' has no dimensions/" + pack + ".json definition.");
             }
             ModdedWorkspaceGenerator.writeWorkspace(data, packFolder, true);
-            server.execute(() -> executeStudioOpen(
-                    source,
-                    server,
-                    owner,
-                    dimensionId,
-                    pack,
-                    seed,
-                    transition));
+            List<String> keptModuleUpdates = KeptModuleUpdates.keptAtLoad(data);
+            server.execute(() -> {
+                keptModuleUpdates.forEach(line -> IrisModdedCommands.ok(source, IrisLogging.clean(line)));
+                executeStudioOpen(source, server, owner, dimensionId, pack, seed, transition);
+            });
         } catch (Throwable failure) {
             transition.completeExceptionally(failure);
         }

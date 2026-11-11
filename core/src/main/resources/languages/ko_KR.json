@@ -44,6 +44,8 @@
     "iris.pack.update.header": "§a{pack}:",
     "iris.pack.update.written": "§f  {change}",
     "iris.pack.update.restart": "§a업데이트된 모듈을 불러오려면 서버를 재시작하세요.",
+    "iris.pack.updates.waiting": "§e{pack} 보류된 모듈 업데이트:",
+    "iris.pack.updates.how_to_take": "§e/iris std update {pack} 명령을 실행해 업데이트를 적용한 뒤, 팩 설정을 새 버전에 맞춰 확인하세요.",
     "iris.director.commandstudio.director.list_pack_modules": "팩이 불러오는 모듈을 나열합니다",
     "iris.director.commandstudio.param.dimension_list_modules": "모듈을 나열할 팩",
     "iris.modded.help.entry.command.modules": "팩이 불러오는 모듈을 나열합니다",

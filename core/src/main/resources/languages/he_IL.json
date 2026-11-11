@@ -44,6 +44,8 @@
     "iris.pack.update.header": "§a{pack}:",
     "iris.pack.update.written": "§f  {change}",
     "iris.pack.update.restart": "§aהפעל מחדש את השרת כדי לטעון את המודולים המעודכנים.",
+    "iris.pack.updates.waiting": "§eעדכוני מודולים עבור {pack} נדחו:",
+    "iris.pack.updates.how_to_take": "§eהפעל /iris std update {pack} כדי לקבל אותם, ואז בדוק את הגדרות החבילה מול הגרסאות החדשות.",
     "iris.director.commandstudio.director.list_pack_modules": "הצגת המודולים שחבילה טוענת",
     "iris.director.commandstudio.param.dimension_list_modules": "החבילה שאת המודולים שלה יש להציג",
     "iris.modded.help.entry.command.modules": "הצגת המודולים שחבילה טוענת",

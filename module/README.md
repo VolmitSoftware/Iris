@@ -230,13 +230,17 @@ A module's version is `major.minor.patch` with one fixed meaning:
 - **patch** rises for fixes that leave the output and the settings alone.
 
 Before a pack loads, Iris compares its jars with the ones it ships. Only a patch is taken without asking: Iris replaces
-the jar and logs one line per module. A module with a new minor or major version stays as it is and Iris warns once per
-server start that it is out of date, naming the version it ships:
+the jar and logs one line per module. A module with a new minor or major version stays as it is. The console says
+nothing about it, because whoever only runs the pack should not update it. `/iris std open` tells the pack's author
+instead, naming the version Iris ships:
 
 ```
-Pack overworld: iris:terrain 1.0.0 is out of date, 2.0.0 is available
-Pack overworld: run /iris std update overworld to update them, then check the pack's settings against the new versions.
+Pack overworld kept module updates back:
+  iris:terrain 1.0.0 is out of date, 2.0.0 is available
+Run /iris std update overworld to take them, then check the pack's settings against the new versions.
 ```
+
+`/iris std modules <pack>` lists the same kept updates after the pack's modules.
 
 `/iris std update <pack>` takes every update for a pack folder, so its author can bring the settings in line with the
 new versions. A studio world of the pack hotloads the new jars. `/iris pack update` does the same for the world the

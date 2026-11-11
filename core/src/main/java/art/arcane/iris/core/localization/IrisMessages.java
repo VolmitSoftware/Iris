@@ -50,6 +50,8 @@ public final class IrisMessages {
     public static final TextKey PACK_UPDATE_HEADER = text("iris.pack.update.header");
     public static final TextKey PACK_UPDATE_WRITTEN = text("iris.pack.update.written");
     public static final TextKey PACK_UPDATE_RESTART = text("iris.pack.update.restart");
+    public static final TextKey PACK_UPDATES_WAITING = text("iris.pack.updates.waiting");
+    public static final TextKey PACK_UPDATES_HOW_TO_TAKE = text("iris.pack.updates.how_to_take");
     public static final TextKey MODDED_HELP_UNKNOWN_SECTION = text("iris.modded.help.unknown_section");
     public static final TextKey MODDED_HELP_BACK_HOVER = text("iris.modded.help.back_hover");
     public static final TextKey MODDED_HELP_COMMAND_PARAMETER = text("iris.modded.help.command_parameter");

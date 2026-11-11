@@ -74,7 +74,7 @@ public class PackModuleSetTest {
         String warnings = warningsWhile(() -> new PackModuleSet(pack, Gson::new).pack());
 
         assertTrue(warnings, warnings.contains("[Iris/WARN] Pack without-builtins loads without the built-in modules (iris-builtins.jar)"));
-        assertTrue(warnings, warnings.contains("build the plugin with ./gradlew iris."));
+        assertTrue(warnings, warnings.contains("Put iris-builtins.jar in its modules folder"));
     }
 
     @Test

@@ -314,8 +314,8 @@ List<String> dependencyBuildMetadata = [
 ]
 
 // The built-in modules as a pack module jar, iris-builtins.jar, which IrisModule builds from its classes and checks as a pack
-// load would. Iris bundles it into the plugin (IrisModuleHost loads it with every pack) after checking it once more against
-// what its own Bukkit jar leaves out of VolmLib, which only Iris knows.
+// load would. Iris carries it in the plugin, never loading it itself: PackBuiltIns copies it into new packs, which load their
+// own copy. It is checked once more against what Iris's own Bukkit jar leaves out of VolmLib, which only Iris knows.
 String builtinModulesJarName = 'iris-builtins.jar'
 // The packages pack modules may use besides the IrisApi; IrisModuleHost.EXPOSED_PACKAGES lists the same.
 List<String> builtinExposedPackages = ['art.arcane.iris.builtin', 'art.arcane.iris.core.structure.authoring', 'art.arcane.volmlib',

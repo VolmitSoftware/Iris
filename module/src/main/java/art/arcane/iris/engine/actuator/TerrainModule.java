@@ -19,6 +19,7 @@ package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.terrain.BedrockSettings;
+import art.arcane.iris.modules.BuiltInModulesVersion;
 import art.arcane.iris.modules.terrain.BiomePalettes;
 import art.arcane.iris.modules.terrain.CaveCeilingLayersSettings;
 import art.arcane.iris.modules.terrain.ExplodeBiomePaletteSizeSettings;
@@ -52,7 +53,7 @@ import java.util.List;
  * and the rock and fluid palettes' noise are built ahead of generation, in {@link #warmUp}.
  */
 public final class TerrainModule implements IrisModule, ModuleLifecycle {
-    private static final String VERSION = "built-in";
+    private static final String VERSION = BuiltInModulesVersion.VERSION;
 
     @Override
     public ModuleInfo info() {

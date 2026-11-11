@@ -27,12 +27,9 @@ import com.volmit.host.DiscoveredModule;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-/** The modules a pack loads, as chat lines with color codes: the built-in ones by name, the pack's own with version, id and jar. */
+/** The modules of a pack's jars, as chat lines with color codes: each with its version, id and jar. */
 public final class PackModulesListing {
-    private static final String NAME_SEPARATOR = ", ";
-
     /** @param lines the listing, or one line with the reason when {@code loaded} is false */
     public record Listing(boolean loaded, List<String> lines) {
     }
@@ -51,14 +48,13 @@ public final class PackModulesListing {
     }
 
     private static List<String> moduleLines(String packName, List<DiscoveredModule> modules) {
-        List<DiscoveredModule> builtIns = modules.stream().filter(DiscoveredModule::isBuiltIn).toList();
-        List<DiscoveredModule> ownModules = modules.stream().filter(module -> !module.isBuiltIn()).toList();
-
         List<String> lines = new ArrayList<>();
         lines.add(IrisLanguage.text(IrisMessages.STUDIO_MODULES_HEADER,
                 MessageArgument.untrusted("pack", packName), MessageArgument.trusted("count", modules.size())));
-        lines.add(builtInLine(builtIns));
-        lines.addAll(ownModuleLines(ownModules));
+        if (modules.isEmpty()) {
+            lines.add(IrisLanguage.text(IrisMessages.STUDIO_MODULES_NONE));
+        }
+        modules.forEach(module -> lines.add(moduleLine(module)));
         return lines;
     }
 
@@ -68,24 +64,7 @@ public final class PackModulesListing {
                 MessageArgument.untrusted("pack", packName), MessageArgument.untrusted("reason", reason));
     }
 
-    private static String builtInLine(List<DiscoveredModule> builtIns) {
-        String names = builtIns.isEmpty()
-                ? IrisLanguage.text(IrisMessages.STUDIO_MODULES_NONE)
-                : builtIns.stream().map(module -> module.info().name()).collect(Collectors.joining(NAME_SEPARATOR));
-        return IrisLanguage.text(IrisMessages.STUDIO_MODULES_BUILT_IN, MessageArgument.untrusted("modules", names));
-    }
-
-    private static List<String> ownModuleLines(List<DiscoveredModule> ownModules) {
-        if (ownModules.isEmpty()) {
-            return List.of(IrisLanguage.text(IrisMessages.STUDIO_MODULES_FROM_PACK_NONE));
-        }
-        List<String> lines = new ArrayList<>();
-        lines.add(IrisLanguage.text(IrisMessages.STUDIO_MODULES_FROM_PACK));
-        ownModules.forEach(module -> lines.add(ownModuleLine(module)));
-        return lines;
-    }
-
-    private static String ownModuleLine(DiscoveredModule module) {
+    private static String moduleLine(DiscoveredModule module) {
         ModuleInfo info = module.info();
         return IrisLanguage.text(IrisMessages.STUDIO_MODULES_ENTRY,
                 MessageArgument.untrusted("name", info.name()),

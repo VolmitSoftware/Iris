@@ -35,11 +35,8 @@
       "one": "§aLe pack {pack} charge {count} module :",
       "other": "§aLe pack {pack} charge {count} modules :"
     },
-    "iris.studio.modules.built_in": "§7  Intégrés : §f{modules}",
-    "iris.studio.modules.from_pack": "§7  Du pack :",
-    "iris.studio.modules.from_pack_none": "§7  Du pack : §faucun",
-    "iris.studio.modules.entry": "§f    {name} {version} §7({id}, {jar})",
-    "iris.studio.modules.none": "aucun",
+    "iris.studio.modules.entry": "§f  {name} {version} §7({id}, {jar})",
+    "iris.studio.modules.none": "§7  aucun",
     "iris.studio.modules.failed": "§cLe pack {pack} ne peut pas charger ses modules : {reason}",
     "iris.director.commandstudio.director.list_pack_modules": "Lister les modules que charge un pack",
     "iris.director.commandstudio.param.dimension_list_modules": "Le pack dont lister les modules",

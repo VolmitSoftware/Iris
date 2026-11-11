@@ -35,11 +35,8 @@
       "one": "§aהחבילה {pack} טוענת מודול {count}:",
       "other": "§aהחבילה {pack} טוענת {count} מודולים:"
     },
-    "iris.studio.modules.built_in": "§7  מובנים: §f{modules}",
-    "iris.studio.modules.from_pack": "§7  מהחבילה:",
-    "iris.studio.modules.from_pack_none": "§7  מהחבילה: §fאין",
-    "iris.studio.modules.entry": "§f    {name} {version} §7({id}, {jar})",
-    "iris.studio.modules.none": "אין",
+    "iris.studio.modules.entry": "§f  {name} {version} §7({id}, {jar})",
+    "iris.studio.modules.none": "§7  אין",
     "iris.studio.modules.failed": "§cהחבילה {pack} לא יכולה לטעון את המודולים שלה: {reason}",
     "iris.director.commandstudio.director.list_pack_modules": "הצגת המודולים שחבילה טוענת",
     "iris.director.commandstudio.param.dimension_list_modules": "החבילה שאת המודולים שלה יש להציג",

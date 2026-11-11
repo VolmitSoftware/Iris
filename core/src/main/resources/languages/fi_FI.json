@@ -35,11 +35,8 @@
       "one": "§aPaketti {pack} lataa {count} moduulin:",
       "other": "§aPaketti {pack} lataa {count} moduulia:"
     },
-    "iris.studio.modules.built_in": "§7  Sisäänrakennetut: §f{modules}",
-    "iris.studio.modules.from_pack": "§7  Paketista:",
-    "iris.studio.modules.from_pack_none": "§7  Paketista: §fei mitään",
-    "iris.studio.modules.entry": "§f    {name} {version} §7({id}, {jar})",
-    "iris.studio.modules.none": "ei mitään",
+    "iris.studio.modules.entry": "§f  {name} {version} §7({id}, {jar})",
+    "iris.studio.modules.none": "§7  ei mitään",
     "iris.studio.modules.failed": "§cPaketti {pack} ei voi ladata moduulejaan: {reason}",
     "iris.director.commandstudio.director.list_pack_modules": "Listaa moduulit, jotka paketti lataa",
     "iris.director.commandstudio.param.dimension_list_modules": "Paketti, jonka moduulit listataan",

@@ -36,7 +36,7 @@ public final class LoadedPack implements AutoCloseable {
      */
     public static LoadedPack load(Path packRoot, ModuleHost host) {
         Objects.requireNonNull(host, "host");
-        var packModules = PackModules.load(packRoot, host.exposedHostPackages(), host.bundledJars(), host.jarCopyRoot(),
+        var packModules = PackModules.load(packRoot, host.exposedHostPackages(), host.jarCopyRoot(),
                 host.logger(), host.platformApi());
         try {
             var loaded = LoadedModules.load(host.withPackModules(packModules.modules()),
@@ -48,9 +48,7 @@ public final class LoadedPack implements AutoCloseable {
         }
     }
 
-    /** The modules of the host's bundled jars, in the order the host lists them, then the pack's own, one per jar, in jar
-     * file name order.
-     */
+    /** The modules of the pack's jars, in jar file name order; not the host's built-in modules. */
     public List<DiscoveredModule> packModules() {
         return packModules.modules();
     }

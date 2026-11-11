@@ -15,7 +15,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /** The module jars of one pack: every {@code <pack>/modules/*.jar}, each with the modules it lists,
  * ordered by file name so the result never depends on directory listing order. Hosts normally load packs
@@ -50,7 +49,6 @@ import java.util.stream.Stream;
 public final class PackModules implements AutoCloseable {
     public static final String MODULES_DIRECTORY = "modules";
     static final String JAR_EXTENSION = ".jar";
-    static final String BUNDLED_ORIGIN_SUFFIX = " (bundled with the host)";
     private static final String TEMPORARY_DIRECTORY_PROPERTY = "java.io.tmpdir";
     static final System.Logger DEFAULT_LOGGER = System.getLogger(PackModules.class.getName());
 
@@ -98,28 +96,20 @@ public final class PackModules implements AutoCloseable {
 
     /** Like {@link #load(Path, Collection)}, copying the jars below {@code temporaryRoot} and logging to {@code logger}. */
     static PackModules load(Path packRoot, Collection<String> exposedHostPackages, Path temporaryRoot, System.Logger logger) {
-        return load(packRoot, exposedHostPackages, List.of(), temporaryRoot, logger);
+        return load(packRoot, exposedHostPackages, temporaryRoot, logger, Optional.empty());
     }
 
-    /** Like {@link #load(Path, Collection, Path, System.Logger)}, also loading the host's {@code bundledJars} as if they were
-     * in the pack, before its own jars and in the given order.
-     */
-    static PackModules load(Path packRoot, Collection<String> exposedHostPackages, List<Path> bundledJars, Path temporaryRoot,
-                            System.Logger logger) {
-        return load(packRoot, exposedHostPackages, bundledJars, temporaryRoot, logger, Optional.empty());
-    }
-
-    /** Like {@link #load(Path, Collection, List, Path, System.Logger)} on a host that runs on {@code runningPlatform}, if
+    /** Like {@link #load(Path, Collection, Path, System.Logger)} on a host that runs on {@code runningPlatform}, if
      * any: the pack's tooling parts of that platform are checked at load and can be opened ({@link #openToolingPart}).
      */
-    static PackModules load(Path packRoot, Collection<String> exposedHostPackages, List<Path> bundledJars, Path temporaryRoot,
+    static PackModules load(Path packRoot, Collection<String> exposedHostPackages, Path temporaryRoot,
                             System.Logger logger, Optional<PlatformApi> runningPlatform) {
         Objects.requireNonNull(packRoot, "packRoot");
         Objects.requireNonNull(logger, "logger");
         Objects.requireNonNull(runningPlatform, "runningPlatform");
         var host = new ExposedHostClassLoader(IrisModule.class.getClassLoader(), ExposedPackages.apiAnd(exposedHostPackages));
         StaleJarSnapshots.remove(temporaryRoot);
-        var snapshot = JarSnapshot.take(sourceJars(packRoot, bundledJars, findModuleJars(packRoot)), temporaryRoot);
+        var snapshot = JarSnapshot.take(sourceJars(packRoot, findModuleJars(packRoot)), temporaryRoot);
         try {
             var packModules = loadSnapshot(packRoot, snapshot, host, logger, runningPlatform);
             logLoad(logger, packName(packRoot), packModules);
@@ -201,19 +191,8 @@ public final class PackModules implements AutoCloseable {
         }
     }
 
-    private static List<JarSnapshot.SourceJar> sourceJars(Path packRoot, List<Path> bundledJars, List<Path> packJars) {
-        var bundled = bundledJars.stream().map(jar -> new JarSnapshot.SourceJar(bundledOrigin(jar), jar));
-        var own = packJars.stream().map(jar -> new JarSnapshot.SourceJar(packRoot.relativize(jar).toString(), jar));
-        return Stream.concat(bundled, own).toList();
-    }
-
-    /** How messages name a bundled jar: its file name, marked as the host's. */
-    static String bundledOrigin(Path bundledJar) {
-        return fileName(bundledJar) + BUNDLED_ORIGIN_SUFFIX;
-    }
-
-    private static String fileName(Path jar) {
-        return jar.getFileName().toString();
+    private static List<JarSnapshot.SourceJar> sourceJars(Path packRoot, List<Path> packJars) {
+        return packJars.stream().map(jar -> new JarSnapshot.SourceJar(packRoot.relativize(jar).toString(), jar)).toList();
     }
 
     private static boolean isJar(Path path) {

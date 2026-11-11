@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
-/** The host's side of every pack load, the same for all packs: its built-in modules, the module jars it bundles, the host
+/** The host's side of every pack load, the same for all packs: its built-in modules, the host
  * packages pack modules may use besides the Iris API, the JSON fields the host itself uses (which no
  * settings key may take), the packages of the classes the host describes itself and the pack folders it
  * reads itself (which no resource kind may read). Build it once and pass it to every
@@ -38,7 +38,6 @@ public record ModuleHost(
         Map<Level, Set<String>> reservedHostFields,
         Set<String> hostTypePackages,
         Set<String> reservedFolders,
-        List<Path> bundledJars,
         Path jarCopyRoot,
         System.Logger logger,
         Optional<PlatformApi> platformApi) {
@@ -50,7 +49,6 @@ public record ModuleHost(
         reservedHostFields = copyOf(reservedHostFields);
         hostTypePackages = Set.copyOf(hostTypePackages);
         reservedFolders = Set.copyOf(reservedFolders);
-        bundledJars = List.copyOf(bundledJars);
         Objects.requireNonNull(jarCopyRoot, "jarCopyRoot");
         Objects.requireNonNull(logger, "logger");
         Objects.requireNonNull(platformApi, "platformApi");
@@ -66,7 +64,7 @@ public record ModuleHost(
      */
     public static ModuleHost of(List<? extends IrisModule> builtInModules) {
         var builtIns = builtInModules.stream().map(DiscoveredModule::builtIn).toList();
-        return new ModuleHost(builtIns, Set.of(), Map.of(), Set.of(), Set.of(), List.of(), systemTemporaryDirectory(),
+        return new ModuleHost(builtIns, Set.of(), Map.of(), Set.of(), Set.of(), systemTemporaryDirectory(),
                 PackModules.DEFAULT_LOGGER, Optional.empty());
     }
 
@@ -75,7 +73,7 @@ public record ModuleHost(
      */
     public ModuleHost exposing(String... packages) {
         return new ModuleHost(builtIns, union(exposedHostPackages, packages), reservedHostFields,
-                hostTypePackages, reservedFolders, bundledJars, jarCopyRoot, logger, platformApi);
+                hostTypePackages, reservedFolders,jarCopyRoot, logger, platformApi);
     }
 
     /** This configuration with {@code fields} also reserved as JSON fields the host itself uses,
@@ -83,7 +81,7 @@ public record ModuleHost(
      */
     public ModuleHost reservingFields(Map<Level, Set<String>> fields) {
         return new ModuleHost(builtIns, exposedHostPackages, merge(reservedHostFields, fields),
-                hostTypePackages, reservedFolders, bundledJars, jarCopyRoot, logger, platformApi);
+                hostTypePackages, reservedFolders,jarCopyRoot, logger, platformApi);
     }
 
     /** This configuration with the classes in {@code packages}, each with its subpackages, described by
@@ -97,7 +95,7 @@ public record ModuleHost(
     @Deprecated(forRemoval = true)
     public ModuleHost describingHostTypesIn(String... packages) {
         return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields,
-                union(hostTypePackages, packages), reservedFolders, bundledJars, jarCopyRoot, logger, platformApi);
+                union(hostTypePackages, packages), reservedFolders,jarCopyRoot, logger, platformApi);
     }
 
     /** This configuration with {@code folders}, folder names directly below a pack's root, also read by the host
@@ -105,18 +103,7 @@ public record ModuleHost(
      */
     public ModuleHost reservingFolders(String... folders) {
         return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages,
-                union(reservedFolders, folders), bundledJars, jarCopyRoot, logger, platformApi);
-    }
-
-    /** This configuration also loading {@code jars}, module jars the host ships, with every pack, as if they were in its
-     * {@code modules} folder: before the pack's own jars, in the given order, in the same class loader. Whether they exist
-     * is checked when a pack loads.
-     */
-    public ModuleHost bundlingJars(Path... jars) {
-        var bundled = new ArrayList<>(bundledJars);
-        bundled.addAll(Arrays.asList(jars));
-        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages, reservedFolders,
-                bundled, jarCopyRoot, logger, platformApi);
+                union(reservedFolders, folders), jarCopyRoot, logger, platformApi);
     }
 
     /** This configuration copying module jars into new directories below {@code directory}, such as a
@@ -124,7 +111,7 @@ public record ModuleHost(
      */
     public ModuleHost copyingJarsTo(Path directory) {
         return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages,
-                reservedFolders, bundledJars, directory, logger, platformApi);
+                reservedFolders,directory, logger, platformApi);
     }
 
     /** This configuration logging each pack load's module summary and missing-classes warning, and every module's own
@@ -135,7 +122,7 @@ public record ModuleHost(
         Objects.requireNonNull(logger, "logger");
         var loggedBuiltIns = builtIns.stream().map(builtIn -> builtIn.loggingTo(logger)).toList();
         return new ModuleHost(loggedBuiltIns, exposedHostPackages, reservedHostFields, hostTypePackages,
-                reservedFolders, bundledJars, jarCopyRoot, logger, platformApi);
+                reservedFolders,jarCopyRoot, logger, platformApi);
     }
 
     /** This configuration running on {@code platform}, whose api classes {@code platform.classes()} defines, such as the Iris
@@ -144,7 +131,7 @@ public record ModuleHost(
      */
     public ModuleHost runningOn(PlatformApi platform) {
         return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages,
-                reservedFolders, bundledJars, jarCopyRoot, logger, Optional.of(platform));
+                reservedFolders,jarCopyRoot, logger, Optional.of(platform));
     }
 
     /** The built-in modules followed by a pack's modules, in the order {@link LoadedModules} sets them up. */

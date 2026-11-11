@@ -123,37 +123,6 @@ class LoadedPackTest {
         assertEquals(List.of("INFO Pack " + pack.getFileName() + " uses 1 module:"), log.levelsAndFirstLines());
     }
 
-    @Test
-    void bundledJarsLoadWithEveryPackBeforeItsOwnJarsInItsClassLoader(@TempDir Path build) {
-        var bundledJar = module("host.bundled.BundledModule", "bundled:core",
-                "public static final PlacementStage<Void> MARK = Stage.placement(\"bundled:core/mark\");",
-                "graph.define(MARK).run(context -> {});")
-                .writeInto(build, "bundled.jar");
-        module("pack.user.User", "user:core", NO_MEMBERS,
-                "graph.define(Stage.placement(\"user:core/after\")).requires(host.bundled.BundledModule.MARK).run(context -> {});")
-                .compileAgainst(bundledJar)
-                .writeInto(pack, "user.jar");
-
-        try (var loaded = LoadedPack.load(pack, HOST.bundlingJars(bundledJar))) {
-            assertEquals(List.of("bundled.jar" + PackModules.BUNDLED_ORIGIN_SUFFIX, Path.of("modules", "user.jar").toString()),
-                    loaded.packModules().stream().map(DiscoveredModule::origin).toList());
-            var order = loaded.placement().stages().stream().map(stage -> stage.stage().id().toString()).toList();
-            assertTrue(order.indexOf("bundled:core/mark") < order.indexOf("user:core/after"), order.toString());
-        }
-    }
-
-    @Test
-    void aPackCopyOfABundledJarFailsNamingBothJars(@TempDir Path build) {
-        var bundled = module("host.bundled.BundledModule", "bundled:core", NO_MEMBERS, NO_STAGES);
-        var bundledJar = bundled.writeInto(build, "bundled.jar");
-        bundled.writeInto(pack, "bundled.jar");
-
-        var error = assertThrows(ModuleLoadException.class, () -> LoadedPack.load(pack, HOST.bundlingJars(bundledJar)));
-
-        assertTrue(error.getMessage().contains("Class host.bundled.BundledModule is in both module jars bundled.jar"
-                + PackModules.BUNDLED_ORIGIN_SUFFIX + " and " + Path.of("modules", "bundled.jar")), error.getMessage());
-    }
-
     /** Keeps the level and first line of every message, which is enough to see where the summary went. */
     private static final class RecordingLogger implements System.Logger {
         private final List<String> lines = new java.util.ArrayList<>();

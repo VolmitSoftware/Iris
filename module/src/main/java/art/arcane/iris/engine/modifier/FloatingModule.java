@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.modules.BuiltInModulesVersion;
 import art.arcane.iris.modules.floating.FloatingChildSettings;
 import art.arcane.iris.modules.floating.MergeFloatingChildrenSettings;
 import art.arcane.iris.engine.mantle.components.FloatingObjectPlacing;
@@ -37,7 +38,7 @@ import com.volmit.stage.MantleStageContext;
  * placement. The chunk stages' work is done by {@link FloatingIslands}.
  */
 public final class FloatingModule implements IrisModule {
-    private static final String VERSION = "built-in";
+    private static final String VERSION = BuiltInModulesVersion.VERSION;
 
     private ModuleLog log;
 

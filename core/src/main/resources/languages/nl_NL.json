@@ -35,11 +35,8 @@
       "one": "§aPack {pack} laadt {count} module:",
       "other": "§aPack {pack} laadt {count} modules:"
     },
-    "iris.studio.modules.built_in": "§7  Ingebouwd: §f{modules}",
-    "iris.studio.modules.from_pack": "§7  Uit het pack:",
-    "iris.studio.modules.from_pack_none": "§7  Uit het pack: §fgeen",
-    "iris.studio.modules.entry": "§f    {name} {version} §7({id}, {jar})",
-    "iris.studio.modules.none": "geen",
+    "iris.studio.modules.entry": "§f  {name} {version} §7({id}, {jar})",
+    "iris.studio.modules.none": "§7  geen",
     "iris.studio.modules.failed": "§cPack {pack} kan zijn modules niet laden: {reason}",
     "iris.director.commandstudio.director.list_pack_modules": "Toon de modules die een pack laadt",
     "iris.director.commandstudio.param.dimension_list_modules": "Het pack waarvan de modules getoond worden",

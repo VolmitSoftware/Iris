@@ -260,7 +260,7 @@ public class CommandStudio implements DirectorExecutor {
 
     @Director(description = "List the modules a pack loads", descriptionKey = "iris.director.commandstudio.director.list_pack_modules")
     public void modules(
-            @Param(defaultValue = "default", description = "The pack to list the modules of", descriptionKey = "iris.director.commandstudio.param.dimension_list_modules", aliases = "dim", contextual = true, contextualOverride = true, customHandler = DimensionHandler.class)
+            @Param(description = "The pack to list the modules of", descriptionKey = "iris.director.commandstudio.param.dimension_list_modules", aliases = "dim", customHandler = DimensionHandler.class)
             IrisDimension dimension
     ) {
         PackModulesListing.describe(dimension.getLoader()).lines().forEach(sender()::sendMessage);

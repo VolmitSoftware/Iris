@@ -35,11 +35,8 @@
       "one": "§aパック {pack} は {count} 個のモジュールを読み込みます:",
       "other": "§aパック {pack} は {count} 個のモジュールを読み込みます:"
     },
-    "iris.studio.modules.built_in": "§7  組み込み: §f{modules}",
-    "iris.studio.modules.from_pack": "§7  パックから:",
-    "iris.studio.modules.from_pack_none": "§7  パックから: §fなし",
-    "iris.studio.modules.entry": "§f    {name} {version} §7({id}, {jar})",
-    "iris.studio.modules.none": "なし",
+    "iris.studio.modules.entry": "§f  {name} {version} §7({id}, {jar})",
+    "iris.studio.modules.none": "§7  なし",
     "iris.studio.modules.failed": "§cパック {pack} はモジュールを読み込めません: {reason}",
     "iris.director.commandstudio.director.list_pack_modules": "パックが読み込むモジュールを一覧表示します",
     "iris.director.commandstudio.param.dimension_list_modules": "モジュールを一覧表示するパック",

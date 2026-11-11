@@ -25,12 +25,7 @@ import com.volmit.ModuleLog;
 import com.volmit.host.ModuleHost;
 import com.volmit.host.PackModules;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -69,8 +64,9 @@ public final class IrisModuleHost {
             SHARED_LIBRARY_PACKAGES.stream()).toList();
     /**
      * The ids of the built-in modules that ship in the built-ins jar ({@code iris-builtins.jar}, listed in
-     * {@code IrisModule/builtin-modules.txt}) instead of being compiled into Iris. Every pack loads them from the jar Iris
-     * bundles, and {@link MissingBuiltInModules} warns when it loads none; a test keeps this equal to the jar's list.
+     * {@code IrisModule/builtin-modules.txt}) instead of being compiled into Iris. A pack loads them from its own copy of the
+     * jar ({@link PackBuiltIns}), and {@link MissingBuiltInModules} warns when it loads none; a test keeps this equal to the
+     * jar's list.
      */
     public static final List<String> JAR_MODULE_IDS = List.of("iris:post", "iris:perfection", "iris:matter", "iris:loot",
             "iris:spawn", "iris:prepare", "iris:anchor", "iris:validate", "iris:bore", "iris:blocks", "iris:stilt", "iris:vacuum",
@@ -85,8 +81,6 @@ public final class IrisModuleHost {
             .map(subpackage -> "art.arcane.iris.engine.object." + subpackage)
             .toArray(String[]::new);
     private static final String[] JAR_COPY_FOLDER = {"cache", "module-jars"};
-    private static final String BUNDLED_JAR_RESOURCE = "/" + MissingBuiltInModules.JAR_NAME;
-    private static final String BUNDLED_JAR_TEMPORARY_PREFIX = "iris-built-in-modules-";
     private static final String TEMPORARY_DIRECTORY_PROPERTY = "java.io.tmpdir";
 
     private IrisModuleHost() {
@@ -125,34 +119,8 @@ public final class IrisModuleHost {
                 .reservingFields(ModuleTargets.reservedFields())
                 .describingHostTypesIn(HOST_TYPE_PACKAGES)
                 .reservingFolders(IrisData.ownFolderNames().toArray(String[]::new))
-                .bundlingJars(bundledJars())
                 .copyingJarsTo(jarCopyRoot())
                 .loggingTo(IrisApiLogger.showingEachMessageOnce(PackModules.class.getName()));
-    }
-
-    /**
-     * The built-ins jar this build of Iris carries, unpacked to a file the pack loader can copy; none when the classpath
-     * holds no such jar, as in Iris's own tests, which put a copy into the pack instead.
-     */
-    private static Path[] bundledJars() {
-        try (InputStream bundled = IrisModuleHost.class.getResourceAsStream(BUNDLED_JAR_RESOURCE)) {
-            if (bundled == null) {
-                return new Path[0];
-            }
-            Path unpacked = bundledJarFolder().resolve(MissingBuiltInModules.JAR_NAME);
-            Files.copy(bundled, unpacked, StandardCopyOption.REPLACE_EXISTING);
-            return new Path[]{unpacked};
-        } catch (IOException exception) {
-            throw new UncheckedIOException("Cannot unpack Iris's built-in modules jar", exception);
-        }
-    }
-
-    /** A fresh temporary folder, removed when the JVM exits; the host is built before a platform may be bound. */
-    private static Path bundledJarFolder() throws IOException {
-        Path folder = Files.createTempDirectory(BUNDLED_JAR_TEMPORARY_PREFIX);
-        folder.toFile().deleteOnExit();
-        folder.resolve(MissingBuiltInModules.JAR_NAME).toFile().deleteOnExit();
-        return folder;
     }
 
     /** Under the plugin's cache folder when a platform is bound; tests and the standalone probe use the JDK's temporary directory. */

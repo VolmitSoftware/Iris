@@ -54,7 +54,7 @@ class ToolingPartCheckTest {
 
     private PackModules load(TestModuleJar jar, Optional<PlatformApi> runningPlatform) {
         jar.writeInto(pack, "user.jar");
-        return PackModules.load(pack, List.of(), List.of(), work, PackModules.DEFAULT_LOGGER, runningPlatform);
+        return PackModules.load(pack, List.of(), work, PackModules.DEFAULT_LOGGER, runningPlatform);
     }
 
     private String loadFailure(TestModuleJar jar, Optional<PlatformApi> runningPlatform) {
@@ -158,7 +158,7 @@ class ToolingPartCheckTest {
         partUsingTheBuiltInModule().writeInto(pack, "user.jar");
         var exposed = List.of(CarveModule.class.getPackageName());
 
-        try (var modules = PackModules.load(pack, exposed, List.of(), work, PackModules.DEFAULT_LOGGER, Optional.of(platformDenyingExample()))) {
+        try (var modules = PackModules.load(pack, exposed, work, PackModules.DEFAULT_LOGGER, Optional.of(platformDenyingExample()))) {
             assertEquals(1, modules.toolingParts().size());
         }
     }

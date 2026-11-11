@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.modules.BuiltInModulesVersion;
 import art.arcane.iris.modules.deposit.DepositGenerator;
 import art.arcane.iris.modules.deposit.DepositSettings;
 import art.arcane.iris.modules.deposit.DepositVariantSettings;
@@ -40,7 +41,7 @@ import java.util.List;
  * of its columns a biome border crosses.
  */
 public final class DepositModule implements IrisModule {
-    private static final String VERSION = "built-in";
+    private static final String VERSION = BuiltInModulesVersion.VERSION;
 
     @Override
     public ModuleInfo info() {

@@ -25,6 +25,7 @@ import art.arcane.iris.core.modules.StructureCommands;
 import art.arcane.iris.engine.framework.structure.StructureLocating;
 import art.arcane.iris.engine.framework.structure.StructureValidator;
 import art.arcane.iris.engine.framework.structure.StructureVanillaStructures;
+import art.arcane.iris.modules.BuiltInModulesVersion;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLog;
@@ -45,7 +46,7 @@ import com.volmit.stage.MantleStageContext;
  * providers of the pack's modules, such as {@code iris:jigsaw}, and knows none of them.
  */
 public final class StructureModule implements IrisModule {
-    private static final String VERSION = "built-in";
+    private static final String VERSION = BuiltInModulesVersion.VERSION;
 
     @Override
     public ModuleInfo info() {

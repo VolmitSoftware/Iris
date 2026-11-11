@@ -35,11 +35,8 @@
       "one": "§aМодули пака {pack} ({count}):",
       "other": "§aМодули пака {pack} ({count}):"
     },
-    "iris.studio.modules.built_in": "§7  Встроенные: §f{modules}",
-    "iris.studio.modules.from_pack": "§7  Из пака:",
-    "iris.studio.modules.from_pack_none": "§7  Из пака: §fнет",
-    "iris.studio.modules.entry": "§f    {name} {version} §7({id}, {jar})",
-    "iris.studio.modules.none": "нет",
+    "iris.studio.modules.entry": "§f  {name} {version} §7({id}, {jar})",
+    "iris.studio.modules.none": "§7  нет",
     "iris.studio.modules.failed": "§cПак {pack} не может загрузить свои модули: {reason}",
     "iris.director.commandstudio.director.list_pack_modules": "Показать модули, которые загружает пак",
     "iris.director.commandstudio.param.dimension_list_modules": "Пак, модули которого показать",

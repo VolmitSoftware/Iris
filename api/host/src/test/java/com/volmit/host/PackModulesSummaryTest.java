@@ -14,56 +14,27 @@ class PackModulesSummaryTest {
         return DiscoveredModule.fromJar(module, module.info(), origin);
     }
 
-    private static DiscoveredModule bundled(IrisModule module) {
-        return pack(module, "builtins.jar" + PackModules.BUNDLED_ORIGIN_SUFFIX);
-    }
-
     @Test
-    void listsTheVersionAndJarOfEveryModuleThePackBringsInLoadOrder() {
+    void listsTheVersionAndJarOfEveryModuleInLoadOrder() {
         var modules = List.of(
                 pack(new MossModule(), "modules/moss.jar"),
                 pack(new SnowModule(), "modules/snow.jar"));
 
         assertEquals("""
                 Pack overworld uses 2 modules:
-                  Pack: Moss 1.0.0 (modules/moss.jar), Snow test (modules/snow.jar)""",
+                  Moss 1.0.0 (modules/moss.jar), Snow test (modules/snow.jar)""",
                 PackModulesSummary.describe("overworld", modules));
     }
 
     @Test
-    void namesHostModulesWithoutTheirJar() {
-        var modules = List.of(
-                bundled(new SnowModule()),
-                DiscoveredModule.builtIn(new MossModule()));
-
-        assertEquals("""
-                Pack overworld uses 2 modules:
-                  Host: Snow, Moss""",
-                PackModulesSummary.describe("overworld", modules));
-    }
-
-    @Test
-    void groupsHostModulesBeforeThePacksOwn() {
-        var modules = List.of(
-                pack(new MossModule(), "modules/moss.jar"),
-                bundled(new SnowModule()));
-
-        assertEquals("""
-                Pack overworld uses 2 modules:
-                  Host: Snow
-                  Pack: Moss 1.0.0 (modules/moss.jar)""",
-                PackModulesSummary.describe("overworld", modules));
-    }
-
-    @Test
-    void wrapsALongGroupUnderItsFirstEntry() {
-        var modules = Collections.nCopies(20, bundled(new SnowModule()));
+    void wrapsALongListAtTheSameIndent() {
+        var modules = Collections.nCopies(20, pack(new SnowModule(), "modules/snow.jar"));
 
         String[] lines = PackModulesSummary.describe("overworld", modules).split("\n");
 
         assertTrue(lines.length > 2);
-        assertTrue(lines[1].startsWith("  Host: Snow, Snow"));
-        assertTrue(lines[2].startsWith("        Snow"));
+        assertTrue(lines[1].startsWith("  Snow test (modules/snow.jar), Snow"));
+        assertTrue(lines[2].startsWith("  Snow"));
         for (String line : lines) {
             assertTrue(line.length() <= 100, line);
         }
@@ -75,7 +46,7 @@ class PackModulesSummaryTest {
 
         assertEquals("""
                 Pack overworld uses 1 module:
-                  Pack: Moss 1.0.0 (modules/moss.jar)""",
+                  Moss 1.0.0 (modules/moss.jar)""",
                 PackModulesSummary.describe("overworld", modules));
     }
 

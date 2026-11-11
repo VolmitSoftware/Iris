@@ -25,8 +25,8 @@ import java.util.Collection;
 import java.util.Optional;
 
 /**
- * Notices a pack that loads without the built-in modules jar, which happens only when this build of Iris does not bundle
- * it. Such a pack still loads and generates, but quietly without what the jar's modules do, so the owner is told once.
+ * Notices a pack that loads without the built-in modules jar in its modules folder. Such a pack still loads and generates,
+ * but quietly without what the jar's modules do, so the owner is told once.
  */
 final class MissingBuiltInModules {
     static final String JAR_NAME = "iris-builtins.jar";
@@ -44,7 +44,8 @@ final class MissingBuiltInModules {
         }
         return Optional.of("Pack " + packFolder.getName() + " loads without the built-in modules (" + JAR_NAME + "): its world gets"
                 + " only its layout (biomes and heights), with no terrain blocks, ores, caves, decorations, objects or vanilla features,"
-                + " and no loot, block drops, entity spawns or ambient effects. This build of Iris does not bundle " + JAR_NAME
-                + "; build the plugin with ./gradlew iris.");
+                + " and no loot, block drops, entity spawns or ambient effects. Put " + JAR_NAME + " in its "
+                + PackModuleSet.MODULES_FOLDER + " folder: /iris std create adds it to new packs, and ./gradlew iris builds it"
+                + " into module/build/libs.");
     }
 }

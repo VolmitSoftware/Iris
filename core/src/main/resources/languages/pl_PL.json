@@ -35,11 +35,8 @@
       "one": "§aModuły packa {pack} ({count}):",
       "other": "§aModuły packa {pack} ({count}):"
     },
-    "iris.studio.modules.built_in": "§7  Wbudowane: §f{modules}",
-    "iris.studio.modules.from_pack": "§7  Z packa:",
-    "iris.studio.modules.from_pack_none": "§7  Z packa: §fbrak",
-    "iris.studio.modules.entry": "§f    {name} {version} §7({id}, {jar})",
-    "iris.studio.modules.none": "brak",
+    "iris.studio.modules.entry": "§f  {name} {version} §7({id}, {jar})",
+    "iris.studio.modules.none": "§7  brak",
     "iris.studio.modules.failed": "§cPack {pack} nie może załadować swoich modułów: {reason}",
     "iris.director.commandstudio.director.list_pack_modules": "Wyświetl moduły ładowane przez pack",
     "iris.director.commandstudio.param.dimension_list_modules": "Pack, którego moduły wyświetlić",

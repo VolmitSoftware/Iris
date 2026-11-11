@@ -12,11 +12,8 @@
       "one": "§aPack {pack} loads {count} module:",
       "other": "§aPack {pack} loads {count} modules:"
     },
-    "iris.studio.modules.built_in": "§7  Built-in: §f{modules}",
-    "iris.studio.modules.from_pack": "§7  From the pack:",
-    "iris.studio.modules.from_pack_none": "§7  From the pack: §fnone",
-    "iris.studio.modules.entry": "§f    {name} {version} §7({id}, {jar})",
-    "iris.studio.modules.none": "none",
+    "iris.studio.modules.entry": "§f  {name} {version} §7({id}, {jar})",
+    "iris.studio.modules.none": "§7  none",
     "iris.studio.modules.failed": "§cPack {pack} cannot load its modules: {reason}",
     "iris.command.reload.success": "Hotloaded settings and locale {locale}.",
     "iris.command.reload.failed": "Settings were reloaded, but locale {locale} was rejected; continuing with {activeLocale}.",

@@ -83,11 +83,6 @@ public final class DiscoveredModule {
         return origin;
     }
 
-    /** Whether the module ships with the host, on its classpath or in a jar it bundles, instead of in the pack. */
-    public boolean isBuiltIn() {
-        return source == Source.HOST || origin.endsWith(PackModules.BUNDLED_ORIGIN_SUFFIX);
-    }
-
     /** The origin and the module's class, which tells apart two modules of one jar. */
     String locationWithClass() {
         return origin + " (" + module.getClass().getName() + ")";

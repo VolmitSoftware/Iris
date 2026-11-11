@@ -35,11 +35,8 @@
       "one": "§a包 {pack} 載入了 {count} 個模組：",
       "other": "§a包 {pack} 載入了 {count} 個模組："
     },
-    "iris.studio.modules.built_in": "§7  內建：§f{modules}",
-    "iris.studio.modules.from_pack": "§7  來自包：",
-    "iris.studio.modules.from_pack_none": "§7  來自包：§f無",
-    "iris.studio.modules.entry": "§f    {name} {version} §7({id}, {jar})",
-    "iris.studio.modules.none": "無",
+    "iris.studio.modules.entry": "§f  {name} {version} §7({id}, {jar})",
+    "iris.studio.modules.none": "§7  無",
     "iris.studio.modules.failed": "§c包 {pack} 無法載入其模組：{reason}",
     "iris.director.commandstudio.director.list_pack_modules": "列出包載入的模組",
     "iris.director.commandstudio.param.dimension_list_modules": "要列出模組的包",

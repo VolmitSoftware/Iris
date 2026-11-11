@@ -39,7 +39,8 @@ public class MissingBuiltInModulesTest {
         String warning = MissingBuiltInModules.warning(PACK, List.of()).orElseThrow();
 
         assertTrue(warning, warning.startsWith("Pack overworld loads without the built-in modules (iris-builtins.jar)"));
-        assertTrue(warning, warning.endsWith("does not bundle iris-builtins.jar; build the plugin with ./gradlew iris."));
+        assertTrue(warning, warning.endsWith("Put iris-builtins.jar in its modules folder: /iris std create adds it to new packs,"
+                + " and ./gradlew iris builds it into module/build/libs."));
     }
 
     @Test

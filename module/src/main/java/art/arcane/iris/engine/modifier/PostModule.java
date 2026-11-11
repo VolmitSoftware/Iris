@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.modules.BuiltInModulesVersion;
 import art.arcane.iris.modules.post.PostProcessingSettings;
 import art.arcane.iris.modules.post.PostProcessingSlabsSettings;
 import art.arcane.iris.modules.post.PostProcessingWallsSettings;
@@ -28,7 +29,7 @@ import com.volmit.ModuleSetup;
 
 /** Module {@code iris:post}: smooths the carved surface with {@link SurfaceSmoothing}. */
 public final class PostModule implements IrisModule {
-    private static final String VERSION = "built-in";
+    private static final String VERSION = BuiltInModulesVersion.VERSION;
 
     @Override
     public ModuleInfo info() {

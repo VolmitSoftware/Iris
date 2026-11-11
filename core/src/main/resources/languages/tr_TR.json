@@ -35,11 +35,8 @@
       "one": "§a{pack} paketi {count} modül yüklüyor:",
       "other": "§a{pack} paketi {count} modül yüklüyor:"
     },
-    "iris.studio.modules.built_in": "§7  Yerleşik: §f{modules}",
-    "iris.studio.modules.from_pack": "§7  Paketten:",
-    "iris.studio.modules.from_pack_none": "§7  Paketten: §fyok",
-    "iris.studio.modules.entry": "§f    {name} {version} §7({id}, {jar})",
-    "iris.studio.modules.none": "yok",
+    "iris.studio.modules.entry": "§f  {name} {version} §7({id}, {jar})",
+    "iris.studio.modules.none": "§7  yok",
     "iris.studio.modules.failed": "§c{pack} paketi modüllerini yükleyemiyor: {reason}",
     "iris.director.commandstudio.director.list_pack_modules": "Bir paketin yüklediği modülleri listele",
     "iris.director.commandstudio.param.dimension_list_modules": "Modülleri listelenecek paket",

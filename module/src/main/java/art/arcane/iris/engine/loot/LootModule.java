@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.loot;
 
+import art.arcane.iris.modules.BuiltInModulesVersion;
 import art.arcane.iris.modules.loot.BlockDropSettings;
 import art.arcane.iris.builtin.loot.LootSettings;
 import com.volmit.IrisModule;
@@ -33,7 +34,7 @@ import com.volmit.service.Loot;
  * a container is filled and through {@link BlockDrops} when a player breaks a block.
  */
 public final class LootModule implements IrisModule {
-    private static final String VERSION = "built-in";
+    private static final String VERSION = BuiltInModulesVersion.VERSION;
 
     @Override
     public ModuleInfo info() {

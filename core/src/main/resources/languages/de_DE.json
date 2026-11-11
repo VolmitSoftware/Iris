@@ -35,11 +35,8 @@
       "one": "§aPack {pack} lädt {count} Modul:",
       "other": "§aPack {pack} lädt {count} Module:"
     },
-    "iris.studio.modules.built_in": "§7  Eingebaut: §f{modules}",
-    "iris.studio.modules.from_pack": "§7  Aus dem Pack:",
-    "iris.studio.modules.from_pack_none": "§7  Aus dem Pack: §fkeine",
-    "iris.studio.modules.entry": "§f    {name} {version} §7({id}, {jar})",
-    "iris.studio.modules.none": "keine",
+    "iris.studio.modules.entry": "§f  {name} {version} §7({id}, {jar})",
+    "iris.studio.modules.none": "§7  keine",
     "iris.studio.modules.failed": "§cPack {pack} kann seine Module nicht laden: {reason}",
     "iris.director.commandstudio.director.list_pack_modules": "Module auflisten, die ein Pack lädt",
     "iris.director.commandstudio.param.dimension_list_modules": "Das Pack, dessen Module aufgelistet werden",

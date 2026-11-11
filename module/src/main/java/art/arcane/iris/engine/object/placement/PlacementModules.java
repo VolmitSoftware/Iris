@@ -18,9 +18,11 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.modules.BuiltInModulesVersion;
+
 /** What Iris's built-in object placement modules share: the version they report. The modules ship in the built-ins jar. */
 final class PlacementModules {
-    static final String VERSION = "built-in";
+    static final String VERSION = BuiltInModulesVersion.VERSION;
 
     private PlacementModules() {
     }

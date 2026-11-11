@@ -45,7 +45,7 @@ class ToolingPartLoaderTest {
                 .compileAgainst(platform.jar())
                 .toolingParts("bukkit=" + PART)
                 .writeInto(pack, "user.jar");
-        modules = PackModules.load(pack, List.of(), List.of(), work, PackModules.DEFAULT_LOGGER,
+        modules = PackModules.load(pack, List.of(), work, PackModules.DEFAULT_LOGGER,
                 Optional.of(platform.asApiOf(ToolingPlatform.BUKKIT)));
     }
 

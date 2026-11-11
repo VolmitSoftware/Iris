@@ -41,9 +41,6 @@ public final class IrisMessages {
     public static final TextKey STUDIO_MAP_READY = text("iris.studio.map_ready");
     public static final TextKey STUDIO_MAP_FAILED = text("iris.studio.map_failed");
     public static final PluralKey STUDIO_MODULES_HEADER = plural("iris.studio.modules.header");
-    public static final TextKey STUDIO_MODULES_BUILT_IN = text("iris.studio.modules.built_in");
-    public static final TextKey STUDIO_MODULES_FROM_PACK = text("iris.studio.modules.from_pack");
-    public static final TextKey STUDIO_MODULES_FROM_PACK_NONE = text("iris.studio.modules.from_pack_none");
     public static final TextKey STUDIO_MODULES_ENTRY = text("iris.studio.modules.entry");
     public static final TextKey STUDIO_MODULES_NONE = text("iris.studio.modules.none");
     public static final TextKey STUDIO_MODULES_FAILED = text("iris.studio.modules.failed");

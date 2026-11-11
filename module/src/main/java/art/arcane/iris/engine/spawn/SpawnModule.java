@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.spawn;
 
+import art.arcane.iris.modules.BuiltInModulesVersion;
 import art.arcane.iris.modules.spawn.EffectSettings;
 import art.arcane.iris.modules.spawn.SpawnerSettings;
 import com.volmit.IrisModule;
@@ -34,7 +35,7 @@ import com.volmit.service.EntitySpawns;
  * through {@link AmbientEffects} for the effects due around a player.
  */
 public final class SpawnModule implements IrisModule {
-    private static final String VERSION = "built-in";
+    private static final String VERSION = BuiltInModulesVersion.VERSION;
 
     @Override
     public ModuleInfo info() {

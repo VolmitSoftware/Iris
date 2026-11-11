@@ -20,6 +20,7 @@ package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.modules.BuiltInModulesVersion;
 import art.arcane.iris.modules.carve.CarvingBiomeSettings;
 import art.arcane.iris.modules.carve.CarvingEnabledSettings;
 import art.arcane.iris.modules.carve.CarvingSettings;
@@ -59,7 +60,7 @@ import java.util.function.Function;
  * {@link CaveCarving}, one per world. The chunk stage's work is done by {@link CaveApplying}.
  */
 public final class CarveModule implements IrisModule {
-    private static final String VERSION = "built-in";
+    private static final String VERSION = BuiltInModulesVersion.VERSION;
     /** Blended cave walls reach one block past the chunk. */
     private static final int CAVE_REACH_BLOCKS = 1;
 

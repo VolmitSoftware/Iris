@@ -35,11 +35,8 @@
       "one": "§aPakuotės {pack} moduliai ({count}):",
       "other": "§aPakuotės {pack} moduliai ({count}):"
     },
-    "iris.studio.modules.built_in": "§7  Integruoti: §f{modules}",
-    "iris.studio.modules.from_pack": "§7  Iš pakuotės:",
-    "iris.studio.modules.from_pack_none": "§7  Iš pakuotės: §fnėra",
-    "iris.studio.modules.entry": "§f    {name} {version} §7({id}, {jar})",
-    "iris.studio.modules.none": "nėra",
+    "iris.studio.modules.entry": "§f  {name} {version} §7({id}, {jar})",
+    "iris.studio.modules.none": "§7  nėra",
     "iris.studio.modules.failed": "§cPakuotė {pack} negali įkelti savo modulių: {reason}",
     "iris.director.commandstudio.director.list_pack_modules": "Išvardyti modulius, kuriuos įkelia pakuotė",
     "iris.director.commandstudio.param.dimension_list_modules": "Pakuotė, kurios modulius išvardyti",

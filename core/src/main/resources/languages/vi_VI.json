@@ -35,11 +35,8 @@
       "one": "§aGói {pack} tải {count} mô-đun:",
       "other": "§aGói {pack} tải {count} mô-đun:"
     },
-    "iris.studio.modules.built_in": "§7  Tích hợp sẵn: §f{modules}",
-    "iris.studio.modules.from_pack": "§7  Từ gói:",
-    "iris.studio.modules.from_pack_none": "§7  Từ gói: §fkhông có",
-    "iris.studio.modules.entry": "§f    {name} {version} §7({id}, {jar})",
-    "iris.studio.modules.none": "không có",
+    "iris.studio.modules.entry": "§f  {name} {version} §7({id}, {jar})",
+    "iris.studio.modules.none": "§7  không có",
     "iris.studio.modules.failed": "§cGói {pack} không thể tải các mô-đun của nó: {reason}",
     "iris.director.commandstudio.director.list_pack_modules": "Liệt kê các mô-đun mà một gói tải",
     "iris.director.commandstudio.param.dimension_list_modules": "Gói cần liệt kê mô-đun",

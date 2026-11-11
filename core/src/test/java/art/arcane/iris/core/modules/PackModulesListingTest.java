@@ -51,7 +51,7 @@ public class PackModulesListingTest {
     public TemporaryFolder folder = new TemporaryFolder();
 
     @Test
-    public void listsThePacksOwnModulesWithVersionIdAndJar() throws IOException {
+    public void listsEveryModuleWithVersionIdAndJar() throws IOException {
         File pack = folder.newFolder("rivers-pack");
         PackModuleJar.write(pack.toPath(), "rivers.jar", "pack.rivers.Rivers", Map.of("pack.rivers.Rivers", RIVERS_MODULE));
 
@@ -59,18 +59,16 @@ public class PackModulesListingTest {
         List<String> lines = plain(listing);
 
         assertTrue(listing.loaded());
-        assertEquals("Pack rivers-pack loads 1 module:", lines.get(0));
-        assertEquals("  Built-in: none", lines.get(1));
-        assertEquals("  From the pack:", lines.get(2));
-        assertEquals("    Rivers 2.1.0 (acme:rivers, " + Path.of("modules", "rivers.jar") + ")", lines.get(3));
-        assertEquals(4, lines.size());
+        assertEquals(List.of(
+                "Pack rivers-pack loads 1 module:",
+                "  Rivers 2.1.0 (acme:rivers, " + Path.of("modules", "rivers.jar") + ")"), lines);
     }
 
     @Test
-    public void aPackWithoutModulesOfItsOwnSaysSo() throws IOException {
+    public void aPackWithoutModuleJarsSaysSo() throws IOException {
         List<String> lines = plain(PackModulesListing.describe(IrisData.get(folder.newFolder("plain"))));
 
-        assertEquals("  From the pack: none", lines.get(lines.size() - 1));
+        assertEquals(List.of("Pack plain loads 0 modules:", "  none"), lines);
     }
 
     @Test

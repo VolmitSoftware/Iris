@@ -124,7 +124,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final boolean studio;
     private final AtomicBoolean studioEntryBootstrapActive;
     private final AtomicInteger a = new AtomicInteger(0);
-    private volatile long lastChunkGenTime = 0L;
     private final CompletableFuture<Integer> spawnChunks = new CompletableFuture<>();
     private final CompletableFuture<Void> initialSpawnReady = new CompletableFuture<>();
     private final AtomicCache<EngineTarget> targetCache = new AtomicCache<>();
@@ -602,14 +601,21 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             return;
         }
 
-        withExclusiveControl(() -> getEngine().hotload());
+        withExclusiveControl(this::hotloadEngine);
+    }
+
+    private void hotloadEngine() {
+        Engine activeEngine = getEngine();
+        long started = M.ms();
+        activeEngine.hotload();
+        IrisLogging.info("Hotloaded " + activeEngine.getDimension().getLoadKey() + " in " + (M.ms() - started) + "ms");
     }
 
     private void hotloadFromWatcher() {
         if (!shouldRunStudioHotload(isStudio(), closing, paintedStudioActive)) {
             return;
         }
-        withExclusiveControlFuture(() -> getEngine().hotload(), HOTLOAD_ACQUISITION_TIMEOUT_SECONDS, TimeUnit.SECONDS).join();
+        withExclusiveControlFuture(this::hotloadEngine, HOTLOAD_ACQUISITION_TIMEOUT_SECONDS, TimeUnit.SECONDS).join();
     }
 
     /** Skipped like the watcher's hotload while a pack file does not parse. */
@@ -622,7 +628,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         if (skipReason.isPresent()) {
             return CompletableFuture.failedFuture(new IllegalStateException(skipReason.get()));
         }
-        return withExclusiveControlFuture(() -> getEngine().hotload(), HOTLOAD_ACQUISITION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        return withExclusiveControlFuture(this::hotloadEngine, HOTLOAD_ACQUISITION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     @Override
@@ -860,7 +866,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
         try {
             Engine engine = getEngine(world);
-            lastChunkGenTime = System.currentTimeMillis();
             computeStudioGenerator();
             TerrainChunk tc = TerrainChunk.create(d);
             if (studioGenerator != null) {
@@ -932,10 +937,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     private boolean shouldThrottleHotload() {
         if (isMaintenanceActive()) {
-            return true;
-        }
-
-        if (System.currentTimeMillis() - lastChunkGenTime < 2000L) {
             return true;
         }
 

@@ -56,6 +56,7 @@ public final class ChunkJobReporter {
     private final AtomicBoolean failed = new AtomicBoolean(false);
     private final AtomicInteger applied = new AtomicInteger(0);
     private final AtomicInteger failures = new AtomicInteger(0);
+    private final AtomicInteger skipped = new AtomicInteger(0);
     private volatile int total = 0;
     private volatile long startMs = 0L;
 
@@ -89,7 +90,17 @@ public final class ChunkJobReporter {
             failures.incrementAndGet();
         }
 
-        int finished = applied.get() + failures.get();
+        updateProgress();
+    }
+
+    /** A chunk the job had nothing to do for. It leaves the total, so the summary only counts chunks the job worked on. */
+    public void countSkipped() {
+        skipped.incrementAndGet();
+        updateProgress();
+    }
+
+    private void updateProgress() {
+        int finished = applied.get() + failures.get() + skipped.get();
         if (total > 0) {
             progress.set(Math.min(0.999D, (double) finished / total));
         }
@@ -97,8 +108,16 @@ public final class ChunkJobReporter {
 
     public void finish(boolean error) {
         progress.set(1.0D);
-        failed.set(error || (applied.get() == 0 && total > 0));
+        failed.set(error || (applied.get() == 0 && workedTotal() > 0));
         complete.set(true);
+    }
+
+    public int skipped() {
+        return skipped.get();
+    }
+
+    private int workedTotal() {
+        return total - skipped.get();
     }
 
     public int applied() {
@@ -151,7 +170,7 @@ public final class ChunkJobReporter {
                         MessageArgument.trusted("percent", percent),
                         MessageArgument.trusted("stage", stage.get()),
                         MessageArgument.trusted("applied", applied.get()),
-                        MessageArgument.trusted("total", total <= 0 ? "?" : total)
+                        MessageArgument.trusted("total", total <= 0 ? "?" : workedTotal())
                 ));
             }
         }, REPORT_INTERVAL_TICKS));
@@ -166,14 +185,14 @@ public final class ChunkJobReporter {
                 ? IrisLanguage.text(
                         RuntimeProgressMessages.CHUNK_SUMMARY_FAILED,
                         MessageArgument.trusted("applied", applied.get()),
-                        MessageArgument.trusted("total", total),
+                        MessageArgument.trusted("total", workedTotal()),
                         MessageArgument.trusted("elapsed", Form.duration(elapsed, 1)),
                         MessageArgument.trusted("failures", failures.get())
                 )
                 : IrisLanguage.text(
                         RuntimeProgressMessages.CHUNK_SUMMARY,
                         MessageArgument.trusted("applied", applied.get()),
-                        MessageArgument.trusted("total", total),
+                        MessageArgument.trusted("total", workedTotal()),
                         MessageArgument.trusted("elapsed", Form.duration(elapsed, 1))
                 );
 

@@ -570,7 +570,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                 NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager,
                 area::isInside, cells -> {});
         Map<Long, NativeStructureTemplateOccupancy.LowestCell> pathGround =
-                NativeStructureTemplateOccupancy.lowestProcessedSolidCells(occupancy.cells());
+                NativeStructureTemplateOccupancy.lowestFoundationCells(occupancy.cells());
 
         assertTrue(state(blocks, 4, 96, 0).isAir());
         assertEquals(1, pathGround.size());
@@ -619,7 +619,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                 NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager,
                 area::isInside, cells -> {});
         Map<Long, NativeStructureTemplateOccupancy.LowestCell> pathGround =
-                NativeStructureTemplateOccupancy.lowestProcessedSolidCells(occupancy.cells());
+                NativeStructureTemplateOccupancy.lowestFoundationCells(occupancy.cells());
 
         assertEquals(2, pathGround.size());
         for (NativeStructureTemplateOccupancy.LowestCell cell : pathGround.values()) {
@@ -675,7 +675,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                 NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager,
                 area::isInside, cells -> {});
         Map<Long, NativeStructureTemplateOccupancy.LowestCell> pathGround =
-                NativeStructureTemplateOccupancy.lowestProcessedSolidCells(occupancy.cells());
+                NativeStructureTemplateOccupancy.lowestFoundationCells(occupancy.cells());
 
         assertEquals(2, pathGround.size());
         for (NativeStructureTemplateOccupancy.LowestCell cell : pathGround.values()) {

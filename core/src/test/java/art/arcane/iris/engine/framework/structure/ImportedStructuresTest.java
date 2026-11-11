@@ -23,14 +23,29 @@ public class ImportedStructuresTest {
     private static final Gson JSON = new Gson();
 
     @Test
-    public void declaredDefaultSettingsImportEveryStructureAndChangeNothing() {
+    public void defaultSettingsImportNoStructureAndChangeNothing() {
         ImportedStructures defaults = imported(new StructureSettings());
 
-        assertFalse(defaults.disables("minecraft:village_plains"));
-        assertFalse(defaults.disables("nova_structures:desert_temple"));
+        assertTrue(defaults.disables("minecraft:village_plains"));
+        assertTrue(defaults.disables("nova_structures:desert_temple"));
         assertEquals(NativeStructureFit.NONE, defaults.adjustment("minecraft:stronghold", true));
         assertEquals(1D, defaults.setup().frequency(ResourceId.parse("minecraft:villages")), 0D);
         assertFalse(defaults.setup().protectsVanillaDefinitions());
+    }
+
+    @Test
+    public void enabledSettingsImportEveryStructureTheyDoNotDisable() {
+        ImportedStructures enabled = imported(settings(List.of(), List.of(), 0, true, List.of(), List.of()));
+
+        assertFalse(enabled.disables("minecraft:village_plains"));
+        assertFalse(enabled.disables("nova_structures:desert_temple"));
+    }
+
+    @Test
+    public void settingsThatOnlyKeepDatapacksOffDefinitionsImportNothing() {
+        StructureSettings datapacksOnly = JSON.fromJson("{\"datapackOverrides\": false}", StructureSettings.class);
+
+        assertTrue(imported(datapacksOnly).disables("minecraft:village_plains"));
     }
 
     @Test
@@ -134,7 +149,7 @@ public class ImportedStructuresTest {
     @Test
     public void nullListsInThePacksJsonReadAsEmpty() {
         StructureSettings nulls = new Gson().fromJson(
-                "{\"disabled\": null, \"disabledExact\": null, \"adjustments\": null, \"frequencyOverrides\": null}",
+                "{\"enabled\": true, \"disabled\": null, \"disabledExact\": null, \"adjustments\": null, \"frequencyOverrides\": null}",
                 StructureSettings.class);
         ImportedStructures imported = imported(nulls);
 
@@ -162,7 +177,7 @@ public class ImportedStructuresTest {
     private static StructureSettings settings(List<String> disabled, List<String> disabledExact, int undergroundYShift,
                                               boolean datapackOverrides, List<StructureSetFrequency> frequencies,
                                               List<StructureAdjustment> adjustments) {
-        return new StructureSettings(disabled, disabledExact, undergroundYShift, datapackOverrides, frequencies, adjustments);
+        return new StructureSettings(true, disabled, disabledExact, undergroundYShift, datapackOverrides, frequencies, adjustments);
     }
 
     private static StructureAdjustment adjustment(List<String> match, int yShift, StructureYBand band, boolean preserveSourceY,

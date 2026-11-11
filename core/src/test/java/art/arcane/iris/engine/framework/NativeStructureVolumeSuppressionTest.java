@@ -54,7 +54,7 @@ public class NativeStructureVolumeSuppressionTest {
     }
 
     private Engine engine() throws IOException {
-        StructureSettings settings = new StructureSettings(List.of("minecraft:village"), List.of(), 0, true, List.of(), List.of());
+        StructureSettings settings = new StructureSettings(true, List.of("minecraft:village"), List.of(), 0, true, List.of(), List.of());
         IrisDimension dimension = mock(IrisDimension.class);
         Engine engine = mock(Engine.class);
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));

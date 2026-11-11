@@ -104,6 +104,15 @@ public class NativeStructureGenerationPolicyTest {
     }
 
     @Test
+    public void importedStructuresThatAreNotEnabledGenerateNoNativeStructure() throws IOException {
+        StructureSettings datapacksOnly = new StructureSettings(false, List.of(), List.of(), 0, false, List.of(), List.of());
+        Engine engine = engine(datapacksOnly, new KList<>(), new KList<>(), List.of());
+
+        assertEquals(NativeStructureGenerationStatus.DISABLED_BY_PACK,
+                NativeStructureGenerationPolicy.resolve(engine, "minecraft:trial_chambers"));
+    }
+
+    @Test
     public void aPlacementOfANativeStructureWorksWithoutImportedStructures() throws IOException {
         Engine engine = engine(ModuleSettings.NONE, regionPlacement("minecraft:village_plains"), List.of());
 
@@ -115,7 +124,7 @@ public class NativeStructureGenerationPolicyTest {
 
     @Test
     public void exactDisabledKeyDoesNotDisableSiblingVariant() throws IOException {
-        StructureSettings settings = new StructureSettings(List.of(), List.of("minecraft:ruined_portal"), 0, true,
+        StructureSettings settings = new StructureSettings(true, List.of(), List.of("minecraft:ruined_portal"), 0, true,
                 List.of(), List.of());
         Engine engine = engine(settings, regionPlacement("nova_structures:tavern_oak"), new KList<>(), List.of());
 
@@ -199,7 +208,7 @@ public class NativeStructureGenerationPolicyTest {
     @Test
     public void shiftsAndReachesOfTheSettingsAndOfPackModulesAddUpPerModule() throws IOException {
         StructureTerrain bore = new Gson().fromJson("{\"mode\":\"BORE\",\"horizontalPadding\":6}", StructureTerrain.class);
-        StructureSettings settings = new StructureSettings(List.of(), List.of(), -32, true, List.of(), List.of(
+        StructureSettings settings = new StructureSettings(true, List.of(), List.of(), -32, true, List.of(), List.of(
                 new StructureAdjustment(List.of("minecraft:stronghold"), 4, null, true, null, bore)));
         Engine engine = engine(settings, new KList<>(), new KList<>(), List.of(new ProviderModule(new VanillaStructures() {
             @Override
@@ -236,13 +245,13 @@ public class NativeStructureGenerationPolicyTest {
     }
 
     private Engine engineWithDisabledNamespaceAndRegionPlacement(String placedKey) throws IOException {
-        StructureSettings settings = new StructureSettings(List.of("nova_structures:"), List.of(), 0, true,
+        StructureSettings settings = new StructureSettings(true, List.of("nova_structures:"), List.of(), 0, true,
                 List.of(), List.of());
         return engine(settings, regionPlacement(placedKey), new KList<>(), List.of());
     }
 
     private static StructureSettings allowingEverything() {
-        return new StructureSettings();
+        return new StructureSettings(true, List.of(), List.of(), 0, true, List.of(), List.of());
     }
 
     private static KList<StructurePlacement> regionPlacement(String placedKey) {

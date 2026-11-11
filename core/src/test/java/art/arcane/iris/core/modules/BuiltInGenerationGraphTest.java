@@ -129,7 +129,7 @@ public class BuiltInGenerationGraphTest {
 
             assertEquals("importedStructures", structures.key());
             assertEquals(Optional.empty(), structures.root());
-            assertEquals(List.of("disabled", "disabledExact", "undergroundYShift", "datapackOverrides", "frequencyOverrides", "adjustments"),
+            assertEquals(List.of("enabled", "disabled", "disabledExact", "undergroundYShift", "datapackOverrides", "frequencyOverrides", "adjustments"),
                     structures.settings().options().stream().map(SchemaOption::name).toList());
         }
     }

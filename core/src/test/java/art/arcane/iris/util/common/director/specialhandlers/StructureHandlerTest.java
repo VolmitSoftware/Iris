@@ -90,7 +90,7 @@ public class StructureHandlerTest {
         PlatformWorld platformWorld = mock(PlatformWorld.class);
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
-        StructureSettings settings = new StructureSettings(List.of("pack:disabled", "pack:replacement", "pack:dormant_replacement"),
+        StructureSettings settings = new StructureSettings(true, List.of("pack:disabled", "pack:replacement", "pack:dormant_replacement"),
                 List.of(), 0, true, List.of(), List.of());
 
         KList<StructurePlacement> placements = new KList<>();
@@ -163,7 +163,7 @@ public class StructureHandlerTest {
         PlatformWorld platformWorld = mock(PlatformWorld.class);
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
-        StructureSettings settings = new StructureSettings(List.of("minecraft:replacement"), List.of(), 0, true, List.of(), List.of());
+        StructureSettings settings = new StructureSettings(true, List.of("minecraft:replacement"), List.of(), 0, true, List.of(), List.of());
 
         IrisStructure editable = new IrisStructure();
         IrisStructure replacement = new IrisStructure();

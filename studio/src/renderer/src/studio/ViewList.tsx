@@ -22,6 +22,8 @@ const VIEW_ICONS: Record<string, IdeIconName> = {
   noise: 'views/noise'
 }
 const FALLBACK_ICON: IdeIconName = 'views/regions'
+/** Inset, because the stripe scrolls and so clips anything drawn outside its buttons. */
+const STRIPE_BUTTON = 'flex size-8 shrink-0 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset'
 
 /** The icon a view has in the stripe, which its island's header repeats beside its name. */
 export function viewIcon(viewId: string): IdeIconName {
@@ -85,7 +87,7 @@ function ViewButton({ view, selected, onSelect }: { view: ViewInfo; selected: bo
           onClick={onSelect}
           aria-label={view.label}
           aria-pressed={selected}
-          className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg', selected ? 'bg-primary [&_img]:brightness-0 [&_img]:invert' : 'hover:bg-selection')}
+          className={cn(STRIPE_BUTTON, selected ? 'bg-primary [&_img]:brightness-0 [&_img]:invert' : 'hover:bg-selection')}
         >
           <IdeIcon name={viewIcon(view.id)} className="size-[18px]" />
         </button>
@@ -107,7 +109,7 @@ function NamedViews({ groups, current, onSelect }: { groups: ViewGroup[]; curren
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button aria-label="All views" title="All views" className="flex size-8 shrink-0 items-center justify-center rounded-lg text-secondary-text hover:bg-selection data-[state=open]:bg-selection">
+        <button aria-label="All views" title="All views" className={cn(STRIPE_BUTTON, 'text-secondary-text hover:bg-selection data-[state=open]:bg-selection')}>
           <svg viewBox="0 0 16 16" className="size-4" fill="currentColor">
             <circle cx="3" cy="8" r="1.25" />
             <circle cx="8" cy="8" r="1.25" />

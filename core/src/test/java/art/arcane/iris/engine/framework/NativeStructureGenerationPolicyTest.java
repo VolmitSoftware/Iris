@@ -5,6 +5,7 @@ import art.arcane.iris.builtin.structure.StructureAdjustment;
 import art.arcane.iris.builtin.structure.StructureSettings;
 import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.IrisPackResources;
+import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.builtin.structure.NativeStructureSource;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -61,7 +62,7 @@ public class NativeStructureGenerationPolicyTest {
     @Test
     public void generationStatusMessagesAreSharedAcrossPlatforms() {
         assertEquals(
-                "Native structure minecraft:village_plains is disabled by this dimension's importedStructures settings or a module of the pack.",
+                "Native structure minecraft:village_plains is not imported by this dimension's importedStructures settings or is disabled by a module of the pack.",
                 NativeStructureGenerationPolicy.generationStatusMessage(
                         "minecraft:village_plains", NativeStructureGenerationStatus.DISABLED_BY_PACK));
         assertEquals(
@@ -91,6 +92,25 @@ public class NativeStructureGenerationPolicyTest {
         assertEquals(NativeStructureGenerationStatus.DISABLED_BY_PACK,
                 NativeStructureGenerationPolicy.resolve(engine, "nova_structures:witch_villa"));
         assertFalse(NativeStructureGenerationPolicy.generates(engine, "nova_structures:witch_villa"));
+    }
+
+    @Test
+    public void aDimensionWithoutImportedStructuresGeneratesNoNativeStructure() throws IOException {
+        Engine engine = engine(ModuleSettings.NONE, new KList<>(), List.of());
+
+        assertEquals(NativeStructureGenerationStatus.DISABLED_BY_PACK,
+                NativeStructureGenerationPolicy.resolve(engine, "minecraft:village_plains"));
+        assertFalse(NativeStructureGenerationPolicy.generates(engine, "minecraft:stronghold"));
+    }
+
+    @Test
+    public void aPlacementOfANativeStructureWorksWithoutImportedStructures() throws IOException {
+        Engine engine = engine(ModuleSettings.NONE, regionPlacement("minecraft:village_plains"), List.of());
+
+        assertEquals(NativeStructureGenerationStatus.REPLACED_BY_IRIS,
+                NativeStructureGenerationPolicy.resolve(engine, "minecraft:village_plains"));
+        assertEquals(NativeStructureGenerationStatus.DISABLED_BY_PACK,
+                NativeStructureGenerationPolicy.resolve(engine, "minecraft:village_desert"));
     }
 
     @Test
@@ -236,6 +256,11 @@ public class NativeStructureGenerationPolicyTest {
     /** An engine whose pack serves Iris's built-in modules and {@code packModules}, with the given structure placements. */
     private Engine engine(StructureSettings settings, KList<StructurePlacement> regionPlacements,
                           KList<StructurePlacement> dimensionPlacements, List<IrisModule> packModules) throws IOException {
+        return engine(BuiltInPack.settings(settings, placementSettings(dimensionPlacements)), regionPlacements, packModules);
+    }
+
+    private Engine engine(ModuleSettings dimensionSettings, KList<StructurePlacement> regionPlacements,
+                          List<IrisModule> packModules) throws IOException {
         IrisData data = mock(IrisData.class);
         Engine engine = mock(Engine.class);
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
@@ -248,7 +273,7 @@ public class NativeStructureGenerationPolicyTest {
         packs.add(BuiltInPack.serveWithResources(data, folder, packModules));
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
-        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(settings, placementSettings(dimensionPlacements)));
+        when(dimension.getModuleSettings()).thenReturn(dimensionSettings);
         when(dimension.getAllRegions(engine)).thenReturn(regions);
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
         return engine;

@@ -117,7 +117,7 @@ public class IrisStructureLocateCommandContractTest {
     @Test
     public void unregisteredDiagnosticExplainsEveryRejectedRoute() {
         assertEquals(
-                "Native structure minecraft:village is disabled by this dimension's importedStructures settings or a module of the pack.",
+                "Native structure minecraft:village is not imported by this dimension's importedStructures settings or is disabled by a module of the pack.",
                 CommandFind.describeStructureExclusion(
                         CommandFind.StructureLookupRoute.POLICY_DISABLED, "minecraft:village",
                         NativeStructureGenerationStatus.DISABLED_BY_PACK,
@@ -213,7 +213,7 @@ public class IrisStructureLocateCommandContractTest {
     @Test
     public void findNativePolicyMessagesMatchModdedDiagnostics() {
         assertEquals(
-                "Native structure minecraft:village_plains is disabled by this dimension's importedStructures settings or a module of the pack.",
+                "Native structure minecraft:village_plains is not imported by this dimension's importedStructures settings or is disabled by a module of the pack.",
                 NativeStructureGenerationPolicy.generationStatusMessage(
                         "minecraft:village_plains", NativeStructureGenerationStatus.DISABLED_BY_PACK));
         assertEquals(

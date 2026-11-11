@@ -32,24 +32,40 @@ import java.util.Optional;
 
 /**
  * What a dimension's {@link StructureSettings} say about the platform's own structures: which ones it disables, how
- * the starts of the others are adjusted, and how the platform sets them up. Keys match ignoring case and surrounding
- * space; a family pattern also matches the keys it starts at a namespace, slash or underscore boundary
- * ({@link RegistryKeyFamily}).
+ * the starts of the others are adjusted, and how the platform sets them up. Importing is opt-in: a dimension that
+ * declares no settings disables every platform structure. Keys match ignoring case and surrounding space; a family
+ * pattern also matches the keys it starts at a namespace, slash or underscore boundary ({@link RegistryKeyFamily}).
  */
 public final class ImportedStructures {
+    private static final ImportedStructures NOTHING_IMPORTED = new ImportedStructures(new StructureSettings(), false);
+
     private final StructureSettings settings;
+    private final boolean importsStructures;
 
     public ImportedStructures(StructureSettings settings) {
+        this(settings, true);
+    }
+
+    private ImportedStructures(StructureSettings settings, boolean importsStructures) {
         this.settings = settings;
+        this.importsStructures = importsStructures;
     }
 
-    /** The settings the dimension of {@code settings} declares, or the defaults when it declares none. */
+    /** The settings the dimension of {@code settings} declares; nothing imported when it declares none. */
     public static ImportedStructures of(PackSettings settings) {
-        return new ImportedStructures(settings.declared(StructureSettings.class).dimension().orElseGet(StructureSettings::new));
+        return settings.declared(StructureSettings.class).dimension()
+                .map(ImportedStructures::new)
+                .orElse(NOTHING_IMPORTED);
     }
 
-    /** Whether the dimension disables the platform structure {@code key}, by family or by its exact key. */
+    /**
+     * Whether the dimension disables the platform structure {@code key}: every key when it imports no structures,
+     * otherwise by family or by its exact key.
+     */
     public boolean disables(String key) {
+        if (!importsStructures) {
+            return true;
+        }
         String normalizedKey = normalize(key);
         if (normalizedKey.isEmpty()) {
             return false;

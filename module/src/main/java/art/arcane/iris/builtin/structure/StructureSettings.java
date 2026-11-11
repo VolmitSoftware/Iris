@@ -36,8 +36,8 @@ import java.util.List;
  * generate are moved and fitted, how often structure sets start, and whether installed data packs may replace the
  * platform's own definitions. IrisApi types only.
  */
-@Desc("Controls native vanilla, mod, and ingested datapack structure generation for this dimension. Every registered structure generates through its native placement unless its key matches 'disabled', equals a key in 'disabledExact', or a viable dimension-level Iris placement explicitly replaces its source. Family matching uses namespace, slash, or underscore boundaries, while exact matching compares normalized complete keys only. Run '/iris module structure list' to dump every valid key. Only affects newly generated chunks and is separate from Iris structure placements.")
-@Feature(id = "iris:structure", name = "Structures", key = "importedStructures", targets = Level.DIMENSION)
+@Desc("Experimental. Opt-in import of native vanilla, mod, and ingested datapack structures into this dimension. Without this setting no native structure generates. With it, every registered structure generates through its native placement unless its key matches 'disabled', equals a key in 'disabledExact', or a viable dimension-level Iris placement explicitly replaces its source. Family matching uses namespace, slash, or underscore boundaries, while exact matching compares normalized complete keys only. Run '/iris module structure list' to dump every valid key. Only affects newly generated chunks. Iris structure placements, including ones that place a vanilla structure, work without it.")
+@Feature(id = "iris:structure", name = "Structures (experimental)", key = "importedStructures", targets = Level.DIMENSION)
 public final class StructureSettings implements IrisFeature {
     @Ref(Reference.STRUCTURE_PREFIX)
     @Desc("Structure keys to deny explicitly, e.g. 'minecraft:stronghold'. A namespace:path prefix also matches, so 'minecraft:village' disables every village variant and 'minecraft:ruined_portal' disables every ruined portal. Every key not matched here remains enabled.")

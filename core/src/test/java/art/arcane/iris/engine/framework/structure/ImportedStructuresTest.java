@@ -23,7 +23,7 @@ public class ImportedStructuresTest {
     private static final Gson JSON = new Gson();
 
     @Test
-    public void defaultSettingsGenerateEveryStructureAndChangeNothing() {
+    public void declaredDefaultSettingsImportEveryStructureAndChangeNothing() {
         ImportedStructures defaults = imported(new StructureSettings());
 
         assertFalse(defaults.disables("minecraft:village_plains"));

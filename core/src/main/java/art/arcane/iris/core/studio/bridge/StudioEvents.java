@@ -45,6 +45,8 @@ final class StudioEvents {
     private final StudioWorld world;
     private final Gson gson;
     private final List<OutputStream> listeners = new CopyOnWriteArrayList<>();
+    /** Listeners not yet told the world's state. */
+    private final List<OutputStream> joining = new CopyOnWriteArrayList<>();
     private final AtomicBoolean listenerJoined = new AtomicBoolean();
     private final AtomicBoolean usageWanted = new AtomicBoolean();
     private final AtomicBoolean hotloaded = new AtomicBoolean();
@@ -60,6 +62,7 @@ final class StudioEvents {
 
     void listen(OutputStream stream) {
         listeners.add(stream);
+        joining.add(stream);
         listenerJoined.set(true);
         usageWanted.set(true);
     }
@@ -76,10 +79,14 @@ final class StudioEvents {
         }
         StudioWorld.Session session = world.session();
         Engine engine = session == null ? null : session.engine();
+        List<OutputStream> joined = List.copyOf(joining);
         if (engine != lastEngine || hotloaded.getAndSet(false)) {
             lastEngine = engine;
             send("world", new WorldChange(engine != null));
+        } else {
+            greet(joined, engine != null);
         }
+        joining.removeAll(joined);
         List<GuiMarker> players = session == null || session.overlay() == null ? List.of() : session.overlay().players();
         if (listenerJoined.getAndSet(false) || !Objects.equals(players, lastPlayers)) {
             lastPlayers = players;
@@ -100,22 +107,46 @@ final class StudioEvents {
             closeQuietly(listener);
         }
         listeners.clear();
+        joining.clear();
+    }
+
+    /**
+     * Tells studios that just connected what state the world is in, them alone. A studio takes its first world event as
+     * the state it connected to, so without one of its own it would take the next hotload for it and not redraw.
+     */
+    private void greet(List<OutputStream> joined, boolean running) {
+        if (joined.isEmpty()) {
+            return;
+        }
+        byte[] message = eventOf("world", new WorldChange(running));
+        for (OutputStream listener : joined) {
+            sendTo(listener, message);
+        }
     }
 
     private void send(String event, Object data) {
-        sendToAll(("event: " + event + "\ndata: " + gson.toJson(data) + "\n\n").getBytes(StandardCharsets.UTF_8));
+        sendToAll(eventOf(event, data));
+    }
+
+    private byte[] eventOf(String event, Object data) {
+        return ("event: " + event + "\ndata: " + gson.toJson(data) + "\n\n").getBytes(StandardCharsets.UTF_8);
     }
 
     private void sendToAll(byte[] message) {
         lastSentMillis = System.currentTimeMillis();
         for (OutputStream listener : listeners) {
-            try {
-                listener.write(message);
-                listener.flush();
-            } catch (IOException gone) {
-                listeners.remove(listener);
-                closeQuietly(listener);
-            }
+            sendTo(listener, message);
+        }
+    }
+
+    private void sendTo(OutputStream listener, byte[] message) {
+        try {
+            listener.write(message);
+            listener.flush();
+        } catch (IOException gone) {
+            listeners.remove(listener);
+            joining.remove(listener);
+            closeQuietly(listener);
         }
     }
 

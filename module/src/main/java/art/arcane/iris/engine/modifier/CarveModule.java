@@ -27,6 +27,7 @@ import art.arcane.iris.modules.carve.CaveDepthSettings;
 import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
 import art.arcane.iris.modules.carve.CaveList;
 import art.arcane.iris.modules.carve.CaveResources;
+import art.arcane.iris.modules.carve.CaveScenes;
 import art.arcane.iris.modules.carve.UpperDimensionCarvingSettings;
 import art.arcane.iris.modules.terrain.TerrainPalettes;
 import art.arcane.iris.engine.mantle.components.CarveWorld;
@@ -76,6 +77,7 @@ public final class CarveModule implements IrisModule {
         log = setup.log();
         var registry = setup.registry();
         registry.registerResourceKind(CaveResources.CAVES);
+        setup.tooling().registerView(new CaveScenes());
         List.of(CaveList.class, CarvingSettings.class, CarvingEnabledSettings.class, CarvingBiomeSettings.class,
                 CaveDepthSettings.class, CaveLavaHeightSettings.class, UpperDimensionCarvingSettings.class)
                 .forEach(registry::registerSettings);

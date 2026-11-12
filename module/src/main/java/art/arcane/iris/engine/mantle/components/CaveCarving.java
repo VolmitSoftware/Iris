@@ -285,7 +285,7 @@ public class CaveCarving {
             return Optional.empty();
         }
         CarvedVoid carvedVoid = cave.biome().isBlank() ? CarvedVoid.OPEN : CarvedVoid.OPEN.withBiome(resources.idOf(cave.biome()));
-        long seed = world.carveSeed() + (31L * id.toString().hashCode());
+        long seed = CaveCarver.seedOf(world.carveSeed(), id);
         return Optional.of(new ListedCave(new CaveCarver(cave, world.noise(), seed, world.minHeight(), world.height()), carvedVoid));
     }
 

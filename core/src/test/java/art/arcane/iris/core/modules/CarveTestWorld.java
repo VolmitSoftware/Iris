@@ -248,6 +248,9 @@ public final class CarveTestWorld implements PackWorld {
 
         @Override
         public List<ResourceId> ids(ResourceKind<?> kind) {
+            if (kind.equals(CaveResources.CAVES)) {
+                return caves.keySet().stream().sorted().toList();
+            }
             return kind.equals(BIOMES) ? biomes.keySet().stream().sorted().toList() : List.of();
         }
     }

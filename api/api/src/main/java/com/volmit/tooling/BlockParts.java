@@ -2,6 +2,8 @@ package com.volmit.tooling;
 
 import com.volmit.geometry.BlockPosition;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -18,8 +20,12 @@ public record BlockParts(Map<BlockPosition, Integer> partsByBlock) {
 
     public BlockParts {
         Objects.requireNonNull(partsByBlock, "partsByBlock");
-        partsByBlock = Map.copyOf(partsByBlock);
+        // Not Map.copyOf: positions of a dense scene share hash codes, which its open addressing handles in quadratic
+        // time (a million blocks take minutes), while a HashMap falls back to a tree for keys that collide.
+        partsByBlock = Collections.unmodifiableMap(new HashMap<>(partsByBlock));
         partsByBlock.forEach((position, part) -> {
+            Objects.requireNonNull(position, "position");
+            Objects.requireNonNull(part, "part");
             if (part < 0) {
                 throw new IllegalArgumentException("Block " + position + " is in part " + part + "; parts are numbered from 0");
             }

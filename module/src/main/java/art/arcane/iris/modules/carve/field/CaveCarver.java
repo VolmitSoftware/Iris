@@ -21,6 +21,7 @@ package art.arcane.iris.modules.carve.field;
 import art.arcane.iris.modules.carve.Cave;
 import com.volmit.config.Range;
 import com.volmit.noise.NoiseFactory;
+import com.volmit.resource.ResourceId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +35,7 @@ public final class CaveCarver {
     /** Caves stay this far above the dimension's bottom, clear of the bedrock floor. */
     private static final int ROCK_KEPT_ABOVE_BOTTOM_BLOCKS = 5;
 
-    private final List<LatticeShape> shapes = new ArrayList<>();
+    private final List<PartShape> shapes = new ArrayList<>();
     private final int depthMinY;
     private final int depthMaxY;
     private final int fadeBlocks;
@@ -48,8 +49,8 @@ public final class CaveCarver {
      */
     public CaveCarver(Cave cave, NoiseFactory noise, long seed, int worldBottomY, int worldHeight) {
         CaveNoise caveNoise = new CaveNoise(noise, seed);
-        cave.tunnel().ifPresent(tunnel -> shapes.add(new TunnelShape(caveNoise, tunnel)));
-        cave.cavern().ifPresent(cavern -> shapes.add(new CavernShape(caveNoise, cavern)));
+        cave.tunnel().ifPresent(tunnel -> shapes.add(new PartShape(CavePart.TUNNEL, new TunnelShape(caveNoise, tunnel))));
+        cave.cavern().ifPresent(cavern -> shapes.add(new PartShape(CavePart.CAVERN, new CavernShape(caveNoise, cavern))));
         Range depth = cave.depth().orElse(null);
         int lowest = depth == null ? 0 : (int) Math.floor(Math.min(depth.min(), depth.max())) - worldBottomY;
         int highest = depth == null ? worldHeight - 1 : (int) Math.ceil(Math.max(depth.min(), depth.max())) - worldBottomY;
@@ -60,8 +61,42 @@ public final class CaveCarver {
         this.opensToSurface = cave.opensToSurface();
     }
 
+    /** The seed the cave with id {@code cave} carves with in a world whose carve seed is {@code carveSeed}. */
+    public static long seedOf(long carveSeed, ResourceId cave) {
+        return carveSeed + (31L * cave.toString().hashCode());
+    }
+
     public boolean opensToSurface() {
         return opensToSurface;
+    }
+
+    /** Which parts the cave has, in the order it carves them. */
+    public List<CavePart> parts() {
+        return shapes.stream().map(PartShape::part).toList();
+    }
+
+    /** {@link #carve}, telling the sink which part carved each block. A block two parts carve is reported for each. */
+    public void carveByPart(int originX, int originZ, int[] surfaceY, double[] columnWeight, boolean[] sealed, PartSink sink) {
+        if (shapes.isEmpty() || depthMaxY < depthMinY) {
+            return;
+        }
+        CaveLimits limits = limitsOf(surfaceY, columnWeight, sealed);
+        if (limits.carvesNothing()) {
+            return;
+        }
+        ChunkLattice lattice = ChunkLattice.covering(originX, originZ, limits.lowestY(), limits.highestY());
+        for (PartShape shape : shapes) {
+            shape.shape().carve(lattice, limits, (localX, y, localZ) -> sink.carve(shape.part(), localX, y, localZ));
+        }
+    }
+
+    /** Takes the blocks a cave carves, with the part that carved each. */
+    @FunctionalInterface
+    public interface PartSink {
+        void carve(CavePart part, int localX, int y, int localZ);
+    }
+
+    private record PartShape(CavePart part, LatticeShape shape) {
     }
 
     /**
@@ -73,22 +108,16 @@ public final class CaveCarver {
      * @param sealed       columns whose surface the cave must not cut through, even if it opens to the surface
      */
     public void carve(int originX, int originZ, int[] surfaceY, double[] columnWeight, boolean[] sealed, CarveSink sink) {
-        if (shapes.isEmpty() || depthMaxY < depthMinY) {
-            return;
-        }
+        carveByPart(originX, originZ, surfaceY, columnWeight, sealed, (part, localX, y, localZ) -> sink.carve(localX, y, localZ));
+    }
+
+    private CaveLimits limitsOf(int[] surfaceY, double[] columnWeight, boolean[] sealed) {
         int[] columnTopY = new int[CHUNK_COLUMNS];
         boolean[] columnOpens = new boolean[CHUNK_COLUMNS];
         for (int column = 0; column < CHUNK_COLUMNS; column++) {
             columnOpens[column] = opensToSurface && !sealed[column];
             columnTopY[column] = columnOpens[column] ? surfaceY[column] : surfaceY[column] - surfaceClearance;
         }
-        CaveLimits limits = new CaveLimits(depthMinY, depthMaxY, fadeBlocks, columnTopY, columnOpens, columnWeight);
-        if (limits.carvesNothing()) {
-            return;
-        }
-        ChunkLattice lattice = ChunkLattice.covering(originX, originZ, limits.lowestY(), limits.highestY());
-        for (LatticeShape shape : shapes) {
-            shape.carve(lattice, limits, sink);
-        }
+        return new CaveLimits(depthMinY, depthMaxY, fadeBlocks, columnTopY, columnOpens, columnWeight);
     }
 }

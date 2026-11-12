@@ -2,4 +2,5 @@ The icons in this folder and its subfolders come from the IntelliJ Platform (htt
 platform/icons/src/expui, Copyright 2000-2023 JetBrains s.r.o. and contributors,
 used under the Apache License 2.0 (LICENSE-APACHE-2.0.txt).
 memory.svg is profileMemory.svg with its profiling badge removed.
-theme.svg and blocks.svg are the studio's own, drawn to match.
+theme.svg, blocks.svg, borders.svg, shading.svg, mob.svg, actualZoom.svg, decoration.svg, and in views/ biomes.svg, regions.svg,
+world-3d.svg, saved-world.svg, noise.svg and objects.svg are the studio's own, drawn to match.

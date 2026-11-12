@@ -1,16 +1,19 @@
 import { cn } from '@/lib/utils'
 
-// IntelliJ's expui icons (see icons/NOTICE.txt): each has a light file and a "_dark" twin in its own colours.
+// IntelliJ's expui icons and the studio's own drawn to match (see icons/NOTICE.txt): each has a light file and a "_dark" twin in its own colours.
 const ICON_URLS = import.meta.glob<string>('../icons/**/*.svg', { eager: true, query: '?url', import: 'default' })
 const DARK_SUFFIX = '_dark'
 
 export type IdeIconName =
+  | 'actualZoom'
   | 'add'
   | 'blocks'
+  | 'borders'
   | 'checked'
   | 'closeSmall'
   | 'chevronLeft'
   | 'chevronRight'
+  | 'decoration'
   | 'delete'
   | 'exit'
   | 'grid'
@@ -20,6 +23,7 @@ export type IdeIconName =
   | 'locate'
   | 'locked'
   | 'memory'
+  | 'mob'
   | 'redo'
   | 'refresh'
   | 'reset'
@@ -30,19 +34,14 @@ export type IdeIconName =
   | 'symlink'
   | 'theme'
   | 'undo'
-  | 'user'
   | 'web'
-  | 'zoomIn'
   | 'views/biomes'
-  | 'views/cave-biomes'
-  | 'views/land-biomes'
   | 'views/noise'
   | 'views/objects'
   | 'views/palettes'
   | 'views/procedural'
   | 'views/regions'
   | 'views/saved-world'
-  | 'views/sea-biomes'
   | 'views/world-3d'
 
 function iconUrl(name: string): string {

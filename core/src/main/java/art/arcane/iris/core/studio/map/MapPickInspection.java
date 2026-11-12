@@ -46,7 +46,6 @@ public final class MapPickInspection {
     private MapPickInspection() {
     }
 
-    /** @throws IllegalArgumentException for a view whose spots no noise picks, such as a biome layer's */
     public static Inspection measure(Engine engine, MapLayer layer, Area area) {
         if (layer.previews()) {
             return measurePreview(engine, layer.previewRegion(), area);
@@ -54,7 +53,6 @@ public final class MapPickInspection {
         return switch (layer.view()) {
             case REGIONS -> measureRegions(engine, area);
             case BIOMES -> measureBiomes(engine, area);
-            default -> throw new IllegalArgumentException("The " + layer.view().label() + " view has no picks to inspect");
         };
     }
 

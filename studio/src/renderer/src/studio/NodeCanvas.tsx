@@ -16,7 +16,7 @@ const KIND_ICONS: Record<string, IdeIconName> = {
   Group: 'groups',
   'Shared part': 'symlink',
   Material: 'views/palettes',
-  Decoration: 'views/land-biomes'
+  Decoration: 'decoration'
 }
 const FIT_MARGIN = 24
 const LARGEST_FIT_SCALE = 1

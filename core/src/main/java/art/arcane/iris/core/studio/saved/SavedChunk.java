@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -91,14 +92,24 @@ final class SavedChunk {
 
     /** The block's name, such as {@code minecraft:stone}, without its properties; a plugin's block is named as its plugin does. */
     String blockAt(int x, int y, int z) {
+        return nameOf(paletteBlockAt(x, y, z));
+    }
+
+    /** The block with the state it was saved as, which is what players see of it. */
+    SavedBlock savedBlockAt(int x, int y, int z) {
+        Tag<?> block = paletteBlockAt(x, y, z);
+        return new SavedBlock(nameOf(block), savedStateOf(block));
+    }
+
+    private Tag<?> paletteBlockAt(int x, int y, int z) {
         CompoundTag section = sectionsByY.get(Math.floorDiv(y, BLOCKS_ACROSS));
         if (section == null || !section.containsKey("block_states")) {
-            return AIR;
+            return new StringTag(AIR);
         }
         CompoundTag states = section.getCompoundTag("block_states");
         ListTag<?> palette = states.getListTag("palette");
         int index = (Math.floorMod(y, BLOCKS_ACROSS) * BLOCKS_ACROSS + z) * BLOCKS_ACROSS + x;
-        return nameOf(paletteEntry(palette, states.getLongArray("data"), Math.max(SMALLEST_BLOCK_INDEX_BITS, bitsFor(palette.size())), index));
+        return paletteEntry(palette, states.getLongArray("data"), Math.max(SMALLEST_BLOCK_INDEX_BITS, bitsFor(palette.size())), index);
     }
 
     /** The biome's key, such as {@code minecraft:plains}; biomes are stored once per 4 blocks across. */
@@ -126,15 +137,28 @@ final class SavedChunk {
         return entry < palette.size() ? palette.get(entry) : null;
     }
 
-    // A block with properties is a compound naming it under Name; since 26.1 a block without them may be its bare name.
     private String nameOf(Tag<?> block) {
-        String name = switch (block) {
+        return customBlocks.nameSavedAs(vanillaNameOf(block), () -> propertiesOf(block));
+    }
+
+    private static String savedStateOf(Tag<?> block) {
+        Map<String, String> properties = new TreeMap<>(propertiesOf(block));
+        if (properties.isEmpty()) {
+            return vanillaNameOf(block);
+        }
+        return vanillaNameOf(block) + properties.entrySet().stream()
+                .map(property -> property.getKey() + "=" + property.getValue())
+                .collect(Collectors.joining(",", "[", "]"));
+    }
+
+    // A block with properties is a compound naming it under Name; since 26.1 a block without them may be its bare name.
+    private static String vanillaNameOf(Tag<?> block) {
+        return switch (block) {
             case StringTag text -> text.getValue();
             case CompoundTag compound when !compound.getString("Name").isEmpty() -> compound.getString("Name");
             case CompoundTag compound when !compound.getString("").isEmpty() -> compound.getString("");
             case null, default -> UNKNOWN;
         };
-        return customBlocks.nameSavedAs(name, () -> propertiesOf(block));
     }
 
     private static Map<String, String> propertiesOf(Tag<?> block) {

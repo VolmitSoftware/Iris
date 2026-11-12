@@ -16,6 +16,8 @@ interface FlatLayer {
 }
 
 const COARSEST_LEVEL = 8
+// A source that cannot sample coarser has more tiles in sight than it may draw, so it has to pick the right ones.
+const COARSEST_SAVED_LEVEL = 4
 const LOOKED_AT = new Vector3(0, 64, 0)
 const open = Promise.resolve()
 
@@ -34,7 +36,7 @@ const flatStyle: TerrainStyle<FlatTile> = {
   topY: 128
 }
 
-function setUp(): {
+function setUp(coarsestLevel = COARSEST_LEVEL): {
   stream: TerrainStream<FlatTile, FlatLayer>
   camera: PerspectiveCamera
   moved(): void
@@ -55,7 +57,7 @@ function setUp(): {
   }
   const stream = new TerrainStream({
     source,
-    coarsestLevel: COARSEST_LEVEL,
+    coarsestLevel,
     focus: focusAround(0, 0, 0, 128),
     onPending: (pending) => pendingCounts.push(pending),
     onError: (message) => {
@@ -181,6 +183,18 @@ describe('terrain stream', () => {
     moved()
     await settle()
     expect(stream.groundInView()!.area.minX).toBeGreaterThan(seen.area.maxX)
+  })
+
+  it('draws the ground under a camera that is close to it in a world with a tall sky', async () => {
+    const { stream, camera, moved } = setUp(COARSEST_SAVED_LEVEL)
+    stream.restyle({ ...flatStyle, floorY: -64, topY: 1024 })
+    stream.showLayer({ name: 'one', height: 70, gate: open })
+    camera.position.set(250, 260, 300)
+    camera.lookAt(new Vector3(36, 71, 47))
+    moved()
+    await settle()
+    const sight = new Ray(camera.position.clone(), camera.getWorldDirection(new Vector3()))
+    expect(stream.content.surfaceAlong!(sight, 2000)!.y).toBeCloseTo(71, 1)
   })
 
   it('stops drawing when it is let go', async () => {

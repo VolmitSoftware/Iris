@@ -7,7 +7,7 @@ import { blocksPerColumn, originXOf, originZOf, type TerrainTile } from './terra
 
 export type SavedTerrainColoring = 'biomes' | 'blocks' | 'height'
 
-/** A saved tile, the colour of every block it holds, and the look of each where the tile is fine enough to show textures. */
+/** A saved tile, the colour of every state its blocks are drawn as, and the look of each where the tile is fine enough to show textures. */
 export interface ReadSavedTile {
   tile: SavedTile
   blockColors: Map<string, number>
@@ -59,7 +59,7 @@ export class SavedTerrain implements TerrainSurface {
       return null
     }
     const { tile, blockLooks } = this.read
-    return blockLooks.get(tile.blockNames[tile.blocks[this.pixelAt(column, row)]]) ?? null
+    return blockLooks.get(tile.blocksDrawnAs[tile.blocks[this.pixelAt(column, row)]]) ?? null
   }
 
   colorAt(column: number, row: number): number {
@@ -69,7 +69,7 @@ export class SavedTerrain implements TerrainSurface {
       case 'height':
         return heightColor(tile.groundY[pixel], this.seaLevel ?? VANILLA_SEA_LEVEL)
       case 'blocks':
-        return blockColors.get(tile.blockNames[tile.blocks[pixel]]) ?? UNKNOWN_BLOCK_COLOR
+        return blockColors.get(tile.blocksDrawnAs[tile.blocks[pixel]]) ?? UNKNOWN_BLOCK_COLOR
       case 'biomes':
         return tile.biomeLabels[tile.biomes[pixel]].color
     }

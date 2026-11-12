@@ -22,7 +22,7 @@ export function savedTileSource(client: BridgeClient, blockColors: BlockColors, 
     fetch: async (address, layer, signal) => {
       const tile = await client.savedTile(layer.worldId, address.tileX, address.tileZ, address.blocksPerPixel, TILE_COLUMNS, signal)
       const textured = address.blocksPerPixel === FINEST_BLOCKS_PER_COLUMN
-      const [colors, looks] = await Promise.all([blockColors.colorsOf(tile.blockNames), textured ? blockLooks.looksOf(tile.blockNames) : new Map<string, BlockLook | null>()])
+      const [colors, looks] = await Promise.all([blockColors.colorsOf(tile.blocksDrawnAs), textured ? blockLooks.looksOf(tile.blocksDrawnAs) : new Map<string, BlockLook | null>()])
       return { tile, blockColors: colors, blockLooks: looks }
     },
     bytesOf: ({ tile }) =>

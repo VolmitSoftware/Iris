@@ -49,11 +49,6 @@ public record MapLayer(MapView view, IrisRegion previewRegion) {
         return previewRegion != null;
     }
 
-    /** Whether the layer can show the noise that picked each spot: the region view, its previews and the biome view. */
-    public boolean hasPickNoise() {
-        return view == MapView.BIOMES || view == MapView.REGIONS;
-    }
-
     /** Whether each spot is labelled with its region rather than a biome; a preview labels the biomes. */
     boolean labelsRegions() {
         return view.labelsRegions() && !previews();

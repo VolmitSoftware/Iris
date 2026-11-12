@@ -1,4 +1,4 @@
-import { CanvasTexture, NearestFilter, SRGBColorSpace } from 'three'
+import { CanvasTexture, NearestFilter } from 'three'
 
 /** Where block textures come from: the bridge's copy of the client's assets. */
 export interface ImageSource {
@@ -37,7 +37,6 @@ export class TextureAtlas {
     this.texture.minFilter = NearestFilter
     this.texture.generateMipmaps = false
     this.texture.flipY = false
-    this.texture.colorSpace = SRGBColorSpace
   }
 
   static async of(textureIds: string[], images: ImageSource): Promise<TextureAtlas> {

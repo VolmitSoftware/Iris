@@ -69,7 +69,7 @@ export function MapTools({ toggles, hasPlayers, onToggle, onRefresh, onResetZoom
         <IdeIcon name="grid" />
       </ToolToggle>
       <ToolToggle action="borders" hint="Outline the regions on every view" pressed={toggles.regionBorders} onPressed={() => onToggle('regionBorders')}>
-        <IdeIcon name="views/regions" />
+        <IdeIcon name="borders" />
       </ToolToggle>
       <ToolToggle action="shading" hint="Shade hills and valleys" pressed={toggles.shading} onPressed={() => onToggle('shading')}>
         <IdeIcon name="shading" />
@@ -79,14 +79,14 @@ export function MapTools({ toggles, hasPlayers, onToggle, onRefresh, onResetZoom
       </ToolToggle>
       <Separator orientation="vertical" className="mx-1 h-4!" />
       <ToolToggle action="entities" hint="Show mobs and other entities" pressed={toggles.entities} disabled={!hasPlayers} onPressed={() => onToggle('entities')}>
-        <IdeIcon name="user" />
+        <IdeIcon name="mob" />
       </ToolToggle>
       <ToolToggle action="follow" hint="Keep your player in the middle" pressed={toggles.follow} disabled={!hasPlayers} onPressed={() => onToggle('follow')}>
         <IdeIcon name="locate" />
       </ToolToggle>
       <Separator orientation="vertical" className="mx-1 h-4!" />
       <ToolButton action="resetZoom" hint="Go back to the default zoom" onClick={onResetZoom}>
-        <IdeIcon name="zoomIn" />
+        <IdeIcon name="actualZoom" />
       </ToolButton>
       <ToolButton action="refresh" hint="Redraw the map with the latest pack files" onClick={onRefresh}>
         <IdeIcon name="refresh" />

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.studio.bridge;
 
+import art.arcane.iris.core.link.CustomBlockLook;
 import art.arcane.iris.core.studio.map.MapLabel;
 import art.arcane.iris.core.studio.map.MapTile;
 import com.google.gson.Gson;
@@ -26,6 +27,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * A {@link MapTile} as the studio reads it, little endian:
@@ -36,7 +39,7 @@ import java.util.List;
  * i16 ground[grid²] | padding to 4 | i16 cover[grid²], when the header names blocks
  * </pre>
  * The header holds the size, the scale, the subject kind, the labels the grids index, and the blocks the ground and
- * cover grids index when the tile carries the tops of its columns. Every array starts on a
+ * cover grids index when the tile carries the tops of its columns, each as the state players see. Every array starts on a
  * multiple of 4 bytes, so the studio views them in place.
  */
 final class MapTileEncoding {
@@ -45,12 +48,16 @@ final class MapTileEncoding {
     private MapTileEncoding() {
     }
 
-    static byte[] encode(MapTile tile, Gson gson) {
+    /**
+     * @param pluginLooks the plugin block a server state is with the vanilla state players see in its place; empty for
+     *                    every state that is no plugin's block
+     */
+    static byte[] encode(MapTile tile, Gson gson, Function<String, Optional<CustomBlockLook>> pluginLooks) {
         boolean hasHeights = tile.heights() != null;
         boolean hasPickNoise = tile.pickNoise() != null;
         MapTile.Blocks blocks = tile.blocks();
         byte[] header = gson.toJson(new Header(tile.size(), tile.blocksPerPixel(), tile.subjectKind(), tile.labels(),
-                        hasHeights, hasPickNoise, blocks == null ? null : blocks.names()))
+                        hasHeights, hasPickNoise, blocks == null ? null : statesPlayersSee(blocks.names(), pluginLooks)))
                 .getBytes(StandardCharsets.UTF_8);
         int cells = tile.gridSize() * tile.gridSize();
         int length = aligned(Integer.BYTES + header.length)
@@ -89,6 +96,12 @@ final class MapTileEncoding {
 
     private static void align(ByteBuffer buffer) {
         buffer.position(aligned(buffer.position()));
+    }
+
+    private static List<String> statesPlayersSee(List<String> serverStates, Function<String, Optional<CustomBlockLook>> pluginLooks) {
+        return serverStates.stream()
+                .map(state -> pluginLooks.apply(state).map(CustomBlockLook::shownAs).orElse(state))
+                .toList();
     }
 
     private record Header(int size, double blocksPerPixel, MapLabel.Kind subjectKind, List<MapLabel> labels,

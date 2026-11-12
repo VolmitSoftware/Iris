@@ -5,7 +5,7 @@ const ALIGNMENT_BYTES = 4
 interface SavedTileHeader {
   size: number
   blocksPerPixel: number
-  blocks: string[]
+  blocks: { name: string; drawnAs: string }[]
   biomes: MapLabel[]
   noGround: number
   noWater: number
@@ -32,7 +32,8 @@ export function decodeSavedTile(buffer: ArrayBuffer): SavedTile {
     waterSurfaceY: gridAt(1),
     blocks: gridAt(2),
     biomes: gridAt(3),
-    blockNames: header.blocks,
+    blockNames: header.blocks.map((block) => block.name),
+    blocksDrawnAs: header.blocks.map((block) => block.drawnAs),
     biomeLabels: header.biomes,
     noGround: header.noGround,
     noWater: header.noWater

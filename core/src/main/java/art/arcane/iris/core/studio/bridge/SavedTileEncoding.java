@@ -19,6 +19,7 @@
 package art.arcane.iris.core.studio.bridge;
 
 import art.arcane.iris.core.studio.map.MapLabel;
+import art.arcane.iris.core.studio.saved.SavedBlock;
 import art.arcane.iris.core.studio.saved.SavedTile;
 import com.google.gson.Gson;
 
@@ -34,7 +35,7 @@ import java.util.List;
  * i16 groundY[size²] | padding to 4 | i16 waterSurfaceY[size²] | padding to 4
  * i16 blocks[size²] | padding to 4 | i16 biomes[size²]
  * </pre>
- * The header holds the size, the scale, the block names and the biome labels the grids index, and the values that mean
+ * The header holds the size, the scale, the blocks and the biome labels the grids index, and the values that mean
  * no ground and no water.
  */
 final class SavedTileEncoding {
@@ -44,7 +45,7 @@ final class SavedTileEncoding {
     }
 
     static byte[] encode(SavedTile tile, List<MapLabel> biomes, Gson gson) {
-        byte[] header = gson.toJson(new Header(tile.size(), tile.blocksPerPixel(), tile.blockNames(), biomes,
+        byte[] header = gson.toJson(new Header(tile.size(), tile.blocksPerPixel(), tile.savedBlocks(), biomes,
                 SavedTile.NO_GROUND, SavedTile.NO_WATER)).getBytes(StandardCharsets.UTF_8);
         List<short[]> grids = List.of(tile.groundY(), tile.waterSurfaceY(), tile.blocks(), tile.biomes());
         int gridBytes = aligned(tile.size() * tile.size() * Short.BYTES);
@@ -63,6 +64,6 @@ final class SavedTileEncoding {
         return (bytes + ALIGNMENT_BYTES - 1) / ALIGNMENT_BYTES * ALIGNMENT_BYTES;
     }
 
-    private record Header(int size, int blocksPerPixel, List<String> blocks, List<MapLabel> biomes, int noGround, int noWater) {
+    private record Header(int size, int blocksPerPixel, List<SavedBlock> blocks, List<MapLabel> biomes, int noGround, int noWater) {
     }
 }

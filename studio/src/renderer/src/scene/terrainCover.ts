@@ -134,5 +134,5 @@ function wantedInOrder(sight: CameraSight, backdrop: TerrainTile[], detail: Terr
 }
 
 function nearestFirst(sight: CameraSight): (first: TerrainTile, second: TerrainTile) => number {
-  return (first, second) => sight.distanceFromMiddle(first) - sight.distanceFromMiddle(second)
+  return (first, second) => sight.distanceFromLookedAt(first) - sight.distanceFromLookedAt(second)
 }

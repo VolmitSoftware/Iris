@@ -51,13 +51,7 @@ public final class MapPickPath {
             return path;
         }
         path.add(regionStep(engine, region, x, z));
-        MapView view = layer.view();
-        switch (view) {
-            case LAND_BIOMES -> addListStep(path, engine, view, region, InferredType.LAND, x, z);
-            case SEA_BIOMES -> addListStep(path, engine, view, region, InferredType.SEA, x, z);
-            case CAVE_BIOMES -> addListStep(path, engine, view, region, InferredType.CAVE, x, z);
-            case BIOMES, REGIONS -> addBaseBiomeSteps(path, engine, view, region, x, z);
-        }
+        addBaseBiomeSteps(path, engine, layer.view(), region, x, z);
         return path;
     }
 

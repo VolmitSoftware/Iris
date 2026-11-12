@@ -31,7 +31,7 @@ import java.util.Map;
  * @param waterSurfaceY per pixel, the top water block over the ground, or {@link #NO_WATER}
  */
 public record SavedTile(int size, int blocksPerPixel, short[] groundY, short[] waterSurfaceY, short[] blocks, short[] biomes,
-                        List<String> blockNames, List<String> biomeNames) {
+                        List<SavedBlock> savedBlocks, List<String> biomeNames) {
     public static final short NO_GROUND = Short.MIN_VALUE;
     public static final short NO_WATER = (short) SavedRegion.NO_WATER;
 
@@ -43,7 +43,7 @@ public record SavedTile(int size, int blocksPerPixel, short[] groundY, short[] w
         int pixels = size * size;
         SavedTile tile = new SavedTile(size, blocksPerPixel, new short[pixels], new short[pixels], new short[pixels], new short[pixels],
                 new ArrayList<>(), new ArrayList<>());
-        Map<String, Short> blockIds = new HashMap<>();
+        Map<SavedBlock, Short> blockIds = new HashMap<>();
         Map<String, Short> biomeIds = new HashMap<>();
         long originX = (long) tileX * size * blocksPerPixel;
         long originZ = (long) tileZ * size * blocksPerPixel;
@@ -59,14 +59,14 @@ public record SavedTile(int size, int blocksPerPixel, short[] groundY, short[] w
                 }
                 tile.groundY[pixel] = (short) saved.groundY();
                 tile.waterSurfaceY[pixel] = (short) saved.waterSurfaceY();
-                tile.blocks[pixel] = idOf(saved.block(), blockIds, tile.blockNames);
+                tile.blocks[pixel] = idOf(saved.block(), blockIds, tile.savedBlocks);
                 tile.biomes[pixel] = idOf(saved.biome(), biomeIds, tile.biomeNames);
             }
         }
         return tile;
     }
 
-    private static short idOf(String name, Map<String, Short> ids, List<String> names) {
+    private static <Named> short idOf(Named name, Map<Named, Short> ids, List<Named> names) {
         return ids.computeIfAbsent(name, added -> {
             names.add(added);
             return (short) (names.size() - 1);

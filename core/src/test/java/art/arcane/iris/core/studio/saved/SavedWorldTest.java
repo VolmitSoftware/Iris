@@ -79,7 +79,7 @@ public class SavedWorldTest {
         SavedRegion.SavedColumn underTree = world.columnAt(0, 0);
         assertEquals(TREE_GROUND_TOP, underTree.groundY());
         assertEquals(SavedRegion.NO_WATER, underTree.waterSurfaceY());
-        assertEquals("minecraft:stone", underTree.block());
+        assertEquals(new SavedBlock("minecraft:stone", "minecraft:stone"), underTree.block());
         assertEquals("test:meadow", underTree.biome());
 
         SavedRegion.SavedColumn pond = world.columnAt(1, 0);
@@ -96,7 +96,7 @@ public class SavedWorldTest {
         assertEquals(TREE_GROUND_TOP, world.columnAt(0, 0).groundY());
         SavedRegion.SavedColumn snowyGround = world.columnAt(2, 0);
         assertEquals(PLAIN_GROUND_TOP + 1, snowyGround.groundY());
-        assertEquals("minecraft:snow", snowyGround.block());
+        assertEquals("minecraft:snow", snowyGround.block().name());
     }
 
     @Test
@@ -105,11 +105,11 @@ public class SavedWorldTest {
 
         SavedRegion.SavedColumn plugin = world.columnAt(3, 0);
         assertEquals(PLAIN_GROUND_TOP + 1, plugin.groundY());
-        assertEquals("etopia:grass_block", plugin.block());
+        assertEquals(new SavedBlock("etopia:grass_block", "minecraft:tripwire[attached=true]"), plugin.block());
 
         SavedRegion.SavedColumn otherState = world.columnAt(5, 0);
         assertEquals(PLAIN_GROUND_TOP, otherState.groundY());
-        assertEquals("minecraft:stone", otherState.block());
+        assertEquals("minecraft:stone", otherState.block().name());
     }
 
     @Test
@@ -118,7 +118,7 @@ public class SavedWorldTest {
 
         SavedRegion.SavedColumn borrowed = world.columnAt(3, 0);
         assertEquals(PLAIN_GROUND_TOP, borrowed.groundY());
-        assertEquals("minecraft:stone", borrowed.block());
+        assertEquals("minecraft:stone", borrowed.block().name());
     }
 
     @Test
@@ -151,7 +151,7 @@ public class SavedWorldTest {
         assertEquals(PLAIN_GROUND_TOP + 1, tile.groundY()[1]);
         assertEquals(PLAIN_GROUND_TOP, tile.groundY()[2]);
         assertEquals(SavedTile.NO_GROUND, tile.groundY()[8]);
-        assertEquals(List.of("minecraft:stone", "minecraft:snow"), tile.blockNames());
+        assertEquals(List.of("minecraft:stone", "minecraft:snow"), tile.savedBlocks().stream().map(SavedBlock::name).toList());
         assertEquals(List.of("test:meadow"), tile.biomeNames());
     }
 

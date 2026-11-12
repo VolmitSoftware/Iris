@@ -88,14 +88,6 @@ public class MapTileRendererTest {
     }
 
     @Test
-    public void biomeLayersLabelWithTheirOwnStreamAndColouring() {
-        MapTile tile = render(MapView.CAVE_BIOMES, -4D, 0D, 1D, false);
-
-        assertEquals("cavern", tile.subjectAt(0, 0).key());
-        assertEquals("warm", tile.regionAt(0, 0).key());
-    }
-
-    @Test
     public void aFlatWorldStaysFlat() {
         heights((x, z) -> 70D);
 
@@ -199,12 +191,9 @@ public class MapTileRendererTest {
         MapTile plain = render(MapView.REGIONS, 0D, 0D, 1D, false);
         MapTile withNoise = new MapTileRenderer(engine).render(MapLayer.of(MapView.REGIONS), 0D, 0D, 1D, SIZE,
                 Set.of(MapTile.Extra.PICK_NOISE), () -> false);
-        MapTile caves = new MapTileRenderer(engine).render(MapLayer.of(MapView.CAVE_BIOMES), 0D, 0D, 1D, SIZE,
-                Set.of(MapTile.Extra.PICK_NOISE), () -> false);
 
         assertNull(plain.pickNoise());
         assertEquals(0.13F, withNoise.pickNoise()[withNoise.gridIndex(3, 5)], 1e-6F);
-        assertNull("no noise picks the cave biome layer here", caves.pickNoise());
     }
 
     private MapTile render(MapView view, double startX, double startZ, double blocksPerPixel, boolean withHeights) {

@@ -46,11 +46,6 @@ public class MapPickPathTest {
     }
 
     @Test
-    public void theLandViewStopsAtTheListPickBecauseItsStreamHasNoChildren() {
-        assertEquals(List.of(MapPickPath.Kind.REGION, MapPickPath.Kind.BIOME), kinds(explain(MapLayer.of(MapView.LAND_BIOMES))));
-    }
-
-    @Test
     public void anImageMappedRegionWasChosenNotPicked() {
         when(world.imageMap.sampleRegion(X, Z)).thenReturn(world.dry);
 

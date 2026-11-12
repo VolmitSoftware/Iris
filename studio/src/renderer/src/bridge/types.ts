@@ -205,10 +205,13 @@ export interface SavedTile {
   groundY: Int16Array
   /** The top water block over the ground; {@link noWater} where it is dry. */
   waterSurfaceY: Int16Array
-  /** Indices into {@link blockNames} and {@link biomes}. */
+  /** Indices into {@link blockNames}, {@link blocksDrawnAs} and {@link biomeLabels}. */
   blocks: Int16Array
   biomes: Int16Array
+  /** Each block without its properties; a plugin's block by the name its plugin gives it. */
   blockNames: string[]
+  /** Per block, the state it was saved as, which players see and the studio draws; a plugin block's is the vanilla state it borrows. */
+  blocksDrawnAs: string[]
   biomeLabels: MapLabel[]
   noGround: number
   noWater: number

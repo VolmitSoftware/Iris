@@ -68,11 +68,6 @@ public class MapPickInspectionTest {
     }
 
     @Test
-    public void aBiomeLayerViewHasNoPicks() {
-        assertThrows(IllegalArgumentException.class, () -> measure(MapLayer.of(MapView.LAND_BIOMES)));
-    }
-
-    @Test
     public void anAreaNeedsItsSecondCornerBeyondItsFirst() {
         assertThrows(IllegalArgumentException.class, () -> new MapPickInspection.Area(0D, 0D, 0D, 10D));
     }

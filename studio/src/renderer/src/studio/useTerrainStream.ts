@@ -30,6 +30,7 @@ export function useTerrainStream<Tile, Layer>(
     return () => {
       created.dispose()
       setStream(null)
+      setPending(0)
     }
   }, [source, coarsestLevel, focus])
   useEffect(() => {

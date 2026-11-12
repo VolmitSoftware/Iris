@@ -184,11 +184,6 @@ public class StudioBridgeTest {
     }
 
     @Test
-    public void aBiomeLayerViewHasNoPicksToInspect() throws Exception {
-        assertEquals(400, get("picks?view=landBiomes&minX=0&minZ=0&maxX=10&maxZ=10").statusCode());
-    }
-
-    @Test
     public void aWorldWithoutAnEngineIsUnavailableUntilItHasOneAgain() throws Exception {
         Engine engine = running.getAndSet(null);
         assertEquals(503, get("world").statusCode());

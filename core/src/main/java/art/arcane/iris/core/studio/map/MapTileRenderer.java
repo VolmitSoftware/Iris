@@ -49,8 +49,7 @@ public final class MapTileRenderer {
     /**
      * The square of {@code size} pixels whose top left pixel samples ({@code startX}, {@code startZ}).
      *
-     * @param extras what to sample besides the labels; the height view always has heights, and only a layer that
-     *               {@linkplain MapLayer#hasPickNoise() has pick noise} gets it
+     * @param extras what to sample besides the labels; the height view always has heights
      * @throws CancellationException as soon as {@code cancelled} answers true
      */
     public MapTile render(MapLayer layer, double startX, double startZ, double blocksPerPixel, int size,
@@ -120,12 +119,10 @@ public final class MapTileRenderer {
         IrisComplex complex = engine.getComplex();
         ProceduralStream<IrisRegion> regionStream = complex.getRegionStream();
         short[] regions = everyCell(grid, (x, z) -> labels.indexOf(regionStream.get(x, z)));
-        ProceduralStream<IrisBiome> biomeStream = layer.view().biomeStream(complex);
-        short[] subjects = layer.labelsRegions() ? regions : everyCell(grid, (x, z) -> labels.indexOf(biomeStream.get(x, z)));
+        ProceduralStream<IrisBiome> baseBiomes = complex.getBaseBiomeStream();
+        short[] subjects = layer.labelsRegions() ? regions : everyCell(grid, (x, z) -> labels.indexOf(baseBiomes.get(x, z)));
         float[] heights = extras.contains(MapTile.Extra.HEIGHTS) ? latticeHeights(grid) : null;
-        float[] pickNoise = extras.contains(MapTile.Extra.PICK_NOISE) && layer.hasPickNoise()
-                ? MapPickNoise.sample(engine, layer, grid)
-                : null;
+        float[] pickNoise = extras.contains(MapTile.Extra.PICK_NOISE) ? MapPickNoise.sample(engine, layer, grid) : null;
         MapLabel.Kind subjectKind = layer.labelsRegions() ? MapLabel.Kind.REGION : MapLabel.Kind.BIOME;
         return new MapTile(grid.size() - 2, blocksPerPixel, subjectKind, labels.labels(), subjects, regions, heights, pickNoise, null);
     }

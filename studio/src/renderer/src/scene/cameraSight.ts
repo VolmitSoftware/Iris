@@ -10,8 +10,6 @@ export interface SightView {
 }
 
 const NDC_MIDDLE_DEPTH = 0.5
-const NOT_BEHIND_THE_CAMERA = 0
-const BEHIND_THE_CAMERA = 1e9
 
 /**
  * What the camera sees of ground that lies between {@code floorY} and {@code topY}: which terrain tiles land in the
@@ -20,6 +18,7 @@ const BEHIND_THE_CAMERA = 1e9
 export class CameraSight {
   private readonly frustums = new Map<number, Frustum>()
   private readonly position = new Vector3()
+  private readonly lookedAt: Vector3
 
   constructor(
     private readonly view: SightView,
@@ -28,6 +27,7 @@ export class CameraSight {
   ) {
     view.camera.updateMatrixWorld()
     view.camera.getWorldPosition(this.position)
+    this.lookedAt = this.groundInMiddleOfView()
   }
 
   get orbitDistance(): number {
@@ -52,15 +52,24 @@ export class CameraSight {
     return blocksPerColumn(tile.level) * pixelsPerBlock
   }
 
-  /** How far the tile's middle lies from the middle of the view on the screen; tiles behind the camera lie furthest. */
-  distanceFromMiddle(tile: TerrainTile): number {
-    const middle = new Vector3(originXOf(tile) + tileBlocks(tile.level) / 2, (this.floorY + this.topY) / 2, originZOf(tile) + tileBlocks(tile.level) / 2)
-    const behind = middle.clone().applyMatrix4(this.view.camera.matrixWorldInverse).z > NOT_BEHIND_THE_CAMERA
-    if (behind) {
-      return BEHIND_THE_CAMERA + middle.distanceTo(this.position)
+  /** How many blocks the tile lies from the ground in the middle of the view; nothing for the tile that ground is in. */
+  distanceFromLookedAt(tile: TerrainTile): number {
+    const size = tileBlocks(tile.level)
+    const x = originXOf(tile)
+    const z = originZOf(tile)
+    const pastX = Math.max(x - this.lookedAt.x, 0, this.lookedAt.x - (x + size))
+    const pastZ = Math.max(z - this.lookedAt.z, 0, this.lookedAt.z - (z + size))
+    return Math.hypot(pastX, pastZ)
+  }
+
+  // Where the line of sight comes down to the middle height of the ground, or under the camera when it never does.
+  private groundInMiddleOfView(): Vector3 {
+    const direction = this.view.camera.getWorldDirection(new Vector3())
+    const distance = ((this.floorY + this.topY) / 2 - this.position.y) / direction.y
+    if (!Number.isFinite(distance) || distance < 0) {
+      return this.position.clone()
     }
-    const onScreen = middle.project(this.view.camera)
-    return Math.hypot(onScreen.x, onScreen.y)
+    return direction.multiplyScalar(Math.min(distance, this.view.camera.far)).add(this.position)
   }
 
   /** The tiles of {@code level} in sight, widened by {@code margin}. */

@@ -18,6 +18,7 @@ import { focusAround, type TerrainStyle } from '../scene/terrainStream'
 import { SceneViewport } from './SceneViewport'
 import { Separator } from '@/components/ui/separator'
 import { HEADER_CHOICE, SidebarPanel, ViewIsland } from './Sidebar'
+import { useSpotActions } from './useSpotActions'
 import { useTerrainStream } from './useTerrainStream'
 
 const NUMBER = new Intl.NumberFormat('en-US')
@@ -69,6 +70,8 @@ export function SavedWorldStudio({ title, client, world, onSummary, onProgress, 
   const { content, pending } = useTerrainStream(tileSource, COARSEST_SAVED_LEVEL, focus, layer, style, tell)
   const reading = looking || pending > 0
   const tileWork = useRef(new PendingWork())
+  const showsStudioWorld = chosen !== null && chosen.id === ownWorldAmong(worlds, world)?.id
+  const spotActions = useSpotActions(client, tell, showsStudioWorld)
 
   useEffect(() => {
     const completion = tileWork.current.completion(pending)
@@ -109,7 +112,7 @@ export function SavedWorldStudio({ title, client, world, onSummary, onProgress, 
           </>
         }
       >
-        <SceneViewport content={content} framing={content} />
+        <SceneViewport content={content} framing={content} spotActions={spotActions} />
         {reading && chosen !== null && <div className={PILL}>Reading {chosen.name}</div>}
         {!reading && chosen !== null && start === null && <div className={PILL}>Nothing finished is saved in {chosen.name}</div>}
       </ViewIsland>

@@ -20,7 +20,7 @@ export interface TerrainStreamOptions<Tile, Layer> {
   source: TileSource<Tile, Layer, never>
   /** The coarsest level the source samples: tiles of level n have columns 2^n blocks wide. */
   coarsestLevel: number
-  /** The box the camera frames when the terrain is first shown. */
+  /** The box the camera frames when the terrain is first shown; ground is looked for between its heights until tiles show where it really stands. */
   focus: Box3
   /** Told how many tiles are still on their way, whenever that changes. */
   onPending(pending: number): void
@@ -66,8 +66,15 @@ export class TerrainStream<Tile, Layer> {
   private reportedPending = -1
   private continuation: ReturnType<typeof setTimeout> | null = null
   private disposed = false
+  // Tiles are looked for where ground stands, not across the world's whole height: under a tall sky most of a tile's
+  // box is air, which lands in the view where its ground does not.
+  private lowestGround: number
+  private highestGround: number
+  private groundRangeGrew = false
 
   constructor(private readonly options: TerrainStreamOptions<Tile, Layer>) {
+    this.lowestGround = options.focus.min.y
+    this.highestGround = options.focus.max.y
     this.store = new TileStore(options.source, () => this.replan(), options.onError)
     this.content = {
       object: this.group,
@@ -139,7 +146,7 @@ export class TerrainStream<Tile, Layer> {
     if (this.disposed || this.layer === null || this.style === null || this.camera === null) {
       return
     }
-    const sight = new CameraSight(this.camera.view(), this.style.floorY, this.style.topY)
+    const sight = new CameraSight(this.camera.view(), this.lowestGround, this.highestGround)
     const layer = this.layer
     const cover = planCover(sight, (tile) => this.stateOf(tile, layer), this.options.coarsestLevel)
     this.store.want(cover.wanted.map(addressOf), layer)
@@ -184,6 +191,10 @@ export class TerrainStream<Tile, Layer> {
       this.show(key, draw, data, style)
     }
     this.camera?.redraw()
+    if (this.groundRangeGrew) {
+      this.groundRangeGrew = false
+      this.continueLater()
+    }
     if (behind) {
       this.continueLater()
       return
@@ -212,6 +223,17 @@ export class TerrainStream<Tile, Layer> {
     const mesh = buildTerrainMesh(style.surfaceOf(data, draw.tile), style.floorY, draw.holes)
     this.group.add(mesh.object)
     this.drawn.set(key, { tile: draw.tile, data, signature: this.signatureOf(draw), mesh })
+    this.growGroundRangeOver(mesh.field)
+  }
+
+  private growGroundRangeOver(field: ColumnField): void {
+    const tops = field.topRange
+    if (tops === null || (tops.lowest >= this.lowestGround && tops.highest <= this.highestGround)) {
+      return
+    }
+    this.lowestGround = Math.min(this.lowestGround, tops.lowest)
+    this.highestGround = Math.max(this.highestGround, tops.highest)
+    this.groundRangeGrew = true
   }
 
   private hide(key: string, drawn: DrawnMesh<Tile>): void {

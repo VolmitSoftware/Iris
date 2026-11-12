@@ -18,10 +18,7 @@
 
 package art.arcane.iris.core.studio.map;
 
-import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.render.RenderType;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.util.project.stream.ProceduralStream;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -29,12 +26,7 @@ import java.util.Optional;
 /** The studio map's views of a world drawn from its engine streams, one tile at a time. */
 public enum MapView {
     BIOMES("biomes", "Biomes", "The biome at each spot, in the biome's colour", Group.WORLD, RenderType.BIOME),
-    REGIONS("regions", "Regions", "The region each spot belongs to", Group.WORLD, RenderType.REGION),
-    LAND_BIOMES("landBiomes", "Land biomes", "The land biome each spot would get, also where the sea is",
-            Group.BIOME_LAYERS, RenderType.BIOME_LAND),
-    SEA_BIOMES("seaBiomes", "Sea biomes", "The sea biome each spot would get, also where the land is",
-            Group.BIOME_LAYERS, RenderType.BIOME_SEA),
-    CAVE_BIOMES("caveBiomes", "Cave biomes", "The cave biome under each spot", Group.BIOME_LAYERS, RenderType.CAVE_LAND);
+    REGIONS("regions", "Regions", "The region each spot belongs to", Group.WORLD, RenderType.REGION);
 
     private final String id;
     private final String label;
@@ -80,19 +72,8 @@ public enum MapView {
         return colorType;
     }
 
-    /** The biome each spot is labelled with: the base biome, before the height corrects it near coasts. */
-    ProceduralStream<IrisBiome> biomeStream(IrisComplex complex) {
-        return switch (this) {
-            case LAND_BIOMES -> complex.getLandBiomeStream();
-            case SEA_BIOMES -> complex.getSeaBiomeStream();
-            case CAVE_BIOMES -> complex.getCaveBiomeStream();
-            case BIOMES, REGIONS -> complex.getBaseBiomeStream();
-        };
-    }
-
     public enum Group {
-        WORLD("World"),
-        BIOME_LAYERS("Biome layers");
+        WORLD("World");
 
         private final String label;
 

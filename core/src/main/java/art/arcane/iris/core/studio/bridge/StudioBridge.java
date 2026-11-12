@@ -335,9 +335,6 @@ public final class StudioBridge implements AutoCloseable {
 
     private static MapPickInspection.Inspection picks(Engine engine, Query query) {
         MapLayer layer = layer(engine, query);
-        if (!layer.hasPickNoise()) {
-            throw new RequestError(STATUS_BAD_REQUEST, "The " + layer.view().label() + " view has no picks to inspect");
-        }
         try {
             MapPickInspection.Area area = new MapPickInspection.Area(
                     query.number("minX"), query.number("minZ"), query.number("maxX"), query.number("maxZ"));
@@ -609,7 +606,7 @@ public final class StudioBridge implements AutoCloseable {
         if (query.has("blocks")) {
             tile = withBlocks(session, tile, startX, startZ, blockSource(query), cancelled);
         }
-        return MapTileEncoding.encode(tile, gson);
+        return MapTileEncoding.encode(tile, gson, StudioBridge::pluginLookOf);
     }
 
     private static MapTile withBlocks(StudioWorld.Session session, MapTile tile, double startX, double startZ, BlockSource source,

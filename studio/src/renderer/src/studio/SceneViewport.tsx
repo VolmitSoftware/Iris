@@ -1,8 +1,14 @@
-import { useEffect, useRef } from 'react'
-import { Box3, MOUSE, PerspectiveCamera, Ray, Raycaster, Scene, Sphere, Vector2, Vector3, WebGLRenderer, type Object3D } from 'three'
+import { useEffect, useRef, useState } from 'react'
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu'
+import { Box3, ColorManagement, LinearSRGBColorSpace, MOUSE, PerspectiveCamera, Ray, Raycaster, Scene, Sphere, Vector2, Vector3, WebGLRenderer, type Object3D } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { SightView } from '../scene/cameraSight'
 import { surfaceAlong } from '../scene/surfacePick'
+
+// Colours are worked out as Minecraft and v3e do, on the values a screen shows: a texture times its tint times the light
+// on its face. Left to manage colours, three.js would take those values for linear light and encode them again, which
+// pales every colour and flattens the shading.
+ColorManagement.enabled = false
 
 const FIELD_OF_VIEW_DEGREES = 45
 // Looking down at the scene from the south east, as v3e's object view opens.
@@ -22,8 +28,16 @@ const LOWEST_OVER_GROUND_RADIANS = Math.PI / 2 - 0.05
 const TURNS_ON_DRAG = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN }
 const MOVES_ON_DRAG = { LEFT: MOUSE.PAN, MIDDLE: MOUSE.ROTATE, RIGHT: MOUSE.ROTATE }
 
+const LEFT_BUTTON = 0
+const RIGHT_BUTTON = 2
+
 function picks(event: PointerEvent): boolean {
-  return event.button === 0 && !event.shiftKey && !event.ctrlKey && !event.metaKey
+  return event.button === LEFT_BUTTON && !event.shiftKey && !event.ctrlKey && !event.metaKey
+}
+
+// As on the map: a right click, or a click while holding Ctrl.
+function asksAboutSpot(event: PointerEvent): boolean {
+  return event.button === RIGHT_BUTTON || (event.button === LEFT_BUTTON && (event.ctrlKey || event.metaKey))
 }
 
 /** The camera of a viewport, for content that draws only what the camera looks at. */
@@ -57,6 +71,23 @@ interface SceneViewportProps {
   framing?: unknown
   /** Called when the content is clicked, not dragged. */
   onPick?(picked: PickedSurface): void
+  /** What a spot on the content offers, as the map does for a spot on it. */
+  spotActions?: SpotActions
+}
+
+export interface SpotActions {
+  /** Called when a spot is clicked while holding Ctrl. */
+  onCtrlClick(spot: Vector3): void
+  /** The items of the menu a right click on a spot opens. */
+  menuItems(spot: Vector3): React.ReactNode
+}
+
+/** A spot the user asked about, and where on the screen they did. */
+interface AskedSpot {
+  spot: Vector3
+  gesture: 'ctrlClick' | 'rightClick'
+  clientX: number
+  clientY: number
 }
 
 /**
@@ -64,9 +95,12 @@ interface SceneViewportProps {
  * turns on a right drag. Either turns around what is in the middle, and scrolling comes closer to the cursor. The
  * camera stops with the mouse, and the view is drawn only when it changes.
  */
-export function SceneViewport({ content, framing, onPick }: SceneViewportProps): React.JSX.Element {
+export function SceneViewport({ content, framing, onPick, spotActions }: SceneViewportProps): React.JSX.Element {
   const host = useRef<HTMLDivElement>(null)
   const stage = useRef<Stage | null>(null)
+  const [menuSpot, setMenuSpot] = useState<Vector3 | null>(null)
+  const latestSpotActions = useRef(spotActions)
+  latestSpotActions.current = spotActions
 
   useEffect(() => {
     const created = new Stage(host.current!)
@@ -81,7 +115,48 @@ export function SceneViewport({ content, framing, onPick }: SceneViewportProps):
   useEffect(() => stage.current?.frameShown(), [framing])
   useEffect(() => stage.current?.onPick(onPick ?? null), [onPick])
 
-  return <div ref={host} className="absolute inset-0 bg-map-background" />
+  const offersSpotActions = spotActions !== undefined
+  useEffect(() => {
+    if (!offersSpotActions) {
+      return
+    }
+    stage.current?.onSpotAsked((asked) => {
+      if (asked.gesture === 'ctrlClick') {
+        latestSpotActions.current?.onCtrlClick(asked.spot)
+        return
+      }
+      setMenuSpot(asked.spot)
+      openMenuAt(host.current!, asked.clientX, asked.clientY)
+    })
+    return () => stage.current?.onSpotAsked(null)
+  }, [offersSpotActions])
+  useEffect(() => keepPressFromOpeningMenu(host.current!), [])
+
+  return (
+    <ContextMenu onOpenChange={(open) => !open && setMenuSpot(null)}>
+      <ContextMenuTrigger asChild>
+        <div ref={host} className="absolute inset-0 bg-map-background" />
+      </ContextMenuTrigger>
+      <ContextMenuContent className="min-w-56">{menuSpot !== null && spotActions?.menuItems(menuSpot)}</ContextMenuContent>
+    </ContextMenu>
+  )
+}
+
+// A right press turns the view, so the menu waits for a right click that did not: the browser's own request for a menu,
+// which comes with the press, is kept from the menu, and the viewport asks for it itself.
+function keepPressFromOpeningMenu(host: HTMLElement): () => void {
+  const swallow = (event: MouseEvent): void => {
+    if (event.isTrusted) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+  }
+  host.addEventListener('contextmenu', swallow, { capture: true })
+  return () => host.removeEventListener('contextmenu', swallow, { capture: true })
+}
+
+function openMenuAt(host: HTMLElement, clientX: number, clientY: number): void {
+  host.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX, clientY }))
 }
 
 /** The renderer, camera and controls of one viewport. What it shows belongs to whoever built it, who frees it. */
@@ -99,8 +174,11 @@ class Stage {
   private frameRequested = false
   private pickListener: ((picked: PickedSurface) => void) | null = null
   private pressedAt: { x: number; y: number } | null = null
+  private spotListener: ((asked: AskedSpot) => void) | null = null
+  private spotPressedAt: { x: number; y: number } | null = null
 
   constructor(private readonly host: HTMLDivElement) {
+    this.renderer.outputColorSpace = LinearSRGBColorSpace
     this.renderer.setPixelRatio(window.devicePixelRatio)
     this.renderer.setClearAlpha(0)
     host.appendChild(this.renderer.domElement)
@@ -109,9 +187,13 @@ class Stage {
     this.navigateAs(false)
     this.renderer.domElement.addEventListener('pointerdown', (event) => {
       this.pressedAt = picks(event) ? { x: event.clientX, y: event.clientY } : null
+      this.spotPressedAt = asksAboutSpot(event) ? { x: event.clientX, y: event.clientY } : null
       this.pivotOnSurfaceInMiddle()
     })
-    this.renderer.domElement.addEventListener('pointerup', (event) => this.pickIfClicked(event))
+    this.renderer.domElement.addEventListener('pointerup', (event) => {
+      this.pickIfClicked(event)
+      this.askAboutSpotIfClicked(event)
+    })
     this.controls.addEventListener('change', () => {
       this.fitClipToOrbit()
       this.notifyMoved()
@@ -205,13 +287,41 @@ class Stage {
     if (Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > CLICK_SLOP_PIXELS) {
       return
     }
+    this.pickListener(this.surfaceUnder(event))
+  }
+
+  onSpotAsked(listener: ((asked: AskedSpot) => void) | null): void {
+    this.spotListener = listener
+  }
+
+  private askAboutSpotIfClicked(event: PointerEvent): void {
+    const pressed = this.spotPressedAt
+    this.spotPressedAt = null
+    if (pressed === null || this.spotListener === null) {
+      return
+    }
+    if (Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > CLICK_SLOP_PIXELS) {
+      return
+    }
+    const surface = this.surfaceUnder(event)
+    if (surface === null) {
+      return
+    }
+    const gesture = event.button === RIGHT_BUTTON ? 'rightClick' : 'ctrlClick'
+    this.spotListener({ spot: surface.point, gesture, clientX: event.clientX, clientY: event.clientY })
+  }
+
+  private surfaceUnder(event: PointerEvent): PickedSurface {
+    if (this.shown === null) {
+      return null
+    }
     const bounds = this.renderer.domElement.getBoundingClientRect()
     const pointer = new Vector2(((event.clientX - bounds.left) / bounds.width) * 2 - 1, -((event.clientY - bounds.top) / bounds.height) * 2 + 1)
     const caster = new Raycaster()
     this.camera.updateMatrixWorld()
     caster.setFromCamera(pointer, this.camera)
     const point = surfaceAlong(this.shown, caster.ray, this.camera.far)
-    this.pickListener(point === null ? null : { point, direction: caster.ray.direction.clone() })
+    return point === null ? null : { point, direction: caster.ray.direction.clone() }
   }
 
   // The pivot slides along the line of sight, so the picture stays put while turning now goes around what is there,

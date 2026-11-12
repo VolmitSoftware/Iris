@@ -13,15 +13,12 @@ const VIEW_ICONS: Record<string, IdeIconName> = {
   regions: 'views/regions',
   world3d: 'views/world-3d',
   savedWorld: 'views/saved-world',
-  landBiomes: 'views/land-biomes',
-  seaBiomes: 'views/sea-biomes',
-  caveBiomes: 'views/cave-biomes',
   'iris:terrain/palettes': 'views/palettes',
   'iris:objects': 'views/objects',
   'iris:objects/procedural': 'views/procedural',
   noise: 'views/noise'
 }
-const FALLBACK_ICON: IdeIconName = 'views/regions'
+const FALLBACK_ICON: IdeIconName = 'blocks'
 /** Inset, because the stripe scrolls and so clips anything drawn outside its buttons. */
 const STRIPE_BUTTON = 'flex size-8 shrink-0 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset'
 

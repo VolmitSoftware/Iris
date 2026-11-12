@@ -54,9 +54,9 @@ final class SavedRegion {
     private final short[] waterSurfaceY = new short[BLOCKS_ACROSS * BLOCKS_ACROSS];
     private final short[] blockIds = new short[BLOCKS_ACROSS * BLOCKS_ACROSS];
     private final short[] biomeIds = new short[BLOCKS_ACROSS * BLOCKS_ACROSS];
-    private final List<String> blocks = new CopyOnWriteArrayList<>();
+    private final List<SavedBlock> blocks = new CopyOnWriteArrayList<>();
     private final List<String> biomes = new CopyOnWriteArrayList<>();
-    private final Map<String, Short> blockIndex = new HashMap<>();
+    private final Map<SavedBlock, Short> blockIndex = new HashMap<>();
     private final Map<String, Short> biomeIndex = new HashMap<>();
     private final Map<Integer, Integer> waterColumnsBySurface = new HashMap<>();
     private int minY = Integer.MAX_VALUE;
@@ -135,7 +135,7 @@ final class SavedRegion {
         }
     }
 
-    private static short idOf(String name, Map<String, Short> index, List<String> names) {
+    private static <Named> short idOf(Named name, Map<Named, Short> index, List<Named> names) {
         return index.computeIfAbsent(name, added -> {
             names.add(added);
             return (short) (names.size() - 1);
@@ -173,14 +173,14 @@ final class SavedRegion {
      * @param groundY       the top block of the ground, under any water
      * @param waterSurfaceY the top water block over it, or {@link #NO_WATER}
      */
-    record SavedColumn(int groundY, int waterSurfaceY, String block, String biome) {
+    record SavedColumn(int groundY, int waterSurfaceY, SavedBlock block, String biome) {
     }
 
     /** One chunk's columns, read without holding the region so other chunks can be read meanwhile. */
-    private record ChunkColumns(int minY, short[] groundY, short[] waterSurfaceY, String[] blocks, String[] biomes) {
+    private record ChunkColumns(int minY, short[] groundY, short[] waterSurfaceY, SavedBlock[] blocks, String[] biomes) {
         static ChunkColumns of(SavedChunk chunk, SavedGround ground) {
             ChunkColumns columns = new ChunkColumns(chunk.minY(), new short[CHUNK_COLUMNS], new short[CHUNK_COLUMNS],
-                    new String[CHUNK_COLUMNS], new String[CHUNK_COLUMNS]);
+                    new SavedBlock[CHUNK_COLUMNS], new String[CHUNK_COLUMNS]);
             for (int z = 0; z < SavedChunk.BLOCKS_ACROSS; z++) {
                 for (int x = 0; x < SavedChunk.BLOCKS_ACROSS; x++) {
                     columns.read(chunk, ground, x, z);
@@ -204,7 +204,7 @@ final class SavedRegion {
             }
             groundY[column] = (short) y;
             waterSurfaceY[column] = (short) waterTop;
-            blocks[column] = block;
+            blocks[column] = chunk.savedBlockAt(x, y, z);
             biomes[column] = chunk.biomeAt(x, y, z);
         }
 

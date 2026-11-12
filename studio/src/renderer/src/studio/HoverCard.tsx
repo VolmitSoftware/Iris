@@ -46,8 +46,8 @@ export function HoverCard({ hover, point, viewId, previewing, detailed, minY }: 
   }, [point, hover, detailed])
 
   const labelsRegions = viewId === 'regions' && !previewing
-  const subject = viewId === 'caveBiomes' ? hover.caveBiome : labelsRegions ? hover.region : hover.biome
-  const groups = detailed ? detailGroups(hover, viewId) : []
+  const subject = labelsRegions ? hover.region : hover.biome
+  const groups = detailed ? detailGroups(hover) : []
   const parent = replacedParent(hover.pickPath)
   return (
     <div
@@ -109,12 +109,10 @@ function ground(hover: MapHover, minY: number): string {
   return `Y ${Math.round(hover.height + minY)} · ${signed} from water · ${Math.round(hover.slopeDegrees)}°`
 }
 
-function detailGroups(hover: MapHover, viewId: string): { title: string; rows: Row[] }[] {
+function detailGroups(hover: MapHover): { title: string; rows: Row[] }[] {
   const groups: { title: string; rows: Row[] }[] = []
   const terrain: Row[] = []
-  if (viewId === 'caveBiomes' && hover.biome !== null) {
-    terrain.push({ label: 'Surface biome', value: hover.biome.name })
-  } else if (hover.caveBiome !== null && hover.caveBiome.key !== hover.biome?.key) {
+  if (hover.caveBiome !== null && hover.caveBiome.key !== hover.biome?.key) {
     terrain.push({ label: 'Cave biome', value: hover.caveBiome.name })
   }
   if (hover.vanillaBiome !== null) {

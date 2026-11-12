@@ -1,4 +1,4 @@
-import { CanvasTexture, NearestFilter, SRGBColorSpace, type Texture } from 'three'
+import { CanvasTexture, NearestFilter, type Texture } from 'three'
 import { averageColor } from './blockColors'
 import { texturePath, type ImageSource } from './textureAtlas'
 
@@ -30,6 +30,10 @@ const ATLAS_PIXELS = CELLS_PER_SIDE * CELL_PIXELS
 const PLAIN_CELL = 0
 const WHITE = '#ffffff'
 const WHITE_COLOR = 0xffffff
+const OPAQUE_ALPHA = 255
+// The same line blockColors draws between a pixel that counts toward a picture's colour and one that does not.
+const OPAQUE_ENOUGH_ALPHA = 128
+const GAP_SHADE = 0.6
 
 /** The cell with this number, counted row by row from the top left. */
 export function cellAt(index: number, average: number): UvCell {
@@ -70,7 +74,6 @@ export class TerrainAtlas implements TerrainPictures, PictureSource {
     this.texture.minFilter = NearestFilter
     this.texture.generateMipmaps = false
     this.texture.flipY = false
-    this.texture.colorSpace = SRGBColorSpace
   }
 
   cellOf(textureId: string): Promise<UvCell | null> {
@@ -96,7 +99,26 @@ export class TerrainAtlas implements TerrainPictures, PictureSource {
     const left = placed.u * ATLAS_PIXELS
     const top = placed.v * ATLAS_PIXELS
     this.drawing.drawImage(bitmap, 0, 0, bitmap.width, Math.min(bitmap.width, bitmap.height), left, top, CELL_PIXELS, CELL_PIXELS)
+    const picture = this.drawing.getImageData(left, top, CELL_PIXELS, CELL_PIXELS)
+    const average = averageColor(picture)
+    this.drawing.putImageData(withGapsFilled(picture, average), left, top)
     this.texture.needsUpdate = true
-    return { ...placed, average: averageColor(this.drawing.getImageData(left, top, CELL_PIXELS, CELL_PIXELS)) }
+    return { ...placed, average }
   }
+}
+
+// The terrain draws whole faces, so what a picture leaves open, as leaves do between their twigs, would show as black:
+// it takes the picture's own colour instead, darker, as the shade seen through the gaps.
+function withGapsFilled(picture: ImageData, average: number): ImageData {
+  const pixels = picture.data
+  const gap = [(average >> 16) & 0xff, (average >> 8) & 0xff, average & 0xff].map((channel) => Math.round(channel * GAP_SHADE))
+  for (let offset = 0; offset < pixels.length; offset += 4) {
+    if (pixels[offset + 3] < OPAQUE_ENOUGH_ALPHA) {
+      pixels[offset] = gap[0]
+      pixels[offset + 1] = gap[1]
+      pixels[offset + 2] = gap[2]
+    }
+    pixels[offset + 3] = OPAQUE_ALPHA
+  }
+  return picture
 }

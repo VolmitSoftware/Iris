@@ -13,6 +13,7 @@ import { Legend } from './Legend'
 import { PickInspector } from './PickInspector'
 import { SceneViewport } from './SceneViewport'
 import { usePickInspection } from './usePickInspection'
+import { useSpotActions } from './useSpotActions'
 import { HEADER_CHOICE, Panel, ViewIsland } from './Sidebar'
 import { useGroundInView, useLongPending, useTerrainStream } from './useTerrainStream'
 
@@ -69,6 +70,7 @@ export function WorldStudio3D({ title, client, world, mapArea, packRevision, onS
   const pickLayer = useMemo<MapLayerQuery>(() => ({ view: pickView, preview: null }), [pickView])
   const area = useAreaOf(ground)
   const inspection = usePickInspection(client, pickLayer, area, inspectsPicks, packRevision)
+  const spotActions = useSpotActions(client, tell, true)
 
   useEffect(() => {
     onSummary(`Around ${NUMBER.format(centre.x)}, ${NUMBER.format(centre.z)}`)
@@ -96,7 +98,7 @@ export function WorldStudio3D({ title, client, world, mapArea, packRevision, onS
           </ToggleGroup>
         }
       >
-        <SceneViewport content={content} framing={content} />
+        <SceneViewport content={content} framing={content} spotActions={spotActions} />
         {sampling && (
           <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card px-3 py-1.5 text-[12px] text-secondary-text">
             Sampling the terrain

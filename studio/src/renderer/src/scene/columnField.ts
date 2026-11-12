@@ -23,6 +23,8 @@ export class ColumnField {
   readonly looks: (BlockLook | null)[]
   /** The atlas of the looks, or null where no column has one. */
   readonly pictures: TerrainPictures | null
+  /** How low and high the top faces stand, ground and water alike; null where no column has ground. */
+  readonly topRange: { lowest: number; highest: number } | null
 
   constructor(surface: TerrainSurface, holes: readonly ColumnArea[] = []) {
     this.columns = surface.columns
@@ -37,6 +39,7 @@ export class ColumnField {
     this.looks = new Array<BlockLook | null>(count).fill(null)
     const hasPictures = surface.pictures !== undefined
     let anyLook = false
+    let [lowestTop, highestTop] = [Infinity, -Infinity]
     const inHole = this.holeMask(holes)
     for (let row = 0; row < this.rows; row++) {
       for (let column = 0; column < this.columns; column++) {
@@ -52,9 +55,12 @@ export class ColumnField {
         const look = hasPictures ? (surface.lookAt?.(column, row) ?? null) : null
         this.looks[index] = look
         anyLook ||= look !== null
+        lowestTop = Math.min(lowestTop, ground + 1)
+        highestTop = Math.max(highestTop, ground + 1, water === null ? ground : water + 1)
       }
     }
     this.pictures = anyLook ? (surface.pictures ?? null) : null
+    this.topRange = lowestTop === Infinity ? null : { lowest: lowestTop, highest: highestTop }
   }
 
   indexOf(column: number, row: number): number {

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { BlockLook, FaceLook } from './blockLooks'
 import type { CoverLook } from './coverLooks'
 import { cellAt, type TerrainPictures } from './terrainAtlas'
-import { buildTerrainMesh, type TerrainSurface } from './terrainMesh'
+import { buildTerrainMesh, type RaisedBlock, type TerrainSurface } from './terrainMesh'
 
 const ORIGIN_X = 100
 const ORIGIN_Z = 200
@@ -22,6 +22,10 @@ const cellWidth = plain.width
 
 function face(index: number, tint = WHITE): FaceLook {
   return { cell: cellAt(index, 0x808080), tint, color: 0x606060 }
+}
+
+function gappyFace(index: number): FaceLook {
+  return { cell: cellAt(index, 0x808080, true), tint: WHITE, color: 0x606060 }
 }
 
 const grass: BlockLook = { top: face(1, GRASS_TINT), side: face(2), below: face(3) }
@@ -168,6 +172,28 @@ describe('textured terrain', () => {
     expect(cover.geometry.getAttribute('color').getY(0)).toBeCloseTo(0.75)
     expect(material.alphaMap).toBe(pictures.cutouts)
     expect(material.alphaTest).toBeGreaterThan(0)
+  })
+
+  it('cuts leaves out along their pictures and hides no face behind them, as with fancy graphics', () => {
+    const leaves: BlockLook = { top: gappyFace(5), side: gappyFace(5), below: gappyFace(5) }
+    const log: BlockLook = { top: face(6), side: face(7), below: face(7) }
+    // Two leaves stacked on the peak, a log beside the lower one.
+    const raisedAt = (column: number, row: number): RaisedBlock[] => {
+      if (column === PEAK_COLUMN && row === PEAK_COLUMN) {
+        return [{ y: PEAK_GROUND + 2, color: 0, look: leaves }, { y: PEAK_GROUND + 1, color: 0, look: leaves }]
+      }
+      return column === PEAK_COLUMN + 1 && row === PEAK_COLUMN ? [{ y: PEAK_GROUND + 1, color: 0, look: log }] : []
+    }
+    const [ground, seeThrough, water] = buildTerrainMesh({ ...surfaceOf(() => grass), raisedAt }, FLOOR).object.children as Mesh[]
+    const leafFaces = placed(seeThrough.geometry)
+    const logBesideLeaf = placed(ground.geometry).filter((face) => face.normal.x === -1 && face.middle.x === ORIGIN_X + PEAK_COLUMN + 1 && face.middle.y === PEAK_GROUND + 1.5)
+
+    expect(water).toBeDefined()
+    expect((seeThrough.material as MeshBasicMaterial).alphaMap).toBe(pictures.cutouts)
+    // The lower leaf shows all but its bottom on the ground and its side on the log; the upper one shows every face.
+    expect(leafFaces).toHaveLength(4 + 6)
+    expect(leafFaces.filter((face) => face.middle.y === PEAK_GROUND + 2)).toHaveLength(2)
+    expect(logBesideLeaf).toHaveLength(1)
   })
 
   it('draws no cover mesh where nothing stands on the ground', () => {

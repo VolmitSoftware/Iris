@@ -1,9 +1,10 @@
-import { DoubleSide, FrontSide, Group, Mesh, MeshBasicMaterial } from 'three'
+import { DoubleSide, FrontSide, Group, Mesh, MeshBasicMaterial, type BufferGeometry } from 'three'
 import type { BlockLook } from './blockLooks'
 import { groundFaces, waterFaces } from './columnFaces'
 import { ColumnField } from './columnField'
 import { coverGeometry } from './coverFaces'
 import type { CoverLook } from './coverLooks'
+import { QuadBatch } from './quadBatch'
 import { addRaisedFaces } from './raisedFaces'
 import type { TerrainPictures } from './terrainAtlas'
 import type { ColumnArea } from './terrainTiles'
@@ -57,7 +58,7 @@ export interface TerrainMesh {
  * blocks, with the ground under water sunk toward a deep colour and a light sheet of water over it. Sides on the edge reach down to {@code base}, so tiles of ground next to
  * each other leave no cracks. The columns in {@code holes} are left out, for finer ground to fill. Columns with a look
  * show their block's textures, one picture to a block face. Blocks raised above the ground, such as trees, stand as
- * whole blocks.
+ * whole blocks; what is seen through, such as leaves, is cut out along its pictures.
  */
 export function buildTerrainMesh(surface: TerrainSurface, base: number, holes: readonly ColumnArea[] = []): TerrainMesh {
   const field = new ColumnField(surface, holes)
@@ -66,14 +67,16 @@ export function buildTerrainMesh(surface: TerrainSurface, base: number, holes: r
     return { object: group, field, dispose: () => {} }
   }
   const groundBatch = groundFaces(field, base)
-  addRaisedFaces(field, groundBatch)
+  const seeThroughBatch = new QuadBatch(true, field.pictures?.plain ?? null)
+  addRaisedFaces(field, groundBatch, seeThroughBatch)
   const ground = groundBatch.geometry()
   const water = waterFaces(field).geometry()
   const groundMaterial = new MeshBasicMaterial({ vertexColors: true, side: FrontSide, map: field.pictures?.texture ?? null })
   const waterMaterial = new MeshBasicMaterial({ color: WATER_SURFACE_COLOR, transparent: true, opacity: WATER_SURFACE_OPACITY, depthWrite: false, side: DoubleSide })
-  const cover = field.pictures === null ? null : coverMesh(field, field.pictures)
+  const cutOut = field.pictures === null ? [] : [cutOutMesh(coverGeometry(field), field.pictures), cutOutMesh(seeThroughGeometry(seeThroughBatch), field.pictures)]
+  const shownCutOut = cutOut.filter((mesh) => mesh !== null)
   // The water is drawn last, over what stands under it.
-  group.add(new Mesh(ground, groundMaterial), ...(cover === null ? [] : [cover.mesh]), new Mesh(water, waterMaterial))
+  group.add(new Mesh(ground, groundMaterial), ...shownCutOut.map((mesh) => mesh.mesh), new Mesh(water, waterMaterial))
   return {
     object: group,
     field,
@@ -82,13 +85,17 @@ export function buildTerrainMesh(surface: TerrainSurface, base: number, holes: r
       water.dispose()
       groundMaterial.dispose()
       waterMaterial.dispose()
-      cover?.dispose()
+      shownCutOut.forEach((mesh) => mesh.dispose())
     }
   }
 }
 
-function coverMesh(field: ColumnField, pictures: TerrainPictures): { mesh: Mesh; dispose(): void } | null {
-  const geometry = coverGeometry(field)
+function seeThroughGeometry(batch: QuadBatch): BufferGeometry | null {
+  return batch.count === 0 ? null : batch.geometry()
+}
+
+// Drawn where the pictures are not open, so the grass between its blades and the leaves between their twigs show what lies behind.
+function cutOutMesh(geometry: BufferGeometry | null, pictures: TerrainPictures): { mesh: Mesh; dispose(): void } | null {
   if (geometry === null) {
     return null
   }

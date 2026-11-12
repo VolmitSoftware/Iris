@@ -9,6 +9,8 @@ export interface UvCell {
   width: number
   height: number
   average: number
+  /** Whether the picture is open in places, as leaves are between their twigs, so what lies behind shows through. */
+  hasGaps: boolean
 }
 
 /** The atlas as the terrain draws it. */
@@ -38,13 +40,14 @@ const OPAQUE_ENOUGH_ALPHA = 128
 const GAP_SHADE = 0.6
 
 /** The cell with this number, counted row by row from the top left. */
-export function cellAt(index: number, average: number): UvCell {
+export function cellAt(index: number, average: number, hasGaps = false): UvCell {
   return {
     u: (index % CELLS_PER_SIDE) / CELLS_PER_SIDE,
     v: Math.floor(index / CELLS_PER_SIDE) / CELLS_PER_SIDE,
     width: 1 / CELLS_PER_SIDE,
     height: 1 / CELLS_PER_SIDE,
-    average
+    average,
+    hasGaps
   }
 }
 
@@ -100,11 +103,12 @@ export class TerrainAtlas implements TerrainPictures, PictureSource {
     this.drawing.drawImage(bitmap, 0, 0, bitmap.width, Math.min(bitmap.width, bitmap.height), left, top, CELL_PIXELS, CELL_PIXELS)
     const picture = this.drawing.getImageData(left, top, CELL_PIXELS, CELL_PIXELS)
     const average = averageColor(picture)
+    const hasGaps = isOpenInPlaces(picture)
     this.cutoutDrawing.putImageData(cutoutOf(picture), left, top)
     this.drawing.putImageData(withGapsFilled(picture, average), left, top)
     this.texture.needsUpdate = true
     this.cutouts.needsUpdate = true
-    return { ...placed, average }
+    return { ...placed, average, hasGaps }
   }
 }
 
@@ -120,6 +124,15 @@ function sheet(): [CanvasRenderingContext2D, CanvasTexture] {
   texture.generateMipmaps = false
   texture.flipY = false
   return [drawing, texture]
+}
+
+function isOpenInPlaces(picture: ImageData): boolean {
+  for (let offset = 3; offset < picture.data.length; offset += 4) {
+    if (picture.data[offset] < OPAQUE_ENOUGH_ALPHA) {
+      return true
+    }
+  }
+  return false
 }
 
 // A canvas keeps no colour under a transparent pixel, so the picture cannot carry both its filled gaps and where they were.

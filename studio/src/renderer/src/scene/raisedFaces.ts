@@ -29,12 +29,18 @@ const BLOCK_FACES: readonly BlockFace[] = [
   { columnStep: 1, yStep: 0, rowStep: 0, light: FACE_LIGHT.east, picture: (look) => look.side, standing: true, quad: (step) => [[step, 0, 0], [0, 0, step], [0, 1, 0]] }
 ]
 
+/** Whether what lies behind a raised block shows through its pictures, as through leaves; never for one shown in its colour. */
+export function isSeeThrough(block: RaisedBlock): boolean {
+  return block.look !== null && (block.look.top.cell.hasGaps || block.look.side.cell.hasGaps)
+}
+
 /**
- * The blocks raised above the ground, such as trees, as whole blocks: each face that touches neither the ground nor
- * another raised block. A face at the field's edge is drawn, as the field next to it is not known here. Blocks under
- * water sink toward its deep colour as the ground does.
+ * The blocks raised above the ground, such as trees, as whole blocks: each face that touches neither the ground nor an
+ * opaque raised block. Blocks that are seen through, such as leaves, go to {@code seeThrough}, to be drawn cut out, and
+ * hide nothing they touch, as Minecraft draws leaves with fancy graphics. A face at the field's edge is drawn, as the
+ * field next to it is not known here. Blocks under water sink toward its deep colour as the ground does.
  */
-export function addRaisedFaces(field: ColumnField, batch: QuadBatch): void {
+export function addRaisedFaces(field: ColumnField, opaque: QuadBatch, seeThrough: QuadBatch): void {
   const step = field.blocksPerColumn
   for (let row = 0; row < field.rows; row++) {
     for (let column = 0; column < field.columns; column++) {
@@ -42,8 +48,9 @@ export function addRaisedFaces(field: ColumnField, batch: QuadBatch): void {
       const water = field.waterTopAt(column, row)
       for (const block of field.raised[index]) {
         const corner: Vec3 = [field.originX + column * step, block.y, field.originZ + row * step]
+        const batch = isSeeThrough(block) ? seeThrough : opaque
         for (const face of BLOCK_FACES) {
-          if (field.isSolidAt(column + face.columnStep, row + face.rowStep, block.y + face.yStep)) {
+          if (field.isOpaqueAt(column + face.columnStep, row + face.rowStep, block.y + face.yStep)) {
             continue
           }
           addFace(batch, face, corner, step, block, water)

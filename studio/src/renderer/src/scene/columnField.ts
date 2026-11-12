@@ -1,6 +1,7 @@
 import type { BlockLook } from './blockLooks'
 import type { CoverLook } from './coverLooks'
 import type { TerrainPictures } from './terrainAtlas'
+import { isSeeThrough } from './raisedFaces'
 import type { RaisedBlock, TerrainSurface } from './terrainMesh'
 import type { ColumnArea } from './terrainTiles'
 
@@ -86,13 +87,16 @@ export class ColumnField {
     return this.contains(column, row) && !Number.isNaN(this.groundTop[this.indexOf(column, row)])
   }
 
-  /** Whether the block at {@code y} in the column is the column's ground or a block raised over it; false outside the field. */
-  isSolidAt(column: number, row: number, y: number): boolean {
+  /**
+   * Whether the block at {@code y} in the column hides what touches it: the column's ground, or a block raised over it
+   * that nothing shows through. False outside the field.
+   */
+  isOpaqueAt(column: number, row: number, y: number): boolean {
     if (!this.hasGround(column, row)) {
       return false
     }
     const index = this.indexOf(column, row)
-    return y < this.groundTop[index] || this.raised[index].some((block) => block.y === y)
+    return y < this.groundTop[index] || this.raised[index].some((block) => block.y === y && !isSeeThrough(block))
   }
 
   /** Whether any column has ground. */

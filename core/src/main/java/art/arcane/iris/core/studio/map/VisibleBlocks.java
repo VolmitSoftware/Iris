@@ -39,9 +39,10 @@ import java.util.function.UnaryOperator;
  *                  dimension's bottom
  * @param blocks    each block's key
  * @param faces     the sides of each block that face the open air, a bit each in {@link #SIDES}' order
+ * @param borders   the cells along the chunk's sides, for the faces it shows once the chunks beside it are known; two
+ *                  visible blocks are equal by the faces they show without them
  */
-record VisibleBlocks(int[] positions, String[] blocks, byte[] faces) {
-    static final VisibleBlocks NONE = new VisibleBlocks(new int[0], new String[0], new byte[0]);
+record VisibleBlocks(int[] positions, String[] blocks, byte[] faces, ChunkBorders borders) {
     /** The order of the sides in {@link #faces}: down, up, north, south, west, east. */
     static final int[][] SIDES = {{0, -1, 0}, {0, 1, 0}, {0, 0, -1}, {0, 0, 1}, {-1, 0, 0}, {1, 0, 0}};
     static final int POSITION_Y_SHIFT = 8;
@@ -147,7 +148,36 @@ record VisibleBlocks(int[] positions, String[] blocks, byte[] faces) {
                     }
                 }
             }
-            return positions.isEmpty() ? NONE : new VisibleBlocks(positions.toIntArray(), blocks.toArray(String[]::new), faces.toByteArray());
+            return new VisibleBlocks(positions.toIntArray(), blocks.toArray(String[]::new), faces.toByteArray(), borders());
+        }
+
+        private ChunkBorders borders() {
+            ChunkBorders.Wall[] walls = new ChunkBorders.Wall[ChunkBorders.EAST - ChunkBorders.NORTH + 1];
+            for (int side = ChunkBorders.NORTH; side <= ChunkBorders.EAST; side++) {
+                walls[side - ChunkBorders.NORTH] = wallOn(side);
+            }
+            return new ChunkBorders(walls);
+        }
+
+        private ChunkBorders.Wall wallOn(int side) {
+            ChunkBorders.RunsBuilder open = new ChunkBorders.RunsBuilder();
+            ChunkBorders.RunsBuilder hidden = new ChunkBorders.RunsBuilder();
+            for (int place = 0; place < ACROSS; place++) {
+                int x = ChunkBorders.xOf(side, place);
+                int z = ChunkBorders.zOf(side, place);
+                for (int y = 0; y < height; y++) {
+                    int cell = cellOf(x, y, z);
+                    if (skyReaches[cell]) {
+                        open.add(y, null, fluid[cell]);
+                    }
+                    if (seen[cell] != null && !facesOutside(x, y, z, side)) {
+                        hidden.add(y, chunk.get(x, y, z).key(), fluid[cell]);
+                    }
+                }
+                open.nextPlace();
+                hidden.nextPlace();
+            }
+            return new ChunkBorders.Wall(open.build(), hidden.build());
         }
 
         // Fills every open cell the sky reaches, from the top of the chunk and from beside it where the ground around
@@ -212,14 +242,19 @@ record VisibleBlocks(int[] positions, String[] blocks, byte[] faces) {
                     int neighbour = cellOf(nx, ny, nz);
                     faces = skyReaches[neighbour] && !(isFluid && fluid[neighbour]);
                 } else {
-                    Outside outside = outsideAt(nx, ny, nz);
-                    faces = outside == Outside.AIR || (outside == Outside.FLUID && !isFluid);
+                    faces = facesOutside(x, y, z, side);
                 }
                 if (faces) {
                     sides |= 1 << side;
                 }
             }
             return sides;
+        }
+
+        // Whether a side facing out of the chunk faces open air there, by the terrain's height beside the chunk.
+        private boolean facesOutside(int x, int y, int z, int side) {
+            Outside outside = outsideAt(x + SIDES[side][0], y + SIDES[side][1], z + SIDES[side][2]);
+            return outside == Outside.AIR || (outside == Outside.FLUID && !fluid[cellOf(x, y, z)]);
         }
 
         private Outside outsideAt(int x, int y, int z) {

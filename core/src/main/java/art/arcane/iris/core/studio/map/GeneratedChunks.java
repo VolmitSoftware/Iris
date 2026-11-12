@@ -30,10 +30,13 @@ import art.arcane.iris.util.project.hunk.Hunk;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import it.unimi.dsi.fastutil.bytes.ByteArrayList;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
 import java.util.ArrayList;
@@ -42,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -129,6 +133,11 @@ final class GeneratedChunks implements ColumnTops {
             GENERATORS.execute(task);
             generating.add(task);
         }
+        if (showsBlocksOneByOne(grid)) {
+            for (long key : neighboursAround(columnsByChunk.keySet())) {
+                generating.add(generateBeside(key, grid, chunks));
+            }
+        }
         try {
             for (Future<?> task : generating) {
                 awaitUnlessCancelled(task, grid.cancelled());
@@ -138,6 +147,42 @@ final class GeneratedChunks implements ColumnTops {
             throw cancelled;
         }
         return new PreparedTile(found, chunks);
+    }
+
+    // A tile's blocks show their faces on its edge against what the chunks beside it really hold, so the tile is the same
+    // whichever of its neighbours were generated first. Those chunks are the next tiles' anyway.
+    private static boolean showsBlocksOneByOne(TileGrid grid) {
+        return grid.step() <= 1D;
+    }
+
+    private Future<?> generateBeside(long key, TileGrid grid, Map<Long, ChunkTop> chunks) {
+        ChunkTop known = tops.getIfPresent(key);
+        if (known != null) {
+            chunks.put(key, known);
+            return CompletableFuture.completedFuture(null);
+        }
+        ChunkTask task = new ChunkTask(() -> {
+            if (!grid.cancelled().getAsBoolean()) {
+                chunks.put(key, tops.get(key));
+            }
+        }, grid.step());
+        GENERATORS.execute(task);
+        return task;
+    }
+
+    private static LongSet neighboursAround(LongSet chunks) {
+        LongSet around = new LongOpenHashSet();
+        for (long key : chunks) {
+            int chunkX = (int) (key >> Integer.SIZE);
+            int chunkZ = (int) key;
+            for (int side = ChunkBorders.NORTH; side <= ChunkBorders.EAST; side++) {
+                long beside = keyOf(chunkX + VisibleBlocks.SIDES[side][0], chunkZ + VisibleBlocks.SIDES[side][2]);
+                if (!chunks.contains(beside)) {
+                    around.add(beside);
+                }
+            }
+        }
+        return around;
     }
 
     // A tile a block a column has no runs; a coarser one has those of its columns' areas, or of the largest a chunk has.
@@ -174,40 +219,85 @@ final class GeneratedChunks implements ColumnTops {
 
         @Override
         public TileVoxels voxelsIn(int minX, int minZ, int size) {
-            TileVoxelsBuilder voxels = new TileVoxelsBuilder();
+            TileVoxelsBuilder voxels = new TileVoxelsBuilder(minX, minZ, size);
             for (int chunkZ = minZ >> CHUNK_SHIFT; chunkZ <= (minZ + size - 1) >> CHUNK_SHIFT; chunkZ++) {
                 for (int chunkX = minX >> CHUNK_SHIFT; chunkX <= (minX + size - 1) >> CHUNK_SHIFT; chunkX++) {
-                    long key = keyOf(chunkX, chunkZ);
-                    ChunkTop chunk = chunks.get(key);
-                    voxels.addInside(chunk != null ? chunk : tops.get(key), chunkX << CHUNK_SHIFT, chunkZ << CHUNK_SHIFT, minX, minZ, size);
+                    ChunkTop chunk = chunkAt(chunkX, chunkZ);
+                    voxels.addVisible(chunk.visible(), chunkX << CHUNK_SHIFT, chunkZ << CHUNK_SHIFT);
+                    addFacesAgainstNeighbours(voxels, chunk, chunkX, chunkZ);
                 }
             }
             return voxels.build();
         }
+
+        // A neighbour neither the tile nor the cache holds was never generated, and the chunk's own judgement stands.
+        private void addFacesAgainstNeighbours(TileVoxelsBuilder voxels, ChunkTop chunk, int chunkX, int chunkZ) {
+            for (int side = ChunkBorders.NORTH; side <= ChunkBorders.EAST; side++) {
+                int[] step = VisibleBlocks.SIDES[side];
+                long key = keyOf(chunkX + step[0], chunkZ + step[2]);
+                ChunkTop beside = chunks.containsKey(key) ? chunks.get(key) : tops.getIfPresent(key);
+                if (beside != null) {
+                    int chunkMinX = chunkX << CHUNK_SHIFT;
+                    int chunkMinZ = chunkZ << CHUNK_SHIFT;
+                    chunk.visible().borders().facesAgainst(beside.visible().borders(), side,
+                            (x, y, z, block, faceSide) -> voxels.add(chunkMinX + x, y, chunkMinZ + z, block, 1 << faceSide));
+                }
+            }
+        }
+
+        private ChunkTop chunkAt(int chunkX, int chunkZ) {
+            long key = keyOf(chunkX, chunkZ);
+            ChunkTop chunk = chunks.get(key);
+            return chunk != null ? chunk : tops.get(key);
+        }
     }
 
+    /** The visible blocks of a square of the world, by their place in it; those outside the square are left out. */
     private static final class TileVoxelsBuilder {
+        private static final int NOT_ADDED = -1;
+        private final Long2IntOpenHashMap indexByPlace = new Long2IntOpenHashMap();
+        private final int minX;
+        private final int minZ;
+        private final int size;
         private final ByteArrayList x = new ByteArrayList();
         private final ByteArrayList z = new ByteArrayList();
         private final ShortArrayList y = new ShortArrayList();
         private final List<String> blocks = new ArrayList<>();
         private final ByteArrayList faces = new ByteArrayList();
 
-        void addInside(ChunkTop chunk, int chunkMinX, int chunkMinZ, int minX, int minZ, int size) {
-            VisibleBlocks visible = chunk.visible();
+        TileVoxelsBuilder(int minX, int minZ, int size) {
+            this.minX = minX;
+            this.minZ = minZ;
+            this.size = size;
+        }
+
+        void addVisible(VisibleBlocks visible, int chunkMinX, int chunkMinZ) {
             for (int at = 0; at < visible.count(); at++) {
                 int position = visible.positions()[at];
-                int squareX = chunkMinX + (position & CHUNK_MASK) - minX;
-                int squareZ = chunkMinZ + ((position >> CHUNK_SHIFT) & CHUNK_MASK) - minZ;
-                if (squareX < 0 || squareZ < 0 || squareX >= size || squareZ >= size) {
-                    continue;
-                }
-                x.add((byte) squareX);
-                z.add((byte) squareZ);
-                y.add((short) (position >> VisibleBlocks.POSITION_Y_SHIFT));
-                blocks.add(visible.blocks()[at]);
-                faces.add(visible.faces()[at]);
+                add(chunkMinX + (position & CHUNK_MASK), position >> VisibleBlocks.POSITION_Y_SHIFT,
+                        chunkMinZ + ((position >> CHUNK_SHIFT) & CHUNK_MASK), visible.blocks()[at], visible.faces()[at]);
             }
+        }
+
+        /** Adds a block at its place in the world with the sides it shows, or those sides to the block already there. */
+        void add(int worldX, int blockY, int worldZ, String block, int sides) {
+            int squareX = worldX - minX;
+            int squareZ = worldZ - minZ;
+            if (squareX < 0 || squareZ < 0 || squareX >= size || squareZ >= size) {
+                return;
+            }
+            long place = ((long) blockY << Integer.SIZE) | ((long) squareZ << Short.SIZE) | squareX;
+            int known = indexByPlace.getOrDefault(place, NOT_ADDED);
+            if (known != NOT_ADDED) {
+                faces.set(known, (byte) (faces.getByte(known) | sides));
+                return;
+            }
+            indexByPlace.put(place, faces.size());
+            x.add((byte) squareX);
+            z.add((byte) squareZ);
+            y.add((short) blockY);
+            blocks.add(block);
+            faces.add((byte) sides);
         }
 
         TileVoxels build() {
@@ -364,7 +454,8 @@ final class GeneratedChunks implements ColumnTops {
             for (ColumnRuns level : this.runs) {
                 runs += level.tops().length;
             }
-            return CHUNK_TOP_BYTES + raisedBlocks * RAISED_BLOCK_BYTES + visible.count() * VISIBLE_BLOCK_BYTES + runs * RUN_BYTES;
+            return CHUNK_TOP_BYTES + raisedBlocks * RAISED_BLOCK_BYTES + visible.count() * VISIBLE_BLOCK_BYTES + runs * RUN_BYTES
+                    + visible.borders().bytes();
         }
     }
 

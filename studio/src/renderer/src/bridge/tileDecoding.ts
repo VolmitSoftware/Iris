@@ -1,4 +1,4 @@
-import type { LabelKind, MapLabel, MapTile, TileBlocks, TileVoxels } from './types'
+import type { LabelKind, MapLabel, MapTile, TileBlocks, TileRuns, TileVoxels } from './types'
 
 const ALIGNMENT_BYTES = 4
 
@@ -15,9 +15,11 @@ interface TileHeader {
   raised?: number
   /** How many blocks can be seen from the open air, or -1 on a tile without them. */
   voxels?: number
+  /** How many runs of solid blocks the cells have together, or -1 on a tile without them. */
+  runs?: number
 }
 
-const NO_VOXELS = -1
+const NONE = -1
 
 function aligned(bytes: number): number {
   return Math.ceil(bytes / ALIGNMENT_BYTES) * ALIGNMENT_BYTES
@@ -48,17 +50,18 @@ export function decodeTile(buffer: ArrayBuffer): MapTile {
     regions: new Int16Array(buffer, regionsAt, cells),
     heights: header.heights ? new Float32Array(buffer, heightsAt, cells) : null,
     pickNoise: header.pickNoise ? new Float32Array(buffer, pickNoiseAt, cells) : null,
-    blocks: header.blocks == null ? null : decodeBlocks(buffer, groundAt, cells, header.blocks, header.raised ?? 0, header.voxels ?? NO_VOXELS)
+    blocks: header.blocks == null ? null : decodeBlocks(buffer, groundAt, cells, header.blocks, header.raised ?? 0, header.voxels ?? NONE, header.runs ?? NONE)
   }
 }
 
-function decodeBlocks(buffer: ArrayBuffer, groundAt: number, cells: number, names: string[], raisedCount: number, voxelCount: number): TileBlocks {
+function decodeBlocks(buffer: ArrayBuffer, groundAt: number, cells: number, names: string[], raisedCount: number, voxelCount: number, runCount: number): TileBlocks {
   const gridBytes = aligned(cells * Int16Array.BYTES_PER_ELEMENT)
   const coverAt = groundAt + gridBytes
   const raisedCountsAt = coverAt + gridBytes
   const raisedYAt = raisedCountsAt + gridBytes
   const raisedAt = aligned(raisedYAt + raisedCount * Int16Array.BYTES_PER_ELEMENT)
   const voxelsAt = aligned(raisedAt + raisedCount * Int16Array.BYTES_PER_ELEMENT)
+  const runsAt = voxelsAt + (voxelCount === NONE ? 0 : voxelBytes(voxelCount))
   return {
     names,
     ground: new Int16Array(buffer, groundAt, cells),
@@ -66,11 +69,28 @@ function decodeBlocks(buffer: ArrayBuffer, groundAt: number, cells: number, name
     raisedStart: startsOf(new Int16Array(buffer, raisedCountsAt, cells)),
     raisedY: new Int16Array(buffer, raisedYAt, raisedCount),
     raised: new Int16Array(buffer, raisedAt, raisedCount),
-    voxels: voxelCount === NO_VOXELS ? null : decodeVoxels(buffer, voxelsAt, voxelCount),
+    voxels: voxelCount === NONE ? null : decodeVoxels(buffer, voxelsAt, voxelCount),
+    runs: runCount === NONE ? null : decodeRuns(buffer, runsAt, cells, runCount),
     colors: [],
     looks: [],
     covers: [],
     models: []
+  }
+}
+
+function voxelBytes(count: number): number {
+  return aligned(count) * 3 + aligned(count * Int16Array.BYTES_PER_ELEMENT) * 2
+}
+
+function decodeRuns(buffer: ArrayBuffer, countsAt: number, cells: number, count: number): TileRuns {
+  const bottomsAt = countsAt + aligned(cells * Int16Array.BYTES_PER_ELEMENT)
+  const topsAt = bottomsAt + aligned(count * Int16Array.BYTES_PER_ELEMENT)
+  const blocksAt = topsAt + aligned(count * Int16Array.BYTES_PER_ELEMENT)
+  return {
+    starts: startsOf(new Int16Array(buffer, countsAt, cells)),
+    bottoms: new Int16Array(buffer, bottomsAt, count),
+    tops: new Int16Array(buffer, topsAt, count),
+    blocks: new Int16Array(buffer, blocksAt, count)
   }
 }
 

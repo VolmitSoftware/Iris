@@ -6,6 +6,7 @@ import { coverGeometry } from './coverFaces'
 import type { CoverLook } from './coverLooks'
 import { QuadBatch } from './quadBatch'
 import { addRaisedFaces } from './raisedFaces'
+import { runFaces, type SurfaceRuns } from './runFaces'
 import { voxelGeometries, type SurfaceVoxels } from './voxelMesh'
 import type { TerrainPictures } from './terrainAtlas'
 import type { ColumnArea } from './terrainTiles'
@@ -41,6 +42,8 @@ export interface TerrainSurface {
    * ground lies; null to draw the columns.
    */
   voxels?(): SurfaceVoxels | null
+  /** The runs of solid blocks of each column's area, to draw in place of the columns' tops; null to draw the columns. */
+  runs?(): SurfaceRuns | null
 }
 
 /** A solid block above a column's ground, drawn as a whole block. */
@@ -75,6 +78,10 @@ export function buildTerrainMesh(surface: TerrainSurface, base: number, holes: r
   const voxels = field.pictures === null ? null : (surface.voxels?.() ?? null)
   if (voxels !== null && field.pictures !== null) {
     return voxelMesh(field, voxels, field.pictures)
+  }
+  const runs = surface.runs?.() ?? null
+  if (runs !== null) {
+    return runMesh(field, runs, base)
   }
   const groundBatch = groundFaces(field, base)
   const seeThroughBatch = new QuadBatch(true, field.pictures?.plain ?? null)
@@ -115,6 +122,15 @@ function voxelMesh(field: ColumnField, voxels: SurfaceVoxels, pictures: TerrainP
     parts.push(meshOf(water, waterMaterial()))
   }
   const group = new Group()
+  group.add(...parts.map((part) => part.mesh))
+  return { object: group, field, dispose: () => parts.forEach((part) => part.dispose()) }
+}
+
+function runMesh(field: ColumnField, runs: SurfaceRuns, base: number): TerrainMesh {
+  const batch = runFaces(field, runs, base)
+  const parts = [meshOf(batch.geometry(), new MeshBasicMaterial({ vertexColors: true, side: FrontSide })), meshOf(waterFaces(field).geometry(), waterMaterial())]
+  const group = new Group()
+  // The water is drawn last, over what stands under it.
   group.add(...parts.map((part) => part.mesh))
   return { object: group, field, dispose: () => parts.forEach((part) => part.dispose()) }
 }

@@ -363,6 +363,8 @@ export interface TileBlocks {
   raised: Int16Array
   /** The blocks seen from the open air, where the tile is a block a column and they were asked for; else null. */
   voxels: TileVoxels | null
+  /** The runs of solid blocks of the area each cell stands for, where the tile is coarser and they were asked for; else null. */
+  runs: TileRuns | null
   /** Each named block's model with its pictures placed, for the blocks {@link voxels} names; the tile source fills it in. */
   models: (CoverLook | null)[]
   /** The colour of each named block from above, as 0xRRGGBB; the tile source fills it in. */
@@ -387,6 +389,19 @@ export interface TileVoxels {
   blocks: Int16Array
   /** The sides of each block that face the open air, a bit each in {@link VOXEL_SIDES}' order. */
   faces: Uint8Array
+}
+
+/**
+ * The ground of a coarser tile in 3D, as Distant Horizons draws far terrain: for each cell, the runs of solid blocks of
+ * the area it stands for, highest first. The last run of a cell is its ground, which reaches down out of sight.
+ */
+export interface TileRuns {
+  /** Where each cell's runs start in the arrays below, with one more entry for where the last cell's end. */
+  starts: Int32Array
+  bottoms: Int16Array
+  tops: Int16Array
+  /** The index in the tile's block names of the block most of each run's top shows. */
+  blocks: Int16Array
 }
 
 /** The order of the sides in {@link TileVoxels.faces}. */

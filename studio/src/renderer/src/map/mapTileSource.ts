@@ -13,8 +13,8 @@ export interface TileLayer {
   pickNoise: boolean
   /** Where the tiles' blocks come from, or null for tiles without them. */
   blocks: BlockSource | null
-  /** Whether tiles of a block a pixel with blocks also carry every block seen from the open air, to draw one by one. */
-  voxels?: boolean
+  /** Whether tiles with blocks also carry the ground's shape in 3D, to draw it as blocks and runs of blocks. */
+  shape?: boolean
   /** Bumped when the pack is hotloaded, so older tiles are not used again. */
   revision: number
 }
@@ -43,12 +43,13 @@ export function hasBlocksAt(blocksPerPixel: number): boolean {
  */
 export function mapTileSource(client: BridgeClient, tileSize: number, art: BlockArt, mostBlocksPerPixel = MAP_MOST_BLOCKS_PER_PIXEL): TileSource<MapTile, TileLayer, TileStyle> {
   return {
-    layerKey: (layer) => [layer.revision, layer.view, layer.preview ?? '', layer.heights, layer.pickNoise, layer.blocks ?? '', layer.voxels === true].join('/'),
+    layerKey: (layer) => [layer.revision, layer.view, layer.preview ?? '', layer.heights, layer.pickNoise, layer.blocks ?? '', layer.shape === true].join('/'),
     fetch: async (address, layer, signal) => {
       const blocks = layer.blocks !== null && address.blocksPerPixel <= mostBlocksPerPixel ? layer.blocks : null
       const tile = await client.tile({ ...layer, ...address, size: tileSize, blocks }, signal)
       if (tile.blocks !== null) {
-        await art.paint(tile.blocks, address.blocksPerPixel === TEXTURED_BLOCKS_PER_PIXEL)
+        // Runs show each block's sides in the colours of its pictures, so their looks are read too.
+        await art.paint(tile.blocks, address.blocksPerPixel === TEXTURED_BLOCKS_PER_PIXEL || tile.blocks.runs !== null)
       }
       return tile
     },

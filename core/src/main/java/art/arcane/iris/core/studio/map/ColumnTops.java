@@ -44,6 +44,18 @@ interface ColumnTops {
     }
 
     /**
+     * The runs of solid blocks of the area a column of a coarser tile stands for, highest first, as {@link ColumnRuns}
+     * finds them; null where the source knows only the tops of its columns.
+     */
+    default AreaRuns runsAt(int worldX, int worldZ) {
+        return null;
+    }
+
+    /** One area's runs of solid blocks, highest first, the last being the ground. */
+    record AreaRuns(short[] bottoms, short[] tops, String[] blocks) {
+    }
+
+    /**
      * Blocks seen in a square of columns, each with the sides that face the open air.
      *
      * @param x      each block's column from the square's west edge

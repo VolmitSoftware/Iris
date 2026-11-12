@@ -77,12 +77,13 @@ public final class MapTileRenderer {
      * {@code source}, and the solid blocks raised above it. Where the tile carries heights they become the heights of
      * that ground: the terrain's top as generated, under what stands on it.
      *
-     * @param withVoxels whether a tile of a block a pixel also carries every block seen from the open air, where the
-     *                   source knows them
+     * @param withShape whether the tile also carries the ground's shape in 3D, where the source knows it: every block
+     *                  seen from the open air in a tile of a block a pixel, the runs of solid blocks of each cell's area
+     *                  in a coarser one
      * @throws IllegalArgumentException when the tile is coarser than the source is drawn at
      * @throws CancellationException    as soon as {@code cancelled} answers true
      */
-    public MapTile withBlocks(MapTile tile, double startX, double startZ, BlockSource source, boolean withVoxels, BooleanSupplier cancelled) {
+    public MapTile withBlocks(MapTile tile, double startX, double startZ, BlockSource source, boolean withShape, BooleanSupplier cancelled) {
         double step = tile.blocksPerPixel();
         if (step > source.largestBlocksPerPixel()) {
             throw new IllegalArgumentException("Blocks from " + source.id() + " are drawn at " + source.largestBlocksPerPixel()
@@ -117,9 +118,34 @@ public final class MapTileRenderer {
                 }
             }
         }
-        MapTile.Voxels voxels = withVoxels && step == 1D ? voxelsOf(tops, startX, startZ, tile.size(), names) : null;
-        MapTile.Blocks blocks = new MapTile.Blocks(names.names(), ground, cover, raisedCounts, raisedY.toShortArray(), raised.toShortArray(), voxels);
+        MapTile.Voxels voxels = withShape && step == 1D ? voxelsOf(tops, startX, startZ, tile.size(), names) : null;
+        MapTile.Runs runs = withShape && step > 1D ? runsOf(tops, grid, names) : null;
+        MapTile.Blocks blocks = new MapTile.Blocks(names.names(), ground, cover, raisedCounts, raisedY.toShortArray(), raised.toShortArray(),
+                voxels, runs);
         return tile.withBlocks(blocks, heights);
+    }
+
+    private static MapTile.Runs runsOf(ColumnTops tops, TileGrid grid, BlockNames names) {
+        short[] counts = new short[grid.size() * grid.size()];
+        ShortArrayList bottoms = new ShortArrayList();
+        ShortArrayList runTops = new ShortArrayList();
+        ShortArrayList blocks = new ShortArrayList();
+        for (int gridZ = 0; gridZ < grid.size(); gridZ++) {
+            int worldZ = (int) Math.floor(grid.worldZ(gridZ));
+            for (int gridX = 0; gridX < grid.size(); gridX++) {
+                ColumnTops.AreaRuns area = tops.runsAt((int) Math.floor(grid.worldX(gridX)), worldZ);
+                if (area == null) {
+                    return null;
+                }
+                counts[gridZ * grid.size() + gridX] = (short) area.tops().length;
+                bottoms.addElements(bottoms.size(), area.bottoms());
+                runTops.addElements(runTops.size(), area.tops());
+                for (String block : area.blocks()) {
+                    blocks.add(names.indexOf(block));
+                }
+            }
+        }
+        return new MapTile.Runs(counts, bottoms.toShortArray(), runTops.toShortArray(), blocks.toShortArray());
     }
 
     // Only a tile of a block a pixel shows its blocks one by one; coarser ones show the tops of their columns.

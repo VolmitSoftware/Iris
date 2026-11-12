@@ -57,8 +57,8 @@ function encode(size: number, withHeights: boolean, withPickNoise = false): Arra
   return buffer
 }
 
-function nothingRaised(cells: number): Pick<TileBlocks, 'raisedStart' | 'raisedY' | 'raised' | 'voxels' | 'models'> {
-  return { raisedStart: new Int32Array(cells + 1), raisedY: new Int16Array(0), raised: new Int16Array(0), voxels: null, models: [] }
+function nothingRaised(cells: number): Pick<TileBlocks, 'raisedStart' | 'raisedY' | 'raised' | 'voxels' | 'runs' | 'models'> {
+  return { raisedStart: new Int32Array(cells + 1), raisedY: new Int16Array(0), raised: new Int16Array(0), voxels: null, runs: null, models: [] }
 }
 
 /** A tile of one pixel with its blocks as the bridge sends them: ground, cover and the raised blocks' counts, heights and blocks. */
@@ -193,6 +193,7 @@ describe('tile style', () => {
       raisedY: Int16Array.of(70, 69),
       raised: Int16Array.of(1, 2),
       voxels: null,
+      runs: null,
       colors: [0x808080, 0x00ff00, 0x654321],
       looks: [],
       covers: [],

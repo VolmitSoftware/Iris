@@ -23,6 +23,7 @@ function tileWithALeaf(): MapTile {
     raisedY: Int16Array.of(LEAF_Y),
     raised: Int16Array.of(1),
     voxels: null,
+    runs: null,
     colors: [STONE, LEAVES],
     looks: [],
     covers: [],

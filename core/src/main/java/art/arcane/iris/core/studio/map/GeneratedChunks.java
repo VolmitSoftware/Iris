@@ -37,6 +37,7 @@ import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -72,6 +73,8 @@ final class GeneratedChunks implements ColumnTops {
     private static final int RAISED_BLOCK_BYTES = Short.BYTES + Integer.BYTES;
     // Its place, a shared key and the sides it shows.
     private static final int VISIBLE_BLOCK_BYTES = Integer.BYTES + Integer.BYTES + Byte.BYTES;
+    // Its bottom, its top and a shared key.
+    private static final int RUN_BYTES = Short.BYTES + Short.BYTES + Integer.BYTES;
     private static final long MOST_BYTES_KEPT = 512L * 1024 * 1024;
     private static final String LEASE_NAME = "studio_block_preview";
     // Half the cores, as the bridge does, so a studio filling its view leaves the server room to run.
@@ -105,20 +108,21 @@ final class GeneratedChunks implements ColumnTops {
     @Override
     public ColumnTops prepared(TileGrid grid) {
         boolean keepsChunks = grid.step() < BLOCKS_ACROSS;
+        int runLevel = runLevelOf(grid.step());
         Long2ObjectMap<LongList> columnsByChunk = columnsByChunkOf(grid);
-        Map<Long, ColumnTop> found = new ConcurrentHashMap<>();
+        Map<Long, ColumnSample> found = new ConcurrentHashMap<>();
         Map<Long, ChunkTop> chunks = new ConcurrentHashMap<>();
         List<Future<?>> generating = new ArrayList<>();
         for (Long2ObjectMap.Entry<LongList> chunk : columnsByChunk.long2ObjectEntrySet()) {
             long key = chunk.getLongKey();
             ChunkTop known = tops.getIfPresent(key);
             if (known != null) {
-                read(key, known, keepsChunks, chunk.getValue(), found, chunks);
+                read(key, known, keepsChunks, runLevel, chunk.getValue(), found, chunks);
                 continue;
             }
             Runnable generation = () -> {
                 if (!grid.cancelled().getAsBoolean()) {
-                    read(key, keepsChunks ? tops.get(key) : topWithoutKeeping(key), keepsChunks, chunk.getValue(), found, chunks);
+                    read(key, keepsChunks ? tops.get(key) : topWithoutKeeping(key), keepsChunks, runLevel, chunk.getValue(), found, chunks);
                 }
             };
             ChunkTask task = new ChunkTask(generation, grid.step());
@@ -136,20 +140,36 @@ final class GeneratedChunks implements ColumnTops {
         return new PreparedTile(found, chunks);
     }
 
+    // A tile a block a column has no runs; a coarser one has those of its columns' areas, or of the largest a chunk has.
+    private static int runLevelOf(double blocksPerColumn) {
+        int level = (int) Math.round(Math.log(blocksPerColumn) / Math.log(2));
+        return blocksPerColumn < 2D ? 0 : Math.min(level, ColumnRuns.MOST_LEVEL);
+    }
+
+    /** One column of a tile as read from its chunk: its top, and the runs of the area it stands for, if any. */
+    private record ColumnSample(ColumnTop top, AreaRuns runs) {
+    }
+
     /** A tile's columns, and the chunks it keeps, read as its chunks were generated. */
     private final class PreparedTile implements ColumnTops {
-        private final Map<Long, ColumnTop> columns;
+        private final Map<Long, ColumnSample> columns;
         private final Map<Long, ChunkTop> chunks;
 
-        PreparedTile(Map<Long, ColumnTop> columns, Map<Long, ChunkTop> chunks) {
+        PreparedTile(Map<Long, ColumnSample> columns, Map<Long, ChunkTop> chunks) {
             this.columns = columns;
             this.chunks = chunks;
         }
 
         @Override
         public ColumnTop at(int worldX, int worldZ) {
-            ColumnTop column = columns.get(keyOf(worldX, worldZ));
-            return column != null ? column : GeneratedChunks.this.at(worldX, worldZ);
+            ColumnSample column = columns.get(keyOf(worldX, worldZ));
+            return column != null ? column.top() : GeneratedChunks.this.at(worldX, worldZ);
+        }
+
+        @Override
+        public AreaRuns runsAt(int worldX, int worldZ) {
+            ColumnSample column = columns.get(keyOf(worldX, worldZ));
+            return column == null ? null : column.runs();
         }
 
         @Override
@@ -208,8 +228,9 @@ final class GeneratedChunks implements ColumnTops {
         return columnsByChunk;
     }
 
-    private static void read(long key, ChunkTop chunk, boolean keepsChunk, LongList columns, Map<Long, ColumnTop> found, Map<Long, ChunkTop> chunks) {
-        readColumns(chunk, columns, found);
+    private static void read(long key, ChunkTop chunk, boolean keepsChunk, int runLevel, LongList columns, Map<Long, ColumnSample> found,
+                             Map<Long, ChunkTop> chunks) {
+        readColumns(chunk, runLevel, columns, found);
         if (keepsChunk) {
             chunks.put(key, chunk);
         }
@@ -227,12 +248,23 @@ final class GeneratedChunks implements ColumnTops {
         }
     }
 
-    private static void readColumns(ChunkTop chunk, LongList columns, Map<Long, ColumnTop> found) {
+    private static void readColumns(ChunkTop chunk, int runLevel, LongList columns, Map<Long, ColumnSample> found) {
         for (long column : columns) {
             int worldX = (int) (column >> Integer.SIZE);
             int worldZ = (int) column;
-            found.put(column, chunk.columns[(worldZ & CHUNK_MASK) * BLOCKS_ACROSS + (worldX & CHUNK_MASK)]);
+            ColumnTop top = chunk.columns[(worldZ & CHUNK_MASK) * BLOCKS_ACROSS + (worldX & CHUNK_MASK)];
+            AreaRuns runs = runLevel == 0 ? null : runsOf(chunk.runs[runLevel - 1], worldX & CHUNK_MASK, worldZ & CHUNK_MASK, runLevel);
+            found.put(column, new ColumnSample(top, runs));
         }
+    }
+
+    private static AreaRuns runsOf(ColumnRuns runs, int x, int z, int level) {
+        int areasAcross = BLOCKS_ACROSS >> level;
+        int area = (z >> level) * areasAcross + (x >> level);
+        int first = runs.firstRunOf(area);
+        int last = first + runs.counts()[area];
+        return new AreaRuns(Arrays.copyOfRange(runs.bottoms(), first, last), Arrays.copyOfRange(runs.tops(), first, last),
+                Arrays.copyOfRange(runs.blocks(), first, last));
     }
 
     private static void awaitUnlessCancelled(Future<?> chunk, BooleanSupplier cancelled) {
@@ -296,7 +328,11 @@ final class GeneratedChunks implements ColumnTops {
         }
         IntBinaryOperator terrainY = (x, z) -> engine.getHeight((chunkX << CHUNK_SHIFT) + x, (chunkZ << CHUNK_SHIFT) + z, true);
         int fluidHeight = engine.getDimension().getFluidHeight();
-        return new ChunkTop(topsOf(blocks, terrainY, this::seenByPlayers), VisibleBlocks.of(blocks, terrainY, fluidHeight, this::seenByPlayers));
+        ColumnRuns[] runs = new ColumnRuns[ColumnRuns.MOST_LEVEL];
+        for (int level = 1; level <= ColumnRuns.MOST_LEVEL; level++) {
+            runs[level - 1] = ColumnRuns.of(blocks, level, terrainY, this::seenByPlayers);
+        }
+        return new ChunkTop(topsOf(blocks, terrainY, this::seenByPlayers), VisibleBlocks.of(blocks, terrainY, fluidHeight, this::seenByPlayers), runs);
     }
 
     // A plugin's block can be solid on the server where players see grass they walk through.
@@ -314,13 +350,20 @@ final class GeneratedChunks implements ColumnTops {
         return ((long) chunkX << Integer.SIZE) | (chunkZ & 0xFFFFFFFFL);
     }
 
-    private record ChunkTop(ColumnTop[] columns, VisibleBlocks visible) {
+    /**
+     * @param runs the chunk's runs of solid blocks in areas 2, 4, 8 and 16 blocks across, for coarser tiles
+     */
+    private record ChunkTop(ColumnTop[] columns, VisibleBlocks visible, ColumnRuns[] runs) {
         int bytes() {
             int raisedBlocks = 0;
             for (ColumnTop column : columns) {
                 raisedBlocks += column.raised().count();
             }
-            return CHUNK_TOP_BYTES + raisedBlocks * RAISED_BLOCK_BYTES + visible.count() * VISIBLE_BLOCK_BYTES;
+            int runs = 0;
+            for (ColumnRuns level : this.runs) {
+                runs += level.tops().length;
+            }
+            return CHUNK_TOP_BYTES + raisedBlocks * RAISED_BLOCK_BYTES + visible.count() * VISIBLE_BLOCK_BYTES + runs * RUN_BYTES;
         }
     }
 

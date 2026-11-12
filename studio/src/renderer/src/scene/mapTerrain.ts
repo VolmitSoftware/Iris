@@ -4,6 +4,7 @@ import type { BlockLook } from './blockLooks'
 import type { CoverLook } from './coverLooks'
 import type { TerrainPictures } from './terrainAtlas'
 import type { RaisedBlock, TerrainSurface } from './terrainMesh'
+import type { SurfaceRuns } from './runFaces'
 import type { SurfaceVoxels } from './voxelMesh'
 import { blocksPerColumn, originXOf, originZOf, type TerrainTile } from './terrainTiles'
 
@@ -91,6 +92,14 @@ export class MapTerrain implements TerrainSurface {
       colors: blocks.colors,
       isWater: blocks.names.map(isWater)
     }
+  }
+
+  runs(): SurfaceRuns | null {
+    const blocks = this.coloring === 'blocks' ? this.tile.blocks : null
+    if (blocks === null || blocks.runs === null) {
+      return null
+    }
+    return { runs: blocks.runs, cellAt: (column, row) => this.cellAt(column, row), looks: blocks.looks, colors: blocks.colors }
   }
 
   colorAt(column: number, row: number): number {

@@ -40,16 +40,18 @@ import java.util.function.Function;
  * | i16 raisedY[raised] | padding to 4 | i16 raised[raised] | padding to 4, when the header names blocks
  * u8 voxelX[voxels] | padding to 4 | u8 voxelZ[voxels] | padding to 4 | i16 voxelY[voxels] | padding to 4
  * | i16 voxelBlock[voxels] | padding to 4 | u8 voxelFaces[voxels] | padding to 4, when the header counts voxels
+ * i16 runCounts[grid²] | padding to 4 | i16 runBottoms[runs] | padding to 4 | i16 runTops[runs] | padding to 4
+ * | i16 runBlocks[runs] | padding to 4, when the header counts runs
  * </pre>
  * {@code raised} is the sum of the raised counts, which the header also holds, as it holds {@code voxels}, the count of
- * blocks seen from the open air, or -1 for a tile without them.
+ * blocks seen from the open air, and {@code runs}, the sum of the run counts, each -1 for a tile without them.
  * The header holds the size, the scale, the subject kind, the labels the grids index, and the blocks the ground and
  * cover grids index when the tile carries the tops of its columns, each as the state players see. Every array starts on a
  * multiple of 4 bytes, so the studio views them in place.
  */
 final class MapTileEncoding {
     private static final int ALIGNMENT_BYTES = 4;
-    private static final int NO_VOXELS = -1;
+    private static final int NONE = -1;
 
     private MapTileEncoding() {
     }
@@ -64,9 +66,11 @@ final class MapTileEncoding {
         MapTile.Blocks blocks = tile.blocks();
         int raised = blocks == null ? 0 : blocks.raised().length;
         MapTile.Voxels voxels = blocks == null ? null : blocks.voxels();
-        int voxelCount = voxels == null ? NO_VOXELS : voxels.count();
+        int voxelCount = voxels == null ? NONE : voxels.count();
+        MapTile.Runs runs = blocks == null ? null : blocks.runs();
+        int runCount = runs == null ? NONE : runs.count();
         byte[] header = gson.toJson(new Header(tile.size(), tile.blocksPerPixel(), tile.subjectKind(), tile.labels(),
-                        hasHeights, hasPickNoise, blocks == null ? null : statesPlayersSee(blocks.names(), pluginLooks), raised, voxelCount))
+                        hasHeights, hasPickNoise, blocks == null ? null : statesPlayersSee(blocks.names(), pluginLooks), raised, voxelCount, runCount))
                 .getBytes(StandardCharsets.UTF_8);
         int cells = tile.gridSize() * tile.gridSize();
         int length = aligned(Integer.BYTES + header.length)
@@ -74,7 +78,8 @@ final class MapTileEncoding {
                 + (hasHeights ? cells * Float.BYTES : 0)
                 + (hasPickNoise ? cells * Float.BYTES : 0)
                 + (blocks == null ? 0 : aligned(cells * Short.BYTES) * 3 + aligned(raised * Short.BYTES) * 2)
-                + (voxels == null ? 0 : aligned(voxelCount) * 3 + aligned(voxelCount * Short.BYTES) * 2);
+                + (voxels == null ? 0 : aligned(voxelCount) * 3 + aligned(voxelCount * Short.BYTES) * 2)
+                + (runs == null ? 0 : aligned(cells * Short.BYTES) + aligned(runCount * Short.BYTES) * 3);
         ByteBuffer buffer = ByteBuffer.allocate(length).order(ByteOrder.LITTLE_ENDIAN);
         buffer.putInt(header.length).put(header);
         align(buffer);
@@ -101,6 +106,12 @@ final class MapTileEncoding {
             putShorts(buffer, voxels.y());
             putShorts(buffer, voxels.blocks());
             putBytes(buffer, voxels.faces());
+        }
+        if (runs != null) {
+            putShorts(buffer, runs.counts());
+            putShorts(buffer, runs.bottoms());
+            putShorts(buffer, runs.tops());
+            putShorts(buffer, runs.blocks());
         }
         return buffer.array();
     }
@@ -130,6 +141,6 @@ final class MapTileEncoding {
     }
 
     private record Header(int size, double blocksPerPixel, MapLabel.Kind subjectKind, List<MapLabel> labels,
-                          boolean heights, boolean pickNoise, List<String> blocks, int raised, int voxels) {
+                          boolean heights, boolean pickNoise, List<String> blocks, int raised, int voxels, int runs) {
     }
 }

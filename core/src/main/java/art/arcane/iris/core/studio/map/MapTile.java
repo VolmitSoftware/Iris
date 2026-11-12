@@ -47,10 +47,26 @@ public record MapTile(int size, double blocksPerPixel, MapLabel.Kind subjectKind
      * @param raisedY      the height of each raised block, cell after cell and each cell's highest first
      * @param raised       each raised block, in the order of {@code raisedY}
      * @param voxels       the blocks seen in the tile's own pixels, a block a pixel, or null for a tile at another scale
+     * @param runs         the runs of solid blocks of the area each cell stands for, in a coarser tile; else null
      */
     public record Blocks(List<String> names, short[] ground, short[] cover, short[] raisedCounts, short[] raisedY, short[] raised,
-                         Voxels voxels) {
+                         Voxels voxels, Runs runs) {
         public static final short NO_BLOCK = -1;
+    }
+
+    /**
+     * The ground of a coarser tile in 3D: for each cell, the runs of solid blocks of the area it stands for, highest
+     * first, the last being the ground, which reaches down out of sight.
+     *
+     * @param counts  how many runs each cell has
+     * @param bottoms the lowest height of each run, cell after cell
+     * @param tops    the highest height of each run
+     * @param blocks  the index in the tile's block names of the block most of each run's top shows
+     */
+    public record Runs(short[] counts, short[] bottoms, short[] tops, short[] blocks) {
+        public int count() {
+            return tops.length;
+        }
     }
 
     /**

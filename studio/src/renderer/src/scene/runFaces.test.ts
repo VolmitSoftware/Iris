@@ -8,6 +8,21 @@ const GROUND = 10
 const BASE = 0
 const CANOPY_BOTTOM = 14
 const CANOPY_TOP = 15
+const FULLY_LIT = 15 * 16
+
+// Two columns of plain ground side by side, their tops lit and darkened as given.
+function flatRuns(lights: Uint8Array, occlusions: Uint8Array): SurfaceRuns['runs'] {
+  return {
+    starts: Int32Array.of(0, 1, 2),
+    bottoms: Int16Array.of(0, 0),
+    tops: Int16Array.of(GROUND, GROUND),
+    blocks: Int16Array.of(0, 0),
+    covers: Int16Array.of(-1, -1),
+    coverShares: new Uint8Array(2),
+    lights,
+    occlusions
+  }
+}
 
 // Two columns side by side, a block each: plain ground on the west, ground with a canopy floating over it on the east.
 const surface: TerrainSurface = {
@@ -28,7 +43,9 @@ const runs: SurfaceRuns = {
     tops: Int16Array.of(GROUND, CANOPY_TOP, GROUND),
     blocks: Int16Array.of(0, 1, 0),
     covers: Int16Array.of(-1, -1, -1),
-    coverShares: new Uint8Array(3)
+    coverShares: new Uint8Array(3),
+    lights: new Uint8Array(3).fill(FULLY_LIT),
+    occlusions: new Uint8Array(3)
   },
   cellAt: (column) => column,
   looks: [null, null],
@@ -54,7 +71,7 @@ describe('run faces', () => {
   })
 
   it('draws the tops of neighbouring columns at one height in one block as one face', () => {
-    const flat: SurfaceRuns = { ...runs, runs: { starts: Int32Array.of(0, 1, 2), bottoms: Int16Array.of(0, 0), tops: Int16Array.of(GROUND, GROUND), blocks: Int16Array.of(0, 0), covers: Int16Array.of(-1, -1), coverShares: new Uint8Array(2) } }
+    const flat: SurfaceRuns = { ...runs, runs: flatRuns(new Uint8Array(2).fill(FULLY_LIT), new Uint8Array(2)) }
     const geometry = runFaces(new ColumnField(surface), flat, BASE).geometry()
     const positions = geometry.getAttribute('position')
     const tops = []
@@ -65,6 +82,23 @@ describe('run faces', () => {
     }
 
     expect(tops).toEqual([2])
+  })
+
+  it('darkens a top by the mean light and corner shade of the blocks it stands for', () => {
+    const shaded: SurfaceRuns = { ...runs, runs: flatRuns(Uint8Array.of(FULLY_LIT, 10 * 16), Uint8Array.of(0, 32)) }
+    const geometry = runFaces(new ColumnField(surface), shaded, BASE).geometry()
+    const positions = geometry.getAttribute('position')
+    const colors = geometry.getAttribute('color')
+    const topColorAt = (x: number): number => {
+      for (let first = 0; first < positions.count; first += 4) {
+        if (positions.getY(first) === GROUND + 1 && positions.getY(first + 3) === GROUND + 1 && Math.min(positions.getX(first), positions.getX(first + 3)) === x) {
+          return colors.getX(first)
+        }
+      }
+      return NaN
+    }
+
+    expect(topColorAt(1)).toBeLessThan(topColorAt(0) * 0.7)
   })
 
   it('floats a canopy over the ground with its underside showing', () => {

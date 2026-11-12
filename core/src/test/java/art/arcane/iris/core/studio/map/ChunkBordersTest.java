@@ -2,7 +2,7 @@ package art.arcane.iris.core.studio.map;
 
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.Int2ByteMap;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.junit.Test;
 
@@ -77,10 +77,10 @@ public class ChunkBordersTest {
         ChunkBorders shaftBorders = VisibleBlocks.of(shaft, (x, z) -> top, NO_FLUID, UnaryOperator.identity()).borders();
         VisibleBlocks closed = VisibleBlocks.of(overhang, (x, z) -> top, NO_FLUID, UnaryOperator.identity());
 
-        IntSet reached = new IntOpenHashSet(closed.borders().reachedFrom(shaftBorders, ChunkBorders.WEST));
-        VisibleBlocks opened = VisibleBlocks.of(overhang, (x, z) -> top, NO_FLUID, UnaryOperator.identity(), reached);
+        Int2ByteMap reached = closed.borders().reachedFrom(shaftBorders, ChunkBorders.WEST);
+        VisibleBlocks opened = VisibleBlocks.of(ChunkCells.of(overhang, (x, z) -> top, NO_FLUID, UnaryOperator.identity(), reached), reached);
 
-        assertEquals(IntSet.of(VisibleBlocks.positionOf(0, 4, 7), VisibleBlocks.positionOf(0, 5, 7)), reached);
+        assertEquals(IntSet.of(VisibleBlocks.positionOf(0, 4, 7), VisibleBlocks.positionOf(0, 5, 7)), reached.keySet());
         assertFalse(shows(closed, VisibleBlocks.positionOf(2, 4, 7)));
         assertTrue(shows(opened, VisibleBlocks.positionOf(2, 4, 7)));
         assertTrue(shows(opened, VisibleBlocks.positionOf(1, 3, 7)));
@@ -102,7 +102,7 @@ public class ChunkBordersTest {
         ChunkBorders borders = VisibleBlocks.of(chunk, (x, z) -> GROUND_Y, NO_FLUID, UnaryOperator.identity()).borders();
         ChunkBorders besideBorders = VisibleBlocks.of(beside, (x, z) -> GROUND_Y, NO_FLUID, UnaryOperator.identity()).borders();
         List<String> faces = new ArrayList<>();
-        borders.facesAgainst(besideBorders, side, (x, y, z, block, faceSide) -> {
+        borders.facesAgainst(besideBorders, side, (x, y, z, block, faceSide, light) -> {
             assertEquals(side, faceSide);
             faces.add(x + "," + y + "," + z + " " + block);
         });

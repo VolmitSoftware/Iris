@@ -19,8 +19,9 @@
 package art.arcane.iris.core.studio.map;
 
 import it.unimi.dsi.fastutil.booleans.BooleanArrayList;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.bytes.ByteArrayList;
+import it.unimi.dsi.fastutil.ints.Int2ByteMap;
+import it.unimi.dsi.fastutil.ints.Int2ByteOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
 import java.util.ArrayList;
@@ -43,9 +44,9 @@ record ChunkBorders(Wall[] walls) {
     private static final int ACROSS = 16;
     private static final int LAST = ACROSS - 1;
 
-    /** Takes a face a chunk shows on {@code side}, at its x, y and z in the chunk. */
+    /** Takes a face a chunk shows on {@code side}, at its x, y and z in the chunk, lit by the cell it faces. */
     interface FaceSink {
-        void add(int x, int y, int z, String block, int side);
+        void add(int x, int y, int z, String block, int side, int light);
     }
 
     /**
@@ -69,10 +70,11 @@ record ChunkBorders(Wall[] walls) {
      * @param tops         the cell above each run's highest
      * @param blocks       each run's block, or null for runs of open air
      * @param fluid        whether each run holds water
+     * @param light        the sky's light in each run of open air, 0 to 15; 0 for others
      */
-    record Runs(int[] firstOfPlace, short[] bottoms, short[] tops, String[] blocks, boolean[] fluid) {
-        // A bottom, a top, a shared key and the fluid flag.
-        private static final int RUN_BYTES = Short.BYTES + Short.BYTES + Integer.BYTES + 1;
+    record Runs(int[] firstOfPlace, short[] bottoms, short[] tops, String[] blocks, boolean[] fluid, byte[] light) {
+        // A bottom, a top, a shared key, the fluid flag and the light.
+        private static final int RUN_BYTES = Short.BYTES + Short.BYTES + Integer.BYTES + 2;
 
         int bytes() {
             return firstOfPlace.length * Integer.BYTES + tops.length * RUN_BYTES;
@@ -102,7 +104,7 @@ record ChunkBorders(Wall[] walls) {
                     }
                     int top = Math.min(hidden.tops()[run], open.tops()[air]);
                     for (int y = Math.max(hidden.bottoms()[run], open.bottoms()[air]); y < top; y++) {
-                        faces.add(xOf(side, place), y, zOf(side, place), hidden.blocks()[run], side);
+                        faces.add(xOf(side, place), y, zOf(side, place), hidden.blocks()[run], side, open.light()[air]);
                     }
                 }
             }
@@ -112,18 +114,18 @@ record ChunkBorders(Wall[] walls) {
     /**
      * The cells along {@code side} the chunk took for closed off from the sky that touch the open air of {@code beside},
      * the chunk on that side: a hollow whose only way out is across the edge, such as a pit dug under an overhang. Each
-     * is a place in the chunk as {@link VisibleBlocks#positions()} gives it.
+     * is a place in the chunk as {@link VisibleBlocks#positions()} gives it, with the light of the cell beside it.
      */
-    IntList reachedFrom(ChunkBorders beside, int side) {
+    Int2ByteMap reachedFrom(ChunkBorders beside, int side) {
         Runs sealed = walls[side - NORTH].sealed();
         Runs open = beside.walls[opposite(side) - NORTH].open();
-        IntList reached = new IntArrayList();
+        Int2ByteMap reached = new Int2ByteOpenHashMap();
         for (int place = 0; place < ACROSS; place++) {
             for (int run = sealed.firstOfPlace()[place]; run < sealed.firstOfPlace()[place + 1]; run++) {
                 for (int air = open.firstOfPlace()[place]; air < open.firstOfPlace()[place + 1]; air++) {
                     int top = Math.min(sealed.tops()[run], open.tops()[air]);
                     for (int y = Math.max(sealed.bottoms()[run], open.bottoms()[air]); y < top; y++) {
-                        reached.add(VisibleBlocks.positionOf(xOf(side, place), y, zOf(side, place)));
+                        reached.put(VisibleBlocks.positionOf(xOf(side, place), y, zOf(side, place)), open.light()[air]);
                     }
                 }
             }
@@ -158,6 +160,7 @@ record ChunkBorders(Wall[] walls) {
         private final ShortArrayList tops = new ShortArrayList();
         private final List<String> blocks = new ArrayList<>();
         private final BooleanArrayList fluid = new BooleanArrayList();
+        private final ByteArrayList light = new ByteArrayList();
         private int place;
 
         /** Starts the runs of the next place along the side. */
@@ -166,10 +169,10 @@ record ChunkBorders(Wall[] walls) {
         }
 
         /** Adds the cell at {@code y} of the current place, joining the run below where it is of the same. */
-        void add(int y, String block, boolean holdsFluid) {
+        void add(int y, String block, boolean holdsFluid, int cellLight) {
             int last = tops.size() - 1;
             boolean joins = last >= firstOfPlace[place] && tops.getShort(last) == y && fluid.getBoolean(last) == holdsFluid
-                    && (block == null ? blocks.get(last) == null : block.equals(blocks.get(last)));
+                    && light.getByte(last) == cellLight && (block == null ? blocks.get(last) == null : block.equals(blocks.get(last)));
             if (joins) {
                 tops.set(last, (short) (y + 1));
                 return;
@@ -178,11 +181,13 @@ record ChunkBorders(Wall[] walls) {
             tops.add((short) (y + 1));
             blocks.add(block);
             fluid.add(holdsFluid);
+            light.add((byte) cellLight);
         }
 
         Runs build() {
             firstOfPlace[ACROSS] = tops.size();
-            return new Runs(firstOfPlace, bottoms.toShortArray(), tops.toShortArray(), blocks.toArray(String[]::new), fluid.toBooleanArray());
+            return new Runs(firstOfPlace, bottoms.toShortArray(), tops.toShortArray(), blocks.toArray(String[]::new), fluid.toBooleanArray(),
+                    light.toByteArray());
         }
     }
 }

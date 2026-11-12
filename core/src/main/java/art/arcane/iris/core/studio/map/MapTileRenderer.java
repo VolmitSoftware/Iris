@@ -133,6 +133,8 @@ public final class MapTileRenderer {
         ShortArrayList blocks = new ShortArrayList();
         ShortArrayList covers = new ShortArrayList();
         ByteArrayList coverShares = new ByteArrayList();
+        ByteArrayList lights = new ByteArrayList();
+        ByteArrayList occlusions = new ByteArrayList();
         for (int gridZ = 0; gridZ < grid.size(); gridZ++) {
             int worldZ = (int) Math.floor(grid.worldZ(gridZ));
             for (int gridX = 0; gridX < grid.size(); gridX++) {
@@ -148,10 +150,12 @@ public final class MapTileRenderer {
                     covers.add(names.indexOf(area.covers()[run]));
                 }
                 coverShares.addElements(coverShares.size(), area.coverShares());
+                lights.addElements(lights.size(), area.lights());
+                occlusions.addElements(occlusions.size(), area.occlusions());
             }
         }
         return new MapTile.Runs(counts, bottoms.toShortArray(), runTops.toShortArray(), blocks.toShortArray(), covers.toShortArray(),
-                coverShares.toByteArray());
+                coverShares.toByteArray(), lights.toByteArray(), occlusions.toByteArray());
     }
 
     // Only a tile of a block a pixel shows its blocks one by one; coarser ones show the tops of their columns.
@@ -164,7 +168,7 @@ public final class MapTileRenderer {
         for (int at = 0; at < blocks.length; at++) {
             blocks[at] = names.indexOf(found.blocks()[at]);
         }
-        return new MapTile.Voxels(found.x(), found.z(), found.y(), blocks, found.faces());
+        return new MapTile.Voxels(found.x(), found.z(), found.y(), blocks, found.faces(), found.lights(), found.shades());
     }
 
     private ColumnTops topsOf(BlockSource source) {

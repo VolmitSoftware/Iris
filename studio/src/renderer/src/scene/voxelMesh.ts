@@ -5,6 +5,7 @@ import type { BlockLook, FaceLook } from './blockLooks'
 import type { ColumnField } from './columnField'
 import { shaded } from './columnFaces'
 import { FACE_LIGHT, type CoverFace, type CoverLook } from './coverLooks'
+import { brightnessOfCorner, brightnessOfLight, lightOf, opaqueAround } from './skyLight'
 import type { UvCell } from './terrainAtlas'
 import { sunk, tintAt } from './waterTint'
 
@@ -41,6 +42,8 @@ const CUBE_FACES: Record<Direction, Corners> = {
   west: [[0, 1, 0], [0, 0, 0], [0, 0, 1], [0, 1, 1]],
   east: [[1, 1, 1], [1, 0, 1], [1, 0, 0], [1, 1, 0]]
 }
+// The axis a side's faces look along: x, y or z.
+const NORMAL_AXIS: Record<Direction, number> = { down: 1, up: 1, north: 2, south: 2, west: 0, east: 0 }
 
 /**
  * Each block seen from the open air drawn as Minecraft draws it: the faces of its model, leaving out a face its model
@@ -52,12 +55,15 @@ export function voxelGeometries(field: ColumnField, surface: SurfaceVoxels, plai
   const cutOut = new FaceSoup(true)
   const water = new FaceSoup(false)
   const { voxels } = surface
+  let firstShade = 0
   for (let at = 0; at < voxels.x.length; at++) {
     const column = voxels.x[at]
     const row = voxels.z[at]
     const corner: Color = [field.originX + column, voxels.y[at], field.originZ + row]
     const block = voxels.blocks[at]
     const sides = voxels.faces[at]
+    const shades = new FaceShades(voxels.shades, firstShade, sides, voxels.lights[at])
+    firstShade += shades.count
     const waterTop = field.waterTopAt(column, row)
     if (surface.isWater[block]) {
       addCubeFaces(sides, (_side, corners) => water.add(corner, corners, null, null))
@@ -70,7 +76,8 @@ export function voxelGeometries(field: ColumnField, surface: SurfaceVoxels, plai
           continue
         }
         const color = underWater(face.color, corner[1] + middleY(face.corners), waterTop)
-        ;(face.cell.hasGaps ? cutOut : opaque).add(corner, face.corners, pictureUvs(face.cell, face.uvs), color)
+        const brightness = face.cullFace === null ? shades.inside() : shades.across(face.cullFace, face.corners)
+        ;(face.cell.hasGaps ? cutOut : opaque).add(corner, face.corners, pictureUvs(face.cell, face.uvs), litCorners(color, brightness))
       }
       continue
     }
@@ -80,10 +87,82 @@ export function voxelGeometries(field: ColumnField, surface: SurfaceVoxels, plai
       const light = shaded(face === null ? surface.colors[block] : face.tint, FACE_LIGHT[side])
       const color = underWater(light, corner[1] + middleY(corners), waterTop)
       const cell = face === null ? plain : face.cell
-      ;(cell.hasGaps ? cutOut : opaque).add(corner, corners, pictureUvs(cell, WHOLE_PICTURE), color)
+      ;(cell.hasGaps ? cutOut : opaque).add(corner, corners, pictureUvs(cell, WHOLE_PICTURE), litCorners(color, shades.ofCube(side)))
     })
   }
   return { opaque: opaque.geometry(), cutOut: cutOut.geometry(), water: water.geometry() }
+}
+
+type CornerBrightness = readonly [number, number, number, number]
+
+/** One block's face shades, as the server sent them for the sides it shows, read as each corner's brightness. */
+class FaceShades {
+  readonly count: number
+
+  constructor(
+    private readonly shades: Uint16Array,
+    private readonly first: number,
+    private readonly sides: number,
+    private readonly ownLight: number
+  ) {
+    let count = 0
+    for (let rest = sides; rest !== 0; rest &= rest - 1) {
+      count++
+    }
+    this.count = count
+  }
+
+  /** A whole face on a side, its corners in {@link CUBE_FACES}' order. */
+  ofCube(side: Direction): CornerBrightness {
+    const shade = this.shadeOf(side)
+    const light = brightnessOfLight(lightOf(shade))
+    return [0, 1, 2, 3].map((corner) => light * brightnessOfCorner(opaqueAround(shade, corner))) as unknown as CornerBrightness
+  }
+
+  /** A model's face against a side, smaller than the block's, each corner as bright as that place of the whole face. */
+  across(side: Direction, corners: Corners): CornerBrightness {
+    const whole = this.ofCube(side)
+    const cube = CUBE_FACES[side]
+    return corners.map((place) => {
+      let brightness = 0
+      for (let corner = 0; corner < CORNERS; corner++) {
+        brightness += whole[corner] * weightAt(place, cube[corner], side)
+      }
+      return brightness
+    }) as unknown as CornerBrightness
+  }
+
+  /** A face that stands inside the block, such as a plant's, lit as the block's own cell, with no corner darkened. */
+  inside(): CornerBrightness {
+    const light = brightnessOfLight(this.ownLight)
+    return [light, light, light, light]
+  }
+
+  private shadeOf(side: Direction): number {
+    const bit = SIDE_BITS[side]
+    let before = 0
+    for (let rest = this.sides & (bit - 1); rest !== 0; rest &= rest - 1) {
+      before++
+    }
+    return this.shades[this.first + before]
+  }
+}
+
+// How much a corner of a whole face counts at a place on it: the product, along the face's two axes, of how near the
+// place lies to the corner's edge.
+function weightAt(place: Corners[number], corner: Corners[number], side: Direction): number {
+  const across = NORMAL_AXIS[side]
+  let weight = 1
+  for (let axis = 0; axis < 3; axis++) {
+    if (axis !== across) {
+      weight *= corner[axis] === 1 ? place[axis] : 1 - place[axis]
+    }
+  }
+  return weight
+}
+
+function litCorners(color: Color, brightness: CornerBrightness): Color[] {
+  return brightness.map((amount) => [color[0] * amount, color[1] * amount, color[2] * amount] as const)
 }
 
 function addCubeFaces(sides: number, add: (side: Direction, corners: Corners) => void): void {
@@ -109,11 +188,14 @@ function pictureUvs(cell: UvCell, uvs: Uvs): Uvs {
 const CORNERS = 4
 const FIRST_CAPACITY_FACES = 4096
 
-/** Faces gathered for one geometry, each with its own corners, so every face keeps its own colour. */
+/** Faces gathered for one geometry, each with its own corners, so every face keeps its own colours. */
 class FaceSoup {
   private positions: Float32Array<ArrayBuffer> = new Float32Array(FIRST_CAPACITY_FACES * CORNERS * 3)
   private uvs: Float32Array<ArrayBuffer> | null
   private colors: Float32Array<ArrayBuffer> | null
+  // Whether each face is split along its other diagonal, as Minecraft splits one whose darker corners lie on the first,
+  // so the shading runs along the face and not across a crease.
+  private flipped: Uint8Array<ArrayBuffer> = new Uint8Array(FIRST_CAPACITY_FACES)
   private faces = 0
 
   constructor(textured: boolean) {
@@ -121,7 +203,8 @@ class FaceSoup {
     this.colors = textured ? new Float32Array(FIRST_CAPACITY_FACES * CORNERS * 3) : null
   }
 
-  add(origin: Color, corners: Corners, uvs: Uvs | null, color: Color | null): void {
+  /** Adds a face, with a colour for each corner, or none. */
+  add(origin: Color, corners: Corners, uvs: Uvs | null, colors: readonly Color[] | null): void {
     this.reserveOne()
     const first = this.faces * CORNERS
     for (let corner = 0; corner < CORNERS; corner++) {
@@ -133,10 +216,11 @@ class FaceSoup {
         this.uvs[vertex * 2] = uvs[corner][0]
         this.uvs[vertex * 2 + 1] = uvs[corner][1]
       }
-      if (this.colors !== null && color !== null) {
-        this.colors.set(color, vertex * 3)
+      if (this.colors !== null && colors !== null) {
+        this.colors.set(colors[corner], vertex * 3)
       }
     }
+    this.flipped[this.faces] = colors !== null && sum(colors[0]) + sum(colors[2]) < sum(colors[1]) + sum(colors[3]) ? 1 : 0
     this.faces++
   }
 
@@ -155,7 +239,9 @@ class FaceSoup {
     const indices = new Uint32Array(this.faces * 6)
     for (let face = 0; face < this.faces; face++) {
       const first = face * CORNERS
-      indices.set([first, first + 1, first + 2, first, first + 2, first + 3], face * 6)
+      const split =
+        this.flipped[face] === 1 ? [first + 1, first + 2, first + 3, first + 1, first + 3, first] : [first, first + 1, first + 2, first, first + 2, first + 3]
+      indices.set(split, face * 6)
     }
     geometry.setIndex(new BufferAttribute(indices, 1))
     return geometry
@@ -168,7 +254,14 @@ class FaceSoup {
     this.positions = grown(this.positions)
     this.uvs = this.uvs === null ? null : grown(this.uvs)
     this.colors = this.colors === null ? null : grown(this.colors)
+    const flipped = new Uint8Array(this.flipped.length * 2)
+    flipped.set(this.flipped)
+    this.flipped = flipped
   }
+}
+
+function sum(color: Color): number {
+  return color[0] + color[1] + color[2]
 }
 
 function grown(values: Float32Array): Float32Array<ArrayBuffer> {

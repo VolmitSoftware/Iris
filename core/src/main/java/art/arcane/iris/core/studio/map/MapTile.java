@@ -64,8 +64,11 @@ public record MapTile(int size, double blocksPerPixel, MapLabel.Kind subjectKind
      * @param blocks      the index in the tile's block names of the block most of each run's top shows
      * @param covers      the index of the plant most often standing on each run's top, or {@link Blocks#NO_BLOCK}
      * @param coverShares how much of each run's top plants stand on, 0 to 255 for all of it
+     * @param lights      the sky's light on each run's top, in sixteenths of a level, 0 to 240
+     * @param occlusions  how many opaque cells stand around each corner of each run's top, in sixty-fourths, 0 to 192
      */
-    public record Runs(short[] counts, short[] bottoms, short[] tops, short[] blocks, short[] covers, byte[] coverShares) {
+    public record Runs(short[] counts, short[] bottoms, short[] tops, short[] blocks, short[] covers, byte[] coverShares, byte[] lights,
+                       byte[] occlusions) {
         public int count() {
             return tops.length;
         }
@@ -79,8 +82,12 @@ public record MapTile(int size, double blocksPerPixel, MapLabel.Kind subjectKind
      * @param y      each block's height above the dimension's bottom
      * @param blocks the index of each block in the tile's block names
      * @param faces  the sides of each block that face the open air, a bit each: down, up, north, south, west, east
+     * @param lights the sky's light each block shows on faces that stand inside it, such as a plant's, 0 to 15
+     * @param shades the shade of each face {@code faces} names, block after block and side after side: the light of the
+     *               cell it faces in the lowest 4 bits, then for each corner, 2 bits each, how many of the 3 cells around
+     *               it are opaque
      */
-    public record Voxels(byte[] x, byte[] z, short[] y, short[] blocks, byte[] faces) {
+    public record Voxels(byte[] x, byte[] z, short[] y, short[] blocks, byte[] faces, byte[] lights, short[] shades) {
         public int count() {
             return x.length;
         }

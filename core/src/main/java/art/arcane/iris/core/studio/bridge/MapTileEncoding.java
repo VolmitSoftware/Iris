@@ -39,13 +39,15 @@ import java.util.function.Function;
  * i16 ground[grid²] | padding to 4 | i16 cover[grid²] | padding to 4 | i16 raisedCounts[grid²] | padding to 4
  * | i16 raisedY[raised] | padding to 4 | i16 raised[raised] | padding to 4, when the header names blocks
  * u8 voxelX[voxels] | padding to 4 | u8 voxelZ[voxels] | padding to 4 | i16 voxelY[voxels] | padding to 4
- * | i16 voxelBlock[voxels] | padding to 4 | u8 voxelFaces[voxels] | padding to 4, when the header counts voxels
+ * | i16 voxelBlock[voxels] | padding to 4 | u8 voxelFaces[voxels] | padding to 4 | u8 voxelLights[voxels] | padding to 4
+ * | u16 voxelShades[shades] | padding to 4, when the header counts voxels
  * i16 runCounts[grid²] | padding to 4 | i16 runBottoms[runs] | padding to 4 | i16 runTops[runs] | padding to 4
- * | i16 runBlocks[runs] | padding to 4 | i16 runCovers[runs] | padding to 4 | u8 runCoverShares[runs] | padding to 4,
- * when the header counts runs
+ * | i16 runBlocks[runs] | padding to 4 | i16 runCovers[runs] | padding to 4 | u8 runCoverShares[runs] | padding to 4
+ * | u8 runLights[runs] | padding to 4 | u8 runOcclusions[runs] | padding to 4, when the header counts runs
  * </pre>
  * {@code raised} is the sum of the raised counts, which the header also holds, as it holds {@code voxels}, the count of
  * blocks seen from the open air, and {@code runs}, the sum of the run counts, each -1 for a tile without them.
+ * {@code shades} is the count of faces the voxel faces name, one a set bit.
  * The header holds the size, the scale, the subject kind, the labels the grids index, and the blocks the ground and
  * cover grids index when the tile carries the tops of its columns, each as the state players see. Every array starts on a
  * multiple of 4 bytes, so the studio views them in place.
@@ -79,8 +81,8 @@ final class MapTileEncoding {
                 + (hasHeights ? cells * Float.BYTES : 0)
                 + (hasPickNoise ? cells * Float.BYTES : 0)
                 + (blocks == null ? 0 : aligned(cells * Short.BYTES) * 3 + aligned(raised * Short.BYTES) * 2)
-                + (voxels == null ? 0 : aligned(voxelCount) * 3 + aligned(voxelCount * Short.BYTES) * 2)
-                + (runs == null ? 0 : aligned(cells * Short.BYTES) + aligned(runCount * Short.BYTES) * 4 + aligned(runCount));
+                + (voxels == null ? 0 : aligned(voxelCount) * 4 + aligned(voxelCount * Short.BYTES) * 2 + aligned(voxels.shades().length * Short.BYTES))
+                + (runs == null ? 0 : aligned(cells * Short.BYTES) + aligned(runCount * Short.BYTES) * 4 + aligned(runCount) * 3);
         ByteBuffer buffer = ByteBuffer.allocate(length).order(ByteOrder.LITTLE_ENDIAN);
         buffer.putInt(header.length).put(header);
         align(buffer);
@@ -107,6 +109,8 @@ final class MapTileEncoding {
             putShorts(buffer, voxels.y());
             putShorts(buffer, voxels.blocks());
             putBytes(buffer, voxels.faces());
+            putBytes(buffer, voxels.lights());
+            putShorts(buffer, voxels.shades());
         }
         if (runs != null) {
             putShorts(buffer, runs.counts());
@@ -115,6 +119,8 @@ final class MapTileEncoding {
             putShorts(buffer, runs.blocks());
             putShorts(buffer, runs.covers());
             putBytes(buffer, runs.coverShares());
+            putBytes(buffer, runs.lights());
+            putBytes(buffer, runs.occlusions());
         }
         return buffer.array();
     }

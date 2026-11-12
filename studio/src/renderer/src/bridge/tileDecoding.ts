@@ -88,13 +88,17 @@ function decodeRuns(buffer: ArrayBuffer, countsAt: number, cells: number, count:
   const blocksAt = topsAt + aligned(count * Int16Array.BYTES_PER_ELEMENT)
   const coversAt = blocksAt + aligned(count * Int16Array.BYTES_PER_ELEMENT)
   const coverSharesAt = coversAt + aligned(count * Int16Array.BYTES_PER_ELEMENT)
+  const lightsAt = coverSharesAt + aligned(count)
+  const occlusionsAt = lightsAt + aligned(count)
   return {
     starts: startsOf(new Int16Array(buffer, countsAt, cells)),
     bottoms: new Int16Array(buffer, bottomsAt, count),
     tops: new Int16Array(buffer, topsAt, count),
     blocks: new Int16Array(buffer, blocksAt, count),
     covers: new Int16Array(buffer, coversAt, count),
-    coverShares: new Uint8Array(buffer, coverSharesAt, count)
+    coverShares: new Uint8Array(buffer, coverSharesAt, count),
+    lights: new Uint8Array(buffer, lightsAt, count),
+    occlusions: new Uint8Array(buffer, occlusionsAt, count)
   }
 }
 
@@ -103,13 +107,28 @@ function decodeVoxels(buffer: ArrayBuffer, xAt: number, count: number): TileVoxe
   const yAt = zAt + aligned(count)
   const blocksAt = yAt + aligned(count * Int16Array.BYTES_PER_ELEMENT)
   const facesAt = blocksAt + aligned(count * Int16Array.BYTES_PER_ELEMENT)
+  const lightsAt = facesAt + aligned(count)
+  const shadesAt = lightsAt + aligned(count)
+  const faces = new Uint8Array(buffer, facesAt, count)
   return {
     x: new Uint8Array(buffer, xAt, count),
     z: new Uint8Array(buffer, zAt, count),
     y: new Int16Array(buffer, yAt, count),
     blocks: new Int16Array(buffer, blocksAt, count),
-    faces: new Uint8Array(buffer, facesAt, count)
+    faces,
+    lights: new Uint8Array(buffer, lightsAt, count),
+    shades: new Uint16Array(buffer, shadesAt, facesShown(faces))
   }
+}
+
+function facesShown(faces: Uint8Array): number {
+  let shown = 0
+  for (const sides of faces) {
+    for (let rest = sides; rest !== 0; rest &= rest - 1) {
+      shown++
+    }
+  }
+  return shown
 }
 
 function startsOf(counts: Int16Array): Int32Array {

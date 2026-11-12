@@ -389,6 +389,10 @@ export interface TileVoxels {
   blocks: Int16Array
   /** The sides of each block that face the open air, a bit each in {@link VOXEL_SIDES}' order. */
   faces: Uint8Array
+  /** The sky's light each block shows on faces that stand inside it, such as a plant's, 0 to 15. */
+  lights: Uint8Array
+  /** The shade of each face {@link faces} names, block after block and side after side, as skyLight reads it. */
+  shades: Uint16Array
 }
 
 /**
@@ -406,7 +410,16 @@ export interface TileRuns {
   covers: Int16Array
   /** How much of each run's top plants stand on, 0 to 255 for all of it. */
   coverShares: Uint8Array
+  /** The sky's light on each run's top, the mean of its blocks' tops, in sixteenths of a level. */
+  lights: Uint8Array
+  /** How many opaque cells stand around each corner of each run's top, the mean of its blocks' tops, in sixty-fourths. */
+  occlusions: Uint8Array
 }
+
+/** {@link TileRuns.lights} to a light level. */
+export const RUN_LIGHT_STEPS = 16
+/** {@link TileRuns.occlusions} to a count of opaque cells. */
+export const RUN_OCCLUSION_STEPS = 64
 
 /** The order of the sides in {@link TileVoxels.faces}. */
 export const VOXEL_SIDES = ['down', 'up', 'north', 'south', 'west', 'east'] as const

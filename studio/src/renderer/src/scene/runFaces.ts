@@ -1,4 +1,5 @@
-import { NO_BLOCK, type TileRuns } from '../bridge/types'
+import { NO_BLOCK, RUN_LIGHT_STEPS, RUN_OCCLUSION_STEPS, type TileRuns } from '../bridge/types'
+import { brightnessOfCorner, brightnessOfLight } from './skyLight'
 import type { Direction } from './blockModels'
 import type { BlockLook } from './blockLooks'
 import type { ColumnField } from './columnField'
@@ -66,12 +67,14 @@ function addColumn(faces: MergedFaces, field: ColumnField, surface: SurfaceRuns,
     const top = runs.tops[run]
     const bottom = runs.bottoms[run]
     const block = runs.blocks[run]
+    const light = brightnessOfLight(runs.lights[run] / RUN_LIGHT_STEPS)
     if (run === first || runs.bottoms[run - 1] !== top + 1) {
-      const color = underWater(withPlants(surface, run, colorOf(surface, block, 'top', FACE_LIGHT.up)), top + 1, water)
+      const topLight = light * brightnessOfCorner(runs.occlusions[run] / RUN_OCCLUSION_STEPS)
+      const color = underWater(lit(withPlants(surface, run, colorOf(surface, block, 'top', FACE_LIGHT.up)), topLight), top + 1, water)
       faces.add('up', row, column, top + 1, top + 1, color, color)
     }
     if (!isGround && (run === last || runs.tops[run + 1] !== bottom - 1)) {
-      const color = underWater(colorOf(surface, block, 'top', FACE_LIGHT.down), bottom, water)
+      const color = underWater(lit(colorOf(surface, block, 'top', FACE_LIGHT.down), light), bottom, water)
       faces.add('down', row, column, bottom, bottom, color, color)
     }
     for (const side of SIDES) {
@@ -80,7 +83,7 @@ function addColumn(faces: MergedFaces, field: ColumnField, surface: SurfaceRuns,
       const lowest = isGround ? (known ? -Infinity : base) : bottom
       const covered = known ? spansOf(surface, surface.cellAt(...neighbour)) : []
       for (const open of uncovered({ bottom: lowest, top }, covered)) {
-        addSide(faces, surface, column, row, side, open, top, block, water)
+        addSide(faces, surface, column, row, side, open, top, block, water, light)
       }
     }
   }
@@ -123,17 +126,33 @@ export function uncovered(span: Span, covered: readonly Span[]): Span[] {
 }
 
 // The top block of a run shows its side picture; the blocks under it, the picture of the blocks under a column's top.
-function addSide(faces: MergedFaces, surface: SurfaceRuns, column: number, row: number, side: Side, open: Span, runTop: number, block: number, water: number | null): void {
+// Sides take the light of the run's top, as the open air beside it mostly holds.
+function addSide(
+  faces: MergedFaces,
+  surface: SurfaceRuns,
+  column: number,
+  row: number,
+  side: Side,
+  open: Span,
+  runTop: number,
+  block: number,
+  water: number | null,
+  skyLight: number
+): void {
   const light = side.direction === 'north' || side.direction === 'south' ? FACE_LIGHT.north : FACE_LIGHT.west
   if (open.top === runTop) {
-    const color = colorOf(surface, block, 'side', light)
+    const color = lit(colorOf(surface, block, 'side', light), skyLight)
     faces.add(side.direction, row, column, runTop, runTop + 1, underWater(color, runTop, water), underWater(color, runTop + 1, water))
   }
   const belowTop = open.top === runTop ? runTop - 1 : open.top
   if (belowTop >= open.bottom) {
-    const color = colorOf(surface, block, 'below', light)
+    const color = lit(colorOf(surface, block, 'below', light), skyLight)
     faces.add(side.direction, row, column, open.bottom, belowTop + 1, underWater(color, open.bottom, water), underWater(color, belowTop + 1, water))
   }
+}
+
+function lit(color: Vec3, brightness: number): Vec3 {
+  return [color[0] * brightness, color[1] * brightness, color[2] * brightness]
 }
 
 function colorOf(surface: SurfaceRuns, block: number, face: 'top' | 'side' | 'below', light: number): Vec3 {

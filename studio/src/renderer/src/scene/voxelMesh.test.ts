@@ -42,13 +42,19 @@ const surface: TerrainSurface = {
   colorAt: () => 0x808080
 }
 
-function voxelsOf(blocks: number[], faces: number[]): SurfaceVoxels {
+const FULL_LIGHT = 15
+
+// Every face lit fully with no corner darkened, unless shades are given.
+function voxelsOf(blocks: number[], faces: number[], shades?: number[]): SurfaceVoxels {
+  const shown = faces.reduce((count, sides) => count + sides.toString(2).split('1').length - 1, 0)
   const voxels: TileVoxels = {
     x: Uint8Array.from(blocks.map((_, at) => at)),
     z: new Uint8Array(blocks.length),
     y: new Int16Array(blocks.length).fill(GROUND),
     blocks: Int16Array.from(blocks),
-    faces: Uint8Array.from(faces)
+    faces: Uint8Array.from(faces),
+    lights: new Uint8Array(blocks.length).fill(FULL_LIGHT),
+    shades: Uint16Array.from(shades ?? new Array(shown).fill(FULL_LIGHT))
   }
   return { voxels, models: [null, leaves, grass, null], looks: [stoneLook, null, null, null], colors: [0x808080, 0, 0, 0], isWater: [false, false, false, true] }
 }
@@ -76,6 +82,23 @@ describe('voxel mesh', () => {
     const { cutOut } = voxelGeometries(new ColumnField(surface), voxelsOf([GRASS], [0]), plain)
 
     expect(faceCount(cutOut)).toBe(2)
+  })
+
+  it('darkens a corner of a face where opaque blocks stand around it, and splits the face away from it', () => {
+    const cornerHidden = FULL_LIGHT | (3 << 4)
+    const { opaque } = voxelGeometries(new ColumnField(surface), voxelsOf([STONE], [UP], [cornerHidden]), plain)
+    const colors = opaque!.getAttribute('color')
+
+    expect(colors.getY(0)).toBeLessThan(colors.getY(2) * 0.5)
+    expect(colors.getY(1)).toBeCloseTo(colors.getY(2))
+    expect(Array.from(opaque!.getIndex()!.array)).toEqual([1, 2, 3, 1, 3, 0])
+  })
+
+  it('darkens a face lit by less of the sky', () => {
+    const lit = voxelGeometries(new ColumnField(surface), voxelsOf([STONE], [UP], [FULL_LIGHT]), plain).opaque!
+    const shaded = voxelGeometries(new ColumnField(surface), voxelsOf([STONE], [UP], [8]), plain).opaque!
+
+    expect(shaded.getAttribute('color').getY(0)).toBeLessThan(lit.getAttribute('color').getY(0) * 0.7)
   })
 
   it('draws water as the sides of its sheet that face the air', () => {

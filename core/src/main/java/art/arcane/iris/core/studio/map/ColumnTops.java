@@ -53,21 +53,25 @@ interface ColumnTops {
 
     /**
      * One area's runs of solid blocks, highest first, the last being the ground, with the plant most often standing on
-     * each run's top, or null, and how much of the top plants stand on, out of {@link ColumnRuns#WHOLE_SHARE}.
+     * each run's top, or null, how much of the top plants stand on, out of {@link ColumnRuns#WHOLE_SHARE}, and how the
+     * top is lit, as {@link ColumnRuns#lights} and {@link ColumnRuns#occlusions} give it.
      */
-    record AreaRuns(short[] bottoms, short[] tops, String[] blocks, String[] covers, byte[] coverShares) {
+    record AreaRuns(short[] bottoms, short[] tops, String[] blocks, String[] covers, byte[] coverShares, byte[] lights, byte[] occlusions) {
     }
 
     /**
-     * Blocks seen in a square of columns, each with the sides that face the open air.
+     * Blocks seen in a square of columns, each with the sides that face the open air and how they are lit.
      *
      * @param x      each block's column from the square's west edge
      * @param z      each block's column from the square's north edge
      * @param y      each block's height above the dimension's bottom
      * @param blocks each block's key
      * @param faces  the sides of each block that face the open air, in {@link VisibleBlocks#SIDES}' order
+     * @param lights the light each block shows on faces that stand inside it, as {@link VisibleBlocks#lights} gives it
+     * @param shades the shade of each face {@link #faces} names, block after block and side after side, as
+     *               {@link ChunkCells#faceShade} gives it
      */
-    record TileVoxels(byte[] x, byte[] z, short[] y, String[] blocks, byte[] faces) {
+    record TileVoxels(byte[] x, byte[] z, short[] y, String[] blocks, byte[] faces, byte[] lights, short[] shades) {
     }
 
     /**

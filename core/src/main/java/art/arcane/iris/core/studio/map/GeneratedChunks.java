@@ -30,9 +30,9 @@ import art.arcane.iris.util.project.hunk.Hunk;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import it.unimi.dsi.fastutil.bytes.ByteArrayList;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
-import it.unimi.dsi.fastutil.ints.IntSets;
+import it.unimi.dsi.fastutil.ints.Int2ByteMap;
+import it.unimi.dsi.fastutil.ints.Int2ByteMaps;
+import it.unimi.dsi.fastutil.ints.Int2ByteOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -78,10 +78,10 @@ final class GeneratedChunks implements ColumnTops {
     // blocks out to the horizon holds tens of thousands of chunks.
     private static final int CHUNK_TOP_BYTES = 5 * 1024;
     private static final int RAISED_BLOCK_BYTES = Short.BYTES + Integer.BYTES;
-    // Its place, a shared key and the sides it shows.
-    private static final int VISIBLE_BLOCK_BYTES = Integer.BYTES + Integer.BYTES + Byte.BYTES;
-    // Its bottom, its top and a shared key.
-    private static final int RUN_BYTES = Short.BYTES + Short.BYTES + Integer.BYTES;
+    // Its place, a shared key, the sides it shows and its light.
+    private static final int VISIBLE_BLOCK_BYTES = Integer.BYTES + Integer.BYTES + Byte.BYTES + Byte.BYTES;
+    // Its bottom, its top, a shared key and its top's light and occlusion.
+    private static final int RUN_BYTES = Short.BYTES + Short.BYTES + Integer.BYTES + Byte.BYTES + Byte.BYTES;
     private static final long MOST_BYTES_KEPT = 512L * 1024 * 1024;
     private static final String LEASE_NAME = "studio_block_preview";
     // Half the cores, as the bridge does, so a studio filling its view leaves the server room to run.
@@ -261,21 +261,28 @@ final class GeneratedChunks implements ColumnTops {
             if (chunk == null) {
                 return false;
             }
-            IntSet reached = new IntOpenHashSet();
+            Int2ByteMap reached = new Int2ByteOpenHashMap();
             for (int side = ChunkBorders.NORTH; side <= ChunkBorders.EAST; side++) {
                 ChunkTop beside = knownChunk(keyOf(chunkX + VisibleBlocks.SIDES[side][0], chunkZ + VisibleBlocks.SIDES[side][2]));
                 if (beside != null) {
-                    reached.addAll(chunk.visible().borders().reachedFrom(beside.visible().borders(), side));
+                    keepBrightest(reached, chunk.visible().borders().reachedFrom(beside.visible().borders(), side));
                 }
             }
             if (reached.isEmpty()) {
                 return false;
             }
-            reached.addAll(chunk.reachedBeside());
+            keepBrightest(reached, chunk.reachedBeside());
             ChunkTop retraced = generateUnchecked(key, reached);
             chunks.put(key, retraced);
             tops.put(key, retraced);
             return true;
+        }
+
+        // A cell on a chunk's corner touches two chunks beside it, and takes the brighter light.
+        private static void keepBrightest(Int2ByteMap into, Int2ByteMap lights) {
+            for (Int2ByteMap.Entry light : lights.int2ByteEntrySet()) {
+                into.mergeByte(light.getIntKey(), light.getByteValue(), (known, found) -> (byte) Math.max(known, found));
+            }
         }
 
         // A neighbour neither the tile nor the cache holds was never generated, and the chunk's own judgement stands.
@@ -292,7 +299,7 @@ final class GeneratedChunks implements ColumnTops {
                     int chunkMinX = chunkX << CHUNK_SHIFT;
                     int chunkMinZ = chunkZ << CHUNK_SHIFT;
                     chunk.visible().borders().facesAgainst(beside.visible().borders(), side,
-                            (x, y, z, block, faceSide) -> voxels.add(chunkMinX + x, y, chunkMinZ + z, block, 1 << faceSide));
+                            (x, y, z, block, faceSide, light) -> voxels.addFace(chunkMinX + x, y, chunkMinZ + z, block, faceSide, light));
                 }
             }
         }
@@ -316,6 +323,10 @@ final class GeneratedChunks implements ColumnTops {
         private final ShortArrayList y = new ShortArrayList();
         private final List<String> blocks = new ArrayList<>();
         private final ByteArrayList faces = new ByteArrayList();
+        private final ByteArrayList lights = new ByteArrayList();
+        // Each block's face shades by side, SIDES of them a block, as a face shown later can come between.
+        private final ShortArrayList shadesBySide = new ShortArrayList();
+        private int shownFaces;
 
         TileVoxelsBuilder(int minX, int minZ, int size) {
             this.minX = minX;
@@ -324,36 +335,76 @@ final class GeneratedChunks implements ColumnTops {
         }
 
         void addVisible(VisibleBlocks visible, int chunkMinX, int chunkMinZ) {
+            int shade = 0;
             for (int at = 0; at < visible.count(); at++) {
                 int position = visible.positions()[at];
-                add(chunkMinX + (position & CHUNK_MASK), position >> VisibleBlocks.POSITION_Y_SHIFT,
-                        chunkMinZ + ((position >> CHUNK_SHIFT) & CHUNK_MASK), visible.blocks()[at], visible.faces()[at]);
+                int index = indexOf(chunkMinX + (position & CHUNK_MASK), position >> VisibleBlocks.POSITION_Y_SHIFT,
+                        chunkMinZ + ((position >> CHUNK_SHIFT) & CHUNK_MASK), visible.blocks()[at], visible.lights()[at]);
+                for (int side = 0; side < VisibleBlocks.SIDES.length; side++) {
+                    if ((visible.faces()[at] & 1 << side) == 0) {
+                        continue;
+                    }
+                    short faceShade = visible.shades()[shade++];
+                    if (index != NOT_ADDED) {
+                        show(index, side, faceShade);
+                    }
+                }
             }
         }
 
-        /** Adds a block at its place in the world with the sides it shows, or those sides to the block already there. */
-        void add(int worldX, int blockY, int worldZ, String block, int sides) {
+        /** Adds a block's face on a side at its place in the world, lit by {@code light} with no corner darkened. */
+        void addFace(int worldX, int blockY, int worldZ, String block, int side, int light) {
+            int at = indexOf(worldX, blockY, worldZ, block, (byte) 0);
+            if (at != NOT_ADDED) {
+                show(at, side, ChunkCells.plainShade(light));
+            }
+        }
+
+        // The block's index, added at its place in the world unless already there; none outside the square.
+        private int indexOf(int worldX, int blockY, int worldZ, String block, byte light) {
             int squareX = worldX - minX;
             int squareZ = worldZ - minZ;
             if (squareX < 0 || squareZ < 0 || squareX >= size || squareZ >= size) {
-                return;
+                return NOT_ADDED;
             }
             long place = ((long) blockY << Integer.SIZE) | ((long) squareZ << Short.SIZE) | squareX;
             int known = indexByPlace.getOrDefault(place, NOT_ADDED);
             if (known != NOT_ADDED) {
-                faces.set(known, (byte) (faces.getByte(known) | sides));
-                return;
+                return known;
             }
-            indexByPlace.put(place, faces.size());
+            int added = faces.size();
+            indexByPlace.put(place, added);
             x.add((byte) squareX);
             z.add((byte) squareZ);
             y.add((short) blockY);
             blocks.add(block);
-            faces.add((byte) sides);
+            faces.add((byte) 0);
+            lights.add(light);
+            shadesBySide.size(shadesBySide.size() + VisibleBlocks.SIDES.length);
+            return added;
+        }
+
+        private void show(int at, int side, short shade) {
+            byte shown = faces.getByte(at);
+            if ((shown & 1 << side) == 0) {
+                faces.set(at, (byte) (shown | 1 << side));
+                shownFaces++;
+            }
+            shadesBySide.set(at * VisibleBlocks.SIDES.length + side, shade);
         }
 
         TileVoxels build() {
-            return new TileVoxels(x.toByteArray(), z.toByteArray(), y.toShortArray(), blocks.toArray(String[]::new), faces.toByteArray());
+            short[] shades = new short[shownFaces];
+            int shade = 0;
+            for (int at = 0; at < faces.size(); at++) {
+                for (int side = 0; side < VisibleBlocks.SIDES.length; side++) {
+                    if ((faces.getByte(at) & 1 << side) != 0) {
+                        shades[shade++] = shadesBySide.getShort(at * VisibleBlocks.SIDES.length + side);
+                    }
+                }
+            }
+            return new TileVoxels(x.toByteArray(), z.toByteArray(), y.toShortArray(), blocks.toArray(String[]::new), faces.toByteArray(),
+                    lights.toByteArray(), shades);
         }
     }
 
@@ -407,7 +458,8 @@ final class GeneratedChunks implements ColumnTops {
         int last = first + runs.counts()[area];
         return new AreaRuns(Arrays.copyOfRange(runs.bottoms(), first, last), Arrays.copyOfRange(runs.tops(), first, last),
                 Arrays.copyOfRange(runs.blocks(), first, last), Arrays.copyOfRange(runs.covers(), first, last),
-                Arrays.copyOfRange(runs.coverShares(), first, last));
+                Arrays.copyOfRange(runs.coverShares(), first, last), Arrays.copyOfRange(runs.lights(), first, last),
+                Arrays.copyOfRange(runs.occlusions(), first, last));
     }
 
     private static void awaitUnlessCancelled(Future<?> chunk, BooleanSupplier cancelled) {
@@ -460,10 +512,10 @@ final class GeneratedChunks implements ColumnTops {
     }
 
     private ChunkTop generate(long key) throws Exception {
-        return generate(key, IntSets.EMPTY_SET);
+        return generate(key, Int2ByteMaps.EMPTY_MAP);
     }
 
-    private ChunkTop generateUnchecked(long key, IntSet reachedBeside) {
+    private ChunkTop generateUnchecked(long key, Int2ByteMap reachedBeside) {
         try {
             return generate(key, reachedBeside);
         } catch (Exception failed) {
@@ -471,8 +523,8 @@ final class GeneratedChunks implements ColumnTops {
         }
     }
 
-    /** @param reachedBeside the cells along the chunk's sides the open air of the chunks beside it reaches */
-    private ChunkTop generate(long key, IntSet reachedBeside) throws Exception {
+    /** @param reachedBeside the cells along the chunk's sides the open air of the chunks beside it reaches, with its light */
+    private ChunkTop generate(long key, Int2ByteMap reachedBeside) throws Exception {
         int chunkX = (int) (key >> Integer.SIZE);
         int chunkZ = (int) key;
         int height = engine.getHeight();
@@ -484,12 +536,12 @@ final class GeneratedChunks implements ColumnTops {
         }
         IntBinaryOperator terrainY = (x, z) -> engine.getHeight((chunkX << CHUNK_SHIFT) + x, (chunkZ << CHUNK_SHIFT) + z, true);
         int fluidHeight = engine.getDimension().getFluidHeight();
+        ChunkCells cells = ChunkCells.of(blocks, terrainY, fluidHeight, this::seenByPlayers, reachedBeside);
         ColumnRuns[] runs = new ColumnRuns[ColumnRuns.MOST_LEVEL];
         for (int level = 1; level <= ColumnRuns.MOST_LEVEL; level++) {
-            runs[level - 1] = ColumnRuns.of(blocks, level, terrainY, this::seenByPlayers);
+            runs[level - 1] = ColumnRuns.of(blocks, level, terrainY, this::seenByPlayers, cells);
         }
-        return new ChunkTop(topsOf(blocks, terrainY, this::seenByPlayers), VisibleBlocks.of(blocks, terrainY, fluidHeight, this::seenByPlayers, reachedBeside),
-                runs, reachedBeside);
+        return new ChunkTop(topsOf(blocks, terrainY, this::seenByPlayers), VisibleBlocks.of(cells, reachedBeside), runs, reachedBeside);
     }
 
     // A plugin's block can be solid on the server where players see grass they walk through.
@@ -509,9 +561,10 @@ final class GeneratedChunks implements ColumnTops {
 
     /**
      * @param runs          the chunk's runs of solid blocks in areas 2, 4, 8 and 16 blocks across, for coarser tiles
-     * @param reachedBeside the cells along its sides found reached through the chunks beside it, which it was traced from
+     * @param reachedBeside the cells along its sides found reached through the chunks beside it, which it was traced from,
+     *                      with the light there
      */
-    private record ChunkTop(ColumnTop[] columns, VisibleBlocks visible, ColumnRuns[] runs, IntSet reachedBeside) {
+    private record ChunkTop(ColumnTop[] columns, VisibleBlocks visible, ColumnRuns[] runs, Int2ByteMap reachedBeside) {
         int bytes() {
             int raisedBlocks = 0;
             for (ColumnTop column : columns) {
@@ -522,7 +575,7 @@ final class GeneratedChunks implements ColumnTops {
                 runs += level.tops().length;
             }
             return CHUNK_TOP_BYTES + raisedBlocks * RAISED_BLOCK_BYTES + visible.count() * VISIBLE_BLOCK_BYTES + runs * RUN_BYTES
-                    + visible.borders().bytes() + reachedBeside.size() * Integer.BYTES;
+                    + visible.shades().length * Short.BYTES + visible.borders().bytes() + reachedBeside.size() * (Integer.BYTES + Byte.BYTES);
         }
     }
 

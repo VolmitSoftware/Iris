@@ -77,7 +77,9 @@ public final class RuntimeUiMessages {
     public static final TextKey DUST_PLACED_BY_BURIED_OBJECT = text("iris.runtime.dust.placed_by.buried_object");
     public static final TextKey DUST_PLACED_BY_TERRAIN = text("iris.runtime.dust.placed_by.terrain");
     public static final TextKey DUST_PLACED_BY_STRUCTURE_PIECE = text("iris.runtime.dust.placed_by.structure_piece");
-    public static final TextKey DUST_COLUMN_OBJECT = text("iris.runtime.dust.column_object");
+    public static final TextKey DUST_OBJECT_FROM_BIOME = text("iris.runtime.dust.object_from.biome");
+    public static final TextKey DUST_OBJECT_FROM_REGION = text("iris.runtime.dust.object_from.region");
+    public static final TextKey DUST_COLUMN_OBJECT =text("iris.runtime.dust.column_object");
     public static final TextKey DUST_COLUMN_OBJECT_NONE = text("iris.runtime.dust.column_object_none");
     public static final TextKey DUST_COLUMN_NONE = text("iris.runtime.dust.column_none");
     public static final TextKey DUST_COLUMN_ABOVE = text("iris.runtime.dust.column.above");

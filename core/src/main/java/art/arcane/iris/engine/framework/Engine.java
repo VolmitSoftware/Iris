@@ -427,10 +427,24 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             return o.getObject().getLoadKey() + "@" + o.getId();
         }
 
+        String raw = getObjectPlacementMarker(x, y, z);
+        if (raw == null || raw.isEmpty()) {
+            return null;
+        }
+        PlacementMarkers.Decoded marker = PlacementMarkers.decode(raw);
+        return marker == null ? raw : marker.placementKey();
+    }
+
+    /** The biome or region that placed the object at the block; null when no object is there or its placement names none. */
+    default PlacementMarkers.OwnerKey getObjectPlacementOwner(int x, int y, int z) {
+        PlacementMarkers.Decoded marker = PlacementMarkers.decode(getObjectPlacementMarker(x, y, z));
+        return marker == null ? null : marker.owner();
+    }
+
+    private String getObjectPlacementMarker(int x, int y, int z) {
         MantleChunk<Matter> chunk = getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
         try {
-            String raw = chunk.get(x & 15, y, z & 15, String.class);
-            return (raw == null || raw.isEmpty()) ? null : raw;
+            return chunk.get(x & 15, y, z & 15, String.class);
         } finally {
             chunk.release();
         }

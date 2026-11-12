@@ -943,6 +943,8 @@
     "iris.runtime.dust.position.below": "位置 : {offset} 低於表面(表Y={surfaceY})",
     "iris.runtime.dust.position.at": "位置:在表面(Y={surfaceY})",
     "iris.runtime.dust.object_at_block": "物件@ 方塊: {object}",
+    "iris.runtime.dust.object_from.biome": "放置來源生態域: {biome}",
+    "iris.runtime.dust.object_from.region": "放置來源區域: {region}",
     "iris.runtime.dust.none": "無",
     "iris.runtime.dust.placed_by.object_above": "位置: 物件/斜體 '{object}'(以上表面)",
     "iris.runtime.dust.placed_by.decoration_above": "由:裝飾/物件/斜體(上表面)",

@@ -943,6 +943,8 @@
     "iris.runtime.dust.position.below": "Posición: {offset} bajo la superficie (Y de superficie={surfaceY})",
     "iris.runtime.dust.position.at": "Posición: en la superficie (Y={surfaceY})",
     "iris.runtime.dust.object_at_block": "Objeto @bloque: {object}",
+    "iris.runtime.dust.object_from.biome": "Colocado desde el bioma: {biome}",
+    "iris.runtime.dust.object_from.region": "Colocado desde la región: {region}",
     "iris.runtime.dust.none": "ninguno",
     "iris.runtime.dust.placed_by.object_above": "Colocado por: objeto/pilar '{object}' (sobre la superficie)",
     "iris.runtime.dust.placed_by.decoration_above": "Colocado por: decoración/objeto/pilar (sobre la superficie)",

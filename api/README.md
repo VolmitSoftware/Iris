@@ -294,8 +294,8 @@ if (!outcome.isPlaced()) {
 - `PlacementTerrain` is the world the placement reads and the host writes into once it commits: heights, blocks,
   carved space, fluid, the structures nearby and the placement recorded at a block (`recordPlacement`, `placementAt`;
   `RunningWorld.placementAt` reads it back later, such as for the loot of a placed object). A recorded placement is a
-  `PlacementRecord`: the object's id, the module's number for this placement of it and, for a piece of a structure, the
-  structure's id. A module may wrap the terrain to hold or filter writes; a mantle stage gets one for its invocation from
+  `PlacementRecord`: the object's id, the module's number for this placement of it, for a piece of a structure the
+  structure's id, and the `PlacementOwner`, the biome or region whose settings placed it. A module may wrap the terrain to hold or filter writes; a mantle stage gets one for its invocation from
   `MantleGenerationContext.placementTerrain()`.
 - `clearBlock(x, y, z)` takes a block a placement wrote back, so the terrain shows through; the block entity, placement
   record and markers kept beside it stay until `clearAttached(x, y, z)` takes them back, whether or not a block is still

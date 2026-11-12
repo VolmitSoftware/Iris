@@ -4,6 +4,8 @@ import com.volmit.entity.EntitySpec;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.item.ItemDrop;
 import com.volmit.item.ItemEnchantment;
+import com.volmit.config.Level;
+import com.volmit.placement.PlacementOwner;
 import com.volmit.placement.PlacementRecord;
 import com.volmit.resource.ContentKey;
 import com.volmit.resource.ResourceId;
@@ -92,8 +94,19 @@ class ItemAndEntityValuesTest {
 
         assertEquals(Optional.empty(), PlacementRecord.of(oak, 7).structure());
         assertEquals(Optional.of(village), PlacementRecord.ofPiece(oak, 7, village).structure());
-        assertEquals(PlacementRecord.of(oak, 7), new PlacementRecord(oak, 7, Optional.empty()));
-        assertThrows(NullPointerException.class, () -> new PlacementRecord(null, 7, Optional.empty()));
+        assertEquals(PlacementRecord.of(oak, 7), new PlacementRecord(oak, 7, Optional.empty(), Optional.empty()));
+        assertThrows(NullPointerException.class, () -> new PlacementRecord(null, 7, Optional.empty(), Optional.empty()));
+    }
+
+    @Test
+    void aPlacementRecordNamesTheBiomeOrRegionThatPlacedIt() {
+        ResourceId oak = ResourceId.parse("overworld:trees/oak");
+        ResourceId forest = ResourceId.parse("overworld:forest");
+
+        assertEquals(Optional.empty(), PlacementRecord.of(oak, 7).owner());
+        assertEquals(Optional.of(PlacementOwner.biome(forest)), PlacementRecord.of(oak, 7).ownedBy(PlacementOwner.biome(forest)).owner());
+        assertEquals(Level.REGION, PlacementOwner.region(forest).level());
+        assertThrows(IllegalArgumentException.class, () -> new PlacementOwner(Level.DIMENSION, forest));
     }
 
     @Test

@@ -23,6 +23,7 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.localization.RuntimeUiMessages;
 import art.arcane.iris.core.modules.ModuleServices;
+import art.arcane.iris.core.modules.PlacementMarkers;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
@@ -31,6 +32,7 @@ import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.collection.KList;
+import com.volmit.config.Level;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.RNG;
@@ -232,6 +234,10 @@ public class DustRevealer {
                         objectKey == null ? IrisLanguage.text(RuntimeUiMessages.DUST_NONE) : objectKey
                 )
         ), false));
+        PlacementMarkers.OwnerKey owner = objectKey == null ? null : safe(() -> engine.getObjectPlacementOwner(x, relativeY, z));
+        if (owner != null) {
+            lines.add(new DustLine(ownerLine(owner), true));
+        }
         if (objectKey == null && structurePiece == null) {
             String columnObject = findColumnObject(engine, x, relativeY, z, minHeight);
             lines.add(new DustLine(IrisLanguage.text(
@@ -300,6 +306,12 @@ public class DustRevealer {
             payload.append('\n').append(line.text());
         }
         sendCopyButton(sender, payload.toString());
+    }
+
+    private static String ownerLine(PlacementMarkers.OwnerKey owner) {
+        return owner.level() == Level.REGION
+                ? IrisLanguage.text(RuntimeUiMessages.DUST_OBJECT_FROM_REGION, MessageArgument.untrusted("region", owner.key()))
+                : IrisLanguage.text(RuntimeUiMessages.DUST_OBJECT_FROM_BIOME, MessageArgument.untrusted("biome", owner.key()));
     }
 
     private static String findColumnObject(Engine engine, int x, int relativeY, int z, int minHeight) {

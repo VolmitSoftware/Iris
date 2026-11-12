@@ -943,6 +943,8 @@
     "iris.runtime.dust.position.below": "Sijainti: {offset} pinnan alla (pinta Y ={surfaceY})",
     "iris.runtime.dust.position.at": "Sijainti: pinnalla (Y ={surfaceY})",
     "iris.runtime.dust.object_at_block": "Kohde @ lohko: {object}",
+    "iris.runtime.dust.object_from.biome": "Sijoittanut biomi: {biome}",
+    "iris.runtime.dust.object_from.region": "Sijoittanut alue: {region}",
     "iris.runtime.dust.none": "ei yhtään",
     "iris.runtime.dust.placed_by.object_above": "Sijaitsee: esine/kallistus '{object}\" (pinnan yläpuolella)",
     "iris.runtime.dust.placed_by.decoration_above": "Sijaitsee: sisustus/objekti/kalleus (pinnan yläpuolella)",

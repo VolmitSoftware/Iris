@@ -943,6 +943,8 @@
     "iris.runtime.dust.position.below": "位置: 地表より {offset} 下（地表 Y={surfaceY}）",
     "iris.runtime.dust.position.at": "位置: 地表（Y={surfaceY}）",
     "iris.runtime.dust.object_at_block": "このブロックのオブジェクト: {object}",
+    "iris.runtime.dust.object_from.biome": "配置元バイオーム: {biome}",
+    "iris.runtime.dust.object_from.region": "配置元リージョン: {region}",
     "iris.runtime.dust.none": "なし",
     "iris.runtime.dust.placed_by.object_above": "配置元: object/stilt '{object}'（地表より上）",
     "iris.runtime.dust.placed_by.decoration_above": "配置元: decoration/object/stilt（地表より上）",

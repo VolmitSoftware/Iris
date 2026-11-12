@@ -943,6 +943,8 @@
     "iris.runtime.dust.position.below": "מיקום: {offset} מתחת לפני השטח (surface Y={surfaceY})",
     "iris.runtime.dust.position.at": "מיקום: על פני השטח (Y={surfaceY})",
     "iris.runtime.dust.object_at_block": "אובייקטים @בלוק: {object}",
+    "iris.runtime.dust.object_from.biome": "הוצב על ידי ביום: {biome}",
+    "iris.runtime.dust.object_from.region": "הוצב על ידי אזור: {region}",
     "iris.runtime.dust.none": "אף אחד לא",
     "iris.runtime.dust.placed_by.object_above": "הוצב על ידי: object/stilt '{object}' (מעל פני השטח)",
     "iris.runtime.dust.placed_by.decoration_above": "הוצב על ידי: decoration/object/stilt (מעל פני השטח)",

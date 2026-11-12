@@ -22,6 +22,7 @@ import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.localization.RuntimeUiMessages;
 import art.arcane.iris.core.modules.ModuleServices;
+import art.arcane.iris.core.modules.PlacementMarkers;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.GenerationSessionException;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
@@ -32,6 +33,7 @@ import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedScheduler;
 import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.volmlib.util.localization.MessageArgument;
+import com.volmit.config.Level;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -294,6 +296,12 @@ public final class ModdedDustRevealer {
                                 ? IrisLanguage.plain(RuntimeUiMessages.DUST_NONE)
                                 : objectKey)
         ), false));
+        PlacementMarkers.OwnerKey owner = objectKey == null ? null : safe(
+                "object owner lookup at " + coordinates(pos),
+                () -> engine.getObjectPlacementOwner(x, relativeY, z));
+        if (owner != null) {
+            lines.add(new DustLine(ownerLine(owner), true));
+        }
         if (objectKey == null && structurePiece == null) {
             String columnObject = findColumnObject(engine, x, relativeY, z, minHeight);
             lines.add(new DustLine(IrisLanguage.plain(
@@ -390,6 +398,12 @@ public final class ModdedDustRevealer {
         return IrisLanguage.plain(
                 RuntimeUiMessages.DUST_PLACED_BY_TERRAIN,
                 MessageArgument.trusted("depth", Math.max(0, surfaceRelative - relativeY)));
+    }
+
+    static String ownerLine(PlacementMarkers.OwnerKey owner) {
+        return owner.level() == Level.REGION
+                ? IrisLanguage.plain(RuntimeUiMessages.DUST_OBJECT_FROM_REGION, MessageArgument.untrusted("region", owner.key()))
+                : IrisLanguage.plain(RuntimeUiMessages.DUST_OBJECT_FROM_BIOME, MessageArgument.untrusted("biome", owner.key()));
     }
 
     static String structurePieceLine(ModuleServices.PlannedPlacement structurePiece) {

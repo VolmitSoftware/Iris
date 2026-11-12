@@ -18,18 +18,23 @@
 
 package art.arcane.iris.core.modules;
 
+import com.volmit.config.Level;
+import com.volmit.placement.PlacementOwner;
 import com.volmit.placement.PlacementRecord;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
+import com.volmit.resource.ResourceKind;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
 /**
  * The text Iris keeps beside a placed block in its mantle to say which placement the block belongs to: {@code key@id}
  * for an object placed on its own, and a delimiter-safe {@code @iris-structure:v1:...} form for a piece of a structure.
+ * Either form may end in {@code #biome:...} or {@code #region:...}, naming the biome or region that placed the object.
  * Worlds already generated hold these texts, so the forms never change. A module hands Iris a {@link PlacementRecord},
  * and Iris reads one back from the text with the pack's keys and ids.
  */
@@ -37,6 +42,8 @@ public final class PlacementMarkers {
     private static final String FAMILY_PREFIX = "@iris-structure:";
     private static final String VERSION_PREFIX = FAMILY_PREFIX + "v1:";
     private static final char PLACEMENT_SEPARATOR = '@';
+    private static final char OWNER_SEPARATOR = '#';
+    private static final char OWNER_LEVEL_SEPARATOR = ':';
 
     private PlacementMarkers() {
     }
@@ -56,13 +63,26 @@ public final class PlacementMarkers {
                 + ":" + encodeKey(normalizedStructureKey);
     }
 
-    /** The text of {@code record}, with the pack keys of its object and structure. */
+    /** The text of {@code record}, with the pack keys of its object, structure and owner. */
     public static String encode(PlacementRecord record, IrisPackResources resources) {
+        return encodePlacement(record, resources) + record.owner().map(owner -> encodeOwner(owner, resources)).orElse("");
+    }
+
+    private static String encodePlacement(PlacementRecord record, IrisPackResources resources) {
         String objectKey = resources.keyOf(PackResources.OBJECTS, record.object());
         if (record.structure().isEmpty()) {
             return encode(objectKey, record.placementId());
         }
         return encodeStructure(objectKey, record.placementId(), resources.keyOf(record.structure().get()));
+    }
+
+    private static String encodeOwner(PlacementOwner owner, IrisPackResources resources) {
+        String ownerKey = resources.keyOf(kindOf(owner.level()), owner.source());
+        return OWNER_SEPARATOR + owner.level().name().toLowerCase(Locale.ROOT) + OWNER_LEVEL_SEPARATOR + encodeKey(ownerKey);
+    }
+
+    private static ResourceKind<?> kindOf(Level ownerLevel) {
+        return ownerLevel == Level.REGION ? PackResources.REGIONS : PackResources.BIOMES;
     }
 
     /** What the text says, or empty for a text that names no placement. */
@@ -75,13 +95,40 @@ public final class PlacementMarkers {
         Optional<ResourceId> structure = decoded.structureAware()
                 ? Optional.of(resources.idOf(decoded.structureKey()))
                 : Optional.empty();
-        return Optional.of(new PlacementRecord(object, decoded.placementId(), structure));
+        Optional<PlacementOwner> owner = Optional.ofNullable(decoded.owner())
+                .map(ownerKey -> new PlacementOwner(ownerKey.level(), resources.idOf(ownerKey.key())));
+        return Optional.of(new PlacementRecord(object, decoded.placementId(), structure, owner));
     }
 
     public static Decoded decode(String marker) {
         if (marker == null || marker.isBlank()) {
             return null;
         }
+        int ownerStart = marker.lastIndexOf(OWNER_SEPARATOR);
+        OwnerKey owner = ownerStart > 0 ? decodeOwner(marker.substring(ownerStart + 1)) : null;
+        Decoded placement = decodePlacement(owner == null ? marker : marker.substring(0, ownerStart));
+        return placement == null || owner == null ? placement : placement.ownedBy(owner);
+    }
+
+    /** The owner a text's end names, or null when the end names none. */
+    private static OwnerKey decodeOwner(String text) {
+        int levelEnd = text.indexOf(OWNER_LEVEL_SEPARATOR);
+        if (levelEnd <= 0) {
+            return null;
+        }
+        try {
+            Level level = Level.valueOf(text.substring(0, levelEnd).toUpperCase(Locale.ROOT));
+            String key = decodeCanonicalKey(text.substring(levelEnd + 1));
+            if (key.isBlank() || (level != Level.BIOME && level != Level.REGION)) {
+                return null;
+            }
+            return new OwnerKey(level, key);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    private static Decoded decodePlacement(String marker) {
         if (marker.startsWith(FAMILY_PREFIX)) {
             return decodeStructure(marker);
         }
@@ -103,7 +150,7 @@ public final class PlacementMarkers {
             if (objectKey.isBlank() || structureKey.isBlank()) {
                 return null;
             }
-            return new Decoded(objectKey, placementId, structureKey);
+            return new Decoded(objectKey, placementId, structureKey, null);
         } catch (IllegalArgumentException exception) {
             return null;
         }
@@ -119,7 +166,7 @@ public final class PlacementMarkers {
             return null;
         }
         try {
-            return new Decoded(objectKey, Integer.parseInt(marker.substring(separator + 1)), null);
+            return new Decoded(objectKey, Integer.parseInt(marker.substring(separator + 1)), null, null);
         } catch (NumberFormatException exception) {
             return null;
         }
@@ -145,10 +192,26 @@ public final class PlacementMarkers {
         return decoded;
     }
 
-    /** A placement text read as pack keys; {@code structureKey} is null for an object placed on its own. */
-    public record Decoded(String objectKey, int placementId, String structureKey) {
+    /**
+     * A placement text read as pack keys; {@code structureKey} is null for an object placed on its own, {@code owner}
+     * null when the text names no biome or region that placed it.
+     */
+    public record Decoded(String objectKey, int placementId, String structureKey, OwnerKey owner) {
         public boolean structureAware() {
             return structureKey != null;
         }
+
+        /** The object and placement as {@code key@id}, the form the block inspection tools show. */
+        public String placementKey() {
+            return objectKey + PLACEMENT_SEPARATOR + placementId;
+        }
+
+        Decoded ownedBy(OwnerKey placedBy) {
+            return new Decoded(objectKey, placementId, structureKey, placedBy);
+        }
+    }
+
+    /** The biome or region that placed an object, by its pack key; {@code level} is {@link Level#BIOME} or {@link Level#REGION}. */
+    public record OwnerKey(Level level, String key) {
     }
 }

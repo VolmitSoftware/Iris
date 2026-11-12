@@ -1,6 +1,8 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
+import com.volmit.config.Level;
+import com.volmit.placement.PlacementOwner;
 import com.volmit.placement.PlacementRecord;
 import org.junit.Test;
 
@@ -33,6 +35,33 @@ public class PlacementMarkersTest {
 
         assertEquals(PlacementMarkers.encodeStructure("pieces/room", 918273, "structures/village"), marker);
         assertEquals(Optional.of(record), PlacementMarkers.recordOf(marker, resources));
+    }
+
+    @Test
+    public void theBiomeOrRegionThatPlacedAnObjectReadsBack() {
+        IrisPackResources resources = resources();
+        PlacementRecord fromBiome = PlacementRecord.of(resources.idOf("trees/oak"), 7)
+                .ownedBy(PlacementOwner.biome(resources.idOf("forest/birch")));
+        PlacementRecord pieceFromRegion = PlacementRecord.ofPiece(resources.idOf("pieces/room"), 918273, resources.idOf("structures/village"))
+                .ownedBy(PlacementOwner.region(resources.idOf("plains")));
+
+        String biomeMarker = PlacementMarkers.encode(fromBiome, resources);
+        String regionMarker = PlacementMarkers.encode(pieceFromRegion, resources);
+
+        assertEquals(Optional.of(fromBiome), PlacementMarkers.recordOf(biomeMarker, resources));
+        assertEquals(Optional.of(pieceFromRegion), PlacementMarkers.recordOf(regionMarker, resources));
+        assertEquals(new PlacementMarkers.OwnerKey(Level.BIOME, "forest/birch"), PlacementMarkers.decode(biomeMarker).owner());
+        assertEquals("trees/oak@7", PlacementMarkers.decode(biomeMarker).placementKey());
+    }
+
+    @Test
+    public void anEndThatNamesNoOwnerLeavesTheMarkerAsItWas() {
+        PlacementMarkers.Decoded hashInKey = PlacementMarkers.decode("trees/oak#2@7");
+        PlacementMarkers.Decoded dimensionOwner = PlacementMarkers.decode("trees/oak@7#dimension:Zm9yZXN0");
+
+        assertEquals("trees/oak#2", hashInKey.objectKey());
+        assertNull(hashInKey.owner());
+        assertNull(dimensionOwner);
     }
 
     @Test

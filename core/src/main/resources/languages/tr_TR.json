@@ -943,6 +943,8 @@
     "iris.runtime.dust.position.below": "Pozisyon: {offset} Aşağıdaki yüzey (surface Y={surfaceY})",
     "iris.runtime.dust.position.at": "Pozisyon: Yüzeyde (Y={surfaceY})",
     "iris.runtime.dust.object_at_block": "Object @block : {object}",
+    "iris.runtime.dust.object_from.biome": "Yerleştiren biyom: {biome}",
+    "iris.runtime.dust.object_from.region": "Yerleştiren bölge: {region}",
     "iris.runtime.dust.none": "Hiçbir kimse hiçbir şey yok",
     "iris.runtime.dust.placed_by.object_above": "Tarafından Yeri: nesne /{object}\" (üstünde yüzeyi)",
     "iris.runtime.dust.placed_by.decoration_above": "Yer: dekorasyon/object /stilt (üstünde yüzeyi)",

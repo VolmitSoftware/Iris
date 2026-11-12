@@ -45,10 +45,12 @@ import com.volmit.generation.GenerationFailures;
 import com.volmit.object.PlaceableObject;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.MantleStageContext;
+import com.volmit.placement.PlacementOwner;
 import com.volmit.placement.PlacementRecord;
 import com.volmit.world.TerrainSampler;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
 
@@ -223,19 +225,22 @@ final class ChunkObjectPlacing {
         CaveProfile biomeCaveProfile = caves.resolve(column.profiles().cave(), column.profiles().region());
         CaveProfile regionCaveProfile = caves.resolve(column.profiles().region(), column.profiles().cave());
         CaveAnchors anchors = newAnchors();
-        placeSurfaceScope(tally, "biome-surface", surfaceObjects(column.objects().surface()), column.surface().toString());
-        placeCaveScope(tally, "biome-cave", carvingObjects(column.objects().cave()), biomeCaveProfile, column.cave(), column.cave().toString(), anchors);
-        placeSurfaceScope(tally, "region-surface", surfaceObjects(column.objects().region()), column.region().toString());
-        placeCaveScope(tally, "region-cave", carvingObjects(column.objects().region()), regionCaveProfile, null, column.region().toString(), anchors);
+        PlacementOwner surfaceBiome = PlacementOwner.biome(column.surface());
+        PlacementOwner region = PlacementOwner.region(column.region());
+        placeSurfaceScope(tally, "biome-surface", surfaceObjects(column.objects().surface()), surfaceBiome);
+        placeCaveScope(tally, "biome-cave", carvingObjects(column.objects().cave()), biomeCaveProfile, column.cave(),
+                PlacementOwner.biome(column.cave()), anchors);
+        placeSurfaceScope(tally, "region-surface", surfaceObjects(column.objects().region()), region);
+        placeCaveScope(tally, "region-cave", carvingObjects(column.objects().region()), regionCaveProfile, null, region, anchors);
         return tally;
     }
 
-    private void placeSurfaceScope(Tally tally, String scope, List<ObjectPlacement> placements, String ownerName) {
+    private void placeSurfaceScope(Tally tally, String scope, List<ObjectPlacement> placements, PlacementOwner owner) {
         for (ObjectPlacement placement : placements) {
             tally.checked(scope);
             try {
                 if (placement.isSeparated()) {
-                    placeSeparatedObject(tally, placement, scope);
+                    placeSeparatedObject(tally, placement, scope, owner);
                     continue;
                 }
                 boolean passes = rng.chance(separation.chanceAt(placement, centerX, centerZ) + rng.d(-CHANCE_JITTER, CHANCE_JITTER));
@@ -244,16 +249,16 @@ final class ChunkObjectPlacing {
                     continue;
                 }
                 tally.triggered(scope);
-                placeObject(tally, placement, scope);
+                placeObject(tally, placement, scope, owner);
             } catch (Throwable failure) {
-                skipObjectPlacement("object", "in " + ownerKind(scope) + " " + ownerName, placement, failure);
+                skipObjectPlacement("object", "in " + describe(owner), placement, failure);
                 tally.errors++;
             }
         }
     }
 
     /** Places the one object the chunk's candidate stands for, when no closer candidate of a lower rank outranks it. */
-    private void placeSeparatedObject(Tally tally, ObjectPlacement placement, String scope) {
+    private void placeSeparatedObject(Tally tally, ObjectPlacement placement, String scope, PlacementOwner owner) {
         Optional<ObjectSeparation.Candidate> kept = separation.keptCandidate(chunkX, chunkZ, placement, context.settings());
         traceChance(scope, kept.isPresent(), placement);
         if (kept.isEmpty()) {
@@ -268,11 +273,11 @@ final class ChunkObjectPlacing {
             traceNullObject(scope, 0, 1, placement);
             return;
         }
-        placeOnSurfaceAt(tally, placement, scope, picked.get(), candidate.x(), candidate.z(), candidate.rng(), 0, 1);
+        placeOnSurfaceAt(tally, placement, scope, owner, picked.get(), candidate.x(), candidate.z(), candidate.rng(), 0, 1);
     }
 
     private void placeCaveScope(Tally tally, String scope, List<ObjectPlacement> placements, CaveProfile profile,
-                                ResourceId expectedCaveBiome, String ownerName, CaveAnchors anchors) {
+                                ResourceId expectedCaveBiome, PlacementOwner owner, CaveAnchors anchors) {
         for (ObjectPlacement placement : placements) {
             tally.checked(scope);
             boolean passes = rng.chance(placement.chance());
@@ -282,23 +287,23 @@ final class ChunkObjectPlacing {
             }
             tally.triggered(scope);
             try {
-                placeCaveObject(tally, placement, profile, scope, expectedCaveBiome, anchors);
+                placeCaveObject(tally, placement, profile, scope, owner, expectedCaveBiome, anchors);
             } catch (Throwable failure) {
-                skipObjectPlacement("cave object", "in " + ownerKind(scope) + " " + ownerName, placement, failure);
+                skipObjectPlacement("cave object", "in " + describe(owner), placement, failure);
                 tally.errors++;
             }
         }
     }
 
-    private static String ownerKind(String scope) {
-        return scope.startsWith("biome") ? "biome" : "region";
+    private static String describe(PlacementOwner owner) {
+        return owner.level().name().toLowerCase(Locale.ROOT) + " " + owner.source();
     }
 
     private void skipObjectPlacement(String kind, String where, ObjectPlacement placement, Throwable failure) {
         GenerationFailures.skipPlacement(log, failure, kind, String.join(", ", placement.place()), where);
     }
 
-    private void placeObject(Tally tally, ObjectPlacement placement, String scope) {
+    private void placeObject(Tally tally, ObjectPlacement placement, String scope, PlacementOwner owner) {
         int blockX = context.originX();
         int blockZ = context.originZ();
         int density = objects.density(placement, blockX, blockZ);
@@ -312,12 +317,12 @@ final class ChunkObjectPlacing {
             }
             int x = rng.i(blockX, blockX + CHUNK_WIDTH_BLOCKS);
             int z = rng.i(blockZ, blockZ + CHUNK_WIDTH_BLOCKS);
-            placeOnSurfaceAt(tally, placement, scope, picked.get(), x, z, rng, i, density);
+            placeOnSurfaceAt(tally, placement, scope, owner, picked.get(), x, z, rng, i, density);
         }
     }
 
-    private void placeOnSurfaceAt(Tally tally, ObjectPlacement placement, String scope, PlaceableObject object, int x, int z,
-                                  RNG placingRng, int densityIndex, int density) {
+    private void placeOnSurfaceAt(Tally tally, ObjectPlacement placement, String scope, PlacementOwner owner, PlaceableObject object,
+                                  int x, int z, RNG placingRng, int densityIndex, int density) {
         PlacementChanges changes = effective.forSurface(placement, object);
         boolean treePlacement = isTreePlacement(object, placement);
         int id = placingRng.i(0, Integer.MAX_VALUE);
@@ -327,7 +332,7 @@ final class ChunkObjectPlacing {
                     + " densityIndex=" + densityIndex + " xx=" + x + " zz=" + z + " mode=" + placement.mode());
         }
         try {
-            PlacementTags tags = tags(object, id, "surface", treePlacement, placement);
+            PlacementTags tags = tags(object, id, "surface", treePlacement, placement, owner);
             int result = chunk.placeOnSurface(object, x, z, placement, changes, tags, goldenTag);
             if (result >= 0) {
                 tally.placed++;
@@ -342,7 +347,7 @@ final class ChunkObjectPlacing {
         }
     }
 
-    private void placeCaveObject(Tally tally, ObjectPlacement placement, CaveProfile profile, String scope,
+    private void placeCaveObject(Tally tally, ObjectPlacement placement, CaveProfile profile, String scope, PlacementOwner owner,
                                  ResourceId expectedCaveBiome, CaveAnchors anchors) {
         int minX = context.originX();
         int minZ = context.originZ();
@@ -367,7 +372,7 @@ final class ChunkObjectPlacing {
             int id = rng.i(0, Integer.MAX_VALUE);
             PlacementChanges changes = effective.forCave(placement, object, profile);
             try {
-                PlacementTags tags = tags(object, id, "cave", isTreePlacement(object, placement), placement);
+                PlacementTags tags = tags(object, id, "cave", isTreePlacement(object, placement), placement, owner);
                 CavePlacement contained = chunk.placeInCave(object, anchor.x(), anchor.y(), anchor.z(), placement, changes,
                         search.minDepthBelowSurface(), tags, null);
                 tallyCave(tally, contained, scope, object, placement, i, density, search, anchor);
@@ -412,29 +417,29 @@ final class ChunkObjectPlacing {
             return;
         }
         boolean forcePlace = upperObjectsForced();
-        biome.ifPresent(declared -> placeUpperScope(declared, "upper-biome-surface", "biome", forcePlace));
-        region.ifPresent(declared -> placeUpperScope(declared, "upper-region-surface", "region", forcePlace));
+        biome.ifPresent(declared -> placeUpperScope(declared, "upper-biome-surface", forcePlace));
+        region.ifPresent(declared -> placeUpperScope(declared, "upper-region-surface", forcePlace));
     }
 
     private static Optional<Entry<ObjectSettings>> levelEntry(SettingsStack<ObjectSettings> declared, Level level) {
         return declared.entries().stream().filter(entry -> entry.level() == level).findFirst();
     }
 
-    private void placeUpperScope(Entry<ObjectSettings> declared, String scope, String kind, boolean forcePlace) {
-        String ownerKey = declared.source().toString();
+    private void placeUpperScope(Entry<ObjectSettings> declared, String scope, boolean forcePlace) {
+        PlacementOwner owner = new PlacementOwner(declared.level(), declared.source());
         for (ObjectPlacement placement : surfaceObjects(declared.value())) {
             if (!rng.chance(placement.chance() + rng.d(-CHANCE_JITTER, CHANCE_JITTER))) {
                 continue;
             }
             try {
-                placeUpperObject(placement, forcePlace, scope);
+                placeUpperObject(placement, forcePlace, scope, owner);
             } catch (Throwable failure) {
-                skipObjectPlacement("upper-dimension object", "in " + kind + " " + ownerKey, placement, failure);
+                skipObjectPlacement("upper-dimension object", "in " + describe(owner), placement, failure);
             }
         }
     }
 
-    private void placeUpperObject(ObjectPlacement placement, boolean forcePlace, String scope) {
+    private void placeUpperObject(ObjectPlacement placement, boolean forcePlace, String scope, PlacementOwner owner) {
         int minX = context.originX();
         int minZ = context.originZ();
         int density = objects.density(placement, minX, minZ);
@@ -461,7 +466,7 @@ final class ChunkObjectPlacing {
             if (forcePlace) {
                 changes = changes.withForcePlace(true);
             }
-            PlacementTags tags = tags(object, id, "upper", isTreePlacement(object, placement), placement);
+            PlacementTags tags = tags(object, id, "upper", isTreePlacement(object, placement), placement, owner);
             int result = chunk.placeUpper(object, x, anchorY, z, placement, changes, tags);
             if (traceRegen) {
                 log.debug("Upper object placement: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name() + " anchorY="
@@ -470,12 +475,13 @@ final class ChunkObjectPlacing {
         }
     }
 
-    private PlacementTags tags(PlaceableObject object, int id, String context, boolean treePlacement, ObjectPlacement placement) {
+    private PlacementTags tags(PlaceableObject object, int id, String context, boolean treePlacement, ObjectPlacement placement,
+                               PlacementOwner owner) {
         boolean buriedTreasure = placement.isDolphinTarget() && placement.underwater();
-        return new PlacementTags(placementMarker(object, id, context), treePlacement, buriedTreasure);
+        return new PlacementTags(placementMarker(object, id, context, owner), treePlacement, buriedTreasure);
     }
 
-    private PlacementRecord placementMarker(PlaceableObject object, int id, String context) {
+    private PlacementRecord placementMarker(PlaceableObject object, int id, String context, PlacementOwner owner) {
         String key = object == null ? null : object.name();
         if (key == null || key.isEmpty() || key.equals("null")) {
             String fingerprint = context + "|" + (object == null ? "<null>" : object.getClass().getSimpleName());
@@ -483,7 +489,7 @@ final class ChunkObjectPlacing {
                     + "This would previously produce 'Couldn't find Object: null' warnings on chunk reload.");
             return null;
         }
-        return PlacementRecord.of(this.context.world().resources().idOf(key), id);
+        return PlacementRecord.of(this.context.world().resources().idOf(key), id).ownedBy(owner);
     }
 
     /** Objects in {@code trees/} are trees, procedural ones in {@code procedural/trees/} too, and so is anything a placement grows from saplings. */

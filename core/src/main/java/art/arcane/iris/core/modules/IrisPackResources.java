@@ -36,6 +36,7 @@ import com.volmit.noise.PackExpression;
 import com.volmit.noise.PackImageMap;
 import com.volmit.object.GeneratedObject;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.PackSnippet;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 import com.volmit.world.PackBiome;
@@ -170,6 +171,16 @@ public final class IrisPackResources implements PackResources {
     @Override
     public <S> List<S> services(Class<S> service) {
         return PackServices.of(data).providers(service);
+    }
+
+    @Override
+    public Optional<PackSnippet.Source> snippetOf(Object value) {
+        return data.getModules().settings().snippetOf(value);
+    }
+
+    @Override
+    public <T> List<PackSnippet<T>> snippets(Class<T> type) {
+        return data.getModules().settings().snippets(type);
     }
 
     /**

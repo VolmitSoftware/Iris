@@ -46,7 +46,7 @@ export function decodeTile(buffer: ArrayBuffer): MapTile {
     blocks:
       header.blocks == null
         ? null
-        : { names: header.blocks, ground: new Int16Array(buffer, groundAt, cells), cover: new Int16Array(buffer, coverAt, cells), colors: [], looks: [] }
+        : { names: header.blocks, ground: new Int16Array(buffer, groundAt, cells), cover: new Int16Array(buffer, coverAt, cells), colors: [], looks: [], covers: [] }
   }
 }
 

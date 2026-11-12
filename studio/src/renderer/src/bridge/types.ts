@@ -1,6 +1,7 @@
 /** The shapes the Iris bridge answers with (Iris core, art.arcane.iris.core.studio). */
 
 import type { BlockLook } from '../scene/blockLooks'
+import type { CoverLook } from '../scene/coverLooks'
 
 export type LabelKind = 'BIOME' | 'REGION'
 
@@ -355,6 +356,8 @@ export interface TileBlocks {
   colors: number[]
   /** What each named block looks like on a column, where the tile is fine enough to show textures; else empty. */
   looks: (BlockLook | null)[]
+  /** What each named block looks like standing on the ground, for the blocks {@link cover} names, on a tile that shows textures; else empty. */
+  covers: (CoverLook | null)[]
 }
 
 export const NO_BLOCK = -1

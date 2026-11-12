@@ -1,6 +1,7 @@
 import { Texture, Vector3, type BufferGeometry, type Mesh, type MeshBasicMaterial } from 'three'
 import { describe, expect, it } from 'vitest'
 import type { BlockLook, FaceLook } from './blockLooks'
+import type { CoverLook } from './coverLooks'
 import { cellAt, type TerrainPictures } from './terrainAtlas'
 import { buildTerrainMesh, type TerrainSurface } from './terrainMesh'
 
@@ -16,7 +17,7 @@ const GRASS_TINT = 0x91bd59
 const WHITE = 0xffffff
 
 const plain = cellAt(0, WHITE)
-const pictures: TerrainPictures = { texture: new Texture(), plain }
+const pictures: TerrainPictures = { texture: new Texture(), cutouts: new Texture(), plain }
 const cellWidth = plain.width
 
 function face(index: number, tint = WHITE): FaceLook {
@@ -141,6 +142,36 @@ describe('textured terrain', () => {
     expect(tops).toHaveLength(5)
     expect(ground.geometry.getAttribute('uv')).toBeUndefined()
     expect((ground.material as MeshBasicMaterial).map).toBeNull()
+  })
+
+  it('stands a cover on the top face of its column, cut out along its picture', () => {
+    const blade: CoverLook = {
+      faces: [
+        {
+          corners: [[0, 1, 0], [0, 0, 0], [1, 0, 1], [1, 1, 1]],
+          uvs: [[0, 0], [0, 1], [1, 1], [1, 0]],
+          cell: cellAt(4, WHITE),
+          color: [0.5, 0.75, 0.25]
+        }
+      ]
+    }
+    const terrain = { ...surfaceOf(() => grass), coverAt: (column: number, row: number) => (column === PEAK_COLUMN && row === PEAK_COLUMN ? blade : null) }
+    const [, cover, water] = buildTerrainMesh(terrain, FLOOR).object.children as Mesh[]
+    const positions = cover.geometry.getAttribute('position')
+    const material = cover.material as MeshBasicMaterial
+
+    expect(water).toBeDefined()
+    expect(positions.count).toBe(4)
+    expect([positions.getX(1), positions.getY(1), positions.getZ(1)]).toEqual([ORIGIN_X + PEAK_COLUMN, PEAK_GROUND + 1, ORIGIN_Z + PEAK_COLUMN])
+    expect([positions.getX(3), positions.getY(3), positions.getZ(3)]).toEqual([ORIGIN_X + PEAK_COLUMN + 1, PEAK_GROUND + 2, ORIGIN_Z + PEAK_COLUMN + 1])
+    expect(uvOf(cover.geometry, 0, 2)).toEqual([blade.faces[0].cell.u + cellWidth, blade.faces[0].cell.v + cellWidth])
+    expect(cover.geometry.getAttribute('color').getY(0)).toBeCloseTo(0.75)
+    expect(material.alphaMap).toBe(pictures.cutouts)
+    expect(material.alphaTest).toBeGreaterThan(0)
+  })
+
+  it('draws no cover mesh where nothing stands on the ground', () => {
+    expect(buildTerrainMesh(surfaceOf(() => grass), FLOOR).object.children).toHaveLength(2)
   })
 
   it('draws a surface without an atlas in its colour alone', () => {

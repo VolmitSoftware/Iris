@@ -42,27 +42,35 @@ import com.volmit.config.Snippet;
 import com.volmit.host.FeatureCatalog;
 import com.volmit.host.FeatureDescriptor;
 import com.volmit.host.OptionsMetadata;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.volmit.resource.PackSnippet;
 import com.volmit.resource.ResourceId;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.spi.IrisLogging;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
 
 /**
  * Reads the module settings a dimension, region or biome declares: each settings feature of the pack at
@@ -87,6 +95,8 @@ public final class ModuleSettingsDecoder {
     private final Map<Level, List<FeatureDescriptor<?>>> settings = new EnumMap<>(Level.class);
     private final Map<Level, Set<String>> keys = new EnumMap<>(Level.class);
     private final Map<String, ModuleSettings> placementSettings = new ConcurrentHashMap<>();
+    // Weak keys compare by identity, and let go of the settings of a pack that was reloaded since.
+    private final Cache<Object, PackSnippet.Source> snippetByValue = Caffeine.newBuilder().weakKeys().build();
     private final Path packFolder;
     private final Gson gson;
     private final Supplier<Gson> irisGson;
@@ -373,7 +383,9 @@ public final class ModuleSettingsDecoder {
                     if (entry.isJsonArray()) {
                         throw new JsonParseException("Snippet " + reference + " holds several entries, which only a list can take");
                     }
-                    return delegate.fromJsonTree(entry);
+                    T value = delegate.fromJsonTree(entry);
+                    rememberSnippetOf(value, new PackSnippet.Source(snippetName(snippet.value(), reference), 0));
+                    return value;
                 }
             };
         }
@@ -392,9 +404,85 @@ public final class ModuleSettingsDecoder {
                         return delegate.read(in);
                     }
                     JsonArray entries = gson.getAdapter(JsonArray.class).read(in);
-                    return delegate.fromJsonTree(withSnippetsInlined(entries, snippet.value()));
+                    InlinedEntries inlined = withSnippetsInlined(entries, snippet.value());
+                    T list = delegate.fromJsonTree(inlined.entries());
+                    rememberSnippetsOf((Collection<?>) list, inlined.snippets());
+                    return list;
                 }
             };
+        }
+    }
+
+    /**
+     * The entries of a list with its snippet references replaced by what their files hold.
+     *
+     * @param snippets the snippet each entry came from, null for one written in place
+     */
+    private record InlinedEntries(JsonArray entries, List<PackSnippet.Source> snippets) {
+    }
+
+    // A list type that drops entries while it is read can't be matched to them again.
+    private void rememberSnippetsOf(Collection<?> decoded, List<PackSnippet.Source> snippets) {
+        if (decoded == null || decoded.size() != snippets.size()) {
+            return;
+        }
+        int index = 0;
+        for (Object value : decoded) {
+            rememberSnippetOf(value, snippets.get(index++));
+        }
+    }
+
+    private void rememberSnippetOf(Object value, PackSnippet.Source snippet) {
+        if (value != null && snippet != null) {
+            snippetByValue.put(value, snippet);
+        }
+    }
+
+    /** The snippet file {@code value} was read from and which of its entries it is; empty for a value written in place. */
+    Optional<PackSnippet.Source> snippetOf(Object value) {
+        return value == null ? Optional.empty() : Optional.ofNullable(snippetByValue.getIfPresent(value));
+    }
+
+    /** Every snippet file the pack has for {@code type}, in path order; a file that can't be read is logged and has no entries. */
+    <T> List<PackSnippet<T>> snippets(Class<T> type) {
+        Snippet snippet = type.getAnnotation(Snippet.class);
+        if (snippet == null) {
+            throw new IllegalArgumentException(type.getName() + " has no @Snippet, so packs keep no snippet files of it");
+        }
+        Path folder = packFolder.resolve(SNIPPET_FOLDER).resolve(snippet.value());
+        if (!Files.isDirectory(folder)) {
+            return List.of();
+        }
+        try (Stream<Path> files = Files.walk(folder)) {
+            return files.filter(file -> Files.isRegularFile(file) && file.getFileName().toString().endsWith(JSON_EXTENSION))
+                    .map(file -> snippetPath(folder, file))
+                    .sorted()
+                    .map(path -> new PackSnippet<>(path, entriesOfSnippet(type, snippet.value(), path)))
+                    .toList();
+        } catch (IOException failure) {
+            throw new UncheckedIOException("Cannot list the snippets in " + packFolder.relativize(folder), failure);
+        }
+    }
+
+    private static String snippetPath(Path folder, Path file) {
+        String relative = folder.relativize(file).toString().replace(File.separatorChar, '/');
+        return relative.substring(0, relative.length() - JSON_EXTENSION.length());
+    }
+
+    private <T> List<T> entriesOfSnippet(Class<T> type, String snippetFolder, String path) {
+        try {
+            JsonElement file = readSnippet(snippetFolder, SNIPPET_PREFIX + snippetFolder + "/" + path);
+            List<JsonElement> written = file.isJsonArray() ? IrisData.entriesOfSnippet(file.getAsJsonArray()) : List.of(file);
+            List<T> entries = new ArrayList<>();
+            for (JsonElement entry : written) {
+                T value = gson.fromJson(entry, type);
+                rememberSnippetOf(value, new PackSnippet.Source(path, entries.size()));
+                entries.add(value);
+            }
+            return entries;
+        } catch (JsonParseException | UncheckedIOException unreadable) {
+            IrisLogging.warn("Cannot read snippet " + SNIPPET_FOLDER + "/" + snippetFolder + "/" + path + JSON_EXTENSION + ": " + unreadable.getMessage());
+            return List.of();
         }
     }
 
@@ -409,21 +497,24 @@ public final class ModuleSettingsDecoder {
         return elementType.getAnnotation(Snippet.class);
     }
 
-    private JsonArray withSnippetsInlined(JsonArray entries, String snippetFolder) {
+    private InlinedEntries withSnippetsInlined(JsonArray entries, String snippetFolder) {
         JsonArray inlined = new JsonArray();
+        List<PackSnippet.Source> snippets = new ArrayList<>();
         for (JsonElement entry : entries) {
             if (!entry.isJsonPrimitive() || !entry.getAsJsonPrimitive().isString()) {
                 inlined.add(entry);
+                snippets.add(null);
                 continue;
             }
             JsonElement snippet = readSnippet(snippetFolder, entry.getAsString());
-            if (snippet.isJsonArray()) {
-                IrisData.entriesOfSnippet(snippet.getAsJsonArray()).forEach(inlined::add);
-            } else {
-                inlined.add(snippet);
+            List<JsonElement> held = snippet.isJsonArray() ? IrisData.entriesOfSnippet(snippet.getAsJsonArray()) : List.of(snippet);
+            String name = snippetName(snippetFolder, entry.getAsString());
+            for (int heldIndex = 0; heldIndex < held.size(); heldIndex++) {
+                inlined.add(held.get(heldIndex));
+                snippets.add(new PackSnippet.Source(name, heldIndex));
             }
         }
-        return inlined;
+        return new InlinedEntries(inlined, snippets);
     }
 
     /** The file name below the snippet folder: {@code snippet/<name>} and {@code snippet/<snippet folder>/<name>} name the same file. */

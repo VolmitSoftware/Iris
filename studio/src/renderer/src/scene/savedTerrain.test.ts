@@ -9,7 +9,7 @@ const GRASS = 'minecraft:grass_block[snowy=false]'
 const STONE = 'minecraft:stone'
 const FACE = { cell: cellAt(1, 0x808080), tint: 0xffffff, color: 0x808080 }
 const LOOK: BlockLook = { top: FACE, side: FACE, below: FACE }
-const pictures: TerrainPictures = { texture: new Texture(), plain: cellAt(0, 0xffffff) }
+const pictures: TerrainPictures = { texture: new Texture(), cutouts: new Texture(), plain: cellAt(0, 0xffffff) }
 
 // Two by two columns: grass, stone, then two of stone.
 const tile = {

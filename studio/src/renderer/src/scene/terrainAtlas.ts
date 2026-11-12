@@ -14,6 +14,8 @@ export interface UvCell {
 /** The atlas as the terrain draws it. */
 export interface TerrainPictures {
   readonly texture: Texture
+  /** Laid out as {@link texture}: white where a picture is drawn and black where it is open, for faces that are cut out. */
+  readonly cutouts: Texture
   /** A cell of plain white, for faces that show only their colour. */
   readonly plain: UvCell
 }
@@ -55,25 +57,21 @@ export const MOST_CELLS = CELLS_PER_SIDE * CELLS_PER_SIDE
  */
 export class TerrainAtlas implements TerrainPictures, PictureSource {
   readonly texture: CanvasTexture
+  readonly cutouts: CanvasTexture
   readonly plain = cellAt(PLAIN_CELL, WHITE_COLOR)
 
   private readonly drawing: CanvasRenderingContext2D
+  private readonly cutoutDrawing: CanvasRenderingContext2D
   private readonly cells = new Map<string, Promise<UvCell | null>>()
   private used = PLAIN_CELL + 1
 
   constructor(private readonly images: ImageSource) {
-    const canvas = document.createElement('canvas')
-    canvas.width = ATLAS_PIXELS
-    canvas.height = ATLAS_PIXELS
-    this.drawing = canvas.getContext('2d', { willReadFrequently: true })!
-    this.drawing.imageSmoothingEnabled = false
-    this.drawing.fillStyle = WHITE
-    this.drawing.fillRect(0, 0, CELL_PIXELS, CELL_PIXELS)
-    this.texture = new CanvasTexture(canvas)
-    this.texture.magFilter = NearestFilter
-    this.texture.minFilter = NearestFilter
-    this.texture.generateMipmaps = false
-    this.texture.flipY = false
+    ;[this.drawing, this.texture] = sheet()
+    ;[this.cutoutDrawing, this.cutouts] = sheet()
+    for (const drawing of [this.drawing, this.cutoutDrawing]) {
+      drawing.fillStyle = WHITE
+      drawing.fillRect(0, 0, CELL_PIXELS, CELL_PIXELS)
+    }
   }
 
   cellOf(textureId: string): Promise<UvCell | null> {
@@ -87,6 +85,7 @@ export class TerrainAtlas implements TerrainPictures, PictureSource {
 
   dispose(): void {
     this.texture.dispose()
+    this.cutouts.dispose()
   }
 
   private async place(textureId: string): Promise<UvCell | null> {
@@ -101,10 +100,36 @@ export class TerrainAtlas implements TerrainPictures, PictureSource {
     this.drawing.drawImage(bitmap, 0, 0, bitmap.width, Math.min(bitmap.width, bitmap.height), left, top, CELL_PIXELS, CELL_PIXELS)
     const picture = this.drawing.getImageData(left, top, CELL_PIXELS, CELL_PIXELS)
     const average = averageColor(picture)
+    this.cutoutDrawing.putImageData(cutoutOf(picture), left, top)
     this.drawing.putImageData(withGapsFilled(picture, average), left, top)
     this.texture.needsUpdate = true
+    this.cutouts.needsUpdate = true
     return { ...placed, average }
   }
+}
+
+function sheet(): [CanvasRenderingContext2D, CanvasTexture] {
+  const canvas = document.createElement('canvas')
+  canvas.width = ATLAS_PIXELS
+  canvas.height = ATLAS_PIXELS
+  const drawing = canvas.getContext('2d', { willReadFrequently: true })!
+  drawing.imageSmoothingEnabled = false
+  const texture = new CanvasTexture(canvas)
+  texture.magFilter = NearestFilter
+  texture.minFilter = NearestFilter
+  texture.generateMipmaps = false
+  texture.flipY = false
+  return [drawing, texture]
+}
+
+// A canvas keeps no colour under a transparent pixel, so the picture cannot carry both its filled gaps and where they were.
+function cutoutOf(picture: ImageData): ImageData {
+  const cutout = new ImageData(picture.width, picture.height)
+  for (let offset = 0; offset < picture.data.length; offset += 4) {
+    const shade = picture.data[offset + 3] < OPAQUE_ENOUGH_ALPHA ? 0 : 255
+    cutout.data.set([shade, shade, shade, OPAQUE_ALPHA], offset)
+  }
+  return cutout
 }
 
 // The terrain draws whole faces, so what a picture leaves open, as leaves do between their twigs, would show as black:

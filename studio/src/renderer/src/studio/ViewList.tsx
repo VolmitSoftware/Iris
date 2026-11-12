@@ -14,6 +14,7 @@ const VIEW_ICONS: Record<string, IdeIconName> = {
   world3d: 'views/world-3d',
   savedWorld: 'views/saved-world',
   'iris:terrain/palettes': 'views/palettes',
+  'iris:decorant/decorators': 'decoration',
   'iris:objects': 'views/objects',
   'iris:objects/procedural': 'views/procedural',
   noise: 'views/noise'

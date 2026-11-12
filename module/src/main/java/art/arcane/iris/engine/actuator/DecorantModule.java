@@ -24,6 +24,7 @@ import art.arcane.iris.modules.decorant.DecorateSettings;
 import art.arcane.iris.engine.decorator.BiomeDecorators;
 import art.arcane.iris.engine.decorator.DecoratedBiome;
 import art.arcane.iris.engine.decorator.DecorationScene;
+import art.arcane.iris.engine.decorator.DecoratorPatterns;
 import art.arcane.iris.engine.decorator.IrisSeaFloorDecorator;
 import art.arcane.iris.engine.decorator.IrisSeaSurfaceDecorator;
 import art.arcane.iris.engine.decorator.IrisShoreLineDecorator;
@@ -61,6 +62,7 @@ public final class DecorantModule implements IrisModule, ModuleLifecycle {
         registry.registerSettings(DecorantSettings.class);
         registry.registerSettings(DecorateSettings.class);
         registry.registerLifecycle(this);
+        setup.tooling().registerView(new DecoratorPatterns());
     }
 
     @Override

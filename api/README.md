@@ -806,7 +806,9 @@ public final class FloraSettings implements IrisFeature {
   `List`, `Set` and arrays of these, `Map<String, V>`, `Object` for any JSON value, and concrete classes,
   which are described the same way, IrisApi's value types among them (see Values in settings). `@Snippet("example/flora/patch")` on a class lets packs write it as a file under
   `snippet/example/flora/patch/`. A pack module's snippet names start with its module id as a folder
-  path (`example/flora` for `example:flora`).
+  path (`example/flora` for `example:flora`). A tool that lists what a pack shares asks
+  `PackResources.snippetOf(value)` for the file a settings value was read from, and
+  `PackResources.snippets(Patch.class)` for every file of the type, used or not.
   Anything else fails the pack load: `char`, other JDK classes such as `UUID` or `Optional`,
   interfaces and abstract classes, inner (non-static) classes, collections without type arguments,
   concrete collections such as `ArrayList`, and maps with other keys.

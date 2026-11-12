@@ -1,6 +1,7 @@
 import { NO_BLOCK, NO_LABEL, type MapTile } from '../bridge/types'
 import { heightColor } from '../map/heightColors'
 import type { BlockLook } from './blockLooks'
+import type { CoverLook } from './coverLooks'
 import type { TerrainPictures } from './terrainAtlas'
 import type { TerrainSurface } from './terrainMesh'
 import { blocksPerColumn, originXOf, originZOf, type TerrainTile } from './terrainTiles'
@@ -46,6 +47,14 @@ export class MapTerrain implements TerrainSurface {
   lookAt(column: number, row: number): BlockLook | null {
     const ground = this.groundBlockAt(column, row)
     return ground === NO_BLOCK ? null : (this.tile.blocks!.looks[ground] ?? null)
+  }
+
+  coverAt(column: number, row: number): CoverLook | null {
+    if (this.groundBlockAt(column, row) === NO_BLOCK) {
+      return null
+    }
+    const cover = this.tile.blocks!.cover[this.cellAt(column, row)]
+    return cover === NO_BLOCK ? null : (this.tile.blocks!.covers[cover] ?? null)
   }
 
   colorAt(column: number, row: number): number {

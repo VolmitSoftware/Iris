@@ -138,7 +138,7 @@ describe('tile style', () => {
     const cells = tile.subjects.length
     const cover = new Int16Array(cells).fill(-1)
     cover[gridIndex(tile, 3, 3)] = 1
-    const blocks = { names: ['stone', 'poppy'], ground: new Int16Array(cells).fill(0), cover, colors: [0x808080, 0xff0000], looks: [] }
+    const blocks = { names: ['stone', 'poppy'], ground: new Int16Array(cells).fill(0), cover, colors: [0x808080, 0xff0000], looks: [], covers: [] }
     const pixels = stylePixels({ ...tile, blocks }, { ...FLAT, byBlock: true })
 
     expect(pixel(pixels, 4, 0, 0)).toBe(0x808080)

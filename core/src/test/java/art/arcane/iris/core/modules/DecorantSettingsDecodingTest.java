@@ -9,6 +9,7 @@ import com.volmit.config.Level;
 import com.volmit.block.BlockSpec;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
+import com.volmit.resource.PackSnippet;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -110,6 +112,46 @@ public class DecorantSettingsDecodingTest {
             assertEquals(0.2, bush.chance(), 0);
             assertEquals(List.of(BlockSpec.of("minecraft:fern")), bush.palette());
         }
+    }
+
+    @Test
+    public void aDecoratorReadFromASnippetKnowsItsFileAndOneWrittenInPlaceHasNone() {
+        List<Decorator> decorators = decorators(BIOME_DECORATORS);
+
+        assertEquals(Optional.of(new PackSnippet.Source("bush", 0)), decoder.snippetOf(decorators.get(2)));
+        assertEquals(Optional.of(new PackSnippet.Source("bush", 0)), decoder.snippetOf(decorators.get(3)));
+        assertEquals(Optional.empty(), decoder.snippetOf(decorators.getFirst()));
+    }
+
+    @Test
+    public void everySnippetFileIsListedWhetherABiomeUsesItOrNot() throws IOException {
+        Path snippets = folder.getRoot().toPath().resolve("pack/snippet/iris/decorant/decorator");
+        Files.createDirectories(snippets.resolve("flowers"));
+        Files.writeString(snippets.resolve("flowers/pair.json"),
+                "[{\"palette\": [{\"block\": \"minecraft:poppy\"}]}, {\"palette\": [{\"block\": \"minecraft:dandelion\"}]}]");
+        Files.writeString(snippets.resolve("broken.json"), "{\"palette\": ");
+
+        List<PackSnippet<Decorator>> listed = decoder.snippets(Decorator.class);
+
+        assertEquals(List.of("broken", "bush", "flowers/pair"), listed.stream().map(PackSnippet::path).toList());
+        assertEquals("a file that can't be read is listed without entries", List.of(), listed.getFirst().entries());
+        assertEquals(List.of(BlockSpec.of("minecraft:fern")), listed.get(1).entries().getFirst().palette());
+        assertEquals(2, listed.get(2).entries().size());
+        assertEquals(Optional.of(new PackSnippet.Source("flowers/pair", 1)), decoder.snippetOf(listed.get(2).entries().get(1)));
+    }
+
+    @Test
+    public void aListTakingAFileOfSeveralKnowsWhichOfThemEachEntryIs() throws IOException {
+        Path snippets = folder.getRoot().toPath().resolve("pack/snippet/iris/decorant/decorator");
+        Files.writeString(snippets.resolve("pair.json"),
+                "[{\"palette\": [{\"block\": \"minecraft:poppy\"}]}, {\"palette\": [{\"block\": \"minecraft:dandelion\"}]}]");
+
+        List<Decorator> decorators = decorators("{\"decorators\": [{\"chance\": 1}, \"snippet/pair\"]}");
+
+        assertEquals(3, decorators.size());
+        assertEquals(Optional.empty(), decoder.snippetOf(decorators.getFirst()));
+        assertEquals(Optional.of(new PackSnippet.Source("pair", 0)), decoder.snippetOf(decorators.get(1)));
+        assertEquals(Optional.of(new PackSnippet.Source("pair", 1)), decoder.snippetOf(decorators.get(2)));
     }
 
     @Test

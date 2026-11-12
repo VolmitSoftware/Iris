@@ -2,6 +2,8 @@ import { DoubleSide, FrontSide, Group, Mesh, MeshBasicMaterial } from 'three'
 import type { BlockLook } from './blockLooks'
 import { groundFaces, waterFaces } from './columnFaces'
 import { ColumnField } from './columnField'
+import { coverGeometry } from './coverFaces'
+import type { CoverLook } from './coverLooks'
 import type { TerrainPictures } from './terrainAtlas'
 import type { ColumnArea } from './terrainTiles'
 import { WATER_SURFACE_COLOR, WATER_SURFACE_OPACITY } from './waterTint'
@@ -27,7 +29,11 @@ export interface TerrainSurface {
   readonly pictures?: TerrainPictures
   /** What the block of the column looks like, or null to show the column in its colour. */
   lookAt?(column: number, row: number): BlockLook | null
+  /** What stands on the column's ground, such as grass or a flower, or null for nothing that is drawn. */
+  coverAt?(column: number, row: number): CoverLook | null
 }
+
+const CUTOUT_ALPHA = 0.5
 
 export interface TerrainMesh {
   object: Group
@@ -51,7 +57,9 @@ export function buildTerrainMesh(surface: TerrainSurface, base: number, holes: r
   const water = waterFaces(field).geometry()
   const groundMaterial = new MeshBasicMaterial({ vertexColors: true, side: FrontSide, map: field.pictures?.texture ?? null })
   const waterMaterial = new MeshBasicMaterial({ color: WATER_SURFACE_COLOR, transparent: true, opacity: WATER_SURFACE_OPACITY, depthWrite: false, side: DoubleSide })
-  group.add(new Mesh(ground, groundMaterial), new Mesh(water, waterMaterial))
+  const cover = field.pictures === null ? null : coverMesh(field, field.pictures)
+  // The water is drawn last, over what stands under it.
+  group.add(new Mesh(ground, groundMaterial), ...(cover === null ? [] : [cover.mesh]), new Mesh(water, waterMaterial))
   return {
     object: group,
     field,
@@ -60,6 +68,22 @@ export function buildTerrainMesh(surface: TerrainSurface, base: number, holes: r
       water.dispose()
       groundMaterial.dispose()
       waterMaterial.dispose()
+      cover?.dispose()
+    }
+  }
+}
+
+function coverMesh(field: ColumnField, pictures: TerrainPictures): { mesh: Mesh; dispose(): void } | null {
+  const geometry = coverGeometry(field)
+  if (geometry === null) {
+    return null
+  }
+  const material = new MeshBasicMaterial({ vertexColors: true, map: pictures.texture, alphaMap: pictures.cutouts, alphaTest: CUTOUT_ALPHA, side: FrontSide })
+  return {
+    mesh: new Mesh(geometry, material),
+    dispose: () => {
+      geometry.dispose()
+      material.dispose()
     }
   }
 }

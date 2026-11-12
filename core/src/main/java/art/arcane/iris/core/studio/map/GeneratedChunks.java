@@ -18,7 +18,10 @@
 
 package art.arcane.iris.core.studio.map;
 
+import art.arcane.iris.core.link.CustomBlockSource;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -26,6 +29,11 @@ import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.iris.util.project.hunk.Hunk;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.UnaryOperator;
 
 /**
  * The tops of chunks generated for the studio alone: each chunk runs through the world's own stages into memory, so its
@@ -43,6 +51,7 @@ final class GeneratedChunks implements ColumnTops {
 
     private final Engine engine;
     private final LoadingCache<Long, ChunkTop> tops;
+    private final Map<String, PlatformBlockState> seenByKey = new ConcurrentHashMap<>();
 
     GeneratedChunks(Engine engine) {
         this.engine = engine;
@@ -65,7 +74,18 @@ final class GeneratedChunks implements ColumnTops {
              IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
             engine.getGeneration().generate(chunkX << CHUNK_SHIFT, chunkZ << CHUNK_SHIFT, blocks, biomes, false, lease.sessionId());
         }
-        return ChunkTop.of(blocks);
+        return new ChunkTop(topsOf(blocks, this::seenByPlayers));
+    }
+
+    // A plugin's block can be solid on the server where players see grass they walk through.
+    private PlatformBlockState seenByPlayers(PlatformBlockState block) {
+        return seenByKey.computeIfAbsent(block.key(), key -> {
+            CustomBlockSource plugins = IrisServices.getOrNull(CustomBlockSource.class);
+            Optional<PlatformBlockState> shown = plugins == null
+                    ? Optional.empty()
+                    : plugins.lookOf(key).map(look -> B.getStateOrNull(look.shownAs(), false));
+            return shown.orElse(block);
+        });
     }
 
     private static long keyOf(int chunkX, int chunkZ) {
@@ -73,36 +93,43 @@ final class GeneratedChunks implements ColumnTops {
     }
 
     private record ChunkTop(ColumnTop[] columns) {
-        static ChunkTop of(Hunk<PlatformBlockState> blocks) {
-            ColumnTop[] columns = new ColumnTop[BLOCKS_ACROSS * BLOCKS_ACROSS];
-            for (int z = 0; z < BLOCKS_ACROSS; z++) {
-                for (int x = 0; x < BLOCKS_ACROSS; x++) {
-                    columns[z * BLOCKS_ACROSS + x] = topOf(blocks, x, z);
-                }
+    }
+
+    /**
+     * The top of each column of a chunk's blocks, row by row from the north west.
+     *
+     * @param seenByPlayers the state players see in place of a block, which decides whether it is ground; the block
+     *                      itself for all but a plugin's
+     */
+    static ColumnTop[] topsOf(Hunk<PlatformBlockState> blocks, UnaryOperator<PlatformBlockState> seenByPlayers) {
+        ColumnTop[] columns = new ColumnTop[BLOCKS_ACROSS * BLOCKS_ACROSS];
+        for (int z = 0; z < BLOCKS_ACROSS; z++) {
+            for (int x = 0; x < BLOCKS_ACROSS; x++) {
+                columns[z * BLOCKS_ACROSS + x] = topOf(blocks, x, z, seenByPlayers);
             }
-            return new ChunkTop(columns);
         }
+        return columns;
+    }
 
-        // The ground is the highest block something can stand on, so a tree's leaves and a roof count; what stands on it
-        // without being ground, such as grass or a layer of snow, is its cover.
-        private static ColumnTop topOf(Hunk<PlatformBlockState> blocks, int x, int z) {
-            for (int y = blocks.getHeight() - 1; y >= 0; y--) {
-                PlatformBlockState block = blocks.get(x, y, z);
-                if (!isGround(block)) {
-                    continue;
-                }
-                PlatformBlockState above = y + 1 < blocks.getHeight() ? blocks.get(x, y + 1, z) : null;
-                return new ColumnTop(y, block.key(), isCover(above) ? above.key() : null);
+    // The ground is the highest block something can stand on, so a tree's leaves and a roof count; what stands on it
+    // without being ground, such as grass or a layer of snow, is its cover.
+    private static ColumnTop topOf(Hunk<PlatformBlockState> blocks, int x, int z, UnaryOperator<PlatformBlockState> seenByPlayers) {
+        for (int y = blocks.getHeight() - 1; y >= 0; y--) {
+            PlatformBlockState block = blocks.get(x, y, z);
+            if (block == null || !isGround(seenByPlayers.apply(block))) {
+                continue;
             }
-            return ColumnTop.NOTHING;
+            PlatformBlockState above = y + 1 < blocks.getHeight() ? blocks.get(x, y + 1, z) : null;
+            return new ColumnTop(y, block.key(), isCover(above) ? above.key() : null);
         }
+        return ColumnTop.NOTHING;
+    }
 
-        private static boolean isGround(PlatformBlockState block) {
-            return block != null && !block.isAir() && !block.isFluid() && block.isSolid();
-        }
+    private static boolean isGround(PlatformBlockState block) {
+        return !block.isAir() && !block.isFluid() && block.isSolid();
+    }
 
-        private static boolean isCover(PlatformBlockState block) {
-            return block != null && !block.isAir() && !block.isFluid();
-        }
+    private static boolean isCover(PlatformBlockState block) {
+        return block != null && !block.isAir() && !block.isFluid();
     }
 }

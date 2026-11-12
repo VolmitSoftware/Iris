@@ -15,8 +15,8 @@ import { Panel, SidebarPanel, Stepper, ViewIsland } from './Sidebar'
 import { TiledCanvas } from './TiledCanvas'
 
 const DEFAULT_NAMESPACE_PREFIX = 'minecraft:'
-// A layer thinner than the depth shown, or a palette with no block for the spot.
-const NONE_LABEL = 'nothing at this depth'
+// A layer thinner than the depth shown, a palette with no block for the spot, or a spot a decorator leaves bare.
+const NONE_LABEL = 'nothing placed'
 
 /** The blocks the shown layer's tiles placed so far by name, each with one state to draw its icon as, and whether some spots got none. */
 interface LegendBlocks {
@@ -196,7 +196,7 @@ function Legend({ blocks, looks }: { blocks: LegendBlocks; looks: BlockColors })
           {blocks.someNone && (
             <div className="flex h-[26px] items-center gap-2 text-secondary-text">
               <span className="size-4 shrink-0 rounded-[2px] border border-foreground/25 bg-map-background" />
-              <span className="min-w-0 flex-1 truncate">Nothing at this depth</span>
+              <span className="min-w-0 flex-1 truncate">Nothing placed</span>
             </div>
           )}
         </div>

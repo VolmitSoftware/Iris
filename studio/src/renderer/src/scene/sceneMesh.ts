@@ -2,6 +2,7 @@ import { Box3, BufferAttribute, BufferGeometry, Group, Mesh, MeshBasicMaterial }
 import type { ViewportContent } from '../studio/SceneViewport'
 import { cubeModel, parseState, type BlockModels, type BlockModel, type Direction, type Quad } from './blockModels'
 import { blockTint } from './blockTints'
+import { FACE_LIGHT } from './coverLooks'
 import { countFarLeaves, isFarLeaf } from './farLeaves'
 import { INTS_PER_BLOCK, type BlockScene } from './sceneDecoding'
 import { TextureAtlas, type ImageSource } from './textureAtlas'
@@ -18,8 +19,6 @@ const CUTOUT_ALPHA = 0.1
 /** How much of a faint block shows, from 0 for none to 1 for all. */
 const FAINT_OPACITY = 0.12
 
-/** The light Minecraft gives each side of a block without shadows: the top brightest, the bottom darkest. */
-const FACE_LIGHT: Record<Direction, number> = { up: 1, down: 0.5, north: 0.8, south: 0.8, west: 0.6, east: 0.6 }
 const MISSING_TEXTURE = 'iris:missing'
 const NEIGHBOUR_OFFSETS: Record<Direction, [number, number, number]> = {
   down: [0, -1, 0],

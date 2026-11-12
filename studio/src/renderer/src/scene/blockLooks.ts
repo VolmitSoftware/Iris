@@ -1,5 +1,6 @@
 import { parseState, type BlockModel, type Direction, type ParsedState } from './blockModels'
 import { blockTint } from './blockTints'
+import { coverLookOf, type CoverLook } from './coverLooks'
 import type { PictureSource, UvCell } from './terrainAtlas'
 
 const NO_TINT_INDEX = -1
@@ -68,6 +69,7 @@ function untintedFacing(model: BlockModel, facing: Direction): FaceTexture | nul
 /** The look of each block state the terrain draws, read once. */
 export class BlockLooks {
   private readonly looks = new Map<string, Promise<BlockLook | null>>()
+  private readonly covers = new Map<string, Promise<CoverLook | null>>()
   private dirtBottom: Promise<string | null> | null = null
 
   constructor(
@@ -83,6 +85,25 @@ export class BlockLooks {
       this.looks.set(block, look)
     }
     return look
+  }
+
+  /** What each block looks like standing on the ground, by name; null for one that is not drawn there. */
+  async coversOf(blocks: Iterable<string>): Promise<Map<string, CoverLook | null>> {
+    const names = [...new Set(blocks)]
+    const looks = await Promise.all(names.map((name) => this.coverOf(name)))
+    return new Map(names.map((name, index) => [name, looks[index]]))
+  }
+
+  private coverOf(block: string): Promise<CoverLook | null> {
+    let cover = this.covers.get(block)
+    if (cover === undefined) {
+      cover = this.models
+        .model(block)
+        .then((model) => coverLookOf(block, model, this.pictures))
+        .catch(() => null)
+      this.covers.set(block, cover)
+    }
+    return cover
   }
 
   /** Every block's look, by name. */

@@ -76,6 +76,21 @@ public interface PackResources {
         return List.of();
     }
 
+    /** The snippet file the pack's settings read {@code value} from, and which of its entries; empty for a value
+     * the pack wrote in place. {@code value} is the very object the settings hold, such as one entry of a list option
+     * whose type has {@link com.volmit.config.Snippet}. Empty by default.
+     */
+    default Optional<PackSnippet.Source> snippetOf(Object value) {
+        return Optional.empty();
+    }
+
+    /** The pack's snippet files for {@code type}, a class with {@link com.volmit.config.Snippet}, in path order, used by
+     * the pack's settings or not, so that a tool can list them all. Empty by default.
+     */
+    default <T> List<PackSnippet<T>> snippets(Class<T> type) {
+        return List.of();
+    }
+
     /** {@link #find} for a resource that must exist: a missing one throws NoSuchElementException naming kind and id. */
     default <T> T require(ResourceKind<T> kind, ResourceId id) {
         return find(kind, id).orElseThrow(() -> new NoSuchElementException("Missing " + kind.id() + " resource: " + id));

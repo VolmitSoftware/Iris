@@ -101,6 +101,28 @@ public final class BiomeDecorators {
         return decorators.computeIfAbsent(biome.settings(), declared -> resolve(biome.key(), declared)).getOrDefault(part, NO_DECORATORS);
     }
 
+    /** The decorator the biome lists at {@code index}, made ready as generation has it; null when it lists none there. */
+    ResolvedDecorator decoratorAt(DecoratedBiome biome, int index) {
+        if (biome == null || biome.settings() == null || index < 0 || index >= biome.settings().decorators().size()) {
+            return null;
+        }
+        Decorator declared = biome.settings().decorators().get(index);
+        if (declared == null) {
+            return null;
+        }
+        for (ResolvedDecorator resolved : decorators(biome, declared.partOf())) {
+            if (resolved.settings() == declared) {
+                return resolved;
+            }
+        }
+        return null;
+    }
+
+    /** A decorator no biome lists, made ready with a seed of its own, which {@code name} decides. */
+    ResolvedDecorator unlisted(String name, Decorator decorator) {
+        return ResolvedDecorator.of(decorator, resources, seedOf(name, 0), log, name);
+    }
+
     /** Whether the biome has a decorator for {@code part}. */
     public boolean hasDecorators(DecoratedBiome biome, DecorationPart part) {
         return decorators(biome, part).length > 0;

@@ -20,11 +20,13 @@ package art.arcane.iris.modules.terrain;
 
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.terrain.PaletteLayer;
+import art.arcane.iris.builtin.tooling.SnippetUses;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.PackSnippet;
 import com.volmit.resource.ResourceId;
 import com.volmit.tooling.BlockPattern;
 import com.volmit.tooling.PatternArea;
@@ -78,8 +80,14 @@ public final class BiomePalettes implements PatternView {
         if (running.isEmpty()) {
             return List.of();
         }
+        SnippetUses snippetUses = new SnippetUses();
+        List<PatternEntry> entries = new ArrayList<>(biomeEntries(world, running.get().settings(), snippetUses));
+        entries.addAll(snippetUses.entries(world.resources().snippets(PaletteLayer.class), BiomePalettes::blocksOf));
+        return entries;
+    }
+
+    private static List<PatternEntry> biomeEntries(PackWorld world, FeatureSettings settings, SnippetUses snippetUses) {
         BiomeLayers layers = BiomeLayers.of(world);
-        FeatureSettings settings = running.get().settings();
         List<PackBiome> biomes = biomesByName(world.resources());
         Map<String, Long> biomesByShownName = biomes.stream().collect(Collectors.groupingBy(PackBiome::name, Collectors.counting()));
         List<PatternEntry> entries = new ArrayList<>();
@@ -89,7 +97,10 @@ public final class BiomePalettes implements PatternView {
             for (Kind kind : Kind.values()) {
                 List<PaletteLayer> palettes = kind.palettesOf(layers, layered, settings, biome.id());
                 for (int index = 0; index < palettes.size(); index++) {
-                    entries.add(entryOf(biome, layered, kind, index, palettes.get(index), group));
+                    Optional<PackSnippet.Source> snippet = world.resources().snippetOf(palettes.get(index));
+                    PatternEntry entry = entryOf(biome, layered, kind, index, palettes.get(index), group, snippet);
+                    entries.add(entry);
+                    snippet.ifPresent(source -> snippetUses.use(source, entry));
                 }
             }
         }
@@ -98,6 +109,52 @@ public final class BiomePalettes implements PatternView {
 
     @Override
     public Optional<BlockPattern> pattern(PackWorld world, String key, int depth, PatternArea area) {
+        if (SnippetUses.isSnippetKey(key)) {
+            return SnippetUses.sourceOf(key).flatMap(source -> snippetPattern(world, source, depth, area));
+        }
+        return biomePattern(world, key, depth, area);
+    }
+
+    // A snippet's palette is shown as the first biome that uses it places it; one nothing uses has no place in a
+    // biome's stack, so it is picked block by block, as a wall is.
+    private Optional<BlockPattern> snippetPattern(PackWorld world, PackSnippet.Source source, int depth, PatternArea area) {
+        Optional<RunningWorld> running = world.running();
+        if (running.isEmpty()) {
+            return Optional.empty();
+        }
+        SnippetUses snippetUses = new SnippetUses();
+        biomeEntries(world, running.get().settings(), snippetUses);
+        Optional<PatternEntry> firstUse = snippetUses.firstUseOf(source);
+        if (firstUse.isPresent()) {
+            return biomePattern(world, firstUse.get().key(), depth, area);
+        }
+        return world.resources().snippets(PaletteLayer.class).stream()
+                .filter(snippet -> snippet.path().equals(source.path()))
+                .findFirst()
+                .map(snippet -> unusedSnippetPattern(world, snippet, source.entry(), depth, area, running.get().layout().fluidHeight()));
+    }
+
+    // A file that could not be read is listed too, and places nothing.
+    private static BlockPattern unusedSnippetPattern(PackWorld world, PackSnippet<PaletteLayer> snippet, int entry, int depth, PatternArea area,
+                                                     int fluidHeight) {
+        if (entry >= snippet.entries().size()) {
+            return patternOf(area, (x, z, atDepth) -> null, depth);
+        }
+        ResolvedLayer layer = BiomeLayers.of(world).resolve(snippet.entries().get(entry));
+        return patternOf(area, Kind.singleBlocks(layer, new RNG(world.seed(IrisSeedPurposes.TERRAIN)), fluidHeight), depth);
+    }
+
+    private static BlockPattern patternOf(PatternArea area, ColumnPick pick, int depth) {
+        BlockState[] blocks = new BlockState[area.columns() * area.columns()];
+        for (int row = 0; row < area.columns(); row++) {
+            for (int column = 0; column < area.columns(); column++) {
+                blocks[row * area.columns() + column] = pick.at(area.blockX(column), area.blockZ(row), depth);
+            }
+        }
+        return BlockPattern.of(area.columns(), blocks);
+    }
+
+    private Optional<BlockPattern> biomePattern(PackWorld world, String key, int depth, PatternArea area) {
         Optional<RunningWorld> running = world.running();
         Optional<PaletteRef> ref = PaletteRef.parse(key, world.resources());
         if (running.isEmpty() || ref.isEmpty()) {
@@ -113,13 +170,7 @@ public final class BiomePalettes implements PatternView {
         }
         ColumnPick pick = palette.kind().picker(world, layers, biome, palettes.get(palette.index()), palette.index(),
                 running.get().layout().fluidHeight());
-        BlockState[] blocks = new BlockState[area.columns() * area.columns()];
-        for (int row = 0; row < area.columns(); row++) {
-            for (int column = 0; column < area.columns(); column++) {
-                blocks[row * area.columns() + column] = pick.at(area.blockX(column), area.blockZ(row), depth);
-            }
-        }
-        return Optional.of(BlockPattern.of(area.columns(), blocks));
+        return Optional.of(patternOf(area, pick, depth));
     }
 
     private static List<PackBiome> biomesByName(PackResources resources) {
@@ -130,11 +181,13 @@ public final class BiomePalettes implements PatternView {
                 .toList();
     }
 
-    private static PatternEntry entryOf(PackBiome biome, LayeredBiome layered, Kind kind, int index, PaletteLayer palette, String group) {
+    private static PatternEntry entryOf(PackBiome biome, LayeredBiome layered, Kind kind, int index, PaletteLayer palette, String group,
+                                        Optional<PackSnippet.Source> snippet) {
         String key = biome.id() + String.valueOf(KIND_SEPARATOR) + kind.keyName + INDEX_SEPARATOR + index;
         String name = kind.numbered ? kind.label + " " + (index + 1) : kind.label;
-        return new PatternEntry(key, name, Optional.of(group).filter(shown -> !shown.isBlank()), kind.depthsOf(palette),
-                kind.factsOf(palette, layered));
+        List<String> facts = kind.factsOf(palette, layered);
+        snippet.map(SnippetUses::factOf).ifPresent(facts::add);
+        return new PatternEntry(key, name, Optional.of(group).filter(shown -> !shown.isBlank()), kind.depthsOf(palette), facts);
     }
 
     private static String blocksOf(PaletteLayer palette) {
@@ -246,7 +299,7 @@ public final class BiomePalettes implements PatternView {
             };
         }
 
-        private static ColumnPick singleBlocks(ResolvedLayer layer, RNG random, int height) {
+        static ColumnPick singleBlocks(ResolvedLayer layer, RNG random, int height) {
             return (x, z, depth) -> depth == 0 ? layer.get(random, SINGLE_BLOCK_SIGNATURE, x, height, z) : null;
         }
     }

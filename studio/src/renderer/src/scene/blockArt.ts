@@ -1,5 +1,5 @@
 import type { BridgeClient } from '../bridge/BridgeClient'
-import type { TileBlocks } from '../bridge/types'
+import { NO_BLOCK, type TileBlocks } from '../bridge/types'
 import { BlockColors } from './blockColors'
 import { BlockLooks } from './blockLooks'
 import { BlockModels } from './blockModels'
@@ -15,6 +15,13 @@ export interface BlockArt {
   dispose(): void
 }
 
+// Only these have their whole model's pictures placed, so the ground's blocks take no room in the atlas for faces a column never shows.
+function namesStandingOnGround(blocks: TileBlocks): string[] {
+  const standing = new Set<number>(blocks.cover)
+  standing.delete(NO_BLOCK)
+  return [...standing].map((index) => blocks.names[index])
+}
+
 /** Block art read from the Minecraft client's assets through the bridge; {@code textured} art can also show textures. */
 export function blockArt(client: BridgeClient, textured: boolean): BlockArt {
   const images = new BridgeAssets(client, () => {})
@@ -25,9 +32,15 @@ export function blockArt(client: BridgeClient, textured: boolean): BlockArt {
   return {
     atlas,
     paint: async (blocks, withLooks) => {
-      const [colorOf, lookOf] = await Promise.all([colors.colorsOf(blocks.names), withLooks && looks !== null ? looks.looksOf(blocks.names) : null])
+      const shownLooks = withLooks ? looks : null
+      const [colorOf, lookOf, coverOf] = await Promise.all([
+        colors.colorsOf(blocks.names),
+        shownLooks?.looksOf(blocks.names) ?? null,
+        shownLooks?.coversOf(namesStandingOnGround(blocks)) ?? null
+      ])
       blocks.colors = blocks.names.map((name) => colorOf.get(name)!)
       blocks.looks = lookOf === null ? [] : blocks.names.map((name) => lookOf.get(name) ?? null)
+      blocks.covers = coverOf === null ? [] : blocks.names.map((name) => coverOf.get(name) ?? null)
     },
     dispose: () => atlas?.dispose()
   }

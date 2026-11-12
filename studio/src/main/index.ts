@@ -1,12 +1,22 @@
 import { app, BrowserWindow, clipboard, ipcMain, nativeTheme, shell } from 'electron'
+import { readFileSync } from 'node:fs'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import type { BridgeConnection, StoredShortcuts, ThemeChoice } from '../shared/bridge'
+import type { BridgeConnection, GraphicsInfo, StoredShortcuts, ThemeChoice } from '../shared/bridge'
+import {
+  dedicatedGpuDriver,
+  runsOnDedicatedGpu,
+  showEveryVulkanDriver,
+  showOnlyVulkanDriver,
+  withDedicatedGpuSwitches,
+  withoutDedicatedGpuSwitches
+} from './dedicatedGpu'
 
 const CONNECTION_FOLDER = join(homedir(), '.iris', 'studio', 'bridges')
 const SETTINGS_FILE = 'studio.json'
 const SHORTCUTS_KEY = 'shortcuts'
+const DEDICATED_GPU_KEY = 'dedicatedGpu'
 const SETTINGS_INDENT = 2
 const LINK_PREFIX = 'iris-studio://'
 const DARK_BACKGROUND = '#1e1f22'
@@ -14,6 +24,7 @@ const WINDOW_SIZE = { width: 1440, height: 880, minWidth: 820, minHeight: 520 }
 
 let window: BrowserWindow | null = null
 let pendingLink: string | null = findLink(process.argv)
+const dedicatedGpu = dedicatedGpuDriver()
 
 function findLink(argv: string[]): string | null {
   return argv.find((argument) => argument.startsWith(LINK_PREFIX)) ?? null
@@ -70,14 +81,45 @@ async function readSettings(): Promise<Record<string, unknown>> {
   }
 }
 
-async function saveShortcuts(shortcuts: StoredShortcuts): Promise<void> {
+async function saveSetting(key: string, value: unknown): Promise<void> {
   try {
-    const settings = { ...(await readSettings()), [SHORTCUTS_KEY]: shortcuts }
+    const settings = { ...(await readSettings()), [key]: value }
     await mkdir(dirname(settingsPath()), { recursive: true })
     await writeFile(settingsPath(), JSON.stringify(settings, null, SETTINGS_INDENT))
   } catch (failure) {
-    console.error(`Could not save the studio shortcuts to ${settingsPath()}`, failure)
+    console.error(`Could not save the studio setting ${key} to ${settingsPath()}`, failure)
   }
+}
+
+/** Read before the app is ready, as the GPU the studio draws on is chosen by how it was started. */
+function choosesDedicatedGpu(): boolean {
+  try {
+    const settings: unknown = JSON.parse(readFileSync(settingsPath(), 'utf8'))
+    return typeof settings === 'object' && settings !== null && (settings as Record<string, unknown>)[DEDICATED_GPU_KEY] === true
+  } catch {
+    return false
+  }
+}
+
+function restartOnGpu(dedicated: boolean): void {
+  const args = process.argv.slice(1)
+  if (dedicated && dedicatedGpu !== null) {
+    showOnlyVulkanDriver(process.env, dedicatedGpu)
+    app.relaunch({ args: withDedicatedGpuSwitches(args) })
+  } else {
+    showEveryVulkanDriver(process.env)
+    app.relaunch({ args: withoutDedicatedGpuSwitches(args) })
+  }
+  app.exit(0)
+}
+
+async function useDedicatedGpu(dedicated: boolean): Promise<void> {
+  await saveSetting(DEDICATED_GPU_KEY, dedicated)
+  restartOnGpu(dedicated)
+}
+
+function graphicsInfo(): GraphicsInfo {
+  return { canUseDedicatedGpu: dedicatedGpu !== null, usesDedicatedGpu: runsOnDedicatedGpu(process.argv) }
 }
 
 function createWindow(): void {
@@ -117,7 +159,9 @@ function deliverLink(link: string): void {
   window.focus()
 }
 
-if (!app.requestSingleInstanceLock()) {
+if (dedicatedGpu !== null && choosesDedicatedGpu() && !runsOnDedicatedGpu(process.argv)) {
+  restartOnGpu(true)
+} else if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.setAsDefaultProtocolClient('iris-studio')
@@ -144,7 +188,9 @@ if (!app.requestSingleInstanceLock()) {
     nativeTheme.themeSource = theme
   })
   ipcMain.handle('studio:load-shortcuts', async () => (await readSettings())[SHORTCUTS_KEY] ?? {})
-  ipcMain.on('studio:save-shortcuts', (_event, shortcuts: StoredShortcuts) => void saveShortcuts(shortcuts))
+  ipcMain.on('studio:save-shortcuts', (_event, shortcuts: StoredShortcuts) => void saveSetting(SHORTCUTS_KEY, shortcuts))
+  ipcMain.handle('studio:graphics', graphicsInfo)
+  ipcMain.on('studio:use-dedicated-gpu', (_event, dedicated: boolean) => void useDedicatedGpu(dedicated))
   ipcMain.on('studio:copy-text', (_event, text: string) => clipboard.writeText(text))
 
   void app.whenReady().then(createWindow)

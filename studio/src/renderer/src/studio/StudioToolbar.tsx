@@ -44,7 +44,7 @@ export function StudioToolbar({ world, theme, onHelp, onSettings, onDisconnect }
       <ToolButton action="help" hint="Show every mouse and key shortcut" onClick={onHelp}>
         <IdeIcon name="help" />
       </ToolButton>
-      <IconHint hint="Change the studio's keys">
+      <IconHint hint="Settings">
         <Button variant="ghost" size="icon-sm" onClick={onSettings}>
           <IdeIcon name="settings" />
         </Button>

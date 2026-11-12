@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import type { GraphicsInfo } from '../../../shared/bridge'
 import type { ViewInfo } from '../bridge/types'
 import { chordOf, chordText, chordsOf, chordsText, clashesWith, defaultChords, shortcutRows, type ShortcutGroup, type ShortcutRow } from './shortcuts'
 import { shortcutStore, useBindings } from './useBindings'
@@ -62,10 +63,11 @@ export function ShortcutSettings({ open, onOpenChange, views }: ShortcutSettings
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[560px] bg-card">
         <DialogHeader>
-          <DialogTitle className="text-[15px]">Shortcuts</DialogTitle>
+          <DialogTitle className="text-[15px]">Settings</DialogTitle>
           <DialogDescription>Click a shortcut's keys, then press the new key. Esc can be chosen too; click the keys again to cancel.</DialogDescription>
         </DialogHeader>
         <div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto pr-1">
+          <GraphicsSection />
           {GROUPS.map((group) => (
             <section key={group}>
               <h3 className="mb-1 text-[11px] font-semibold text-muted-foreground">{group}</h3>
@@ -104,6 +106,32 @@ export function ShortcutSettings({ open, onOpenChange, views }: ShortcutSettings
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** The GPU choice, shown only where there is an NVIDIA GPU to choose. Changing it restarts the studio. */
+function GraphicsSection(): React.JSX.Element | null {
+  const [graphics, setGraphics] = useState<GraphicsInfo | null>(null)
+
+  useEffect(() => {
+    void window.studio.graphics().then(setGraphics)
+  }, [])
+
+  if (graphics === null || !graphics.canUseDedicatedGpu) {
+    return null
+  }
+  const dedicated = graphics.usesDedicatedGpu
+  return (
+    <section>
+      <h3 className="mb-1 text-[11px] font-semibold text-muted-foreground">Graphics</h3>
+      <div className="flex items-center gap-2 py-0.5">
+        <span className="min-w-0 flex-1 truncate text-secondary-text">Draw with the NVIDIA GPU (restarts)</span>
+        <Button variant="outline" size="xs" className="w-36" onClick={() => window.studio.useDedicatedGpu(!dedicated)}>
+          {dedicated ? 'On' : 'Off'}
+        </Button>
+        <span className="w-14" />
+      </div>
+    </section>
   )
 }
 

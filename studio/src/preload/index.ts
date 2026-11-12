@@ -12,7 +12,9 @@ const host: StudioHost = {
   setTheme: (theme: ThemeChoice) => ipcRenderer.send('studio:set-theme', theme),
   copyText: (text: string) => ipcRenderer.send('studio:copy-text', text),
   loadShortcuts: () => ipcRenderer.invoke('studio:load-shortcuts'),
-  saveShortcuts: (shortcuts: StoredShortcuts) => ipcRenderer.send('studio:save-shortcuts', shortcuts)
+  saveShortcuts: (shortcuts: StoredShortcuts) => ipcRenderer.send('studio:save-shortcuts', shortcuts),
+  graphics: () => ipcRenderer.invoke('studio:graphics'),
+  useDedicatedGpu: (dedicated: boolean) => ipcRenderer.send('studio:use-dedicated-gpu', dedicated)
 }
 
 contextBridge.exposeInMainWorld('studio', host)

@@ -11,6 +11,12 @@ export type StoredShortcuts = Record<string, string[]>
 
 export type ThemeChoice = 'system' | 'light' | 'dark'
 
+export interface GraphicsInfo {
+  /** Whether this machine has an NVIDIA GPU the studio can be asked to draw on. */
+  canUseDedicatedGpu: boolean
+  usesDedicatedGpu: boolean
+}
+
 /** What the preload script hands the renderer. */
 export interface StudioHost {
   listBridges(): Promise<BridgeConnection[]>
@@ -22,6 +28,9 @@ export interface StudioHost {
   /** The rebound shortcuts from the studio settings, as the file holds them, for the caller to check. */
   loadShortcuts(): Promise<unknown>
   saveShortcuts(shortcuts: StoredShortcuts): void
+  graphics(): Promise<GraphicsInfo>
+  /** Saves the choice and restarts the studio, which only picks its GPU when it starts. */
+  useDedicatedGpu(dedicated: boolean): void
 }
 
 const LINK_PROTOCOL = 'iris-studio:'

@@ -26,12 +26,13 @@ interface ColumnTops {
     ColumnTop at(int worldX, int worldZ);
 
     /**
-     * Readies the tops of the grid's columns at once, so asking for them one by one after is quick. Nothing to do for a
-     * source whose tops are quick to find.
+     * The tops of the grid's columns found at once, so asking for them one by one after is quick; this source itself
+     * where its tops are quick to find.
      *
      * @throws java.util.concurrent.CancellationException as soon as the grid's request is cancelled
      */
-    default void prepare(TileGrid grid) {
+    default ColumnTops prepared(TileGrid grid) {
+        return this;
     }
 
     /**

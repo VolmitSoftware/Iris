@@ -29,6 +29,10 @@ import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.iris.util.project.hunk.Hunk;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
 import java.util.ArrayList;
@@ -36,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -47,9 +52,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.IntBinaryOperator;
-import java.util.function.IntToDoubleFunction;
 import java.util.function.UnaryOperator;
-import java.util.stream.IntStream;
 
 /**
  * The tops of chunks generated for the studio alone: each chunk runs through the world's own stages into memory, so its
@@ -92,33 +95,78 @@ final class GeneratedChunks implements ColumnTops {
         return chunk.columns[(worldZ & CHUNK_MASK) * BLOCKS_ACROSS + (worldX & CHUNK_MASK)];
     }
 
-    // A chunk that fails to generate is left for at() to fail on, as it would without this.
+    // The tile reads each of its columns as soon as its chunk is generated, so it holds them whatever the cache lets go
+    // of meanwhile. A tile with several columns to a chunk keeps the chunk for the finer tiles that follow; a coarser one
+    // reads one column of each chunk and keeps none, as thousands of them would only push the near ground out. A chunk
+    // that fails to generate is left for at() to fail on.
     @Override
-    public void prepare(TileGrid grid) {
+    public ColumnTops prepared(TileGrid grid) {
+        boolean keepsChunks = grid.step() < BLOCKS_ACROSS;
+        Long2ObjectMap<LongList> columnsByChunk = columnsByChunkOf(grid);
+        Map<Long, ColumnTop> found = new ConcurrentHashMap<>();
         List<Future<?>> generating = new ArrayList<>();
-        for (int chunkZ : chunksAlong(grid, grid::worldZ)) {
-            for (int chunkX : chunksAlong(grid, grid::worldX)) {
-                long key = keyOf(chunkX, chunkZ);
-                if (tops.getIfPresent(key) == null) {
-                    ChunkTask chunk = new ChunkTask(() -> generateUnlessCancelled(key, grid.cancelled()), grid.step());
-                    GENERATORS.execute(chunk);
-                    generating.add(chunk);
-                }
+        for (Long2ObjectMap.Entry<LongList> chunk : columnsByChunk.long2ObjectEntrySet()) {
+            long key = chunk.getLongKey();
+            ChunkTop known = tops.getIfPresent(key);
+            if (known != null) {
+                readColumns(known, chunk.getValue(), found);
+                continue;
             }
+            ChunkTask task = new ChunkTask(() -> readGenerated(key, keepsChunks, chunk.getValue(), found, grid.cancelled()), grid.step());
+            GENERATORS.execute(task);
+            generating.add(task);
         }
         try {
-            for (Future<?> chunk : generating) {
-                awaitUnlessCancelled(chunk, grid.cancelled());
+            for (Future<?> task : generating) {
+                awaitUnlessCancelled(task, grid.cancelled());
             }
         } catch (CancellationException cancelled) {
-            generating.forEach(chunk -> chunk.cancel(false));
+            generating.forEach(task -> task.cancel(false));
             throw cancelled;
+        }
+        return (worldX, worldZ) -> {
+            ColumnTop column = found.get(keyOf(worldX, worldZ));
+            return column != null ? column : at(worldX, worldZ);
+        };
+    }
+
+    private static Long2ObjectMap<LongList> columnsByChunkOf(TileGrid grid) {
+        Long2ObjectMap<LongList> columnsByChunk = new Long2ObjectOpenHashMap<>();
+        for (int gridZ = 0; gridZ < grid.size(); gridZ++) {
+            int worldZ = (int) Math.floor(grid.worldZ(gridZ));
+            for (int gridX = 0; gridX < grid.size(); gridX++) {
+                int worldX = (int) Math.floor(grid.worldX(gridX));
+                long chunk = keyOf(worldX >> CHUNK_SHIFT, worldZ >> CHUNK_SHIFT);
+                columnsByChunk.computeIfAbsent(chunk, ignored -> new LongArrayList()).add(keyOf(worldX, worldZ));
+            }
+        }
+        return columnsByChunk;
+    }
+
+    private void readGenerated(long key, boolean keepsChunk, LongList columns, Map<Long, ColumnTop> found, BooleanSupplier cancelled) {
+        if (cancelled.getAsBoolean()) {
+            return;
+        }
+        readColumns(keepsChunk ? tops.get(key) : topWithoutKeeping(key), columns, found);
+    }
+
+    private ChunkTop topWithoutKeeping(long key) {
+        ChunkTop known = tops.getIfPresent(key);
+        if (known != null) {
+            return known;
+        }
+        try {
+            return generate(key);
+        } catch (Exception failed) {
+            throw new CompletionException(failed);
         }
     }
 
-    private void generateUnlessCancelled(long key, BooleanSupplier cancelled) {
-        if (!cancelled.getAsBoolean()) {
-            tops.get(key);
+    private static void readColumns(ChunkTop chunk, LongList columns, Map<Long, ColumnTop> found) {
+        for (long column : columns) {
+            int worldX = (int) (column >> Integer.SIZE);
+            int worldZ = (int) column;
+            found.put(column, chunk.columns[(worldZ & CHUNK_MASK) * BLOCKS_ACROSS + (worldX & CHUNK_MASK)]);
         }
     }
 
@@ -137,14 +185,6 @@ final class GeneratedChunks implements ColumnTops {
                 throw new CancellationException("Map tile render interrupted");
             }
         }
-    }
-
-    // The distinct chunks the grid's columns fall in along one axis, in order.
-    private static int[] chunksAlong(TileGrid grid, IntToDoubleFunction worldAt) {
-        return IntStream.range(0, grid.size())
-                .map(cell -> (int) Math.floor(worldAt.applyAsDouble(cell)) >> CHUNK_SHIFT)
-                .distinct()
-                .toArray();
     }
 
     /**

@@ -140,6 +140,7 @@ public final class StudioBridge implements AutoCloseable {
     private final HttpServer server;
     private final int port;
     private final ExecutorService workers;
+    private final ExecutorService blockTileWaiters;
     private final ScheduledExecutorService ticker;
     private final StudioEvents events;
     private final Runnable hotloadHook;
@@ -155,6 +156,7 @@ public final class StudioBridge implements AutoCloseable {
         this.server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         this.port = server.getAddress().getPort();
         this.workers = Executors.newFixedThreadPool(workerCount(), daemonThreads("Iris Studio Bridge"));
+        this.blockTileWaiters = Executors.newCachedThreadPool(daemonThreads("Iris Studio Block Tiles"));
         this.ticker = Executors.newSingleThreadScheduledExecutor(daemonThreads("Iris Studio Events"));
         this.hotloadHook = events::hotloaded;
         server.setExecutor(workers);
@@ -197,6 +199,7 @@ public final class StudioBridge implements AutoCloseable {
         events.closeAll();
         server.stop(0);
         workers.shutdownNow();
+        blockTileWaiters.shutdownNow();
     }
 
     private void pollEvents() {
@@ -208,7 +211,7 @@ public final class StudioBridge implements AutoCloseable {
     }
 
     private void handle(HttpExchange exchange) throws IOException {
-        try {
+        answer(exchange, () -> {
             allowAnyOrigin(exchange.getResponseHeaders());
             if ("OPTIONS".equals(exchange.getRequestMethod())) {
                 exchange.sendResponseHeaders(STATUS_NO_CONTENT, -1);
@@ -219,6 +222,16 @@ public final class StudioBridge implements AutoCloseable {
                 throw new RequestError(STATUS_UNAUTHORIZED, "Missing or wrong token");
             }
             route(exchange);
+        });
+    }
+
+    private interface Answer {
+        void run() throws IOException;
+    }
+
+    private void answer(HttpExchange exchange, Answer answer) throws IOException {
+        try {
+            answer.run();
         } catch (RequestError error) {
             sendJson(exchange, error.status, new ErrorBody(error.getMessage()));
         } catch (CancellationException stopped) {
@@ -240,7 +253,13 @@ public final class StudioBridge implements AutoCloseable {
         }
         switch (endpoint) {
             case "world" -> sendJson(exchange, STATUS_OK, worldInfo(get(exchange)));
-            case "tile" -> sendBytes(exchange, "application/octet-stream", tile(get(exchange), query));
+            case "tile" -> {
+                if (query.has("blocks")) {
+                    answerAside(exchange, () -> sendBytes(exchange, "application/octet-stream", tile(get(exchange), query)));
+                } else {
+                    sendBytes(exchange, "application/octet-stream", tile(get(exchange), query));
+                }
+            }
             case "tile-cancel" -> cancelTile(exchange, query);
             case "hover" -> sendJson(exchange, STATUS_OK, hover(get(exchange).engine(), query));
             case "picks" -> sendJson(exchange, STATUS_OK, picks(get(exchange).engine(), query));
@@ -616,6 +635,18 @@ public final class StudioBridge implements AutoCloseable {
             tile = withBlocks(session, tile, startX, startZ, blockSource(query), cancelled);
         }
         return MapTileEncoding.encode(tile, gson, StudioBridge::pluginLookOf);
+    }
+
+    // A tile with blocks waits a minute or more on chunks generated on threads of their own; waiting on the bridge's
+    // few threads, a handful of them would leave none for the studio's other requests.
+    private void answerAside(HttpExchange exchange, Answer answer) {
+        blockTileWaiters.execute(() -> {
+            try {
+                answer(exchange, answer);
+            } catch (IOException clientHungUp) {
+                exchange.close();
+            }
+        });
     }
 
     // A tile with blocks may generate thousands of chunks, so one the studio stopped waiting for is let go of.

@@ -8,7 +8,7 @@ import { groundInView, type GroundInView } from './groundInView'
 import { marchOntoSurface } from './surfaceMarch'
 import { planCover, type Cover, type DrawnTile, type TileState } from './terrainCover'
 import { buildTerrainMesh, type TerrainMesh, type TerrainSurface } from './terrainMesh'
-import { addressOf, isInside, tileContaining, tileKey, type TerrainTile } from './terrainTiles'
+import { addressOf, ancestorAt, childrenOf, isInside, tileAt, tileContaining, tileKey, type TerrainTile } from './terrainTiles'
 
 /** How the tiles of a source look as ground, and how low and high that ground can reach. */
 export interface TerrainStyle<Tile> {
@@ -31,6 +31,14 @@ export interface TerrainStreamOptions<Tile, Layer> {
   /** Told how many tiles are still on their way, whenever that changes. */
   onPending(pending: number): void
   onError(message: string): void
+}
+
+/** A layer's tiles that have arrived, and every coarser tile that holds one, as of a version of the store. */
+interface StoredIndex {
+  version: number
+  layerKey: string
+  tiles: Set<string>
+  holding: Set<string>
 }
 
 interface DrawnMesh<Tile> {
@@ -65,6 +73,7 @@ export class TerrainStream<Tile, Layer> {
   private readonly drawn = new Map<string, DrawnMesh<Tile>>()
   private readonly sightListeners = new Set<() => void>()
   private standIns = new Map<string, Tile>()
+  private storedIndex: StoredIndex | null = null
   private layer: Layer | null = null
   private style: TerrainStyle<Tile> | null = null
   private styleVersion = 0
@@ -156,7 +165,7 @@ export class TerrainStream<Tile, Layer> {
     const layer = this.layer
     const quick = this.options.quickLayerOf?.(layer) ?? null
     const stateOf = (tile: TerrainTile): TileState => this.stateOf(tile, layer, quick)
-    const knownInside = (tile: TerrainTile): TerrainTile[] => this.drawnInside(tile)
+    const knownInside = (tile: TerrainTile): TerrainTile[] => [...this.coarsestStoredInside(tile, layer), ...this.drawnInside(tile)]
     const cover = planCover(sight, stateOf, this.options.coarsestLevel, knownInside)
     this.store.wantEach(this.wantedOf(cover.wanted, layer, quick))
     this.draw(cover, layer, quick, this.style)
@@ -196,9 +205,47 @@ export class TerrainStream<Tile, Layer> {
     return this.standIns.get(key) ?? quickTile ?? null
   }
 
-  // What is drawn now is what the view has; the planner keeps it, however fine, until a tile as true replaces it.
+  // Ground drawn now, such as a stand-in left from the layer before, stays until a tile as true replaces it.
   private drawnInside(tile: TerrainTile): TerrainTile[] {
     return [...this.drawn.values()].map((drawn) => drawn.tile).filter((finer) => isInside(finer, tile))
+  }
+
+  // The layer's tiles that have arrived inside the tile, however much finer, but only the coarsest over each spot: they
+  // show the ground as well from where it is too coarse for its own tile to have arrived, with the fewest faces.
+  private coarsestStoredInside(tile: TerrainTile, layer: Layer): TerrainTile[] {
+    const stored = this.storedIndexOf(layer)
+    const found: TerrainTile[] = []
+    const lookInside = (parent: TerrainTile): void => {
+      for (const child of childrenOf(parent)) {
+        const key = tileKey(child)
+        if (stored.tiles.has(key)) {
+          found.push(child)
+        } else if (stored.holding.has(key)) {
+          lookInside(child)
+        }
+      }
+    }
+    if (stored.holding.has(tileKey(tile))) {
+      lookInside(tile)
+    }
+    return found
+  }
+
+  private storedIndexOf(layer: Layer): StoredIndex {
+    const layerKey = this.options.source.layerKey(layer)
+    if (this.storedIndex?.version === this.store.version && this.storedIndex.layerKey === layerKey) {
+      return this.storedIndex
+    }
+    const index: StoredIndex = { version: this.store.version, layerKey, tiles: new Set(), holding: new Set() }
+    for (const address of this.store.addressesOf(layer)) {
+      const tile = tileAt(address)
+      index.tiles.add(tileKey(tile))
+      for (let level = tile.level + 1; level <= this.options.coarsestLevel; level++) {
+        index.holding.add(tileKey(ancestorAt(tile, level)))
+      }
+    }
+    this.storedIndex = index
+    return index
   }
 
   private draw(cover: Cover, layer: Layer, quick: Layer | null, style: TerrainStyle<Tile>): void {

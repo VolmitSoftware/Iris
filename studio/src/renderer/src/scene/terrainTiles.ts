@@ -56,6 +56,11 @@ export function tileContaining(worldX: number, worldZ: number, level: number): T
 }
 
 /** What to ask the bridge for: tile (x, z) of a layer sampled a column per pixel covers the same blocks. */
+/** The tile at an address, the reverse of {@link addressOf}. */
+export function tileAt(address: TileAddress): TerrainTile {
+  return { level: Math.round(Math.log2(address.blocksPerPixel)), tileX: address.tileX, tileZ: address.tileZ }
+}
+
 export function addressOf(tile: TerrainTile): TileAddress {
   return { tileX: tile.tileX, tileZ: tile.tileZ, blocksPerPixel: blocksPerColumn(tile.level) }
 }

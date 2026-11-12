@@ -14,6 +14,8 @@ export interface TileSource<Tile, Layer, Style> {
 
 interface StoredTile<Tile> {
   tile: Tile
+  address: TileAddress
+  layerKey: string
   bytes: number
   lastUsed: number
   picture: HTMLCanvasElement | null
@@ -30,12 +32,13 @@ const CACHE_BYTES = 256 * 1024 * 1024
  */
 export class TileStore<Tile, Layer, Style> {
   private readonly tiles = new Map<string, StoredTile<Tile>>()
-  private readonly inFlight = new Map<string, AbortController>()
+  private readonly inFlight = new Map<string, { controller: AbortController; layerKey: string }>()
   /** Asked for again only after a refresh, which changes every key, so a broken tile is not fetched on every frame. */
   private readonly failed = new Set<string>()
   private wanted: { key: string; address: TileAddress; layer: Layer }[] = []
   private storedBytes = 0
   private useClock = 0
+  private changes = 0
 
   constructor(
     private readonly source: TileSource<Tile, Layer, Style>,
@@ -60,6 +63,17 @@ export class TileStore<Tile, Layer, Style> {
   /** Whether the tile has arrived; unlike {@link get}, asking does not count as using it. */
   has(address: TileAddress, layer: Layer): boolean {
     return this.tiles.has(this.key(address, layer))
+  }
+
+  /** Where the layer's tiles that have arrived lie; asking does not count as using them. */
+  addressesOf(layer: Layer): TileAddress[] {
+    const layerKey = this.source.layerKey(layer)
+    return [...this.tiles.values()].filter((stored) => stored.layerKey === layerKey).map((stored) => stored.address)
+  }
+
+  /** Changes whenever a tile arrives or is let go, so what is worked out from the stored tiles is worked out again. */
+  get version(): number {
+    return this.changes
   }
 
   /** The tile drawn in {@code style}; restyled only when the style changed since it was last drawn. */
@@ -89,9 +103,9 @@ export class TileStore<Tile, Layer, Style> {
       .map(({ address, layer }) => ({ key: this.key(address, layer), address, layer }))
       .filter((entry) => !this.tiles.has(entry.key) && !this.failed.has(entry.key))
     const stillWanted = new Set(this.wanted.map((entry) => entry.key))
-    for (const [key, controller] of this.inFlight) {
+    for (const [key, request] of this.inFlight) {
       if (!stillWanted.has(key)) {
-        controller.abort()
+        request.controller.abort()
         this.inFlight.delete(key)
       }
     }
@@ -104,33 +118,40 @@ export class TileStore<Tile, Layer, Style> {
   }
 
   clear(): void {
-    for (const controller of this.inFlight.values()) {
-      controller.abort()
+    for (const request of this.inFlight.values()) {
+      request.controller.abort()
     }
     this.inFlight.clear()
     this.failed.clear()
     this.tiles.clear()
     this.wanted = []
     this.storedBytes = 0
+    this.changes++
   }
 
+  // Each layer has its own requests in flight, so tiles of a slow layer, which take a minute, never hold up a quick one's.
   private startRequests(): void {
+    const inFlightByLayer = new Map<string, number>()
+    for (const { layerKey } of this.inFlight.values()) {
+      inFlightByLayer.set(layerKey, (inFlightByLayer.get(layerKey) ?? 0) + 1)
+    }
     for (const entry of this.wanted) {
-      if (this.inFlight.size >= MAXIMUM_IN_FLIGHT) {
-        return
+      const layerKey = this.source.layerKey(entry.layer)
+      const inFlight = inFlightByLayer.get(layerKey) ?? 0
+      if (this.inFlight.has(entry.key) || inFlight >= MAXIMUM_IN_FLIGHT) {
+        continue
       }
-      if (!this.inFlight.has(entry.key)) {
-        this.fetchTile(entry.key, entry.address, entry.layer)
-      }
+      inFlightByLayer.set(layerKey, inFlight + 1)
+      this.fetchTile(entry.key, layerKey, entry.address, entry.layer)
     }
   }
 
-  private fetchTile(key: string, address: TileAddress, layer: Layer): void {
+  private fetchTile(key: string, layerKey: string, address: TileAddress, layer: Layer): void {
     const controller = new AbortController()
-    this.inFlight.set(key, controller)
+    this.inFlight.set(key, { controller, layerKey })
     this.source
       .fetch(address, layer, controller.signal)
-      .then((tile) => this.store(key, tile))
+      .then((tile) => this.store(key, address, layer, tile))
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
           this.failed.add(key)
@@ -138,7 +159,7 @@ export class TileStore<Tile, Layer, Style> {
         }
       })
       .finally(() => {
-        if (this.inFlight.get(key) === controller) {
+        if (this.inFlight.get(key)?.controller === controller) {
           this.inFlight.delete(key)
         }
         this.wanted = this.wanted.filter((entry) => entry.key !== key)
@@ -147,10 +168,11 @@ export class TileStore<Tile, Layer, Style> {
       })
   }
 
-  private store(key: string, tile: Tile): void {
+  private store(key: string, address: TileAddress, layer: Layer, tile: Tile): void {
     const bytes = this.source.bytesOf(tile)
-    this.tiles.set(key, { tile, bytes, lastUsed: ++this.useClock, picture: null, pictureStyle: '' })
+    this.tiles.set(key, { tile, address, layerKey: this.source.layerKey(layer), bytes, lastUsed: ++this.useClock, picture: null, pictureStyle: '' })
     this.storedBytes += bytes
+    this.changes++
     this.evictOldest()
   }
 
@@ -165,6 +187,7 @@ export class TileStore<Tile, Layer, Style> {
       }
       this.tiles.delete(key)
       this.storedBytes -= stored.bytes
+      this.changes++
     }
   }
 }

@@ -1,4 +1,4 @@
-import { CanvasTexture, NearestFilter, type Texture } from 'three'
+import { CanvasTexture, NearestFilter, NearestMipmapLinearFilter, type Texture } from 'three'
 import { averageColor } from './blockColors'
 import { texturePath, type ImageSource } from './textureAtlas'
 
@@ -65,16 +65,21 @@ export class TerrainAtlas implements TerrainPictures, PictureSource {
 
   private readonly drawing: CanvasRenderingContext2D
   private readonly cutoutDrawing: CanvasRenderingContext2D
+  /** The texture halved again and again, down to a pixel a picture. */
+  private readonly smallerDrawings: CanvasRenderingContext2D[]
   private readonly cells = new Map<string, Promise<UvCell | null>>()
   private used = PLAIN_CELL + 1
 
   constructor(private readonly images: ImageSource) {
     ;[this.drawing, this.texture] = sheet()
     ;[this.cutoutDrawing, this.cutouts] = sheet()
-    for (const drawing of [this.drawing, this.cutoutDrawing]) {
+    this.smallerDrawings = withSmallerSheets(this.texture)
+    for (const [level, drawing] of [this.drawing, ...this.smallerDrawings].entries()) {
       drawing.fillStyle = WHITE
-      drawing.fillRect(0, 0, CELL_PIXELS, CELL_PIXELS)
+      drawing.fillRect(0, 0, CELL_PIXELS >> level, CELL_PIXELS >> level)
     }
+    this.cutoutDrawing.fillStyle = WHITE
+    this.cutoutDrawing.fillRect(0, 0, CELL_PIXELS, CELL_PIXELS)
   }
 
   cellOf(textureId: string): Promise<UvCell | null> {
@@ -105,7 +110,12 @@ export class TerrainAtlas implements TerrainPictures, PictureSource {
     const average = averageColor(picture)
     const hasGaps = isOpenInPlaces(picture)
     this.cutoutDrawing.putImageData(cutoutOf(picture), left, top)
-    this.drawing.putImageData(withGapsFilled(picture, average), left, top)
+    let smaller = withGapsFilled(picture, average)
+    this.drawing.putImageData(smaller, left, top)
+    for (const [index, drawing] of this.smallerDrawings.entries()) {
+      smaller = halved(smaller)
+      drawing.putImageData(smaller, left >> (index + 1), top >> (index + 1))
+    }
     this.texture.needsUpdate = true
     this.cutouts.needsUpdate = true
     return { ...placed, average, hasGaps }
@@ -124,6 +134,41 @@ function sheet(): [CanvasRenderingContext2D, CanvasTexture] {
   texture.generateMipmaps = false
   texture.flipY = false
   return [drawing, texture]
+}
+
+// Far off, a texture is drawn smaller, down to a pixel a picture: its average, as the coarser ground's flat colour is,
+// so the ground looks the same where it changes from textured blocks to coloured columns. Halving no further keeps every
+// level's pictures apart, and the nearest pixel of a level never reaches into the picture beside it.
+function withSmallerSheets(texture: CanvasTexture): CanvasRenderingContext2D[] {
+  const drawings: CanvasRenderingContext2D[] = []
+  for (let level = 1; CELL_PIXELS >> level >= 1; level++) {
+    const canvas = document.createElement('canvas')
+    canvas.width = ATLAS_PIXELS >> level
+    canvas.height = ATLAS_PIXELS >> level
+    drawings.push(canvas.getContext('2d', { willReadFrequently: true })!)
+  }
+  texture.mipmaps = [texture.image, ...drawings.map((drawing) => drawing.canvas)]
+  texture.minFilter = NearestMipmapLinearFilter
+  return drawings
+}
+
+/** The picture at half its size, each pixel the average of the four it covers. */
+export function halved(picture: ImageData): ImageData {
+  const width = Math.max(1, picture.width >> 1)
+  const height = Math.max(1, picture.height >> 1)
+  const half = new ImageData(width, height)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      for (let channel = 0; channel < 4; channel++) {
+        let sum = 0
+        for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+          sum += picture.data[((y * 2 + dy) * picture.width + x * 2 + dx) * 4 + channel]
+        }
+        half.data[(y * width + x) * 4 + channel] = Math.round(sum / 4)
+      }
+    }
+  }
+  return half
 }
 
 function isOpenInPlaces(picture: ImageData): boolean {

@@ -87,8 +87,7 @@ public final class MapTileRenderer {
                     + " blocks per pixel or finer");
         }
         TileGrid grid = new TileGrid(tile.gridSize(), startX - step, startZ - step, step, cancelled);
-        ColumnTops tops = topsOf(source);
-        tops.prepare(grid);
+        ColumnTops tops = topsOf(source).prepared(grid);
         int cells = grid.size() * grid.size();
         short[] ground = new short[cells];
         short[] cover = new short[cells];

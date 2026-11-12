@@ -13,6 +13,8 @@ interface FlatLayer {
   height: number
   /** Resolves the tiles of the layer once called; they stay on their way until then. */
   gate: Promise<void>
+  /** Where given, the gate of the tiles this many blocks a column, in place of {@link gate}. */
+  gateAt?: (blocksPerPixel: number) => Promise<void>
 }
 
 const COARSEST_LEVEL = 8
@@ -56,7 +58,7 @@ function setUp(
     fetch: async (address, layer) => {
       requested.push(address.blocksPerPixel)
       requestedLayers.push(layer.name)
-      await layer.gate
+      await (layer.gateAt?.(address.blocksPerPixel) ?? layer.gate)
       return { height: layer.height }
     },
     bytesOf: () => 1
@@ -221,6 +223,28 @@ describe('terrain stream', () => {
     await settle()
     const sight = new Ray(camera.position.clone(), camera.getWorldDirection(new Vector3()))
     expect(stream.content.surfaceAlong!(sight, 2000)!.y).toBeCloseTo(71, 1)
+  })
+
+  it('shows the true ground it has from closer up again, rather than a quick stand-in, while coarser tiles are on their way', async () => {
+    const neverArrives = new Promise<void>(() => {})
+    const slow: FlatLayer = { name: 'slow', height: 90, gate: open, gateAt: (blocksPerPixel) => (blocksPerPixel <= 8 ? open : neverArrives) }
+    const quick: FlatLayer = { name: 'quick', height: 70, gate: open }
+    const { stream, camera, moved } = setUp(COARSEST_LEVEL, (layer) => (layer === slow ? quick : null))
+    stream.restyle(flatStyle)
+    stream.showLayer(slow)
+    await settle()
+    // Looking far away takes the ground near the origin out of sight, and so out of the drawn tiles.
+    camera.position.set(500_000, 664, 360)
+    camera.lookAt(500_000, 64, 0)
+    moved()
+    await settle()
+    camera.position.set(0, 20_000, 12_000)
+    camera.lookAt(LOOKED_AT)
+    moved()
+    await settle()
+
+    const ray = new Ray(new Vector3(10, 30_000, 10), new Vector3(0, -1, 0))
+    expect(stream.content.surfaceAlong!(ray, 40_000)!.y).toBeCloseTo(91, 3)
   })
 
   it('stops drawing when it is let go', async () => {

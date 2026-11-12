@@ -3,68 +3,6 @@
   "derivative": "minecraft:lush_caves",
   "vanillaDerivative": "minecraft:lush_caves",
   "caveMinDepthBelowSurface": 9,
-  "caveProfile": {
-    "enabled": true,
-    "verticalRange": {
-      "min": 6,
-      "max": 700
-    },
-    "baseDensityStyle": {
-      "style": "SIMPLEX_VASCULAR",
-      "zoom": 0.88
-    },
-    "detailDensityStyle": {
-      "style": "FRACTAL_BILLOW_SIMPLEX",
-      "zoom": 0.42
-    },
-    "warpStyle": {
-      "style": "SIMPLEX",
-      "zoom": 0.28
-    },
-    "baseWeight": 0.9,
-    "detailWeight": 0.12,
-    "warpStrength": 0.38,
-    "densityThreshold": {
-      "min": -0.13,
-      "max": -0.035,
-      "style": {
-        "style": "SIMPLEX",
-        "zoom": 0.66
-      }
-    },
-    "thresholdBias": 0.08,
-    "sampleStep": 2,
-    "surfaceClearance": 9,
-    "allowSurfaceBreak": false,
-    "objectMinDepthBelowSurface": 13,
-    "defaultObjectAnchor": "FLOOR",
-    "defaultObjectPlaceMode": "ORGANIC_STILT",
-    "anchorScanStep": 1,
-    "anchorSearchAttempts": 16,
-    "allowFluid": true,
-    "fluidMinDepthBelowSurface": 18,
-    "fluidRequiresFloor": true,
-    "allowLava": true,
-    "modules": [
-      {
-        "style": {
-          "style": "FRACTAL_BILLOW_SIMPLEX",
-          "zoom": 0.34
-        },
-        "weight": 0.06,
-        "threshold": 0.06,
-        "verticalRange": {
-          "min": 12,
-          "max": 420
-        },
-        "invert": true
-      }
-    ],
-    "verticalEdgeFade": 22,
-    "verticalEdgeFadeStrength": 0.15,
-    "minCarveCells": 20,
-    "recoveryThresholdBoost": 0.06
-  },
   "wall": {
     "style": {
       "style": "SIMPLEX",

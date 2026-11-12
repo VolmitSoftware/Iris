@@ -45,57 +45,6 @@
             "temperate/food"
         ]
     },
-    "caveProfile": {
-        "enabled": true,
-        "verticalRange": {
-            "min": 6,
-            "max": 120
-        },
-        "baseDensityStyle": {
-            "style": "PERLIN",
-            "zoom": 0.55
-        },
-        "detailDensityStyle": {
-            "style": "SIMPLEX",
-            "zoom": 0.5
-        },
-        "warpStyle": {
-            "style": "SIMPLEX",
-            "zoom": 0.5
-        },
-        "baseWeight": 1,
-        "detailWeight": 0,
-        "warpStrength": 0,
-        "densityThreshold": {
-            "min": -0.14,
-            "max": -0.06,
-            "style": {
-                "style": "SIMPLEX",
-                "zoom": 0.5
-            }
-        },
-        "thresholdBias": 0.06,
-        "sampleStep": 3,
-        "surfaceClearance": 12,
-        "allowSurfaceBreak": false,
-        "surfaceBreakStyle": {
-            "style": "SIMPLEX",
-            "zoom": 0.88
-        },
-        "surfaceBreakNoiseThreshold": 0.99,
-        "surfaceBreakDepth": 4,
-        "surfaceBreakThresholdBoost": 0.02,
-        "objectMinDepthBelowSurface": 14,
-        "defaultObjectAnchor": "FLOOR",
-        "defaultObjectPlaceMode": "ORGANIC_STILT",
-        "anchorScanStep": 1,
-        "anchorSearchAttempts": 12,
-        "allowFluid": true,
-        "fluidMinDepthBelowSurface": 20,
-        "fluidRequiresFloor": true,
-        "allowLava": true,
-        "modules": []
-    },
     "caveBiomeZoom": 3.3,
     "entitySpawners": [
         "temperate/cave",

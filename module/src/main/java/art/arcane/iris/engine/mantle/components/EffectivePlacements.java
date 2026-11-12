@@ -20,7 +20,6 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
-import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.modules.objects.PlacementChanges;
 import com.volmit.object.PlaceableObject;
@@ -43,22 +42,6 @@ final class EffectivePlacements {
     /** The changes to make to {@code placement} to place {@code object} on the surface. */
     PlacementChanges forSurface(ObjectPlacement placement, PlaceableObject object) {
         return withDimensionSurfaceSupport(placement, withImportedMode(placement, object, PlacementChanges.NONE));
-    }
-
-    /** The changes to make to {@code placement} to place {@code object} in a cave with the cave profile {@code caveProfile}. */
-    PlacementChanges forCave(ObjectPlacement placement, PlaceableObject object, CaveProfile caveProfile) {
-        PlacementChanges changes = forSurface(placement, object);
-        ObjectPlaceMode mode = changes.mode() != null ? changes.mode() : placement.mode();
-        if (mode != ObjectPlaceMode.CENTER_HEIGHT || caveProfile == null) {
-            return changes;
-        }
-        ObjectPlaceMode profileMode = caveProfile.defaultObjectPlaceMode().orElse(null);
-        if (profileMode == null) {
-            return changes;
-        }
-        String key = object.name();
-        List<String> place = key == null || key.isBlank() ? List.of() : List.of(key);
-        return changes.withPlace(place).withMode(profileMode);
     }
 
     /** Imported objects are placed with the fast minimal stilt unless their mode finds its own height. */

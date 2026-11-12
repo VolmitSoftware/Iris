@@ -21,7 +21,6 @@ package art.arcane.iris.engine.object.terrain.floating;
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.modules.carve.CarvingEntry;
 import art.arcane.iris.modules.carve.CarvingSettings;
-import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.modules.floating.FloatingChildBiome;
 import art.arcane.iris.modules.floating.FloatingChildSettings;
 import art.arcane.iris.modules.floating.MergeFloatingChildrenSettings;
@@ -155,8 +154,4 @@ public final class FloatingWorld {
         return Optional.ofNullable(found);
     }
 
-    /** The cave profile {@code biome} declares; null when it declares none. */
-    CaveProfile caveProfile(ResourceId biome) {
-        return running.settings().declaredBy(biome, CaveProfile.class).orElse(null);
-    }
 }

@@ -34,7 +34,7 @@ import java.util.Locale;
  * Catches the shared IrisStyledRange class default (min 16, max 32) leaking into pack content.
  * The POJO cannot distinguish an empty object from an explicit 16/32 after Gson runs, so the raw
  * JSON is the only place this mistake is still visible: an objects[].densityStyle of {} places
- * 16-32 objects per chunk, and a caveProfile.densityThreshold of {} hollows the whole cave range.
+ * 16-32 objects per chunk.
  */
 final class PackStyledRangeDefaultValidator {
     private static final String STYLE_RANGE_SNIPPET_FOLDER = "snippet/style-range/";
@@ -74,7 +74,6 @@ final class PackStyledRangeDefaultValidator {
                 }
 
                 validateObjectPlacements(packFolder, type, key, json, errors, warnings);
-                validateCaveProfileThreshold(packFolder, type, key, json.optJSONObject("caveProfile"), errors, warnings);
             }
         }
         return new Validation(errors, warnings);
@@ -96,18 +95,6 @@ final class PackStyledRangeDefaultValidator {
                     "16-32 objects per chunk", "remove densityStyle to use the scalar density field",
                     errors, warnings);
         }
-    }
-
-    private static void validateCaveProfileThreshold(File packFolder, String type, String key, JSONObject caveProfile,
-                                                     List<String> errors, List<String> warnings) {
-        if (caveProfile == null || !caveProfile.has("densityThreshold") || caveProfile.isNull("densityThreshold")) {
-            return;
-        }
-        checkRange(packFolder, caveProfile.opt("densityThreshold"),
-                type + " '" + key + "' caveProfile.densityThreshold",
-                "a carve threshold of 16-32, hollowing the entire vertical range",
-                "remove densityThreshold to keep the cave profile default",
-                errors, warnings);
     }
 
     private static void checkRange(File packFolder, Object raw, String path, String consequence, String removal,

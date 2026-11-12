@@ -20,69 +20,31 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
-import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 
-/** What a cave object placement takes from the cave profile that applies to it. */
+/** How a cave object placement looks for its anchor. A placement sets its own anchor mode; nothing sets one for all caves. */
 final class CaveSettings {
-    private static final CaveProfile DEFAULT_PROFILE = new CaveProfile();
-    private static final int DEFAULT_SCAN_STEP = 1;
-    private static final int DEFAULT_MIN_DEPTH_BELOW_SURFACE = 6;
-    private static final int DEFAULT_SEARCH_ATTEMPTS = 6;
+    private static final int SCAN_STEP_BLOCKS = 1;
+    private static final int MIN_DEPTH_BELOW_SURFACE_BLOCKS = 6;
+    private static final int SEARCH_ATTEMPTS = 6;
 
-    private final CaveProfile dimensionProfile;
-
-    CaveSettings(CaveProfile dimensionProfile) {
-        this.dimensionProfile = dimensionProfile;
+    private CaveSettings() {
     }
 
-    /** The profile of the first of {@code preferred} and {@code secondary} that is enabled, else the dimension's, else the default one. */
-    CaveProfile resolve(CaveProfile preferred, CaveProfile secondary) {
-        if (preferred != null && preferred.enabled()) {
-            return preferred;
-        }
-        if (secondary != null && secondary.enabled()) {
-            return secondary;
-        }
-        if (dimensionProfile != null) {
-            return dimensionProfile;
-        }
-        return DEFAULT_PROFILE;
-    }
-
-    /** How the placement looks for its anchor in caves: its own mode, else the profile's, else the floor; turned upside down, the ceiling. */
-    CaveAnchors.Search searchFor(ObjectPlacement placement, CaveProfile profile) {
-        CaveAnchorMode mode = anchorMode(placement, profile);
+    /** The placement's own anchor mode, else the floor; turned upside down, the ceiling. */
+    static CaveAnchors.Search searchFor(ObjectPlacement placement) {
+        CaveAnchorMode mode = anchorMode(placement);
         if (placement.mode().placeMode().has(PlaceTrait.UPSIDE_DOWN)) {
             mode = CaveAnchorMode.CEILING;
         }
-        return new CaveAnchors.Search(mode, scanStep(profile), minDepthBelowSurface(profile), searchAttempts(profile));
+        return new CaveAnchors.Search(mode, SCAN_STEP_BLOCKS, MIN_DEPTH_BELOW_SURFACE_BLOCKS, SEARCH_ATTEMPTS);
     }
 
-    private static CaveAnchorMode anchorMode(ObjectPlacement placement, CaveProfile profile) {
+    private static CaveAnchorMode anchorMode(ObjectPlacement placement) {
         CaveAnchorMode placementMode = placement.caveAnchorMode();
-        if (placementMode != null && !placementMode.equals(CaveAnchorMode.PROFILE_DEFAULT)) {
-            return placementMode;
-        }
-        if (profile == null) {
+        if (placementMode == null || placementMode.equals(CaveAnchorMode.PROFILE_DEFAULT)) {
             return CaveAnchorMode.FLOOR;
         }
-        CaveAnchorMode profileMode = profile.defaultObjectAnchor();
-        if (profileMode == null || profileMode.equals(CaveAnchorMode.PROFILE_DEFAULT)) {
-            return CaveAnchorMode.FLOOR;
-        }
-        return profileMode;
-    }
-
-    private static int scanStep(CaveProfile profile) {
-        return profile == null ? DEFAULT_SCAN_STEP : Math.max(1, profile.anchorScanStep());
-    }
-
-    private static int minDepthBelowSurface(CaveProfile profile) {
-        return profile == null ? DEFAULT_MIN_DEPTH_BELOW_SURFACE : Math.max(0, profile.objectMinDepthBelowSurface());
-    }
-
-    private static int searchAttempts(CaveProfile profile) {
-        return profile == null ? DEFAULT_SEARCH_ATTEMPTS : Math.max(1, profile.anchorSearchAttempts());
+        return placementMode;
     }
 }

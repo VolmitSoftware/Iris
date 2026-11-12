@@ -7,7 +7,9 @@ import art.arcane.iris.engine.mantle.components.CarveWorld;
 import art.arcane.iris.engine.mantle.components.CaveCarving;
 import art.arcane.iris.engine.mantle.components.CaveFloorMarking;
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.modules.carve.CaveProfile;
+import art.arcane.iris.modules.carve.Cave;
+import art.arcane.iris.modules.carve.CaveList;
+import com.volmit.ModuleLog;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import com.volmit.block.BlockState;
 import com.volmit.config.Range;
@@ -46,8 +48,8 @@ public class CarvePipelineHarnessTest {
     private static final long SEED = 424242L;
     private static final int APPLIED_CHUNKS_PER_SIDE = 6;
     private static final int CARVE_RING = 1;
-    private static final String VOIDS_DIGEST = "df7ae961c3025eb5";
-    private static final String BLOCKS_DIGEST = "bdb40db5625eb942";
+    private static final String VOIDS_DIGEST = "630fef28ea2529d4";
+    private static final String BLOCKS_DIGEST = "58fbce572cb007d4";
 
     private static final BlockState STONE = new BlockState("minecraft:stone");
     private static final BlockState AIR = new BlockState("minecraft:air");
@@ -99,7 +101,8 @@ public class CarvePipelineHarnessTest {
     }
 
     private Result run() {
-        CarveTestWorld world = new CarveTestWorld().biome("cave/lush").biome("plains").carveSeed(SEED).dimension(profile());
+        CarveTestWorld world = new CarveTestWorld().biome("cave/lush").biome("plains").carveSeed(SEED)
+                .cave("mixed", cave()).dimension(new CaveList(List.of("mixed")));
         CarveWorld carveWorld = new CarveWorld(world.resources().noise(), SEED, HEIGHT, FLUID_HEIGHT, LAVA_HEIGHT, CarveTestWorld.MIN_HEIGHT);
         RecordingCaveDressing dressing = new RecordingCaveDressing();
         dressing.fluid = WATER;
@@ -108,7 +111,7 @@ public class CarvePipelineHarnessTest {
         dressing.ceilings.put(CarveTestWorld.id("cave/lush"), List.of(CEILING));
         InMemoryMantle mantle = new InMemoryMantle(HEIGHT / 16);
         MantleLayer<CarvedVoid> voids = mantle.carved();
-        CaveCarving carving = new CaveCarving(world, carveWorld, false, (x, z) -> surface(x, z) < FLUID_HEIGHT);
+        CaveCarving carving = new CaveCarving(world, carveWorld, (x, z) -> surface(x, z) < FLUID_HEIGHT, mock(ModuleLog.class));
         CaveFloorMarking floorMarking = new CaveFloorMarking(carveWorld, false);
         CaveApplying applying = new CaveApplying(world, carveWorld, false);
         List<String> floors = new ArrayList<>();
@@ -215,7 +218,11 @@ public class CarvePipelineHarnessTest {
         return blocks;
     }
 
-    private static CaveProfile profile() {
-        return TestSettings.with(new CaveProfile(), "enabled", true, "verticalRange", Range.of(4D, HEIGHT - 8D));
+    private static Cave cave() {
+        return TestSettings.of(Cave.class, """
+                {"tunnel": {"width": {"min": 3, "max": 5}, "stretch": 40},
+                 "cavern": {"size": 32, "height": 14, "coverage": 0.12, "pillars": {"spacing": 12, "thickness": 3}},
+                 "opensToSurface": true, "fade": 4}
+                """);
     }
 }

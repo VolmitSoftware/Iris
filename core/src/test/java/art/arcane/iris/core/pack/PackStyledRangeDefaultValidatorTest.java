@@ -68,18 +68,6 @@ public class PackStyledRangeDefaultValidatorTest {
     }
 
     @Test
-    public void flagsEmptyCaveDensityThreshold() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "dimensions/main.json", "{\"caveProfile\":{\"densityThreshold\":{}}}");
-
-        PackStyledRangeDefaultValidator.Validation validation = PackStyledRangeDefaultValidator.validate(pack);
-
-        assertEquals(1, validation.errors().size());
-        assertTrue(validation.errors().get(0).startsWith(
-                "Dimension 'main' caveProfile.densityThreshold omits both min and max"));
-    }
-
-    @Test
     public void emptyDensityStyleBlocksFullPackValidation() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
         write(pack, "dimensions/main.json", "{\"regions\":[{\"region\":\"region\"}]}");

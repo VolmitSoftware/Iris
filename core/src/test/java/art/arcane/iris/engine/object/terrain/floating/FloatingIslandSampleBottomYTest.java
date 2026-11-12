@@ -319,11 +319,12 @@ public class FloatingIslandSampleBottomYTest {
     }
 
     @Test
-    public void directCarveEnabled_respectsCarvingReferenceOverride() {
-        ResolvedFloatingChild entry = new ResolvedFloatingChild(TestSettings.with(new FloatingChildBiome(), "carving", "carving/mushroom"), null);
+    public void directCarveEnabled_needsCarveNoiseAndAThresholdBelowOne() {
         NoiseSampler carve = constantNoise(0.0);
 
-        assertFalse(FloatingIslandSample.directCarveEnabled(entry, null, carve, 0.5));
+        assertTrue(FloatingIslandSample.directCarveEnabled(carve, 0.5));
+        assertFalse(FloatingIslandSample.directCarveEnabled(carve, 1.0));
+        assertFalse(FloatingIslandSample.directCarveEnabled(null, 0.5));
     }
 
     @Test

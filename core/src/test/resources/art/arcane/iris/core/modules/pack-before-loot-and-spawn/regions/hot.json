@@ -76,57 +76,6 @@
             "beach/clutter"
         ]
     },
-    "caveProfile": {
-        "enabled": true,
-        "verticalRange": {
-            "min": 6,
-            "max": 90
-        },
-        "baseDensityStyle": {
-            "style": "IRIS_DOUBLE",
-            "zoom": 0.8
-        },
-        "detailDensityStyle": {
-            "style": "SIMPLEX",
-            "zoom": 0.5
-        },
-        "warpStyle": {
-            "style": "SIMPLEX",
-            "zoom": 0.5
-        },
-        "baseWeight": 1,
-        "detailWeight": 0,
-        "warpStrength": 0,
-        "densityThreshold": {
-            "min": -0.1,
-            "max": -0.04,
-            "style": {
-                "style": "SIMPLEX",
-                "zoom": 0.5
-            }
-        },
-        "thresholdBias": 0.14,
-        "sampleStep": 3,
-        "surfaceClearance": 12,
-        "allowSurfaceBreak": false,
-        "surfaceBreakStyle": {
-            "style": "SIMPLEX",
-            "zoom": 0.88
-        },
-        "surfaceBreakNoiseThreshold": 0.99,
-        "surfaceBreakDepth": 4,
-        "surfaceBreakThresholdBoost": 0.02,
-        "objectMinDepthBelowSurface": 14,
-        "defaultObjectAnchor": "FLOOR",
-        "defaultObjectPlaceMode": "ORGANIC_STILT",
-        "anchorScanStep": 1,
-        "anchorSearchAttempts": 12,
-        "allowFluid": true,
-        "fluidMinDepthBelowSurface": 20,
-        "fluidRequiresFloor": true,
-        "allowLava": true,
-        "modules": []
-    },
     "caveBiomeZoom": 3.6,
     "entitySpawners": [
         "hot/cave",

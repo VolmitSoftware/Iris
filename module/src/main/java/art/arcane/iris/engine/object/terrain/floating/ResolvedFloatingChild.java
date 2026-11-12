@@ -19,10 +19,8 @@
 package art.arcane.iris.engine.object.terrain.floating;
 
 import art.arcane.iris.modules.carve.CarvingEntry;
-import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.modules.floating.FloatingChildBiome;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.engine.object.terrain.carving.CaveProfileSampler;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.noise.NoiseSampler;
@@ -34,7 +32,7 @@ import java.util.Optional;
 
 /**
  * A {@link FloatingChildBiome} made ready for one world: the noise its styles build (each from the world's floating seed),
- * the edge taper profile, the biome it targets, the carving profile sampler and the objects it hosts. One per decoded entry
+ * the edge taper profile, the biome it targets and the objects it hosts. One per decoded entry
  * ({@link FloatingWorld#resolve}).
  */
 public final class ResolvedFloatingChild {
@@ -59,7 +57,6 @@ public final class ResolvedFloatingChild {
     private final AtomicCache<NoiseSampler> bottomCache = new AtomicCache<>();
     private final AtomicCache<NoiseSampler> wallWarpCache = new AtomicCache<>();
     private final AtomicCache<NoiseSampler> carveCache = new AtomicCache<>();
-    private final AtomicCache<CaveProfileSampler> carvingProfileSamplerCache = new AtomicCache<>(true);
 
     ResolvedFloatingChild(FloatingChildBiome settings, FloatingWorld world) {
         this.settings = settings;
@@ -117,26 +114,7 @@ public final class ResolvedFloatingChild {
         return world.noise().sampler(style, world.baseSeed() ^ salt);
     }
 
-    public CaveProfileSampler carvingProfileSampler() {
-        if (!hasCarvingReference()) {
-            return null;
-        }
-
-        return carvingProfileSamplerCache.aquire(() -> {
-            CaveProfile profile = carvingBiome().map(world::caveProfile).orElse(null);
-            if (profile == null || !profile.enabled()) {
-                return null;
-            }
-
-            return new CaveProfileSampler(world.noise(), world.carveSeed(), profile);
-        });
-    }
-
-    public boolean hasCarvingReference() {
-        return !settings.carving().isBlank();
-    }
-
-    /** The biome whose cave profile carves the island: the biome of the dimension's carving entry the id names, or the biome the id names. */
+    /** The carving biome the island names: the biome of the dimension's carving entry the id names, or the biome the id names. */
     Optional<ResourceId> carvingBiome() {
         String carving = settings.carving();
         Optional<CarvingEntry> entry = world.dimensionCarving(carving);

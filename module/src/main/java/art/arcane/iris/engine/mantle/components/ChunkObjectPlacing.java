@@ -21,7 +21,6 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
-import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
@@ -86,7 +85,6 @@ final class ChunkObjectPlacing {
     private final boolean traceRegen;
     private final boolean golden;
     private final EffectivePlacements effective;
-    private final CaveSettings caves;
     private final int worldHeight;
     private final int caveLavaHeight;
 
@@ -107,7 +105,6 @@ final class ChunkObjectPlacing {
         this.worldHeight = context.mantle().bounds().maxY();
         this.caveLavaHeight = Optional.ofNullable(dimensionLevel(CaveLavaHeightSettings.class)).orElseGet(CaveLavaHeightSettings::new).height();
         this.effective = new EffectivePlacements(dimensionRequiresSurfaceSupport(), dimensionSurfaceSupportBuffer());
-        this.caves = new CaveSettings(dimensionLevel(CaveProfile.class));
     }
 
     /** Places what originates in this chunk. */
@@ -134,7 +131,7 @@ final class ChunkObjectPlacing {
         ResourceId surface = terrain.surfaceBiome(centerX, centerZ);
         int surfaceY = terrain.surfaceHeight(centerX, centerZ);
         ResourceId cave = resolveCaveObjectBiome(surfaceY, surface);
-        return new Column(region, surface, cave, surfaceY, objectsOf(cave, region, surface), profilesOf(cave, region, surface));
+        return new Column(region, surface, cave, surfaceY, objectsOf(cave, region, surface));
     }
 
     private ResourceId resolveCaveObjectBiome(int surfaceY, ResourceId surfaceBiome) {
@@ -163,12 +160,6 @@ final class ChunkObjectPlacing {
     private ColumnObjects objectsOf(ResourceId cave, ResourceId region, ResourceId surface) {
         SettingsStack<ObjectSettings> declared = context.settings().at(ObjectSettings.class, centerX, centerZ);
         return new ColumnObjects(levelValue(declared, Level.BIOME), caveSettings(cave, surface, declared, ObjectSettings.class),
-                levelValue(declared, Level.REGION));
-    }
-
-    private ColumnProfiles profilesOf(ResourceId cave, ResourceId region, ResourceId surface) {
-        SettingsStack<CaveProfile> declared = context.settings().at(CaveProfile.class, centerX, centerZ);
-        return new ColumnProfiles(levelValue(declared, Level.BIOME), caveSettings(cave, surface, declared, CaveProfile.class),
                 levelValue(declared, Level.REGION));
     }
 
@@ -222,16 +213,14 @@ final class ChunkObjectPlacing {
 
     private Tally placeObjects(Column column) {
         Tally tally = new Tally();
-        CaveProfile biomeCaveProfile = caves.resolve(column.profiles().cave(), column.profiles().region());
-        CaveProfile regionCaveProfile = caves.resolve(column.profiles().region(), column.profiles().cave());
         CaveAnchors anchors = newAnchors();
         PlacementOwner surfaceBiome = PlacementOwner.biome(column.surface());
         PlacementOwner region = PlacementOwner.region(column.region());
         placeSurfaceScope(tally, "biome-surface", surfaceObjects(column.objects().surface()), surfaceBiome);
-        placeCaveScope(tally, "biome-cave", carvingObjects(column.objects().cave()), biomeCaveProfile, column.cave(),
+        placeCaveScope(tally, "biome-cave", carvingObjects(column.objects().cave()), column.cave(),
                 PlacementOwner.biome(column.cave()), anchors);
         placeSurfaceScope(tally, "region-surface", surfaceObjects(column.objects().region()), region);
-        placeCaveScope(tally, "region-cave", carvingObjects(column.objects().region()), regionCaveProfile, null, region, anchors);
+        placeCaveScope(tally, "region-cave", carvingObjects(column.objects().region()), null, region, anchors);
         return tally;
     }
 
@@ -276,7 +265,7 @@ final class ChunkObjectPlacing {
         placeOnSurfaceAt(tally, placement, scope, owner, picked.get(), candidate.x(), candidate.z(), candidate.rng(), 0, 1);
     }
 
-    private void placeCaveScope(Tally tally, String scope, List<ObjectPlacement> placements, CaveProfile profile,
+    private void placeCaveScope(Tally tally, String scope, List<ObjectPlacement> placements,
                                 ResourceId expectedCaveBiome, PlacementOwner owner, CaveAnchors anchors) {
         for (ObjectPlacement placement : placements) {
             tally.checked(scope);
@@ -287,7 +276,7 @@ final class ChunkObjectPlacing {
             }
             tally.triggered(scope);
             try {
-                placeCaveObject(tally, placement, profile, scope, owner, expectedCaveBiome, anchors);
+                placeCaveObject(tally, placement, scope, owner, expectedCaveBiome, anchors);
             } catch (Throwable failure) {
                 skipObjectPlacement("cave object", "in " + describe(owner), placement, failure);
                 tally.errors++;
@@ -347,12 +336,12 @@ final class ChunkObjectPlacing {
         }
     }
 
-    private void placeCaveObject(Tally tally, ObjectPlacement placement, CaveProfile profile, String scope, PlacementOwner owner,
+    private void placeCaveObject(Tally tally, ObjectPlacement placement, String scope, PlacementOwner owner,
                                  ResourceId expectedCaveBiome, CaveAnchors anchors) {
         int minX = context.originX();
         int minZ = context.originZ();
         int density = objects.density(placement, minX, minZ);
-        CaveAnchors.Search search = caves.searchFor(placement, profile);
+        CaveAnchors.Search search = CaveSettings.searchFor(placement);
         for (int i = 0; i < density; i++) {
             tally.attempts++;
             Optional<PlaceableObject> picked = objects.pickScaled(placement, rng);
@@ -370,7 +359,7 @@ final class ChunkObjectPlacing {
                 continue;
             }
             int id = rng.i(0, Integer.MAX_VALUE);
-            PlacementChanges changes = effective.forCave(placement, object, profile);
+            PlacementChanges changes = effective.forSurface(placement, object);
             try {
                 PlacementTags tags = tags(object, id, "cave", isTreePlacement(object, placement), placement, owner);
                 CavePlacement contained = chunk.placeInCave(object, anchor.x(), anchor.y(), anchor.z(), placement, changes,
@@ -557,14 +546,10 @@ final class ChunkObjectPlacing {
                 + " objectNull=" + tally.nullObjects + " objectErrors=" + tally.errors);
     }
 
-    private record Column(ResourceId region, ResourceId surface, ResourceId cave, int surfaceY, ColumnObjects objects,
-                          ColumnProfiles profiles) {
+    private record Column(ResourceId region, ResourceId surface, ResourceId cave, int surfaceY, ColumnObjects objects) {
     }
 
     private record ColumnObjects(ObjectSettings surface, ObjectSettings cave, ObjectSettings region) {
-    }
-
-    private record ColumnProfiles(CaveProfile surface, CaveProfile cave, CaveProfile region) {
     }
 
     /** What placing the objects of a chunk came to. */

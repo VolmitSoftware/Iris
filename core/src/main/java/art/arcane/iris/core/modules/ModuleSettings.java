@@ -105,7 +105,9 @@ public final class ModuleSettings {
     }
 
     private Set<String> linkedBiomes(IrisPackResources resources, Function<LinkedBiomes, Set<ResourceId>> pick) {
-        if (values.isEmpty()) {
+        // Pack validation reads dimensions through pack data that has no resources of its own, and a module's
+        // settings cannot turn keys into ids without them. The biomes they link are checked when the pack loads.
+        if (values.isEmpty() || resources == null) {
             return Set.of();
         }
         Set<String> biomes = new LinkedHashSet<>();

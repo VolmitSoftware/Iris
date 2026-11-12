@@ -22,6 +22,8 @@ import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.object.material.IrisBlockData;
+import art.arcane.iris.modules.carve.Cave;
+import art.arcane.iris.modules.carve.CaveResources;
 import com.volmit.config.Level;
 import com.volmit.config.SettingsStack;
 import com.volmit.IrisFeature;
@@ -78,6 +80,7 @@ public final class CarveTestWorld implements PackWorld {
     private final Map<Class<?>, Object> states = new HashMap<>();
     private final List<Entry<?>> declared = new ArrayList<>();
     private final Map<ResourceId, PackBiome> biomes = new HashMap<>();
+    private final Map<ResourceId, Cave> caves = new HashMap<>();
     private final IrisData data = packData();
     private final Resources resources = new Resources();
     private long carveSeed = 1337L;
@@ -95,6 +98,12 @@ public final class CarveTestWorld implements PackWorld {
     public CarveTestWorld biome(String key) {
         ResourceId id = new ResourceId(NAMESPACE, key);
         biomes.put(id, new PackBiome(id, key, ResourceId.parse("minecraft:plains"), List.of()));
+        return this;
+    }
+
+    /** Puts {@code cave} in the pack's caves folder under {@code key}. */
+    public CarveTestWorld cave(String key, Cave cave) {
+        caves.put(resources.idOf(key), cave);
         return this;
     }
 
@@ -228,6 +237,9 @@ public final class CarveTestWorld implements PackWorld {
 
         @Override
         public <T> Optional<T> find(ResourceKind<T> kind, ResourceId id) {
+            if (kind.equals(CaveResources.CAVES)) {
+                return Optional.ofNullable(kind.type().cast(caves.get(id)));
+            }
             if (!kind.equals(BIOMES)) {
                 return Optional.empty();
             }

@@ -65,6 +65,11 @@ public final class DeclaredByLevel<F extends IrisFeature> {
         return dimension;
     }
 
+    /** Whether no region and no biome declares anything, so the dimension's declaration holds for every column. */
+    public boolean onlyDimensionDeclares() {
+        return regions.isEmpty() && biomes.isEmpty();
+    }
+
     /** The declaration of the region with this id; null when it declares none. */
     public F ofRegion(ResourceId region) {
         return regions.get(region);

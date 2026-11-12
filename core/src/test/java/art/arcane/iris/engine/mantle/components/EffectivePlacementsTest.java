@@ -1,7 +1,6 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
-import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.modules.objects.PlacementChanges;
 import com.volmit.object.PlaceableObject;
@@ -52,18 +51,6 @@ public class EffectivePlacementsTest {
         assertEquals(List.of("imports/castle"), imported.place());
         assertTrue(new EffectivePlacements(true, 0).forSurface(stilted, object("imports/castle")).isNone());
         assertTrue(new EffectivePlacements(true, 0).forSurface(centered, object("castle")).isNone());
-    }
-
-    @Test
-    public void aCaveProfileGivesCenteredPlacementsItsPlaceMode() {
-        ObjectPlacement centered = TestSettings.of(ObjectPlacement.class, "{\"mode\":\"CENTER_HEIGHT\"}");
-        CaveProfile profile = TestSettings.of(CaveProfile.class, "{\"enabled\":true,\"defaultObjectPlaceMode\":\"STILT\"}");
-
-        PlacementChanges changes = new EffectivePlacements(true, 0).forCave(centered, object("crystal"), profile);
-
-        assertEquals(ObjectPlaceMode.STILT, changes.mode());
-        assertEquals(List.of("crystal"), changes.place());
-        assertNull(new EffectivePlacements(true, 0).forCave(centered, object("crystal"), null).mode());
     }
 
     private static PlaceableObject object(String key) {

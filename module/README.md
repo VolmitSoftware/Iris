@@ -16,7 +16,7 @@ mantle components outside the stage graph any more. Their stage constants, and t
 types packs may read, live in `src/main/java/art/arcane/iris/builtin`, the package Iris exposes to pack
 modules; their stage bodies live beside the features they replace. Settings and helper types that only the jar's modules read,
 which Iris itself never touches, live in `art.arcane.iris.modules` instead, which Iris does not expose: the jar loads its own copy.
-Every built-in snippet is named under its module's id, `iris/<module>/<name>` (folder `snippet/iris/carve/cave-profile/`), so a
+Every built-in snippet is named under its module's id, `iris/<module>/<name>` (folder `snippet/iris/decorant/decorator/`), so a
 snippet type may live in either package. A type stays in `art.arcane.iris.builtin` only when Iris reads it or an exposed type holds it.
 
 Two of those modules are not in this project: `iris:biome` (writes the layout's platform biomes into the chunk) and
@@ -100,7 +100,7 @@ module-owned classes too (`art.arcane.iris.builtin.validate`, `.stilt`, `.vacuum
 settings (the keys pack modules add at `Level.PLACEMENT`) from the JSON the placement was written as (`json()`); a
 placement made in code uses `ObjectPlacement.builder()` or `toBuilder()`. Packs write the same JSON as before. Behaviour
 that needs Iris (noise built from the styles, blocks resolved through the pack, baked object variants) lives in `Resolved*` classes beside the
-worker (`ResolvedReplace`, `ResolvedCaveProfile`, `ResolvedFloatingChild`, `ResolvedProceduralPlacement`).
+worker (`ResolvedReplace`, `ResolvedFloatingChild`, `ResolvedProceduralPlacement`).
 
 `iris:decorant` is the second: `DecorantSettings` (biome level) holds `Decorator`s in `art.arcane.iris.builtin.decorant`,
 written `"decorators": [...]` as always (`@Feature(key = "decorators", root = "decorators")`).
@@ -125,7 +125,7 @@ from the random of whoever asks first, as it always was. The slope limit of a la
 object placement is the one `SlopeClip`.
 
 Caves, floating islands and ores are settings of their modules too, written under the keys they always had. `iris:carve` owns
-`caveProfile` (dimension, region, biome; an object, or a `snippet/iris/carve/cave-profile/...` reference), `carving` (dimension; a list of bands) and
+`caves` (dimension, region, biome; a list of keys of the pack's `caves/` folder, the lists of a column adding up), `carving` (dimension; a list of bands) and
 `carvingEnabled` (dimension; a boolean), `carvingBiome` (biome; a biome key) and `caveMinDepthBelowSurface` (biome; a number). `iris:floating`
 owns `floatingChildBiomes` (biome; a list) and `mergeFloatingChildBiomes` (biome; a boolean). `iris:terrain` owns `ores` (dimension, region,
 biome; a list of generators) and `hideOresForHiddenOre` (dimension; a boolean); `iris:deposit` owns `depositVariants` (dimension, region, biome; a list)

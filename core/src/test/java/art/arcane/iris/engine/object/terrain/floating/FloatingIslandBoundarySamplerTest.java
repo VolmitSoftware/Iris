@@ -547,8 +547,6 @@ public class FloatingIslandBoundarySamplerTest {
         when(entry.topShapeNoise()).thenReturn(constant);
         when(entry.bottomNoise()).thenReturn(constant);
         when(entry.wallWarpNoise()).thenReturn(null);
-        when(entry.carvingProfileSampler()).thenReturn(null);
-        when(entry.hasCarvingReference()).thenReturn(false);
         when(entry.carveNoise()).thenReturn(constant);
         when(entry.settings()).thenReturn(TestSettings.with(new FloatingChildBiome(), "footprintThreshold", 0.5D, "minHeightAboveSurface", 160, "maxHeightAboveSurface", 160, "topShapeMode", TopShapeMode.NOISE, "topShapeAmp", 1.0D, "maxTopHeight", 18, "bottomExponent", 1.0D, "bottomDepthMin", 20, "bottomDepthMax", 20, "maxThickness", 64, "wallWarpAmplitude", 0.0D, "carveThreshold", 0.5D));
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> parent);
@@ -611,8 +609,6 @@ public class FloatingIslandBoundarySamplerTest {
             when(entry.topShapeNoise()).thenReturn(constant);
             when(entry.bottomNoise()).thenReturn(constant);
             when(entry.wallWarpNoise()).thenReturn(null);
-            when(entry.carvingProfileSampler()).thenReturn(null);
-            when(entry.hasCarvingReference()).thenReturn(false);
             when(entry.carveNoise()).thenReturn(null);
             when(entry.settings()).thenReturn(TestSettings.with(new FloatingChildBiome(), "footprintThreshold", 0.5D, "topShapeMode", TopShapeMode.NOISE, "topShapeAmp", 1.0D, "maxTopHeight", 18, "bottomExponent", 1.0D, "bottomDepthMin", 20, "bottomDepthMax", 20, "maxThickness", 64, "wallWarpAmplitude", 0.0D, "carveThreshold", 1.0D,
                     "minHeightAboveSurface", entry == lower ? 160 : 180, "maxHeightAboveSurface", entry == lower ? 160 : 180));

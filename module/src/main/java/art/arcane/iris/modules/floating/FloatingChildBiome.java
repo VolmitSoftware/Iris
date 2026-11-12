@@ -165,12 +165,12 @@ public final class FloatingChildBiome {
     @Desc("Optional 3D noise that swiss-cheeses the island interior by marking individual blocks as air when the noise exceeds carveThreshold. Leave null to keep the island solid. Good defaults: {\"style\":\"CELLULAR\",\"zoom\":0.3} for bubble pockets, {\"style\":\"VASCULAR\",\"zoom\":0.25} for wormy tunnels.")
     private NoiseStyle carveStyle;
 
-    @Desc("Optional carving biome key or dimension carving entry id whose caveProfile drives floating-island internal air pockets. Dimension carving ids resolve first; biome keys such as carving/mushroom resolve second. When set, this overrides carveStyle while carveThreshold remains a final tuning bias.")
+    @Desc("Optional carving biome key or dimension carving entry id that joins the pack's biomes with this island. Dimension carving ids resolve first; biome keys such as carving/mushroom resolve second. It does not carve; carveStyle does.")
     private String carving = "";
 
     @MinNumber(0)
     @MaxNumber(1)
-    @Desc("Threshold (0..1) above which carveStyle noise carves air pockets. 1.0 = no direct-noise carving. 0.75 = sparse pockets. 0.55 = heavy swiss-cheese. 0.4 = shredded lattice. When carving is set, lower values add a final positive threshold bias to the referenced caveProfile.")
+    @Desc("Threshold (0..1) above which carveStyle noise carves air pockets. 1.0 = no direct-noise carving. 0.75 = sparse pockets. 0.55 = heavy swiss-cheese. 0.4 = shredded lattice.")
     private double carveThreshold = 1.0;
 
     @Desc("Optional water surface height above the island base, in blocks. null = no internal water. Positive = water fills any dip in the top profile up to baseY + localFluidHeight (forms lakes/ponds in concavities of the biome-top heightmap).")

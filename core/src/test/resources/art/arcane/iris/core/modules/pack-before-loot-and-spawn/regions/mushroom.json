@@ -135,57 +135,6 @@
             "mushroom/food"
         ]
     },
-    "caveProfile": {
-        "enabled": true,
-        "verticalRange": {
-            "min": 6,
-            "max": 100
-        },
-        "baseDensityStyle": {
-            "style": "CELLULAR",
-            "zoom": 0.9
-        },
-        "detailDensityStyle": {
-            "style": "SIMPLEX",
-            "zoom": 0.5
-        },
-        "warpStyle": {
-            "style": "SIMPLEX",
-            "zoom": 0.5
-        },
-        "baseWeight": 1.0,
-        "detailWeight": 0.0,
-        "warpStrength": 0.0,
-        "densityThreshold": {
-            "min": -0.12,
-            "max": -0.06,
-            "style": {
-                "style": "SIMPLEX",
-                "zoom": 0.5
-            }
-        },
-        "thresholdBias": 0.1,
-        "sampleStep": 3,
-        "surfaceClearance": 12,
-        "allowSurfaceBreak": false,
-        "surfaceBreakStyle": {
-            "style": "SIMPLEX",
-            "zoom": 0.88
-        },
-        "surfaceBreakNoiseThreshold": 0.99,
-        "surfaceBreakDepth": 4,
-        "surfaceBreakThresholdBoost": 0.02,
-        "objectMinDepthBelowSurface": 14,
-        "defaultObjectAnchor": "FLOOR",
-        "defaultObjectPlaceMode": "ORGANIC_STILT",
-        "anchorScanStep": 1,
-        "anchorSearchAttempts": 12,
-        "allowFluid": true,
-        "fluidMinDepthBelowSurface": 20,
-        "fluidRequiresFloor": true,
-        "allowLava": true,
-        "modules": []
-    },
     "caveBiomeZoom": 3.2,
     "entitySpawners": [
         "mushroom/cave",

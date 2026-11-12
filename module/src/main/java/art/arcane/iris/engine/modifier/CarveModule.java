@@ -25,7 +25,8 @@ import art.arcane.iris.modules.carve.CarvingEnabledSettings;
 import art.arcane.iris.modules.carve.CarvingSettings;
 import art.arcane.iris.modules.carve.CaveDepthSettings;
 import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
-import art.arcane.iris.modules.carve.CaveProfile;
+import art.arcane.iris.modules.carve.CaveList;
+import art.arcane.iris.modules.carve.CaveResources;
 import art.arcane.iris.modules.carve.UpperDimensionCarvingSettings;
 import art.arcane.iris.modules.terrain.TerrainPalettes;
 import art.arcane.iris.engine.mantle.components.CarveWorld;
@@ -34,6 +35,7 @@ import art.arcane.iris.engine.mantle.components.CaveFloorMarking;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleLog;
 import com.volmit.ModuleSetup;
 import com.volmit.generation.ChunkContext;
 import com.volmit.hunk.Hunk;
@@ -53,15 +55,16 @@ import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * Module {@code iris:carve}: caves. A mantle stage plans them into the mantle, reaching one block into each
- * neighboring chunk where blended cave walls cross the border; a chunk stage later cuts them out of the chunk's
- * terrain. The mantle stage is a port of what was Iris's carving mantle component, its work done by
- * {@link CaveCarving}, one per world. The chunk stage's work is done by {@link CaveApplying}.
+ * Module {@code iris:carve}: caves. A mantle stage plans the caves a pack lists under {@code caves} into the mantle;
+ * a chunk stage later cuts them out of the chunk's terrain. The mantle stage's work is done by {@link CaveCarving},
+ * one per world, and the chunk stage's by {@link CaveApplying}.
  */
 public final class CarveModule implements IrisModule {
     private static final String VERSION = "1.0.0";
-    /** Blended cave walls reach one block past the chunk. */
+    /** The chunk stage reads the caves one block past the chunk to wall the ones that cross its border. */
     private static final int CAVE_REACH_BLOCKS = 1;
+
+    private ModuleLog log;
 
     @Override
     public ModuleInfo info() {
@@ -70,18 +73,20 @@ public final class CarveModule implements IrisModule {
 
     @Override
     public void setup(ModuleSetup setup) {
+        log = setup.log();
         var registry = setup.registry();
-        List.of(CaveProfile.class, CarvingSettings.class, CarvingEnabledSettings.class, CarvingBiomeSettings.class,
+        registry.registerResourceKind(CaveResources.CAVES);
+        List.of(CaveList.class, CarvingSettings.class, CarvingEnabledSettings.class, CarvingBiomeSettings.class,
                 CaveDepthSettings.class, CaveLavaHeightSettings.class, UpperDimensionCarvingSettings.class)
                 .forEach(registry::registerSettings);
         registry.registerService(CaveBiomes.class, new CaveBiomeBands());
 
         var graph = setup.stages();
-        graph.define(IrisStages.Carve.CAVES).reach(CAVE_REACH_BLOCKS).run(CarveModule::planCaves);
+        graph.define(IrisStages.Carve.CAVES).reach(CAVE_REACH_BLOCKS).run(this::planCaves);
         graph.define(IrisStages.Carve.APPLY).requires(IrisStages.Terrain.SHAPE).run(CarveModule::applyCaves);
     }
 
-    private static void planCaves(MantleStageContext context) {
+    private void planCaves(MantleStageContext context) {
         if (!carves(context)) {
             return;
         }
@@ -100,9 +105,9 @@ public final class CarveModule implements IrisModule {
                 upperDimensionCarving(context)));
     }
 
-    private static CaveCarving caveCarving(ChunkContext context) {
+    private CaveCarving caveCarving(ChunkContext context) {
         return context.world().state(CaveCarving.class, generating -> new CaveCarving(generating, carveWorld(generating, context.terrain()),
-                upperDimensionCarving(context), fluidColumns(generating)));
+                fluidColumns(generating), log));
     }
 
     private static CaveApplying caveApplying(ChunkContext context) {

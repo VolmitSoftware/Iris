@@ -32,7 +32,6 @@ import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.collection.KList;
-import com.volmit.config.Level;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.RNG;
@@ -234,7 +233,9 @@ public class DustRevealer {
                         objectKey == null ? IrisLanguage.text(RuntimeUiMessages.DUST_NONE) : objectKey
                 )
         ), false));
-        PlacementMarkers.OwnerKey owner = objectKey == null ? null : safe(() -> engine.getObjectPlacementOwner(x, relativeY, z));
+        PlacementMarkers.OwnerKey owner = objectKey != null
+                ? safe(() -> engine.getObjectPlacementOwner(x, relativeY, z))
+                : structurePiece == null ? null : structurePiece.owner().orElse(null);
         if (owner != null) {
             lines.add(new DustLine(ownerLine(owner), true));
         }
@@ -309,9 +310,11 @@ public class DustRevealer {
     }
 
     private static String ownerLine(PlacementMarkers.OwnerKey owner) {
-        return owner.level() == Level.REGION
-                ? IrisLanguage.text(RuntimeUiMessages.DUST_OBJECT_FROM_REGION, MessageArgument.untrusted("region", owner.key()))
-                : IrisLanguage.text(RuntimeUiMessages.DUST_OBJECT_FROM_BIOME, MessageArgument.untrusted("biome", owner.key()));
+        return switch (owner.level()) {
+            case REGION -> IrisLanguage.text(RuntimeUiMessages.DUST_OBJECT_FROM_REGION, MessageArgument.untrusted("region", owner.key()));
+            case DIMENSION -> IrisLanguage.text(RuntimeUiMessages.DUST_OBJECT_FROM_DIMENSION, MessageArgument.untrusted("dimension", owner.key()));
+            default -> IrisLanguage.text(RuntimeUiMessages.DUST_OBJECT_FROM_BIOME, MessageArgument.untrusted("biome", owner.key()));
+        };
     }
 
     private static String findColumnObject(Engine engine, int x, int relativeY, int z, int minHeight) {

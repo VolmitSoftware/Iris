@@ -945,6 +945,7 @@
     "iris.runtime.dust.object_at_block": "Objecto @ block: {object}",
     "iris.runtime.dust.object_from.biome": "Colocado pelo bioma: {biome}",
     "iris.runtime.dust.object_from.region": "Colocado pela região: {region}",
+    "iris.runtime.dust.object_from.dimension": "Colocado pela dimensão: {dimension}",
     "iris.runtime.dust.none": "nenhum",
     "iris.runtime.dust.placed_by.object_above": "Colocado por: objeto/tilt '{object}« (superfície superior)",
     "iris.runtime.dust.placed_by.decoration_above": "Colocado por: decoração/objeto/tilt (superfície superior)",

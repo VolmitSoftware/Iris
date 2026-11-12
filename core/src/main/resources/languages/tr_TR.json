@@ -945,6 +945,7 @@
     "iris.runtime.dust.object_at_block": "Object @block : {object}",
     "iris.runtime.dust.object_from.biome": "Yerleştiren biyom: {biome}",
     "iris.runtime.dust.object_from.region": "Yerleştiren bölge: {region}",
+    "iris.runtime.dust.object_from.dimension": "Yerleştiren boyut: {dimension}",
     "iris.runtime.dust.none": "Hiçbir kimse hiçbir şey yok",
     "iris.runtime.dust.placed_by.object_above": "Tarafından Yeri: nesne /{object}\" (üstünde yüzeyi)",
     "iris.runtime.dust.placed_by.decoration_above": "Yer: dekorasyon/object /stilt (üstünde yüzeyi)",

@@ -945,6 +945,7 @@
     "iris.runtime.dust.object_at_block": "Объект @block: {object}",
     "iris.runtime.dust.object_from.biome": "Размещён биомом: {biome}",
     "iris.runtime.dust.object_from.region": "Размещён регионом: {region}",
+    "iris.runtime.dust.object_from.dimension": "Размещён измерением: {dimension}",
     "iris.runtime.dust.none": "ни одного",
     "iris.runtime.dust.placed_by.object_above": "Помещение: объект/наклон{object}(над поверхностью)",
     "iris.runtime.dust.placed_by.decoration_above": "Размещено: отделка/объект/наклон (над поверхностью)",

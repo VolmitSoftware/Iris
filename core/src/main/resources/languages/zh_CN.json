@@ -945,6 +945,7 @@
     "iris.runtime.dust.object_at_block": "对象@ 方块: {object}",
     "iris.runtime.dust.object_from.biome": "放置来源群系: {biome}",
     "iris.runtime.dust.object_from.region": "放置来源区域: {region}",
+    "iris.runtime.dust.object_from.dimension": "放置来源维度: {dimension}",
     "iris.runtime.dust.none": "无",
     "iris.runtime.dust.placed_by.object_above": "位置: 对象/斜体 '{object}'(以上表面)",
     "iris.runtime.dust.placed_by.decoration_above": "由:装饰/物件/斜体(上表面)",

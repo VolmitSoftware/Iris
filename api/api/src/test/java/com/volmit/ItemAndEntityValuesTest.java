@@ -106,7 +106,7 @@ class ItemAndEntityValuesTest {
         assertEquals(Optional.empty(), PlacementRecord.of(oak, 7).owner());
         assertEquals(Optional.of(PlacementOwner.biome(forest)), PlacementRecord.of(oak, 7).ownedBy(PlacementOwner.biome(forest)).owner());
         assertEquals(Level.REGION, PlacementOwner.region(forest).level());
-        assertThrows(IllegalArgumentException.class, () -> new PlacementOwner(Level.DIMENSION, forest));
+        assertThrows(IllegalArgumentException.class, () -> new PlacementOwner(Level.PLACEMENT, forest));
     }
 
     @Test

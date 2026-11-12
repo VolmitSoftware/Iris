@@ -33,7 +33,6 @@ import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedScheduler;
 import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.volmlib.util.localization.MessageArgument;
-import com.volmit.config.Level;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -296,9 +295,9 @@ public final class ModdedDustRevealer {
                                 ? IrisLanguage.plain(RuntimeUiMessages.DUST_NONE)
                                 : objectKey)
         ), false));
-        PlacementMarkers.OwnerKey owner = objectKey == null ? null : safe(
-                "object owner lookup at " + coordinates(pos),
-                () -> engine.getObjectPlacementOwner(x, relativeY, z));
+        PlacementMarkers.OwnerKey owner = objectKey != null
+                ? safe("object owner lookup at " + coordinates(pos), () -> engine.getObjectPlacementOwner(x, relativeY, z))
+                : structurePiece == null ? null : structurePiece.owner().orElse(null);
         if (owner != null) {
             lines.add(new DustLine(ownerLine(owner), true));
         }
@@ -401,9 +400,11 @@ public final class ModdedDustRevealer {
     }
 
     static String ownerLine(PlacementMarkers.OwnerKey owner) {
-        return owner.level() == Level.REGION
-                ? IrisLanguage.plain(RuntimeUiMessages.DUST_OBJECT_FROM_REGION, MessageArgument.untrusted("region", owner.key()))
-                : IrisLanguage.plain(RuntimeUiMessages.DUST_OBJECT_FROM_BIOME, MessageArgument.untrusted("biome", owner.key()));
+        return switch (owner.level()) {
+            case REGION -> IrisLanguage.plain(RuntimeUiMessages.DUST_OBJECT_FROM_REGION, MessageArgument.untrusted("region", owner.key()));
+            case DIMENSION -> IrisLanguage.plain(RuntimeUiMessages.DUST_OBJECT_FROM_DIMENSION, MessageArgument.untrusted("dimension", owner.key()));
+            default -> IrisLanguage.plain(RuntimeUiMessages.DUST_OBJECT_FROM_BIOME, MessageArgument.untrusted("biome", owner.key()));
+        };
     }
 
     static String structurePieceLine(ModuleServices.PlannedPlacement structurePiece) {

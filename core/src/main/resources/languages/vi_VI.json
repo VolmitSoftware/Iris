@@ -945,6 +945,7 @@
     "iris.runtime.dust.object_at_block": "Đối tượng {object}",
     "iris.runtime.dust.object_from.biome": "Được đặt bởi quần xã: {biome}",
     "iris.runtime.dust.object_from.region": "Được đặt bởi vùng: {region}",
+    "iris.runtime.dust.object_from.dimension": "Được đặt bởi chiều không gian: {dimension}",
     "iris.runtime.dust.none": "không có",
     "iris.runtime.dust.placed_by.object_above": "Được đặt bởi đối tượng/ giây{object}' (mặt trên)",
     "iris.runtime.dust.placed_by.decoration_above": "Đặt theo: trang trí/ thu hút/ Linh tinh (mặt đất)",

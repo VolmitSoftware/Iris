@@ -945,6 +945,7 @@
     "iris.runtime.dust.object_at_block": "Objekt @block: {object}",
     "iris.runtime.dust.object_from.biome": "Platziert von Biom: {biome}",
     "iris.runtime.dust.object_from.region": "Platziert von Region: {region}",
+    "iris.runtime.dust.object_from.dimension": "Platziert von Dimension: {dimension}",
     "iris.runtime.dust.none": "keine",
     "iris.runtime.dust.placed_by.object_above": "Platziert von: Objekt / Stelze '{object}' (über der Oberfläche)",
     "iris.runtime.dust.placed_by.decoration_above": "Platziert von: Dekoration/Objekt/Stelze (über der Oberfläche)",

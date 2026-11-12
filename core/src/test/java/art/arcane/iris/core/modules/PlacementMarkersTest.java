@@ -55,13 +55,25 @@ public class PlacementMarkersTest {
     }
 
     @Test
+    public void aStructurePlacedByTheDimensionReadsBack() {
+        IrisPackResources resources = resources();
+        PlacementRecord piece = PlacementRecord.ofPiece(resources.idOf("pieces/room"), 918273, resources.idOf("structures/ruins"))
+                .ownedBy(new PlacementOwner(Level.DIMENSION, resources.idOf("natureplanet")));
+
+        String marker = PlacementMarkers.encode(piece, resources);
+
+        assertEquals(Optional.of(piece), PlacementMarkers.recordOf(marker, resources));
+        assertEquals(new PlacementMarkers.OwnerKey(Level.DIMENSION, "natureplanet"), PlacementMarkers.decode(marker).owner());
+    }
+
+    @Test
     public void anEndThatNamesNoOwnerLeavesTheMarkerAsItWas() {
         PlacementMarkers.Decoded hashInKey = PlacementMarkers.decode("trees/oak#2@7");
-        PlacementMarkers.Decoded dimensionOwner = PlacementMarkers.decode("trees/oak@7#dimension:Zm9yZXN0");
+        PlacementMarkers.Decoded placementOwner = PlacementMarkers.decode("trees/oak@7#placement:Zm9yZXN0");
 
         assertEquals("trees/oak#2", hashInKey.objectKey());
         assertNull(hashInKey.owner());
-        assertNull(dimensionOwner);
+        assertNull(placementOwner);
     }
 
     @Test

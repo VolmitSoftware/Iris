@@ -2,6 +2,8 @@ package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.builtin.structure.StructureAnchorMode;
 import art.arcane.iris.builtin.structure.StructurePlacement;
+import com.volmit.config.Level;
+import com.volmit.placement.PlacementOwner;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeSample;
 import org.junit.Test;
@@ -40,6 +42,31 @@ public class StructurePlacementScopeTest {
         assertTrue(placements.contains(regionPlacement));
         assertTrue(placements.contains(dimensionPlacement));
         assertFalse(placements.contains(invalidCaveScopePlacement));
+    }
+
+    @Test
+    public void theOwnerIsTheFirstLevelThatNamesThePlacement() {
+        StructurePlacement surfacePlacement = new StructurePlacement();
+        StructurePlacement cavePlacement = placement("anchor", StructureAnchorMode.CAVE_FLOOR);
+        StructurePlacement regionPlacement = new StructurePlacement();
+        StructurePlacement dimensionPlacement = new StructurePlacement();
+        StructurePlacement undeclared = new StructurePlacement();
+        StructureTestWorld world = new StructureTestWorld()
+                .biome(StructureTestWorld.SURFACE_BIOME, surfacePlacement)
+                .biome(CAVE_BIOME, cavePlacement)
+                .region(StructureTestWorld.REGION, regionPlacement, surfacePlacement)
+                .dimension(dimensionPlacement, cavePlacement)
+                .biomes((x, y, z) -> new BiomeSample(
+                        StructureTestWorld.REGION, StructureTestWorld.SURFACE_BIOME, Optional.of(CAVE_BIOME)));
+
+        assertEquals(Optional.of(PlacementOwner.biome(StructureTestWorld.SURFACE_BIOME)),
+                StructurePlacementScope.ownerOf(world, surfacePlacement, 0, 0));
+        assertEquals(Optional.of(PlacementOwner.biome(CAVE_BIOME)), StructurePlacementScope.ownerOf(world, cavePlacement, 0, 0));
+        assertEquals(Optional.of(PlacementOwner.region(StructureTestWorld.REGION)),
+                StructurePlacementScope.ownerOf(world, regionPlacement, 0, 0));
+        assertEquals(Optional.of(new PlacementOwner(Level.DIMENSION, StructureTestWorld.DIMENSION)),
+                StructurePlacementScope.ownerOf(world, dimensionPlacement, 0, 0));
+        assertEquals(Optional.empty(), StructurePlacementScope.ownerOf(world, undeclared, 0, 0));
     }
 
     @Test

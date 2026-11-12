@@ -57,6 +57,7 @@ import com.volmit.noise.NoiseStyle;
 import com.volmit.object.ObjectBlock;
 import com.volmit.object.PlaceableObject;
 import com.volmit.placement.PlacementOutcome;
+import com.volmit.placement.PlacementOwner;
 import com.volmit.placement.PlacementRecord;
 import com.volmit.placement.PlacementTerrain;
 import com.volmit.config.PackSettings;
@@ -118,6 +119,7 @@ public class StructurePlacing {
         }
 
         String key = resolved.structureKey();
+        StructureOrigin origin = new StructureOrigin(key, StructurePlacementScope.ownerOf(world, placement, cx, cz));
         StructureStamp stamp = resolved.stamp();
         KList<AssembledPiece> pieces = resolvedPiecesOrNull(resolved, cx, cz);
         if (pieces == null) {
@@ -151,7 +153,7 @@ public class StructurePlacing {
                 ? null : new ColumnHeights(0);
         boolean supportNonOccluding = stilt != null && stilt.supportNonOccluding();
         if (samplesPieceHeight(placement, stamp, pieces)) {
-            if (placeObject(context, key, stamp, pieces.getFirst(), mode, true,
+            if (placeObject(context, origin, stamp, pieces.getFirst(), mode, true,
                     foundationColumns, supportNonOccluding) == REJECTED_PIECE) {
                 failedPieces++;
             }
@@ -159,7 +161,7 @@ public class StructurePlacing {
             ObjectPlaceMode pieceMode = placement.isAnchoredUnderground() && mode.placeMode().has(PlaceTrait.CAVE_ANCHORED)
                     ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
             for (AssembledPiece p : pieces) {
-                if (placeObject(context, key, stamp, p, pieceMode, false,
+                if (placeObject(context, origin, stamp, p, pieceMode, false,
                         foundationColumns, supportNonOccluding) == REJECTED_PIECE) {
                     failedPieces++;
                 }
@@ -560,7 +562,7 @@ public class StructurePlacing {
         return placement.loot(loot);
     }
 
-    private int placeObject(MantleStageContext context, String structureKey, StructureStamp stamp, AssembledPiece p,
+    private int placeObject(MantleStageContext context, StructureOrigin origin, StructureStamp stamp, AssembledPiece p,
                             ObjectPlaceMode mode, boolean sampledHeight, ColumnHeights foundationColumns,
                             boolean supportNonOccluding) {
         PlaceableObject object = objectOf(p);
@@ -581,16 +583,16 @@ public class StructurePlacing {
         if (!outcome.isPlaced()) {
             return REJECTED_PIECE;
         }
-        recordPieceBlocks(terrain, run, structureKey, p, objectKey, foundationColumns, supportNonOccluding);
+        recordPieceBlocks(terrain, run, origin, p, objectKey, foundationColumns, supportNonOccluding);
         return run.anchorY().orElseThrow(() -> new IllegalStateException(
                 "The placement graph placed " + objectKey + " without anchoring it"));
     }
 
     /** Notes each block the piece wrote as a base cell of the foundation, and marks its storage blocks as the structure's. */
-    private void recordPieceBlocks(PlacementTerrain terrain, ObjectRun run, String structureKey, AssembledPiece piece,
+    private void recordPieceBlocks(PlacementTerrain terrain, ObjectRun run, StructureOrigin origin, AssembledPiece piece,
                                    String objectKey, ColumnHeights foundationColumns, boolean supportNonOccluding) {
         BlockRegistry blocks = world.resources().blocks();
-        PlacementRecord record = structurePlacementRecord(structureKey, piece, objectKey);
+        PlacementRecord record = structurePlacementRecord(origin, piece, objectKey);
         for (BlockPosition position : run.objectBlocks()) {
             BlockState state = terrain.get(position.x(), position.y(), position.z());
             StructureFoundationPlanner.recordBaseCell(
@@ -621,8 +623,16 @@ public class StructurePlacing {
         return hash & Integer.MAX_VALUE;
     }
 
-    private PlacementRecord structurePlacementRecord(String structureKey, AssembledPiece piece, String objectKey) {
-        return pieceRecord(world.resources(), structureKey, piece, objectKey);
+    private PlacementRecord structurePlacementRecord(StructureOrigin origin, AssembledPiece piece, String objectKey) {
+        PlacementRecord record = pieceRecord(world.resources(), origin.structureKey(), piece, objectKey);
+        if (record == null || origin.owner().isEmpty()) {
+            return record;
+        }
+        return record.ownedBy(origin.owner().get());
+    }
+
+    /** The structure a placement placed, and the biome, region or dimension whose settings placed it. */
+    private record StructureOrigin(String structureKey, Optional<PlacementOwner> owner) {
     }
 
     /** What placing the piece object {@code objectKey} records beside its blocks; null without a structure or object. */

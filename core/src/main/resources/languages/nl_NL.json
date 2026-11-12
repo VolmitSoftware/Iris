@@ -945,6 +945,7 @@
     "iris.runtime.dust.object_at_block": "Object-@blok: {object}",
     "iris.runtime.dust.object_from.biome": "Geplaatst door bioom: {biome}",
     "iris.runtime.dust.object_from.region": "Geplaatst door regio: {region}",
+    "iris.runtime.dust.object_from.dimension": "Geplaatst door dimensie: {dimension}",
     "iris.runtime.dust.none": "geen",
     "iris.runtime.dust.placed_by.object_above": "Geplaatst door: object/stilt '{object}\" (boven)",
     "iris.runtime.dust.placed_by.decoration_above": "Geplaatst door: decoratie/object/stilt (bovenzijde)",

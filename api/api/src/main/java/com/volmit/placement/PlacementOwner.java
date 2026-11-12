@@ -6,18 +6,18 @@ import com.volmit.resource.ResourceId;
 import java.util.Objects;
 
 /**
- * The biome or region whose own settings placed an object. An object reaches past the column it was placed from, so
- * the biome or region at one of its blocks can be another than the one that placed it.
+ * The layout entry whose own settings placed an object or a structure: a biome, a region or the dimension. A placement
+ * reaches past the column it was placed from, so the biome or region at one of its blocks can be another than its owner.
  *
- * @param level  {@link Level#BIOME} or {@link Level#REGION}
- * @param source the biome or region, as an id
+ * @param level  {@link Level#BIOME}, {@link Level#REGION} or {@link Level#DIMENSION}
+ * @param source the biome, region or dimension, as an id
  */
 public record PlacementOwner(Level level, ResourceId source) {
     public PlacementOwner {
         Objects.requireNonNull(level, "level");
         Objects.requireNonNull(source, "source");
-        if (level != Level.BIOME && level != Level.REGION) {
-            throw new IllegalArgumentException("A placement is owned by a biome or a region, not " + level);
+        if (level == Level.PLACEMENT) {
+            throw new IllegalArgumentException("A placement is owned by a biome, a region or the dimension, not by a placement");
         }
     }
 

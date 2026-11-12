@@ -81,10 +81,15 @@ public final class StructurePiecesAt implements ObjectsAt {
             }
             Optional<PlacementRecord> piece = pieceCovering(world, resolved, x, blockY, z);
             if (piece.isPresent()) {
-                return piece;
+                return piece.map(record -> ownedByOrigin(world, placement, originChunkX, originChunkZ, record));
             }
         }
         return Optional.empty();
+    }
+
+    private static PlacementRecord ownedByOrigin(PackWorld world, StructurePlacement placement, int originChunkX, int originChunkZ,
+                                                 PlacementRecord piece) {
+        return StructurePlacementScope.ownerOf(world, placement, originChunkX, originChunkZ).map(piece::ownedBy).orElse(piece);
     }
 
     private static Optional<PlacementRecord> pieceCovering(PackWorld world, IrisStructureLocator.ResolvedPlacement resolved,

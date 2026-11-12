@@ -6,6 +6,7 @@ import art.arcane.iris.engine.framework.structure.StructureWorld;
 import com.volmit.config.FeatureSettings;
 import com.volmit.config.Level;
 import com.volmit.config.SettingsStack;
+import com.volmit.placement.PlacementOwner;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
@@ -62,13 +63,54 @@ public final class StructurePlacementScope {
         }
     }
 
+    /**
+     * The biome, cave biome, region or dimension whose settings make {@link #placementsAt} name {@code placement} for
+     * the chunk, looked for in the order that adds them; empty when none of them declares it.
+     */
+    public static Optional<PlacementOwner> ownerOf(PackWorld world, StructurePlacement placement, int chunkX, int chunkZ) {
+        RunningWorld running = StructureWorld.running(world);
+        int blockX = (chunkX << 4) + CHUNK_CENTER_OFFSET_BLOCKS;
+        int blockZ = (chunkZ << 4) + CHUNK_CENTER_OFFSET_BLOCKS;
+        SettingsStack<StructurePlacementSettings> declared = running.settings().at(StructurePlacementSettings.class, blockX, blockZ);
+        return declaringEntry(declared, Level.BIOME, placement)
+                .or(() -> declaringCaveBiome(running, blockX, blockZ, placement))
+                .or(() -> declaringEntry(declared, Level.REGION, placement))
+                .or(() -> declaringEntry(declared, Level.DIMENSION, placement));
+    }
+
+    private static Optional<PlacementOwner> declaringEntry(SettingsStack<StructurePlacementSettings> declared, Level level,
+                                                           StructurePlacement placement) {
+        return declared.entries().stream()
+                .filter(entry -> entry.level() == level && declares(entry.value().placements(), placement))
+                .findFirst()
+                .map(entry -> new PlacementOwner(level, entry.source()));
+    }
+
+    private static Optional<PlacementOwner> declaringCaveBiome(RunningWorld running, int blockX, int blockZ,
+                                                               StructurePlacement placement) {
+        if (!placement.resolvedAnchor().isCave()) {
+            return Optional.empty();
+        }
+        return caveBiomeAt(running, blockX, blockZ)
+                .filter(cave -> declares(placementsOf(running.settings().declaredBy(cave, StructurePlacementSettings.class)), placement))
+                .map(PlacementOwner::biome);
+    }
+
+    private static boolean declares(List<StructurePlacement> placements, StructurePlacement placement) {
+        return placements.stream().anyMatch(declared -> declared == placement);
+    }
+
     private static Optional<StructurePlacementSettings> caveBiomeSettings(RunningWorld running, int blockX, int blockZ) {
+        FeatureSettings settings = running.settings();
+        return caveBiomeAt(running, blockX, blockZ).flatMap(cave -> settings.declaredBy(cave, StructurePlacementSettings.class));
+    }
+
+    /** The column's cave biome, when it is another than its surface biome. */
+    private static Optional<ResourceId> caveBiomeAt(RunningWorld running, int blockX, int blockZ) {
         TerrainSampler layout = running.layout();
         ResourceId surfaceBiome = layout.surfaceBiome(blockX, blockZ);
-        Optional<ResourceId> caveBiome = layout.caveBiome(blockX, layout.bounds().minY(), blockZ)
+        return layout.caveBiome(blockX, layout.bounds().minY(), blockZ)
                 .filter(cave -> !cave.equals(surfaceBiome));
-        FeatureSettings settings = running.settings();
-        return caveBiome.flatMap(cave -> settings.declaredBy(cave, StructurePlacementSettings.class));
     }
 
     private static ScopeIndex buildScopeIndex(PackWorld world) {

@@ -945,6 +945,7 @@
     "iris.runtime.dust.object_at_block": "Obiekt @ block: {object}",
     "iris.runtime.dust.object_from.biome": "Umieszczony przez biom: {biome}",
     "iris.runtime.dust.object_from.region": "Umieszczony przez region: {region}",
+    "iris.runtime.dust.object_from.dimension": "Umieszczony przez wymiar: {dimension}",
     "iris.runtime.dust.none": "brak",
     "iris.runtime.dust.placed_by.object_above": "Umieszczone przez: obiekt / stilt '{object}\"(nad powierzchnią)",
     "iris.runtime.dust.placed_by.decoration_above": "Umieszczone przez: dekoracje / obiekt / stilt (nad powierzchnią)",

@@ -133,14 +133,18 @@ public final class ModuleServices {
             if (planned.isPresent()) {
                 return planned.map(record -> new PlannedPlacement(
                         resources.keyOf(PackResources.OBJECTS, record.object()),
-                        record.structure().map(resources::keyOf)));
+                        record.structure().map(resources::keyOf),
+                        record.owner().map(owner -> PlacementMarkers.ownerKeyOf(owner, resources))));
             }
         }
         return Optional.empty();
     }
 
-    /** A placement a module plans at a block: the object's key and, for a structure piece, the structure's. */
-    public record PlannedPlacement(String object, Optional<String> structure) {
+    /**
+     * A placement a module plans at a block: the object's key, for a structure piece the structure's, and the biome,
+     * region or dimension that placed it.
+     */
+    public record PlannedPlacement(String object, Optional<String> structure, Optional<PlacementMarkers.OwnerKey> owner) {
     }
 
     /** The keys of the biomes and regions of the engine's layout that every module says place the object {@code objectKey}. */

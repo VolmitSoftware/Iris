@@ -945,6 +945,7 @@
     "iris.runtime.dust.object_at_block": "Objektas @ block: {object}",
     "iris.runtime.dust.object_from.biome": "Pastatė biomas: {biome}",
     "iris.runtime.dust.object_from.region": "Pastatė regionas: {region}",
+    "iris.runtime.dust.object_from.dimension": "Pastatė dimensija: {dimension}",
     "iris.runtime.dust.none": "nėra",
     "iris.runtime.dust.placed_by.object_above": "Pateikta: objektas / stilt \"{object}\"(virš paviršiaus)",
     "iris.runtime.dust.placed_by.decoration_above": "Pateikta: dekoravimas / objektas / stilt (virš paviršiaus)",

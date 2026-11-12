@@ -23,7 +23,6 @@ import com.volmit.placement.PlacementOwner;
 import com.volmit.placement.PlacementRecord;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
-import com.volmit.resource.ResourceKind;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -34,7 +33,7 @@ import java.util.Optional;
 /**
  * The text Iris keeps beside a placed block in its mantle to say which placement the block belongs to: {@code key@id}
  * for an object placed on its own, and a delimiter-safe {@code @iris-structure:v1:...} form for a piece of a structure.
- * Either form may end in {@code #biome:...} or {@code #region:...}, naming the biome or region that placed the object.
+ * Either form may end in {@code #biome:...}, {@code #region:...} or {@code #dimension:...}, naming what placed it.
  * Worlds already generated hold these texts, so the forms never change. A module hands Iris a {@link PlacementRecord},
  * and Iris reads one back from the text with the pack's keys and ids.
  */
@@ -77,12 +76,18 @@ public final class PlacementMarkers {
     }
 
     private static String encodeOwner(PlacementOwner owner, IrisPackResources resources) {
-        String ownerKey = resources.keyOf(kindOf(owner.level()), owner.source());
-        return OWNER_SEPARATOR + owner.level().name().toLowerCase(Locale.ROOT) + OWNER_LEVEL_SEPARATOR + encodeKey(ownerKey);
+        OwnerKey ownerKey = ownerKeyOf(owner, resources);
+        return OWNER_SEPARATOR + ownerKey.level().name().toLowerCase(Locale.ROOT) + OWNER_LEVEL_SEPARATOR + encodeKey(ownerKey.key());
     }
 
-    private static ResourceKind<?> kindOf(Level ownerLevel) {
-        return ownerLevel == Level.REGION ? PackResources.REGIONS : PackResources.BIOMES;
+    /** {@code owner} by its pack key. */
+    public static OwnerKey ownerKeyOf(PlacementOwner owner, IrisPackResources resources) {
+        String key = switch (owner.level()) {
+            case BIOME -> resources.keyOf(PackResources.BIOMES, owner.source());
+            case REGION -> resources.keyOf(PackResources.REGIONS, owner.source());
+            default -> resources.keyOf(owner.source());
+        };
+        return new OwnerKey(owner.level(), key);
     }
 
     /** What the text says, or empty for a text that names no placement. */
@@ -119,7 +124,7 @@ public final class PlacementMarkers {
         try {
             Level level = Level.valueOf(text.substring(0, levelEnd).toUpperCase(Locale.ROOT));
             String key = decodeCanonicalKey(text.substring(levelEnd + 1));
-            if (key.isBlank() || (level != Level.BIOME && level != Level.REGION)) {
+            if (key.isBlank() || level == Level.PLACEMENT) {
                 return null;
             }
             return new OwnerKey(level, key);
@@ -211,7 +216,7 @@ public final class PlacementMarkers {
         }
     }
 
-    /** The biome or region that placed an object, by its pack key; {@code level} is {@link Level#BIOME} or {@link Level#REGION}. */
+    /** The biome, region or dimension that placed an object or structure, by its pack key. */
     public record OwnerKey(Level level, String key) {
     }
 }

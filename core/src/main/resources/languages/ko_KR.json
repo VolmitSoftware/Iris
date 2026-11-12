@@ -945,6 +945,7 @@
     "iris.runtime.dust.object_at_block": "오브젝트 @block: {object}",
     "iris.runtime.dust.object_from.biome": "배치한 바이옴: {biome}",
     "iris.runtime.dust.object_from.region": "배치한 지역: {region}",
+    "iris.runtime.dust.object_from.dimension": "배치한 차원: {dimension}",
     "iris.runtime.dust.none": "없음",
     "iris.runtime.dust.placed_by.object_above": "배치 원인: object/stilt '{object}'(표면 위)",
     "iris.runtime.dust.placed_by.decoration_above": "배치 원인: decoration/object/stilt(표면 위)",

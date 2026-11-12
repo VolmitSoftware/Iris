@@ -30,6 +30,9 @@ import art.arcane.iris.util.project.hunk.Hunk;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import it.unimi.dsi.fastutil.bytes.ByteArrayList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.ints.IntSets;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -85,6 +88,8 @@ final class GeneratedChunks implements ColumnTops {
     private static final int GENERATING_THREADS = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
     private static final long IDLE_THREAD_SECONDS = 30;
     private static final long CANCEL_CHECK_MILLIS = 250;
+    // A hollow winding back and forth across chunk edges takes a round a crossing; past this many the rest stays closed.
+    private static final int MOST_REACHING_ROUNDS = 8;
     private static final ThreadPoolExecutor GENERATORS = idleEndingThreads();
 
     private final Engine engine;
@@ -219,9 +224,14 @@ final class GeneratedChunks implements ColumnTops {
 
         @Override
         public TileVoxels voxelsIn(int minX, int minZ, int size) {
+            int minChunkX = minX >> CHUNK_SHIFT;
+            int minChunkZ = minZ >> CHUNK_SHIFT;
+            int maxChunkX = (minX + size - 1) >> CHUNK_SHIFT;
+            int maxChunkZ = (minZ + size - 1) >> CHUNK_SHIFT;
+            reachHollowsAcrossEdges(minChunkX - 1, minChunkZ - 1, maxChunkX + 1, maxChunkZ + 1);
             TileVoxelsBuilder voxels = new TileVoxelsBuilder(minX, minZ, size);
-            for (int chunkZ = minZ >> CHUNK_SHIFT; chunkZ <= (minZ + size - 1) >> CHUNK_SHIFT; chunkZ++) {
-                for (int chunkX = minX >> CHUNK_SHIFT; chunkX <= (minX + size - 1) >> CHUNK_SHIFT; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
                     ChunkTop chunk = chunkAt(chunkX, chunkZ);
                     voxels.addVisible(chunk.visible(), chunkX << CHUNK_SHIFT, chunkZ << CHUNK_SHIFT);
                     addFacesAgainstNeighbours(voxels, chunk, chunkX, chunkZ);
@@ -230,12 +240,54 @@ final class GeneratedChunks implements ColumnTops {
             return voxels.build();
         }
 
+        // A chunk traces the sky's open air within itself, so a hollow whose only way out crosses its edge, such as a
+        // pit dug under an overhang, seems closed off. Each chunk such a hollow leads into is traced again from where the
+        // open air beside it touches the hollow, until none is left; the hollows it opens can lead on into the next.
+        private void reachHollowsAcrossEdges(int minChunkX, int minChunkZ, int maxChunkX, int maxChunkZ) {
+            boolean anyReached = true;
+            for (int round = 0; anyReached && round < MOST_REACHING_ROUNDS; round++) {
+                anyReached = false;
+                for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                    for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+                        anyReached |= retraceFromNeighbours(chunkX, chunkZ);
+                    }
+                }
+            }
+        }
+
+        private boolean retraceFromNeighbours(int chunkX, int chunkZ) {
+            long key = keyOf(chunkX, chunkZ);
+            ChunkTop chunk = knownChunk(key);
+            if (chunk == null) {
+                return false;
+            }
+            IntSet reached = new IntOpenHashSet();
+            for (int side = ChunkBorders.NORTH; side <= ChunkBorders.EAST; side++) {
+                ChunkTop beside = knownChunk(keyOf(chunkX + VisibleBlocks.SIDES[side][0], chunkZ + VisibleBlocks.SIDES[side][2]));
+                if (beside != null) {
+                    reached.addAll(chunk.visible().borders().reachedFrom(beside.visible().borders(), side));
+                }
+            }
+            if (reached.isEmpty()) {
+                return false;
+            }
+            reached.addAll(chunk.reachedBeside());
+            ChunkTop retraced = generateUnchecked(key, reached);
+            chunks.put(key, retraced);
+            tops.put(key, retraced);
+            return true;
+        }
+
         // A neighbour neither the tile nor the cache holds was never generated, and the chunk's own judgement stands.
+        private ChunkTop knownChunk(long key) {
+            ChunkTop chunk = chunks.get(key);
+            return chunk != null ? chunk : tops.getIfPresent(key);
+        }
+
         private void addFacesAgainstNeighbours(TileVoxelsBuilder voxels, ChunkTop chunk, int chunkX, int chunkZ) {
             for (int side = ChunkBorders.NORTH; side <= ChunkBorders.EAST; side++) {
                 int[] step = VisibleBlocks.SIDES[side];
-                long key = keyOf(chunkX + step[0], chunkZ + step[2]);
-                ChunkTop beside = chunks.containsKey(key) ? chunks.get(key) : tops.getIfPresent(key);
+                ChunkTop beside = knownChunk(keyOf(chunkX + step[0], chunkZ + step[2]));
                 if (beside != null) {
                     int chunkMinX = chunkX << CHUNK_SHIFT;
                     int chunkMinZ = chunkZ << CHUNK_SHIFT;
@@ -408,6 +460,19 @@ final class GeneratedChunks implements ColumnTops {
     }
 
     private ChunkTop generate(long key) throws Exception {
+        return generate(key, IntSets.EMPTY_SET);
+    }
+
+    private ChunkTop generateUnchecked(long key, IntSet reachedBeside) {
+        try {
+            return generate(key, reachedBeside);
+        } catch (Exception failed) {
+            throw new CompletionException(failed);
+        }
+    }
+
+    /** @param reachedBeside the cells along the chunk's sides the open air of the chunks beside it reaches */
+    private ChunkTop generate(long key, IntSet reachedBeside) throws Exception {
         int chunkX = (int) (key >> Integer.SIZE);
         int chunkZ = (int) key;
         int height = engine.getHeight();
@@ -423,7 +488,8 @@ final class GeneratedChunks implements ColumnTops {
         for (int level = 1; level <= ColumnRuns.MOST_LEVEL; level++) {
             runs[level - 1] = ColumnRuns.of(blocks, level, terrainY, this::seenByPlayers);
         }
-        return new ChunkTop(topsOf(blocks, terrainY, this::seenByPlayers), VisibleBlocks.of(blocks, terrainY, fluidHeight, this::seenByPlayers), runs);
+        return new ChunkTop(topsOf(blocks, terrainY, this::seenByPlayers), VisibleBlocks.of(blocks, terrainY, fluidHeight, this::seenByPlayers, reachedBeside),
+                runs, reachedBeside);
     }
 
     // A plugin's block can be solid on the server where players see grass they walk through.
@@ -442,9 +508,10 @@ final class GeneratedChunks implements ColumnTops {
     }
 
     /**
-     * @param runs the chunk's runs of solid blocks in areas 2, 4, 8 and 16 blocks across, for coarser tiles
+     * @param runs          the chunk's runs of solid blocks in areas 2, 4, 8 and 16 blocks across, for coarser tiles
+     * @param reachedBeside the cells along its sides found reached through the chunks beside it, which it was traced from
      */
-    private record ChunkTop(ColumnTop[] columns, VisibleBlocks visible, ColumnRuns[] runs) {
+    private record ChunkTop(ColumnTop[] columns, VisibleBlocks visible, ColumnRuns[] runs, IntSet reachedBeside) {
         int bytes() {
             int raisedBlocks = 0;
             for (ColumnTop column : columns) {
@@ -455,7 +522,7 @@ final class GeneratedChunks implements ColumnTops {
                 runs += level.tops().length;
             }
             return CHUNK_TOP_BYTES + raisedBlocks * RAISED_BLOCK_BYTES + visible.count() * VISIBLE_BLOCK_BYTES + runs * RUN_BYTES
-                    + visible.borders().bytes();
+                    + visible.borders().bytes() + reachedBeside.size() * Integer.BYTES;
         }
     }
 

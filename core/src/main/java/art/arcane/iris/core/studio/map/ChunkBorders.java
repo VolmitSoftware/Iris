@@ -19,6 +19,8 @@
 package art.arcane.iris.core.studio.map;
 
 import it.unimi.dsi.fastutil.booleans.BooleanArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
 import java.util.ArrayList;
@@ -50,11 +52,12 @@ record ChunkBorders(Wall[] walls) {
      * One side's cells, each a run of cells one above the other.
      *
      * @param open   the runs the sky's open air fills; {@link Runs#fluid} tells which hold water
+     * @param sealed the runs of cells as open, which the sky was not found to reach from within the chunk
      * @param hidden the runs of blocks that left out their face toward this side
      */
-    record Wall(Runs open, Runs hidden) {
+    record Wall(Runs open, Runs sealed, Runs hidden) {
         int bytes() {
-            return open.bytes() + hidden.bytes();
+            return open.bytes() + sealed.bytes() + hidden.bytes();
         }
     }
 
@@ -104,6 +107,28 @@ record ChunkBorders(Wall[] walls) {
                 }
             }
         }
+    }
+
+    /**
+     * The cells along {@code side} the chunk took for closed off from the sky that touch the open air of {@code beside},
+     * the chunk on that side: a hollow whose only way out is across the edge, such as a pit dug under an overhang. Each
+     * is a place in the chunk as {@link VisibleBlocks#positions()} gives it.
+     */
+    IntList reachedFrom(ChunkBorders beside, int side) {
+        Runs sealed = walls[side - NORTH].sealed();
+        Runs open = beside.walls[opposite(side) - NORTH].open();
+        IntList reached = new IntArrayList();
+        for (int place = 0; place < ACROSS; place++) {
+            for (int run = sealed.firstOfPlace()[place]; run < sealed.firstOfPlace()[place + 1]; run++) {
+                for (int air = open.firstOfPlace()[place]; air < open.firstOfPlace()[place + 1]; air++) {
+                    int top = Math.min(sealed.tops()[run], open.tops()[air]);
+                    for (int y = Math.max(sealed.bottoms()[run], open.bottoms()[air]); y < top; y++) {
+                        reached.add(VisibleBlocks.positionOf(xOf(side, place), y, zOf(side, place)));
+                    }
+                }
+            }
+        }
+        return reached;
     }
 
     static int opposite(int side) {

@@ -22,6 +22,8 @@ import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
 import it.unimi.dsi.fastutil.bytes.ByteArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.ints.IntSets;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,7 +65,21 @@ record VisibleBlocks(int[] positions, String[] blocks, byte[] faces, ChunkBorder
      * @param seenByPlayers the state players see in place of a block, which decides what hides what
      */
     static VisibleBlocks of(Hunk<PlatformBlockState> chunk, IntBinaryOperator terrainY, int fluidHeight, UnaryOperator<PlatformBlockState> seenByPlayers) {
-        return new Finder(chunk, terrainY, fluidHeight, seenByPlayers).find();
+        return of(chunk, terrainY, fluidHeight, seenByPlayers, IntSets.EMPTY_SET);
+    }
+
+    /**
+     * @param reachedBeside cells along the chunk's sides, as {@link #positionOf} places them, that the open air of the
+     *                      chunks beside it reaches, which the terrain's height there does not tell
+     */
+    static VisibleBlocks of(Hunk<PlatformBlockState> chunk, IntBinaryOperator terrainY, int fluidHeight, UnaryOperator<PlatformBlockState> seenByPlayers,
+                            IntSet reachedBeside) {
+        return new Finder(chunk, terrainY, fluidHeight, seenByPlayers, reachedBeside).find();
+    }
+
+    /** A block's place in its chunk, as {@link #positions} holds it. */
+    static int positionOf(int x, int y, int z) {
+        return x | z << Z_SHIFT | y << POSITION_Y_SHIFT;
     }
 
     @Override
@@ -91,11 +107,14 @@ record VisibleBlocks(int[] positions, String[] blocks, byte[] faces, ChunkBorder
         private final boolean[] open;
         private final boolean[] fluid;
         private final boolean[] skyReaches;
+        private final IntSet reachedBeside;
 
-        Finder(Hunk<PlatformBlockState> chunk, IntBinaryOperator terrainY, int fluidHeight, UnaryOperator<PlatformBlockState> seenByPlayers) {
+        Finder(Hunk<PlatformBlockState> chunk, IntBinaryOperator terrainY, int fluidHeight, UnaryOperator<PlatformBlockState> seenByPlayers,
+               IntSet reachedBeside) {
             this.chunk = chunk;
             this.terrainY = terrainY;
             this.fluidHeight = fluidHeight;
+            this.reachedBeside = reachedBeside;
             this.height = chunk.getHeight();
             int cells = ACROSS * height * ACROSS;
             this.seen = new PlatformBlockState[cells];
@@ -142,7 +161,7 @@ record VisibleBlocks(int[] positions, String[] blocks, byte[] faces, ChunkBorder
                         if (sides == 0 && !(open[cell] && skyReaches[cell])) {
                             continue;
                         }
-                        positions.add(x | z << Z_SHIFT | y << POSITION_Y_SHIFT);
+                        positions.add(positionOf(x, y, z));
                         blocks.add(chunk.get(x, y, z).key());
                         faces.add((byte) sides);
                     }
@@ -160,7 +179,8 @@ record VisibleBlocks(int[] positions, String[] blocks, byte[] faces, ChunkBorder
         }
 
         private ChunkBorders.Wall wallOn(int side) {
-            ChunkBorders.RunsBuilder open = new ChunkBorders.RunsBuilder();
+            ChunkBorders.RunsBuilder reached = new ChunkBorders.RunsBuilder();
+            ChunkBorders.RunsBuilder sealed = new ChunkBorders.RunsBuilder();
             ChunkBorders.RunsBuilder hidden = new ChunkBorders.RunsBuilder();
             for (int place = 0; place < ACROSS; place++) {
                 int x = ChunkBorders.xOf(side, place);
@@ -168,16 +188,19 @@ record VisibleBlocks(int[] positions, String[] blocks, byte[] faces, ChunkBorder
                 for (int y = 0; y < height; y++) {
                     int cell = cellOf(x, y, z);
                     if (skyReaches[cell]) {
-                        open.add(y, null, fluid[cell]);
+                        reached.add(y, null, fluid[cell]);
+                    } else if (open[cell]) {
+                        sealed.add(y, null, fluid[cell]);
                     }
                     if (seen[cell] != null && !facesOutside(x, y, z, side)) {
                         hidden.add(y, chunk.get(x, y, z).key(), fluid[cell]);
                     }
                 }
-                open.nextPlace();
+                reached.nextPlace();
+                sealed.nextPlace();
                 hidden.nextPlace();
             }
-            return new ChunkBorders.Wall(open.build(), hidden.build());
+            return new ChunkBorders.Wall(reached.build(), sealed.build(), hidden.build());
         }
 
         // Fills every open cell the sky reaches, from the top of the chunk and from beside it where the ground around
@@ -189,7 +212,7 @@ record VisibleBlocks(int[] positions, String[] blocks, byte[] faces, ChunkBorder
                 for (int z = 0; z < ACROSS; z++) {
                     for (int x = 0; x < ACROSS; x++) {
                         int cell = cellOf(x, y, z);
-                        if (open[cell] && touchesOpenOutside(x, y, z)) {
+                        if (open[cell] && (touchesOpenOutside(x, y, z) || reachedBeside.contains(positionOf(x, y, z)))) {
                             skyReaches[cell] = true;
                             queue[queued++] = cell;
                         }

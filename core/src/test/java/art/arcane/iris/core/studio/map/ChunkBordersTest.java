@@ -2,6 +2,8 @@ package art.arcane.iris.core.studio.map;
 
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -9,6 +11,7 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -57,6 +60,40 @@ public class ChunkBordersTest {
         List<String> faces = facesOf(groundUpTo(GROUND_Y), dug, ChunkBorders.NORTH);
 
         assertEquals(List.of("3,5,0 minecraft:stone"), faces);
+    }
+
+    @Test
+    public void aHollowUnderAnOverhangOpenOnlyAcrossTheEdgeIsReachedThroughTheChunkBesideIt() {
+        int top = 7;
+        Hunk<PlatformBlockState> overhang = groundUpTo(top);
+        for (int x = 0; x <= 1; x++) {
+            overhang.set(x, 4, 7, null);
+            overhang.set(x, 5, 7, null);
+        }
+        Hunk<PlatformBlockState> shaft = groundUpTo(top);
+        for (int y = 4; y <= top; y++) {
+            shaft.set(15, y, 7, null);
+        }
+        ChunkBorders shaftBorders = VisibleBlocks.of(shaft, (x, z) -> top, NO_FLUID, UnaryOperator.identity()).borders();
+        VisibleBlocks closed = VisibleBlocks.of(overhang, (x, z) -> top, NO_FLUID, UnaryOperator.identity());
+
+        IntSet reached = new IntOpenHashSet(closed.borders().reachedFrom(shaftBorders, ChunkBorders.WEST));
+        VisibleBlocks opened = VisibleBlocks.of(overhang, (x, z) -> top, NO_FLUID, UnaryOperator.identity(), reached);
+
+        assertEquals(IntSet.of(VisibleBlocks.positionOf(0, 4, 7), VisibleBlocks.positionOf(0, 5, 7)), reached);
+        assertFalse(shows(closed, VisibleBlocks.positionOf(2, 4, 7)));
+        assertTrue(shows(opened, VisibleBlocks.positionOf(2, 4, 7)));
+        assertTrue(shows(opened, VisibleBlocks.positionOf(1, 3, 7)));
+        assertTrue(opened.borders().reachedFrom(shaftBorders, ChunkBorders.WEST).isEmpty());
+    }
+
+    private static boolean shows(VisibleBlocks visible, int position) {
+        for (int at = 0; at < visible.count(); at++) {
+            if (visible.positions()[at] == position && visible.faces()[at] != 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // The faces the first chunk shows on its side against the second, which lies on that side; the terrain's height

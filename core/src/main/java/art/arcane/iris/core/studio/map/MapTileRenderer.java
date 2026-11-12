@@ -77,10 +77,12 @@ public final class MapTileRenderer {
      * {@code source}, and the solid blocks raised above it. Where the tile carries heights they become the heights of
      * that ground: the terrain's top as generated, under what stands on it.
      *
+     * @param withVoxels whether a tile of a block a pixel also carries every block seen from the open air, where the
+     *                   source knows them
      * @throws IllegalArgumentException when the tile is coarser than the source is drawn at
      * @throws CancellationException    as soon as {@code cancelled} answers true
      */
-    public MapTile withBlocks(MapTile tile, double startX, double startZ, BlockSource source, BooleanSupplier cancelled) {
+    public MapTile withBlocks(MapTile tile, double startX, double startZ, BlockSource source, boolean withVoxels, BooleanSupplier cancelled) {
         double step = tile.blocksPerPixel();
         if (step > source.largestBlocksPerPixel()) {
             throw new IllegalArgumentException("Blocks from " + source.id() + " are drawn at " + source.largestBlocksPerPixel()
@@ -115,8 +117,22 @@ public final class MapTileRenderer {
                 }
             }
         }
-        MapTile.Blocks blocks = new MapTile.Blocks(names.names(), ground, cover, raisedCounts, raisedY.toShortArray(), raised.toShortArray());
+        MapTile.Voxels voxels = withVoxels && step == 1D ? voxelsOf(tops, startX, startZ, tile.size(), names) : null;
+        MapTile.Blocks blocks = new MapTile.Blocks(names.names(), ground, cover, raisedCounts, raisedY.toShortArray(), raised.toShortArray(), voxels);
         return tile.withBlocks(blocks, heights);
+    }
+
+    // Only a tile of a block a pixel shows its blocks one by one; coarser ones show the tops of their columns.
+    private static MapTile.Voxels voxelsOf(ColumnTops tops, double startX, double startZ, int size, BlockNames names) {
+        ColumnTops.TileVoxels found = tops.voxelsIn((int) Math.floor(startX), (int) Math.floor(startZ), size);
+        if (found == null) {
+            return null;
+        }
+        short[] blocks = new short[found.blocks().length];
+        for (int at = 0; at < blocks.length; at++) {
+            blocks[at] = names.indexOf(found.blocks()[at]);
+        }
+        return new MapTile.Voxels(found.x(), found.z(), found.y(), blocks, found.faces());
     }
 
     private ColumnTops topsOf(BlockSource source) {

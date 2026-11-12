@@ -361,6 +361,10 @@ export interface TileBlocks {
   raisedY: Int16Array
   /** Each raised block, in the order of {@link raisedY}. */
   raised: Int16Array
+  /** The blocks seen from the open air, where the tile is a block a column and they were asked for; else null. */
+  voxels: TileVoxels | null
+  /** Each named block's model with its pictures placed, for the blocks {@link voxels} names; the tile source fills it in. */
+  models: (CoverLook | null)[]
   /** The colour of each named block from above, as 0xRRGGBB; the tile source fills it in. */
   colors: number[]
   /** What each named block looks like on a column, where the tile is fine enough to show textures; else empty. */
@@ -368,6 +372,25 @@ export interface TileBlocks {
   /** What each named block looks like standing on the ground, for the blocks {@link cover} names, on a tile that shows textures; else empty. */
   covers: (CoverLook | null)[]
 }
+
+/**
+ * The blocks of a tile that can be seen from the open air, as the server found them in the chunks it generated, with
+ * the sides of each that face that air.
+ */
+export interface TileVoxels {
+  /** Each block's column from the tile's west edge. */
+  x: Uint8Array
+  /** Each block's column from the tile's north edge. */
+  z: Uint8Array
+  y: Int16Array
+  /** Each block's index in the tile's block names. */
+  blocks: Int16Array
+  /** The sides of each block that face the open air, a bit each in {@link VOXEL_SIDES}' order. */
+  faces: Uint8Array
+}
+
+/** The order of the sides in {@link TileVoxels.faces}. */
+export const VOXEL_SIDES = ['down', 'up', 'north', 'south', 'west', 'east'] as const
 
 export const NO_BLOCK = -1
 export const NO_LABEL = -1

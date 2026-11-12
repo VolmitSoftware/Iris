@@ -632,7 +632,7 @@ public final class StudioBridge implements AutoCloseable {
         BooleanSupplier cancelled = () -> dropped.get() || closed || engine.isClosing() || engine.isClosed();
         MapTile tile = session.renderer().render(layer, startX, startZ, blocksPerPixel, size, tileExtras(query), cancelled);
         if (query.has("blocks")) {
-            tile = withBlocks(session, tile, startX, startZ, blockSource(query), cancelled);
+            tile = withBlocks(session, tile, startX, startZ, blockSource(query), query.flag("voxels"), cancelled);
         }
         return MapTileEncoding.encode(tile, gson, StudioBridge::pluginLookOf);
     }
@@ -661,9 +661,9 @@ public final class StudioBridge implements AutoCloseable {
     }
 
     private static MapTile withBlocks(StudioWorld.Session session, MapTile tile, double startX, double startZ, BlockSource source,
-                                      BooleanSupplier cancelled) {
+                                      boolean withVoxels, BooleanSupplier cancelled) {
         try {
-            return session.renderer().withBlocks(tile, startX, startZ, source, cancelled);
+            return session.renderer().withBlocks(tile, startX, startZ, source, withVoxels, cancelled);
         } catch (IllegalArgumentException tooCoarse) {
             throw new RequestError(STATUS_BAD_REQUEST, tooCoarse.getMessage());
         }

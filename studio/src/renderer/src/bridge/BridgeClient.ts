@@ -52,6 +52,8 @@ export interface TileRequest {
   pickNoise: boolean
   /** Where the tile's blocks come from, or null for a tile without them. */
   blocks: BlockSource | null
+  /** Whether a tile of a block a pixel with blocks also carries every block seen from the open air. */
+  voxels?: boolean
 }
 
 /** One tile of a pattern: tile (x, z) covers columns × blocksPerColumn blocks from x × that, z × that. */
@@ -141,6 +143,9 @@ export class BridgeClient {
     })
     if (request.blocks !== null) {
       query.set('blocks', request.blocks)
+      if (request.voxels === true) {
+        query.set('voxels', '1')
+      }
       this.cancelOnAbort(query, signal)
     }
     const response = await this.fetch(`tile?${query}`, { signal })

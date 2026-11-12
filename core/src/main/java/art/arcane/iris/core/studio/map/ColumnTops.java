@@ -36,6 +36,26 @@ interface ColumnTops {
     }
 
     /**
+     * The blocks seen in the square of columns {@code size} across from ({@code minX}, {@code minZ}), or null where the
+     * source knows only the tops of its columns.
+     */
+    default TileVoxels voxelsIn(int minX, int minZ, int size) {
+        return null;
+    }
+
+    /**
+     * Blocks seen in a square of columns, each with the sides that face the open air.
+     *
+     * @param x      each block's column from the square's west edge
+     * @param z      each block's column from the square's north edge
+     * @param y      each block's height above the dimension's bottom
+     * @param blocks each block's key
+     * @param faces  the sides of each block that face the open air, in {@link VisibleBlocks#SIDES}' order
+     */
+    record TileVoxels(byte[] x, byte[] z, short[] y, String[] blocks, byte[] faces) {
+    }
+
+    /**
      * The top of one column.
      *
      * @param groundY the height of its ground block above the dimension's bottom: the terrain's top, under what stands

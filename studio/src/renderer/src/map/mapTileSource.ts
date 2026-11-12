@@ -13,6 +13,8 @@ export interface TileLayer {
   pickNoise: boolean
   /** Where the tiles' blocks come from, or null for tiles without them. */
   blocks: BlockSource | null
+  /** Whether tiles of a block a pixel with blocks also carry every block seen from the open air, to draw one by one. */
+  voxels?: boolean
   /** Bumped when the pack is hotloaded, so older tiles are not used again. */
   revision: number
 }
@@ -23,6 +25,11 @@ export interface TileLayer {
  */
 const MAP_MOST_BLOCKS_PER_PIXEL = 1
 const TEXTURED_BLOCKS_PER_PIXEL = 1
+
+function voxelBytesOf(tile: MapTile): number {
+  const voxels = tile.blocks?.voxels
+  return voxels === null || voxels === undefined ? 0 : voxels.x.byteLength * 3 + voxels.y.byteLength * 2
+}
 
 /** Whether the map's tiles this coarse carry blocks. */
 export function hasBlocksAt(blocksPerPixel: number): boolean {
@@ -36,7 +43,7 @@ export function hasBlocksAt(blocksPerPixel: number): boolean {
  */
 export function mapTileSource(client: BridgeClient, tileSize: number, art: BlockArt, mostBlocksPerPixel = MAP_MOST_BLOCKS_PER_PIXEL): TileSource<MapTile, TileLayer, TileStyle> {
   return {
-    layerKey: (layer) => [layer.revision, layer.view, layer.preview ?? '', layer.heights, layer.pickNoise, layer.blocks ?? ''].join('/'),
+    layerKey: (layer) => [layer.revision, layer.view, layer.preview ?? '', layer.heights, layer.pickNoise, layer.blocks ?? '', layer.voxels === true].join('/'),
     fetch: async (address, layer, signal) => {
       const blocks = layer.blocks !== null && address.blocksPerPixel <= mostBlocksPerPixel ? layer.blocks : null
       const tile = await client.tile({ ...layer, ...address, size: tileSize, blocks }, signal)
@@ -46,7 +53,7 @@ export function mapTileSource(client: BridgeClient, tileSize: number, art: Block
       return tile
     },
     bytesOf: (tile) =>
-      tile.subjects.byteLength * 2 + (tile.heights?.byteLength ?? 0) + (tile.pickNoise?.byteLength ?? 0) + (tile.blocks?.ground.byteLength ?? 0) * 2 + (tile.blocks?.raisedStart.byteLength ?? 0) + (tile.blocks?.raised.byteLength ?? 0) * 2 + tile.size * tile.size * 4,
+      tile.subjects.byteLength * 2 + (tile.heights?.byteLength ?? 0) + (tile.pickNoise?.byteLength ?? 0) + (tile.blocks?.ground.byteLength ?? 0) * 2 + (tile.blocks?.raisedStart.byteLength ?? 0) + (tile.blocks?.raised.byteLength ?? 0) * 2 + voxelBytesOf(tile) + tile.size * tile.size * 4,
     styleKey,
     pixels: (tile, style) => new ImageData(stylePixels(tile, style), tile.size, tile.size)
   }

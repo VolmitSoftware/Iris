@@ -4,11 +4,17 @@ import type { BlockLook } from './blockLooks'
 import type { CoverLook } from './coverLooks'
 import type { TerrainPictures } from './terrainAtlas'
 import type { RaisedBlock, TerrainSurface } from './terrainMesh'
+import type { SurfaceVoxels } from './voxelMesh'
 import { blocksPerColumn, originXOf, originZOf, type TerrainTile } from './terrainTiles'
 
 export type MapTerrainColoring = 'biomes' | 'regions' | 'height' | 'blocks'
 
 const UNLABELLED_COLOR = 0x5a5f6b
+const WATER_NAME = 'minecraft:water'
+
+function isWater(block: string): boolean {
+  return block === WATER_NAME || block.startsWith(`${WATER_NAME}[`)
+}
 
 /**
  * One map tile with heights as a surface, a column to a pixel, without the ring the tile carries for its neighbours; the
@@ -71,6 +77,20 @@ export class MapTerrain implements TerrainSurface {
       raised.push({ y: blocks.raisedY[at], color: blocks.colors[block], look: blocks.looks[block] ?? null })
     }
     return raised
+  }
+
+  voxels(): SurfaceVoxels | null {
+    const blocks = this.coloring === 'blocks' && this.blocksPerColumn === 1 ? this.tile.blocks : null
+    if (blocks === null || blocks.voxels === null || blocks.models.length === 0) {
+      return null
+    }
+    return {
+      voxels: blocks.voxels,
+      models: blocks.models,
+      looks: blocks.looks,
+      colors: blocks.colors,
+      isWater: blocks.names.map(isWater)
+    }
   }
 
   colorAt(column: number, row: number): number {

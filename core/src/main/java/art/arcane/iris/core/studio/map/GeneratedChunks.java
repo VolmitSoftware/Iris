@@ -29,6 +29,7 @@ import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.iris.util.project.hunk.Hunk;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import it.unimi.dsi.fastutil.bytes.ByteArrayList;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -69,6 +70,8 @@ final class GeneratedChunks implements ColumnTops {
     // blocks out to the horizon holds tens of thousands of chunks.
     private static final int CHUNK_TOP_BYTES = 5 * 1024;
     private static final int RAISED_BLOCK_BYTES = Short.BYTES + Integer.BYTES;
+    // Its place, a shared key and the sides it shows.
+    private static final int VISIBLE_BLOCK_BYTES = Integer.BYTES + Integer.BYTES + Byte.BYTES;
     private static final long MOST_BYTES_KEPT = 512L * 1024 * 1024;
     private static final String LEASE_NAME = "studio_block_preview";
     // Half the cores, as the bridge does, so a studio filling its view leaves the server room to run.
@@ -104,15 +107,21 @@ final class GeneratedChunks implements ColumnTops {
         boolean keepsChunks = grid.step() < BLOCKS_ACROSS;
         Long2ObjectMap<LongList> columnsByChunk = columnsByChunkOf(grid);
         Map<Long, ColumnTop> found = new ConcurrentHashMap<>();
+        Map<Long, ChunkTop> chunks = new ConcurrentHashMap<>();
         List<Future<?>> generating = new ArrayList<>();
         for (Long2ObjectMap.Entry<LongList> chunk : columnsByChunk.long2ObjectEntrySet()) {
             long key = chunk.getLongKey();
             ChunkTop known = tops.getIfPresent(key);
             if (known != null) {
-                readColumns(known, chunk.getValue(), found);
+                read(key, known, keepsChunks, chunk.getValue(), found, chunks);
                 continue;
             }
-            ChunkTask task = new ChunkTask(() -> readGenerated(key, keepsChunks, chunk.getValue(), found, grid.cancelled()), grid.step());
+            Runnable generation = () -> {
+                if (!grid.cancelled().getAsBoolean()) {
+                    read(key, keepsChunks ? tops.get(key) : topWithoutKeeping(key), keepsChunks, chunk.getValue(), found, chunks);
+                }
+            };
+            ChunkTask task = new ChunkTask(generation, grid.step());
             GENERATORS.execute(task);
             generating.add(task);
         }
@@ -124,10 +133,66 @@ final class GeneratedChunks implements ColumnTops {
             generating.forEach(task -> task.cancel(false));
             throw cancelled;
         }
-        return (worldX, worldZ) -> {
-            ColumnTop column = found.get(keyOf(worldX, worldZ));
-            return column != null ? column : at(worldX, worldZ);
-        };
+        return new PreparedTile(found, chunks);
+    }
+
+    /** A tile's columns, and the chunks it keeps, read as its chunks were generated. */
+    private final class PreparedTile implements ColumnTops {
+        private final Map<Long, ColumnTop> columns;
+        private final Map<Long, ChunkTop> chunks;
+
+        PreparedTile(Map<Long, ColumnTop> columns, Map<Long, ChunkTop> chunks) {
+            this.columns = columns;
+            this.chunks = chunks;
+        }
+
+        @Override
+        public ColumnTop at(int worldX, int worldZ) {
+            ColumnTop column = columns.get(keyOf(worldX, worldZ));
+            return column != null ? column : GeneratedChunks.this.at(worldX, worldZ);
+        }
+
+        @Override
+        public TileVoxels voxelsIn(int minX, int minZ, int size) {
+            TileVoxelsBuilder voxels = new TileVoxelsBuilder();
+            for (int chunkZ = minZ >> CHUNK_SHIFT; chunkZ <= (minZ + size - 1) >> CHUNK_SHIFT; chunkZ++) {
+                for (int chunkX = minX >> CHUNK_SHIFT; chunkX <= (minX + size - 1) >> CHUNK_SHIFT; chunkX++) {
+                    long key = keyOf(chunkX, chunkZ);
+                    ChunkTop chunk = chunks.get(key);
+                    voxels.addInside(chunk != null ? chunk : tops.get(key), chunkX << CHUNK_SHIFT, chunkZ << CHUNK_SHIFT, minX, minZ, size);
+                }
+            }
+            return voxels.build();
+        }
+    }
+
+    private static final class TileVoxelsBuilder {
+        private final ByteArrayList x = new ByteArrayList();
+        private final ByteArrayList z = new ByteArrayList();
+        private final ShortArrayList y = new ShortArrayList();
+        private final List<String> blocks = new ArrayList<>();
+        private final ByteArrayList faces = new ByteArrayList();
+
+        void addInside(ChunkTop chunk, int chunkMinX, int chunkMinZ, int minX, int minZ, int size) {
+            VisibleBlocks visible = chunk.visible();
+            for (int at = 0; at < visible.count(); at++) {
+                int position = visible.positions()[at];
+                int squareX = chunkMinX + (position & CHUNK_MASK) - minX;
+                int squareZ = chunkMinZ + ((position >> CHUNK_SHIFT) & CHUNK_MASK) - minZ;
+                if (squareX < 0 || squareZ < 0 || squareX >= size || squareZ >= size) {
+                    continue;
+                }
+                x.add((byte) squareX);
+                z.add((byte) squareZ);
+                y.add((short) (position >> VisibleBlocks.POSITION_Y_SHIFT));
+                blocks.add(visible.blocks()[at]);
+                faces.add(visible.faces()[at]);
+            }
+        }
+
+        TileVoxels build() {
+            return new TileVoxels(x.toByteArray(), z.toByteArray(), y.toShortArray(), blocks.toArray(String[]::new), faces.toByteArray());
+        }
     }
 
     private static Long2ObjectMap<LongList> columnsByChunkOf(TileGrid grid) {
@@ -143,11 +208,11 @@ final class GeneratedChunks implements ColumnTops {
         return columnsByChunk;
     }
 
-    private void readGenerated(long key, boolean keepsChunk, LongList columns, Map<Long, ColumnTop> found, BooleanSupplier cancelled) {
-        if (cancelled.getAsBoolean()) {
-            return;
+    private static void read(long key, ChunkTop chunk, boolean keepsChunk, LongList columns, Map<Long, ColumnTop> found, Map<Long, ChunkTop> chunks) {
+        readColumns(chunk, columns, found);
+        if (keepsChunk) {
+            chunks.put(key, chunk);
         }
-        readColumns(keepsChunk ? tops.get(key) : topWithoutKeeping(key), columns, found);
     }
 
     private ChunkTop topWithoutKeeping(long key) {
@@ -230,7 +295,8 @@ final class GeneratedChunks implements ColumnTops {
             engine.getGeneration().generate(chunkX << CHUNK_SHIFT, chunkZ << CHUNK_SHIFT, blocks, biomes, false, lease.sessionId());
         }
         IntBinaryOperator terrainY = (x, z) -> engine.getHeight((chunkX << CHUNK_SHIFT) + x, (chunkZ << CHUNK_SHIFT) + z, true);
-        return new ChunkTop(topsOf(blocks, terrainY, this::seenByPlayers));
+        int fluidHeight = engine.getDimension().getFluidHeight();
+        return new ChunkTop(topsOf(blocks, terrainY, this::seenByPlayers), VisibleBlocks.of(blocks, terrainY, fluidHeight, this::seenByPlayers));
     }
 
     // A plugin's block can be solid on the server where players see grass they walk through.
@@ -248,13 +314,13 @@ final class GeneratedChunks implements ColumnTops {
         return ((long) chunkX << Integer.SIZE) | (chunkZ & 0xFFFFFFFFL);
     }
 
-    private record ChunkTop(ColumnTop[] columns) {
+    private record ChunkTop(ColumnTop[] columns, VisibleBlocks visible) {
         int bytes() {
             int raisedBlocks = 0;
             for (ColumnTop column : columns) {
                 raisedBlocks += column.raised().count();
             }
-            return CHUNK_TOP_BYTES + raisedBlocks * RAISED_BLOCK_BYTES;
+            return CHUNK_TOP_BYTES + raisedBlocks * RAISED_BLOCK_BYTES + visible.count() * VISIBLE_BLOCK_BYTES;
         }
     }
 

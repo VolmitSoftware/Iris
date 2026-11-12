@@ -155,7 +155,8 @@ describe('textured terrain', () => {
           corners: [[0, 1, 0], [0, 0, 0], [1, 0, 1], [1, 1, 1]],
           uvs: [[0, 0], [0, 1], [1, 1], [1, 0]],
           cell: cellAt(4, WHITE),
-          color: [0.5, 0.75, 0.25]
+          color: [0.5, 0.75, 0.25],
+          cullFace: null
         }
       ]
     }

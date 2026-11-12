@@ -12,6 +12,8 @@ export interface CoverFace {
   cell: UvCell
   /** The face's tint in its light, as red, green and blue from 0 to 1. */
   color: readonly [number, number, number]
+  /** The side whose neighbour, when it is a solid block, hides the face; null when nothing hides it. */
+  cullFace: Direction | null
 }
 
 /** A block standing on a column's ground, such as grass, a flower or a layer of snow, as the faces of its model. */
@@ -37,7 +39,7 @@ export async function coverLookOf(block: string, model: BlockModel | null, pictu
       const tint = blockTint(state.name, state.properties, quad.tintIndex)
       const light = quad.shade ? FACE_LIGHT[quad.facing] : 1
       const color = [(((tint >> 16) & 0xff) / 255) * light, (((tint >> 8) & 0xff) / 255) * light, ((tint & 0xff) / 255) * light] as const
-      return { corners: quad.corners, uvs: quad.uvs, cell, color }
+      return { corners: quad.corners, uvs: quad.uvs, cell, color, cullFace: quad.cullFace }
     })
   )
   return faces.includes(null) ? null : { faces: faces as CoverFace[] }

@@ -22,9 +22,11 @@ function tileWithALeaf(): MapTile {
     raisedStart,
     raisedY: Int16Array.of(LEAF_Y),
     raised: Int16Array.of(1),
+    voxels: null,
     colors: [STONE, LEAVES],
     looks: [],
-    covers: []
+    covers: [],
+    models: []
   }
   return {
     size: SIZE,

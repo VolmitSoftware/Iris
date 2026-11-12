@@ -29,7 +29,7 @@ const MOST_BLOCKS_PER_COLUMN = 2 ** COARSEST_LEVEL
 // Tiles with generated blocks take seconds to minutes each. The same tiles without them stand in, but only on ground
 // where no tile with blocks of any level is known yet.
 function withoutBlocks(layer: TileLayer): TileLayer | null {
-  return layer.blocks === null ? null : { ...layer, blocks: null }
+  return layer.blocks === null ? null : { ...layer, blocks: null, voxels: false }
 }
 
 interface WorldStudio3DProps {
@@ -59,7 +59,7 @@ export function WorldStudio3D({ title, client, world, mapArea, packRevision, onS
   )
   const showsBlocks = coloring === 'blocks'
   const layer = useMemo<TileLayer>(
-    () => ({ view: 'biomes', preview: null, heights: true, pickNoise: false, blocks: showsBlocks ? 'generated' : null, revision: packRevision }),
+    () => ({ view: 'biomes', preview: null, heights: true, pickNoise: false, blocks: showsBlocks ? 'generated' : null, voxels: showsBlocks, revision: packRevision }),
     [packRevision, showsBlocks]
   )
   const style = useMemo<TerrainStyle<MapTile>>(

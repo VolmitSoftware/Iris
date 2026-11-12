@@ -38,14 +38,18 @@ import java.util.function.Function;
  * f32 heights[grid²], when the header says so | f32 pickNoise[grid²], when the header says so
  * i16 ground[grid²] | padding to 4 | i16 cover[grid²] | padding to 4 | i16 raisedCounts[grid²] | padding to 4
  * | i16 raisedY[raised] | padding to 4 | i16 raised[raised] | padding to 4, when the header names blocks
+ * u8 voxelX[voxels] | padding to 4 | u8 voxelZ[voxels] | padding to 4 | i16 voxelY[voxels] | padding to 4
+ * | i16 voxelBlock[voxels] | padding to 4 | u8 voxelFaces[voxels] | padding to 4, when the header counts voxels
  * </pre>
- * {@code raised} is the sum of the raised counts, which the header also holds.
+ * {@code raised} is the sum of the raised counts, which the header also holds, as it holds {@code voxels}, the count of
+ * blocks seen from the open air, or -1 for a tile without them.
  * The header holds the size, the scale, the subject kind, the labels the grids index, and the blocks the ground and
  * cover grids index when the tile carries the tops of its columns, each as the state players see. Every array starts on a
  * multiple of 4 bytes, so the studio views them in place.
  */
 final class MapTileEncoding {
     private static final int ALIGNMENT_BYTES = 4;
+    private static final int NO_VOXELS = -1;
 
     private MapTileEncoding() {
     }
@@ -59,15 +63,18 @@ final class MapTileEncoding {
         boolean hasPickNoise = tile.pickNoise() != null;
         MapTile.Blocks blocks = tile.blocks();
         int raised = blocks == null ? 0 : blocks.raised().length;
+        MapTile.Voxels voxels = blocks == null ? null : blocks.voxels();
+        int voxelCount = voxels == null ? NO_VOXELS : voxels.count();
         byte[] header = gson.toJson(new Header(tile.size(), tile.blocksPerPixel(), tile.subjectKind(), tile.labels(),
-                        hasHeights, hasPickNoise, blocks == null ? null : statesPlayersSee(blocks.names(), pluginLooks), raised))
+                        hasHeights, hasPickNoise, blocks == null ? null : statesPlayersSee(blocks.names(), pluginLooks), raised, voxelCount))
                 .getBytes(StandardCharsets.UTF_8);
         int cells = tile.gridSize() * tile.gridSize();
         int length = aligned(Integer.BYTES + header.length)
                 + aligned(cells * Short.BYTES) * 2
                 + (hasHeights ? cells * Float.BYTES : 0)
                 + (hasPickNoise ? cells * Float.BYTES : 0)
-                + (blocks == null ? 0 : aligned(cells * Short.BYTES) * 3 + aligned(raised * Short.BYTES) * 2);
+                + (blocks == null ? 0 : aligned(cells * Short.BYTES) * 3 + aligned(raised * Short.BYTES) * 2)
+                + (voxels == null ? 0 : aligned(voxelCount) * 3 + aligned(voxelCount * Short.BYTES) * 2);
         ByteBuffer buffer = ByteBuffer.allocate(length).order(ByteOrder.LITTLE_ENDIAN);
         buffer.putInt(header.length).put(header);
         align(buffer);
@@ -88,7 +95,19 @@ final class MapTileEncoding {
             putShorts(buffer, blocks.raisedY());
             putShorts(buffer, blocks.raised());
         }
+        if (voxels != null) {
+            putBytes(buffer, voxels.x());
+            putBytes(buffer, voxels.z());
+            putShorts(buffer, voxels.y());
+            putShorts(buffer, voxels.blocks());
+            putBytes(buffer, voxels.faces());
+        }
         return buffer.array();
+    }
+
+    private static void putBytes(ByteBuffer buffer, byte[] values) {
+        buffer.put(values);
+        align(buffer);
     }
 
     private static void putShorts(ByteBuffer buffer, short[] grid) {
@@ -111,6 +130,6 @@ final class MapTileEncoding {
     }
 
     private record Header(int size, double blocksPerPixel, MapLabel.Kind subjectKind, List<MapLabel> labels,
-                          boolean heights, boolean pickNoise, List<String> blocks, int raised) {
+                          boolean heights, boolean pickNoise, List<String> blocks, int raised, int voxels) {
     }
 }

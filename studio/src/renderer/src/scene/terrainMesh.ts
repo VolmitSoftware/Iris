@@ -6,6 +6,7 @@ import { coverGeometry } from './coverFaces'
 import type { CoverLook } from './coverLooks'
 import { QuadBatch } from './quadBatch'
 import { addRaisedFaces } from './raisedFaces'
+import { voxelGeometries, type SurfaceVoxels } from './voxelMesh'
 import type { TerrainPictures } from './terrainAtlas'
 import type { ColumnArea } from './terrainTiles'
 import { WATER_SURFACE_COLOR, WATER_SURFACE_OPACITY } from './waterTint'
@@ -35,6 +36,11 @@ export interface TerrainSurface {
   coverAt?(column: number, row: number): CoverLook | null
   /** The solid blocks above the column's ground, such as a tree's wood and leaves, highest first. */
   raisedAt?(column: number, row: number): readonly RaisedBlock[]
+  /**
+   * Every block seen from the open air, to draw one by one in place of the columns, which then only answer where the
+   * ground lies; null to draw the columns.
+   */
+  voxels?(): SurfaceVoxels | null
 }
 
 /** A solid block above a column's ground, drawn as a whole block. */
@@ -66,17 +72,21 @@ export function buildTerrainMesh(surface: TerrainSurface, base: number, holes: r
   if (!field.hasAnyGround()) {
     return { object: group, field, dispose: () => {} }
   }
+  const voxels = field.pictures === null ? null : (surface.voxels?.() ?? null)
+  if (voxels !== null && field.pictures !== null) {
+    return voxelMesh(field, voxels, field.pictures)
+  }
   const groundBatch = groundFaces(field, base)
   const seeThroughBatch = new QuadBatch(true, field.pictures?.plain ?? null)
   addRaisedFaces(field, groundBatch, seeThroughBatch)
   const ground = groundBatch.geometry()
   const water = waterFaces(field).geometry()
   const groundMaterial = new MeshBasicMaterial({ vertexColors: true, side: FrontSide, map: field.pictures?.texture ?? null })
-  const waterMaterial = new MeshBasicMaterial({ color: WATER_SURFACE_COLOR, transparent: true, opacity: WATER_SURFACE_OPACITY, depthWrite: false, side: DoubleSide })
+  const columnWaterMaterial = waterMaterial()
   const cutOut = field.pictures === null ? [] : [cutOutMesh(coverGeometry(field), field.pictures), cutOutMesh(seeThroughGeometry(seeThroughBatch), field.pictures)]
   const shownCutOut = cutOut.filter((mesh) => mesh !== null)
   // The water is drawn last, over what stands under it.
-  group.add(new Mesh(ground, groundMaterial), ...shownCutOut.map((mesh) => mesh.mesh), new Mesh(water, waterMaterial))
+  group.add(new Mesh(ground, groundMaterial), ...shownCutOut.map((mesh) => mesh.mesh), new Mesh(water, columnWaterMaterial))
   return {
     object: group,
     field,
@@ -84,10 +94,43 @@ export function buildTerrainMesh(surface: TerrainSurface, base: number, holes: r
       ground.dispose()
       water.dispose()
       groundMaterial.dispose()
-      waterMaterial.dispose()
+      columnWaterMaterial.dispose()
       shownCutOut.forEach((mesh) => mesh.dispose())
     }
   }
+}
+
+function voxelMesh(field: ColumnField, voxels: SurfaceVoxels, pictures: TerrainPictures): TerrainMesh {
+  const { opaque, cutOut, water } = voxelGeometries(field, voxels, pictures.plain)
+  const parts: { mesh: Mesh; dispose(): void }[] = []
+  if (opaque !== null) {
+    parts.push(meshOf(opaque, new MeshBasicMaterial({ vertexColors: true, side: FrontSide, map: pictures.texture })))
+  }
+  const cutOutPart = cutOutMesh(cutOut, pictures)
+  if (cutOutPart !== null) {
+    parts.push(cutOutPart)
+  }
+  // The water is drawn last, over what stands under it.
+  if (water !== null) {
+    parts.push(meshOf(water, waterMaterial()))
+  }
+  const group = new Group()
+  group.add(...parts.map((part) => part.mesh))
+  return { object: group, field, dispose: () => parts.forEach((part) => part.dispose()) }
+}
+
+function meshOf(geometry: BufferGeometry, material: MeshBasicMaterial): { mesh: Mesh; dispose(): void } {
+  return {
+    mesh: new Mesh(geometry, material),
+    dispose: () => {
+      geometry.dispose()
+      material.dispose()
+    }
+  }
+}
+
+function waterMaterial(): MeshBasicMaterial {
+  return new MeshBasicMaterial({ color: WATER_SURFACE_COLOR, transparent: true, opacity: WATER_SURFACE_OPACITY, depthWrite: false, side: DoubleSide })
 }
 
 function seeThroughGeometry(batch: QuadBatch): BufferGeometry | null {

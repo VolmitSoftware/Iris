@@ -46,9 +46,26 @@ public record MapTile(int size, double blocksPerPixel, MapLabel.Kind subjectKind
      * @param raisedCounts how many solid blocks stand above each cell's ground, such as a tree's wood and leaves
      * @param raisedY      the height of each raised block, cell after cell and each cell's highest first
      * @param raised       each raised block, in the order of {@code raisedY}
+     * @param voxels       the blocks seen in the tile's own pixels, a block a pixel, or null for a tile at another scale
      */
-    public record Blocks(List<String> names, short[] ground, short[] cover, short[] raisedCounts, short[] raisedY, short[] raised) {
+    public record Blocks(List<String> names, short[] ground, short[] cover, short[] raisedCounts, short[] raisedY, short[] raised,
+                         Voxels voxels) {
         public static final short NO_BLOCK = -1;
+    }
+
+    /**
+     * The blocks that can be seen from the open air in a tile a block a pixel, with the sides of each that face it.
+     *
+     * @param x      each block's pixel from the tile's west edge
+     * @param z      each block's pixel from the tile's north edge
+     * @param y      each block's height above the dimension's bottom
+     * @param blocks the index of each block in the tile's block names
+     * @param faces  the sides of each block that face the open air, a bit each: down, up, north, south, west, east
+     */
+    public record Voxels(byte[] x, byte[] z, short[] y, short[] blocks, byte[] faces) {
+        public int count() {
+            return x.length;
+        }
     }
 
     /** This tile with {@code blocks} on top of its columns, at {@code heights} where it carries heights. */

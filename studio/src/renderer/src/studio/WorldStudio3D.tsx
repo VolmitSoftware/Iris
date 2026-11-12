@@ -22,6 +22,15 @@ const NUMBER = new Intl.NumberFormat('en-US')
 const COARSEST_LEVEL = 12
 const BLOCKS_ABOVE_FLUID_IN_FOCUS = 96
 const BLOCKS_BELOW_FLUID_IN_FOCUS = 32
+// Every level carries blocks, out to the horizon: a coarse tile generates a chunk for each of its columns, a minute or
+// so of the server's time, and the ground already sampled stays in sight meanwhile.
+const MOST_BLOCKS_PER_COLUMN = 2 ** COARSEST_LEVEL
+
+// Tiles with generated blocks take seconds to minutes each. The same tiles without them stand in, but only on ground
+// where no tile with blocks of any level is known yet.
+function withoutBlocks(layer: TileLayer): TileLayer | null {
+  return layer.blocks === null ? null : { ...layer, blocks: null }
+}
 
 interface WorldStudio3DProps {
   title: string
@@ -43,7 +52,7 @@ export function WorldStudio3D({ title, client, world, mapArea, packRevision, onS
   const centre = useMemo(() => centreOf(mapArea), [mapArea])
   const art = useMemo(() => blockArt(client, true), [client])
   useEffect(() => () => art.dispose(), [art])
-  const source = useMemo(() => mapTileSource(client, TILE_COLUMNS, art), [client, art])
+  const source = useMemo(() => mapTileSource(client, TILE_COLUMNS, art, MOST_BLOCKS_PER_COLUMN), [client, art])
   const focus = useMemo(
     () => focusAround(centre.x, centre.z, world.fluidHeight - BLOCKS_BELOW_FLUID_IN_FOCUS, world.fluidHeight + BLOCKS_ABOVE_FLUID_IN_FOCUS),
     [centre, world.fluidHeight]
@@ -61,7 +70,7 @@ export function WorldStudio3D({ title, client, world, mapArea, packRevision, onS
     }),
     [coloring, world.fluidHeight, world.minY, world.height, art]
   )
-  const { content, pending, stream } = useTerrainStream(source, COARSEST_LEVEL, focus, layer, style, tell)
+  const { content, pending, stream } = useTerrainStream(source, COARSEST_LEVEL, focus, layer, style, tell, withoutBlocks)
   const sampling = useLongPending(pending)
   const ground = useGroundInView(stream)
   const heightShares = useMemo(() => heightBandShares(ground?.heights ?? [], world.fluidHeight), [ground, world.fluidHeight])
@@ -92,7 +101,7 @@ export function WorldStudio3D({ title, client, world, mapArea, packRevision, onS
             <ToggleGroupItem value="height" className={HEADER_CHOICE}>
               Height
             </ToggleGroupItem>
-            <ToggleGroupItem value="blocks" className={HEADER_CHOICE} title="The blocks the world generates, shown close up">
+            <ToggleGroupItem value="blocks" className={HEADER_CHOICE} title="The blocks the world generates">
               Blocks
             </ToggleGroupItem>
           </ToggleGroup>

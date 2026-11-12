@@ -54,6 +54,33 @@ describe('terrain cover', () => {
     expect(Math.min(...wanted.map((tile) => tile.level))).toBeLessThan(wanted[0].level)
   })
 
+  it('draws a quick stand-in only where no truer tile of any level is known', () => {
+    const sight = sightFrom(2000)
+    const backdrop = planCover(sight, nothingReady, COARSEST_LEVEL).wanted[0]
+    const quickEverywhere = (): TileState => 'quick'
+    const trueBackdrop = (tile: TerrainTile): TileState => (tileKey(tile) === tileKey(backdrop) ? 'fresh' : 'quick')
+
+    const quickOnly = planCover(sight, quickEverywhere, COARSEST_LEVEL).draws
+    const withTrueBackdrop = planCover(sight, trueBackdrop, COARSEST_LEVEL).draws
+
+    expect(quickOnly.length).toBeGreaterThan(0)
+    expectEverySpotDrawnOnce(quickOnly)
+    expect(withTrueBackdrop.some((draw) => tileKey(draw.tile) === tileKey(backdrop))).toBe(true)
+    expect(withTrueBackdrop.some((draw) => isInside(draw.tile, backdrop))).toBe(false)
+  })
+
+  it('keeps the true ground drawn from closer up, however much finer, until its coarser tile is as true', () => {
+    const sight = sightFrom(3000)
+    const nearGround = { level: 0, tileX: 0, tileZ: 0 }
+    const known = (tile: TerrainTile): TileState => (tileKey(tile) === tileKey(nearGround) ? 'fresh' : 'quick')
+    const knownInside = (tile: TerrainTile): TerrainTile[] => (isInside(nearGround, tile) ? [nearGround] : [])
+
+    const { draws } = planCover(sight, known, COARSEST_LEVEL, knownInside)
+
+    expect(draws.some((draw) => tileKey(draw.tile) === tileKey(nearGround))).toBe(true)
+    expect(drawnOver(draws, 5.5, 5.5)).toBe(1)
+  })
+
   it('wants nothing once every tile it needs is sampled', () => {
     expect(planCover(sightFrom(2000), everythingReady, COARSEST_LEVEL).wanted).toEqual([])
   })
@@ -65,10 +92,10 @@ describe('terrain cover', () => {
     expect(Math.min(...far.map((draw) => draw.tile.level))).toBeGreaterThanOrEqual(3)
   })
 
-  it('never asks for more than a backdrop, a preview and detail of 64 tiles each', () => {
+  it('never asks for more than a backdrop, a preview and detail of 192 tiles each', () => {
     for (const height of [60, 600, 6000, 600_000]) {
       const { wanted } = planCover(sightFrom(height), nothingReady, COARSEST_LEVEL)
-      expect(wanted.length).toBeLessThanOrEqual(3 * 64)
+      expect(wanted.length).toBeLessThanOrEqual(3 * 192)
     }
   })
 

@@ -11,8 +11,11 @@ import {
   type TerrainTile
 } from './terrainTiles'
 
-/** What is known of a tile: its ground, ground left over from before the layer changed that stands in until it is sampled anew, or nothing. */
-export type TileState = 'none' | 'standIn' | 'fresh'
+/**
+ * What is known of a tile: its ground; ground left over from before the layer changed that stands in until it is
+ * sampled anew; only a quick, rougher stand-in, drawn where nothing truer of any level is known; or nothing.
+ */
+export type TileState = 'none' | 'quick' | 'standIn' | 'fresh'
 
 export interface DrawnTile {
   tile: TerrainTile
@@ -26,11 +29,12 @@ export interface Cover {
   wanted: TerrainTile[]
 }
 
-// A column is drawn at most this many pixels wide, as wider ones show their blockiness; coarser ones only where there are too many.
-const MOST_COLUMN_PIXELS = 1
-// A little above one, as tiles in sight stick out past the view's edges; beyond it, columns only add faces no one can tell apart.
-const MOST_COLUMNS_PER_PIXEL = 1.25
-const MOST_TILES_IN_SIGHT = 64
+// Tuned for looks over speed. A column is drawn at most half a pixel wide, so blocks, trees and their textures go on
+// well past where a column shrinks to a pixel; coarser ones only where there would be too many tiles.
+const MOST_COLUMN_PIXELS = 0.5
+// Columns finer than a pixel still show what stands on them, such as trees, so the view takes several to a pixel.
+const MOST_COLUMNS_PER_PIXEL = 4
+const MOST_TILES_IN_SIGHT = 192
 // The backdrop reaches to the horizon, where a few coarse tiles do; the rest of the tiles go to ground that is near.
 const MOST_BACKDROP_TILES = 16
 const DETAIL_MARGIN = 0.15
@@ -48,16 +52,26 @@ type StateOf = (tile: TerrainTile) => TileState
  * sampled the nearest sampled tile of a coarser level stands in, with holes where finer tiles are ready, and detail
  * left over from before zooming out stands in for the coarser tile that is not sampled yet.
  *
+ * Quick stand-ins are drawn only where no truer tile of any level is known, so ground once sampled stays in sight until
+ * what replaces it is as true.
+ *
  * @param coarsestLevel the coarsest level the source can sample
+ * @param knownInside   the tiles finer than a tile, inside it, whose ground is known, however much finer; where not
+ *                      given, the ones up to a couple of levels finer that {@code stateOf} knows
  */
-export function planCover(sight: CameraSight, stateOf: StateOf, coarsestLevel: number): Cover {
+export function planCover(sight: CameraSight, stateOf: StateOf, coarsestLevel: number, knownInside?: (tile: TerrainTile) => TerrainTile[]): Cover {
   const backdropLevel = backdropLevelFor(sight, coarsestLevel)
   const finestLevel = Math.max(0, backdropLevel - MOST_LEVELS_FINER)
   const backdrop = sight.tilesAt(backdropLevel, BACKDROP_MARGIN).sort(nearestFirst(sight)).slice(0, MOST_BACKDROP_TILES)
   const detail = detailTiles(sight, backdrop, finestLevel)
-  const ready = candidatesOf(backdrop, detail, backdropLevel, finestLevel, stateOf).filter((tile) => stateOf(tile) !== 'none')
+  const isTrue = (tile: TerrainTile): boolean => stateOf(tile) === 'fresh' || stateOf(tile) === 'standIn'
+  const leftOverInside = knownInside ?? ((tile: TerrainTile) => finerLeftOver(tile, finestLevel, stateOf, MOST_LEVELS_FINER_LEFT_OVER))
+  const candidates = candidatesOf(backdrop, detail, backdropLevel, isTrue, (tile) => leftOverInside(tile).filter((finer) => finer.level >= finestLevel && isTrue(finer)))
+  const ready = candidates.filter(isTrue)
+  const quickFill = candidates.filter((tile) => stateOf(tile) === 'quick' && !ready.some((truer) => isInside(tile, truer)))
+  const drawn = [...ready, ...quickFill]
   return {
-    draws: ready.map((tile) => ({ tile, holes: ready.filter((finer) => isInside(finer, tile)).map((finer) => columnsUnder(tile, finer)) })),
+    draws: drawn.map((tile) => ({ tile, holes: drawn.filter((finer) => isInside(finer, tile)).map((finer) => columnsUnder(tile, finer)) })),
     wanted: wantedInOrder(sight, backdrop, detail, backdropLevel, stateOf)
   }
 }
@@ -95,19 +109,30 @@ function detailTiles(sight: CameraSight, backdrop: TerrainTile[], finestLevel: n
 }
 
 // Everything that may be drawn for the view: the backdrop, the detail and the levels between that happen to be there,
-// and, where detail is missing, finer tiles left over from before. None is finer than a backdrop tile can be cut a hole for.
-function candidatesOf(backdrop: TerrainTile[], detail: TerrainTile[], backdropLevel: number, finestLevel: number, stateOf: StateOf): TerrainTile[] {
+// and, where a tile's true ground is missing, finer tiles left over from before. None is finer than a backdrop tile can
+// be cut a hole for.
+function candidatesOf(
+  backdrop: TerrainTile[],
+  detail: TerrainTile[],
+  backdropLevel: number,
+  isTrue: (tile: TerrainTile) => boolean,
+  leftOverInside: (tile: TerrainTile) => TerrainTile[]
+): TerrainTile[] {
   const candidates = new Map<string, TerrainTile>()
   const add = (tile: TerrainTile): void => void candidates.set(tileKey(tile), tile)
+  const addLeftOverWhereMissing = (tile: TerrainTile): void => {
+    if (!isTrue(tile)) {
+      leftOverInside(tile).forEach(add)
+    }
+  }
   backdrop.forEach(add)
+  backdrop.forEach(addLeftOverWhereMissing)
   for (const tile of detail) {
     add(tile)
     for (let level = tile.level + 1; level <= backdropLevel; level++) {
       add(ancestorAt(tile, level))
     }
-    if (stateOf(tile) === 'none') {
-      finerLeftOver(tile, finestLevel, stateOf, MOST_LEVELS_FINER_LEFT_OVER).forEach(add)
-    }
+    addLeftOverWhereMissing(tile)
   }
   return [...candidates.values()]
 }

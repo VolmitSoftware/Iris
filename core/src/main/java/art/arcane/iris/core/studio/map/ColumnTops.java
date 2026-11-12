@@ -26,6 +26,15 @@ interface ColumnTops {
     ColumnTop at(int worldX, int worldZ);
 
     /**
+     * Readies the tops of the grid's columns at once, so asking for them one by one after is quick. Nothing to do for a
+     * source whose tops are quick to find.
+     *
+     * @throws java.util.concurrent.CancellationException as soon as the grid's request is cancelled
+     */
+    default void prepare(TileGrid grid) {
+    }
+
+    /**
      * The top of one column.
      *
      * @param groundY the height of its ground block above the dimension's bottom: the terrain's top, under what stands

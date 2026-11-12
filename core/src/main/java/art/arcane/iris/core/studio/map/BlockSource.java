@@ -23,8 +23,11 @@ import java.util.Optional;
 
 /** Where a tile's blocks come from. */
 public enum BlockSource {
-    /** The chunks generated in memory: what the world would hold, at a block a pixel or finer. */
-    GENERATED("generated", 1D);
+    /**
+     * The chunks generated in memory: what the world would hold, at any scale. A tile generates every chunk its pixels
+     * fall in, so one coarser than a chunk a pixel costs a chunk for each pixel, up to about a minute's work.
+     */
+    GENERATED("generated", 4_096D);
 
     private final String id;
     private final double largestBlocksPerPixel;

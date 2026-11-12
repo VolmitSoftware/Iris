@@ -80,8 +80,13 @@ export class TileStore<Tile, Layer, Style> {
 
   /** Fetches the tiles the view shows, in the order given, and gives up on the ones it no longer shows. */
   want(addresses: TileAddress[], layer: Layer): void {
-    this.wanted = addresses
-      .map((address) => ({ key: this.key(address, layer), address, layer }))
+    this.wantEach(addresses.map((address) => ({ address, layer })))
+  }
+
+  /** As {@link want}, each tile of its own layer. */
+  wantEach(tiles: { address: TileAddress; layer: Layer }[]): void {
+    this.wanted = tiles
+      .map(({ address, layer }) => ({ key: this.key(address, layer), address, layer }))
       .filter((entry) => !this.tiles.has(entry.key) && !this.failed.has(entry.key))
     const stillWanted = new Set(this.wanted.map((entry) => entry.key))
     for (const [key, controller] of this.inFlight) {

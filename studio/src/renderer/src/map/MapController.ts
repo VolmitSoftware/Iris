@@ -147,7 +147,7 @@ export class MapController {
 
   /** Whether the map is zoomed in far enough for its tiles to carry blocks. */
   showsBlocks(): boolean {
-    return hasBlocksAt(BLOCK_SOURCE, this.renderScale())
+    return hasBlocksAt(this.renderScale())
   }
 
   // Heights are the costly part of a tile, so they are only asked for when something draws with them: the relief, and

@@ -19,6 +19,8 @@
 package art.arcane.iris.core.studio.bridge;
 
 import art.arcane.iris.core.gui.GuiHost;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import art.arcane.iris.core.link.CustomBlockLook;
 import art.arcane.iris.core.link.CustomBlockSource;
 import art.arcane.iris.spi.IrisServices;
@@ -89,6 +91,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 
@@ -110,6 +113,7 @@ public final class StudioBridge implements AutoCloseable {
     private static final int LARGEST_BODY_BYTES = 4 * 1024 * 1024;
     private static final double SMALLEST_BLOCKS_PER_PIXEL = 1D / 16D;
     private static final double LARGEST_BLOCKS_PER_PIXEL = 4_096D;
+    private static final long DROPPED_TILE_KEPT_MINUTES = 10;
     // Each pixel reads the chunk it lands in, so a saved world is shown no farther out than a pixel per chunk.
     private static final int LARGEST_SAVED_BLOCKS_PER_PIXEL = 16;
     // A palette is picked block by block, so far out a column stands for the blocks around it; past this it says little.
@@ -139,6 +143,9 @@ public final class StudioBridge implements AutoCloseable {
     private final ScheduledExecutorService ticker;
     private final StudioEvents events;
     private final Runnable hotloadHook;
+    // Whether the studio stopped waiting for each tile, by the id it gave the request. A cancel can arrive before its tile
+    // does, so each is kept a while rather than for its tile alone.
+    private final Cache<String, AtomicBoolean> droppedTiles = Caffeine.newBuilder().expireAfterWrite(DROPPED_TILE_KEPT_MINUTES, TimeUnit.MINUTES).build();
     private volatile boolean closed;
 
     private StudioBridge(StudioWorld world) throws IOException {
@@ -234,6 +241,7 @@ public final class StudioBridge implements AutoCloseable {
         switch (endpoint) {
             case "world" -> sendJson(exchange, STATUS_OK, worldInfo(get(exchange)));
             case "tile" -> sendBytes(exchange, "application/octet-stream", tile(get(exchange), query));
+            case "tile-cancel" -> cancelTile(exchange, query);
             case "hover" -> sendJson(exchange, STATUS_OK, hover(get(exchange).engine(), query));
             case "picks" -> sendJson(exchange, STATUS_OK, picks(get(exchange).engine(), query));
             case "regions" -> sendJson(exchange, STATUS_OK, regions(get(exchange).engine()));
@@ -601,12 +609,24 @@ public final class StudioBridge implements AutoCloseable {
         double tileBlocks = size * blocksPerPixel;
         double startX = query.whole("x", 0) * tileBlocks;
         double startZ = query.whole("z", 0) * tileBlocks;
-        BooleanSupplier cancelled = () -> closed || engine.isClosing() || engine.isClosed();
+        AtomicBoolean dropped = query.has("request") ? droppedFlagOf(query.text("request")) : new AtomicBoolean();
+        BooleanSupplier cancelled = () -> dropped.get() || closed || engine.isClosing() || engine.isClosed();
         MapTile tile = session.renderer().render(layer, startX, startZ, blocksPerPixel, size, tileExtras(query), cancelled);
         if (query.has("blocks")) {
             tile = withBlocks(session, tile, startX, startZ, blockSource(query), cancelled);
         }
         return MapTileEncoding.encode(tile, gson, StudioBridge::pluginLookOf);
+    }
+
+    // A tile with blocks may generate thousands of chunks, so one the studio stopped waiting for is let go of.
+    private void cancelTile(HttpExchange exchange, Query query) throws IOException {
+        requireMethod(exchange, "POST");
+        droppedFlagOf(query.text("request")).set(true);
+        sendJson(exchange, STATUS_OK, new MessageBody(null));
+    }
+
+    private AtomicBoolean droppedFlagOf(String requestId) {
+        return droppedTiles.get(requestId, id -> new AtomicBoolean());
     }
 
     private static MapTile withBlocks(StudioWorld.Session session, MapTile tile, double startX, double startZ, BlockSource source,

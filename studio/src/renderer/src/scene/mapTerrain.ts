@@ -13,7 +13,8 @@ const UNLABELLED_COLOR = 0x5a5f6b
 /**
  * One map tile with heights as a surface, a column to a pixel, without the ring the tile carries for its neighbours; the
  * sea fills up to fluid height. Coloured by blocks, a tile that carries them shows their colours, and their textures
- * where it has their looks; one too coarse to carry them keeps its biomes' colours.
+ * where it has their looks; one too coarse to carry them keeps its biomes' colours. Blocks raised over the ground stand
+ * as blocks on columns a block wide, and are the top of wider ones.
  */
 export class MapTerrain implements TerrainSurface {
   readonly columns: number
@@ -37,7 +38,8 @@ export class MapTerrain implements TerrainSurface {
   }
 
   groundAt(column: number, row: number): number {
-    return Math.floor(this.heightAt(column, row))
+    const highestRaised = this.highestFoldedRaisedAt(column, row)
+    return highestRaised === null ? Math.floor(this.heightAt(column, row)) : this.tile.blocks!.raisedY[highestRaised]
   }
 
   waterAt(column: number, row: number): number | null {
@@ -45,12 +47,12 @@ export class MapTerrain implements TerrainSurface {
   }
 
   lookAt(column: number, row: number): BlockLook | null {
-    const ground = this.groundBlockAt(column, row)
-    return ground === NO_BLOCK ? null : (this.tile.blocks!.looks[ground] ?? null)
+    const top = this.topBlockAt(column, row)
+    return top === NO_BLOCK ? null : (this.tile.blocks!.looks[top] ?? null)
   }
 
   coverAt(column: number, row: number): CoverLook | null {
-    if (this.groundBlockAt(column, row) === NO_BLOCK) {
+    if (this.groundBlockAt(column, row) === NO_BLOCK || this.highestFoldedRaisedAt(column, row) !== null) {
       return null
     }
     const cover = this.tile.blocks!.cover[this.cellAt(column, row)]
@@ -59,7 +61,7 @@ export class MapTerrain implements TerrainSurface {
 
   raisedAt(column: number, row: number): readonly RaisedBlock[] {
     const blocks = this.coloring === 'blocks' ? this.tile.blocks : null
-    if (blocks === null) {
+    if (blocks === null || this.foldsRaisedBlocks()) {
       return []
     }
     const cell = this.cellAt(column, row)
@@ -75,12 +77,33 @@ export class MapTerrain implements TerrainSurface {
     if (this.coloring === 'height') {
       return heightColor(this.heightAt(column, row), this.fluidHeight)
     }
-    const ground = this.groundBlockAt(column, row)
-    if (ground !== NO_BLOCK) {
-      return this.tile.blocks!.colors[ground]
+    const top = this.topBlockAt(column, row)
+    if (top !== NO_BLOCK) {
+      return this.tile.blocks!.colors[top]
     }
     const index = this.coloring === 'regions' ? this.tile.regions[this.cellAt(column, row)] : this.tile.subjects[this.cellAt(column, row)]
     return index === NO_LABEL ? UNLABELLED_COLOR : this.tile.labels[index].color
+  }
+
+  // A block raised on a column wider than a block would stand as a slab as wide as the column, so such columns take
+  // their highest raised block as their top, as a forest seen from afar is its canopy.
+  private foldsRaisedBlocks(): boolean {
+    return this.blocksPerColumn > 1
+  }
+
+  /** Where the column's highest raised block lies in the tile's raised blocks, where the column takes it as its top. */
+  private highestFoldedRaisedAt(column: number, row: number): number | null {
+    if (!this.foldsRaisedBlocks() || this.groundBlockAt(column, row) === NO_BLOCK) {
+      return null
+    }
+    const cell = this.cellAt(column, row)
+    const { raisedStart } = this.tile.blocks!
+    return raisedStart[cell] < raisedStart[cell + 1] ? raisedStart[cell] : null
+  }
+
+  private topBlockAt(column: number, row: number): number {
+    const highestRaised = this.highestFoldedRaisedAt(column, row)
+    return highestRaised === null ? this.groundBlockAt(column, row) : this.tile.blocks!.raised[highestRaised]
   }
 
   private groundBlockAt(column: number, row: number): number {

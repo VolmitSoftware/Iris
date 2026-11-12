@@ -35,25 +35,44 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 import java.util.function.IntBinaryOperator;
+import java.util.function.IntToDoubleFunction;
 import java.util.function.UnaryOperator;
+import java.util.stream.IntStream;
 
 /**
  * The tops of chunks generated for the studio alone: each chunk runs through the world's own stages into memory, so its
  * columns hold what the world would, trees and structures included, and nothing is placed in the world. Generating
  * plans the chunk's surroundings in the world's mantle, as generating it in the world would. A chunk is generated once
- * and its top kept; asked for from several bridge threads at once.
+ * and its top kept; asked for from several bridge threads at once. A tile's chunks are generated side by side on threads
+ * of their own, which end once the studio has asked for none for a while.
  */
 final class GeneratedChunks implements ColumnTops {
     private static final int CHUNK_SHIFT = 4;
     private static final int BLOCKS_ACROSS = 1 << CHUNK_SHIFT;
     private static final int CHUNK_MASK = BLOCKS_ACROSS - 1;
-    // A chunk's top is about 5 KB, and each block raised over its ground adds a height and a shared key.
+    // A chunk's top is about 5 KB, and each block raised over its ground adds a height and a shared key. A view with
+    // blocks out to the horizon holds tens of thousands of chunks.
     private static final int CHUNK_TOP_BYTES = 5 * 1024;
     private static final int RAISED_BLOCK_BYTES = Short.BYTES + Integer.BYTES;
-    private static final long MOST_BYTES_KEPT = 64L * 1024 * 1024;
+    private static final long MOST_BYTES_KEPT = 512L * 1024 * 1024;
     private static final String LEASE_NAME = "studio_block_preview";
+    // Half the cores, as the bridge does, so a studio filling its view leaves the server room to run.
+    private static final int GENERATING_THREADS = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
+    private static final long IDLE_THREAD_SECONDS = 30;
+    private static final long CANCEL_CHECK_MILLIS = 250;
+    private static final ThreadPoolExecutor GENERATORS = idleEndingThreads();
 
     private final Engine engine;
     private final LoadingCache<Long, ChunkTop> tops;
@@ -71,6 +90,93 @@ final class GeneratedChunks implements ColumnTops {
     public ColumnTop at(int worldX, int worldZ) {
         ChunkTop chunk = tops.get(keyOf(worldX >> CHUNK_SHIFT, worldZ >> CHUNK_SHIFT));
         return chunk.columns[(worldZ & CHUNK_MASK) * BLOCKS_ACROSS + (worldX & CHUNK_MASK)];
+    }
+
+    // A chunk that fails to generate is left for at() to fail on, as it would without this.
+    @Override
+    public void prepare(TileGrid grid) {
+        List<Future<?>> generating = new ArrayList<>();
+        for (int chunkZ : chunksAlong(grid, grid::worldZ)) {
+            for (int chunkX : chunksAlong(grid, grid::worldX)) {
+                long key = keyOf(chunkX, chunkZ);
+                if (tops.getIfPresent(key) == null) {
+                    ChunkTask chunk = new ChunkTask(() -> generateUnlessCancelled(key, grid.cancelled()), grid.step());
+                    GENERATORS.execute(chunk);
+                    generating.add(chunk);
+                }
+            }
+        }
+        try {
+            for (Future<?> chunk : generating) {
+                awaitUnlessCancelled(chunk, grid.cancelled());
+            }
+        } catch (CancellationException cancelled) {
+            generating.forEach(chunk -> chunk.cancel(false));
+            throw cancelled;
+        }
+    }
+
+    private void generateUnlessCancelled(long key, BooleanSupplier cancelled) {
+        if (!cancelled.getAsBoolean()) {
+            tops.get(key);
+        }
+    }
+
+    private static void awaitUnlessCancelled(Future<?> chunk, BooleanSupplier cancelled) {
+        while (true) {
+            MapTileRenderer.checkCancelled(cancelled);
+            try {
+                chunk.get(CANCEL_CHECK_MILLIS, TimeUnit.MILLISECONDS);
+                return;
+            } catch (TimeoutException stillGenerating) {
+                // checked for cancelling again
+            } catch (ExecutionException failed) {
+                return;
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new CancellationException("Map tile render interrupted");
+            }
+        }
+    }
+
+    // The distinct chunks the grid's columns fall in along one axis, in order.
+    private static int[] chunksAlong(TileGrid grid, IntToDoubleFunction worldAt) {
+        return IntStream.range(0, grid.size())
+                .map(cell -> (int) Math.floor(worldAt.applyAsDouble(cell)) >> CHUNK_SHIFT)
+                .distinct()
+                .toArray();
+    }
+
+    /**
+     * One chunk to generate for a tile. The chunks of finer tiles go first, then those asked for first: a tile far out
+     * spreads over thousands of chunks, and the ground near the camera, in finer tiles, is not kept waiting behind it.
+     */
+    private static final class ChunkTask extends FutureTask<Void> implements Comparable<ChunkTask> {
+        private static final AtomicLong ASKED = new AtomicLong();
+        private final double blocksPerColumn;
+        private final long asked = ASKED.getAndIncrement();
+
+        ChunkTask(Runnable generation, double blocksPerColumn) {
+            super(generation, null);
+            this.blocksPerColumn = blocksPerColumn;
+        }
+
+        @Override
+        public int compareTo(ChunkTask other) {
+            int byFineness = Double.compare(blocksPerColumn, other.blocksPerColumn);
+            return byFineness != 0 ? byFineness : Long.compare(asked, other.asked);
+        }
+    }
+
+    private static ThreadPoolExecutor idleEndingThreads() {
+        ThreadPoolExecutor threads = new ThreadPoolExecutor(GENERATING_THREADS, GENERATING_THREADS, IDLE_THREAD_SECONDS, TimeUnit.SECONDS,
+                new PriorityBlockingQueue<>(), runnable -> {
+                    Thread thread = new Thread(runnable, "Iris Studio Chunks");
+                    thread.setDaemon(true);
+                    return thread;
+                });
+        threads.allowCoreThreadTimeOut(true);
+        return threads;
     }
 
     private ChunkTop generate(long key) throws Exception {

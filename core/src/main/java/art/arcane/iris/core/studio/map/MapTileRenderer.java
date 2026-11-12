@@ -88,6 +88,7 @@ public final class MapTileRenderer {
         }
         TileGrid grid = new TileGrid(tile.gridSize(), startX - step, startZ - step, step, cancelled);
         ColumnTops tops = topsOf(source);
+        tops.prepare(grid);
         int cells = grid.size() * grid.size();
         short[] ground = new short[cells];
         short[] cover = new short[cells];

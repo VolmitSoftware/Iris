@@ -36,20 +36,26 @@ const flatStyle: TerrainStyle<FlatTile> = {
   topY: 128
 }
 
-function setUp(coarsestLevel = COARSEST_LEVEL): {
+function setUp(
+  coarsestLevel = COARSEST_LEVEL,
+  quickLayerOf?: (layer: FlatLayer) => FlatLayer | null
+): {
   stream: TerrainStream<FlatTile, FlatLayer>
   camera: PerspectiveCamera
   moved(): void
   requested: number[]
+  requestedLayers: string[]
   pendingCounts: number[]
   stopFollowing: () => void
 } {
   const requested: number[] = []
+  const requestedLayers: string[] = []
   const pendingCounts: number[] = []
   const source: TileSource<FlatTile, FlatLayer, never> = {
     layerKey: (layer) => layer.name,
     fetch: async (address, layer) => {
       requested.push(address.blocksPerPixel)
+      requestedLayers.push(layer.name)
       await layer.gate
       return { height: layer.height }
     },
@@ -58,6 +64,7 @@ function setUp(coarsestLevel = COARSEST_LEVEL): {
   const stream = new TerrainStream({
     source,
     coarsestLevel,
+    quickLayerOf,
     focus: focusAround(0, 0, 0, 128),
     onPending: (pending) => pendingCounts.push(pending),
     onError: (message) => {
@@ -77,7 +84,7 @@ function setUp(coarsestLevel = COARSEST_LEVEL): {
     redraw: vi.fn()
   }
   const stopFollowing = stream.content.follow!(link)
-  return { stream, camera, moved: () => listeners.forEach((listener) => listener()), requested, pendingCounts, stopFollowing }
+  return { stream, camera, moved: () => listeners.forEach((listener) => listener()), requested, requestedLayers, pendingCounts, stopFollowing }
 }
 
 async function settle(): Promise<void> {
@@ -122,6 +129,25 @@ describe('terrain stream', () => {
     expect(stream.content.object.children.length).toBe(drawn)
     const ray = new Ray(new Vector3(10, 300, 10), new Vector3(0, -1, 0))
     expect(stream.content.surfaceAlong!(ray, 1000)!.y).toBeCloseTo(71, 3)
+    release()
+    await settle()
+    expect(stream.content.surfaceAlong!(ray, 1000)!.y).toBeCloseTo(91, 3)
+  })
+
+  it('draws the quick stand-in of a slow layer at once, and asks for the slow tiles finest first', async () => {
+    let release = (): void => {}
+    const slow: FlatLayer = { name: 'slow', height: 90, gate: new Promise<void>((resolve) => (release = resolve)) }
+    const quick: FlatLayer = { name: 'quick', height: 70, gate: open }
+    const { stream, requested, requestedLayers } = setUp(COARSEST_LEVEL, (layer) => (layer === slow ? quick : null))
+    stream.restyle(flatStyle)
+    stream.showLayer(slow)
+    await settle()
+    const ray = new Ray(new Vector3(10, 300, 10), new Vector3(0, -1, 0))
+    expect(requestedLayers[0]).toBe('quick')
+    expect(stream.content.surfaceAlong!(ray, 1000)!.y).toBeCloseTo(71, 3)
+    const slowScales = requested.filter((_, at) => requestedLayers[at] === 'slow')
+    expect(slowScales.length).toBeGreaterThan(0)
+    expect(slowScales).toEqual([...slowScales].sort((first, second) => first - second))
     release()
     await settle()
     expect(stream.content.surfaceAlong!(ray, 1000)!.y).toBeCloseTo(91, 3)

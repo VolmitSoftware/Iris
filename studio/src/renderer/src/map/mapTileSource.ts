@@ -17,21 +17,28 @@ export interface TileLayer {
   revision: number
 }
 
-/** The coarsest tiles a block source is asked for; coarser ones come without blocks. */
-const MOST_BLOCKS_PER_PIXEL: Record<BlockSource, number> = { generated: 1 }
+/**
+ * The coarsest tiles the map asks for blocks; coarser ones come without. Every chunk under a tile is generated for its
+ * blocks, so a map zoomed out over a few screens would keep the server busy for minutes.
+ */
+const MAP_MOST_BLOCKS_PER_PIXEL = 1
 const TEXTURED_BLOCKS_PER_PIXEL = 1
 
-/** Whether tiles this coarse carry blocks from {@code source}. */
-export function hasBlocksAt(source: BlockSource, blocksPerPixel: number): boolean {
-  return blocksPerPixel <= MOST_BLOCKS_PER_PIXEL[source]
+/** Whether the map's tiles this coarse carry blocks. */
+export function hasBlocksAt(blocksPerPixel: number): boolean {
+  return blocksPerPixel <= MAP_MOST_BLOCKS_PER_PIXEL
 }
 
-/** The world map's tiles: the engine's streams, drawn in the map's styles, their blocks painted with {@code art}. */
-export function mapTileSource(client: BridgeClient, tileSize: number, art: BlockArt): TileSource<MapTile, TileLayer, TileStyle> {
+/**
+ * The world map's tiles: the engine's streams, drawn in the map's styles, their blocks painted with {@code art}.
+ *
+ * @param mostBlocksPerPixel the coarsest tiles that carry blocks; at most the 8 the server generates them for
+ */
+export function mapTileSource(client: BridgeClient, tileSize: number, art: BlockArt, mostBlocksPerPixel = MAP_MOST_BLOCKS_PER_PIXEL): TileSource<MapTile, TileLayer, TileStyle> {
   return {
     layerKey: (layer) => [layer.revision, layer.view, layer.preview ?? '', layer.heights, layer.pickNoise, layer.blocks ?? ''].join('/'),
     fetch: async (address, layer, signal) => {
-      const blocks = layer.blocks !== null && hasBlocksAt(layer.blocks, address.blocksPerPixel) ? layer.blocks : null
+      const blocks = layer.blocks !== null && address.blocksPerPixel <= mostBlocksPerPixel ? layer.blocks : null
       const tile = await client.tile({ ...layer, ...address, size: tileSize, blocks }, signal)
       if (tile.blocks !== null) {
         await art.paint(tile.blocks, address.blocksPerPixel === TEXTURED_BLOCKS_PER_PIXEL)

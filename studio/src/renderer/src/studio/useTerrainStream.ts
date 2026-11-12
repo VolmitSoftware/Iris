@@ -7,7 +7,8 @@ import type { ViewportContent } from './SceneViewport'
 
 /**
  * Endless terrain around {@code focus} for a viewport: the tiles of {@code layer} drawn in {@code style}, where the
- * camera looks. A new layer keeps the ground drawn until its tiles arrive; a new source or focus starts again.
+ * camera looks. A new layer keeps the ground drawn until its tiles arrive; a new source or focus starts again. Where
+ * {@code quickLayerOf} gives a quicker layer, its tiles stand in until the layer's own arrive.
  *
  * @return what to show, or null before there is any, and how many tiles are still on their way
  */
@@ -17,7 +18,8 @@ export function useTerrainStream<Tile, Layer>(
   focus: Box3,
   layer: Layer | null,
   style: TerrainStyle<Tile> | null,
-  tell: (message: string) => void
+  tell: (message: string) => void,
+  quickLayerOf?: (layer: Layer) => Layer | null
 ): { content: ViewportContent | null; pending: number; stream: TerrainStream<Tile, Layer> | null } {
   const [stream, setStream] = useState<TerrainStream<Tile, Layer> | null>(null)
   const [pending, setPending] = useState(0)
@@ -25,14 +27,14 @@ export function useTerrainStream<Tile, Layer>(
   latestTell.current = tell
 
   useEffect(() => {
-    const created = new TerrainStream({ source, coarsestLevel, focus, onPending: setPending, onError: (message) => latestTell.current(message) })
+    const created = new TerrainStream({ source, coarsestLevel, focus, quickLayerOf, onPending: setPending, onError: (message) => latestTell.current(message) })
     setStream(created)
     return () => {
       created.dispose()
       setStream(null)
       setPending(0)
     }
-  }, [source, coarsestLevel, focus])
+  }, [source, coarsestLevel, focus, quickLayerOf])
   useEffect(() => {
     if (layer !== null) {
       stream?.showLayer(layer)

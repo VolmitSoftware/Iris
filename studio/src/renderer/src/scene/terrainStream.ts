@@ -1,5 +1,6 @@
 import { Box3, Group, Vector3 } from 'three'
 import { TileStore, type TileSource } from '../map/TileStore'
+import type { TileAddress } from '../map/viewport'
 import type { CameraLink, ViewportContent } from '../studio/SceneViewport'
 import { CameraSight } from './cameraSight'
 import type { ColumnField } from './columnField'
@@ -7,7 +8,7 @@ import { groundInView, type GroundInView } from './groundInView'
 import { marchOntoSurface } from './surfaceMarch'
 import { planCover, type Cover, type DrawnTile, type TileState } from './terrainCover'
 import { buildTerrainMesh, type TerrainMesh, type TerrainSurface } from './terrainMesh'
-import { addressOf, tileContaining, tileKey, type TerrainTile } from './terrainTiles'
+import { addressOf, isInside, tileContaining, tileKey, type TerrainTile } from './terrainTiles'
 
 /** How the tiles of a source look as ground, and how low and high that ground can reach. */
 export interface TerrainStyle<Tile> {
@@ -22,6 +23,11 @@ export interface TerrainStreamOptions<Tile, Layer> {
   coarsestLevel: number
   /** The box the camera frames when the terrain is first shown; ground is looked for between its heights until tiles show where it really stands. */
   focus: Box3
+  /**
+   * A layer whose tiles arrive quickly, drawn where the layer's own have not arrived yet, or null for none; a layer
+   * whose tiles are slow to sample, such as one with generated blocks, so never leaves ground missing for long.
+   */
+  quickLayerOf?(layer: Layer): Layer | null
   /** Told how many tiles are still on their way, whenever that changes. */
   onPending(pending: number): void
   onError(message: string): void
@@ -148,31 +154,54 @@ export class TerrainStream<Tile, Layer> {
     }
     const sight = new CameraSight(this.camera.view(), this.lowestGround, this.highestGround)
     const layer = this.layer
-    const cover = planCover(sight, (tile) => this.stateOf(tile, layer), this.options.coarsestLevel)
-    this.store.want(cover.wanted.map(addressOf), layer)
-    this.draw(cover, layer, this.style)
+    const quick = this.options.quickLayerOf?.(layer) ?? null
+    const stateOf = (tile: TerrainTile): TileState => this.stateOf(tile, layer, quick)
+    const knownInside = (tile: TerrainTile): TerrainTile[] => this.drawnInside(tile)
+    const cover = planCover(sight, stateOf, this.options.coarsestLevel, knownInside)
+    this.store.wantEach(this.wantedOf(cover.wanted, layer, quick))
+    this.draw(cover, layer, quick, this.style)
     this.reportPending()
     this.sightListeners.forEach((listener) => listener())
   }
 
-  private stateOf(tile: TerrainTile, layer: Layer): TileState {
+  // Quick tiles come first, so the view fills at once. The slow ones go finest first: the ground near the camera, whose
+  // blocks show the most, is not kept waiting behind the horizon's tiles, which each take far longer.
+  private wantedOf(tiles: TerrainTile[], layer: Layer, quick: Layer | null): { address: TileAddress; layer: Layer }[] {
+    if (quick === null) {
+      return tiles.map((tile) => ({ address: addressOf(tile), layer }))
+    }
+    const quickOnes = tiles.filter((tile) => !this.store.has(addressOf(tile), quick)).map((tile) => ({ address: addressOf(tile), layer: quick }))
+    const finestFirst = [...tiles].sort((first, second) => first.level - second.level)
+    return [...quickOnes, ...finestFirst.map((tile) => ({ address: addressOf(tile), layer }))]
+  }
+
+  private stateOf(tile: TerrainTile, layer: Layer, quick: Layer | null): TileState {
     if (this.store.has(addressOf(tile), layer)) {
       return 'fresh'
     }
-    return this.standIns.has(tileKey(tile)) ? 'standIn' : 'none'
+    if (this.standIns.has(tileKey(tile))) {
+      return 'standIn'
+    }
+    return quick !== null && this.store.has(addressOf(tile), quick) ? 'quick' : 'none'
   }
 
-  private dataOf(tile: TerrainTile, layer: Layer): Tile | null {
+  private dataOf(tile: TerrainTile, layer: Layer, quick: Layer | null): Tile | null {
     const key = tileKey(tile)
     const fresh = this.store.get(addressOf(tile), layer)
     if (fresh !== null) {
       this.standIns.delete(key)
       return fresh
     }
-    return this.standIns.get(key) ?? null
+    const quickTile = quick === null ? null : this.store.get(addressOf(tile), quick)
+    return this.standIns.get(key) ?? quickTile ?? null
   }
 
-  private draw(cover: Cover, layer: Layer, style: TerrainStyle<Tile>): void {
+  // What is drawn now is what the view has; the planner keeps it, however fine, until a tile as true replaces it.
+  private drawnInside(tile: TerrainTile): TerrainTile[] {
+    return [...this.drawn.values()].map((drawn) => drawn.tile).filter((finer) => isInside(finer, tile))
+  }
+
+  private draw(cover: Cover, layer: Layer, quick: Layer | null, style: TerrainStyle<Tile>): void {
     const deadline = performance.now() + MESH_BUILD_BUDGET_MILLISECONDS
     const stillDrawn = new Set<string>()
     let behind = false
@@ -180,7 +209,7 @@ export class TerrainStream<Tile, Layer> {
     for (const draw of [...cover.draws].sort((first, second) => first.tile.level - second.tile.level)) {
       const key = tileKey(draw.tile)
       stillDrawn.add(key)
-      const data = this.dataOf(draw.tile, layer)
+      const data = this.dataOf(draw.tile, layer, quick)
       if (data === null || this.isCurrent(this.drawn.get(key), data, draw)) {
         continue
       }

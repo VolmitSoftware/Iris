@@ -141,9 +141,17 @@ export class BridgeClient {
     })
     if (request.blocks !== null) {
       query.set('blocks', request.blocks)
+      this.cancelOnAbort(query, signal)
     }
     const response = await this.fetch(`tile?${query}`, { signal })
     return decodeTile(await response.arrayBuffer())
+  }
+
+  // A tile with blocks can keep the server generating chunks for a minute; dropping the request alone would not stop it.
+  private cancelOnAbort(query: URLSearchParams, signal: AbortSignal): void {
+    const request = crypto.randomUUID()
+    query.set('request', request)
+    signal.addEventListener('abort', () => void this.fetch(`tile-cancel?${new URLSearchParams({ request })}`, { method: 'POST' }).catch(() => {}), { once: true })
   }
 
   /** The scene views the pack's modules show, such as its objects. */

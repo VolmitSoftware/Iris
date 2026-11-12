@@ -92,10 +92,10 @@ describe('terrain cover', () => {
     expect(Math.min(...far.map((draw) => draw.tile.level))).toBeGreaterThanOrEqual(3)
   })
 
-  it('never asks for more than a backdrop, a preview and detail of 64 tiles each', () => {
+  it('never asks for more than a backdrop, a preview and detail of 256 tiles each', () => {
     for (const height of [60, 600, 6000, 600_000]) {
       const { wanted } = planCover(sightFrom(height), nothingReady, COARSEST_LEVEL)
-      expect(wanted.length).toBeLessThanOrEqual(3 * 64)
+      expect(wanted.length).toBeLessThanOrEqual(3 * 256)
     }
   })
 

@@ -1,4 +1,4 @@
-import type { TileRuns } from '../bridge/types'
+import { NO_BLOCK, type TileRuns } from '../bridge/types'
 import type { Direction } from './blockModels'
 import type { BlockLook } from './blockLooks'
 import type { ColumnField } from './columnField'
@@ -40,21 +40,22 @@ interface Span {
  * its underside where it floats, and its sides where the columns beside it leave them in the open. The ground reaches
  * down to the run under its neighbours' tops, or to {@code base} at the field's edge and beside holes, so tiles next to
  * each other leave no cracks. Each face takes the average colour of its block's picture on that side, as the textures of
- * finer ground fade to it with distance, so the change from one to the other cannot be seen.
+ * finer ground fade to it with distance, so the change from one to the other cannot be seen. Faces of neighbouring
+ * columns that lie in one plane over the same heights in the same colour are one face.
  */
 export function runFaces(field: ColumnField, surface: SurfaceRuns, base: number): QuadBatch {
-  const batch = new QuadBatch(true)
+  const faces = new MergedFaces(field)
   for (let row = 0; row < field.rows; row++) {
     for (let column = 0; column < field.columns; column++) {
       if (field.hasGround(column, row)) {
-        addColumn(batch, field, surface, column, row, base)
+        addColumn(faces, field, surface, column, row, base)
       }
     }
   }
-  return batch
+  return faces.batch()
 }
 
-function addColumn(batch: QuadBatch, field: ColumnField, surface: SurfaceRuns, column: number, row: number, base: number): void {
+function addColumn(faces: MergedFaces, field: ColumnField, surface: SurfaceRuns, column: number, row: number, base: number): void {
   const { runs } = surface
   const cell = surface.cellAt(column, row)
   const first = runs.starts[cell]
@@ -66,10 +67,12 @@ function addColumn(batch: QuadBatch, field: ColumnField, surface: SurfaceRuns, c
     const bottom = runs.bottoms[run]
     const block = runs.blocks[run]
     if (run === first || runs.bottoms[run - 1] !== top + 1) {
-      addTop(batch, field, column, row, top + 1, colorOf(surface, block, 'top', FACE_LIGHT.up), water)
+      const color = underWater(withPlants(surface, run, colorOf(surface, block, 'top', FACE_LIGHT.up)), top + 1, water)
+      faces.add('up', row, column, top + 1, top + 1, color, color)
     }
     if (!isGround && (run === last || runs.tops[run + 1] !== bottom - 1)) {
-      addBottom(batch, field, column, row, bottom, colorOf(surface, block, 'top', FACE_LIGHT.down), water)
+      const color = underWater(colorOf(surface, block, 'top', FACE_LIGHT.down), bottom, water)
+      faces.add('down', row, column, bottom, bottom, color, color)
     }
     for (const side of SIDES) {
       const neighbour = [column + side.columnStep, row + side.rowStep] as const
@@ -77,7 +80,7 @@ function addColumn(batch: QuadBatch, field: ColumnField, surface: SurfaceRuns, c
       const lowest = isGround ? (known ? -Infinity : base) : bottom
       const covered = known ? spansOf(surface, surface.cellAt(...neighbour)) : []
       for (const open of uncovered({ bottom: lowest, top }, covered)) {
-        addSide(batch, field, surface, column, row, side, open, top, block, water)
+        addSide(faces, surface, column, row, side, open, top, block, water)
       }
     }
   }
@@ -120,43 +123,17 @@ export function uncovered(span: Span, covered: readonly Span[]): Span[] {
 }
 
 // The top block of a run shows its side picture; the blocks under it, the picture of the blocks under a column's top.
-function addSide(batch: QuadBatch, field: ColumnField, surface: SurfaceRuns, column: number, row: number, side: Side, open: Span, runTop: number, block: number, water: number | null): void {
+function addSide(faces: MergedFaces, surface: SurfaceRuns, column: number, row: number, side: Side, open: Span, runTop: number, block: number, water: number | null): void {
   const light = side.direction === 'north' || side.direction === 'south' ? FACE_LIGHT.north : FACE_LIGHT.west
   if (open.top === runTop) {
-    addSideQuad(batch, field, column, row, side, runTop, runTop + 1, colorOf(surface, block, 'side', light), water)
+    const color = colorOf(surface, block, 'side', light)
+    faces.add(side.direction, row, column, runTop, runTop + 1, underWater(color, runTop, water), underWater(color, runTop + 1, water))
   }
   const belowTop = open.top === runTop ? runTop - 1 : open.top
   if (belowTop >= open.bottom) {
-    addSideQuad(batch, field, column, row, side, open.bottom, belowTop + 1, colorOf(surface, block, 'below', light), water)
+    const color = colorOf(surface, block, 'below', light)
+    faces.add(side.direction, row, column, open.bottom, belowTop + 1, underWater(color, open.bottom, water), underWater(color, belowTop + 1, water))
   }
-}
-
-function addSideQuad(batch: QuadBatch, field: ColumnField, column: number, row: number, side: Side, from: number, to: number, color: Vec3, water: number | null): void {
-  const step = field.blocksPerColumn
-  const x = field.originX + column * step
-  const z = field.originZ + row * step
-  const up: Vec3 = [0, to - from, 0]
-  const [origin, along]: [Vec3, Vec3] =
-    side.rowStep < 0
-      ? [[x, from, z], [step, 0, 0]]
-      : side.rowStep > 0
-        ? [[x + step, from, z + step], [-step, 0, 0]]
-        : side.columnStep < 0
-          ? [[x, from, z + step], [0, 0, -step]]
-          : [[x + step, from, z], [0, 0, step]]
-  batch.add(origin, along, up, underWater(color, from, water), underWater(color, to, water))
-}
-
-function addTop(batch: QuadBatch, field: ColumnField, column: number, row: number, y: number, color: Vec3, water: number | null): void {
-  const step = field.blocksPerColumn
-  const shown = underWater(color, y, water)
-  batch.add([field.originX + column * step, y, field.originZ + row * step], [step, 0, 0], [0, 0, step], shown, shown)
-}
-
-function addBottom(batch: QuadBatch, field: ColumnField, column: number, row: number, y: number, color: Vec3, water: number | null): void {
-  const step = field.blocksPerColumn
-  const shown = underWater(color, y, water)
-  batch.add([field.originX + column * step, y, field.originZ + row * step], [0, 0, step], [step, 0, 0], shown, shown)
 }
 
 function colorOf(surface: SurfaceRuns, block: number, face: 'top' | 'side' | 'below', light: number): Vec3 {
@@ -164,6 +141,99 @@ function colorOf(surface: SurfaceRuns, block: number, face: 'top' | 'side' | 'be
   return shaded(look === null || look === undefined ? surface.colors[block] : look[face].color, light)
 }
 
+// Seen from afar, the plants on a block hide this much of its top where they stand.
+const PLANT_COVER = 0.5
+const WHOLE_SHARE = 255
+
+// Near ground draws its grass and flowers, which colour it seen from afar; the run's top takes their colour as they would.
+function withPlants(surface: SurfaceRuns, run: number, color: Vec3): Vec3 {
+  const plant = surface.runs.covers[run]
+  if (plant === NO_BLOCK) {
+    return color
+  }
+  const share = (surface.runs.coverShares[run] / WHOLE_SHARE) * PLANT_COVER
+  const plantColor = shaded(surface.colors[plant], FACE_LIGHT.up)
+  return [color[0] + (plantColor[0] - color[0]) * share, color[1] + (plantColor[1] - color[1]) * share, color[2] + (plantColor[2] - color[2]) * share]
+}
+
 function underWater(color: Vec3, y: number, water: number | null): Vec3 {
   return water === null ? color : sunk(color, tintAt(water - y))
+}
+
+/** Faces that lie along one line of columns in one plane, over the same heights in the same colours, and where along it they stand. */
+interface FaceLine {
+  direction: Direction
+  /** The row of the line, or its column for faces looking west or east. */
+  lane: number
+  from: number
+  to: number
+  bottomColor: Vec3
+  topColor: Vec3
+  /** The columns along the line, or rows for faces looking west or east, in the order they were added. */
+  places: number[]
+}
+
+/**
+ * Column faces gathered first and drawn as few quads as they allow: faces of columns next to each other along a row, or
+ * along a column for faces looking west or east, that lie at the same heights in the same colours become one.
+ */
+class MergedFaces {
+  private readonly lines = new Map<string, FaceLine>()
+
+  constructor(private readonly field: ColumnField) {}
+
+  /** A face of the column; tops and undersides lie at {@code from}, sides reach from {@code from} to {@code to}. */
+  add(direction: Direction, row: number, column: number, from: number, to: number, bottomColor: Vec3, topColor: Vec3): void {
+    const alongColumns = direction !== 'west' && direction !== 'east'
+    const lane = alongColumns ? row : column
+    const key = `${direction}|${lane}|${from}|${to}|${bottomColor.join(',')}|${topColor.join(',')}`
+    let line = this.lines.get(key)
+    if (line === undefined) {
+      line = { direction, lane, from, to, bottomColor, topColor, places: [] }
+      this.lines.set(key, line)
+    }
+    line.places.push(alongColumns ? column : row)
+  }
+
+  batch(): QuadBatch {
+    const batch = new QuadBatch(true)
+    for (const line of this.lines.values()) {
+      let start = 0
+      for (let at = 1; at <= line.places.length; at++) {
+        if (at === line.places.length || line.places[at] !== line.places[at - 1] + 1) {
+          this.addQuad(batch, line, line.places[start], at - start)
+          start = at
+        }
+      }
+    }
+    return batch
+  }
+
+  private addQuad(batch: QuadBatch, line: FaceLine, first: number, count: number): void {
+    const step = this.field.blocksPerColumn
+    const { originX, originZ } = this.field
+    const length = count * step
+    const lane = line.lane * step
+    const along = first * step
+    const height: Vec3 = [0, line.to - line.from, 0]
+    switch (line.direction) {
+      case 'up':
+        batch.add([originX + along, line.from, originZ + lane], [length, 0, 0], [0, 0, step], line.bottomColor, line.topColor)
+        return
+      case 'down':
+        batch.add([originX + along, line.from, originZ + lane], [0, 0, step], [length, 0, 0], line.bottomColor, line.topColor)
+        return
+      case 'north':
+        batch.add([originX + along, line.from, originZ + lane], [length, 0, 0], height, line.bottomColor, line.topColor)
+        return
+      case 'south':
+        batch.add([originX + along + length, line.from, originZ + lane + step], [-length, 0, 0], height, line.bottomColor, line.topColor)
+        return
+      case 'west':
+        batch.add([originX + lane, line.from, originZ + along + length], [0, 0, -length], height, line.bottomColor, line.topColor)
+        return
+      case 'east':
+        batch.add([originX + lane + step, line.from, originZ + along], [0, 0, length], height, line.bottomColor, line.topColor)
+    }
+  }
 }

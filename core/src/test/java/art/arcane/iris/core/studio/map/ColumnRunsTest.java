@@ -17,6 +17,7 @@ public class ColumnRunsTest {
     private static final PlatformBlockState GRASS = block("minecraft:grass_block");
     private static final PlatformBlockState LOG = block("minecraft:oak_log");
     private static final PlatformBlockState LEAVES = block("minecraft:oak_leaves");
+    private static final PlatformBlockState GRASS_PLANT = plant("minecraft:short_grass");
 
     @Test
     public void flatGroundIsOneRunPerArea() {
@@ -67,6 +68,18 @@ public class ColumnRunsTest {
         assertEquals(GROUND_Y, runs.tops()[first + 1]);
     }
 
+    @Test
+    public void aRunKnowsThePlantsStandingOnItsTop() {
+        Hunk<PlatformBlockState> chunk = groundUpTo(GROUND_Y);
+        chunk.set(0, GROUND_Y + 1, 0, GRASS_PLANT);
+
+        ColumnRuns runs = ColumnRuns.of(chunk, 1, (x, z) -> GROUND_Y, UnaryOperator.identity());
+
+        assertEquals("minecraft:short_grass", runs.covers()[0]);
+        assertEquals(ColumnRuns.WHOLE_SHARE / 4, runs.coverShares()[0] & 0xFF);
+        assertEquals(null, runs.covers()[1]);
+    }
+
     private static Hunk<PlatformBlockState> groundUpTo(int topY) {
         Hunk<PlatformBlockState> chunk = Hunk.newArrayHunk(16, HEIGHT, 16);
         for (int y = 0; y <= topY; y++) {
@@ -83,6 +96,12 @@ public class ColumnRunsTest {
         PlatformBlockState block = mock(PlatformBlockState.class);
         when(block.key()).thenReturn(key);
         when(block.isSolid()).thenReturn(true);
+        return block;
+    }
+
+    private static PlatformBlockState plant(String key) {
+        PlatformBlockState block = mock(PlatformBlockState.class);
+        when(block.key()).thenReturn(key);
         return block;
     }
 }

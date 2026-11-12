@@ -13,6 +13,18 @@ const NOTHING_RAISED: readonly RaisedBlock[] = []
  * stands one above the block's Y, so ground and water sit where a player stands on them. Where nothing is known, or
  * where the columns are {@code holes} left to finer ground, the column has no ground and no water.
  */
+/** Where a field's ground and water stand, without the looks it was drawn with. */
+export interface FieldShape {
+  columns: number
+  rows: number
+  originX: number
+  originZ: number
+  blocksPerColumn: number
+  groundTop: Float32Array
+  waterTop: Float32Array
+  topRange: { lowest: number; highest: number } | null
+}
+
 export class ColumnField {
   readonly columns: number
   readonly rows: number
@@ -73,6 +85,25 @@ export class ColumnField {
     }
     this.pictures = anyLook ? (surface.pictures ?? null) : null
     this.topRange = lowestTop === Infinity ? null : { lowest: lowestTop, highest: highestTop }
+  }
+
+  /** Where the field's ground and water stand, as plain data that can be sent to and from a worker. */
+  shape(): FieldShape {
+    const { columns, rows, originX, originZ, blocksPerColumn, groundTop, waterTop, topRange } = this
+    return { columns, rows, originX, originZ, blocksPerColumn, groundTop, waterTop, topRange }
+  }
+
+  /** A field rebuilt from its {@link shape}, which answers where its ground and water stand but holds no looks to draw. */
+  static ofShape(shape: FieldShape): ColumnField {
+    const count = shape.columns * shape.rows
+    return Object.assign(Object.create(ColumnField.prototype) as ColumnField, {
+      ...shape,
+      color: new Int32Array(count),
+      looks: [],
+      covers: [],
+      raised: [],
+      pictures: null
+    })
   }
 
   indexOf(column: number, row: number): number {

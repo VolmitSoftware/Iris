@@ -29,13 +29,13 @@ export interface Cover {
   wanted: TerrainTile[]
 }
 
-// A column is drawn at most this many pixels wide, as wider ones show their blockiness; coarser ones only where there
-// are too many. Finer columns than a pixel cost the GPU faces no one can see: at half a pixel, a forest view held
-// twelve million triangles.
-const MOST_COLUMN_PIXELS = 1
-// A little above one, as tiles in sight stick out past the view's edges; beyond it, columns only add faces no one can tell apart.
-const MOST_COLUMNS_PER_PIXEL = 1.25
-const MOST_TILES_IN_SIGHT = 64
+// Tuned for a workstation GPU, which draws tens of millions of triangles a frame. A column is drawn at most a quarter of
+// a pixel wide, so ground drawn block by block goes on until its blocks are far too small to tell apart from the runs
+// coarser tiles draw, and the change between them cannot be seen.
+const MOST_COLUMN_PIXELS = 0.25
+// Columns finer than a pixel still decide the colour each pixel takes, so the view holds many to a pixel.
+const MOST_COLUMNS_PER_PIXEL = 16
+const MOST_TILES_IN_SIGHT = 256
 // The backdrop reaches to the horizon, where a few coarse tiles do; the rest of the tiles go to ground that is near.
 const MOST_BACKDROP_TILES = 16
 const DETAIL_MARGIN = 0.15

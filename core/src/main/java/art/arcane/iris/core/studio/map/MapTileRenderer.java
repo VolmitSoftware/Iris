@@ -24,6 +24,7 @@ import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.util.project.stream.ProceduralStream;
+import it.unimi.dsi.fastutil.bytes.ByteArrayList;
 import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
 import java.util.ArrayList;
@@ -130,6 +131,8 @@ public final class MapTileRenderer {
         ShortArrayList bottoms = new ShortArrayList();
         ShortArrayList runTops = new ShortArrayList();
         ShortArrayList blocks = new ShortArrayList();
+        ShortArrayList covers = new ShortArrayList();
+        ByteArrayList coverShares = new ByteArrayList();
         for (int gridZ = 0; gridZ < grid.size(); gridZ++) {
             int worldZ = (int) Math.floor(grid.worldZ(gridZ));
             for (int gridX = 0; gridX < grid.size(); gridX++) {
@@ -140,12 +143,15 @@ public final class MapTileRenderer {
                 counts[gridZ * grid.size() + gridX] = (short) area.tops().length;
                 bottoms.addElements(bottoms.size(), area.bottoms());
                 runTops.addElements(runTops.size(), area.tops());
-                for (String block : area.blocks()) {
-                    blocks.add(names.indexOf(block));
+                for (int run = 0; run < area.tops().length; run++) {
+                    blocks.add(names.indexOf(area.blocks()[run]));
+                    covers.add(names.indexOf(area.covers()[run]));
                 }
+                coverShares.addElements(coverShares.size(), area.coverShares());
             }
         }
-        return new MapTile.Runs(counts, bottoms.toShortArray(), runTops.toShortArray(), blocks.toShortArray());
+        return new MapTile.Runs(counts, bottoms.toShortArray(), runTops.toShortArray(), blocks.toShortArray(), covers.toShortArray(),
+                coverShares.toByteArray());
     }
 
     // Only a tile of a block a pixel shows its blocks one by one; coarser ones show the tops of their columns.

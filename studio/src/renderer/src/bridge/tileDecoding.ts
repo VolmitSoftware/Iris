@@ -86,11 +86,15 @@ function decodeRuns(buffer: ArrayBuffer, countsAt: number, cells: number, count:
   const bottomsAt = countsAt + aligned(cells * Int16Array.BYTES_PER_ELEMENT)
   const topsAt = bottomsAt + aligned(count * Int16Array.BYTES_PER_ELEMENT)
   const blocksAt = topsAt + aligned(count * Int16Array.BYTES_PER_ELEMENT)
+  const coversAt = blocksAt + aligned(count * Int16Array.BYTES_PER_ELEMENT)
+  const coverSharesAt = coversAt + aligned(count * Int16Array.BYTES_PER_ELEMENT)
   return {
     starts: startsOf(new Int16Array(buffer, countsAt, cells)),
     bottoms: new Int16Array(buffer, bottomsAt, count),
     tops: new Int16Array(buffer, topsAt, count),
-    blocks: new Int16Array(buffer, blocksAt, count)
+    blocks: new Int16Array(buffer, blocksAt, count),
+    covers: new Int16Array(buffer, coversAt, count),
+    coverShares: new Uint8Array(buffer, coverSharesAt, count)
   }
 }
 

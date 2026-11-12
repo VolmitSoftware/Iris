@@ -51,8 +51,11 @@ interface ColumnTops {
         return null;
     }
 
-    /** One area's runs of solid blocks, highest first, the last being the ground. */
-    record AreaRuns(short[] bottoms, short[] tops, String[] blocks) {
+    /**
+     * One area's runs of solid blocks, highest first, the last being the ground, with the plant most often standing on
+     * each run's top, or null, and how much of the top plants stand on, out of {@link ColumnRuns#WHOLE_SHARE}.
+     */
+    record AreaRuns(short[] bottoms, short[] tops, String[] blocks, String[] covers, byte[] coverShares) {
     }
 
     /**

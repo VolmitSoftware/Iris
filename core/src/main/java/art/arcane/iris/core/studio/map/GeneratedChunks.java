@@ -264,7 +264,8 @@ final class GeneratedChunks implements ColumnTops {
         int first = runs.firstRunOf(area);
         int last = first + runs.counts()[area];
         return new AreaRuns(Arrays.copyOfRange(runs.bottoms(), first, last), Arrays.copyOfRange(runs.tops(), first, last),
-                Arrays.copyOfRange(runs.blocks(), first, last));
+                Arrays.copyOfRange(runs.blocks(), first, last), Arrays.copyOfRange(runs.covers(), first, last),
+                Arrays.copyOfRange(runs.coverShares(), first, last));
     }
 
     private static void awaitUnlessCancelled(Future<?> chunk, BooleanSupplier cancelled) {

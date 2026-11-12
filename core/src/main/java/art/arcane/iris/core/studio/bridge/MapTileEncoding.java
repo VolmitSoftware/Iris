@@ -41,7 +41,8 @@ import java.util.function.Function;
  * u8 voxelX[voxels] | padding to 4 | u8 voxelZ[voxels] | padding to 4 | i16 voxelY[voxels] | padding to 4
  * | i16 voxelBlock[voxels] | padding to 4 | u8 voxelFaces[voxels] | padding to 4, when the header counts voxels
  * i16 runCounts[grid²] | padding to 4 | i16 runBottoms[runs] | padding to 4 | i16 runTops[runs] | padding to 4
- * | i16 runBlocks[runs] | padding to 4, when the header counts runs
+ * | i16 runBlocks[runs] | padding to 4 | i16 runCovers[runs] | padding to 4 | u8 runCoverShares[runs] | padding to 4,
+ * when the header counts runs
  * </pre>
  * {@code raised} is the sum of the raised counts, which the header also holds, as it holds {@code voxels}, the count of
  * blocks seen from the open air, and {@code runs}, the sum of the run counts, each -1 for a tile without them.
@@ -79,7 +80,7 @@ final class MapTileEncoding {
                 + (hasPickNoise ? cells * Float.BYTES : 0)
                 + (blocks == null ? 0 : aligned(cells * Short.BYTES) * 3 + aligned(raised * Short.BYTES) * 2)
                 + (voxels == null ? 0 : aligned(voxelCount) * 3 + aligned(voxelCount * Short.BYTES) * 2)
-                + (runs == null ? 0 : aligned(cells * Short.BYTES) + aligned(runCount * Short.BYTES) * 3);
+                + (runs == null ? 0 : aligned(cells * Short.BYTES) + aligned(runCount * Short.BYTES) * 4 + aligned(runCount));
         ByteBuffer buffer = ByteBuffer.allocate(length).order(ByteOrder.LITTLE_ENDIAN);
         buffer.putInt(header.length).put(header);
         align(buffer);
@@ -112,6 +113,8 @@ final class MapTileEncoding {
             putShorts(buffer, runs.bottoms());
             putShorts(buffer, runs.tops());
             putShorts(buffer, runs.blocks());
+            putShorts(buffer, runs.covers());
+            putBytes(buffer, runs.coverShares());
         }
         return buffer.array();
     }

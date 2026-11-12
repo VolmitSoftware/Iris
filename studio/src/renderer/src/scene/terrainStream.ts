@@ -1,4 +1,4 @@
-import { Box3, Group, Vector3 } from 'three'
+import { Box3, Group, Vector3, type BufferGeometry } from 'three'
 import { TileStore, type TileSource } from '../map/TileStore'
 import type { TileAddress } from '../map/viewport'
 import type { CameraLink, ViewportContent } from '../studio/SceneViewport'
@@ -8,13 +8,18 @@ import { groundInView, type GroundInView } from './groundInView'
 import { marchOntoSurface } from './surfaceMarch'
 import { planCover, type Cover, type DrawnTile, type TileState } from './terrainCover'
 import { buildTerrainMesh, type TerrainMesh, type TerrainSurface } from './terrainMesh'
-import { addressOf, ancestorAt, childrenOf, isInside, tileAt, tileContaining, tileKey, type TerrainTile } from './terrainTiles'
+import { addressOf, ancestorAt, childrenOf, isInside, tileAt, tileContaining, tileKey, type ColumnArea, type TerrainTile } from './terrainTiles'
 
 /** How the tiles of a source look as ground, and how low and high that ground can reach. */
 export interface TerrainStyle<Tile> {
   surfaceOf(tile: Tile, place: TerrainTile): TerrainSurface
   floorY: number
   topY: number
+  /**
+   * Builds a tile's mesh away from the frames, as {@link buildTerrainMesh} does from {@link surfaceOf}; where not given,
+   * tiles are built on the spot.
+   */
+  buildMesh?(tile: Tile, place: TerrainTile, base: number, holes: ColumnArea[]): Promise<TerrainMesh>
 }
 
 export interface TerrainStreamOptions<Tile, Layer> {
@@ -41,6 +46,14 @@ interface StoredIndex {
   holding: Set<string>
 }
 
+/** A tile's mesh on its way from a worker, for the data and holes it was asked for; null until it is built. */
+interface BuildingMesh<Tile> {
+  tile: TerrainTile
+  data: Tile
+  signature: string
+  mesh: TerrainMesh | null
+}
+
 interface DrawnMesh<Tile> {
   tile: TerrainTile
   data: Tile
@@ -49,6 +62,24 @@ interface DrawnMesh<Tile> {
 }
 
 const MESH_BUILD_BUDGET_MILLISECONDS = 12
+// What a workstation GPU takes in a few milliseconds.
+const UPLOAD_BYTES_PER_FRAME = 16 * 1024 * 1024
+
+/** The bytes a mesh's geometry hands the GPU when it is first drawn. */
+function bytesOf(mesh: TerrainMesh): number {
+  let bytes = 0
+  mesh.object.traverse((object) => {
+    const geometry = (object as { geometry?: BufferGeometry }).geometry
+    if (geometry === undefined) {
+      return
+    }
+    for (const attribute of Object.values(geometry.attributes)) {
+      bytes += (attribute.array as ArrayLike<number> & { byteLength: number }).byteLength
+    }
+    bytes += (geometry.getIndex()?.array as { byteLength: number } | undefined)?.byteLength ?? 0
+  })
+  return bytes
+}
 const ABOVE_TOP_BLOCKS = 1
 const FOCUS_HALF_SIDE_BLOCKS = 256
 
@@ -73,7 +104,10 @@ export class TerrainStream<Tile, Layer> {
   private readonly drawn = new Map<string, DrawnMesh<Tile>>()
   private readonly sightListeners = new Set<() => void>()
   private standIns = new Map<string, Tile>()
+  private readonly building = new Map<string, BuildingMesh<Tile>>()
   private storedIndex: StoredIndex | null = null
+  private uploadBytesLeft = UPLOAD_BYTES_PER_FRAME
+  private nextFrame: number | null = null
   private layer: Layer | null = null
   private style: TerrainStyle<Tile> | null = null
   private styleVersion = 0
@@ -141,8 +175,13 @@ export class TerrainStream<Tile, Layer> {
     if (this.continuation !== null) {
       clearTimeout(this.continuation)
     }
+    if (this.nextFrame !== null) {
+      cancelAnimationFrame(this.nextFrame)
+    }
     this.drawn.forEach((drawn) => drawn.mesh.dispose())
     this.drawn.clear()
+    this.building.forEach((building) => building.mesh?.dispose())
+    this.building.clear()
     this.group.clear()
     this.store.clear()
   }
@@ -264,7 +303,17 @@ export class TerrainStream<Tile, Layer> {
         behind = true
         continue
       }
-      this.show(key, draw, data, style)
+      if (style.buildMesh === undefined) {
+        this.show(key, draw, this.builtNow(draw, data, style), data)
+        continue
+      }
+      this.showOnceBuilt(key, draw, data, cover, style.buildMesh, style.floorY)
+    }
+    for (const [key, building] of [...this.building]) {
+      if (!stillDrawn.has(key)) {
+        building.mesh?.dispose()
+        this.building.delete(key)
+      }
     }
     this.camera?.redraw()
     if (this.groundRangeGrew) {
@@ -276,7 +325,7 @@ export class TerrainStream<Tile, Layer> {
       return
     }
     for (const [key, drawn] of [...this.drawn]) {
-      if (!stillDrawn.has(key)) {
+      if (!stillDrawn.has(key) && !this.isReplacementBuilding(drawn.tile)) {
         this.hide(key, drawn)
       }
     }
@@ -291,12 +340,66 @@ export class TerrainStream<Tile, Layer> {
     return `${this.styleVersion}/${holes.join(';')}`
   }
 
-  private show(key: string, draw: DrawnTile, data: Tile, style: TerrainStyle<Tile>): void {
+  // Ground leaving the plan stays until what takes its place, a coarser tile over it or finer ones in it, is built.
+  private isReplacementBuilding(tile: TerrainTile): boolean {
+    for (const building of this.building.values()) {
+      if (building.mesh === null && (isInside(tile, building.tile) || isInside(building.tile, tile))) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private builtNow(draw: DrawnTile, data: Tile, style: TerrainStyle<Tile>): TerrainMesh {
+    return buildTerrainMesh(style.surfaceOf(data, draw.tile), style.floorY, draw.holes)
+  }
+
+  // A tile is built away from the frames, and shown once built. One with holes is shown only once the finer tiles that
+  // fill them are, so what it drew before stays meanwhile and the ground never shows a gap.
+  private showOnceBuilt(key: string, draw: DrawnTile, data: Tile, cover: Cover, buildMesh: NonNullable<TerrainStyle<Tile>['buildMesh']>, base: number): void {
+    const signature = this.signatureOf(draw)
+    const building = this.building.get(key)
+    if (building !== undefined && building.data === data && building.signature === signature) {
+      const finer = cover.draws.filter((other) => isInside(other.tile, draw.tile)).map((other) => tileKey(other.tile))
+      if (building.mesh === null || !finer.every((finerKey) => this.drawn.has(finerKey))) {
+        return
+      }
+      const bytes = bytesOf(building.mesh)
+      if (bytes > this.uploadBytesLeft && this.uploadBytesLeft < UPLOAD_BYTES_PER_FRAME) {
+        this.continueNextFrame()
+        return
+      }
+      this.uploadBytesLeft -= bytes
+      this.building.delete(key)
+      this.show(key, draw, building.mesh, data)
+      return
+    }
+    building?.mesh?.dispose()
+    const started: BuildingMesh<Tile> = { tile: draw.tile, data, signature, mesh: null }
+    this.building.set(key, started)
+    buildMesh(data, draw.tile, base, draw.holes).then(
+      (mesh) => {
+        if (this.disposed || this.building.get(key) !== started) {
+          mesh.dispose()
+          return
+        }
+        started.mesh = mesh
+        this.continueLater()
+      },
+      (error: Error) => {
+        if (!this.disposed && this.building.get(key) === started) {
+          this.building.delete(key)
+          this.options.onError(error.message)
+        }
+      }
+    )
+  }
+
+  private show(key: string, draw: DrawnTile, mesh: TerrainMesh, data: Tile): void {
     const previous = this.drawn.get(key)
     if (previous !== undefined) {
       this.hide(key, previous)
     }
-    const mesh = buildTerrainMesh(style.surfaceOf(data, draw.tile), style.floorY, draw.holes)
     this.group.add(mesh.object)
     this.drawn.set(key, { tile: draw.tile, data, signature: this.signatureOf(draw), mesh })
     this.growGroundRangeOver(mesh.field)
@@ -316,6 +419,18 @@ export class TerrainStream<Tile, Layer> {
     this.group.remove(drawn.mesh.object)
     drawn.mesh.dispose()
     this.drawn.delete(key)
+  }
+
+  // A frame hands the GPU only so many bytes of new meshes; the rest wait for the next, so a burst of tiles never stalls one.
+  private continueNextFrame(): void {
+    if (this.nextFrame !== null) {
+      return
+    }
+    this.nextFrame = requestAnimationFrame(() => {
+      this.nextFrame = null
+      this.uploadBytesLeft = UPLOAD_BYTES_PER_FRAME
+      this.replan()
+    })
   }
 
   private continueLater(): void {

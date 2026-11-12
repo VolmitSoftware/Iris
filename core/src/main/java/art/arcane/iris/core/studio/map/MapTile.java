@@ -61,9 +61,11 @@ public record MapTile(int size, double blocksPerPixel, MapLabel.Kind subjectKind
      * @param counts  how many runs each cell has
      * @param bottoms the lowest height of each run, cell after cell
      * @param tops    the highest height of each run
-     * @param blocks  the index in the tile's block names of the block most of each run's top shows
+     * @param blocks      the index in the tile's block names of the block most of each run's top shows
+     * @param covers      the index of the plant most often standing on each run's top, or {@link Blocks#NO_BLOCK}
+     * @param coverShares how much of each run's top plants stand on, 0 to 255 for all of it
      */
-    public record Runs(short[] counts, short[] bottoms, short[] tops, short[] blocks) {
+    public record Runs(short[] counts, short[] bottoms, short[] tops, short[] blocks, short[] covers, byte[] coverShares) {
         public int count() {
             return tops.length;
         }

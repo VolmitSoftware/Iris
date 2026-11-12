@@ -3,6 +3,15 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import type { BridgeConnection, StoredShortcuts, ThemeChoice } from '../shared/bridge'
+import { preferDiscreteGpu } from './discreteGpu'
+
+// The GPU process started with the environment the app was launched with, so a change to it takes a fresh start, which
+// then finds the environment already set and goes on.
+const discreteRenderNode = preferDiscreteGpu(process.env)
+if (discreteRenderNode !== null) {
+  app.relaunch({ args: [...process.argv.slice(1), `--render-node-override=${discreteRenderNode}`] })
+  app.exit(0)
+}
 
 const CONNECTION_FOLDER = join(homedir(), '.iris', 'studio', 'bridges')
 const SETTINGS_FILE = 'studio.json'

@@ -7,6 +7,8 @@ import { mapTileSource, type TileLayer } from '../map/mapTileSource'
 import type { GroundInView } from '../scene/groundInView'
 import { blockArt } from '../scene/blockArt'
 import { MapTerrain, type MapTerrainColoring } from '../scene/mapTerrain'
+import { meshOfGeometry } from '../scene/terrainMesh'
+import { TerrainMeshWorkers } from '../scene/terrainMeshWorkers'
 import { focusAround, type TerrainStyle } from '../scene/terrainStream'
 import { TILE_COLUMNS } from '../scene/terrainTiles'
 import { Legend } from './Legend'
@@ -62,13 +64,19 @@ export function WorldStudio3D({ title, client, world, mapArea, packRevision, onS
     () => ({ view: 'biomes', preview: null, heights: true, pickNoise: false, blocks: showsBlocks ? 'generated' : null, shape: showsBlocks, revision: packRevision }),
     [packRevision, showsBlocks]
   )
+  const meshWorkers = useMemo(() => new TerrainMeshWorkers(), [])
+  useEffect(() => () => meshWorkers.dispose(), [meshWorkers])
   const style = useMemo<TerrainStyle<MapTile>>(
     () => ({
       surfaceOf: (tile, place) => new MapTerrain(tile, place, coloring, world.fluidHeight, art.atlas ?? undefined),
       floorY: world.minY,
-      topY: world.minY + world.height
+      topY: world.minY + world.height,
+      buildMesh: (tile, place, base, holes) =>
+        meshWorkers
+          .build({ tile, place, coloring, fluidHeight: world.fluidHeight, plain: art.atlas?.plain ?? null, base, holes })
+          .then((geometry) => meshOfGeometry(geometry, art.atlas))
     }),
-    [coloring, world.fluidHeight, world.minY, world.height, art]
+    [coloring, world.fluidHeight, world.minY, world.height, art, meshWorkers]
   )
   const { content, pending, stream } = useTerrainStream(source, COARSEST_LEVEL, focus, layer, style, tell, withoutBlocks)
   const sampling = useLongPending(pending)

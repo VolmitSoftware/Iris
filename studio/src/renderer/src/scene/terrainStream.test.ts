@@ -2,6 +2,7 @@ import { PerspectiveCamera, Ray, Vector3, type Mesh } from 'three'
 import { describe, expect, it, vi } from 'vitest'
 import type { TileSource } from '../map/TileStore'
 import type { CameraLink } from '../studio/SceneViewport'
+import { buildTerrainMesh } from './terrainMesh'
 import { focusAround, TerrainStream, type TerrainStyle } from './terrainStream'
 
 interface FlatTile {
@@ -245,6 +246,27 @@ describe('terrain stream', () => {
 
     const ray = new Ray(new Vector3(10, 30_000, 10), new Vector3(0, -1, 0))
     expect(stream.content.surfaceAlong!(ray, 40_000)!.y).toBeCloseTo(91, 3)
+    // Three views of up to a few hundred tiles each, every one built as a mesh.
+  }, 30_000)
+
+  it('draws tiles built away from the frames once they are built', async () => {
+    const { stream } = setUp()
+    let builds = 0
+    const builtLater: TerrainStyle<FlatTile> = {
+      ...flatStyle,
+      buildMesh: async (tile, place, base, holes) => {
+        builds++
+        await Promise.resolve()
+        return buildTerrainMesh(flatStyle.surfaceOf(tile, place), base, holes)
+      }
+    }
+    stream.restyle(builtLater)
+    stream.showLayer({ name: 'one', height: 70, gate: open })
+    await settle()
+
+    const ray = new Ray(new Vector3(10, 300, 10), new Vector3(0, -1, 0))
+    expect(builds).toBeGreaterThan(0)
+    expect(stream.content.surfaceAlong!(ray, 1000)!.y).toBeCloseTo(71, 3)
   })
 
   it('stops drawing when it is let go', async () => {

@@ -20,6 +20,7 @@ package art.arcane.iris.core.studio.map;
 
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
+import it.unimi.dsi.fastutil.bytes.ByteArrayList;
 import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
 import java.util.ArrayList;
@@ -35,21 +36,20 @@ import java.util.function.UnaryOperator;
  * solid blocks, highest first, as Distant Horizons draws far terrain. A height of an area counts as solid where at least
  * a quarter of its blocks are, so a tree is a canopy on a trunk with air beneath, not a pillar down to the ground. The
  * runs go down to the area's ground and no further; the last of each area is that ground, solid all the way down.
- * Plants and water fill no run, as they are drawn their own way.
+ * Plants and water fill no run: plants count toward the look of the run they stand on, and water is drawn its own way.
  *
- * @param counts  how many runs each area has, the areas row by row from the north west
- * @param bottoms the lowest height of each run, area after area
- * @param tops    the highest height of each run
- * @param blocks  the key of the block most of each run's top shows
+ * @param counts      how many runs each area has, the areas row by row from the north west
+ * @param bottoms     the lowest height of each run, area after area
+ * @param tops        the highest height of each run
+ * @param blocks      the key of the block most of each run's top shows
+ * @param covers      the key of the plant most often standing on each run's top, or null where none does
+ * @param coverShares how much of each run's top its plants stand on, 0 for none to {@link #WHOLE_SHARE} for all of it
  */
-record ColumnRuns(short[] counts, short[] bottoms, short[] tops, String[] blocks) {
+record ColumnRuns(short[] counts, short[] bottoms, short[] tops, String[] blocks, String[] covers, byte[] coverShares) {
     static final int MOST_LEVEL = 4;
+    static final int WHOLE_SHARE = 255;
     private static final int ACROSS = 16;
     private static final int SOLID_SHARE_DIVISOR = 4;
-
-    int areasAcross() {
-        return (int) Math.round(Math.sqrt(counts.length));
-    }
 
     /** Where the runs of the area at {@code index} start in {@link #bottoms}. */
     int firstRunOf(int index) {
@@ -70,24 +70,23 @@ record ColumnRuns(short[] counts, short[] bottoms, short[] tops, String[] blocks
         int areasAcross = ACROSS / areaBlocks;
         int fewestSolid = Math.max(1, areaBlocks * areaBlocks / SOLID_SHARE_DIVISOR);
         short[] counts = new short[areasAcross * areasAcross];
-        ShortArrayList bottoms = new ShortArrayList();
-        ShortArrayList tops = new ShortArrayList();
-        List<String> blocks = new ArrayList<>();
+        Runs runs = new Runs();
         for (int areaZ = 0; areaZ < areasAcross; areaZ++) {
             for (int areaX = 0; areaX < areasAcross; areaX++) {
                 Area area = new Area(chunk, areaX * areaBlocks, areaZ * areaBlocks, areaBlocks, seenByPlayers);
-                int groundY = area.lowestOf(terrainY);
-                int found = area.addRuns(fewestSolid, groundY, bottoms, tops, blocks);
-                counts[areaZ * areasAcross + areaX] = (short) found;
+                int before = runs.found;
+                area.addRuns(fewestSolid, area.lowestOf(terrainY), runs);
+                counts[areaZ * areasAcross + areaX] = (short) (runs.found - before);
             }
         }
-        return new ColumnRuns(counts, bottoms.toShortArray(), tops.toShortArray(), blocks.toArray(String[]::new));
+        return runs.toColumnRuns(counts);
     }
 
     @Override
     public boolean equals(Object other) {
         return other instanceof ColumnRuns runs && Arrays.equals(counts, runs.counts) && Arrays.equals(bottoms, runs.bottoms)
-                && Arrays.equals(tops, runs.tops) && Arrays.equals(blocks, runs.blocks);
+                && Arrays.equals(tops, runs.tops) && Arrays.equals(blocks, runs.blocks) && Arrays.equals(covers, runs.covers)
+                && Arrays.equals(coverShares, runs.coverShares);
     }
 
     @Override
@@ -97,56 +96,74 @@ record ColumnRuns(short[] counts, short[] bottoms, short[] tops, String[] blocks
 
     @Override
     public String toString() {
-        return "ColumnRuns" + Arrays.toString(counts) + Arrays.toString(bottoms) + Arrays.toString(tops) + Arrays.toString(blocks);
+        return "ColumnRuns" + Arrays.toString(counts) + Arrays.toString(bottoms) + Arrays.toString(tops) + Arrays.toString(blocks)
+                + Arrays.toString(covers) + Arrays.toString(coverShares);
     }
 
-    /** The runs of one area as they are found from the top down. */
+    /** The plant most often standing on a run's top, and how much of the top plants stand on. */
+    private record Cover(String block, int share) {
+        static final Cover NONE = new Cover(null, 0);
+    }
+
+    /** The runs of every area as they are found, area after area and each area's from the top down. */
     private static final class Runs {
         private static final int NONE = -1;
-        private final ShortArrayList bottoms;
-        private final ShortArrayList tops;
-        private final List<String> blocks;
+        private final ShortArrayList bottoms = new ShortArrayList();
+        private final ShortArrayList tops = new ShortArrayList();
+        private final List<String> blocks = new ArrayList<>();
+        private final List<String> covers = new ArrayList<>();
+        private final ByteArrayList coverShares = new ByteArrayList();
         private int top = NONE;
         private int bottom;
         private String block;
+        private Cover cover;
         private int found;
 
-        Runs(ShortArrayList bottoms, ShortArrayList tops, List<String> blocks) {
-            this.bottoms = bottoms;
-            this.tops = tops;
-            this.blocks = blocks;
+        boolean isOpen() {
+            return top != NONE;
         }
 
-        void extendTo(int y, String shown) {
-            if (top != NONE && !shown.equals(block)) {
-                end(bottom);
-            }
-            if (top == NONE) {
-                top = y;
-                block = shown;
-            }
+        boolean continues(String shown) {
+            return isOpen() && shown.equals(block);
+        }
+
+        void start(int y, String shown, Cover onTop) {
+            top = y;
+            bottom = y;
+            block = shown;
+            cover = onTop;
+        }
+
+        void extendTo(int y) {
             bottom = y;
         }
 
-        void endAbove(int y) {
-            if (top != NONE) {
-                end(y + 1);
+        void end() {
+            if (isOpen()) {
+                add(bottom);
             }
         }
 
         // The ground reaches down out of sight, so its run has no bottom to draw.
         void endAsGround() {
-            if (top != NONE) {
-                end(0);
+            if (isOpen()) {
+                add(0);
             }
         }
 
-        private void end(int runBottom) {
+        private void add(int runBottom) {
             bottoms.add((short) runBottom);
             tops.add((short) top);
             blocks.add(block);
+            covers.add(cover.block());
+            coverShares.add((byte) cover.share());
             found++;
             top = NONE;
+        }
+
+        ColumnRuns toColumnRuns(short[] counts) {
+            return new ColumnRuns(counts, bottoms.toShortArray(), tops.toShortArray(), blocks.toArray(String[]::new),
+                    covers.toArray(String[]::new), coverShares.toByteArray());
         }
     }
 
@@ -164,21 +181,25 @@ record ColumnRuns(short[] counts, short[] bottoms, short[] tops, String[] blocks
 
         // From the top down, a run holds the solid heights in a row that mostly show one block, so a canopy, the trunk
         // under it and the ground are runs of their own. Once a run reaches the ground, it is the ground and the last.
-        int addRuns(int fewestSolid, int groundY, ShortArrayList bottoms, ShortArrayList tops, List<String> blocks) {
-            Runs runs = new Runs(bottoms, tops, blocks);
+        void addRuns(int fewestSolid, int groundY, Runs runs) {
             for (int y = chunk.getHeight() - 1; y >= 0; y--) {
                 if (solidCountAt(y) < fewestSolid) {
-                    runs.endAbove(y);
+                    runs.end();
                     continue;
                 }
-                runs.extendTo(y, mostShownAt(y));
+                String shown = mostShownAt(y);
+                if (runs.continues(shown)) {
+                    runs.extendTo(y);
+                } else {
+                    runs.end();
+                    runs.start(y, shown, coverOn(y));
+                }
                 if (y <= groundY) {
                     runs.endAsGround();
-                    return runs.found;
+                    return;
                 }
             }
             runs.endAsGround();
-            return runs.found;
         }
 
         private int solidCountAt(int y) {
@@ -203,7 +224,30 @@ record ColumnRuns(short[] counts, short[] bottoms, short[] tops, String[] blocks
                     }
                 }
             }
-            return shown.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElseThrow();
+            return mostOf(shown);
+        }
+
+        // The plants standing on the area's blocks at the height, out of all the area's columns.
+        private Cover coverOn(int y) {
+            if (y + 1 >= chunk.getHeight()) {
+                return Cover.NONE;
+            }
+            Map<String, Integer> plants = new HashMap<>();
+            int standing = 0;
+            for (int z = minZ; z < minZ + across; z++) {
+                for (int x = minX; x < minX + across; x++) {
+                    PlatformBlockState above = chunk.get(x, y + 1, z);
+                    if (isSolid(chunk.get(x, y, z)) && isPlant(above)) {
+                        plants.merge(above.key(), 1, Integer::sum);
+                        standing++;
+                    }
+                }
+            }
+            return standing == 0 ? Cover.NONE : new Cover(mostOf(plants), standing * WHOLE_SHARE / (across * across));
+        }
+
+        private static String mostOf(Map<String, Integer> counts) {
+            return counts.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElseThrow();
         }
 
         private boolean isSolid(PlatformBlockState block) {
@@ -212,6 +256,14 @@ record ColumnRuns(short[] counts, short[] bottoms, short[] tops, String[] blocks
             }
             PlatformBlockState seen = seenByPlayers.apply(block);
             return !seen.isAir() && !seen.isFluid() && seen.isSolid();
+        }
+
+        private boolean isPlant(PlatformBlockState block) {
+            if (block == null || block.isAir()) {
+                return false;
+            }
+            PlatformBlockState seen = seenByPlayers.apply(block);
+            return !seen.isAir() && !seen.isFluid() && !seen.isSolid();
         }
     }
 }

@@ -26,7 +26,9 @@ const runs: SurfaceRuns = {
     starts: Int32Array.of(0, 1, 3),
     bottoms: Int16Array.of(0, CANOPY_BOTTOM, 0),
     tops: Int16Array.of(GROUND, CANOPY_TOP, GROUND),
-    blocks: Int16Array.of(0, 1, 0)
+    blocks: Int16Array.of(0, 1, 0),
+    covers: Int16Array.of(-1, -1, -1),
+    coverShares: new Uint8Array(3)
   },
   cellAt: (column) => column,
   looks: [null, null],
@@ -49,6 +51,20 @@ describe('run faces', () => {
   it('finds the parts of a span its neighbours leave open', () => {
     expect(uncovered({ bottom: 0, top: 10 }, [{ bottom: 3, top: 5 }])).toEqual([{ bottom: 0, top: 2 }, { bottom: 6, top: 10 }])
     expect(uncovered({ bottom: -Infinity, top: 10 }, [{ bottom: -Infinity, top: 12 }])).toEqual([])
+  })
+
+  it('draws the tops of neighbouring columns at one height in one block as one face', () => {
+    const flat: SurfaceRuns = { ...runs, runs: { starts: Int32Array.of(0, 1, 2), bottoms: Int16Array.of(0, 0), tops: Int16Array.of(GROUND, GROUND), blocks: Int16Array.of(0, 0), covers: Int16Array.of(-1, -1), coverShares: new Uint8Array(2) } }
+    const geometry = runFaces(new ColumnField(surface), flat, BASE).geometry()
+    const positions = geometry.getAttribute('position')
+    const tops = []
+    for (let first = 0; first < positions.count; first += 4) {
+      if (positions.getY(first) === GROUND + 1 && positions.getY(first + 3) === GROUND + 1) {
+        tops.push(Math.abs(positions.getX(first + 3) - positions.getX(first)))
+      }
+    }
+
+    expect(tops).toEqual([2])
   })
 
   it('floats a canopy over the ground with its underside showing', () => {

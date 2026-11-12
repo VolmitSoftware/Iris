@@ -24,7 +24,8 @@ interface StoredTile<Tile> {
 
 // Drawing a few hundred tiles at once only queues them on the server; a handful in flight keeps it busy.
 const MAXIMUM_IN_FLIGHT = 6
-const CACHE_BYTES = 256 * 1024 * 1024
+// A 3D view holds a couple of hundred tiles of blocks, half a megabyte each, and turning back should not sample them again.
+const CACHE_BYTES = 1024 * 1024 * 1024
 
 /**
  * Tiles fetched from the bridge as a view needs them, kept within a memory budget, and drawn as the current style

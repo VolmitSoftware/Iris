@@ -402,6 +402,10 @@ export interface TileRuns {
   tops: Int16Array
   /** The index in the tile's block names of the block most of each run's top shows. */
   blocks: Int16Array
+  /** The index of the plant most often standing on each run's top, or {@link NO_BLOCK}. */
+  covers: Int16Array
+  /** How much of each run's top plants stand on, 0 to 255 for all of it. */
+  coverShares: Uint8Array
 }
 
 /** The order of the sides in {@link TileVoxels.faces}. */

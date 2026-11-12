@@ -39,7 +39,7 @@ export function mapTileSource(client: BridgeClient, tileSize: number, art: Block
       return tile
     },
     bytesOf: (tile) =>
-      tile.subjects.byteLength * 2 + (tile.heights?.byteLength ?? 0) + (tile.pickNoise?.byteLength ?? 0) + (tile.blocks?.ground.byteLength ?? 0) * 2 + tile.size * tile.size * 4,
+      tile.subjects.byteLength * 2 + (tile.heights?.byteLength ?? 0) + (tile.pickNoise?.byteLength ?? 0) + (tile.blocks?.ground.byteLength ?? 0) * 2 + (tile.blocks?.raisedStart.byteLength ?? 0) + (tile.blocks?.raised.byteLength ?? 0) * 2 + tile.size * tile.size * 4,
     styleKey,
     pixels: (tile, style) => new ImageData(stylePixels(tile, style), tile.size, tile.size)
   }

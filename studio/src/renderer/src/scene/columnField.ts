@@ -1,10 +1,11 @@
 import type { BlockLook } from './blockLooks'
 import type { CoverLook } from './coverLooks'
 import type { TerrainPictures } from './terrainAtlas'
-import type { TerrainSurface } from './terrainMesh'
+import type { RaisedBlock, TerrainSurface } from './terrainMesh'
 import type { ColumnArea } from './terrainTiles'
 
 const NO_VALUE = Number.NaN
+const NOTHING_RAISED: readonly RaisedBlock[] = []
 
 /**
  * The surface read once into columns: where each column's ground and water faces stand, and its colour. A top face
@@ -24,6 +25,8 @@ export class ColumnField {
   readonly looks: (BlockLook | null)[]
   /** What stands on each column's ground, or null for nothing that is drawn. */
   readonly covers: (CoverLook | null)[]
+  /** The solid blocks above each column's ground, highest first, each without a look where the field has no atlas. */
+  readonly raised: (readonly RaisedBlock[])[]
   /** The atlas of the looks, or null where no column has one. */
   readonly pictures: TerrainPictures | null
   /** How low and high the top faces stand, ground and water alike; null where no column has ground. */
@@ -41,6 +44,7 @@ export class ColumnField {
     this.color = new Int32Array(count)
     this.looks = new Array<BlockLook | null>(count).fill(null)
     this.covers = new Array<CoverLook | null>(count).fill(null)
+    this.raised = new Array<readonly RaisedBlock[]>(count).fill(NOTHING_RAISED)
     const hasPictures = surface.pictures !== undefined
     let anyLook = false
     let [lowestTop, highestTop] = [Infinity, -Infinity]
@@ -59,7 +63,9 @@ export class ColumnField {
         const look = hasPictures ? (surface.lookAt?.(column, row) ?? null) : null
         this.looks[index] = look
         this.covers[index] = hasPictures ? (surface.coverAt?.(column, row) ?? null) : null
-        anyLook ||= look !== null
+        const raised = surface.raisedAt?.(column, row) ?? NOTHING_RAISED
+        this.raised[index] = hasPictures ? raised : raised.map((block) => ({ ...block, look: null }))
+        anyLook ||= look !== null || this.raised[index].some((block) => block.look !== null)
         lowestTop = Math.min(lowestTop, ground + 1)
         highestTop = Math.max(highestTop, ground + 1, water === null ? ground : water + 1)
       }
@@ -78,6 +84,15 @@ export class ColumnField {
 
   hasGround(column: number, row: number): boolean {
     return this.contains(column, row) && !Number.isNaN(this.groundTop[this.indexOf(column, row)])
+  }
+
+  /** Whether the block at {@code y} in the column is the column's ground or a block raised over it; false outside the field. */
+  isSolidAt(column: number, row: number, y: number): boolean {
+    if (!this.hasGround(column, row)) {
+      return false
+    }
+    const index = this.indexOf(column, row)
+    return y < this.groundTop[index] || this.raised[index].some((block) => block.y === y)
   }
 
   /** Whether any column has ground. */

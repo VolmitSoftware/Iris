@@ -29,10 +29,14 @@ import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.iris.util.project.hunk.Hunk;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.IntBinaryOperator;
 import java.util.function.UnaryOperator;
 
 /**
@@ -45,8 +49,10 @@ final class GeneratedChunks implements ColumnTops {
     private static final int CHUNK_SHIFT = 4;
     private static final int BLOCKS_ACROSS = 1 << CHUNK_SHIFT;
     private static final int CHUNK_MASK = BLOCKS_ACROSS - 1;
-    // A chunk's top is about 5 KB, so this many stay under 50 MB.
-    private static final int MOST_CHUNKS_KEPT = 8192;
+    // A chunk's top is about 5 KB, and each block raised over its ground adds a height and a shared key.
+    private static final int CHUNK_TOP_BYTES = 5 * 1024;
+    private static final int RAISED_BLOCK_BYTES = Short.BYTES + Integer.BYTES;
+    private static final long MOST_BYTES_KEPT = 64L * 1024 * 1024;
     private static final String LEASE_NAME = "studio_block_preview";
 
     private final Engine engine;
@@ -55,7 +61,10 @@ final class GeneratedChunks implements ColumnTops {
 
     GeneratedChunks(Engine engine) {
         this.engine = engine;
-        this.tops = Caffeine.newBuilder().maximumSize(MOST_CHUNKS_KEPT).build(this::generate);
+        this.tops = Caffeine.newBuilder()
+                .maximumWeight(MOST_BYTES_KEPT)
+                .weigher((Long key, ChunkTop top) -> top.bytes())
+                .build(this::generate);
     }
 
     @Override
@@ -74,7 +83,8 @@ final class GeneratedChunks implements ColumnTops {
              IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
             engine.getGeneration().generate(chunkX << CHUNK_SHIFT, chunkZ << CHUNK_SHIFT, blocks, biomes, false, lease.sessionId());
         }
-        return new ChunkTop(topsOf(blocks, this::seenByPlayers));
+        IntBinaryOperator terrainY = (x, z) -> engine.getHeight((chunkX << CHUNK_SHIFT) + x, (chunkZ << CHUNK_SHIFT) + z, true);
+        return new ChunkTop(topsOf(blocks, terrainY, this::seenByPlayers));
     }
 
     // A plugin's block can be solid on the server where players see grass they walk through.
@@ -93,43 +103,77 @@ final class GeneratedChunks implements ColumnTops {
     }
 
     private record ChunkTop(ColumnTop[] columns) {
+        int bytes() {
+            int raisedBlocks = 0;
+            for (ColumnTop column : columns) {
+                raisedBlocks += column.raised().count();
+            }
+            return CHUNK_TOP_BYTES + raisedBlocks * RAISED_BLOCK_BYTES;
+        }
     }
 
     /**
      * The top of each column of a chunk's blocks, row by row from the north west.
      *
-     * @param seenByPlayers the state players see in place of a block, which decides whether it is ground; the block
+     * @param terrainY      the height of the terrain's top block in each column, by its x and z in the chunk, which
+     *                      the blocks above stand on
+     * @param seenByPlayers the state players see in place of a block, which decides whether it is solid; the block
      *                      itself for all but a plugin's
      */
-    static ColumnTop[] topsOf(Hunk<PlatformBlockState> blocks, UnaryOperator<PlatformBlockState> seenByPlayers) {
+    static ColumnTop[] topsOf(Hunk<PlatformBlockState> blocks, IntBinaryOperator terrainY, UnaryOperator<PlatformBlockState> seenByPlayers) {
         ColumnTop[] columns = new ColumnTop[BLOCKS_ACROSS * BLOCKS_ACROSS];
         for (int z = 0; z < BLOCKS_ACROSS; z++) {
             for (int x = 0; x < BLOCKS_ACROSS; x++) {
-                columns[z * BLOCKS_ACROSS + x] = topOf(blocks, x, z, seenByPlayers);
+                columns[z * BLOCKS_ACROSS + x] = topOf(blocks, x, z, terrainY.applyAsInt(x, z), seenByPlayers);
             }
         }
         return columns;
     }
 
-    // The ground is the highest block something can stand on, so a tree's leaves and a roof count; what stands on it
-    // without being ground, such as grass or a layer of snow, is its cover.
-    private static ColumnTop topOf(Hunk<PlatformBlockState> blocks, int x, int z, UnaryOperator<PlatformBlockState> seenByPlayers) {
+    // The ground is the highest solid block at or under the terrain's top, so a cave open to the sky lowers it. Solid
+    // blocks above it, such as a tree, are raised; what stands on the ground without being solid, such as grass or a
+    // layer of snow, is its cover. A column with nothing solid under its raised blocks takes the highest as its ground.
+    private static ColumnTop topOf(Hunk<PlatformBlockState> blocks, int x, int z, int terrainY, UnaryOperator<PlatformBlockState> seenByPlayers) {
+        RaisedBlocks raised = new RaisedBlocks();
         for (int y = blocks.getHeight() - 1; y >= 0; y--) {
             PlatformBlockState block = blocks.get(x, y, z);
-            if (block == null || !isGround(seenByPlayers.apply(block))) {
+            if (block == null || !isSolid(seenByPlayers.apply(block))) {
                 continue;
             }
-            PlatformBlockState above = y + 1 < blocks.getHeight() ? blocks.get(x, y + 1, z) : null;
-            return new ColumnTop(y, block.key(), isCover(above) ? above.key() : null);
+            if (y > terrainY) {
+                raised.add(y, block.key());
+                continue;
+            }
+            return new ColumnTop(y, block.key(), coverOn(blocks, x, y, z, seenByPlayers), raised.toRaised());
         }
-        return ColumnTop.NOTHING;
+        return raised.isEmpty() ? ColumnTop.NOTHING : topOf(blocks, x, z, blocks.getHeight(), seenByPlayers);
     }
 
-    private static boolean isGround(PlatformBlockState block) {
+    private static String coverOn(Hunk<PlatformBlockState> blocks, int x, int groundY, int z, UnaryOperator<PlatformBlockState> seenByPlayers) {
+        PlatformBlockState above = groundY + 1 < blocks.getHeight() ? blocks.get(x, groundY + 1, z) : null;
+        boolean isCover = above != null && !above.isAir() && !above.isFluid() && !isSolid(seenByPlayers.apply(above));
+        return isCover ? above.key() : null;
+    }
+
+    private static boolean isSolid(PlatformBlockState block) {
         return !block.isAir() && !block.isFluid() && block.isSolid();
     }
 
-    private static boolean isCover(PlatformBlockState block) {
-        return block != null && !block.isAir() && !block.isFluid();
+    private static final class RaisedBlocks {
+        private final ShortArrayList ys = new ShortArrayList();
+        private final List<String> blocks = new ArrayList<>();
+
+        void add(int y, String block) {
+            ys.add((short) y);
+            blocks.add(block);
+        }
+
+        boolean isEmpty() {
+            return blocks.isEmpty();
+        }
+
+        Raised toRaised() {
+            return isEmpty() ? Raised.NONE : new Raised(ys.toShortArray(), blocks.toArray(String[]::new));
+        }
     }
 }

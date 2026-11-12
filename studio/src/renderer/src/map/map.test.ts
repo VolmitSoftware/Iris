@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { decodeTile, gridIndex } from '../bridge/tileDecoding'
-import type { MapLabel, MapTile } from '../bridge/types'
+import type { MapLabel, MapTile, TileBlocks } from '../bridge/types'
 import { countShares, heightBandShares } from './census'
 import { bandIndexOf, HEIGHT_BANDS, heightColor } from './heightColors'
 import { arrowCorners } from './playerArrow'
@@ -57,7 +57,42 @@ function encode(size: number, withHeights: boolean, withPickNoise = false): Arra
   return buffer
 }
 
+function nothingRaised(cells: number): Pick<TileBlocks, 'raisedStart' | 'raisedY' | 'raised'> {
+  return { raisedStart: new Int32Array(cells + 1), raisedY: new Int16Array(0), raised: new Int16Array(0) }
+}
+
+/** A tile of one pixel with its blocks as the bridge sends them: ground, cover and the raised blocks' counts, heights and blocks. */
+function encodeBlocks(raisedCounts: number[], raisedY: number[], raised: number[]): ArrayBuffer {
+  const size = 1
+  const cells = (size + 2) ** 2
+  const header = new TextEncoder().encode(
+    JSON.stringify({ size, blocksPerPixel: 1, subjectKind: 'BIOME', labels: [PLAINS], heights: false, pickNoise: false, blocks: ['stone', 'leaves', 'log'], raised: raised.length })
+  )
+  const align = (bytes: number): number => Math.ceil(bytes / 4) * 4
+  const grid = align(cells * 2)
+  const groundAt = align(4 + header.length) + grid * 2
+  const raisedYAt = groundAt + grid * 3
+  const raisedAt = align(raisedYAt + raised.length * 2)
+  const buffer = new ArrayBuffer(raisedAt + align(raised.length * 2))
+  new DataView(buffer).setUint32(0, header.length, true)
+  new Uint8Array(buffer, 4).set(header)
+  new Int16Array(buffer, groundAt + grid, cells).fill(-1)
+  new Int16Array(buffer, groundAt + grid * 2, cells).set(raisedCounts)
+  new Int16Array(buffer, raisedYAt, raised.length).set(raisedY)
+  new Int16Array(buffer, raisedAt, raised.length).set(raised)
+  return buffer
+}
+
 describe('tile decoding', () => {
+  it('reads the raised blocks of each cell after the cover grid', () => {
+    const blocks = decodeTile(encodeBlocks([0, 0, 0, 0, 2, 0, 0, 1, 0], [70, 69, 66], [1, 2, 1])).blocks!
+
+    expect([...blocks.raisedStart]).toEqual([0, 0, 0, 0, 0, 2, 2, 2, 3, 3])
+    expect([...blocks.raisedY]).toEqual([70, 69, 66])
+    expect([...blocks.raised]).toEqual([1, 2, 1])
+    expect(blocks.cover[4]).toBe(-1)
+  })
+
   it('reads the header and views each grid where the bridge put it', () => {
     const tile = decodeTile(encode(3, true))
 
@@ -138,11 +173,33 @@ describe('tile style', () => {
     const cells = tile.subjects.length
     const cover = new Int16Array(cells).fill(-1)
     cover[gridIndex(tile, 3, 3)] = 1
-    const blocks = { names: ['stone', 'poppy'], ground: new Int16Array(cells).fill(0), cover, colors: [0x808080, 0xff0000], looks: [], covers: [] }
+    const blocks = { ...nothingRaised(cells), names: ['stone', 'poppy'], ground: new Int16Array(cells).fill(0), cover, colors: [0x808080, 0xff0000], looks: [], covers: [] }
     const pixels = stylePixels({ ...tile, blocks }, { ...FLAT, byBlock: true })
 
     expect(pixel(pixels, 4, 0, 0)).toBe(0x808080)
     expect(pixel(pixels, 4, 3, 3)).toBe(0xff0000)
+  })
+
+  it('paints a column with blocks raised over its ground in the colour of the highest', () => {
+    const tile = splitTile()
+    const cells = tile.subjects.length
+    const raisedStart = new Int32Array(cells + 1)
+    raisedStart.fill(2, gridIndex(tile, 3, 3) + 1)
+    const blocks = {
+      names: ['stone', 'leaves', 'log'],
+      ground: new Int16Array(cells).fill(0),
+      cover: new Int16Array(cells).fill(-1),
+      raisedStart,
+      raisedY: Int16Array.of(70, 69),
+      raised: Int16Array.of(1, 2),
+      colors: [0x808080, 0x00ff00, 0x654321],
+      looks: [],
+      covers: []
+    }
+    const pixels = stylePixels({ ...tile, blocks }, { ...FLAT, byBlock: true })
+
+    expect(pixel(pixels, 4, 0, 0)).toBe(0x808080)
+    expect(pixel(pixels, 4, 3, 3)).toBe(0x00ff00)
   })
 
   it('keeps the label colours of a tile without blocks', () => {

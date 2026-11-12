@@ -24,6 +24,7 @@ import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.util.project.stream.ProceduralStream;
+import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,8 +74,8 @@ public final class MapTileRenderer {
 
     /**
      * {@code tile}, drawn from ({@code startX}, {@code startZ}), with the block on top of each of its columns from
-     * {@code source}. Where the tile carries heights they become the heights of that ground, which is the terrain's
-     * with what generation put on it.
+     * {@code source}, and the solid blocks raised above it. Where the tile carries heights they become the heights of
+     * that ground: the terrain's top as generated, under what stands on it.
      *
      * @throws IllegalArgumentException when the tile is coarser than the source is drawn at
      * @throws CancellationException    as soon as {@code cancelled} answers true
@@ -90,6 +91,9 @@ public final class MapTileRenderer {
         int cells = grid.size() * grid.size();
         short[] ground = new short[cells];
         short[] cover = new short[cells];
+        short[] raisedCounts = new short[cells];
+        ShortArrayList raisedY = new ShortArrayList();
+        ShortArrayList raised = new ShortArrayList();
         float[] heights = tile.heights() == null ? null : new float[cells];
         BlockNames names = new BlockNames();
         for (int gridZ = 0; gridZ < grid.size(); gridZ++) {
@@ -100,12 +104,19 @@ public final class MapTileRenderer {
                 ColumnTops.ColumnTop top = tops.at((int) Math.floor(grid.worldX(gridX)), worldZ);
                 ground[cell] = names.indexOf(top.ground());
                 cover[cell] = names.indexOf(top.cover());
+                ColumnTops.Raised raisedHere = top.raised();
+                raisedCounts[cell] = (short) raisedHere.count();
+                raisedY.addElements(raisedY.size(), raisedHere.ys());
+                for (String block : raisedHere.blocks()) {
+                    raised.add(names.indexOf(block));
+                }
                 if (heights != null) {
                     heights[cell] = top.groundY();
                 }
             }
         }
-        return tile.withBlocks(new MapTile.Blocks(names.names(), ground, cover), heights);
+        MapTile.Blocks blocks = new MapTile.Blocks(names.names(), ground, cover, raisedCounts, raisedY.toShortArray(), raised.toShortArray());
+        return tile.withBlocks(blocks, heights);
     }
 
     private ColumnTops topsOf(BlockSource source) {

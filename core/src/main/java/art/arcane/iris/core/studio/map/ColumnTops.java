@@ -18,6 +18,8 @@
 
 package art.arcane.iris.core.studio.map;
 
+import java.util.Arrays;
+
 /** What lies on top of the world's columns, from one {@link BlockSource}. */
 @FunctionalInterface
 interface ColumnTops {
@@ -26,11 +28,47 @@ interface ColumnTops {
     /**
      * The top of one column.
      *
-     * @param groundY the height of its ground block above the dimension's bottom
+     * @param groundY the height of its ground block above the dimension's bottom: the terrain's top, under what stands
+     *                on it
      * @param ground  the ground block's key, or null where the column holds no ground
      * @param cover   the key of the block standing on the ground, such as grass or a layer of snow, or null for none
+     * @param raised  the solid blocks above the ground, such as a tree's wood and leaves
      */
-    record ColumnTop(int groundY, String ground, String cover) {
-        static final ColumnTop NOTHING = new ColumnTop(0, null, null);
+    record ColumnTop(int groundY, String ground, String cover, Raised raised) {
+        static final ColumnTop NOTHING = new ColumnTop(0, null, null, Raised.NONE);
+
+        ColumnTop(int groundY, String ground, String cover) {
+            this(groundY, ground, cover, Raised.NONE);
+        }
+    }
+
+    /**
+     * The solid blocks above a column's ground, highest first, with the gaps between them left out. Kept as two arrays,
+     * as a forest's chunk holds over a thousand of them.
+     *
+     * @param ys     each block's height above the dimension's bottom
+     * @param blocks each block's key
+     */
+    record Raised(short[] ys, String[] blocks) {
+        static final Raised NONE = new Raised(new short[0], new String[0]);
+
+        int count() {
+            return ys.length;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof Raised raised && Arrays.equals(ys, raised.ys) && Arrays.equals(blocks, raised.blocks);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * Arrays.hashCode(ys) + Arrays.hashCode(blocks);
+        }
+
+        @Override
+        public String toString() {
+            return "Raised" + Arrays.toString(ys) + Arrays.toString(blocks);
+        }
     }
 }

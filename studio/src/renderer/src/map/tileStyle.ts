@@ -55,10 +55,11 @@ const DARKEST_PICK_SHADE = 0.3
 
 /** The tile's pixels as RGBA, as {@code style} draws them (v3e MapTile.styledPixels). */
 export function stylePixels(tile: MapTile, style: TileStyle): Uint8ClampedArray<ArrayBuffer> {
-  const { size, heights } = tile
+  const { size } = tile
   const pixels = new Uint8ClampedArray(size * size * 4)
   const colors = tile.labels.map((label) => label.color)
   const blocks = style.byBlock ? tile.blocks : null
+  const heights = blocks === null || tile.heights === null ? tile.heights : heightsSeenFromAbove(tile.heights, blocks)
   const pickNoise = style.pickDisplay === 'picks' || blocks !== null ? null : tile.pickNoise
   // The bare noise is read by its brightness, which relief shading would mix up.
   const shading = style.shading && heights !== null && !(pickNoise !== null && style.pickDisplay === 'noise')
@@ -93,11 +94,32 @@ function labelColor(colors: number[], index: number): number {
   return index === NO_LABEL ? UNKNOWN_SUBJECT : colors[index]
 }
 
-// What stands on the ground is what is seen from above; ground under the sea shows through its water.
+// Seen from above, the highest block raised over the ground hides it, and what stands on the ground hides the ground;
+// what lies under the sea shows through its water.
 function blockColor(blocks: TileBlocks, cell: number, heights: Float32Array | null, seaLevel: number): number {
-  const top = blocks.cover[cell] === NO_BLOCK ? blocks.ground[cell] : blocks.cover[cell]
+  const top = blockSeenFromAbove(blocks, cell)
   const color = top === NO_BLOCK ? UNKNOWN_SUBJECT : blocks.colors[top]
   return heights !== null && heights[cell] < seaLevel ? blend(color, WATER_SURFACE_COLOR, WATER_OVER_GROUND) : color
+}
+
+function blockSeenFromAbove(blocks: TileBlocks, cell: number): number {
+  const highestRaised = blocks.raisedStart[cell]
+  if (highestRaised < blocks.raisedStart[cell + 1]) {
+    return blocks.raised[highestRaised]
+  }
+  return blocks.cover[cell] === NO_BLOCK ? blocks.ground[cell] : blocks.cover[cell]
+}
+
+// The ground's heights with each column's highest raised block in place of its ground, so trees stand out in relief.
+function heightsSeenFromAbove(groundHeights: Float32Array, blocks: TileBlocks): Float32Array {
+  const heights = Float32Array.from(groundHeights)
+  for (let cell = 0; cell < heights.length; cell++) {
+    const highestRaised = blocks.raisedStart[cell]
+    if (highestRaised < blocks.raisedStart[cell + 1]) {
+      heights[cell] = blocks.raisedY[highestRaised]
+    }
+  }
+  return heights
 }
 
 // Where nothing picked the spot, as on an image map, it keeps its colour.

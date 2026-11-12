@@ -40,11 +40,14 @@ public record MapTile(int size, double blocksPerPixel, MapLabel.Kind subjectKind
     /**
      * The top of each cell's column.
      *
-     * @param names  the block keys the grids index
-     * @param ground each cell's ground block, or {@link #NO_BLOCK} where the column holds none
-     * @param cover  the block standing on each cell's ground, such as grass, or {@link #NO_BLOCK}
+     * @param names        the block keys the grids index
+     * @param ground       each cell's ground block, the terrain's top, or {@link #NO_BLOCK} where the column holds none
+     * @param cover        the block standing on each cell's ground, such as grass, or {@link #NO_BLOCK}
+     * @param raisedCounts how many solid blocks stand above each cell's ground, such as a tree's wood and leaves
+     * @param raisedY      the height of each raised block, cell after cell and each cell's highest first
+     * @param raised       each raised block, in the order of {@code raisedY}
      */
-    public record Blocks(List<String> names, short[] ground, short[] cover) {
+    public record Blocks(List<String> names, short[] ground, short[] cover, short[] raisedCounts, short[] raisedY, short[] raised) {
         public static final short NO_BLOCK = -1;
     }
 

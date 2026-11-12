@@ -208,6 +208,7 @@ function sameSpan(span: Span, other: Span | null): boolean {
   return span.look === null && other !== null && other.look === null && other.top === span.top && other.bottom === span.bottom && other.color === span.color && other.water === span.water
 }
 
-function shaded(color: number, light: number): Vec3 {
+/** A 0xRRGGBB colour in a light, as red, green and blue from 0 to 1. */
+export function shaded(color: number, light: number): Vec3 {
   return [(((color >> 16) & 0xff) / 255) * light, (((color >> 8) & 0xff) / 255) * light, ((color & 0xff) / 255) * light]
 }

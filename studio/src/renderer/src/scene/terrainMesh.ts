@@ -4,6 +4,7 @@ import { groundFaces, waterFaces } from './columnFaces'
 import { ColumnField } from './columnField'
 import { coverGeometry } from './coverFaces'
 import type { CoverLook } from './coverLooks'
+import { addRaisedFaces } from './raisedFaces'
 import type { TerrainPictures } from './terrainAtlas'
 import type { ColumnArea } from './terrainTiles'
 import { WATER_SURFACE_COLOR, WATER_SURFACE_OPACITY } from './waterTint'
@@ -31,6 +32,16 @@ export interface TerrainSurface {
   lookAt?(column: number, row: number): BlockLook | null
   /** What stands on the column's ground, such as grass or a flower, or null for nothing that is drawn. */
   coverAt?(column: number, row: number): CoverLook | null
+  /** The solid blocks above the column's ground, such as a tree's wood and leaves, highest first. */
+  raisedAt?(column: number, row: number): readonly RaisedBlock[]
+}
+
+/** A solid block above a column's ground, drawn as a whole block. */
+export interface RaisedBlock {
+  y: number
+  color: number
+  /** What the block looks like, or null to show its colour. */
+  look: BlockLook | null
 }
 
 const CUTOUT_ALPHA = 0.5
@@ -45,7 +56,8 @@ export interface TerrainMesh {
  * The surface as columns with their faces merged where neighbours show the same one, flat-shaded as Minecraft shades
  * blocks, with the ground under water sunk toward a deep colour and a light sheet of water over it. Sides on the edge reach down to {@code base}, so tiles of ground next to
  * each other leave no cracks. The columns in {@code holes} are left out, for finer ground to fill. Columns with a look
- * show their block's textures, one picture to a block face.
+ * show their block's textures, one picture to a block face. Blocks raised above the ground, such as trees, stand as
+ * whole blocks.
  */
 export function buildTerrainMesh(surface: TerrainSurface, base: number, holes: readonly ColumnArea[] = []): TerrainMesh {
   const field = new ColumnField(surface, holes)
@@ -53,7 +65,9 @@ export function buildTerrainMesh(surface: TerrainSurface, base: number, holes: r
   if (!field.hasAnyGround()) {
     return { object: group, field, dispose: () => {} }
   }
-  const ground = groundFaces(field, base).geometry()
+  const groundBatch = groundFaces(field, base)
+  addRaisedFaces(field, groundBatch)
+  const ground = groundBatch.geometry()
   const water = waterFaces(field).geometry()
   const groundMaterial = new MeshBasicMaterial({ vertexColors: true, side: FrontSide, map: field.pictures?.texture ?? null })
   const waterMaterial = new MeshBasicMaterial({ color: WATER_SURFACE_COLOR, transparent: true, opacity: WATER_SURFACE_OPACITY, depthWrite: false, side: DoubleSide })

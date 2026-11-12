@@ -1,6 +1,6 @@
 import { Vector3, type BufferGeometry, type Mesh } from 'three'
 import { describe, expect, it } from 'vitest'
-import { buildTerrainMesh, type TerrainSurface } from './terrainMesh'
+import { buildTerrainMesh, type RaisedBlock, type TerrainSurface } from './terrainMesh'
 import { submergedTint, tintAt } from './waterTint'
 
 const GROUND = 10
@@ -182,5 +182,35 @@ describe('terrain mesh', () => {
   it('has no mesh where no column has ground', () => {
     const nothing = buildTerrainMesh({ ...surface, groundAt: () => null }, BASE)
     expect(nothing.object.children).toHaveLength(0)
+  })
+})
+
+describe('raised blocks', () => {
+  const raisedAt = (y: number): RaisedBlock => ({ y, color: RED, look: null })
+  // The faces drawn for the raised blocks, which come after the ground's.
+  const raisedFaces = (raised: TerrainSurface['raisedAt']): ReturnType<typeof faces> =>
+    faces(meshes({ ...dry, raisedAt: raised }).ground.geometry).slice(quads(meshes(dry).ground))
+
+  it('stands a raised block as a whole block, each face looking away from it', () => {
+    const leaf = raisedFaces((column, row) => (column === 2 && row === 2 ? [raisedAt(GROUND + 4)] : []))
+    const middle = new Vector3(102.5, GROUND + 4.5, 202.5)
+
+    expect(leaf).toHaveLength(6)
+    for (const face of leaf) {
+      expect(face.middle.clone().sub(middle).normalize().dot(face.normal)).toBeCloseTo(1)
+    }
+  })
+
+  it('leaves out the faces that touch the ground or another raised block', () => {
+    const tree = raisedFaces((column, row) => {
+      if (column === 2 && row === 1) {
+        return [raisedAt(GROUND + 2), raisedAt(GROUND + 1)]
+      }
+      return column === 2 && row === 2 ? [raisedAt(GROUND + 2)] : []
+    })
+
+    // The trunk's lower block shows four sides, its upper one three and its top, the leaf all but the side on the trunk.
+    expect(tree).toHaveLength(13)
+    expect(tree.some((face) => face.normal.y === -1 && face.middle.y === GROUND + 1)).toBe(false)
   })
 })

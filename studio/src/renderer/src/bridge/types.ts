@@ -344,7 +344,10 @@ export interface MapTile {
 /** Where a tile's blocks come from: the chunks the server generates in memory. */
 export type BlockSource = 'generated'
 
-/** The top of each cell's column: its ground block, and the block standing on it, such as grass. */
+/**
+ * The top of each cell's column: its ground block, the terrain's top; the block standing on it, such as grass; and the
+ * solid blocks raised above it, such as a tree's wood and leaves.
+ */
 export interface TileBlocks {
   /** The block states the grids index, as BlockState keys. */
   names: string[]
@@ -352,6 +355,12 @@ export interface TileBlocks {
   ground: Int16Array
   /** {@link NO_BLOCK} where nothing stands on the ground. */
   cover: Int16Array
+  /** Where each cell's raised blocks start in {@link raisedY} and {@link raised}, with one more entry for where the last cell's end. */
+  raisedStart: Int32Array
+  /** The Y of each raised block, cell after cell and each cell's highest first. */
+  raisedY: Int16Array
+  /** Each raised block, in the order of {@link raisedY}. */
+  raised: Int16Array
   /** The colour of each named block from above, as 0xRRGGBB; the tile source fills it in. */
   colors: number[]
   /** What each named block looks like on a column, where the tile is fine enough to show textures; else empty. */

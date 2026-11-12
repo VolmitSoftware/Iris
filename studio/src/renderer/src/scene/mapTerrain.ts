@@ -3,7 +3,7 @@ import { heightColor } from '../map/heightColors'
 import type { BlockLook } from './blockLooks'
 import type { CoverLook } from './coverLooks'
 import type { TerrainPictures } from './terrainAtlas'
-import type { TerrainSurface } from './terrainMesh'
+import type { RaisedBlock, TerrainSurface } from './terrainMesh'
 import { blocksPerColumn, originXOf, originZOf, type TerrainTile } from './terrainTiles'
 
 export type MapTerrainColoring = 'biomes' | 'regions' | 'height' | 'blocks'
@@ -55,6 +55,20 @@ export class MapTerrain implements TerrainSurface {
     }
     const cover = this.tile.blocks!.cover[this.cellAt(column, row)]
     return cover === NO_BLOCK ? null : (this.tile.blocks!.covers[cover] ?? null)
+  }
+
+  raisedAt(column: number, row: number): readonly RaisedBlock[] {
+    const blocks = this.coloring === 'blocks' ? this.tile.blocks : null
+    if (blocks === null) {
+      return []
+    }
+    const cell = this.cellAt(column, row)
+    const raised: RaisedBlock[] = []
+    for (let at = blocks.raisedStart[cell]; at < blocks.raisedStart[cell + 1]; at++) {
+      const block = blocks.raised[at]
+      raised.push({ y: blocks.raisedY[at], color: blocks.colors[block], look: blocks.looks[block] ?? null })
+    }
+    return raised
   }
 
   colorAt(column: number, row: number): number {

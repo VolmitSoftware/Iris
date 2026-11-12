@@ -1,4 +1,4 @@
-import { DoubleSide, FrontSide, Group, Mesh, MeshBasicMaterial, type BufferGeometry } from 'three'
+import { DoubleSide, FrontSide, Group, Mesh, MeshBasicMaterial, ShaderChunk, type BufferGeometry } from 'three'
 import type { BlockLook } from './blockLooks'
 import { groundFaces, waterFaces } from './columnFaces'
 import { ColumnField } from './columnField'
@@ -148,10 +148,26 @@ function materialOf(kind: GeometryKind, pictures: TerrainPictures | null): MeshB
     case 'coloured':
       return new MeshBasicMaterial({ vertexColors: true, side: FrontSide })
     case 'textured':
-      return new MeshBasicMaterial({ vertexColors: true, side: FrontSide, map: pictures?.texture ?? null })
+      return withPicturesReadInsideFaces(new MeshBasicMaterial({ vertexColors: true, side: FrontSide, map: pictures?.texture ?? null }))
     case 'cutOut':
-      return new MeshBasicMaterial({ vertexColors: true, map: pictures?.texture ?? null, alphaMap: pictures?.cutouts ?? null, alphaTest: CUTOUT_ALPHA, side: FrontSide })
+      return withPicturesReadInsideFaces(
+        new MeshBasicMaterial({ vertexColors: true, map: pictures?.texture ?? null, alphaMap: pictures?.cutouts ?? null, alphaTest: CUTOUT_ALPHA, side: FrontSide })
+      )
     case 'water':
       return new MeshBasicMaterial({ color: WATER_SURFACE_COLOR, transparent: true, opacity: WATER_SURFACE_OPACITY, depthWrite: false, side: DoubleSide })
   }
+}
+
+const PICTURE_COORDINATES = /varying vec2 (vMapUv|vAlphaMapUv);/g
+const CENTROID_COORDINATES = 'centroid varying vec2 $1;'
+
+// With antialiasing, a pixel only partly on a face is shaded at its centre, which can lie off the face, and the picture
+// is read past the face's edge. Far off, where a block face is a pixel or less, that is the picture beside it in the atlas,
+// and the ground and trees are speckled with other blocks' colours. Centroid coordinates are read where the face is.
+function withPicturesReadInsideFaces(material: MeshBasicMaterial): MeshBasicMaterial {
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader.replace('#include <uv_pars_vertex>', ShaderChunk.uv_pars_vertex.replace(PICTURE_COORDINATES, CENTROID_COORDINATES))
+    shader.fragmentShader = shader.fragmentShader.replace('#include <uv_pars_fragment>', ShaderChunk.uv_pars_fragment.replace(PICTURE_COORDINATES, CENTROID_COORDINATES))
+  }
+  return material
 }

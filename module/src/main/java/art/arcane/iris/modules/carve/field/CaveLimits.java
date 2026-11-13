@@ -18,72 +18,99 @@
 
 package art.arcane.iris.modules.carve.field;
 
+import java.util.Arrays;
+
 /**
  * Where one cave may carve in one chunk, and how freely: fully inside its depth range and well under the surface,
  * narrowing to nothing towards the ends of the range, towards the rock it keeps under the surface and towards columns
  * that do not list it. Columns are indexed as {@code (localX << 4) | localZ}; heights count from the dimension's bottom.
  */
-public final class CaveLimits {
-    private static final int CHUNK_COLUMNS = 256;
+final class CaveLimits {
+    static final int CHUNK_COLUMNS = 256;
     private static final int CELL_COLUMNS = ChunkLattice.CELLS_PER_CHUNK_AXIS * ChunkLattice.CELLS_PER_CHUNK_AXIS;
-    /** A cave that keeps rock above it closes over this many blocks instead of ending in a flat ceiling. */
-    private static final int CEILING_FADE_BLOCKS = 8;
 
-    private final int lowestY;
-    private final int highestY;
+    private final int[] depthMinYs;
+    private final int[] depthMaxYs;
+    private final double[] fadeBlocks;
+    private final double[] ceilingFadeBlocks;
+    private final int[] topY;
+    private final boolean[] opensToSurface;
+    private final double[] weight;
+    /** Whether depth and fades are the same in every column, as they are for plain numbers; then they are read once. */
+    private final boolean sameRangeInEveryColumn;
     private final int depthMinY;
     private final int depthMaxY;
-    private final int fadeBlocks;
-    private final int[] columnTopY;
-    private final boolean[] columnOpensToSurface;
-    private final double[] columnWeight;
+    private final double fade;
+    private final double ceilingFade;
+    private final int lowestY;
+    private final int highestY;
     private final int[] cellTopY = new int[CELL_COLUMNS];
     private final boolean[] cellHasWeight = new boolean[CELL_COLUMNS];
 
     /**
-     * @param depthMinY            lowest height of the cave's depth range
-     * @param depthMaxY            highest height of the cave's depth range
-     * @param fadeBlocks           blocks over which the cave narrows at both ends of the range
-     * @param columnTopY           highest height the cave may carve in each column
-     * @param columnOpensToSurface whether the cave reaches its top at full width in each column, instead of closing under it
-     * @param columnWeight         how much each column lists the cave, from 0 to 1
+     * What the cave allows in each column of the chunk.
+     *
+     * @param depthMinY         lowest height of the cave's depth range
+     * @param depthMaxY         highest height of the cave's depth range
+     * @param fadeBlocks        blocks over which the cave narrows at both ends of the range
+     * @param topY              highest height the cave may carve
+     * @param opensToSurface    whether the cave reaches its top at full width, instead of closing under it
+     * @param ceilingFadeBlocks blocks over which a cave that does not open to the surface closes under its top
+     * @param weight            how much the column lists the cave, from 0 to 1
      */
-    public CaveLimits(int depthMinY, int depthMaxY, int fadeBlocks, int[] columnTopY, boolean[] columnOpensToSurface, double[] columnWeight) {
-        this.depthMinY = depthMinY;
-        this.depthMaxY = depthMaxY;
-        this.fadeBlocks = fadeBlocks;
-        this.columnTopY = columnTopY;
-        this.columnOpensToSurface = columnOpensToSurface;
-        this.columnWeight = columnWeight;
-        java.util.Arrays.fill(cellTopY, Integer.MIN_VALUE);
-        int highestTopY = Integer.MIN_VALUE;
+    record Columns(int[] depthMinY, int[] depthMaxY, double[] fadeBlocks, int[] topY, boolean[] opensToSurface,
+                   double[] ceilingFadeBlocks, double[] weight) {
+        static Columns of(double[] weight) {
+            return new Columns(new int[CHUNK_COLUMNS], new int[CHUNK_COLUMNS], new double[CHUNK_COLUMNS], new int[CHUNK_COLUMNS],
+                    new boolean[CHUNK_COLUMNS], new double[CHUNK_COLUMNS], weight);
+        }
+    }
+
+    CaveLimits(Columns columns) {
+        this.depthMinYs = columns.depthMinY();
+        this.depthMaxYs = columns.depthMaxY();
+        this.fadeBlocks = columns.fadeBlocks();
+        this.ceilingFadeBlocks = columns.ceilingFadeBlocks();
+        this.topY = columns.topY();
+        this.opensToSurface = columns.opensToSurface();
+        this.weight = columns.weight();
+        this.sameRangeInEveryColumn = isTheSameInEveryColumn(depthMinYs) && isTheSameInEveryColumn(depthMaxYs)
+                && isTheSameInEveryColumn(fadeBlocks) && isTheSameInEveryColumn(ceilingFadeBlocks);
+        this.depthMinY = depthMinYs[0];
+        this.depthMaxY = depthMaxYs[0];
+        this.fade = fadeBlocks[0];
+        this.ceilingFade = ceilingFadeBlocks[0];
+        Arrays.fill(cellTopY, Integer.MIN_VALUE);
+        int lowest = Integer.MAX_VALUE;
+        int highest = Integer.MIN_VALUE;
         for (int column = 0; column < CHUNK_COLUMNS; column++) {
-            if (columnWeight[column] <= 0D) {
+            if (columns.weight()[column] <= 0D) {
                 continue;
             }
             int cell = cellOf(column >> 4, column & 15);
             cellHasWeight[cell] = true;
-            cellTopY[cell] = Math.max(cellTopY[cell], columnTopY[column]);
-            highestTopY = Math.max(highestTopY, columnTopY[column]);
+            cellTopY[cell] = Math.max(cellTopY[cell], topY[column]);
+            lowest = Math.min(lowest, depthMinYs[column]);
+            highest = Math.max(highest, Math.min(depthMaxYs[column], topY[column]));
         }
-        this.lowestY = depthMinY;
-        this.highestY = Math.min(depthMaxY, highestTopY);
+        this.lowestY = lowest;
+        this.highestY = highest;
     }
 
     private static int cellOf(int localX, int localZ) {
         return ((localX / ChunkLattice.CELL_BLOCKS) * ChunkLattice.CELLS_PER_CHUNK_AXIS) + (localZ / ChunkLattice.CELL_BLOCKS);
     }
 
-    public int lowestY() {
+    int lowestY() {
         return lowestY;
     }
 
-    public int highestY() {
+    int highestY() {
         return highestY;
     }
 
     /** Whether the cave carves nothing in this chunk. */
-    public boolean carvesNothing() {
+    boolean carvesNothing() {
         return highestY < lowestY;
     }
 
@@ -95,26 +122,51 @@ public final class CaveLimits {
 
     /** How freely the cave carves the block, from 0 (not at all) to 1 (at its full size). */
     double openness(int column, int y) {
-        double weight = columnWeight[column];
-        if (weight <= 0D || y < depthMinY || y > depthMaxY) {
+        if (sameRangeInEveryColumn) {
+            return openness(column, y, depthMinY, depthMaxY, fade, ceilingFade);
+        }
+        return openness(column, y, depthMinYs[column], depthMaxYs[column], fadeBlocks[column], ceilingFadeBlocks[column]);
+    }
+
+    private double openness(int column, int y, int columnDepthMinY, int columnDepthMaxY, double columnFade, double columnCeilingFade) {
+        double columnWeight = weight[column];
+        if (columnWeight <= 0D || y < columnDepthMinY || y > columnDepthMaxY) {
             return 0D;
         }
-        int belowTop = columnTopY[column] - y;
+        int belowTop = topY[column] - y;
         if (belowTop < 0) {
             return 0D;
         }
-        double openness = weight * easeIn(Math.min(y - depthMinY, depthMaxY - y), fadeBlocks);
-        if (!columnOpensToSurface[column]) {
-            openness *= easeIn(belowTop, CEILING_FADE_BLOCKS);
+        double openness = columnWeight * easeIn(Math.min(y - columnDepthMinY, columnDepthMaxY - y), columnFade);
+        if (!opensToSurface[column]) {
+            openness *= easeIn(belowTop, columnCeilingFade);
         }
         return openness;
     }
 
-    private static double easeIn(int distance, int fadeBlocks) {
-        if (fadeBlocks <= 0 || distance >= fadeBlocks) {
+    private static boolean isTheSameInEveryColumn(int[] values) {
+        for (int column = 1; column < values.length; column++) {
+            if (values[column] != values[0]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isTheSameInEveryColumn(double[] values) {
+        for (int column = 1; column < values.length; column++) {
+            if (values[column] != values[0]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static double easeIn(int distance, double fadeBlocks) {
+        if (fadeBlocks <= 0D || distance >= fadeBlocks) {
             return 1D;
         }
-        double share = distance / (double) fadeBlocks;
+        double share = distance / fadeBlocks;
         return share * share * (3D - (2D * share));
     }
 }

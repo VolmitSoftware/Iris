@@ -18,29 +18,30 @@
 
 package art.arcane.iris.modules.carve;
 
+import art.arcane.iris.modules.carve.CaveValue.Bounds;
 import com.volmit.config.Desc;
-import com.volmit.config.Range;
 import com.volmit.config.Required;
 import com.volmit.noise.NoiseStyle;
-import com.volmit.noise.StyledRange;
 
+import java.util.List;
 import java.util.Optional;
 
 /** The tunnels of a {@link Cave}: long winding passages. Thin ones link other caves together. */
 @Desc("Long winding passages.")
 public final class CaveTunnel {
-    private static final Range DEFAULT_WIDTH = Range.of(4, 7);
-    /**
-     * The style a styled range gets when the pack writes none: white noise, which would make a tunnel's width jump
-     * block by block. A width with this style follows the default width noise instead.
-     */
-    private static final NoiseStyle STYLE_OF_A_RANGE_WRITTEN_WITHOUT_ONE = NoiseStyle.of("STATIC");
+    /** Without a style, the width changes over this many horizontal spacings. */
+    public static final double WIDTH_CHANGE_SPACINGS = 1.5D;
+    /** Without a style, any other value of the tunnels changes over this many horizontal spacings. */
+    public static final int VALUE_CHANGE_SPACINGS = 6;
+    private static final Bounds WIDTH_BLOCKS = new Bounds(1, 64);
+    private static final Bounds HEIGHT_BLOCKS = new Bounds(1, 64);
+    private static final Bounds VERTICAL_WARP_SHARE = new Bounds(0, 1);
 
-    @Desc("Tunnel width in blocks. The style picks where a tunnel is narrow or wide; leave it out for a slow change that scales with spacing.")
-    private StyledRange width;
+    @Desc("Tunnel width in blocks, 1 to 64. A range changes over about " + WIDTH_CHANGE_SPACINGS + " horizontal spacings.")
+    private CaveValue width = CaveValue.between(4, 7);
 
-    @Desc("Tunnel height in blocks, low where the tunnel is narrow and tall where it is wide. Leave out for round tunnels.")
-    private Range height;
+    @Desc("Tunnel height in blocks, 1 to 64. A range without a style follows the width: low where the tunnel is narrow, tall where it is wide. Leave out for round tunnels.")
+    private CaveValue height;
 
     @Required
     @Desc("Blocks between neighbouring tunnels.")
@@ -49,26 +50,23 @@ public final class CaveTunnel {
     @Desc("Noise that bends the tunnels: zoom sets how often they turn, multiplier how many blocks they swing. A flat style keeps them straight. Leave out for a gentle bend that scales with spacing.")
     private NoiseStyle warp;
 
-    @Desc("Where tunnels occur. Leave out to put them everywhere.")
+    @Desc("How far the warp moves tunnels up and down, as a share of how far it swings them sideways, 0 to 1. 0 adds no rise and fall. A range changes over about "
+            + VALUE_CHANGE_SPACINGS + " horizontal spacings.")
+    private CaveValue verticalWarp = CaveValue.of(0.5);
+
+    @Desc("Where tunnels occur: a share of the underground from 0 to 1, or {share, softness, style}. Softness, 0 to 1, is how gradually tunnels thin out at the edge of an area, from abrupt dead ends to long tails; style is the noise that shapes the areas. Share and softness change over about "
+            + VALUE_CHANGE_SPACINGS + " horizontal spacings as a range. Leave out to put tunnels everywhere.")
     private CaveTunnelCoverage coverage;
 
     public CaveTunnel() {
     }
 
-    public Range width() {
-        return width == null ? DEFAULT_WIDTH : Range.of(width.min(), width.max());
+    public CaveValue width() {
+        return width;
     }
 
-    /** The noise that picks the width along a tunnel; empty where the pack wrote none. */
-    public Optional<NoiseStyle> widthStyle() {
-        if (width == null || width.style().equals(STYLE_OF_A_RANGE_WRITTEN_WITHOUT_ONE)) {
-            return Optional.empty();
-        }
-        return Optional.of(width.style());
-    }
-
-    /** The height range of an oval tunnel; empty for a round one. */
-    public Optional<Range> height() {
+    /** The height of an oval tunnel; empty for a round one. */
+    public Optional<CaveValue> height() {
         return Optional.ofNullable(height);
     }
 
@@ -81,7 +79,18 @@ public final class CaveTunnel {
         return Optional.ofNullable(warp);
     }
 
+    public CaveValue verticalWarp() {
+        return verticalWarp;
+    }
+
     public CaveTunnelCoverage coverage() {
-        return coverage == null ? new CaveTunnelCoverage() : coverage;
+        return coverage == null ? CaveTunnelCoverage.EVERYWHERE : coverage;
+    }
+
+    void requireValuesWithinBounds(String path, List<String> problems) {
+        width.requireWithin(WIDTH_BLOCKS, path + ".width", problems);
+        height().ifPresent(tunnelHeight -> tunnelHeight.requireWithin(HEIGHT_BLOCKS, path + ".height", problems));
+        verticalWarp.requireWithin(VERTICAL_WARP_SHARE, path + ".verticalWarp", problems);
+        coverage().requireValuesWithinBounds(path + ".coverage", problems);
     }
 }

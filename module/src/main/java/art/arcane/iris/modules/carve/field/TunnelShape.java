@@ -20,7 +20,7 @@ package art.arcane.iris.modules.carve.field;
 
 import art.arcane.iris.modules.carve.CaveTunnel;
 import art.arcane.iris.modules.carve.CaveTunnelCoverage;
-import com.volmit.config.Range;
+import art.arcane.iris.modules.carve.CaveValue;
 import com.volmit.noise.NoiseStyle;
 
 /**
@@ -37,8 +37,7 @@ import com.volmit.noise.NoiseStyle;
  */
 final class TunnelShape extends LatticeShape {
     private static final int SHEETS = 3;
-    private static final int WIDTH = SHEETS;
-    private static final int PRESENCE = SHEETS + 1;
+    private static final int NOT_READ = -1;
     private static final int[] PAIR_FIRST = {0, 0, 1};
     private static final int[] PAIR_SECOND = {1, 2, 2};
     private static final int PAIRS = PAIR_FIRST.length;
@@ -63,15 +62,17 @@ final class TunnelShape extends LatticeShape {
     private static final double DEFAULT_WARP_SHARE_OF_SPACING = 0.06D;
     private static final double DEFAULT_WARPS_PER_SPACING = 3D;
     private static final double SMALLEST_DEFAULT_WARP_SPACING_BLOCKS = 16D;
-    /** A warp moves a path up and down this share of how far it moves it sideways. */
-    private static final double VERTICAL_WARP_SHARE = 0.5D;
-    /** Without a width style, the width changes over this many horizontal spacings. */
-    private static final double DEFAULT_WIDTH_CHANGE_SPACINGS = 1.5D;
-    private static final double WIDTH_SPREAD = 1D;
     /** Without a coverage style, the areas with tunnels are this many horizontal spacings across. */
     private static final double DEFAULT_PRESENCE_SPACINGS = 3D;
-    /** Field value over which tunnels widen from nothing to full size at the edge of an area that has them. */
-    private static final double PRESENCE_EDGE = 0.15D;
+    /**
+     * Field value over which tunnels widen from nothing to full size at the edge of an area that has them, at a
+     * softness of 1. A softness of 0 still keeps the least edge, so the share never divides by zero.
+     */
+    private static final double SOFTEST_PRESENCE_EDGE = 0.5D;
+    private static final double LEAST_PRESENCE_EDGE = 0.005D;
+    /** Where the share of an area's tunnels is worked out at the lattice points, a block divides by nothing and subtracts nothing. */
+    private static final double PRESENCE_WORKED_OUT_AT_POINTS = 0D;
+    private static final double EDGE_WORKED_OUT_AT_POINTS = 1D;
     /** A tunnel narrower or lower than this is not a passage any more, so it ends instead. */
     private static final double NARROWEST_RADIUS_BLOCKS = 1D;
     /** A cell's slope is an average, so a cell is only ruled out when the line is clearly further than the widest tunnel. */
@@ -89,22 +90,46 @@ final class TunnelShape extends LatticeShape {
     private final Field3 warpY;
     private final Field3 warpZ;
     private final double warpBlocks;
+    private final ValueField verticalWarp;
     private final Field3 width;
-    private final Field3 presence;
-    private final double presenceThreshold;
     private final double narrowRadius;
     private final double wideRadius;
+    private final TunnelHeight heightKind;
     private final boolean oval;
     private final double lowRadius;
     private final double tallRadius;
+    private final ValueField height;
+    private final Field3 presence;
+    private final FieldStats presenceStats;
+    private final ValueField presenceShare;
+    private final ValueField presenceSoftness;
+    private final boolean presenceWorkedOutAtPoints;
+    private final double presenceThreshold;
+    private final double presenceEdge;
+    private final int widthField;
+    private final int heightField;
+    private final int presenceField;
+    private final int fieldCount;
     private final double leastSteepness;
+
+    /** How tall a tunnel is against how wide. */
+    private enum TunnelHeight {
+        /** As tall as it is wide. */
+        ROUND,
+        /** Between its low and tall height, as far as it is between its narrow and wide width. */
+        FOLLOWS_WIDTH,
+        /** The height its own noise picks. */
+        OWN_NOISE
+    }
 
     TunnelShape(CaveNoise noise, CaveTunnel tunnel) {
         double spacing = tunnel.spacing().horizontal();
         double verticalSpacing = tunnel.spacing().vertical();
+        double valueChangeBlocks = spacing * CaveTunnel.VALUE_CHANGE_SPACINGS;
         for (int sheet = 0; sheet < SHEETS; sheet++) {
             sheets[sheet] = noise.smooth(spacing, verticalSpacing);
         }
+        this.verticalWarp = ValueField.inBlocks(tunnel.verticalWarp(), noise, "tunnel.verticalWarp", valueChangeBlocks);
         NoiseStyle warp = tunnel.warp().orElse(null);
         if (warp == null) {
             double warpSpacing = Math.max(SMALLEST_DEFAULT_WARP_SPACING_BLOCKS, spacing / DEFAULT_WARPS_PER_SPACING);
@@ -118,42 +143,91 @@ final class TunnelShape extends LatticeShape {
             this.warpZ = noise.inBlocks(warp);
             this.warpBlocks = warp.isFlat() ? 0D : warp.multiplier() / 2D;
         }
-        double widthChangeSpacing = spacing * DEFAULT_WIDTH_CHANGE_SPACINGS;
-        this.width = tunnel.widthStyle().map(noise::inBlocks).orElseGet(() -> noise.smooth(widthChangeSpacing, widthChangeSpacing));
-        Range widthRange = tunnel.width();
-        this.narrowRadius = Math.min(widthRange.min(), widthRange.max()) / 2D;
-        this.wideRadius = Math.max(widthRange.min(), widthRange.max()) / 2D;
-        Range height = tunnel.height().orElse(null);
-        this.oval = height != null;
-        this.lowRadius = oval ? Math.min(height.min(), height.max()) / 2D : 0D;
-        this.tallRadius = oval ? Math.max(height.min(), height.max()) / 2D : 0D;
+        CaveValue widthValue = tunnel.width();
+        double widthChangeBlocks = spacing * CaveTunnel.WIDTH_CHANGE_SPACINGS;
+        this.width = widthValue.style().map(noise::inBlocks).orElseGet(() -> noise.smooth(widthChangeBlocks, widthChangeBlocks));
+        this.narrowRadius = widthValue.lowest() / 2D;
+        this.wideRadius = widthValue.highest() / 2D;
+        CaveValue heightValue = tunnel.height().orElse(null);
+        this.heightKind = heightKindOf(heightValue);
+        this.oval = heightKind != TunnelHeight.ROUND;
+        this.lowRadius = heightValue == null ? 0D : heightValue.lowest() / 2D;
+        this.tallRadius = heightValue == null ? 0D : heightValue.highest() / 2D;
+        this.height = heightKind == TunnelHeight.OWN_NOISE
+                ? ValueField.inBlocks(heightValue, noise, "tunnel.height", widthChangeBlocks)
+                : null;
         double leastSlope = CaveNoise.typicalSlope(spacing) * LEAST_SLOPE_SHARE;
         this.leastSteepness = leastSlope * leastSlope;
         CaveTunnelCoverage coverage = tunnel.coverage();
-        if (coverage.share() >= 1D) {
+        this.presenceShare = ValueField.inBlocks(coverage.share(), noise, "tunnel.coverage.share", valueChangeBlocks);
+        this.presenceSoftness = ValueField.inBlocks(coverage.softness(), noise, "tunnel.coverage.softness", valueChangeBlocks);
+        this.presenceWorkedOutAtPoints = presenceShare.varies() || presenceSoftness.varies();
+        boolean heightReadsTheWidthNoise = heightKind == TunnelHeight.FOLLOWS_WIDTH && heightValue.varies();
+        boolean readsWidth = widthValue.varies() || heightReadsTheWidthNoise;
+        this.widthField = readsWidth ? SHEETS : NOT_READ;
+        int nextField = readsWidth ? SHEETS + 1 : SHEETS;
+        this.heightField = height == null ? NOT_READ : nextField++;
+        if (presenceShare.lowest() >= 1D) {
             this.presence = null;
+            this.presenceStats = null;
             this.presenceThreshold = Double.NEGATIVE_INFINITY;
+            this.presenceEdge = EDGE_WORKED_OUT_AT_POINTS;
+            this.presenceField = NOT_READ;
+            this.fieldCount = nextField;
             return;
         }
         double presenceSpacing = spacing * DEFAULT_PRESENCE_SPACINGS;
         NoiseStyle presenceStyle = coverage.style().orElse(null);
         this.presence = presenceStyle == null ? noise.smooth(presenceSpacing, presenceSpacing) : noise.inBlocks(presenceStyle);
         double presenceFeatureBlocks = presenceStyle == null ? presenceSpacing : CaveNoise.featureBlocks(presence, presenceStyle);
-        this.presenceThreshold = FieldStats.measure(presence, presenceFeatureBlocks).valueAboveShare(coverage.share());
+        this.presenceStats = FieldStats.measure(presence, presenceFeatureBlocks);
+        this.presenceThreshold = presenceWorkedOutAtPoints ? PRESENCE_WORKED_OUT_AT_POINTS : presenceStats.valueAboveShare(presenceShare.min());
+        this.presenceEdge = presenceWorkedOutAtPoints ? EDGE_WORKED_OUT_AT_POINTS : presenceEdgeOf(presenceSoftness.min());
+        this.presenceField = nextField++;
+        this.fieldCount = nextField;
+    }
+
+    private static TunnelHeight heightKindOf(CaveValue height) {
+        if (height == null) {
+            return TunnelHeight.ROUND;
+        }
+        return height.varies() && height.style().isPresent() ? TunnelHeight.OWN_NOISE : TunnelHeight.FOLLOWS_WIDTH;
+    }
+
+    private static double presenceEdgeOf(double softness) {
+        return Math.max(LEAST_PRESENCE_EDGE, softness * SOFTEST_PRESENCE_EDGE);
     }
 
     @Override
     protected int fieldCount() {
-        return presence == null ? SHEETS + 1 : SHEETS + 2;
+        return fieldCount;
     }
 
     @Override
     protected void readFields(int x, int y, int z, double[] values) {
         readSheets(x, y, z, values);
-        values[WIDTH] = width.at(x, y, z);
-        if (presence != null) {
-            values[PRESENCE] = presence.at(x, y, z);
+        if (widthField != NOT_READ) {
+            values[widthField] = width.at(x, y, z);
         }
+        if (heightField != NOT_READ) {
+            values[heightField] = height.at(x, y, z);
+        }
+        if (presenceField != NOT_READ) {
+            values[presenceField] = presenceAt(x, y, z);
+        }
+    }
+
+    /**
+     * The presence field, or where share or softness vary, how far into an area with tunnels the point lies in
+     * edges: the threshold and edge are only known point by point then.
+     */
+    private double presenceAt(int x, int y, int z) {
+        double value = presence.at(x, y, z);
+        if (!presenceWorkedOutAtPoints) {
+            return value;
+        }
+        double threshold = presenceStats.valueAboveShare(presenceShare.at(x, y, z));
+        return (value - threshold) / presenceEdgeOf(presenceSoftness.at(x, y, z));
     }
 
     private void readSheets(int x, int y, int z, double[] values) {
@@ -164,7 +238,7 @@ final class TunnelShape extends LatticeShape {
             return;
         }
         double warpedX = x + (warpX.at(x, y, z) * warpBlocks);
-        double warpedY = y + (warpY.at(x, y, z) * warpBlocks * VERTICAL_WARP_SHARE);
+        double warpedY = y + (warpY.at(x, y, z) * warpBlocks * verticalWarp.at(x, y, z));
         double warpedZ = z + (warpZ.at(x, y, z) * warpBlocks);
         for (int sheet = 0; sheet < SHEETS; sheet++) {
             values[sheet] = sheets[sheet].at(warpedX, warpedY, warpedZ);
@@ -173,7 +247,7 @@ final class TunnelShape extends LatticeShape {
 
     @Override
     protected boolean mayCarveIn(Pass pass) {
-        if (presence != null && pass.cell(PRESENCE).highest() <= presenceThreshold) {
+        if (presence != null && pass.cell(presenceField).highest() <= presenceThreshold) {
             return false;
         }
         double reach = Math.max(wideRadius, tallRadius) * CELL_REACH_SLACK;
@@ -252,7 +326,7 @@ final class TunnelShape extends LatticeShape {
         if (!oval) {
             return isWithinRoundTunnel(pass, shareX, shareY, shareZ, radius);
         }
-        double heightRadius = ((lowRadius + ((tallRadius - lowRadius) * widthShare)) * sizeShare) * openness;
+        double heightRadius = (fullHeightRadiusAt(pass, shareX, shareY, shareZ, widthShare) * sizeShare) * openness;
         if (heightRadius < NARROWEST_RADIUS_BLOCKS) {
             return false;
         }
@@ -307,8 +381,20 @@ final class TunnelShape extends LatticeShape {
                 + (terms[offset + SECOND_SQUARED] * second * second);
     }
 
+    /** How far between its narrow and its wide width the tunnel is at the block, from 0 to 1; 0 where the width is fixed. */
     private double widthShareAt(Pass pass, double shareX, double shareY, double shareZ) {
-        return clampToShare(0.5D + (pass.cell(WIDTH).at(shareX, shareY, shareZ) * WIDTH_SPREAD));
+        if (widthField == NOT_READ) {
+            return 0D;
+        }
+        return ValueField.shareAt(pass.cell(widthField).at(shareX, shareY, shareZ));
+    }
+
+    /** Half the height of an oval tunnel at the block, before it narrows at the edges of its areas and limits. */
+    private double fullHeightRadiusAt(Pass pass, double shareX, double shareY, double shareZ, double widthShare) {
+        if (heightKind == TunnelHeight.OWN_NOISE) {
+            return pass.cell(heightField).at(shareX, shareY, shareZ) / 2D;
+        }
+        return lowRadius + ((tallRadius - lowRadius) * widthShare);
     }
 
     /** How far the block lies into an area with tunnels: 1 inside, falling to 0 over the edge. */
@@ -316,7 +402,7 @@ final class TunnelShape extends LatticeShape {
         if (presence == null) {
             return 1D;
         }
-        return clampToShare((pass.cell(PRESENCE).at(shareX, shareY, shareZ) - presenceThreshold) / PRESENCE_EDGE);
+        return clampToShare((pass.cell(presenceField).at(shareX, shareY, shareZ) - presenceThreshold) / presenceEdge);
     }
 
     private static double clampToShare(double value) {

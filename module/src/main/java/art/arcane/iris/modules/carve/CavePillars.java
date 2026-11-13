@@ -18,36 +18,35 @@
 
 package art.arcane.iris.modules.carve;
 
+import art.arcane.iris.modules.carve.CaveValue.Bounds;
 import com.volmit.config.Desc;
-import com.volmit.config.MaxNumber;
-import com.volmit.config.MinNumber;
 import com.volmit.noise.NoiseStyle;
 
+import java.util.List;
 import java.util.Optional;
-import java.util.OptionalInt;
 
 /** The pillars of a {@link CaveCavern}: columns of rock left standing from floor to ceiling. */
 @Desc("Rock columns left standing inside caverns.")
 public final class CavePillars {
-    @MinNumber(6)
-    @MaxNumber(256)
-    @Desc("Rough distance between pillars in blocks.")
-    private int spacing = 22;
+    private static final Bounds SPACING_BLOCKS = new Bounds(6, 256);
+    private static final Bounds THICKNESS_BLOCKS = new Bounds(1, 64);
+    private static final Bounds FLARE = new Bounds(1, 16);
+    private static final Bounds VERTICAL_BLOCKS = new Bounds(8, 512);
 
-    @MinNumber(1)
-    @MaxNumber(64)
-    @Desc("Rough thickness of a pillar at its middle, in blocks. Pillars widen towards floor and ceiling.")
-    private int thickness = 4;
+    @Desc("Rough distance between pillars in blocks, 6 to 256. A range changes over about " + CaveCavern.VALUE_CHANGE_SIZES + " room sizes.")
+    private CaveValue spacing = CaveValue.of(22);
 
-    @MinNumber(1)
-    @MaxNumber(16)
-    @Desc("How many times more ground a pillar covers at floor and ceiling than at its middle. 1 gives straight columns.")
-    private double flare = 4;
+    @Desc("Rough thickness of a pillar at its middle, in blocks, 1 to 64. Pillars widen towards floor and ceiling. A range changes over about "
+            + CaveCavern.VALUE_CHANGE_SIZES + " room sizes.")
+    private CaveValue thickness = CaveValue.of(4);
 
-    @MinNumber(8)
-    @MaxNumber(512)
-    @Desc("Blocks over which the pillars change with height, so they lean, pinch and break off. Detail under about 12 blocks is lost. Leave out for columns that run straight from floor to ceiling.")
-    private Integer vertical;
+    @Desc("How many times more ground a pillar covers at floor and ceiling than at its middle, 1 to 16. 1 gives straight columns. A range changes over about "
+            + CaveCavern.VALUE_CHANGE_SIZES + " room sizes.")
+    private CaveValue flare = CaveValue.of(4);
+
+    @Desc("Blocks over which the pillars change with height, 8 to 512, so they lean, pinch and break off. Detail under about 12 blocks is lost. A range changes over about "
+            + CaveCavern.VALUE_CHANGE_SIZES + " room sizes. Leave out for columns that run straight from floor to ceiling.")
+    private CaveValue vertical;
 
     @Desc("Noise that places the pillars. Scaled to spacing, so its zoom has no effect; a fracture stays in blocks. Leave out for evenly scattered pillars.")
     private NoiseStyle style;
@@ -55,13 +54,13 @@ public final class CavePillars {
     public CavePillars() {
     }
 
-    public double flare() {
+    public CaveValue flare() {
         return flare;
     }
 
     /** Blocks over which the pillars change with height; empty for pillars that run straight. */
-    public OptionalInt vertical() {
-        return vertical == null ? OptionalInt.empty() : OptionalInt.of(vertical);
+    public Optional<CaveValue> vertical() {
+        return Optional.ofNullable(vertical);
     }
 
     /** The noise that places the pillars; empty where the pack wrote none. */
@@ -69,11 +68,18 @@ public final class CavePillars {
         return Optional.ofNullable(style);
     }
 
-    public int spacing() {
+    public CaveValue spacing() {
         return spacing;
     }
 
-    public int thickness() {
+    public CaveValue thickness() {
         return thickness;
+    }
+
+    void requireValuesWithinBounds(String path, List<String> problems) {
+        spacing.requireWithin(SPACING_BLOCKS, path + ".spacing", problems);
+        thickness.requireWithin(THICKNESS_BLOCKS, path + ".thickness", problems);
+        flare.requireWithin(FLARE, path + ".flare", problems);
+        vertical().ifPresent(blocks -> blocks.requireWithin(VERTICAL_BLOCKS, path + ".vertical", problems));
     }
 }

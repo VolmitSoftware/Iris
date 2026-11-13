@@ -40,6 +40,7 @@ final class CaveNoise {
     /** A pack style is rescaled until its measured feature spacing is within this share of the one asked for. */
     private static final double SCALING_TOLERANCE = 0.1D;
     private static final int MOST_SCALING_ROUNDS = 6;
+    private static final long NAME_SEED_MIX = 0x9E3779B97F4A7C15L;
     private static final Field3 LEVEL = (x, y, z) -> 0D;
 
     private final NoiseFactory noise;
@@ -49,6 +50,14 @@ final class CaveNoise {
     CaveNoise(NoiseFactory noise, long seed) {
         this.noise = noise;
         this.seed = seed;
+    }
+
+    /**
+     * The fields of one named value of the cave, seeded by the name: a value that varies takes no seed from the
+     * cave's own fields, so writing a range anywhere leaves every other field of the cave where it was.
+     */
+    CaveNoise named(String name) {
+        return new CaveNoise(noise, seed ^ (name.hashCode() * NAME_SEED_MIX));
     }
 
     /** How much a field with this spacing typically changes over one block. */
@@ -77,6 +86,24 @@ final class CaveNoise {
         return (x, y, z) -> (base.at(x, y, z) + (detail.at(x, y, z) * detailWeight)) * normalization;
     }
 
+    /** {@link #detailed} with a detail weight that may vary from place to place. */
+    Field3 detailed(double spacing, double verticalSpacing, ValueField detailWeight) {
+        if (!detailWeight.varies()) {
+            return detailed(spacing, verticalSpacing, detailWeight.min());
+        }
+        Field3 base = smooth(spacing, verticalSpacing);
+        double detailSpacing = spacing / DETAIL_SHRINK;
+        double detailVerticalSpacing = verticalSpacing / DETAIL_SHRINK;
+        if (Math.min(detailSpacing, detailVerticalSpacing) < MIN_DETAIL_SPACING_BLOCKS) {
+            return base;
+        }
+        Field3 detail = smooth(detailSpacing, detailVerticalSpacing);
+        return (x, y, z) -> {
+            double weight = detailWeight.at(x, y, z);
+            return (base.at(x, y, z) + (detail.at(x, y, z) * weight)) / (1D + weight);
+        };
+    }
+
     /** A field that only varies over X and Z, changing sign about every {@code spacing} blocks. */
     Field3 columns(double spacing) {
         NoiseSampler sampler = nextSampler(NoiseStyle.of(STYLE));
@@ -92,6 +119,16 @@ final class CaveNoise {
         }
         NoiseSampler sampler = nextSampler(style);
         return sampler::signed;
+    }
+
+    /** {@link #inBlocks} for a field that only varies over X and Z. */
+    Field3 columnsInBlocks(NoiseStyle style) {
+        if (style.isFlat()) {
+            nextSeed();
+            return LEVEL;
+        }
+        NoiseSampler sampler = nextSampler(style);
+        return (x, y, z) -> sampler.signed(x, z);
     }
 
     /** A pack's style rescaled so its features lie about {@code spacing} blocks apart horizontally and {@code verticalSpacing} vertically. */

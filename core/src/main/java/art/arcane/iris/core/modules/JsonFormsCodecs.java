@@ -46,6 +46,7 @@ public final class JsonFormsCodecs implements TypeAdapterFactory {
         }
         JsonForms.Codec<T> codec = codecOf(forms);
         TypeAdapter<Object> plainValues = gson.getAdapter(Object.class);
+        JsonForms.Parts parts = partsReadBy(gson);
         String typeName = type.getRawType().getSimpleName();
         return new TypeAdapter<T>() {
             @Override
@@ -57,12 +58,26 @@ public final class JsonFormsCodecs implements TypeAdapterFactory {
             public T read(JsonReader in) throws IOException {
                 Object json = plainValues.read(in);
                 try {
-                    return codec.read(json);
+                    return codec.read(json, parts);
                 } catch (IllegalArgumentException notAForm) {
                     throw new JsonParseException(typeName + ": " + notAForm.getMessage(), notAForm);
                 }
             }
         }.nullSafe();
+    }
+
+    /** Reads a part of a form with the same Gson that reads the form, so a part reads as its type does anywhere else. */
+    private static JsonForms.Parts partsReadBy(Gson gson) {
+        return new JsonForms.Parts() {
+            @Override
+            public <V> V read(Object json, Class<V> type) {
+                try {
+                    return gson.fromJson(gson.toJsonTree(json), type);
+                } catch (JsonParseException notAPart) {
+                    throw new IllegalArgumentException(notAPart.getMessage(), notAPart);
+                }
+            }
+        };
     }
 
     @SuppressWarnings("unchecked")

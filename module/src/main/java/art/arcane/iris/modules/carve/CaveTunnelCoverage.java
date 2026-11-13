@@ -18,33 +18,103 @@
 
 package art.arcane.iris.modules.carve;
 
+import art.arcane.iris.modules.carve.CaveValue.Bounds;
 import com.volmit.config.Desc;
-import com.volmit.config.MaxNumber;
-import com.volmit.config.MinNumber;
+import com.volmit.config.JsonForms;
 import com.volmit.noise.NoiseStyle;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
-/** Where the tunnels of a {@link CaveTunnel} occur: the share of the underground that has them, in patches a noise shapes. */
-@Desc("Where tunnels occur.")
+/**
+ * Where the tunnels of a {@link CaveTunnel} occur: the share of the underground that has them, in areas a noise shapes,
+ * and how gradually they thin out at the edge of an area. Written as the share alone, {@code 0.4}, or as
+ * {@code {"share": 0.4, "softness": 0.3, "style": {...}}} with each member optional.
+ */
+@Desc("Where tunnels occur: a share, or {share, softness, style}.")
+@JsonForms(CaveTunnelCoverage.Forms.class)
 public final class CaveTunnelCoverage {
-    @MinNumber(0)
-    @MaxNumber(1)
-    @Desc("Share of the underground that has tunnels. 1 puts them everywhere, lower leaves areas without any.")
-    private double share = 1;
+    /** The softness that thins tunnels out over the same stretch they always did before softness was a key. */
+    public static final double DEFAULT_SOFTNESS = 0.3D;
+    static final CaveTunnelCoverage EVERYWHERE = new CaveTunnelCoverage(1D, CaveValue.of(1), CaveValue.of(DEFAULT_SOFTNESS), null);
+    private static final Bounds SHARE = new Bounds(0, 1);
+    private static final Bounds SOFTNESS = new Bounds(0, 1);
 
-    @Desc("Noise that shapes the areas with tunnels. Leave out for patches that scale with spacing.")
-    private NoiseStyle style;
+    private final Object written;
+    private final CaveValue share;
+    private final CaveValue softness;
+    private final NoiseStyle style;
 
-    public CaveTunnelCoverage() {
+    private CaveTunnelCoverage(Object written, CaveValue share, CaveValue softness, NoiseStyle style) {
+        this.written = written;
+        this.share = share;
+        this.softness = softness;
+        this.style = style;
     }
 
-    public double share() {
+    /** Share of the underground that has tunnels, from 0 to 1. */
+    public CaveValue share() {
         return share;
+    }
+
+    /** How gradually tunnels thin out at the edge of an area, from 0 for abrupt ends to 1 for long tails. */
+    public CaveValue softness() {
+        return softness;
     }
 
     /** The noise that shapes the areas with tunnels; empty where the pack wrote none. */
     public Optional<NoiseStyle> style() {
         return Optional.ofNullable(style);
+    }
+
+    void requireValuesWithinBounds(String path, List<String> problems) {
+        share.requireWithin(SHARE, path + "." + Forms.SHARE, problems);
+        softness.requireWithin(SOFTNESS, path + "." + Forms.SOFTNESS, problems);
+    }
+
+    @Override
+    public String toString() {
+        return String.valueOf(written);
+    }
+
+    /** Reads the forms a pack writes and writes a coverage back exactly as it was read. */
+    static final class Forms implements JsonForms.Codec<CaveTunnelCoverage> {
+        static final String SHARE = "share";
+        static final String SOFTNESS = "softness";
+        static final String STYLE = "style";
+        private static final Set<String> MEMBERS = Set.of(SHARE, SOFTNESS, STYLE);
+
+        @Override
+        public CaveTunnelCoverage read(Object json, JsonForms.Parts parts) {
+            return switch (json) {
+                case Number number -> new CaveTunnelCoverage(json, CaveValue.of(number.doubleValue()), EVERYWHERE.softness, null);
+                case Map<?, ?> object -> spelledOut(object, parts);
+                default -> throw new IllegalArgumentException("A tunnel coverage is a share or {share, softness, style}, not " + json);
+            };
+        }
+
+        @Override
+        public Object write(CaveTunnelCoverage value) {
+            return value.written;
+        }
+
+        private static CaveTunnelCoverage spelledOut(Map<?, ?> object, JsonForms.Parts parts) {
+            for (Object member : object.keySet()) {
+                if (!MEMBERS.contains(member)) {
+                    throw new IllegalArgumentException("A tunnel coverage has share, softness and style, not " + member);
+                }
+            }
+            CaveValue share = valueOrDefault(object.get(SHARE), EVERYWHERE.share, parts);
+            CaveValue softness = valueOrDefault(object.get(SOFTNESS), EVERYWHERE.softness, parts);
+            Object writtenStyle = object.get(STYLE);
+            NoiseStyle style = writtenStyle == null ? null : parts.read(writtenStyle, NoiseStyle.class);
+            return new CaveTunnelCoverage(object, share, softness, style);
+        }
+
+        private static CaveValue valueOrDefault(Object written, CaveValue fallback, JsonForms.Parts parts) {
+            return written == null ? fallback : parts.read(written, CaveValue.class);
+        }
     }
 }

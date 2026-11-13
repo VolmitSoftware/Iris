@@ -919,7 +919,9 @@ Every settings class, value type and pack resource kind is read the same way, by
 - A class annotated `@JsonForms(Codec.class)` is the one exception: a value packs write in several shapes, such as a
   number, a `[min, max]` range or a curve object. The host reads its JSON as plain values (maps, lists, `Double`s,
   strings, booleans), hands them to the codec, and writes the value back through it. It never creates the class or
-  reads its fields, and studio describes it as any JSON value.
+  reads its fields, and studio describes it as any JSON value. A form may hold a part of another type, such as a
+  `NoiseStyle`; the codec reads it with the `Parts` the host hands it, so the part reads as that type does anywhere
+  else, a pack's expression included.
 - A member the JSON leaves out keeps the field's initialiser. A member written as `null` counts as left out.
 - The host never writes `null` into a field. An enum name the enum does not know is an error that lists the known
   names; it does not become `null` or the default.

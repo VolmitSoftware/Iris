@@ -542,7 +542,7 @@ class PackSchemaTest {
 
                             public static final class Forms implements JsonForms.Codec<Height> {
                                 @Override
-                                public Height read(Object json) {
+                                public Height read(Object json, JsonForms.Parts parts) {
                                     return new Height((Double) json);
                                 }
 

@@ -272,7 +272,8 @@ running Iris is the pack publisher's responsibility.
 - Decode IrisApi's value types like settings: `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range` and
   `BlockPosition` from the JSON shapes in their docs, `Object` as maps, lists, `Double`s, strings and booleans.
   Read and write a `@JsonForms` class through its codec, created once with its no-argument constructor, handing it
-  those same plain values; a member written as `null` stays left out and never reaches the codec.
+  those same plain values; a member written as `null` stays left out and never reaches the codec. Its `Parts` read a
+  part of a form exactly as the host reads that type anywhere else.
   Read a `"snippet/<name>"` or `"snippet/<folder>/<name>"` string of a `@Snippet` type from
   `snippet/<folder>/<name>.json`. Complete `NOISE_STYLE` references and `@ResourceRef` of the host kinds
   (`EXPRESSIONS`, `IMAGE_MAPS` among them);

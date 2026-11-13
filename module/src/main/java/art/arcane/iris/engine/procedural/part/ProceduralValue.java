@@ -224,7 +224,7 @@ public final class ProceduralValue {
         private static final double DEFAULT_TO = 1;
 
         @Override
-        public ProceduralValue read(Object json) {
+        public ProceduralValue read(Object json, JsonForms.Parts parts) {
             return new ProceduralValue(json, formOf(json));
         }
 

@@ -4,9 +4,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import com.volmit.config.JsonForms;
+import com.volmit.noise.NoiseStyle;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -44,16 +46,46 @@ public class JsonFormsCodecsTest {
         assertTrue(failure.getMessage(), failure.getMessage().startsWith("Height: "));
     }
 
+    @Test
+    public void aPartOfAFormIsReadAsItsOwnType() {
+        Shaded shaded = GSON.fromJson("{\"blocks\": 3, \"style\": {\"style\": \"SIMPLEX\", \"zoom\": 2}}", Shaded.class);
+
+        assertEquals(NoiseStyle.of("SIMPLEX").withZoom(2), shaded.style());
+    }
+
+    @Test
+    public void aPartThatDoesNotReadFailsNamingTheClass() {
+        JsonParseException failure = assertThrows(JsonParseException.class, () -> GSON.fromJson("{\"blocks\": 3, \"style\": 4}", Shaded.class));
+
+        assertTrue(failure.getMessage(), failure.getMessage().startsWith("Shaded: "));
+    }
+
     private static final class Settings {
         private Height height = new Height(1, 1);
         private List<Height> steps = List.of();
+    }
+
+    @JsonForms(Shaded.Forms.class)
+    private record Shaded(double blocks, NoiseStyle style) {
+        static final class Forms implements JsonForms.Codec<Shaded> {
+            @Override
+            public Shaded read(Object json, JsonForms.Parts parts) {
+                Map<?, ?> object = (Map<?, ?>) json;
+                return new Shaded((Double) object.get("blocks"), parts.read(object.get("style"), NoiseStyle.class));
+            }
+
+            @Override
+            public Object write(Shaded value) {
+                return Map.of("blocks", value.blocks());
+            }
+        }
     }
 
     @JsonForms(Height.Forms.class)
     private record Height(double min, double max) {
         static final class Forms implements JsonForms.Codec<Height> {
             @Override
-            public Height read(Object json) {
+            public Height read(Object json, JsonForms.Parts parts) {
                 return switch (json) {
                     case Double blocks -> new Height(blocks, blocks);
                     case List<?> range -> new Height((Double) range.get(0), (Double) range.get(1));

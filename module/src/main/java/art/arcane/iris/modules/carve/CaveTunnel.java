@@ -19,47 +19,69 @@
 package art.arcane.iris.modules.carve;
 
 import com.volmit.config.Desc;
-import com.volmit.config.MaxNumber;
-import com.volmit.config.MinNumber;
 import com.volmit.config.Range;
+import com.volmit.config.Required;
+import com.volmit.noise.NoiseStyle;
+import com.volmit.noise.StyledRange;
+
+import java.util.Optional;
 
 /** The tunnels of a {@link Cave}: long winding passages. Thin ones link other caves together. */
 @Desc("Long winding passages.")
 public final class CaveTunnel {
-    @Desc("Tunnel width in blocks. A tunnel varies between the two along its length.")
-    private Range width = Range.of(4, 7);
+    private static final Range DEFAULT_WIDTH = Range.of(4, 7);
+    /**
+     * The style a styled range gets when the pack writes none: white noise, which would make a tunnel's width jump
+     * block by block. A width with this style follows the default width noise instead.
+     */
+    private static final NoiseStyle STYLE_OF_A_RANGE_WRITTEN_WITHOUT_ONE = NoiseStyle.of("STATIC");
 
-    @MinNumber(16)
-    @MaxNumber(512)
-    @Desc("Roughly how many blocks a tunnel runs between turns and junctions. Larger gives longer, straighter and sparser tunnels.")
-    private int stretch = 96;
+    @Desc("Tunnel width in blocks. The style picks where a tunnel is narrow or wide; leave it out for a slow change that scales with spacing.")
+    private StyledRange width;
 
-    @MinNumber(1)
-    @MaxNumber(4)
-    @Desc("How level tunnels run. 1 lets them go in any direction, higher keeps them closer to horizontal.")
-    private double flatness = 1.4;
+    @Desc("Tunnel height in blocks, low where the tunnel is narrow and tall where it is wide. Leave out for round tunnels.")
+    private Range height;
 
-    @MinNumber(0)
-    @MaxNumber(1)
-    @Desc("Share of the underground that has tunnels at all. 1 puts them everywhere, lower leaves areas without any.")
-    private double coverage = 1;
+    @Required
+    @Desc("Blocks between neighbouring tunnels.")
+    private CaveTunnelSpacing spacing = new CaveTunnelSpacing();
+
+    @Desc("Noise that bends the tunnels: zoom sets how often they turn, multiplier how many blocks they swing. A flat style keeps them straight. Leave out for a gentle bend that scales with spacing.")
+    private NoiseStyle warp;
+
+    @Desc("Where tunnels occur. Leave out to put them everywhere.")
+    private CaveTunnelCoverage coverage;
 
     public CaveTunnel() {
     }
 
     public Range width() {
-        return width == null ? Range.of(4, 7) : width;
+        return width == null ? DEFAULT_WIDTH : Range.of(width.min(), width.max());
     }
 
-    public int stretch() {
-        return stretch;
+    /** The noise that picks the width along a tunnel; empty where the pack wrote none. */
+    public Optional<NoiseStyle> widthStyle() {
+        if (width == null || width.style().equals(STYLE_OF_A_RANGE_WRITTEN_WITHOUT_ONE)) {
+            return Optional.empty();
+        }
+        return Optional.of(width.style());
     }
 
-    public double flatness() {
-        return flatness;
+    /** The height range of an oval tunnel; empty for a round one. */
+    public Optional<Range> height() {
+        return Optional.ofNullable(height);
     }
 
-    public double coverage() {
-        return coverage;
+    public CaveTunnelSpacing spacing() {
+        return spacing == null ? new CaveTunnelSpacing() : spacing;
+    }
+
+    /** The noise that bends the tunnels; empty where the pack wrote none. */
+    public Optional<NoiseStyle> warp() {
+        return Optional.ofNullable(warp);
+    }
+
+    public CaveTunnelCoverage coverage() {
+        return coverage == null ? new CaveTunnelCoverage() : coverage;
     }
 }

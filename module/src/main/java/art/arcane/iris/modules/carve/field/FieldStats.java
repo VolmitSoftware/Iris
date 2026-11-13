@@ -19,10 +19,12 @@
 package art.arcane.iris.modules.carve.field;
 
 import java.util.Arrays;
+import java.util.OptionalDouble;
 
 /**
  * What a field's values look like, measured once on fixed sample points so every server measures the same: which value
- * a given share of the world lies above. Shapes turn a share of the underground into a field threshold with it.
+ * a given share of the world lies above, and how far apart its features lie. Shapes turn a share of the underground
+ * into a field threshold with it, and a pack's noise style into a size in blocks.
  */
 final class FieldStats {
     private static final int SAMPLES = 4096;
@@ -31,6 +33,10 @@ final class FieldStats {
     private static final double STEP_X = 0.7548776662466927D;
     private static final double STEP_Y = 0.5698402909980532D;
     private static final double STEP_Z = 0.8191725133961645D;
+    private static final int LINES = 64;
+    private static final int LINE_SAMPLES = 128;
+    private static final double LINE_STEPS_PER_FEATURE = 16D;
+    private static final int FEWEST_CROSSINGS = 16;
 
     private final double[] sortedValues;
 
@@ -47,6 +53,43 @@ final class FieldStats {
         }
         Arrays.sort(values);
         return new FieldStats(values);
+    }
+
+    /**
+     * How far apart the features of {@code field} lie in blocks, measured as the mean distance between two crossings
+     * of its middle value along horizontal lines. Lines are read in steps of a fraction of {@code expectedBlocks}, so a
+     * field far finer than expected measures too coarse; measuring again at the answer corrects that. Empty for a field
+     * that hardly crosses its middle, such as a level one.
+     */
+    static OptionalDouble featureBlocks(Field3 field, double expectedBlocks) {
+        double step = expectedBlocks / LINE_STEPS_PER_FEATURE;
+        double span = expectedBlocks * SPAN_IN_FEATURES;
+        double[] values = new double[LINES * LINE_SAMPLES];
+        for (int line = 0; line < LINES; line++) {
+            double startX = coordinate(line, STEP_X, span);
+            double y = coordinate(line, STEP_Y, span);
+            double startZ = coordinate(line, STEP_Z, span);
+            boolean alongX = (line & 1) == 0;
+            for (int sample = 0; sample < LINE_SAMPLES; sample++) {
+                double along = sample * step;
+                values[(line * LINE_SAMPLES) + sample] = alongX ? field.at(startX + along, y, startZ) : field.at(startX, y, startZ + along);
+            }
+        }
+        double[] sorted = values.clone();
+        Arrays.sort(sorted);
+        double middle = sorted[sorted.length / 2];
+        int crossings = 0;
+        for (int index = 1; index < values.length; index++) {
+            boolean sameLine = index % LINE_SAMPLES != 0;
+            if (sameLine && (values[index - 1] >= middle) != (values[index] >= middle)) {
+                crossings++;
+            }
+        }
+        if (crossings < FEWEST_CROSSINGS) {
+            return OptionalDouble.empty();
+        }
+        double measuredLength = LINES * (LINE_SAMPLES - 1) * step;
+        return OptionalDouble.of(measuredLength / crossings);
     }
 
     private static double coordinate(int sample, double step, double span) {

@@ -19,6 +19,9 @@
 package art.arcane.iris.modules.carve.field;
 
 import art.arcane.iris.modules.carve.CaveTunnel;
+import art.arcane.iris.modules.carve.CaveTunnelCoverage;
+import com.volmit.config.Range;
+import com.volmit.noise.NoiseStyle;
 
 /**
  * Tunnels: the lines along which two of three fields are both zero. Each field is zero on winding sheets through the
@@ -28,7 +31,9 @@ import art.arcane.iris.modules.carve.CaveTunnel;
  *
  * <p>A tunnel is every block within its radius of a line. The distance is worked out in blocks from how steeply the
  * fields change in the cell, so a tunnel keeps the width the pack asks for wherever the noise is steep or shallow.
- * The fields are read at gently shifted places, which makes a tunnel's path wiggle without ever breaking it.
+ * An oval tunnel measures the distance with the vertical axis stretched by its width over its height, which keeps its
+ * width and gives it its height. The fields are read at warped places, which makes a tunnel's path bend without ever
+ * breaking it.
  */
 final class TunnelShape extends LatticeShape {
     private static final int SHEETS = 3;
@@ -37,24 +42,37 @@ final class TunnelShape extends LatticeShape {
     private static final int[] PAIR_FIRST = {0, 0, 1};
     private static final int[] PAIR_SECOND = {1, 2, 2};
     private static final int PAIRS = PAIR_FIRST.length;
-    private static final int VALUES_PER_PAIR = 4;
+    /** A round tunnel keeps, per pair of sheets, the three terms of its squared distance from their line and whether it is near. */
+    private static final int ROUND_VALUES_PER_PAIR = 4;
     private static final int FIRST_SQUARED = 0;
     private static final int FIRST_TIMES_SECOND = 1;
     private static final int SECOND_SQUARED = 2;
     private static final int PAIR_IS_NEAR = 3;
+    /** An oval tunnel keeps each sheet's slope along the three axes, then whether each pair is near. */
+    private static final int OVAL_SLOPE_X = 0;
+    private static final int OVAL_SLOPE_Y = 1;
+    private static final int OVAL_SLOPE_Z = 2;
+    private static final int OVAL_VALUES_PER_SHEET = 3;
+    private static final int OVAL_PAIR_IS_NEAR = SHEETS * OVAL_VALUES_PER_SHEET;
+    /** An oval tunnel's terms depend on its height over its width at the block, so they are worked out block by block here. */
+    private static final ThreadLocal<double[]> OVAL_TERMS = ThreadLocal.withInitial(() -> new double[PAIR_IS_NEAR]);
     private static final double NEAR = 1D;
     private static final double FAR = 0D;
-    /** A path shifts by this share of the tunnel's stretch, and changes direction this many times per stretch. */
-    private static final double WIGGLE_SHARE_OF_STRETCH = 0.06D;
-    private static final double WIGGLES_PER_STRETCH = 3D;
-    private static final double SMALLEST_WIGGLE_SPACING_BLOCKS = 16D;
-    private static final double VERTICAL_WIGGLE_SHARE = 0.5D;
-    private static final double WIDTH_CHANGE_STRETCHES = 1.5D;
+    private static final double ROUND = 1D;
+    /** Without a warp, a path shifts by this share of the horizontal spacing, and changes direction this many times per spacing. */
+    private static final double DEFAULT_WARP_SHARE_OF_SPACING = 0.06D;
+    private static final double DEFAULT_WARPS_PER_SPACING = 3D;
+    private static final double SMALLEST_DEFAULT_WARP_SPACING_BLOCKS = 16D;
+    /** A warp moves a path up and down this share of how far it moves it sideways. */
+    private static final double VERTICAL_WARP_SHARE = 0.5D;
+    /** Without a width style, the width changes over this many horizontal spacings. */
+    private static final double DEFAULT_WIDTH_CHANGE_SPACINGS = 1.5D;
     private static final double WIDTH_SPREAD = 1D;
-    private static final double PRESENCE_STRETCHES = 3D;
+    /** Without a coverage style, the areas with tunnels are this many horizontal spacings across. */
+    private static final double DEFAULT_PRESENCE_SPACINGS = 3D;
     /** Field value over which tunnels widen from nothing to full size at the edge of an area that has them. */
     private static final double PRESENCE_EDGE = 0.15D;
-    /** A tunnel narrower than this is not a passage any more, so it ends instead. */
+    /** A tunnel narrower or lower than this is not a passage any more, so it ends instead. */
     private static final double NARROWEST_RADIUS_BLOCKS = 1D;
     /** A cell's slope is an average, so a cell is only ruled out when the line is clearly further than the widest tunnel. */
     private static final double CELL_REACH_SLACK = 1.5D;
@@ -67,41 +85,61 @@ final class TunnelShape extends LatticeShape {
     private static final double LEAST_CROSSING = 0.03D;
 
     private final Field3[] sheets = new Field3[SHEETS];
+    private final Field3 warpX;
+    private final Field3 warpY;
+    private final Field3 warpZ;
+    private final double warpBlocks;
     private final Field3 width;
     private final Field3 presence;
-    private final Field3 wiggleX;
-    private final Field3 wiggleY;
-    private final Field3 wiggleZ;
-    private final double wiggleBlocks;
+    private final double presenceThreshold;
     private final double narrowRadius;
     private final double wideRadius;
+    private final boolean oval;
+    private final double lowRadius;
+    private final double tallRadius;
     private final double leastSteepness;
-    private final double presenceThreshold;
 
     TunnelShape(CaveNoise noise, CaveTunnel tunnel) {
-        double stretch = tunnel.stretch();
-        double verticalStretch = stretch / Math.max(1D, tunnel.flatness());
+        double spacing = tunnel.spacing().horizontal();
+        double verticalSpacing = tunnel.spacing().vertical();
         for (int sheet = 0; sheet < SHEETS; sheet++) {
-            sheets[sheet] = noise.smooth(stretch, verticalStretch);
+            sheets[sheet] = noise.smooth(spacing, verticalSpacing);
         }
-        double wiggleSpacing = Math.max(SMALLEST_WIGGLE_SPACING_BLOCKS, stretch / WIGGLES_PER_STRETCH);
-        this.wiggleX = noise.smooth(wiggleSpacing, wiggleSpacing);
-        this.wiggleY = noise.smooth(wiggleSpacing, wiggleSpacing);
-        this.wiggleZ = noise.smooth(wiggleSpacing, wiggleSpacing);
-        this.wiggleBlocks = stretch * WIGGLE_SHARE_OF_STRETCH;
-        this.width = noise.smooth(stretch * WIDTH_CHANGE_STRETCHES, stretch * WIDTH_CHANGE_STRETCHES);
-        this.narrowRadius = Math.min(tunnel.width().min(), tunnel.width().max()) / 2D;
-        this.wideRadius = Math.max(tunnel.width().min(), tunnel.width().max()) / 2D;
-        double leastSlope = CaveNoise.typicalSlope(stretch) * LEAST_SLOPE_SHARE;
+        NoiseStyle warp = tunnel.warp().orElse(null);
+        if (warp == null) {
+            double warpSpacing = Math.max(SMALLEST_DEFAULT_WARP_SPACING_BLOCKS, spacing / DEFAULT_WARPS_PER_SPACING);
+            this.warpX = noise.smooth(warpSpacing, warpSpacing);
+            this.warpY = noise.smooth(warpSpacing, warpSpacing);
+            this.warpZ = noise.smooth(warpSpacing, warpSpacing);
+            this.warpBlocks = spacing * DEFAULT_WARP_SHARE_OF_SPACING;
+        } else {
+            this.warpX = noise.inBlocks(warp);
+            this.warpY = noise.inBlocks(warp);
+            this.warpZ = noise.inBlocks(warp);
+            this.warpBlocks = warp.isFlat() ? 0D : warp.multiplier() / 2D;
+        }
+        double widthChangeSpacing = spacing * DEFAULT_WIDTH_CHANGE_SPACINGS;
+        this.width = tunnel.widthStyle().map(noise::inBlocks).orElseGet(() -> noise.smooth(widthChangeSpacing, widthChangeSpacing));
+        Range widthRange = tunnel.width();
+        this.narrowRadius = Math.min(widthRange.min(), widthRange.max()) / 2D;
+        this.wideRadius = Math.max(widthRange.min(), widthRange.max()) / 2D;
+        Range height = tunnel.height().orElse(null);
+        this.oval = height != null;
+        this.lowRadius = oval ? Math.min(height.min(), height.max()) / 2D : 0D;
+        this.tallRadius = oval ? Math.max(height.min(), height.max()) / 2D : 0D;
+        double leastSlope = CaveNoise.typicalSlope(spacing) * LEAST_SLOPE_SHARE;
         this.leastSteepness = leastSlope * leastSlope;
-        if (tunnel.coverage() >= 1D) {
+        CaveTunnelCoverage coverage = tunnel.coverage();
+        if (coverage.share() >= 1D) {
             this.presence = null;
             this.presenceThreshold = Double.NEGATIVE_INFINITY;
             return;
         }
-        double presenceStretch = stretch * PRESENCE_STRETCHES;
-        this.presence = noise.smooth(presenceStretch, presenceStretch);
-        this.presenceThreshold = FieldStats.measure(presence, presenceStretch).valueAboveShare(tunnel.coverage());
+        double presenceSpacing = spacing * DEFAULT_PRESENCE_SPACINGS;
+        NoiseStyle presenceStyle = coverage.style().orElse(null);
+        this.presence = presenceStyle == null ? noise.smooth(presenceSpacing, presenceSpacing) : noise.inBlocks(presenceStyle);
+        double presenceFeatureBlocks = presenceStyle == null ? presenceSpacing : CaveNoise.featureBlocks(presence, presenceStyle);
+        this.presenceThreshold = FieldStats.measure(presence, presenceFeatureBlocks).valueAboveShare(coverage.share());
     }
 
     @Override
@@ -111,15 +149,25 @@ final class TunnelShape extends LatticeShape {
 
     @Override
     protected void readFields(int x, int y, int z, double[] values) {
-        double shiftedX = x + (wiggleX.at(x, y, z) * wiggleBlocks);
-        double shiftedY = y + (wiggleY.at(x, y, z) * wiggleBlocks * VERTICAL_WIGGLE_SHARE);
-        double shiftedZ = z + (wiggleZ.at(x, y, z) * wiggleBlocks);
-        for (int sheet = 0; sheet < SHEETS; sheet++) {
-            values[sheet] = sheets[sheet].at(shiftedX, shiftedY, shiftedZ);
-        }
+        readSheets(x, y, z, values);
         values[WIDTH] = width.at(x, y, z);
         if (presence != null) {
             values[PRESENCE] = presence.at(x, y, z);
+        }
+    }
+
+    private void readSheets(int x, int y, int z, double[] values) {
+        if (warpBlocks == 0D) {
+            for (int sheet = 0; sheet < SHEETS; sheet++) {
+                values[sheet] = sheets[sheet].at(x, y, z);
+            }
+            return;
+        }
+        double warpedX = x + (warpX.at(x, y, z) * warpBlocks);
+        double warpedY = y + (warpY.at(x, y, z) * warpBlocks * VERTICAL_WARP_SHARE);
+        double warpedZ = z + (warpZ.at(x, y, z) * warpBlocks);
+        for (int sheet = 0; sheet < SHEETS; sheet++) {
+            values[sheet] = sheets[sheet].at(warpedX, warpedY, warpedZ);
         }
     }
 
@@ -128,77 +176,147 @@ final class TunnelShape extends LatticeShape {
         if (presence != null && pass.cell(PRESENCE).highest() <= presenceThreshold) {
             return false;
         }
-        double reach = wideRadius * CELL_REACH_SLACK;
-        double[] pairValues = pass.cellValues();
+        double reach = Math.max(wideRadius, tallRadius) * CELL_REACH_SLACK;
+        double[] cellValues = pass.cellValues();
+        if (oval) {
+            keepSlopes(pass, cellValues);
+        }
         boolean anyPairNear = false;
         for (int pair = 0; pair < PAIRS; pair++) {
-            boolean near = preparePair(pass.cell(PAIR_FIRST[pair]), pass.cell(PAIR_SECOND[pair]), reach, pairValues, pair * VALUES_PER_PAIR);
-            pairValues[(pair * VALUES_PER_PAIR) + PAIR_IS_NEAR] = near ? NEAR : FAR;
+            LatticeCell first = pass.cell(PAIR_FIRST[pair]);
+            LatticeCell second = pass.cell(PAIR_SECOND[pair]);
+            boolean near = isNear(first, reach) && isNear(second, reach);
+            if (near && !oval) {
+                keepTerms(first, second, ROUND, cellValues, pair * ROUND_VALUES_PER_PAIR);
+            }
+            cellValues[nearIndex(pair)] = near ? NEAR : FAR;
             anyPairNear |= near;
         }
         return anyPairNear;
     }
 
-    /**
-     * Works out, for the line where two sheets meet, the terms that turn the two field values at a block of the cell
-     * into its squared distance from that line in blocks. Answers false when the line is out of reach of the whole cell.
-     */
-    private boolean preparePair(LatticeCell first, LatticeCell second, double reach, double[] pairValues, int offset) {
-        double firstSteepness = Math.max(squaredSlope(first), leastSteepness);
-        double secondSteepness = Math.max(squaredSlope(second), leastSteepness);
-        if (isFurtherThan(first.distanceFromZero(), firstSteepness, reach) || isFurtherThan(second.distanceFromZero(), secondSteepness, reach)) {
-            return false;
+    private int nearIndex(int pair) {
+        return oval ? OVAL_PAIR_IS_NEAR + pair : (pair * ROUND_VALUES_PER_PAIR) + PAIR_IS_NEAR;
+    }
+
+    /** Whether the sheet of a field may come within {@code reach} blocks of the cell. */
+    private boolean isNear(LatticeCell cell, double reach) {
+        double fieldDistance = cell.distanceFromZero();
+        double squaredSlope = Math.max(squaredSlope(cell, ROUND), leastSteepness);
+        return fieldDistance * fieldDistance <= reach * reach * squaredSlope;
+    }
+
+    private static void keepSlopes(Pass pass, double[] cellValues) {
+        for (int sheet = 0; sheet < SHEETS; sheet++) {
+            LatticeCell cell = pass.cell(sheet);
+            int offset = sheet * OVAL_VALUES_PER_SHEET;
+            cellValues[offset + OVAL_SLOPE_X] = cell.slopeX();
+            cellValues[offset + OVAL_SLOPE_Y] = cell.slopeY();
+            cellValues[offset + OVAL_SLOPE_Z] = cell.slopeZ();
         }
-        double together = (first.slopeX() * second.slopeX()) + (first.slopeY() * second.slopeY()) + (first.slopeZ() * second.slopeZ());
+    }
+
+    /**
+     * Works out, for the line where two sheets meet, the terms that turn the two field values at a block into its
+     * squared distance from that line in blocks, with the vertical axis squeezed by {@code verticalScale}.
+     */
+    private void keepTerms(LatticeCell first, LatticeCell second, double verticalScale, double[] terms, int offset) {
+        keepTerms(first.slopeX(), first.slopeY(), first.slopeZ(), second.slopeX(), second.slopeY(), second.slopeZ(), verticalScale, terms, offset);
+    }
+
+    private void keepTerms(double firstX, double firstY, double firstZ, double secondX, double secondY, double secondZ,
+                           double verticalScale, double[] terms, int offset) {
+        double squaredScale = verticalScale * verticalScale;
+        double firstSteepness = Math.max((firstX * firstX) + (squaredScale * firstY * firstY) + (firstZ * firstZ), leastSteepness);
+        double secondSteepness = Math.max((secondX * secondX) + (squaredScale * secondY * secondY) + (secondZ * secondZ), leastSteepness);
+        double together = (firstX * secondX) + (squaredScale * firstY * secondY) + (firstZ * secondZ);
         double crossing = Math.max((firstSteepness * secondSteepness) - (together * together), firstSteepness * secondSteepness * LEAST_CROSSING);
-        pairValues[offset + FIRST_SQUARED] = secondSteepness / crossing;
-        pairValues[offset + FIRST_TIMES_SECOND] = (-2D * together) / crossing;
-        pairValues[offset + SECOND_SQUARED] = firstSteepness / crossing;
-        return true;
+        terms[offset + FIRST_SQUARED] = secondSteepness / crossing;
+        terms[offset + FIRST_TIMES_SECOND] = (-2D * together) / crossing;
+        terms[offset + SECOND_SQUARED] = firstSteepness / crossing;
     }
 
-    private static double squaredSlope(LatticeCell cell) {
-        return (cell.slopeX() * cell.slopeX()) + (cell.slopeY() * cell.slopeY()) + (cell.slopeZ() * cell.slopeZ());
-    }
-
-    /** Whether a sheet whose field stays {@code fieldDistance} from zero in the cell is more than {@code blocks} away. */
-    private static boolean isFurtherThan(double fieldDistance, double squaredSlope, double blocks) {
-        return fieldDistance * fieldDistance > blocks * blocks * squaredSlope;
+    private static double squaredSlope(LatticeCell cell, double verticalScale) {
+        double squaredScale = verticalScale * verticalScale;
+        return (cell.slopeX() * cell.slopeX()) + (squaredScale * cell.slopeY() * cell.slopeY()) + (cell.slopeZ() * cell.slopeZ());
     }
 
     @Override
     protected boolean carvesAt(Pass pass, double shareX, double shareY, double shareZ, double openness, int column) {
-        double radius = radiusAt(pass, shareX, shareY, shareZ) * openness;
+        double widthShare = widthShareAt(pass, shareX, shareY, shareZ);
+        double sizeShare = presenceShareAt(pass, shareX, shareY, shareZ);
+        double radius = ((narrowRadius + ((wideRadius - narrowRadius) * widthShare)) * sizeShare) * openness;
         if (radius < NARROWEST_RADIUS_BLOCKS) {
             return false;
         }
+        if (!oval) {
+            return isWithinRoundTunnel(pass, shareX, shareY, shareZ, radius);
+        }
+        double heightRadius = ((lowRadius + ((tallRadius - lowRadius) * widthShare)) * sizeShare) * openness;
+        if (heightRadius < NARROWEST_RADIUS_BLOCKS) {
+            return false;
+        }
+        return isWithinOvalTunnel(pass, shareX, shareY, shareZ, radius, heightRadius);
+    }
+
+    private boolean isWithinRoundTunnel(Pass pass, double shareX, double shareY, double shareZ, double radius) {
         double squaredRadius = radius * radius;
-        double[] pairValues = pass.cellValues();
+        double[] terms = pass.cellValues();
         for (int pair = 0; pair < PAIRS; pair++) {
-            int offset = pair * VALUES_PER_PAIR;
-            if (pairValues[offset + PAIR_IS_NEAR] == FAR) {
+            int offset = pair * ROUND_VALUES_PER_PAIR;
+            if (terms[offset + PAIR_IS_NEAR] == FAR) {
                 continue;
             }
-            double first = pass.cell(PAIR_FIRST[pair]).at(shareX, shareY, shareZ);
-            double second = pass.cell(PAIR_SECOND[pair]).at(shareX, shareY, shareZ);
-            double squaredBlocksFromLine = (pairValues[offset + FIRST_SQUARED] * first * first)
-                    + (pairValues[offset + FIRST_TIMES_SECOND] * first * second)
-                    + (pairValues[offset + SECOND_SQUARED] * second * second);
-            if (squaredBlocksFromLine < squaredRadius) {
+            if (squaredBlocksFromLine(pass, pair, terms, offset, shareX, shareY, shareZ) < squaredRadius) {
                 return true;
             }
         }
         return false;
     }
 
-    private double radiusAt(Pass pass, double shareX, double shareY, double shareZ) {
-        double widthShare = clampToShare(0.5D + (pass.cell(WIDTH).at(shareX, shareY, shareZ) * WIDTH_SPREAD));
-        double radius = narrowRadius + ((wideRadius - narrowRadius) * widthShare);
-        if (presence == null) {
-            return radius;
+    /**
+     * Measures with the vertical axis stretched by the tunnel's width over its height, where the oval is a circle as
+     * wide as the tunnel: a field's upward slope shrinks by the same share.
+     */
+    private boolean isWithinOvalTunnel(Pass pass, double shareX, double shareY, double shareZ, double radius, double heightRadius) {
+        double squaredRadius = radius * radius;
+        double verticalScale = heightRadius / radius;
+        double[] cellValues = pass.cellValues();
+        double[] terms = OVAL_TERMS.get();
+        for (int pair = 0; pair < PAIRS; pair++) {
+            if (cellValues[OVAL_PAIR_IS_NEAR + pair] == FAR) {
+                continue;
+            }
+            int first = PAIR_FIRST[pair] * OVAL_VALUES_PER_SHEET;
+            int second = PAIR_SECOND[pair] * OVAL_VALUES_PER_SHEET;
+            keepTerms(cellValues[first + OVAL_SLOPE_X], cellValues[first + OVAL_SLOPE_Y], cellValues[first + OVAL_SLOPE_Z],
+                    cellValues[second + OVAL_SLOPE_X], cellValues[second + OVAL_SLOPE_Y], cellValues[second + OVAL_SLOPE_Z],
+                    verticalScale, terms, 0);
+            if (squaredBlocksFromLine(pass, pair, terms, 0, shareX, shareY, shareZ) < squaredRadius) {
+                return true;
+            }
         }
-        double intoArea = (pass.cell(PRESENCE).at(shareX, shareY, shareZ) - presenceThreshold) / PRESENCE_EDGE;
-        return radius * clampToShare(intoArea);
+        return false;
+    }
+
+    private static double squaredBlocksFromLine(Pass pass, int pair, double[] terms, int offset, double shareX, double shareY, double shareZ) {
+        double first = pass.cell(PAIR_FIRST[pair]).at(shareX, shareY, shareZ);
+        double second = pass.cell(PAIR_SECOND[pair]).at(shareX, shareY, shareZ);
+        return (terms[offset + FIRST_SQUARED] * first * first)
+                + (terms[offset + FIRST_TIMES_SECOND] * first * second)
+                + (terms[offset + SECOND_SQUARED] * second * second);
+    }
+
+    private double widthShareAt(Pass pass, double shareX, double shareY, double shareZ) {
+        return clampToShare(0.5D + (pass.cell(WIDTH).at(shareX, shareY, shareZ) * WIDTH_SPREAD));
+    }
+
+    /** How far the block lies into an area with tunnels: 1 inside, falling to 0 over the edge. */
+    private double presenceShareAt(Pass pass, double shareX, double shareY, double shareZ) {
+        if (presence == null) {
+            return 1D;
+        }
+        return clampToShare((pass.cell(PRESENCE).at(shareX, shareY, shareZ) - presenceThreshold) / PRESENCE_EDGE);
     }
 
     private static double clampToShare(double value) {

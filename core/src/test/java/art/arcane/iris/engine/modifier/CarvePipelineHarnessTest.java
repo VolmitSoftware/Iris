@@ -48,8 +48,8 @@ public class CarvePipelineHarnessTest {
     private static final long SEED = 424242L;
     private static final int APPLIED_CHUNKS_PER_SIDE = 6;
     private static final int CARVE_RING = 1;
-    private static final String VOIDS_DIGEST = "630fef28ea2529d4";
-    private static final String BLOCKS_DIGEST = "58fbce572cb007d4";
+    private static final String VOIDS_DIGEST = "5624cb08f2804752";
+    private static final String BLOCKS_DIGEST = "7dbd8ad0cb967121";
 
     private static final BlockState STONE = new BlockState("minecraft:stone");
     private static final BlockState AIR = new BlockState("minecraft:air");
@@ -220,7 +220,7 @@ public class CarvePipelineHarnessTest {
 
     private static Cave cave() {
         return TestSettings.of(Cave.class, """
-                {"tunnel": {"width": {"min": 3, "max": 5}, "stretch": 40},
+                {"tunnel": {"width": {"min": 3, "max": 5}, "spacing": {"horizontal": 40, "vertical": 32}},
                  "cavern": {"size": 32, "height": 14, "coverage": 0.12, "pillars": {"spacing": 12, "thickness": 3}},
                  "opensToSurface": true, "fade": 4}
                 """);

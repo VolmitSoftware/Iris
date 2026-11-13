@@ -24,10 +24,10 @@ import static org.junit.Assert.assertTrue;
 
 public class CaveScenesTest {
     private static final String MIXED = """
-            {"tunnel": {"width": {"min": 4, "max": 6}, "stretch": 48},
+            {"tunnel": {"width": {"min": 4, "max": 6}, "spacing": {"horizontal": 48, "vertical": 34}},
              "cavern": {"size": 40, "height": 18, "coverage": 0.2, "pillars": {"spacing": 14, "thickness": 4}}}
             """;
-    private static final String TUNNELS_ONLY = "{\"tunnel\": {\"width\": {\"min\": 4, \"max\": 6}, \"stretch\": 48}}";
+    private static final String TUNNELS_ONLY = "{\"tunnel\": {\"width\": {\"min\": 4, \"max\": 6}, \"spacing\": {\"horizontal\": 48, \"vertical\": 34}}}";
     private static final String TUNNEL_BLOCK = "minecraft:light_blue_concrete";
     private static final String CAVERN_BLOCK = "minecraft:orange_concrete";
     private static final int[][] NEIGHBOURS = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};

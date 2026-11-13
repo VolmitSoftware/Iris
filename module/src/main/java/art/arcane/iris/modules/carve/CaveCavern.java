@@ -21,6 +21,7 @@ package art.arcane.iris.modules.carve;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
 import com.volmit.config.MinNumber;
+import com.volmit.noise.NoiseStyle;
 
 import java.util.Optional;
 
@@ -42,10 +43,18 @@ public final class CaveCavern {
     @Desc("Share of the underground that is cavern. 0.1 gives scattered rooms, 0.3 joins them into halls.")
     private double coverage = 0.1;
 
+    @Desc("Noise that shapes the rooms. Scaled to size and height, so its zoom has no effect; a fracture stays in blocks. Detail under about 12 blocks is lost. Leave out for smooth rooms with rough walls.")
+    private NoiseStyle style;
+
     @Desc("Rock columns left standing inside the rooms. Leave out for open rooms.")
     private CavePillars pillars;
 
     public CaveCavern() {
+    }
+
+    /** The noise that shapes the rooms; empty where the pack wrote none. */
+    public Optional<NoiseStyle> style() {
+        return Optional.ofNullable(style);
     }
 
     public int size() {

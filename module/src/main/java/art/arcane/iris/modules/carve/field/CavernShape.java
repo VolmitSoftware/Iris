@@ -20,14 +20,18 @@ package art.arcane.iris.modules.carve.field;
 
 import art.arcane.iris.modules.carve.CaveCavern;
 import art.arcane.iris.modules.carve.CavePillars;
+import com.volmit.noise.NoiseStyle;
 
 /**
- * Caverns: the rooms where one slow field rises above a threshold. Pillars are columns where a second field, which
- * only varies across X and Z, peaks: there the room has to be more open to be carved, so a pillar stands from floor
- * to ceiling and widens towards both, where the room is least open.
+ * Caverns: the rooms where one slow field rises above a threshold. Pillars stand where a second field peaks: there the
+ * room has to be more open to be carved, so a pillar widens towards floor and ceiling, where the room is least open.
+ * The pillar field varies only across X and Z unless the pack lets pillars change with height; then it is read in 3D
+ * on the lattice, and a pillar whose field fades out mid-room narrows and breaks off, leaving stubs that flare into
+ * floor and ceiling.
  */
 final class CavernShape extends LatticeShape {
     private static final int ROOMS = 0;
+    private static final int PILLARS = 1;
     /** A room is the part of a feature above the threshold, which is narrower than the feature itself. */
     private static final double FEATURE_BLOCKS_PER_ROOM_BLOCK = 1.6D;
     /** A finer layer keeps room walls from looking like smooth bubbles. */
@@ -36,37 +40,51 @@ final class CavernShape extends LatticeShape {
     private static final double CLOSING_MARGIN = 1.1D;
     /** Pillars are two features apart: one peak, one trough. */
     private static final double PILLAR_FEATURES_PER_SPACING = 0.5D;
-    /** How much more ground a pillar covers at floor and ceiling than at its middle. */
-    private static final double PILLAR_FOOT_AREA = 4D;
     private static final double LARGEST_PILLAR_AREA_SHARE = 0.3D;
+    private static final double NO_PILLAR = 0D;
+    private static final double FULL_PILLAR = 1D;
 
     private final Field3 rooms;
     private final double threshold;
     private final double mostOpen;
     private final Field3 pillars;
+    private final boolean pillarsChangeWithHeight;
     private final double pillarMiddle;
     private final double pillarFoot;
 
     CavernShape(CaveNoise noise, CaveCavern cavern) {
         double span = cavern.size() * FEATURE_BLOCKS_PER_ROOM_BLOCK;
         double height = cavern.height() * FEATURE_BLOCKS_PER_ROOM_BLOCK;
-        this.rooms = noise.detailed(span, height, WALL_DETAIL);
+        this.rooms = cavern.style()
+                .map(style -> noise.scaledTo(style, span, height))
+                .orElseGet(() -> noise.detailed(span, height, WALL_DETAIL));
         FieldStats stats = FieldStats.measure(rooms, span);
         this.threshold = stats.valueAboveShare(cavern.coverage());
         this.mostOpen = Math.max(0D, stats.highest() - threshold);
         if (cavern.pillars().isEmpty()) {
             this.pillars = null;
+            this.pillarsChangeWithHeight = false;
             this.pillarMiddle = Double.POSITIVE_INFINITY;
             this.pillarFoot = Double.POSITIVE_INFINITY;
             return;
         }
         CavePillars settings = cavern.pillars().get();
         double featureBlocks = settings.spacing() * PILLAR_FEATURES_PER_SPACING;
-        this.pillars = noise.columns(featureBlocks);
+        this.pillarsChangeWithHeight = settings.vertical().isPresent();
+        this.pillars = pillarField(noise, settings, featureBlocks);
         FieldStats pillarStats = FieldStats.measure(pillars, featureBlocks);
         double middleAreaShare = Math.min(LARGEST_PILLAR_AREA_SHARE, pillarAreaShare(settings));
         this.pillarMiddle = pillarStats.valueAboveShare(middleAreaShare);
-        this.pillarFoot = pillarStats.valueAboveShare(Math.min(1D, middleAreaShare * PILLAR_FOOT_AREA));
+        this.pillarFoot = pillarStats.valueAboveShare(Math.min(1D, middleAreaShare * settings.flare()));
+    }
+
+    private static Field3 pillarField(CaveNoise noise, CavePillars settings, double featureBlocks) {
+        NoiseStyle style = settings.style().orElse(null);
+        if (settings.vertical().isEmpty()) {
+            return style == null ? noise.columns(featureBlocks) : noise.columnsScaledTo(style, featureBlocks);
+        }
+        double vertical = settings.vertical().getAsInt();
+        return style == null ? noise.smooth(featureBlocks, vertical) : noise.scaledTo(style, featureBlocks, vertical);
     }
 
     private static double pillarAreaShare(CavePillars pillars) {
@@ -76,12 +94,15 @@ final class CavernShape extends LatticeShape {
 
     @Override
     protected int fieldCount() {
-        return 1;
+        return pillarsChangeWithHeight ? 2 : 1;
     }
 
     @Override
     protected void readFields(int x, int y, int z, double[] values) {
         values[ROOMS] = rooms.at(x, y, z);
+        if (pillarsChangeWithHeight) {
+            values[PILLARS] = pillars.at(x, y, z);
+        }
     }
 
     @Override
@@ -98,20 +119,35 @@ final class CavernShape extends LatticeShape {
         if (pillars == null) {
             return true;
         }
-        return open > pillarStrength(pass, column) * mostOpen;
+        double strength = pillarsChangeWithHeight
+                ? pillarStrength(pass.cell(PILLARS).at(shareX, shareY, shareZ))
+                : columnPillarStrength(pass, column);
+        return open > strength * mostOpen;
     }
 
-    /** How strongly the column is a pillar: 0 outside one, 1 in its middle, in between on the foot it widens into. */
-    private double pillarStrength(Pass pass, int column) {
+    /** {@link #pillarStrength} of a straight pillar, read once per column of the chunk. */
+    private double columnPillarStrength(Pass pass, int column) {
         double[] strengths = pass.columnValues();
         double known = strengths[column];
         if (!Double.isNaN(known)) {
             return known;
         }
         double value = pillars.at(pass.lattice().originX() + (column >> 4), 0D, pass.lattice().originZ() + (column & 15));
-        double intoPillar = Math.max(0D, Math.min(1D, (value - pillarFoot) / (pillarMiddle - pillarFoot)));
-        double strength = intoPillar * intoPillar;
+        double strength = pillarStrength(value);
         strengths[column] = strength;
         return strength;
+    }
+
+    /** How strongly a pillar field value is a pillar: 0 outside one, 1 in its middle, in between on the foot it widens into. */
+    private double pillarStrength(double value) {
+        if (value >= pillarMiddle) {
+            return FULL_PILLAR;
+        }
+        double footWidth = pillarMiddle - pillarFoot;
+        if (footWidth <= 0D) {
+            return NO_PILLAR;
+        }
+        double intoPillar = Math.max(0D, Math.min(1D, (value - pillarFoot) / footWidth));
+        return intoPillar * intoPillar;
     }
 }

@@ -30,27 +30,30 @@ public class NaturePlanetCavesTest {
 
     private static final List<Pinned> NATUREPLANET = List.of(
             new Pinned("caverns", """
-                    {"cavern": {"size": 56, "height": 22, "coverage": 0.07},
-                     "depth": {"min": -20, "max": 200}, "fade": 16, "surfaceClearance": 12}
+                    {"cavern": {"size": 56, "height": 22, "coverage": 0.07, "roughness": 0.3},
+                     "depth": {"min": -20, "max": 200}, "fade": 16, "surfaceClearance": 12, "ceilingFade": 8}
                     """, 96_055, -382_152_706),
             new Pinned("crawlways", """
                     {"tunnel": {
                       "width": {"min": 2, "max": 3, "style": {"style": "SIMPLEX", "zoom": 1.2}},
                       "spacing": {"horizontal": 64, "vertical": 53},
                       "warp": {"style": "SIMPLEX", "zoom": 0.25, "multiplier": 8},
-                      "coverage": {"share": 0.4, "style": {"style": "SIMPLEX", "zoom": 2.4}}},
-                     "surfaceClearance": 6}
+                      "verticalWarp": 0.5,
+                      "coverage": {"share": 0.4, "softness": 0.3, "style": {"style": "SIMPLEX", "zoom": 2.4}}},
+                     "surfaceClearance": 6, "ceilingFade": 8}
                     """, 8_329, 1_344_334_684),
             new Pinned("deep-halls", """
-                    {"cavern": {"size": 110, "height": 40, "coverage": 0.18, "pillars": {"spacing": 26, "thickness": 5}},
-                     "depth": {"min": -64, "max": 10}, "fade": 14, "surfaceClearance": 16}
+                    {"cavern": {"size": 110, "height": 40, "coverage": 0.18, "roughness": 0.3,
+                      "pillars": {"spacing": 26, "thickness": 5, "flare": 4}},
+                     "depth": {"min": -64, "max": 10}, "fade": 14, "surfaceClearance": 16, "ceilingFade": 8}
                     """, 273_203, 1_962_467_619),
             new Pinned("tunnels", """
                     {"tunnel": {
                       "width": {"min": 4, "max": 7, "style": {"style": "SIMPLEX", "zoom": 1.8}},
                       "spacing": {"horizontal": 96, "vertical": 69},
                       "warp": {"style": "SIMPLEX", "zoom": 0.4, "multiplier": 11.5},
-                      "coverage": {"share": 0.8, "style": {"style": "SIMPLEX", "zoom": 3.6}}},
+                      "verticalWarp": 0.5,
+                      "coverage": {"share": 0.8, "softness": 0.3, "style": {"style": "SIMPLEX", "zoom": 3.6}}},
                      "opensToSurface": true}
                     """, 76_608, -1_422_091_570));
 

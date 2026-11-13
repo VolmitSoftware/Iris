@@ -5,11 +5,10 @@ import art.arcane.iris.engine.object.TestSettings;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
-import com.volmit.tooling.GraphNode;
-import com.volmit.tooling.JsonText;
-import com.volmit.tooling.NodeGraph;
+import com.volmit.tooling.EditableSceneView;
 import com.volmit.tooling.SceneEntry;
 import com.volmit.tooling.SceneRequest;
+import com.volmit.tooling.SceneView;
 import org.junit.Test;
 
 import java.util.HashSet;
@@ -88,22 +87,9 @@ public class CaveScenesTest {
     }
 
     @Test
-    public void aCaveFileIsOneNodeWithASectionForEachPart() {
-        NodeGraph graph = view.graph(world, "deep/mixed", JsonText.parse(MIXED));
-
-        assertFalse(view.showsNodes());
-        GraphNode cave = graph.roots().getFirst();
-        assertEquals("mixed", cave.title());
-        assertTrue(cave.children().isEmpty());
-        assertEquals(List.of("Cave", "Tunnel", "Cavern", "Pillars"), cave.settings().stream().map(GraphNode.NodeSettings::title).toList());
-    }
-
-    @Test
-    public void anUnwrittenPartHasASectionSoSettingItWritesIt() {
-        NodeGraph graph = view.graph(world, "tunnels", JsonText.parse(TUNNELS_ONLY));
-
-        assertEquals(List.of("Cave", "Tunnel", "Cavern (unset)", "Pillars (unset)"),
-                graph.roots().getFirst().settings().stream().map(GraphNode.NodeSettings::title).toList());
+    public void theViewOnlyShowsCavesAndEditsNone() {
+        SceneView registered = view;
+        assertFalse(registered instanceof EditableSceneView);
     }
 
     private GeneratedObject scene(String key, int variant, int size) {

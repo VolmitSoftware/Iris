@@ -40,8 +40,6 @@ export interface SceneEntry {
 export interface SceneViewInfo extends ModuleViewInfo {
   editable: boolean
   creatable: boolean
-  /** Whether an editable view's files show as nodes under the scene; else as one node's settings beside it. */
-  nodes: boolean
   baked: boolean
   parts: boolean
   /** The sizes the scenes can be built at, or null when each entry has its own. */

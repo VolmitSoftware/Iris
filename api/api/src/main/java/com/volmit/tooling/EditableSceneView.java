@@ -21,14 +21,6 @@ public interface EditableSceneView extends SceneView {
      */
     NodeGraph graph(PackWorld world, String key, JsonText text);
 
-    /**
-     * Whether the studio shows the file's graph as nodes under the scene, which is the default. A view whose file reads
-     * as one node of settings says no, and the studio shows those settings beside the scene instead.
-     */
-    default boolean showsNodes() {
-        return true;
-    }
-
     /** How the studio creates and removes entries of this view; empty when it may not, which is the default. */
     default Optional<SceneCreation> creation() {
         return Optional.empty();

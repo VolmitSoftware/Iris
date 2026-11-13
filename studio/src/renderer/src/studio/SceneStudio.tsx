@@ -65,10 +65,8 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
   const bakeTiming = useBakeTiming(client, view.id, entry?.key ?? null, view.baked, packRevision, tell)
 
   const editor = useNodeEditor(client, view.id, view.editable ? (entry?.key ?? null) : null, packRevision, tell)
-  const editsAsForm = view.editable && !view.nodes
   const [selectedPath, setSelectedPath] = useState<JsonPath | null>(null)
-  const roots = editor.state?.roots ?? null
-  const selected = roots === null ? null : editsAsForm ? (roots[0] ?? null) : selectedPath !== null ? nodeWithPath(roots, selectedPath) : null
+  const selected = editor.state?.roots != null && selectedPath !== null ? nodeWithPath(editor.state.roots, selectedPath) : null
   const values = useMemo(() => (editor.state === null ? undefined : parsedText(editor.state.text)), [editor.state])
   const suggestions = useMemo(() => new SuggestionStore((of) => client.suggestions(of)), [client, packRevision])
 
@@ -133,7 +131,7 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
           onSize={(next) => setChosenSize({ viewId: view.id, size: next })}
           onPick={view.parts ? pickPart : undefined}
         />
-        {view.editable && !editsAsForm && entry !== null && (
+        {view.editable && entry !== null && (
           <NodePane
             editor={editor}
             entryKey={entry.key}

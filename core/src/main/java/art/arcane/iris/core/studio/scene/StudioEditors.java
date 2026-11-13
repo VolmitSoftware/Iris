@@ -119,11 +119,6 @@ public final class StudioEditors {
         return save(viewId, key, file, text);
     }
 
-    /** Whether the studio shows the files of {@code viewId} as nodes, rather than as one node's settings beside the scene. */
-    public boolean showsNodes(String viewId) {
-        return views.ask(viewId, "tell whether its files show as nodes", EditableSceneView::showsNodes);
-    }
-
     /** Whether entries of {@code viewId} can be created and removed from the studio. */
     public boolean creates(String viewId) {
         return views.ask(viewId, "tell whether entries are created", view -> view.creation().isPresent());

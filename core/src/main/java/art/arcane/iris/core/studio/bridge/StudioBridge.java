@@ -385,7 +385,7 @@ public final class StudioBridge implements AutoCloseable {
             boolean editable = editors.edits(view.id());
             SceneSizesWire sizes = scenes.sizes(view.id()).map(SceneSizesWire::of).orElse(null);
             return new SceneViewInfo(view.id(), view.label(), view.description(), editable, editable && editors.creates(view.id()),
-                    editable && editors.showsNodes(view.id()), scenes.isBaked(view.id()), scenes.hasParts(view.id()), sizes);
+                    scenes.isBaked(view.id()), scenes.hasParts(view.id()), sizes);
         }).toList();
     }
 
@@ -922,8 +922,8 @@ public final class StudioBridge implements AutoCloseable {
 
     /** A scene view as the studio lists it; {@code editable} when its entries can be edited as nodes, {@code creatable} when they can also be created and deleted, {@code baked} when their bake can be timed, {@code parts} when the blocks of a scene can be told by the part that placed them. */
     /** @param sizes null when the view's entries each have a size of their own */
-    private record SceneViewInfo(String id, String label, String description, boolean editable, boolean creatable, boolean nodes,
-                                 boolean baked, boolean parts, SceneSizesWire sizes) {
+    private record SceneViewInfo(String id, String label, String description, boolean editable, boolean creatable, boolean baked,
+                                 boolean parts, SceneSizesWire sizes) {
     }
 
     private record SceneSizesWire(List<Integer> blocksAcross, int opening) {

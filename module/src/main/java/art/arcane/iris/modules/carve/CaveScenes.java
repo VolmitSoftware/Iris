@@ -20,14 +20,10 @@ package art.arcane.iris.modules.carve;
 
 import com.volmit.object.GeneratedObject;
 import com.volmit.resource.ResourceId;
-import com.volmit.tooling.EditableSceneView;
-import com.volmit.tooling.JsonText;
-import com.volmit.tooling.NodeGraph;
-import com.volmit.tooling.SceneCreation;
 import com.volmit.tooling.SceneEntry;
-import com.volmit.tooling.SceneFile;
 import com.volmit.tooling.SceneRequest;
 import com.volmit.tooling.SceneSizes;
+import com.volmit.tooling.SceneView;
 import com.volmit.world.PackWorld;
 
 import java.util.LinkedHashMap;
@@ -38,19 +34,11 @@ import java.util.Optional;
 /**
  * The studio's Caves view: every cave of the pack's {@code caves/} folder carved over a square of the world under a
  * flat surface, the carved space drawn as blocks so its shape shows. Each variant is the same cave elsewhere in the
- * world. A cave's settings are shown beside it, and the studio redraws the cave as they change.
+ * world. A viewer only: caves are written in their files, and the studio redraws a cave when its file is saved.
  */
-public final class CaveScenes implements EditableSceneView {
+public final class CaveScenes implements SceneView {
     private static final ResourceId ID = ResourceId.parse("iris:carve/caves");
     private static final char FOLDER_SEPARATOR = '/';
-    /** Other files name a cave by its bare key, in a {@code caves} list. */
-    private static final String REFERENCE_PREFIX = "";
-    private static final String STARTER = """
-            {
-                "tunnel": {"width": {"min": 4, "max": 7}, "stretch": 96}
-            }
-            """;
-    private static final SceneCreation CREATION = new SceneCreation(CaveResources.CAVES, STARTER, REFERENCE_PREFIX);
 
     @Override
     public ResourceId id() {
@@ -89,29 +77,6 @@ public final class CaveScenes implements EditableSceneView {
             return Optional.empty();
         }
         return Optional.of(world.state(Previews.class, ignored -> new Previews()).of(world, new Place(id, request.variant(), size), cave));
-    }
-
-    @Override
-    public Optional<SceneFile> fileOf(PackWorld world, String key) {
-        ResourceId id = world.resources().idOf(key);
-        return world.resources().ids(CaveResources.CAVES).contains(id)
-                ? Optional.of(new SceneFile(CaveResources.CAVES, id))
-                : Optional.empty();
-    }
-
-    @Override
-    public NodeGraph graph(PackWorld world, String key, JsonText text) {
-        return CaveGraph.of(key.substring(key.lastIndexOf(FOLDER_SEPARATOR) + 1), text);
-    }
-
-    @Override
-    public boolean showsNodes() {
-        return false;
-    }
-
-    @Override
-    public Optional<SceneCreation> creation() {
-        return Optional.of(CREATION);
     }
 
     private static SceneEntry entryOf(ResourceId id) {

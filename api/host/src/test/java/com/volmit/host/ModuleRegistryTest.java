@@ -204,7 +204,7 @@ class ModuleRegistryTest {
             public String label() { return id; }
             public String description() { return id; }
             public List<com.volmit.tooling.SceneEntry> entries(com.volmit.world.PackWorld world) { return List.of(); }
-            public Optional<com.volmit.object.GeneratedObject> scene(com.volmit.world.PackWorld world, String key, int variant) {
+            public Optional<com.volmit.object.GeneratedObject> scene(com.volmit.world.PackWorld world, com.volmit.tooling.SceneRequest request) {
                 return Optional.empty();
             }
         };

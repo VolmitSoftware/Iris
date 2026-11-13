@@ -40,6 +40,13 @@ export class BridgeError extends Error {
   }
 }
 
+/** Which scene of a scene view: an entry's variant, at one of the view's sizes or null when it has none. */
+export interface ScenePlace {
+  key: string
+  variant: number
+  size: number | null
+}
+
 export interface TileRequest {
   view: string
   /** The region the region view previews everywhere, or null for the world as it is. */
@@ -213,15 +220,26 @@ export class BridgeClient {
     return this.json(`scene-bake?${new URLSearchParams({ view: viewId, key })}`, { signal })
   }
 
-  async scene(viewId: string, key: string, variant: number, signal?: AbortSignal): Promise<BlockScene> {
-    const response = await this.fetch(`scene?${new URLSearchParams({ view: viewId, key, variant: String(variant) })}`, { signal })
+  async scene(viewId: string, place: ScenePlace, signal?: AbortSignal): Promise<BlockScene> {
+    const response = await this.fetch(`scene?${sceneQuery(viewId, place)}`, { signal })
     return decodeScene(await response.arrayBuffer())
   }
 
   /** The part that placed each block of {@link scene}, in the same order, or NO_PART; baked again on the server to find out. */
-  async sceneParts(viewId: string, key: string, variant: number, signal?: AbortSignal): Promise<Int32Array> {
-    const response = await this.fetch(`scene-parts?${new URLSearchParams({ view: viewId, key, variant: String(variant) })}`, { signal })
+  async sceneParts(viewId: string, place: ScenePlace, signal?: AbortSignal): Promise<Int32Array> {
+    const response = await this.fetch(`scene-parts?${sceneQuery(viewId, place)}`, { signal })
     return new Int32Array(await response.arrayBuffer())
+  }
+
+  /**
+   * The caves of the world's generated chunks over a square {@code size} blocks across around a spot: every air block
+   * under the terrain, drawn as blocks coloured by height. Every chunk of the square is generated, which takes seconds.
+   */
+  async caves(centerX: number, centerZ: number, size: number, signal: AbortSignal): Promise<BlockScene> {
+    const query = new URLSearchParams({ x: String(Math.round(centerX)), z: String(Math.round(centerZ)), size: String(size) })
+    this.cancelOnAbort(query, signal)
+    const response = await this.fetch(`caves?${query}`, { signal })
+    return decodeScene(await response.arrayBuffer())
   }
 
   /** The pattern views the pack's modules show, such as its palettes. */
@@ -332,6 +350,14 @@ export class BridgeClient {
     }
     return response
   }
+}
+
+function sceneQuery(viewId: string, place: ScenePlace): URLSearchParams {
+  const query = new URLSearchParams({ view: viewId, key: place.key, variant: String(place.variant) })
+  if (place.size !== null) {
+    query.set('size', String(place.size))
+  }
+  return query
 }
 
 function layerQuery(layer: MapLayerQuery, rest: Record<string, string>): URLSearchParams {

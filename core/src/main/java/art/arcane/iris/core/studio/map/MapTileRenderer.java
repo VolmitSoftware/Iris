@@ -24,6 +24,7 @@ import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.util.project.stream.ProceduralStream;
+import com.volmit.object.GeneratedObject;
 import it.unimi.dsi.fastutil.bytes.ByteArrayList;
 import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 
@@ -40,6 +41,7 @@ import java.util.function.BooleanSupplier;
 
 /** Draws {@link MapTile}s of one engine's world. Safe to use from several threads; each tile is drawn on its caller's. */
 public final class MapTileRenderer {
+    private static final int CHUNK_BLOCKS = 16;
     private final Engine engine;
     private final GeneratedChunks generated;
 
@@ -71,6 +73,23 @@ public final class MapTileRenderer {
         return layer.previews()
                 ? renderPreview(layer, grid, blocksPerPixel, extras)
                 : renderView(layer, grid, blocksPerPixel, extras);
+    }
+
+    /**
+     * The caves of the chunks generated in memory over a square {@code blocksAcross} wide around ({@code centerX},
+     * {@code centerZ}), widened to whole chunks: every air block under the terrain's top, drawn as blocks coloured by
+     * height, as {@link CaveSpace} tells.
+     *
+     * @throws CancellationException as soon as {@code cancelled} answers true
+     */
+    public GeneratedObject cavesAround(int centerX, int centerZ, int blocksAcross, BooleanSupplier cancelled) {
+        if (blocksAcross < 1) {
+            throw new IllegalArgumentException("A square of caves is at least a block across");
+        }
+        int chunksAcross = Math.ceilDiv(blocksAcross, CHUNK_BLOCKS);
+        int minChunkX = Math.floorDiv(centerX - (blocksAcross / 2), CHUNK_BLOCKS);
+        int minChunkZ = Math.floorDiv(centerZ - (blocksAcross / 2), CHUNK_BLOCKS);
+        return generated.cavesIn(minChunkX, minChunkZ, chunksAcross, cancelled);
     }
 
     /**

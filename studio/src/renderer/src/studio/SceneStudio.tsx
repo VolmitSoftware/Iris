@@ -21,7 +21,7 @@ import { EntryBrowser } from './EntryBrowser'
 import { useEntryFiles } from './EntryFileDialogs'
 import { NodeInspector } from './NodeInspector'
 import { NodePane } from './NodePane'
-import { Panel, SidebarPanel, Stepper, ViewIsland } from './Sidebar'
+import { Panel, SidebarPanel, SizeChoice, Stepper, ViewIsland } from './Sidebar'
 import { SceneViewport, type PickedSurface } from './SceneViewport'
 
 const NUMBER = new Intl.NumberFormat('en-US')
@@ -54,6 +54,8 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
   const entryKeys = useMemo(() => entries.map((candidate) => candidate.key), [entries])
   const files = useEntryFiles(client, view.id, entryKeys, (key) => setChosen({ key, variant: 0 }), tell)
   const [farLeavesOnly, setFarLeavesOnly] = useState(false)
+  const [chosenSize, setChosenSize] = useState<{ viewId: string; size: number } | null>(null)
+  const size = chosenSize?.viewId === view.id ? chosenSize.size : (view.sizes?.opening ?? null)
   const chooseVariant = (next: number): void => {
     if (entry !== null) {
       setChosen({ key: entry.key, variant: (next + entry.variants) % entry.variants })
@@ -63,14 +65,16 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
   const bakeTiming = useBakeTiming(client, view.id, entry?.key ?? null, view.baked, packRevision, tell)
 
   const editor = useNodeEditor(client, view.id, view.editable ? (entry?.key ?? null) : null, packRevision, tell)
+  const editsAsForm = view.editable && !view.nodes
   const [selectedPath, setSelectedPath] = useState<JsonPath | null>(null)
-  const selected = editor.state?.roots != null && selectedPath !== null ? nodeWithPath(editor.state.roots, selectedPath) : null
+  const roots = editor.state?.roots ?? null
+  const selected = roots === null ? null : editsAsForm ? (roots[0] ?? null) : selectedPath !== null ? nodeWithPath(roots, selectedPath) : null
   const values = useMemo(() => (editor.state === null ? undefined : parsedText(editor.state.text)), [editor.state])
   const suggestions = useMemo(() => new SuggestionStore((of) => client.suggestions(of)), [client, packRevision])
 
   const [pickedPart, setPickedPart] = useState(NO_PART)
   const highlightedPart = view.parts ? (selected?.partId ?? pickedPart) : NO_PART
-  const { scene, shown, sceneParts, building } = useSceneMesh(client, view, entry, variant, packRevision, models, images, farLeavesOnly, highlightedPart, tell)
+  const { scene, shown, sceneParts, building } = useSceneMesh(client, view, entry, variant, size, packRevision, models, images, farLeavesOnly, highlightedPart, tell)
   const shownScene = shown?.scene ?? null
   const blockIndex = useMemo(() => (shownScene === null ? null : new BlockIndex(shownScene)), [shownScene])
   const shownParts = partsOf(sceneParts, shownScene)
@@ -121,12 +125,15 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
           title={view.label}
           entry={entry}
           variant={variant}
+          sizes={view.sizes?.blocksAcross ?? null}
+          size={size}
           shown={shown}
           status={building && entry !== null ? (waiting ?? `Building ${entry.name}`) : null}
           onVariant={chooseVariant}
+          onSize={(next) => setChosenSize({ viewId: view.id, size: next })}
           onPick={view.parts ? pickPart : undefined}
         />
-        {view.editable && entry !== null && (
+        {view.editable && !editsAsForm && entry !== null && (
           <NodePane
             editor={editor}
             entryKey={entry.key}
@@ -155,30 +162,36 @@ interface SceneAreaProps {
   title: string
   entry: SceneEntry | null
   variant: number
+  /** The sizes the scenes can be built at, or null when each entry has its own. */
+  sizes: readonly number[] | null
+  size: number | null
   shown: ShownScene | null
   /** What is being built, or null when nothing is. */
   status: string | null
   onVariant(variant: number): void
+  onSize(size: number): void
   /** Called when a block is clicked; absent when the scene has no parts to pick. */
   onPick?(picked: PickedSurface): void
 }
 
-function SceneArea({ title, entry, variant, shown, status, onVariant, onPick }: SceneAreaProps): React.JSX.Element {
+function SceneArea({ title, entry, variant, sizes, size, shown, status, onVariant, onSize, onPick }: SceneAreaProps): React.JSX.Element {
   return (
     <ViewIsland
       className="flex-[11]"
       title={entry === null ? title : `${title} · ${entry.name}`}
       tools={
-        entry !== null &&
-        entry.variants > 1 && (
-          <Stepper
-            label={`Variant ${variant + 1} of ${entry.variants}`}
-            backHint="Previous variant"
-            onHint="Next variant"
-            onBack={() => onVariant(variant - 1)}
-            onOn={() => onVariant(variant + 1)}
-          />
-        )
+        <>
+          {sizes !== null && size !== null && <SizeChoice sizes={sizes} size={size} onSize={onSize} />}
+          {entry !== null && entry.variants > 1 && (
+            <Stepper
+              label={`Variant ${variant + 1} of ${entry.variants}`}
+              backHint="Previous variant"
+              onHint="Next variant"
+              onBack={() => onVariant(variant - 1)}
+              onOn={() => onVariant(variant + 1)}
+            />
+          )}
+        </>
       }
     >
       <SceneViewport content={shown?.mesh.content ?? null} framing={shown?.scene} onPick={onPick} />
@@ -247,6 +260,7 @@ function useSceneMesh(
   view: SceneViewInfo,
   entry: SceneEntry | null,
   variant: number,
+  size: number | null,
   packRevision: number,
   models: BlockModels,
   images: BridgeAssets,
@@ -268,9 +282,10 @@ function useSceneMesh(
       return
     }
     const stop = new AbortController()
+    const place = { key, variant, size }
     setBuilding(true)
     client
-      .scene(viewId, key, variant, stop.signal)
+      .scene(viewId, place, stop.signal)
       .then((found) => {
         if (stop.signal.aborted) {
           return
@@ -278,7 +293,7 @@ function useSceneMesh(
         setScene(found)
         if (hasParts) {
           client
-            .sceneParts(viewId, key, variant, stop.signal)
+            .sceneParts(viewId, place, stop.signal)
             .then((parts) => !stop.signal.aborted && setSceneParts({ scene: found, parts }))
             .catch((failure: Error) => !stop.signal.aborted && tell(failure.message))
         }
@@ -291,7 +306,7 @@ function useSceneMesh(
         setBuilding(false)
       })
     return () => stop.abort()
-  }, [client, viewId, hasParts, key, variant, packRevision, tell])
+  }, [client, viewId, hasParts, key, variant, size, packRevision, tell])
 
   const faint = useMemo(() => {
     const parts = partsOf(sceneParts, scene)

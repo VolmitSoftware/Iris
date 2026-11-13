@@ -15,12 +15,18 @@ public non-sealed interface SceneView extends StudioView {
     List<SceneEntry> entries(PackWorld world);
 
     /**
-     * The blocks of one variant of the entry named {@code key}, its anchor where the studio centres the scene; empty
-     * when the pack has no such entry, or the entry has fewer variants.
-     *
-     * @param variant from 0 to the entry's {@link SceneEntry#variants()}, exclusive
+     * The blocks of the scene {@code request} names, its anchor where the studio centres the scene; empty when the pack
+     * has no such entry, or the entry has fewer variants.
      */
-    Optional<GeneratedObject> scene(PackWorld world, String key, int variant);
+    Optional<GeneratedObject> scene(PackWorld world, SceneRequest request);
+
+    /**
+     * The sizes the studio lets one build every scene at, such as a square of the world a view carves; empty when each
+     * entry has a size of its own, which is the default.
+     */
+    default Optional<SceneSizes> sizes() {
+        return Optional.empty();
+    }
 
     /** Whether the entries are built from parts the studio can pick out of the scene, which {@link #parts} tells apart. */
     default boolean hasParts() {
@@ -32,7 +38,7 @@ public non-sealed interface SceneView extends StudioView {
      * was built. Asked off the server's threads; empty when the view has no parts, the pack has no such entry, or the
      * entry has fewer variants.
      */
-    default Optional<BlockParts> parts(PackWorld world, String key, int variant) {
+    default Optional<BlockParts> parts(PackWorld world, SceneRequest request) {
         return Optional.empty();
     }
 

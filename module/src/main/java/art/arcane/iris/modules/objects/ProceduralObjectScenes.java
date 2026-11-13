@@ -34,6 +34,7 @@ import com.volmit.tooling.NodeGraph;
 import com.volmit.tooling.SceneCreation;
 import com.volmit.tooling.SceneEntry;
 import com.volmit.tooling.SceneFile;
+import com.volmit.tooling.SceneRequest;
 import com.volmit.world.PackWorld;
 
 import java.util.Arrays;
@@ -91,9 +92,9 @@ public final class ProceduralObjectScenes implements EditableSceneView {
     }
 
     @Override
-    public Optional<GeneratedObject> scene(PackWorld world, String key, int variant) {
-        return ProceduralObjectCatalog.of(world).variants(ProceduralObjectCatalog.KEY_PREFIX + key)
-                .flatMap(variants -> variants.variant(variant))
+    public Optional<GeneratedObject> scene(PackWorld world, SceneRequest request) {
+        return ProceduralObjectCatalog.of(world).variants(ProceduralObjectCatalog.KEY_PREFIX + request.key())
+                .flatMap(variants -> variants.variant(request.variant()))
                 .map(PlaceableObject::geometry);
     }
 
@@ -103,11 +104,11 @@ public final class ProceduralObjectScenes implements EditableSceneView {
     }
 
     @Override
-    public Optional<BlockParts> parts(PackWorld world, String key, int variant) {
-        return ProceduralObjectCatalog.of(world).variants(ProceduralObjectCatalog.KEY_PREFIX + key)
+    public Optional<BlockParts> parts(PackWorld world, SceneRequest request) {
+        return ProceduralObjectCatalog.of(world).variants(ProceduralObjectCatalog.KEY_PREFIX + request.key())
                 .filter(ResolvedProceduralObject.class::isInstance)
                 .map(ResolvedProceduralObject.class::cast)
-                .flatMap(resolved -> resolved.variant(variant).map(resolved::parts));
+                .flatMap(resolved -> resolved.variant(request.variant()).map(resolved::parts));
     }
 
     @Override

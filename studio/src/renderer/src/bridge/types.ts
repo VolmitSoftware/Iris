@@ -40,8 +40,18 @@ export interface SceneEntry {
 export interface SceneViewInfo extends ModuleViewInfo {
   editable: boolean
   creatable: boolean
+  /** Whether an editable view's files show as nodes under the scene; else as one node's settings beside it. */
+  nodes: boolean
   baked: boolean
   parts: boolean
+  /** The sizes the scenes can be built at, or null when each entry has its own. */
+  sizes: SceneSizes | null
+}
+
+/** The sizes a scene view builds its scenes at, as blocks across, smallest first, and the one shown first (IrisApi SceneSizes). */
+export interface SceneSizes {
+  blocksAcross: number[]
+  opening: number
 }
 
 /** One timed bake of a scene entry (IrisApi BakeRun): a time per step, added up over every variant. */

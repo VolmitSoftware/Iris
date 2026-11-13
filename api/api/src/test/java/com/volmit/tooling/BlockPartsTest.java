@@ -67,12 +67,12 @@ class BlockPartsTest {
             }
 
             @Override
-            public Optional<GeneratedObject> scene(PackWorld world, String key, int variant) {
+            public Optional<GeneratedObject> scene(PackWorld world, SceneRequest request) {
                 return Optional.empty();
             }
         };
 
         assertFalse(plain.hasParts());
-        assertTrue(plain.parts(null, "any", 0).isEmpty());
+        assertTrue(plain.parts(null, SceneRequest.of("any", 0)).isEmpty());
     }
 }

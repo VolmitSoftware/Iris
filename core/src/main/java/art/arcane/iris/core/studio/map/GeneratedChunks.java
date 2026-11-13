@@ -29,6 +29,7 @@ import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.iris.util.project.hunk.Hunk;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.volmit.object.GeneratedObject;
 import it.unimi.dsi.fastutil.bytes.ByteArrayList;
 import it.unimi.dsi.fastutil.ints.Int2ByteMap;
 import it.unimi.dsi.fastutil.ints.Int2ByteMaps;
@@ -523,18 +524,45 @@ final class GeneratedChunks implements ColumnTops {
         }
     }
 
+    /**
+     * The caves of the square of chunks {@code chunksAcross} wide from chunk ({@code minChunkX}, {@code minChunkZ}),
+     * each chunk generated anew, as a block scene: see {@link CaveSpace}. A chunk that fails to generate holds no caves.
+     *
+     * @throws CancellationException as soon as {@code cancelled} answers true
+     */
+    GeneratedObject cavesIn(int minChunkX, int minChunkZ, int chunksAcross, BooleanSupplier cancelled) {
+        CaveSpace space = new CaveSpace(minChunkX, minChunkZ, chunksAcross, engine.getHeight(), engine.getMinHeight());
+        List<Future<?>> generating = new ArrayList<>();
+        for (int chunkZ = minChunkZ; chunkZ < minChunkZ + chunksAcross; chunkZ++) {
+            for (int chunkX = minChunkX; chunkX < minChunkX + chunksAcross; chunkX++) {
+                int x = chunkX;
+                int z = chunkZ;
+                ChunkTask task = new ChunkTask(() -> {
+                    if (!cancelled.getAsBoolean()) {
+                        space.add(x, z, generateBlocksUnchecked(x, z), terrainYOf(x, z));
+                    }
+                }, 1D);
+                GENERATORS.execute(task);
+                generating.add(task);
+            }
+        }
+        try {
+            for (Future<?> task : generating) {
+                awaitUnlessCancelled(task, cancelled);
+            }
+        } catch (CancellationException stopped) {
+            generating.forEach(task -> task.cancel(false));
+            throw stopped;
+        }
+        return space.scene();
+    }
+
     /** @param reachedBeside the cells along the chunk's sides the open air of the chunks beside it reaches, with its light */
     private ChunkTop generate(long key, Int2ByteMap reachedBeside) throws Exception {
         int chunkX = (int) (key >> Integer.SIZE);
         int chunkZ = (int) key;
-        int height = engine.getHeight();
-        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(BLOCKS_ACROSS, height, BLOCKS_ACROSS);
-        Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(BLOCKS_ACROSS, height, BLOCKS_ACROSS);
-        try (GenerationSessionLease lease = engine.acquireGenerationLease(LEASE_NAME);
-             IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
-            engine.getGeneration().generate(chunkX << CHUNK_SHIFT, chunkZ << CHUNK_SHIFT, blocks, biomes, false, lease.sessionId());
-        }
-        IntBinaryOperator terrainY = (x, z) -> engine.getHeight((chunkX << CHUNK_SHIFT) + x, (chunkZ << CHUNK_SHIFT) + z, true);
+        Hunk<PlatformBlockState> blocks = generateBlocks(chunkX, chunkZ);
+        IntBinaryOperator terrainY = terrainYOf(chunkX, chunkZ);
         int fluidHeight = engine.getDimension().getFluidHeight();
         ChunkCells cells = ChunkCells.of(blocks, terrainY, fluidHeight, this::seenByPlayers, reachedBeside);
         ColumnRuns[] runs = new ColumnRuns[ColumnRuns.MOST_LEVEL];
@@ -542,6 +570,30 @@ final class GeneratedChunks implements ColumnTops {
             runs[level - 1] = ColumnRuns.of(blocks, level, terrainY, this::seenByPlayers, cells);
         }
         return new ChunkTop(topsOf(blocks, terrainY, this::seenByPlayers), VisibleBlocks.of(cells, reachedBeside), runs, reachedBeside);
+    }
+
+    // The chunk runs through the world's own stages into memory; nothing is placed in the world.
+    private Hunk<PlatformBlockState> generateBlocks(int chunkX, int chunkZ) throws Exception {
+        int height = engine.getHeight();
+        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(BLOCKS_ACROSS, height, BLOCKS_ACROSS);
+        Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(BLOCKS_ACROSS, height, BLOCKS_ACROSS);
+        try (GenerationSessionLease lease = engine.acquireGenerationLease(LEASE_NAME);
+             IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
+            engine.getGeneration().generate(chunkX << CHUNK_SHIFT, chunkZ << CHUNK_SHIFT, blocks, biomes, false, lease.sessionId());
+        }
+        return blocks;
+    }
+
+    private Hunk<PlatformBlockState> generateBlocksUnchecked(int chunkX, int chunkZ) {
+        try {
+            return generateBlocks(chunkX, chunkZ);
+        } catch (Exception failed) {
+            throw new CompletionException(failed);
+        }
+    }
+
+    private IntBinaryOperator terrainYOf(int chunkX, int chunkZ) {
+        return (x, z) -> engine.getHeight((chunkX << CHUNK_SHIFT) + x, (chunkZ << CHUNK_SHIFT) + z, true);
     }
 
     // A plugin's block can be solid on the server where players see grass they walk through.

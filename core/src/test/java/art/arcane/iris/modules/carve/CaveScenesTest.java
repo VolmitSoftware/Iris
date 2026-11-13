@@ -2,19 +2,20 @@ package art.arcane.iris.modules.carve;
 
 import art.arcane.iris.core.modules.CarveTestWorld;
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.modules.carve.field.CavePart;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
-import com.volmit.tooling.BlockParts;
 import com.volmit.tooling.GraphNode;
 import com.volmit.tooling.JsonText;
 import com.volmit.tooling.NodeGraph;
 import com.volmit.tooling.SceneEntry;
+import com.volmit.tooling.SceneRequest;
 import org.junit.Test;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -28,6 +29,9 @@ public class CaveScenesTest {
              "cavern": {"size": 40, "height": 18, "coverage": 0.2, "pillars": {"spacing": 14, "thickness": 4}}}
             """;
     private static final String TUNNELS_ONLY = "{\"tunnel\": {\"width\": {\"min\": 4, \"max\": 6}, \"stretch\": 48}}";
+    private static final String TUNNEL_BLOCK = "minecraft:light_blue_concrete";
+    private static final String CAVERN_BLOCK = "minecraft:orange_concrete";
+    private static final int[][] NEIGHBOURS = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
 
     private final CaveScenes view = new CaveScenes();
     private final CarveTestWorld world = new CarveTestWorld()
@@ -45,50 +49,78 @@ public class CaveScenesTest {
     }
 
     @Test
-    public void theSceneIsTheCarvedSpaceAndEveryBlockBelongsToAPart() {
-        GeneratedObject scene = view.scene(world, "deep/mixed", 0).orElseThrow();
-        BlockParts parts = view.parts(world, "deep/mixed", 0).orElseThrow();
+    public void tunnelsAndCavernsShowInTheirOwnColours() {
+        GeneratedObject scene = scene("deep/mixed", 0, 128);
 
-        assertFalse(scene.blocks().isEmpty());
-        Set<Integer> partsSeen = new HashSet<>();
+        Set<String> colours = new HashSet<>();
+        scene.blocks().forEach(block -> colours.add(block.state().key()));
+        assertEquals(Set.of(TUNNEL_BLOCK, CAVERN_BLOCK), colours);
+    }
+
+    // The inside of the carved space could not be seen, so it is left out: every block kept touches rock or the side.
+    @Test
+    public void onlyTheOutsideOfTheCarvedSpaceIsKept() {
+        GeneratedObject scene = scene("deep/mixed", 0, 64);
+
+        Set<BlockPosition> kept = new HashSet<>();
+        scene.blocks().forEach(block -> kept.add(block.position()));
         for (ObjectBlock block : scene.blocks()) {
-            int part = parts.partAt(block.position());
-            assertNotEquals(BlockParts.NO_PART, part);
-            partsSeen.add(part);
+            assertTrue(block.position() + " is inside the carved space", touchesSomethingNotKept(block.position(), kept, scene));
         }
-        assertEquals(Set.of(CavePart.TUNNEL.ordinal(), CavePart.CAVERN.ordinal()), partsSeen);
+    }
+
+    @Test
+    public void theSceneIsAsWideAsTheSizeAskedFor() {
+        assertEquals(64, scene("tunnels", 0, 64).bounds().maxX());
+        assertEquals(256, scene("tunnels", 0, 256).bounds().maxX());
+        assertEquals(128, view.scene(world, SceneRequest.of("tunnels", 0)).orElseThrow().bounds().maxX());
+        assertTrue("a size the view does not offer", view.scene(world, new SceneRequest("tunnels", 0, OptionalInt.of(100))).isEmpty());
     }
 
     @Test
     public void eachVariantIsTheCaveSomewhereElse() {
-        GeneratedObject first = view.scene(world, "tunnels", 0).orElseThrow();
+        GeneratedObject first = scene("tunnels", 0, 128);
 
-        assertEquals(first.blocks(), view.scene(world, "tunnels", 0).orElseThrow().blocks());
-        assertNotEquals(first.blocks(), view.scene(world, "tunnels", 1).orElseThrow().blocks());
-        assertTrue(view.scene(world, "tunnels", CavePreview.VARIANTS).isEmpty());
-        assertTrue(view.scene(world, "missing", 0).isEmpty());
+        assertEquals(first.blocks(), scene("tunnels", 0, 128).blocks());
+        assertNotEquals(first.blocks(), scene("tunnels", 1, 128).blocks());
+        assertTrue(view.scene(world, request("tunnels", CavePreview.VARIANTS, 128)).isEmpty());
+        assertTrue(view.scene(world, request("missing", 0, 128)).isEmpty());
     }
 
     @Test
-    public void aCaveFileReadsAsACaveWithItsTunnelAndCavernAndPillars() {
+    public void aCaveFileIsOneNodeWithASectionForEachPart() {
         NodeGraph graph = view.graph(world, "deep/mixed", JsonText.parse(MIXED));
 
+        assertFalse(view.showsNodes());
         GraphNode cave = graph.roots().getFirst();
         assertEquals("mixed", cave.title());
-        GraphNode tunnel = cave.children().get(0).node();
-        GraphNode cavern = cave.children().get(1).node();
-        assertEquals("Tunnel", tunnel.title());
-        assertEquals(CavePart.TUNNEL.ordinal(), tunnel.part().getAsInt());
-        assertEquals(CavePart.CAVERN.ordinal(), cavern.part().getAsInt());
-        assertEquals("Pillars", cavern.children().getFirst().node().title());
+        assertTrue(cave.children().isEmpty());
+        assertEquals(List.of("Cave", "Tunnel", "Cavern", "Pillars"), cave.settings().stream().map(GraphNode.NodeSettings::title).toList());
     }
 
     @Test
-    public void anUnwrittenPartIsShownSoSettingItWritesIt() {
+    public void anUnwrittenPartHasASectionSoSettingItWritesIt() {
         NodeGraph graph = view.graph(world, "tunnels", JsonText.parse(TUNNELS_ONLY));
 
-        GraphNode cavern = graph.roots().getFirst().children().get(1).node();
-        assertEquals("Cavern (unset)", cavern.title());
-        assertTrue("a cavern the cave does not have draws nothing", cavern.part().isEmpty());
+        assertEquals(List.of("Cave", "Tunnel", "Cavern (unset)", "Pillars (unset)"),
+                graph.roots().getFirst().settings().stream().map(GraphNode.NodeSettings::title).toList());
+    }
+
+    private GeneratedObject scene(String key, int variant, int size) {
+        return view.scene(world, request(key, variant, size)).orElseThrow();
+    }
+
+    private static SceneRequest request(String key, int variant, int size) {
+        return new SceneRequest(key, variant, OptionalInt.of(size));
+    }
+
+    private static boolean touchesSomethingNotKept(BlockPosition position, Set<BlockPosition> kept, GeneratedObject scene) {
+        for (int[] step : NEIGHBOURS) {
+            BlockPosition beside = new BlockPosition(position.x() + step[0], position.y() + step[1], position.z() + step[2]);
+            if (!scene.bounds().contains(beside.x(), beside.y(), beside.z()) || !kept.contains(beside)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

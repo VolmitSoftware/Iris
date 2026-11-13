@@ -522,13 +522,16 @@ final class RuinScenes implements SceneView {
         return List.of(new SceneEntry("arch", "Arch", Optional.empty(), 1));
     }
 
-    public Optional<GeneratedObject> scene(PackWorld world, String key, int variant) {
-        return world.resources().objects().object(world.resources().idOf("ruins/" + key)).map(PlaceableObject::geometry);
+    public Optional<GeneratedObject> scene(PackWorld world, SceneRequest request) {
+        return world.resources().objects().object(world.resources().idOf("ruins/" + request.key())).map(PlaceableObject::geometry);
     }
 }
 ```
 
-- A `SceneView` lists entries (`SceneEntry`) and gives each variant's blocks as a `GeneratedObject`, drawn in 3D. A
+- A `SceneView` lists entries (`SceneEntry`) and gives the blocks of the scene a `SceneRequest` names (an entry's key
+  and variant) as a `GeneratedObject`, drawn in 3D. A view whose scenes are a square of the world, such as the Caves
+  view, returns `SceneSizes` from `sizes()`. The studio then offers those sizes and puts the chosen one in the
+  request. A
   `PatternView` lists entries (`PatternEntry`) and gives the blocks one lays over a `PatternArea` at a depth as a
   `BlockPattern`, drawn from above. `StudioView` is sealed to these two kinds: the studio draws nothing else.
 - A `SceneView` whose entries are baked from settings says so (`isBaked`) and times a bake on request (`timeBake`, a
@@ -547,7 +550,8 @@ final class RuinScenes implements SceneView {
   settings (`NodeSettings`, shown as the pack's schema describes their type), the nodes it holds and the `Edits` the
   studio may make (a child list to move nodes into, whether it moves, the `Addition`s it offers). Places in the file
   are `JsonPath`s of `Key` and `Index` steps. The studio writes the file itself, rewriting only what changes; the
-  view never writes. A view whose entries the studio may create and delete returns a `SceneCreation` from
+  view never writes. A view whose file reads as one node of settings returns false from `showsNodes()`, and the
+  studio shows that node's settings beside the scene instead of a graph. A view whose entries the studio may create and delete returns a `SceneCreation` from
   `creation()`: the resource kind of its files, the starter JSON of a new entry and the text other files name an
   entry by; the studio does the writing, listing of uses and trashing.
 - Absent values are empty, never blank or `-1`: an entry without a group, a node that draws no part of the scene

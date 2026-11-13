@@ -56,7 +56,7 @@ class BakeRunTest {
             }
 
             @Override
-            public Optional<GeneratedObject> scene(PackWorld world, String key, int variant) {
+            public Optional<GeneratedObject> scene(PackWorld world, SceneRequest request) {
                 return Optional.empty();
             }
         };

@@ -23,6 +23,8 @@ import com.volmit.object.GeneratedObject;
 import com.volmit.tooling.BakeRun;
 import com.volmit.tooling.BlockParts;
 import com.volmit.tooling.SceneEntry;
+import com.volmit.tooling.SceneRequest;
+import com.volmit.tooling.SceneSizes;
 import com.volmit.tooling.SceneView;
 
 import java.util.List;
@@ -55,8 +57,13 @@ public final class StudioScenes {
      *
      * @throws NoSuchElementException when no module registered a scene view {@code viewId}
      */
-    public Optional<GeneratedObject> scene(String viewId, String key, int variant) {
-        return views.ask(viewId, "build " + key, view -> view.scene(views.world(), key, variant));
+    public Optional<GeneratedObject> scene(String viewId, SceneRequest request) {
+        return views.ask(viewId, "build " + request.key(), view -> view.scene(views.world(), request));
+    }
+
+    /** @throws NoSuchElementException when no module registered a scene view {@code viewId} */
+    public Optional<SceneSizes> sizes(String viewId) {
+        return views.ask(viewId, "tell its sizes", SceneView::sizes);
     }
 
     /** @throws NoSuchElementException when no module registered a scene view {@code viewId} */
@@ -70,8 +77,8 @@ public final class StudioScenes {
      *
      * @throws NoSuchElementException when no module registered a scene view {@code viewId}
      */
-    public Optional<BlockParts> parts(String viewId, String key, int variant) {
-        return views.ask(viewId, "find the parts of " + key, view -> view.parts(views.world(), key, variant));
+    public Optional<BlockParts> parts(String viewId, SceneRequest request) {
+        return views.ask(viewId, "find the parts of " + request.key(), view -> view.parts(views.world(), request));
     }
 
     /** @throws NoSuchElementException when no module registered a scene view {@code viewId} */

@@ -23,6 +23,7 @@ import com.volmit.object.PlaceableObject;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.tooling.SceneEntry;
+import com.volmit.tooling.SceneRequest;
 import com.volmit.tooling.SceneView;
 import com.volmit.world.PackWorld;
 
@@ -57,12 +58,12 @@ public final class PackObjectScenes implements SceneView {
     }
 
     @Override
-    public Optional<GeneratedObject> scene(PackWorld world, String key, int variant) {
-        if (variant != 0) {
+    public Optional<GeneratedObject> scene(PackWorld world, SceneRequest request) {
+        if (request.variant() != 0) {
             return Optional.empty();
         }
         PackResources resources = world.resources();
-        return resources.objects().object(resources.idOf(key)).map(PlaceableObject::geometry);
+        return resources.objects().object(resources.idOf(request.key())).map(PlaceableObject::geometry);
     }
 
     private static SceneEntry entryOf(String key) {

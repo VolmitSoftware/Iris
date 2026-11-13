@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react'
 import { createPortal } from 'react-dom'
 import { IdeIcon, type IdeIconName } from '@/components/IdeIcon'
 import { Button } from '@/components/ui/button'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 
 /** Where a view puts its own lists: under the views in the left island, as in v3e. */
@@ -41,6 +42,26 @@ export function Stepper({ label, backHint, onHint, onBack, onOn }: StepperProps)
         <IdeIcon name="chevronRight" />
       </Button>
     </span>
+  )
+}
+
+interface SizeChoiceProps {
+  /** Each size, as blocks across, smallest first. */
+  sizes: readonly number[]
+  size: number
+  onSize(size: number): void
+}
+
+/** Chooses how many blocks across an area is, from an island's header. */
+export function SizeChoice({ sizes, size, onSize }: SizeChoiceProps): React.JSX.Element {
+  return (
+    <ToggleGroup type="single" size="sm" className="gap-0.5" value={String(size)} onValueChange={(value) => value !== '' && onSize(Number(value))}>
+      {sizes.map((choice) => (
+        <ToggleGroupItem key={choice} value={String(choice)} className={cn(HEADER_CHOICE, 'tabular-nums')} title={`${choice} × ${choice} blocks`}>
+          {choice}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   )
 }
 

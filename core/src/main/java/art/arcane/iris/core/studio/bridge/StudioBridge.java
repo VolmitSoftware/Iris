@@ -63,6 +63,8 @@ import com.volmit.tooling.PatternEntry;
 import com.volmit.tooling.BakeRun;
 import com.volmit.tooling.BlockParts;
 import com.volmit.tooling.SceneEntry;
+import com.volmit.tooling.SceneRequest;
+import com.volmit.tooling.SceneSizes;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -81,6 +83,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -109,6 +112,9 @@ public final class StudioBridge implements AutoCloseable {
     private static final int TOKEN_BYTES = 24;
     private static final int DEFAULT_TILE_SIZE = 128;
     private static final int LARGEST_TILE_SIZE = 512;
+    private static final int DEFAULT_CAVES_SIZE = 256;
+    // 1,024 chunks, generated in seconds on half the cores.
+    private static final int LARGEST_CAVES_SIZE = 512;
     // A procedural object's file is a few kilobytes; this leaves room for any pack file without holding a flood.
     private static final int LARGEST_BODY_BYTES = 4 * 1024 * 1024;
     private static final double SMALLEST_BLOCKS_PER_PIXEL = 1D / 16D;
@@ -261,6 +267,7 @@ public final class StudioBridge implements AutoCloseable {
                 }
             }
             case "tile-cancel" -> cancelTile(exchange, query);
+            case "caves" -> answerAside(exchange, () -> sendBytes(exchange, "application/octet-stream", caves(get(exchange), query)));
             case "hover" -> sendJson(exchange, STATUS_OK, hover(get(exchange).engine(), query));
             case "picks" -> sendJson(exchange, STATUS_OK, picks(get(exchange).engine(), query));
             case "regions" -> sendJson(exchange, STATUS_OK, regions(get(exchange).engine()));
@@ -374,9 +381,27 @@ public final class StudioBridge implements AutoCloseable {
     private static List<SceneViewInfo> sceneViews(Engine engine) {
         StudioEditors editors = StudioEditors.of(engine);
         StudioScenes scenes = StudioScenes.of(engine);
-        return scenes.views().stream()
-                .map(view -> new SceneViewInfo(view.id(), view.label(), view.description(), editors.edits(view.id()), editors.edits(view.id()) && editors.creates(view.id()), scenes.isBaked(view.id()), scenes.hasParts(view.id())))
-                .toList();
+        return scenes.views().stream().map(view -> {
+            boolean editable = editors.edits(view.id());
+            SceneSizesWire sizes = scenes.sizes(view.id()).map(SceneSizesWire::of).orElse(null);
+            return new SceneViewInfo(view.id(), view.label(), view.description(), editable, editable && editors.creates(view.id()),
+                    editable && editors.showsNodes(view.id()), scenes.isBaked(view.id()), scenes.hasParts(view.id()), sizes);
+        }).toList();
+    }
+
+    // A view with sizes is asked at one of them, the one it opens with when the studio names none.
+    private static SceneRequest sceneRequest(StudioScenes scenes, Query query) {
+        String viewId = query.text("view");
+        SceneRequest bare = SceneRequest.of(query.text("key"), query.whole("variant", 0));
+        Optional<SceneSizes> sizes = scenes.sizes(viewId);
+        if (sizes.isEmpty()) {
+            return bare;
+        }
+        int size = query.whole("size", sizes.get().opening());
+        if (!sizes.get().offers(size)) {
+            throw new RequestError(STATUS_BAD_REQUEST, "View " + viewId + " builds scenes " + sizes.get().blocksAcross() + " blocks across, not " + size);
+        }
+        return new SceneRequest(bare.key(), bare.variant(), OptionalInt.of(size));
     }
 
     private static StudioEditors.EditorState sceneFile(Engine engine, Query query) throws IOException {
@@ -479,7 +504,8 @@ public final class StudioBridge implements AutoCloseable {
         String key = query.text("key");
         Optional<GeneratedObject> scene;
         try {
-            scene = StudioScenes.of(engine).scene(query.text("view"), key, query.whole("variant", 0));
+            StudioScenes scenes = StudioScenes.of(engine);
+            scene = scenes.scene(query.text("view"), sceneRequest(scenes, query));
         } catch (NoSuchElementException unknown) {
             throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
         }
@@ -488,12 +514,12 @@ public final class StudioBridge implements AutoCloseable {
 
     private static byte[] sceneParts(Engine engine, Query query) {
         String key = query.text("key");
-        int variant = query.whole("variant", 0);
         try {
             StudioScenes scenes = StudioScenes.of(engine);
-            GeneratedObject scene = scenes.scene(query.text("view"), key, variant)
+            SceneRequest request = sceneRequest(scenes, query);
+            GeneratedObject scene = scenes.scene(query.text("view"), request)
                     .orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No scene " + key));
-            BlockParts parts = scenes.parts(query.text("view"), key, variant)
+            BlockParts parts = scenes.parts(query.text("view"), request)
                     .orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No parts for " + key));
             return SceneEncoding.encodeParts(scene, parts);
         } catch (NoSuchElementException unknown) {
@@ -635,6 +661,19 @@ public final class StudioBridge implements AutoCloseable {
             tile = withBlocks(session, tile, startX, startZ, blockSource(query), query.flag("shape"), cancelled);
         }
         return MapTileEncoding.encode(tile, gson, StudioBridge::pluginLookOf);
+    }
+
+    // Generates every chunk of the square, so a request the studio dropped is let go of as a tile is.
+    private byte[] caves(StudioWorld.Session session, Query query) {
+        Engine engine = session.engine();
+        int size = query.whole("size", DEFAULT_CAVES_SIZE);
+        if (size < 1 || size > LARGEST_CAVES_SIZE) {
+            throw new RequestError(STATUS_BAD_REQUEST, "A square of caves is 1 to " + LARGEST_CAVES_SIZE + " blocks across");
+        }
+        AtomicBoolean dropped = query.has("request") ? droppedFlagOf(query.text("request")) : new AtomicBoolean();
+        BooleanSupplier cancelled = () -> dropped.get() || closed || engine.isClosing() || engine.isClosed();
+        GeneratedObject caves = session.renderer().cavesAround(query.whole("x", 0), query.whole("z", 0), size, cancelled);
+        return SceneEncoding.encode(caves, gson);
     }
 
     // A tile with blocks waits a minute or more on chunks generated on threads of their own; waiting on the bridge's
@@ -882,7 +921,15 @@ public final class StudioBridge implements AutoCloseable {
     }
 
     /** A scene view as the studio lists it; {@code editable} when its entries can be edited as nodes, {@code creatable} when they can also be created and deleted, {@code baked} when their bake can be timed, {@code parts} when the blocks of a scene can be told by the part that placed them. */
-    private record SceneViewInfo(String id, String label, String description, boolean editable, boolean creatable, boolean baked, boolean parts) {
+    /** @param sizes null when the view's entries each have a size of their own */
+    private record SceneViewInfo(String id, String label, String description, boolean editable, boolean creatable, boolean nodes,
+                                 boolean baked, boolean parts, SceneSizesWire sizes) {
+    }
+
+    private record SceneSizesWire(List<Integer> blocksAcross, int opening) {
+        static SceneSizesWire of(SceneSizes sizes) {
+            return new SceneSizesWire(sizes.blocksAcross(), sizes.opening());
+        }
     }
 
     private record UsesBody(List<String> files) {

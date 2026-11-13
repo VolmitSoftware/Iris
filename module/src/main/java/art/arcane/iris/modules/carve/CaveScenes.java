@@ -20,13 +20,14 @@ package art.arcane.iris.modules.carve;
 
 import com.volmit.object.GeneratedObject;
 import com.volmit.resource.ResourceId;
-import com.volmit.tooling.BlockParts;
 import com.volmit.tooling.EditableSceneView;
 import com.volmit.tooling.JsonText;
 import com.volmit.tooling.NodeGraph;
 import com.volmit.tooling.SceneCreation;
 import com.volmit.tooling.SceneEntry;
 import com.volmit.tooling.SceneFile;
+import com.volmit.tooling.SceneRequest;
+import com.volmit.tooling.SceneSizes;
 import com.volmit.world.PackWorld;
 
 import java.util.LinkedHashMap;
@@ -35,9 +36,9 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * The studio's Caves view: every cave of the pack's {@code caves/} folder carved over 128 by 128 blocks under a flat
- * surface, the carved space drawn as blocks so its shape shows. Each variant is the same cave elsewhere in the world.
- * Each cave's file can be edited as nodes, and the studio redraws the cave as it changes.
+ * The studio's Caves view: every cave of the pack's {@code caves/} folder carved over a square of the world under a
+ * flat surface, the carved space drawn as blocks so its shape shows. Each variant is the same cave elsewhere in the
+ * world. A cave's settings are shown beside it, and the studio redraws the cave as they change.
  */
 public final class CaveScenes implements EditableSceneView {
     private static final ResourceId ID = ResourceId.parse("iris:carve/caves");
@@ -72,18 +73,22 @@ public final class CaveScenes implements EditableSceneView {
     }
 
     @Override
-    public Optional<GeneratedObject> scene(PackWorld world, String key, int variant) {
-        return preview(world, key, variant).map(CavePreview::scene);
+    public Optional<SceneSizes> sizes() {
+        return Optional.of(CavePreview.SIZES);
     }
 
     @Override
-    public boolean hasParts() {
-        return true;
-    }
-
-    @Override
-    public Optional<BlockParts> parts(PackWorld world, String key, int variant) {
-        return preview(world, key, variant).map(CavePreview::parts);
+    public Optional<GeneratedObject> scene(PackWorld world, SceneRequest request) {
+        int size = request.size().orElse(CavePreview.SIZES.opening());
+        if (request.variant() < 0 || request.variant() >= CavePreview.VARIANTS || !CavePreview.SIZES.offers(size)) {
+            return Optional.empty();
+        }
+        ResourceId id = world.resources().idOf(request.key());
+        Cave cave = CaveResources.cave(world.resources(), id);
+        if (cave == null) {
+            return Optional.empty();
+        }
+        return Optional.of(world.state(Previews.class, ignored -> new Previews()).of(world, new Place(id, request.variant(), size), cave));
     }
 
     @Override
@@ -94,28 +99,19 @@ public final class CaveScenes implements EditableSceneView {
                 : Optional.empty();
     }
 
-    // A file the pack could not read yet draws no parts, so its nodes are shown without part ids.
     @Override
     public NodeGraph graph(PackWorld world, String key, JsonText text) {
-        Cave read = Optional.ofNullable(CaveResources.cave(world.resources(), key)).orElseGet(Cave::new);
-        return CaveGraph.of(key.substring(key.lastIndexOf(FOLDER_SEPARATOR) + 1), text, read);
+        return CaveGraph.of(key.substring(key.lastIndexOf(FOLDER_SEPARATOR) + 1), text);
+    }
+
+    @Override
+    public boolean showsNodes() {
+        return false;
     }
 
     @Override
     public Optional<SceneCreation> creation() {
         return Optional.of(CREATION);
-    }
-
-    private static Optional<CavePreview> preview(PackWorld world, String key, int variant) {
-        if (variant < 0 || variant >= CavePreview.VARIANTS) {
-            return Optional.empty();
-        }
-        ResourceId id = world.resources().idOf(key);
-        Cave cave = CaveResources.cave(world.resources(), id);
-        if (cave == null) {
-            return Optional.empty();
-        }
-        return Optional.of(world.state(Previews.class, ignored -> new Previews()).of(world, id, cave, variant));
     }
 
     private static SceneEntry entryOf(ResourceId id) {
@@ -126,8 +122,8 @@ public final class CaveScenes implements EditableSceneView {
     }
 
     /**
-     * The previews the studio asked for last. It asks for a scene and then its parts, so both come from one carve. A
-     * reload reads the cave into a new object, which keys a new preview.
+     * The scenes the studio asked for last, so stepping back to a size or variant is instant. A reload reads the cave
+     * into a new object, which builds its scenes anew.
      */
     private static final class Previews {
         private static final int KEPT = 8;
@@ -139,25 +135,24 @@ public final class CaveScenes implements EditableSceneView {
             }
         };
 
-        CavePreview of(PackWorld world, ResourceId id, Cave cave, int variant) {
-            Place place = new Place(id, variant);
+        GeneratedObject of(PackWorld world, Place place, Cave cave) {
             synchronized (recent) {
                 Built known = recent.get(place);
                 if (known != null && known.from == cave) {
-                    return known.preview;
+                    return known.scene;
                 }
             }
-            CavePreview preview = CavePreview.of(world, id, cave, variant);
+            GeneratedObject scene = CavePreview.of(world, place.cave(), cave, place.variant(), place.size());
             synchronized (recent) {
-                recent.put(place, new Built(cave, preview));
+                recent.put(place, new Built(cave, scene));
             }
-            return preview;
+            return scene;
         }
     }
 
-    private record Place(ResourceId cave, int variant) {
+    private record Place(ResourceId cave, int variant, int size) {
     }
 
-    private record Built(Cave from, CavePreview preview) {
+    private record Built(Cave from, GeneratedObject scene) {
     }
 }

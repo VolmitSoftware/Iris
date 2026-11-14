@@ -520,15 +520,16 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     }
 
     public CNG getChildrenGenerator(long seed, double scale) {
+        double childScale = getChildStyle().isSeeded() ? 1 : scale;
         IrisData data = getLoader();
         Engine engine = data == null ? null : data.getEngine();
         CachedChildGenerator recent = recentChildGenerator;
-        if (recent != null && recent.key.matches(seed, scale, data, engine)) {
+        if (recent != null && recent.key.matches(seed, childScale, data, engine)) {
             return recent.generator;
         }
-        ChildGeneratorKey key = new ChildGeneratorKey(seed, scale, data, engine);
+        ChildGeneratorKey key = new ChildGeneratorKey(seed, childScale, data, engine);
         CNG generator = childrenGenerators.computeIfAbsent(key,
-                ignored -> getChildStyle().createScaledGenerator(new RNG(seed), data, scale));
+                ignored -> getChildStyle().createScaledGenerator(new RNG(seed), data, childScale));
         recentChildGenerator = new CachedChildGenerator(key, generator);
         return generator;
     }

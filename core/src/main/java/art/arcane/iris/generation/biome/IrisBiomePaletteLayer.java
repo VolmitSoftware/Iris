@@ -133,11 +133,21 @@ public class IrisBiomePaletteLayer {
             return localBlockData.get(0);
         }
 
+        CNG generator = getLayerGenerator(parent, signature, data);
+        if (style.isSeeded()) {
+            return generator.fit(localBlockData, x, z);
+        }
+
         double localZoom = zoom;
         double scaledX = x / localZoom;
         double scaledY = y / localZoom;
         double scaledZ = z / localZoom;
-        return getLayerGenerator(parent, signature, data).fit(localBlockData, scaledX, scaledY, scaledZ);
+        return generator.fit(localBlockData, scaledX, scaledY, scaledZ);
+    }
+
+    /** How many blocks one step of the layer's block noise spans: its zoom, or 1 for a seeded style, which is read flat. */
+    public double blocksPerSample() {
+        return style.isSeeded() ? 1 : zoom;
     }
 
     public CNG getLayerGenerator(RNG rng, IrisData data) {

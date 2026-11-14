@@ -227,10 +227,10 @@ final class IrisBiomeLayerGenerator {
             int layerIndex = findLayer(boundaries, position);
             IrisBiomePaletteLayer layer = layers.get(layerIndex);
             int offset = position - boundaries[layerIndex];
-            double zoom = layer.getZoom();
+            double blocksPerSample = layer.blocksPerSample();
             try {
                 data.add(layer.get(random, layerIndex + offset,
-                        (wx + offset) / zoom, offset, (wz - offset) / zoom, rdata));
+                        (wx + offset) / blocksPerSample, offset, (wz - offset) / blocksPerSample, rdata));
             } catch (Throwable error) {
                 GenerationFailures.skipPlacement(error, "surface layer", "block", (int) wx, height - depth, (int) wz, biome.getLoadKey());
             }
@@ -327,11 +327,11 @@ final class IrisBiomeLayerGenerator {
     private static void appendLayer(KList<NativeBlockState> blocks, IrisBiomePaletteLayer layer,
                                     int layerIndex, int thickness, double x, double z,
                                     RNG random, int maxDepth, IrisData data) {
-        double zoom = layer.getZoom();
+        double blocksPerSample = layer.blocksPerSample();
         for (int offset = 0; offset < thickness && blocks.size() < maxDepth; offset++) {
             try {
                 blocks.add(layer.get(random, layerIndex + offset,
-                        (x + offset) / zoom, offset, (z - offset) / zoom, data));
+                        (x + offset) / blocksPerSample, offset, (z - offset) / blocksPerSample, data));
             } catch (Throwable error) {
                 GenerationFailures.skipPlacement(error, "surface layer", "block", (int) x, -1, (int) z, "none");
             }

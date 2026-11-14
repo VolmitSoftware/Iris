@@ -91,6 +91,8 @@ public class IrisGeneratorStyle {
     @MaxNumber(8192)
     @Description("If the cache size is set above 0, this generator will be cached")
     private int cacheSize = 0;
+    @Description("Rolls this noise from the world seed and this number, so every style with the same seed shares one noise. Child biomes, palettes and decorator placement read a seeded style flat in blocks: zoom is its only scale, so a layer's zoom, childShrinkFactor and the decorator's extra zoom don't apply.")
+    private Long seed = null;
 
     public IrisGeneratorStyle(NoiseStyle s) {
         this.style = s;
@@ -131,7 +133,34 @@ public class IrisGeneratorStyle {
     }
 
     private int hash() {
-        return Objects.hash(expression, imageMapHash(), multiplier, fracture != null ? fracture.hash() : 0, exponent, cacheSize, zoom, cellularZoom, cellularFrequency, style == null ? null : style.name());
+        int unseededHash = Objects.hash(expression, imageMapHash(), multiplier, fracture != null ? fracture.hash() : 0, exponent, cacheSize, zoom, cellularZoom, cellularFrequency, style == null ? null : style.name());
+        return isSeeded() ? Objects.hash(unseededHash, seed) : unseededHash;
+    }
+
+    public boolean isSeeded() {
+        return seed != null;
+    }
+
+    /** The random a style is built from: the caller's, or for a seeded style one rolled from its seed and the world seed. */
+    public RNG rollFor(RNG callerRandom, Engine engine) {
+        if (!isSeeded()) {
+            return callerRandom;
+        }
+
+        return new RNG(rolledSeed(engine));
+    }
+
+    private long rolledSeed(Engine engine) {
+        long worldSeed = engine == null ? 0L : engine.getSeedManager().getSeed();
+        return splitMix(worldSeed ^ splitMix(seed));
+    }
+
+    // Spreads nearby seed numbers far apart; Iris's own seed forking only adds.
+    private static long splitMix(long value) {
+        long mixed = value + 0x9E3779B97F4A7C15L;
+        mixed = (mixed ^ (mixed >>> 30)) * 0xBF58476D1CE4E5B9L;
+        mixed = (mixed ^ (mixed >>> 27)) * 0x94D049BB133111EBL;
+        return mixed ^ (mixed >>> 31);
     }
 
     public int prebakeSignature() {
@@ -175,8 +204,9 @@ public class IrisGeneratorStyle {
         }
     }
 
-    private CNG createNoCache(RNG rng, IrisData data, int octaveMultiplier, int fallbackCacheSize,
+    private CNG createNoCache(RNG callerRandom, IrisData data, int octaveMultiplier, int fallbackCacheSize,
                               boolean quietCacheLog, Engine engine) {
+        RNG rng = rollFor(callerRandom, engine);
         requirePositiveFinite("zoom", zoom);
         requirePositiveFinite("exponent", exponent);
         if (!Double.isFinite(cellularFrequency) || cellularFrequency < 0D) {
@@ -248,14 +278,15 @@ public class IrisGeneratorStyle {
         return cachedGenerator(rng.getSeed(), data, engine);
     }
 
-    private CNG cachedGenerator(long seed, IrisData data, Engine engine) {
+    private CNG cachedGenerator(long callerSeed, IrisData data, Engine engine) {
+        long generatorSeed = isSeeded() ? rolledSeed(engine) : callerSeed;
         CachedGenerator recent = recentGenerator;
-        if (recent != null && recent.key.matches(data, engine, seed)) {
+        if (recent != null && recent.key.matches(data, engine, generatorSeed)) {
             return recent.generator;
         }
-        GeneratorCacheKey key = new GeneratorCacheKey(data, engine, seed);
+        GeneratorCacheKey key = new GeneratorCacheKey(data, engine, generatorSeed);
         CNG generator = generatorCache.computeIfAbsent(key,
-                ignored -> createNoCache(new RNG(seed), data, 1, 0, false, engine));
+                ignored -> createNoCache(new RNG(generatorSeed), data, 1, 0, false, engine));
         recentGenerator = new CachedGenerator(key, generator);
         return generator;
     }

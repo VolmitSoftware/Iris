@@ -14,6 +14,7 @@ public final class GeneratorProgram {
     private final NoiseLayerProgram cliffs;
     private final boolean multiplicitive;
     private final double opacity;
+    private final double exponent;
     private final double offsetX;
     private final double offsetZ;
     private final double zoom;
@@ -30,6 +31,7 @@ public final class GeneratorProgram {
         this.cliffs = cliffs;
         this.multiplicitive = generator.isMultiplicitive();
         this.opacity = generator.getOpacity();
+        this.exponent = generator.getExponent();
         this.offsetX = generator.getOffsetX();
         this.offsetZ = generator.getOffsetZ();
         this.zoom = generator.getZoom();
@@ -116,7 +118,8 @@ public final class GeneratorProgram {
             double noise = layer.sample(scratch, sampleX, sampleZ);
             value = multiplicitive ? value * noise : value + noise;
         }
-        value = multiplicitive ? value * opacity : (value / totalOpacity) * opacity;
+        double combined = multiplicitive ? value : value / totalOpacity;
+        value = IrisGenerator.applyExponent(combined, exponent) * opacity;
         if (Double.isNaN(value)) {
             value = 0D;
         }
@@ -296,7 +299,8 @@ public final class GeneratorProgram {
             }
         }
         for (int index = 0; index < count; index++) {
-            double value = multiplicitive ? out[index] * opacity : (out[index] / totalOpacity) * opacity;
+            double combined = multiplicitive ? out[index] : out[index] / totalOpacity;
+            double value = IrisGenerator.applyExponent(combined, exponent) * opacity;
             out[index] = Double.isNaN(value) ? 0D : value;
         }
         if (cliffs != null) {

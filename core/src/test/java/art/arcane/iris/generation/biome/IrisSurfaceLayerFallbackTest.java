@@ -32,6 +32,7 @@ public final class IrisSurfaceLayerFallbackTest {
 
     private IrisBiome biome() {
         when(layer.getZoom()).thenReturn(1D);
+        when(layer.blocksPerSample()).thenReturn(1D);
         when(layer.getMinHeight()).thenReturn(1);
         when(layer.getMaxHeight()).thenReturn(2);
         when(layer.getHeightGenerator(any(RNG.class), same(data))).thenReturn(heightGenerator);

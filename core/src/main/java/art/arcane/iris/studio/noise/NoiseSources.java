@@ -1,0 +1,161 @@
+/*
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package art.arcane.iris.studio.noise;
+
+import art.arcane.iris.generation.noise.IrisGenerator;
+import art.arcane.iris.generation.noise.IrisShapedGeneratorStyle;
+import art.arcane.iris.generation.noise.NoiseStyle;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.volmlib.util.function.NoiseProvider;
+import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.noise.CNG;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.NoSuchElementException;
+
+/**
+ * Every noise the noise view can show for a world: the dimension's overlay noise, the terrain height, the pack's
+ * generators, and each built-in noise style.
+ */
+public final class NoiseSources {
+    static final String OVERLAY_NOISE_ID = "world:overlay";
+    static final String TERRAIN_HEIGHT_ID = "world:height";
+    private static final long GENERATOR_SEED_SALT = 3245L;
+
+    private final List<Entry> entries;
+
+    private NoiseSources(List<Entry> entries) {
+        this.entries = entries.stream().sorted(Comparator.comparing(Entry::category)).toList();
+    }
+
+    public static NoiseSources of(Engine engine) {
+        List<Entry> entries = new ArrayList<>();
+        addOverlayNoise(engine, entries);
+        addTerrainHeight(engine, entries);
+        addPackGenerators(engine.getData(), entries);
+        addStyles(entries);
+        return new NoiseSources(entries);
+    }
+
+    public List<Source> list() {
+        return entries.stream().map(Entry::source).toList();
+    }
+
+    /** The noise of a listed source at a seed, which sources that keep the world's seed ignore. */
+    public NoiseProvider sampler(String id, long seed) {
+        return entryOf(id).factory().create(seed);
+    }
+
+    /** Whether tiles of a listed source are drawn from samples on a lattice, smoothly in between, because sampling every pixel is too slow. */
+    public boolean isSmooth(String id) {
+        return entryOf(id).source().smooth();
+    }
+
+    private Entry entryOf(String id) {
+        return entries.stream()
+                .filter(entry -> entry.source().id().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("No noise " + id));
+    }
+
+    // The overlay is summed the way the world adds it, with the world's seed, in blocks above the fluid.
+    private static void addOverlayNoise(Engine engine, List<Entry> entries) {
+        List<IrisShapedGeneratorStyle> overlay = engine.getDimension().getOverlayNoise();
+        if (overlay.isEmpty()) {
+            return;
+        }
+        BlockRange blocks = new BlockRange(
+                overlay.stream().mapToInt(IrisShapedGeneratorStyle::getMin).sum(),
+                overlay.stream().mapToInt(IrisShapedGeneratorStyle::getMax).sum());
+        Source source = new Source(OVERLAY_NOISE_ID, "Overlay noise", NoiseCategory.PACK_GENERATORS.label(), false, false, blocks);
+        entries.add(new Entry(source, NoiseCategory.PACK_GENERATORS, seed -> engine.getComplex().getOverlayStream()::get));
+    }
+
+    // The terrain the world generates, in blocks above the fluid, so the height colours and the water line match the world.
+    private static void addTerrainHeight(Engine engine, List<Entry> entries) {
+        double fluidHeight = engine.getDimension().getFluidHeight();
+        BlockRange blocks = new BlockRange(-fluidHeight, engine.getHeight() - fluidHeight);
+        Source source = new Source(TERRAIN_HEIGHT_ID, "Terrain height", NoiseCategory.PACK_GENERATORS.label(), false, true, blocks);
+        entries.add(new Entry(source, NoiseCategory.PACK_GENERATORS,
+                seed -> (x, z) -> engine.getComplex().getHeightStream().getDouble(x, z) - fluidHeight));
+    }
+
+    private static void addPackGenerators(IrisData data, List<Entry> entries) {
+        for (String key : sortedKeys(data.getGeneratorLoader().getPossibleKeys())) {
+            Source source = new Source("pack:" + key, displayName(key), NoiseCategory.PACK_GENERATORS.label(), true, false, null);
+            entries.add(new Entry(source, NoiseCategory.PACK_GENERATORS, seed -> {
+                IrisGenerator generator = data.getGeneratorLoader().load(key);
+                if (generator == null) {
+                    throw new NoSuchElementException("No pack generator " + key);
+                }
+                long mixedSeed = new RNG(seed).nextParallelRNG(GENERATOR_SEED_SALT).lmax();
+                return (x, z) -> generator.getHeight(x, z, mixedSeed);
+            }));
+        }
+    }
+
+    private static void addStyles(List<Entry> entries) {
+        for (NoiseStyle style : NoiseStyle.values()) {
+            NoiseCategory category = NoiseCategory.of(style);
+            Source source = new Source("style:" + style.name(), displayName(style.name()), category.label(), true, false, null);
+            entries.add(new Entry(source, category, seed -> {
+                CNG noise = style.create(new RNG(seed));
+                return noise::noise;
+            }));
+        }
+    }
+
+    private static List<String> sortedKeys(String[] keys) {
+        if (keys == null) {
+            return List.of();
+        }
+        return Arrays.stream(keys).sorted().toList();
+    }
+
+    private static String displayName(String rawName) {
+        String spaced = rawName.toLowerCase(Locale.ROOT).replace('_', ' ').replace('-', ' ');
+        return Character.toUpperCase(spaced.charAt(0)) + spaced.substring(1);
+    }
+
+    /**
+     * One noise the view lists.
+     *
+     * @param usesSeed   whether the view's seed changes it; the overlay keeps the world's
+     * @param smooth     whether tiles are sampled on a world-fixed lattice and smoothed between its points, for noise too slow to ask at every pixel
+     * @param blockRange where the noise is measured in blocks above the fluid, what it spans; null for noise of 0 to 1
+     */
+    public record Source(String id, String name, String category, boolean usesSeed, boolean smooth, BlockRange blockRange) {
+    }
+
+    public record BlockRange(double lowest, double highest) {
+    }
+
+    @FunctionalInterface
+    private interface SamplerFactory {
+        NoiseProvider create(long seed);
+    }
+
+    private record Entry(Source source, NoiseCategory category, SamplerFactory factory) {
+    }
+}

@@ -22,8 +22,12 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.studio.map.StudioAssets;
 import art.arcane.iris.studio.map.StudioHover;
+import art.arcane.iris.studio.map.PalettePatterns;
+import art.arcane.iris.studio.noise.NoiseSources;
+import art.arcane.iris.studio.noise.NoiseTile;
 import art.arcane.iris.studio.view.GuiHost;
 import art.arcane.iris.studio.view.GuiMarker;
+import art.arcane.volmlib.util.function.NoiseProvider;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.gson.Gson;
@@ -72,6 +76,10 @@ public final class StudioBridge implements AutoCloseable {
     private static final int LARGEST_TILE_SIZE = 512;
     private static final double SMALLEST_BLOCKS_PER_PIXEL = 1D / 16D;
     private static final double LARGEST_BLOCKS_PER_PIXEL = 4_096D;
+    private static final double SMALLEST_NOISE_BLOCKS_PER_PIXEL = 1D / 64D;
+    private static final int LARGEST_PATTERN_BLOCKS_PER_COLUMN = 64;
+    private static final ModuleViewInfo PALETTES_VIEW = new ModuleViewInfo("iris:terrain/palettes", "Palettes",
+            "The blocks each biome's palette layers place");
     private static final long DROPPED_TILE_KEPT_MINUTES = 10;
     private static final long ENTITY_WAIT_MILLIS = 3_000L;
     private static final String ASSETS_ENDPOINT = "assets/";
@@ -87,6 +95,7 @@ public final class StudioBridge implements AutoCloseable {
     static final int STATUS_UNAUTHORIZED = 401;
     static final int STATUS_NOT_FOUND = 404;
     static final int STATUS_METHOD_NOT_ALLOWED = 405;
+    static final int STATUS_UNPROCESSABLE = 422;
     static final int STATUS_SERVER_ERROR = 500;
     static final int STATUS_UNAVAILABLE = 503;
 
@@ -225,7 +234,12 @@ public final class StudioBridge implements AutoCloseable {
             case "scene-entries" -> sendJson(exchange, STATUS_OK, profileEntries(get(exchange).engine(), query));
             case "scene" -> sendBytes(exchange, "application/octet-stream", profileScene(get(exchange).engine(), query));
             case "profile-form" -> sendJson(exchange, STATUS_OK, profileForm(get(exchange).engine(), query));
-            case "patterns", "noise-sources", "saved-worlds" -> sendJson(exchange, STATUS_OK, List.of());
+            case "noise-sources" -> sendJson(exchange, STATUS_OK, NoiseSources.of(get(exchange).engine()).list());
+            case "noise-tile" -> sendBytes(exchange, "application/octet-stream", noiseTile(get(exchange).engine(), query));
+            case "patterns" -> sendJson(exchange, STATUS_OK, List.of(PALETTES_VIEW));
+            case "pattern-entries" -> sendJson(exchange, STATUS_OK, patternEntries(get(exchange).engine(), query));
+            case "pattern" -> sendBytes(exchange, "application/octet-stream", pattern(get(exchange).engine(), query));
+            case "saved-worlds" -> sendJson(exchange, STATUS_OK, List.of());
             case "events" -> streamEvents(exchange);
             case "teleport" -> teleport(exchange, query);
             case "open" -> throw new RequestError(STATUS_NOT_FOUND, "Opening a pack file from the studio is not available in Iris v4");
@@ -322,6 +336,62 @@ public final class StudioBridge implements AutoCloseable {
                 ? session.tiles().rivers(startX, startZ, blocksPerPixel, size, cancelled)
                 : session.tiles().biomesOrRegions(view, preview, startX, startZ, blocksPerPixel, size, query.flag("heights"), cancelled);
         return tile.encode(gson);
+    }
+
+    private static List<PalettePatterns.Entry> patternEntries(Engine engine, Query query) {
+        requirePalettesView(query);
+        return PalettePatterns.entries(engine);
+    }
+
+    private byte[] pattern(Engine engine, Query query) {
+        requirePalettesView(query);
+        int columns = query.whole("size", DEFAULT_TILE_SIZE);
+        int blocksPerColumn = query.whole("scale", 1);
+        if (columns < 1 || columns > LARGEST_TILE_SIZE) {
+            throw new RequestError(STATUS_BAD_REQUEST, "A pattern is 1 to " + LARGEST_TILE_SIZE + " columns across");
+        }
+        if (blocksPerColumn < 1 || blocksPerColumn > LARGEST_PATTERN_BLOCKS_PER_COLUMN) {
+            throw new RequestError(STATUS_BAD_REQUEST, "The scale is 1 to " + LARGEST_PATTERN_BLOCKS_PER_COLUMN + " whole blocks per column");
+        }
+        String key = query.text("key");
+        int tileBlocks = columns * blocksPerColumn;
+        PalettePatterns.Pattern pattern = PalettePatterns.pattern(engine, key, query.whole("depth", 0),
+                        query.whole("x", 0) * tileBlocks, query.whole("z", 0) * tileBlocks, columns, blocksPerColumn)
+                .orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No palette " + key));
+        return PatternEncoding.encode(pattern, blocksPerColumn, gson);
+    }
+
+    private static void requirePalettesView(Query query) {
+        if (!PALETTES_VIEW.id().equals(query.text("view"))) {
+            throw new RequestError(STATUS_NOT_FOUND, "No pattern view " + query.text("view"));
+        }
+    }
+
+    private byte[] noiseTile(Engine engine, Query query) {
+        int size = query.whole("size", DEFAULT_TILE_SIZE);
+        double blocksPerPixel = query.number("scale");
+        if (size < 1 || size > LARGEST_TILE_SIZE) {
+            throw new RequestError(STATUS_BAD_REQUEST, "A tile is 1 to " + LARGEST_TILE_SIZE + " pixels");
+        }
+        if (!(blocksPerPixel >= SMALLEST_NOISE_BLOCKS_PER_PIXEL && blocksPerPixel <= LARGEST_BLOCKS_PER_PIXEL)) {
+            throw new RequestError(STATUS_BAD_REQUEST, "The scale is " + SMALLEST_NOISE_BLOCKS_PER_PIXEL + " to " + LARGEST_BLOCKS_PER_PIXEL + " blocks per pixel");
+        }
+        NoiseSources sources = NoiseSources.of(engine);
+        String source = query.text("source");
+        NoiseProvider noise = noiseSampler(sources, source, query.longNumber("seed"));
+        return NoiseTile.sample(noise, query.whole("x", 0), query.whole("z", 0), blocksPerPixel, size, sources.isSmooth(source),
+                () -> closed || engine.isClosing() || engine.isClosed()).encode();
+    }
+
+    // A source that cannot be sampled fails every tile alike, so it is told once to the studio rather than logged per tile.
+    private static NoiseProvider noiseSampler(NoiseSources sources, String source, long seed) {
+        try {
+            return sources.sampler(source, seed);
+        } catch (NoSuchElementException unknown) {
+            throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
+        } catch (IllegalStateException unsampleable) {
+            throw new RequestError(STATUS_UNPROCESSABLE, unsampleable.getMessage());
+        }
     }
 
     // Asset paths name one file of one Minecraft version, so a studio may keep what it fetched for as long as it runs.
@@ -549,6 +619,14 @@ public final class StudioBridge implements AutoCloseable {
             return found;
         }
 
+        long longNumber(String name) {
+            try {
+                return Long.parseLong(text(name));
+            } catch (NumberFormatException malformed) {
+                throw new RequestError(STATUS_BAD_REQUEST, name + " must be a whole number");
+            }
+        }
+
         boolean has(String name) {
             return values.containsKey(name);
         }
@@ -568,6 +646,10 @@ public final class StudioBridge implements AutoCloseable {
     /** A profile view as the studio lists its scene views; {@code form} when its entries have a settings form. */
     private record SceneViewInfo(String id, String label, String description, boolean editable, boolean creatable, boolean baked,
                                  boolean parts, StudioProfiles.Sizes sizes, boolean form) {
+    }
+
+    /** A view the studio lists beside the scene and pattern views. */
+    private record ModuleViewInfo(String id, String label, String description) {
     }
 
     private record PickInspection(String detail, List<Object> sections) {

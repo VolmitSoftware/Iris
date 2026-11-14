@@ -74,13 +74,14 @@ final class StudioTiles {
     StudioTile biomesOrRegions(String view, String previewRegion, double startX, double startZ, double blocksPerPixel, int size,
                                boolean withHeights, BooleanSupplier cancelled) {
         MapLayer layer = layerOf(view, previewRegion);
-        MapTileRenderer.TileRender render = renderer.prepareTile(startX, startZ, blocksPerPixel, size, layer, withHeights);
+        boolean heightsWanted = withHeights || layer.type() == TileType.HEIGHT;
+        MapTileRenderer.TileRender render = renderer.prepareTile(startX, startZ, blocksPerPixel, size, layer, heightsWanted);
         MapTile tile = render.render(cancelled);
         for (int attempt = 0; !render.complete() && attempt < MAX_FINISH_ATTEMPTS; attempt++) {
             pause(cancelled);
             tile = render.render(cancelled);
         }
-        return wire(tile, blocksPerPixel, withHeights && tile.hasHeights());
+        return wire(tile, blocksPerPixel, heightsWanted && tile.hasHeights(), layer.type());
     }
 
     StudioTile rivers(double startX, double startZ, double blocksPerPixel, int size, BooleanSupplier cancelled) {
@@ -102,13 +103,20 @@ final class StudioTiles {
     }
 
     private static MapLayer layerOf(String view, String previewRegion) {
-        if ("regions".equals(view)) {
-            return previewRegion == null ? MapLayer.regions(PickDisplay.PICKS) : MapLayer.regionPreview(previewRegion, PickDisplay.PICKS);
-        }
-        return MapLayer.biomes(PickDisplay.PICKS, false);
+        return switch (view) {
+            case "regions" -> previewRegion == null ? MapLayer.regions(PickDisplay.PICKS) : MapLayer.regionPreview(previewRegion, PickDisplay.PICKS);
+            case "height" -> MapLayer.of(TileType.HEIGHT);
+            case "land-biomes" -> MapLayer.of(TileType.BIOME_LAND);
+            case "sea-biomes" -> MapLayer.of(TileType.BIOME_SEA);
+            case "cave-biomes" -> MapLayer.of(TileType.CAVE_LAND);
+            case "object-load" -> MapLayer.of(TileType.OBJECT_LOAD);
+            case "decorator-load" -> MapLayer.of(TileType.DECORATOR_LOAD);
+            case "layer-load" -> MapLayer.of(TileType.LAYER_LOAD);
+            default -> MapLayer.biomes(PickDisplay.PICKS, false);
+        };
     }
 
-    private StudioTile wire(MapTile tile, double blocksPerPixel, boolean withHeights) {
+    private StudioTile wire(MapTile tile, double blocksPerPixel, boolean withHeights, TileType legendType) {
         int size = tile.size();
         int grid = size + 2;
         Labelling labelling = new Labelling();
@@ -125,7 +133,7 @@ final class StudioTiles {
                 }
             }
         }
-        List<StudioTile.Label> labels = labelling.labels(renderer);
+        List<StudioTile.Label> labels = labelling.labels(renderer, legendType);
         return new StudioTile(size, blocksPerPixel, tile.subjectKind().name(), labels, subjects, regions, heights);
     }
 
@@ -156,12 +164,12 @@ final class StudioTiles {
             });
         }
 
-        List<StudioTile.Label> labels(MapTileRenderer renderer) {
+        List<StudioTile.Label> labels(MapTileRenderer renderer, TileType legendType) {
             List<StudioTile.Label> labels = new ArrayList<>();
             for (short id : usedLabelIds) {
                 MapLabels.Label label = renderer.labels().label(id);
                 labels.add(new StudioTile.Label(label.kind().name(), label.key(), label.name(),
-                        renderer.legendColor(label, TileType.BIOME) & RGB));
+                        renderer.legendColor(label, legendType) & RGB));
             }
             return labels;
         }

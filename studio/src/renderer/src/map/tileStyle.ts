@@ -1,7 +1,7 @@
 import { gridIndex } from '../bridge/tileDecoding'
 import { NO_BLOCK, NO_LABEL, type MapTile, type PickDisplay, type TileBlocks } from '../bridge/types'
 import { WATER_SURFACE_COLOR } from '../scene/waterTint'
-import { blend } from './heightColors'
+import { blend, heightColor } from './heightColors'
 
 const WATER_OVER_GROUND = 0.65
 
@@ -15,6 +15,8 @@ export interface Highlight {
 export interface TileStyle {
   /** Colour by the block on top of each column instead of by label, where the tile carries its blocks. */
   byBlock: boolean
+  /** Colour by the terrain height of each column, from the tile's heights, instead of by label. */
+  byHeight?: boolean
   shading: boolean
   regionBorders: boolean
   highlight: Highlight | null
@@ -25,7 +27,7 @@ export interface TileStyle {
 
 export function styleKey(style: TileStyle): string {
   const highlight = style.highlight === null ? '' : `${style.highlight.kind}:${style.highlight.key}`
-  return `${style.byBlock}|${style.shading}|${style.regionBorders}|${highlight}|${style.seaLevel}|${style.pickDisplay}`
+  return `${style.byBlock}|${style.byHeight === true}|${style.shading}|${style.regionBorders}|${highlight}|${style.seaLevel}|${style.pickDisplay}`
 }
 
 const UNKNOWN_SUBJECT = 0x5a5c62
@@ -64,10 +66,14 @@ export function stylePixels(tile: MapTile, style: TileStyle): Uint8ClampedArray<
   // The bare noise is read by its brightness, which relief shading would mix up.
   const shading = style.shading && heights !== null && !(pickNoise !== null && style.pickDisplay === 'noise')
   const highlighted = highlightCells(tile, style)
+  const heightColored = style.byHeight === true && blocks === null && heights !== null
   for (let pixelZ = 0; pixelZ < size; pixelZ++) {
     for (let pixelX = 0; pixelX < size; pixelX++) {
       const cell = gridIndex(tile, pixelX, pixelZ)
       let color = blocks === null ? labelColor(colors, tile.subjects[cell]) : blockColor(blocks, cell, heights, style.seaLevel)
+      if (heightColored) {
+        color = heightColor(heights[cell], style.seaLevel)
+      }
       if (pickNoise !== null) {
         color = byNoise(color, pickNoise[cell], style.pickDisplay)
       }

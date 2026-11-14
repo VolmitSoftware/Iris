@@ -60,6 +60,29 @@ export function countShares(tiles: PlacedTile[], area: WorldArea): Share[] {
     .sort((first, second) => second.fraction - first.fraction)
 }
 
+/** The terrain heights of the pixels of {@code tiles} inside {@code area}, sampled to a bounded count. */
+export function heightsInArea(tiles: PlacedTile[], area: WorldArea): number[] {
+  const heights: number[] = []
+  const totalPixels = tiles.reduce((sum, placed) => sum + placed.tile.size * placed.tile.size, 0)
+  const stride = Math.max(1, Math.ceil(Math.sqrt(totalPixels / MAXIMUM_COUNTED_PIXELS)))
+  for (const { tile, worldX, worldZ } of tiles) {
+    if (tile.heights === null) {
+      continue
+    }
+    const scale = tile.blocksPerPixel
+    const firstX = Math.max(0, Math.ceil((area.minimumX - worldX) / scale))
+    const endX = Math.min(tile.size, Math.ceil((area.maximumX - worldX) / scale))
+    const firstZ = Math.max(0, Math.ceil((area.minimumZ - worldZ) / scale))
+    const endZ = Math.min(tile.size, Math.ceil((area.maximumZ - worldZ) / scale))
+    for (let pixelZ = firstZ; pixelZ < endZ; pixelZ += stride) {
+      for (let pixelX = firstX; pixelX < endX; pixelX += stride) {
+        heights.push(tile.heights[gridIndex(tile, pixelX, pixelZ)])
+      }
+    }
+  }
+  return heights
+}
+
 /** The shares of the height bands the {@code heights} fall in, highest band first. */
 export function heightBandShares(heights: readonly number[], seaLevel: number): Share[] {
   const counts = new Map<number, number>()

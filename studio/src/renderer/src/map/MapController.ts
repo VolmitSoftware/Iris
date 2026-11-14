@@ -1,7 +1,7 @@
 import type { BridgeClient, WorldRect } from '../bridge/BridgeClient'
 import { gridIndex } from '../bridge/tileDecoding'
 import { NO_LABEL, type BlockSource, type MapLabel, type MapTile, type Marker, type PickDisplay, type WorldInfo } from '../bridge/types'
-import { countShares, type PlacedTile, type Share } from './census'
+import { countShares, heightBandShares, heightsInArea, type PlacedTile, type Share } from './census'
 import { blockArt, type BlockArt } from '../scene/blockArt'
 import { hasBlocksAt, mapTileSource, type TileLayer } from './mapTileSource'
 import { drawPlayerArrow } from './playerArrow'
@@ -40,6 +40,8 @@ export interface MapListener {
 
 /** The views whose spots a noise picks, so they can draw that noise. */
 const PICK_NOISE_VIEWS = new Set(['biomes', 'regions'])
+/** The view that colours each spot by its terrain height instead of by what picked it. */
+const HEIGHT_VIEW = 'height'
 
 /** What the map shows at a spot, read from the tiles already drawn. */
 export interface SpotSubjects {
@@ -235,6 +237,7 @@ export class MapController {
   private style(): TileStyle {
     return {
       byBlock: this.toggles.blocks,
+      byHeight: this.layer.view === HEIGHT_VIEW,
       shading: this.toggles.shading,
       regionBorders: this.toggles.regionBorders,
       highlight: this.highlight,
@@ -373,6 +376,9 @@ export class MapController {
     }
     const screen = this.screenArea()
     const area = { minimumX: screen.minX, minimumZ: screen.minZ, maximumX: screen.maxX, maximumZ: screen.maxZ }
+    if (this.layer.view === HEIGHT_VIEW) {
+      return heightBandShares(heightsInArea(placed, area), this.world.fluidHeight)
+    }
     return countShares(placed, area)
   }
 }

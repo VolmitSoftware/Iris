@@ -90,11 +90,26 @@ public final class StudioBridge implements AutoCloseable {
     static final int STATUS_SERVER_ERROR = 500;
     static final int STATUS_UNAVAILABLE = 503;
 
+    private static final String VIEW_HEIGHT = "height";
+    private static final String GROUP_WORLD = "WORLD";
+    private static final String GROUP_BIOME_LAYERS = "BIOME_LAYERS";
+    private static final String GROUP_DIAGNOSTICS = "DIAGNOSTICS";
+
     private static final List<ViewInfo> VIEWS = List.of(
-            new ViewInfo(VIEW_BIOMES, "Biomes", "The biome at each spot, in the biome's colour", "WORLD", "World"),
-            new ViewInfo(VIEW_REGIONS, "Regions", "The region each spot belongs to", "WORLD", "World"),
+            new ViewInfo(VIEW_BIOMES, "Biomes", "The biome at each spot, in the biome's colour", GROUP_WORLD, "World"),
+            new ViewInfo(VIEW_REGIONS, "Regions", "The region each spot belongs to", GROUP_WORLD, "World"),
+            new ViewInfo(VIEW_HEIGHT, "Height", "Terrain height, from deep water to snowy peaks", GROUP_WORLD, "World"),
             new ViewInfo(VIEW_RIVERS, "Rivers", "Streams, rivers, falls, ponds, lakes, sea inlets, grottos and cave pools from the hydrology",
-                    "WORLD", "World"));
+                    GROUP_WORLD, "World"),
+            new ViewInfo("land-biomes", "Land biomes", "The land biome each spot would get, also where the sea is", GROUP_BIOME_LAYERS, "Biome layers"),
+            new ViewInfo("sea-biomes", "Sea biomes", "The sea biome each spot would get, also where the land is", GROUP_BIOME_LAYERS, "Biome layers"),
+            new ViewInfo("cave-biomes", "Cave biomes", "The cave biome under each spot", GROUP_BIOME_LAYERS, "Biome layers"),
+            new ViewInfo("object-load", "Object load", "Configuration estimate of object density and chance, not measured performance",
+                    GROUP_DIAGNOSTICS, "Diagnostics"),
+            new ViewInfo("decorator-load", "Decorator load", "Configuration estimate of decorator chance and stacks, not measured performance",
+                    GROUP_DIAGNOSTICS, "Diagnostics"),
+            new ViewInfo("layer-load", "Layer load", "Configuration estimate of biome layer count, not measured performance",
+                    GROUP_DIAGNOSTICS, "Diagnostics"));
 
     private final StudioWorld world;
     private final String token;

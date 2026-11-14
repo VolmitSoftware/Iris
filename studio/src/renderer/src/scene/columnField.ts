@@ -1,0 +1,185 @@
+import type { BlockLook } from './blockLooks'
+import type { CoverLook } from './coverLooks'
+import type { TerrainPictures } from './terrainAtlas'
+import { isSeeThrough } from './raisedFaces'
+import type { RaisedBlock, TerrainSurface } from './terrainMesh'
+import type { ColumnArea } from './terrainTiles'
+
+const NO_VALUE = Number.NaN
+const NOTHING_RAISED: readonly RaisedBlock[] = []
+
+/**
+ * The surface read once into columns: where each column's ground and water faces stand, and its colour. A top face
+ * stands one above the block's Y, so ground and water sit where a player stands on them. Where nothing is known, or
+ * where the columns are {@code holes} left to finer ground, the column has no ground and no water.
+ */
+/** Where a field's ground and water stand, without the looks it was drawn with. */
+export interface FieldShape {
+  columns: number
+  rows: number
+  originX: number
+  originZ: number
+  blocksPerColumn: number
+  groundTop: Float32Array
+  waterTop: Float32Array
+  topRange: { lowest: number; highest: number } | null
+}
+
+export class ColumnField {
+  readonly columns: number
+  readonly rows: number
+  readonly originX: number
+  readonly originZ: number
+  readonly blocksPerColumn: number
+  readonly groundTop: Float32Array
+  readonly waterTop: Float32Array
+  readonly color: Int32Array
+  /** What each column's block looks like, or null to show its colour. */
+  readonly looks: (BlockLook | null)[]
+  /** What stands on each column's ground, or null for nothing that is drawn. */
+  readonly covers: (CoverLook | null)[]
+  /** The solid blocks above each column's ground, highest first, each without a look where the field has no atlas. */
+  readonly raised: (readonly RaisedBlock[])[]
+  /** The atlas of the looks, or null where no column has one. */
+  readonly pictures: TerrainPictures | null
+  /** How low and high the top faces stand, ground and water alike; null where no column has ground. */
+  readonly topRange: { lowest: number; highest: number } | null
+
+  constructor(surface: TerrainSurface, holes: readonly ColumnArea[] = []) {
+    this.columns = surface.columns
+    this.rows = surface.rows
+    this.originX = surface.originX
+    this.originZ = surface.originZ
+    this.blocksPerColumn = surface.blocksPerColumn
+    const count = this.columns * this.rows
+    this.groundTop = new Float32Array(count).fill(NO_VALUE)
+    this.waterTop = new Float32Array(count).fill(NO_VALUE)
+    this.color = new Int32Array(count)
+    this.looks = new Array<BlockLook | null>(count).fill(null)
+    this.covers = new Array<CoverLook | null>(count).fill(null)
+    this.raised = new Array<readonly RaisedBlock[]>(count).fill(NOTHING_RAISED)
+    const hasPictures = surface.pictures !== undefined
+    let anyLook = false
+    let [lowestTop, highestTop] = [Infinity, -Infinity]
+    const inHole = this.holeMask(holes)
+    for (let row = 0; row < this.rows; row++) {
+      for (let column = 0; column < this.columns; column++) {
+        const index = this.indexOf(column, row)
+        const ground = inHole[index] === 1 ? null : surface.groundAt(column, row)
+        if (ground === null) {
+          continue
+        }
+        const water = surface.waterAt(column, row)
+        this.groundTop[index] = ground + 1
+        this.waterTop[index] = water === null ? NO_VALUE : water + 1
+        this.color[index] = surface.colorAt(column, row)
+        const look = hasPictures ? (surface.lookAt?.(column, row) ?? null) : null
+        this.looks[index] = look
+        this.covers[index] = hasPictures ? (surface.coverAt?.(column, row) ?? null) : null
+        const raised = surface.raisedAt?.(column, row) ?? NOTHING_RAISED
+        this.raised[index] = hasPictures ? raised : raised.map((block) => ({ ...block, look: null }))
+        anyLook ||= look !== null || this.raised[index].some((block) => block.look !== null)
+        lowestTop = Math.min(lowestTop, ground + 1)
+        highestTop = Math.max(highestTop, ground + 1, water === null ? ground : water + 1)
+      }
+    }
+    this.pictures = anyLook ? (surface.pictures ?? null) : null
+    this.topRange = lowestTop === Infinity ? null : { lowest: lowestTop, highest: highestTop }
+  }
+
+  /** Where the field's ground and water stand, as plain data that can be sent to and from a worker. */
+  shape(): FieldShape {
+    const { columns, rows, originX, originZ, blocksPerColumn, groundTop, waterTop, topRange } = this
+    return { columns, rows, originX, originZ, blocksPerColumn, groundTop, waterTop, topRange }
+  }
+
+  /** A field rebuilt from its {@link shape}, which answers where its ground and water stand but holds no looks to draw. */
+  static ofShape(shape: FieldShape): ColumnField {
+    const count = shape.columns * shape.rows
+    return Object.assign(Object.create(ColumnField.prototype) as ColumnField, {
+      ...shape,
+      color: new Int32Array(count),
+      looks: [],
+      covers: [],
+      raised: [],
+      pictures: null
+    })
+  }
+
+  indexOf(column: number, row: number): number {
+    return row * this.columns + column
+  }
+
+  contains(column: number, row: number): boolean {
+    return column >= 0 && row >= 0 && column < this.columns && row < this.rows
+  }
+
+  hasGround(column: number, row: number): boolean {
+    return this.contains(column, row) && !Number.isNaN(this.groundTop[this.indexOf(column, row)])
+  }
+
+  /**
+   * Whether the block at {@code y} in the column hides what touches it: the column's ground, or a block raised over it
+   * that nothing shows through. False outside the field.
+   */
+  isOpaqueAt(column: number, row: number, y: number): boolean {
+    if (!this.hasGround(column, row)) {
+      return false
+    }
+    const index = this.indexOf(column, row)
+    return y < this.groundTop[index] || this.raised[index].some((block) => block.y === y && !isSeeThrough(block))
+  }
+
+  /** Whether any column has ground. */
+  hasAnyGround(): boolean {
+    return this.groundTop.some((top) => !Number.isNaN(top))
+  }
+
+  /** The top face of the water over the column, or null where it is dry, holds none or lies outside the field. */
+  waterTopAt(column: number, row: number): number | null {
+    if (!this.contains(column, row)) {
+      return null
+    }
+    const top = this.waterTop[this.indexOf(column, row)]
+    return Number.isNaN(top) ? null : top
+  }
+
+  /** The face the column shows to the sky: its water where it has some, else its ground; null where nothing is known. */
+  surfaceTop(column: number, row: number): number | null {
+    if (!this.hasGround(column, row)) {
+      return null
+    }
+    const index = this.indexOf(column, row)
+    return Number.isNaN(this.waterTop[index]) ? this.groundTop[index] : this.waterTop[index]
+  }
+
+  /** The face shown to the sky over the world block, or null where the field has none. */
+  surfaceTopOver(worldX: number, worldZ: number): number | null {
+    return this.surfaceTop(this.columnOf(worldX), this.rowOf(worldZ))
+  }
+
+  /** The top face of the ground under any water over the world block, or null where the field has none. */
+  groundTopOver(worldX: number, worldZ: number): number | null {
+    const column = this.columnOf(worldX)
+    const row = this.rowOf(worldZ)
+    return this.hasGround(column, row) ? this.groundTop[this.indexOf(column, row)] : null
+  }
+
+  private columnOf(worldX: number): number {
+    return Math.floor((worldX - this.originX) / this.blocksPerColumn)
+  }
+
+  private rowOf(worldZ: number): number {
+    return Math.floor((worldZ - this.originZ) / this.blocksPerColumn)
+  }
+
+  private holeMask(holes: readonly ColumnArea[]): Uint8Array {
+    const mask = new Uint8Array(this.columns * this.rows)
+    for (const hole of holes) {
+      for (let row = hole.fromRow; row < hole.toRow; row++) {
+        mask.fill(1, this.indexOf(hole.fromColumn, row), this.indexOf(hole.toColumn - 1, row) + 1)
+      }
+    }
+    return mask
+  }
+}

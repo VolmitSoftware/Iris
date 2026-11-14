@@ -35,6 +35,7 @@ public class ListedCaveCarvingTest {
     private static final int FLUID_HEIGHT = 63;
     private static final int LAVA_HEIGHT = 10;
     private static final int POCKET_SEARCH_CHUNKS = 12;
+    private static final byte LIQUID_AIR = 0;
     private static final byte LIQUID_FLUID = 1;
     private static final byte LIQUID_LAVA = 2;
     private static final byte LIQUID_FORCED_AIR = 3;
@@ -254,6 +255,24 @@ public class ListedCaveCarvingTest {
             assertFalse(cave, cells.isEmpty());
             byte expected = cave.equals("lava") ? LIQUID_LAVA : LIQUID_FORCED_AIR;
             assertTrue(cave, cells.values().stream().allMatch(cell -> cell.getLiquid() == expected));
+        }
+    }
+
+    @Test
+    public void theLavaHeightIsWhereLavaOrForcedAirEndsAndPlainAirBegins() {
+        String spanningTheLavaHeight = "{\"cavern\": {\"size\": 40, \"height\": 24, \"coverage\": 0.5}, \"depth\": {\"min\": 0, \"max\": 40}, \"fade\": 0, \"surfaceClearance\": 0, \"allowFluid\": false";
+        files("lava", spanningTheLavaHeight + "}", "dry", spanningTheLavaHeight + ", \"allowLava\": false}");
+
+        for (String cave : List.of("lava", "dry")) {
+            ListedCaveCarving carving = carving(List.of(cave), true);
+            Map<Long, MatterCavern> cells = carve(carving, carving.list(terrainEverywhere(NOWHERE_SPECIAL), 2, 2), 2, 2,
+                    new ChunkSurface(surfaceEverywhere(), null, null));
+            byte expectedAtOrBelow = cave.equals("lava") ? LIQUID_LAVA : LIQUID_FORCED_AIR;
+
+            assertTrue(cave + " reaches the lava height", cells.keySet().stream().anyMatch(key -> heightOf(key) == LAVA_HEIGHT));
+            assertTrue(cave + " rises above the lava height", cells.keySet().stream().anyMatch(key -> heightOf(key) > LAVA_HEIGHT));
+            cells.forEach((key, cell) -> assertEquals(cave + " at " + heightOf(key),
+                    heightOf(key) <= LAVA_HEIGHT ? expectedAtOrBelow : LIQUID_AIR, cell.getLiquid()));
         }
     }
 

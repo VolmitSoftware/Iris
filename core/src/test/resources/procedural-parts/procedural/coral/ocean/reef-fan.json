@@ -1,0 +1,81 @@
+{
+    "variants": 5,
+    "seed": 9413,
+    "materials": [
+        {
+            "role": "coral",
+            "block": "minecraft:horn_coral_block",
+            "palette": {
+                "style": {
+                    "style": "CELLULAR",
+                    "zoom": 0.3
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:horn_coral_block",
+                        "weight": 3
+                    },
+                    {
+                        "block": "minecraft:fire_coral_block",
+                        "weight": 2
+                    }
+                ]
+            }
+        }
+    ],
+    "parts": [
+        {
+            "offset": {
+                "y": 1.75
+            },
+            "blob": {
+                "radius": 5,
+                "height": [
+                    1.0,
+                    2.5
+                ],
+                "stretchZ": 0.05,
+                "profile": [
+                    [
+                        0.0,
+                        0.0
+                    ],
+                    [
+                        0.125,
+                        0.3827
+                    ],
+                    [
+                        0.25,
+                        0.7071
+                    ],
+                    [
+                        0.375,
+                        0.9239
+                    ],
+                    [
+                        0.5,
+                        1.0
+                    ],
+                    [
+                        0.625,
+                        0.9239
+                    ],
+                    [
+                        0.75,
+                        0.7071
+                    ],
+                    [
+                        0.875,
+                        0.3827
+                    ],
+                    [
+                        1.0,
+                        0.0
+                    ]
+                ],
+                "section": "SQUARE"
+            }
+        }
+    ],
+    "waterlogged": true
+}

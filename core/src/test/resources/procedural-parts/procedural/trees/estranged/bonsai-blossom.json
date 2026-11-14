@@ -1,0 +1,258 @@
+{
+    "variants": 6,
+    "seed": 8802,
+    "materials": [
+        {
+            "role": "wood",
+            "block": "minecraft:cherry_wood",
+            "palette": {
+                "style": {
+                    "style": "SIMPLEX",
+                    "zoom": 0.5
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:cherry_wood",
+                        "weight": 4
+                    },
+                    {
+                        "block": "minecraft:stripped_oak_wood",
+                        "weight": 2
+                    }
+                ]
+            }
+        },
+        {
+            "role": "leaves",
+            "block": "minecraft:cherry_leaves",
+            "palette": {
+                "style": {
+                    "style": "CELLULAR",
+                    "zoom": 0.3
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:cherry_leaves",
+                        "weight": 5
+                    },
+                    {
+                        "block": "minecraft:flowering_azalea_leaves",
+                        "weight": 2
+                    }
+                ]
+            }
+        }
+    ],
+    "parts": [
+        {
+            "role": "wood",
+            "stem": {
+                "length": [
+                    3.0,
+                    5.0
+                ],
+                "radius": 1.0,
+                "section": "SQUARE",
+                "taper": [
+                    [
+                        0.0,
+                        1.0988
+                    ],
+                    [
+                        0.125,
+                        1.0962
+                    ],
+                    [
+                        0.25,
+                        1.0893
+                    ],
+                    [
+                        0.375,
+                        1.0738
+                    ],
+                    [
+                        0.5,
+                        1.0441
+                    ],
+                    [
+                        0.625,
+                        0.9964
+                    ],
+                    [
+                        0.75,
+                        0.9332
+                    ],
+                    [
+                        0.875,
+                        0.8666
+                    ],
+                    [
+                        1.0,
+                        0.8162
+                    ]
+                ],
+                "lean": 18,
+                "leanCurve": {
+                    "shape": "power",
+                    "exponent": 8
+                },
+                "facing": 0
+            },
+            "children": [
+                {
+                    "role": "wood",
+                    "at": 0,
+                    "stem": {
+                        "pitch": -90,
+                        "length": 3.0,
+                        "radius": 1.0,
+                        "section": "SQUARE",
+                        "taper": [
+                            [
+                                0,
+                                1
+                            ],
+                            [
+                                1,
+                                0.4
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "role": "wood",
+                    "at": 0,
+                    "branches": {
+                        "count": 6,
+                        "along": {
+                            "from": 0,
+                            "to": 0
+                        },
+                        "azimuth": "EVEN",
+                        "azimuthOffset": [
+                            -14,
+                            14
+                        ],
+                        "pitch": -31.9483,
+                        "part": {
+                            "stem": {
+                                "length": 4.7796,
+                                "radius": 0.5
+                            }
+                        }
+                    }
+                },
+                {
+                    "branches": {
+                        "count": 2,
+                        "along": {
+                            "from": 1,
+                            "to": 1
+                        },
+                        "azimuth": "EVEN",
+                        "pitch": 58.0,
+                        "part": {
+                            "role": "wood",
+                            "stem": {
+                                "length": [
+                                    4.9048,
+                                    6.0756
+                                ],
+                                "radius": 0.5,
+                                "section": "SQUARE"
+                            },
+                            "children": [
+                                {
+                                    "role": "leaves",
+                                    "mode": "FILL",
+                                    "blob": {
+                                        "radius": [
+                                            2.48,
+                                            3.72
+                                        ],
+                                        "stretchX": 1.15,
+                                        "stretchZ": 1.15,
+                                        "height": [
+                                            1.0,
+                                            2.0
+                                        ],
+                                        "depth": 0.0
+                                    },
+                                    "at": 1.0
+                                },
+                                {
+                                    "role": "leaves",
+                                    "mode": "FILL",
+                                    "blob": {
+                                        "radius": [
+                                            4.0,
+                                            6.0
+                                        ],
+                                        "stretchX": 1.15,
+                                        "stretchZ": 1.15,
+                                        "height": 2.0,
+                                        "depth": 0.0
+                                    },
+                                    "at": 1.0,
+                                    "offset": {
+                                        "y": [
+                                            0.0,
+                                            1.0
+                                        ]
+                                    }
+                                },
+                                {
+                                    "role": "leaves",
+                                    "mode": "FILL",
+                                    "blob": {
+                                        "radius": [
+                                            4.0,
+                                            6.0
+                                        ],
+                                        "stretchX": 1.15,
+                                        "stretchZ": 1.15,
+                                        "height": 2.0,
+                                        "depth": 0.0
+                                    },
+                                    "at": 1.0,
+                                    "offset": {
+                                        "y": 1.0
+                                    }
+                                },
+                                {
+                                    "role": "leaves",
+                                    "mode": "FILL",
+                                    "blob": {
+                                        "radius": [
+                                            2.4,
+                                            3.6
+                                        ],
+                                        "stretchX": 1.15,
+                                        "stretchZ": 1.15,
+                                        "height": [
+                                            1.0,
+                                            2.0
+                                        ],
+                                        "depth": 0.0
+                                    },
+                                    "at": 1.0,
+                                    "offset": {
+                                        "y": 2.0
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "decorations": [
+        {
+            "at": "GROUND",
+            "chance": 0.1,
+            "block": "minecraft:pink_petals",
+            "radius": 4.0
+        }
+    ]
+}

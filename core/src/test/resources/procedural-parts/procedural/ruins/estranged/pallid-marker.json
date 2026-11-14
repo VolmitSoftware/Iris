@@ -1,0 +1,121 @@
+{
+    "variants": 8,
+    "seed": 9421,
+    "materials": [
+        {
+            "role": "stone",
+            "block": "minecraft:calcite",
+            "palette": {
+                "style": {
+                    "style": "STATIC"
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:calcite",
+                        "weight": 5
+                    },
+                    {
+                        "block": "minecraft:polished_diorite",
+                        "weight": 2
+                    },
+                    {
+                        "block": "minecraft:bone_block",
+                        "weight": 1
+                    }
+                ]
+            },
+            "rules": [
+                {
+                    "block": "minecraft:air",
+                    "chance": 0.5,
+                    "along": {
+                        "from": 0.88,
+                        "to": 1
+                    }
+                },
+                {
+                    "block": "minecraft:air",
+                    "chance": 0.32,
+                    "height": {
+                        "from": 0.5,
+                        "to": 1
+                    }
+                },
+                {
+                    "palette": {
+                        "style": {
+                            "style": "STATIC"
+                        },
+                        "palette": [
+                            {
+                                "block": "minecraft:tuff",
+                                "weight": 2
+                            },
+                            {
+                                "block": "minecraft:pale_moss_block",
+                                "weight": 1
+                            }
+                        ]
+                    },
+                    "chance": [
+                        [
+                            0,
+                            0.35
+                        ],
+                        [
+                            1,
+                            0.14
+                        ]
+                    ],
+                    "pattern": "PATCHES",
+                    "scale": 5.0
+                }
+            ]
+        }
+    ],
+    "parts": [
+        {
+            "stem": {
+                "length": [
+                    2.0,
+                    5.0
+                ],
+                "radius": 0.5,
+                "section": "SQUARE"
+            },
+            "children": [
+                {
+                    "at": 0,
+                    "branches": {
+                        "count": [
+                            0,
+                            1.4
+                        ],
+                        "along": {
+                            "from": 0,
+                            "to": 0
+                        },
+                        "azimuth": "WHORL",
+                        "whorl": 4,
+                        "azimuthOffset": [
+                            0,
+                            360
+                        ],
+                        "pitch": 0,
+                        "part": {
+                            "stem": {
+                                "length": [
+                                    2,
+                                    3
+                                ],
+                                "radius": 0.5,
+                                "section": "SQUARE"
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "sink": 0.24
+}

@@ -1,0 +1,138 @@
+{
+    "variants": 6,
+    "seed": 7502,
+    "materials": [
+        {
+            "role": "wood",
+            "block": "minecraft:oak_wood"
+        },
+        {
+            "role": "leaves",
+            "block": "minecraft:birch_leaves"
+        }
+    ],
+    "parts": [
+        {
+            "role": "wood",
+            "stem": {
+                "length": [
+                    11.0,
+                    16.0
+                ],
+                "radius": 0.5,
+                "section": "SQUARE"
+            },
+            "children": [
+                {
+                    "role": "wood",
+                    "at": 0,
+                    "stem": {
+                        "pitch": -90,
+                        "length": [
+                            3.0,
+                            4.0
+                        ],
+                        "radius": 0.5,
+                        "section": "SQUARE",
+                        "taper": [
+                            [
+                                0,
+                                1
+                            ],
+                            [
+                                1,
+                                0.4
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "role": "wood",
+                    "at": 0,
+                    "branches": {
+                        "count": 4,
+                        "along": {
+                            "from": 0,
+                            "to": 0
+                        },
+                        "azimuth": "EVEN",
+                        "azimuthOffset": [
+                            -14,
+                            14
+                        ],
+                        "pitch": -39.8056,
+                        "part": {
+                            "stem": {
+                                "length": 4.9051,
+                                "radius": 0.5
+                            }
+                        }
+                    }
+                },
+                {
+                    "role": "leaves",
+                    "mode": "FILL",
+                    "density": 0.78,
+                    "falloff": 1,
+                    "blob": {
+                        "radius": 1.5,
+                        "height": 2.0,
+                        "depth": 0.0
+                    },
+                    "at": 1.0
+                },
+                {
+                    "role": "leaves",
+                    "mode": "FILL",
+                    "density": 0.78,
+                    "falloff": 1,
+                    "blob": {
+                        "radius": 2
+                    },
+                    "at": 1
+                },
+                {
+                    "branches": {
+                        "chance": {
+                            "shape": "periodic",
+                            "periods": 4,
+                            "sharpness": 8,
+                            "to": 0.9
+                        },
+                        "azimuth": "WHORL",
+                        "pitch": 8.0,
+                        "part": {
+                            "role": "wood",
+                            "stem": {
+                                "length": [
+                                    [
+                                        0.0,
+                                        3.0
+                                    ],
+                                    [
+                                        1.0,
+                                        5.0
+                                    ]
+                                ],
+                                "radius": 0.5,
+                                "droop": 0.1
+                            },
+                            "children": [
+                                {
+                                    "role": "leaves",
+                                    "mode": "FILL",
+                                    "density": 0.78,
+                                    "falloff": 1,
+                                    "blob": {
+                                        "radius": 2
+                                    }
+                                }
+                            ]
+                        },
+                        "whorl": 5
+                    }
+                }
+            ]
+        }
+    ]
+}

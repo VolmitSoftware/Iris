@@ -1,0 +1,39 @@
+{
+    "variants": 5,
+    "seed": 9402,
+    "materials": [
+        {
+            "role": "coral",
+            "block": "minecraft:brain_coral_block",
+            "palette": {
+                "style": {
+                    "style": "CELLULAR",
+                    "zoom": 0.35
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:brain_coral_block",
+                        "weight": 3
+                    },
+                    {
+                        "block": "minecraft:bubble_coral_block",
+                        "weight": 1
+                    }
+                ]
+            }
+        }
+    ],
+    "parts": [
+        {
+            "offset": {
+                "y": 2.5
+            },
+            "blob": {
+                "radius": 3,
+                "height": 2.5,
+                "roughness": 0.332
+            }
+        }
+    ],
+    "waterlogged": true
+}

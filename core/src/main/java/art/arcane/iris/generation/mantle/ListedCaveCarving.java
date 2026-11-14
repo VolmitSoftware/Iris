@@ -120,8 +120,7 @@ final class ListedCaveCarving {
     /** Carves the listed caves of the chunk into {@code sink}, under the surface and the fluids and ceilings that surround it. */
     void carve(CaveListing listing, int chunkX, int chunkZ, ChunkSurface surface, CaveCellSink sink, CaveFluidSupportPlan fluidSupport) {
         boolean[] sealed = sealedColumns(surface.fluidBoundaries());
-        for (int index = listing.caves().size() - 1; index >= 0; index--) {
-            ListedColumns listed = listing.caves().get(index);
+        for (ListedColumns listed : firstListedWritesLast(listing)) {
             ChunkColumns columns = new ChunkColumns(surface.surfaceY(), listed.weight(), sealed, surface.ceilings(), DepthRange.OWN);
             carveCave(listed.cave(), columns, listed.band(), surface, chunkX, chunkZ, sink, fluidSupport);
         }
@@ -138,8 +137,7 @@ final class ListedCaveCarving {
         boolean[] sealed = new boolean[CHUNK_AREA];
         Arrays.fill(sealed, true);
         ChunkSurface surface = new ChunkSurface(worldTop, null, null);
-        for (int index = listing.caves().size() - 1; index >= 0; index--) {
-            ListedColumns listed = listing.caves().get(index);
+        for (ListedColumns listed : firstListedWritesLast(listing)) {
             HeightBand band = new HeightBand(Math.max(listed.band().lowestY(), lowestUpperY), Math.min(listed.band().highestY(), world.height() - 1));
             if (band.lowestY() > band.highestY()) {
                 continue;
@@ -147,6 +145,11 @@ final class ListedCaveCarving {
             ChunkColumns columns = new ChunkColumns(worldTop, listed.weight(), sealed, null, DepthRange.WHOLE_DIMENSION);
             carveCave(listed.cave(), columns, band, surface, chunkX, chunkZ, sink, fluidSupport);
         }
+    }
+
+    /** A block several caves carve is written by each in turn, so whoever writes last owns it: the first listed. */
+    private static List<ListedColumns> firstListedWritesLast(CaveListing listing) {
+        return listing.caves().reversed();
     }
 
     private void carveCave(ListedCave cave, ChunkColumns columns, HeightBand band, ChunkSurface surface, int chunkX, int chunkZ,

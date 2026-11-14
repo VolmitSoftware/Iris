@@ -28,8 +28,7 @@ import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.localization.C;
 
-import java.awt.Desktop;
-import java.awt.GraphicsEnvironment;
+import art.arcane.iris.studio.workspace.FileOpener;
 
 
 import art.arcane.iris.localization.IrisLanguage;
@@ -51,13 +50,8 @@ public class CommandEdit implements DirectorExecutor {
             return true;
         }
 
-        if (GraphicsEnvironment.isHeadless()) {
+        if (!FileOpener.isDesktopAvailable()) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_CANNOT_OPEN_FILES_HEADLESS_ENVIRONMENTS));
-            return true;
-        }
-
-        if (!Desktop.isDesktopSupported()) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_DESKTOP_IS_NOT_SUPPORTED_BY_THIS_ENVIRONMENT));
             return true;
         }
         return false;
@@ -74,7 +68,7 @@ public class CommandEdit implements DirectorExecutor {
                 sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_CANNOT_FIND_FILE_PERHAPS_IT_WAS_NOT_LOADED_DIRECTLY_FROM));
                 return;
             }
-            Desktop.getDesktop().open(biome.getLoadFile());
+            FileOpener.open(biome.getLoadFile());
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_OPENING_VSCODE, MessageArgument.untrusted("value", biome.getTypeName()), MessageArgument.untrusted("value2", biome.getLoadFile().getName().split("\\Q.\\E")[0])));
         } catch (Throwable e) {
             Iris.reportError(e);
@@ -92,7 +86,7 @@ public class CommandEdit implements DirectorExecutor {
                 sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_CANNOT_FIND_FILE_PERHAPS_IT_WAS_NOT_LOADED_DIRECTLY_FROM_2));
                 return;
             }
-            Desktop.getDesktop().open(region.getLoadFile());
+            FileOpener.open(region.getLoadFile());
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_OPENING_VSCODE_2, MessageArgument.untrusted("value", region.getTypeName()), MessageArgument.untrusted("value2", region.getLoadFile().getName().split("\\Q.\\E")[0])));
         } catch (Throwable e) {
             Iris.reportError(e);
@@ -110,7 +104,7 @@ public class CommandEdit implements DirectorExecutor {
                 sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_CANNOT_FIND_FILE_PERHAPS_IT_WAS_NOT_LOADED_DIRECTLY_FROM_3));
                 return;
             }
-            Desktop.getDesktop().open(dimension.getLoadFile());
+            FileOpener.open(dimension.getLoadFile());
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_OPENING_VSCODE_3, MessageArgument.untrusted("value", dimension.getTypeName()), MessageArgument.untrusted("value2", dimension.getLoadFile().getName().split("\\Q.\\E")[0])));
         } catch (Throwable e) {
             Iris.reportError(e);

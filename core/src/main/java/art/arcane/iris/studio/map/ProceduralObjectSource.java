@@ -42,23 +42,10 @@ import java.util.OptionalLong;
  * that declares it.
  */
 public final class ProceduralObjectSource implements ObjectSource {
-    private static final int EMPTY_ICON_SIZE = 40;
     private static final String BIOME_FOLDER = "biomes";
     private static final String REGION_FOLDER = "regions";
 
     private volatile Map<String, IrisProceduralPlacement> placementsByKey = Map.of();
-
-    @Override
-    public String noun() {
-        return "procedural object";
-    }
-
-    @Override
-    public EmptyState emptyState() {
-        return new EmptyState(MapViewIcon.large(MapView.PROCEDURAL, EMPTY_ICON_SIZE), "No procedural objects yet",
-                "Add trees, ruins, formations, coral, fungi or crystals to",
-                "a biome's or region's proceduralObjects", "They appear here once the pack reloads.");
-    }
 
     @Override
     public List<String> keys(IrisData data) {

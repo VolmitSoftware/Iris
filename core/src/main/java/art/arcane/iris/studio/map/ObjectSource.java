@@ -25,16 +25,9 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 
 /**
- * Where an object explorer gets what it shows: the pack's object files, or the objects Iris generates from settings.
- * Both are called on the explorer's loader thread only.
+ * Where the studio gets the objects it shows: the pack's object files, or the objects Iris generates from settings.
  */
 public interface ObjectSource {
-    /** What one entry is called, such as "object", for the browser's texts. */
-    String noun();
-
-    /** What the view shows when the pack has no entries. */
-    EmptyState emptyState();
-
     /** The key of every entry, where a slash separates folders. */
     List<String> keys(IrisData data);
 

@@ -22,11 +22,14 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.studio.map.StudioAssets;
 import art.arcane.iris.studio.map.StudioHover;
+import art.arcane.iris.studio.imagemap.ImageMapPreviews;
 import art.arcane.iris.studio.map.PalettePatterns;
 import art.arcane.iris.studio.noise.NoiseSources;
 import art.arcane.iris.studio.noise.NoiseTile;
 import art.arcane.iris.studio.view.GuiHost;
 import art.arcane.iris.studio.view.GuiMarker;
+import art.arcane.iris.studio.view.PregenRenderSnapshot;
+import art.arcane.iris.studio.view.PregeneratorJob;
 import art.arcane.volmlib.util.function.NoiseProvider;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -78,6 +81,7 @@ public final class StudioBridge implements AutoCloseable {
     private static final double LARGEST_BLOCKS_PER_PIXEL = 4_096D;
     private static final double SMALLEST_NOISE_BLOCKS_PER_PIXEL = 1D / 64D;
     private static final int LARGEST_PATTERN_BLOCKS_PER_COLUMN = 64;
+    private static final int DEFAULT_IMAGE_MAP_PREVIEW_PIXELS = 768;
     private static final ModuleViewInfo PALETTES_VIEW = new ModuleViewInfo("iris:terrain/palettes", "Palettes",
             "The blocks each biome's palette layers place");
     private static final long DROPPED_TILE_KEPT_MINUTES = 10;
@@ -118,7 +122,12 @@ public final class StudioBridge implements AutoCloseable {
             new ViewInfo("decorator-load", "Decorator load", "Configuration estimate of decorator chance and stacks, not measured performance",
                     GROUP_DIAGNOSTICS, "Diagnostics"),
             new ViewInfo("layer-load", "Layer load", "Configuration estimate of biome layer count, not measured performance",
-                    GROUP_DIAGNOSTICS, "Diagnostics"));
+                    GROUP_DIAGNOSTICS, "Diagnostics"),
+            new ViewInfo("noise", "Noise", "The pack's generators and the built-in noise styles, from above or as terrain",
+                    "GENERATORS", "Generators"),
+            new ViewInfo("pregen", "Pregeneration", "The chunks of the running pregeneration as they are generated, with its progress", GROUP_WORLD, "World"),
+            new ViewInfo("imageMaps","Image maps", "Terrain height, biomes or masks painted from a PNG, previewed over the world area they cover",
+                    "GENERATORS", "Generators"));
 
     private final StudioWorld world;
     private final String token;
@@ -240,6 +249,12 @@ public final class StudioBridge implements AutoCloseable {
             case "patterns" -> sendJson(exchange, STATUS_OK, List.of(PALETTES_VIEW));
             case "pattern-entries" -> sendJson(exchange, STATUS_OK, patternEntries(get(exchange).engine(), query));
             case "pattern" -> sendBytes(exchange, "application/octet-stream", pattern(get(exchange).engine(), query));
+            case "pregen" -> sendJson(exchange, STATUS_OK, pregenStatus(exchange));
+            case "pregen-map" -> sendBytes(exchange, "image/png", pregenMap(exchange));
+            case "pregen-pause" -> sendJson(exchange, STATUS_OK, pregenPause(exchange));
+            case "image-maps" -> sendJson(exchange, STATUS_OK, ImageMapPreviews.entries(get(exchange).engine()));
+            case "image-map" -> sendJson(exchange, STATUS_OK, profiling(() -> ImageMapPreviews.details(get(exchange).engine(), query.text("key"))));
+            case "image-map-preview" -> sendBytes(exchange, "image/png", imageMapPreview(get(exchange).engine(), query));
             case "saved-worlds" -> sendJson(exchange, STATUS_OK, List.of());
             case "events" -> streamEvents(exchange);
             case "teleport" -> teleport(exchange, query);
@@ -337,6 +352,40 @@ public final class StudioBridge implements AutoCloseable {
                 ? session.tiles().rivers(startX, startZ, blocksPerPixel, size, cancelled)
                 : session.tiles().biomesOrRegions(view, preview, startX, startZ, blocksPerPixel, size, query.flag("heights"), cancelled);
         return tile.encode(gson);
+    }
+
+    private static PregenStatus pregenStatus(HttpExchange exchange) {
+        requireMethod(exchange, "GET");
+        PregeneratorJob job = PregeneratorJob.getInstance();
+        if (job == null) {
+            return new PregenStatus(false, null);
+        }
+        return new PregenStatus(true, job.renderSnapshot());
+    }
+
+    private static byte[] pregenMap(HttpExchange exchange) {
+        requireMethod(exchange, "GET");
+        PregeneratorJob job = PregeneratorJob.getInstance();
+        if (job == null) {
+            throw new RequestError(STATUS_NOT_FOUND, "No pregeneration is running");
+        }
+        return job.renderMapState().png();
+    }
+
+    private static MessageBody pregenPause(HttpExchange exchange) {
+        requireMethod(exchange, "POST");
+        if (!PregeneratorJob.pauseResume()) {
+            throw new RequestError(STATUS_NOT_FOUND, "No pregeneration to pause or resume");
+        }
+        return new MessageBody(PregeneratorJob.isPaused() ? "Paused" : "Running");
+    }
+
+    private static byte[] imageMapPreview(Engine engine, Query query) {
+        try {
+            return profiling(() -> ImageMapPreviews.preview(engine, query.text("key"), query.whole("size", DEFAULT_IMAGE_MAP_PREVIEW_PIXELS)));
+        } catch (IllegalArgumentException refused) {
+            throw new RequestError(STATUS_BAD_REQUEST, refused.getMessage());
+        }
     }
 
     private static List<PalettePatterns.Entry> patternEntries(Engine engine, Query query) {
@@ -655,6 +704,10 @@ public final class StudioBridge implements AutoCloseable {
     /** A profile view as the studio lists its scene views; {@code form} when its entries have a settings form. */
     private record SceneViewInfo(String id, String label, String description, boolean editable, boolean creatable, boolean baked,
                                  boolean parts, StudioProfiles.Sizes sizes, boolean form) {
+    }
+
+    /** @param snapshot null while no pregeneration runs */
+    private record PregenStatus(boolean active, PregenRenderSnapshot snapshot) {
     }
 
     /** A view the studio lists beside the scene and pattern views. */

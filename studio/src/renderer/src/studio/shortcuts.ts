@@ -70,6 +70,7 @@ export const SHORTCUTS: ShortcutDefinition[] = [
 const VIEW_KEYS: Record<string, Chord> = {
   biomes: '1',
   regions: '2',
+  rivers: '3',
   world3d: '4',
   'iris:terrain/palettes': 'p',
   'iris:objects': 'o',

@@ -7,7 +7,7 @@ const WATER_OVER_GROUND = 0.65
 
 /** What a highlight picks out: a biome or region by key, or a height band in the 3D world's legend. */
 export interface Highlight {
-  kind: 'BIOME' | 'REGION' | 'HEIGHT'
+  kind: 'BIOME' | 'REGION' | 'WATER' | 'HEIGHT'
   key: string
   name: string
 }

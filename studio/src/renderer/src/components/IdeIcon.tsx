@@ -41,6 +41,7 @@ export type IdeIconName =
   | 'views/palettes'
   | 'views/procedural'
   | 'views/regions'
+  | 'views/rivers'
   | 'views/saved-world'
   | 'views/world-3d'
 

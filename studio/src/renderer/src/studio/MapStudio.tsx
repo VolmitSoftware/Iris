@@ -5,6 +5,7 @@ import type { MapHover, MapLabel, Marker, ModuleViewInfo, PickDisplay, ServerUsa
 import type { Share } from '../map/census'
 import type { MapController, MapStatus, MapToggles } from '../map/MapController'
 import type { Highlight } from '../map/tileStyle'
+import { IdeIcon } from '@/components/IdeIcon'
 import { HelpDialog } from './HelpDialog'
 import { HoverCard } from './HoverCard'
 import { Legend } from './Legend'
@@ -73,7 +74,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   const sceneViews = useModuleViews(loadSceneViews, packRevision)
   const patternViews = useModuleViews(loadPatternViews, packRevision)
   const views = useMemo(
-    () => [...withAppViews(world.views), ...patternViews.map(asViewInfo), ...sceneViews.map(asViewInfo), NOISE],
+    () => [...withAppViews(world.views), ...patternViews.map(asViewInfo), ...sceneViews.map(asViewInfo)],
     [world.views, patternViews, sceneViews]
   )
   const sceneView = sceneViews.find((candidate) => candidate.id === viewId) ?? null
@@ -270,6 +271,17 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
           {pointer !== null && hover !== null && (
             <HoverCard hover={hover} point={pointer} viewId={viewId} previewing={layer.preview !== null} detailed={detailed} minY={world.minY} />
           )}
+          {viewId === 'rivers' && !world.hydrology && (
+            <div className="absolute inset-0 flex items-center justify-center bg-card">
+              <div className="text-center">
+                <IdeIcon name="views/rivers" className="mx-auto mb-3 size-10" />
+                <p className="font-medium">No rivers planned</p>
+                <p className="mt-1 text-secondary-text">Enable hydrology in</p>
+                <p className="font-mono text-[11.5px] text-secondary-text">dimensions/{world.dimension}.json</p>
+                <p className="mt-1 text-muted-foreground">They appear here once the pack reloads.</p>
+              </div>
+            </div>
+          )}
           {!connected && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/70">
               <div className="rounded-xl border border-overlay-border bg-card p-5 text-center shadow-lg">
@@ -339,7 +351,7 @@ const APP_VIEW_IDS = new Set([WORLD_3D.id, SAVED_WORLD.id, NOISE.id])
 
 function withAppViews(serverViews: ViewInfo[]): ViewInfo[] {
   const afterRegions = serverViews.findIndex((candidate) => candidate.id === 'regions') + 1
-  return [...serverViews.slice(0, afterRegions), WORLD_3D, SAVED_WORLD, ...serverViews.slice(afterRegions)]
+  return [...serverViews.slice(0, afterRegions), WORLD_3D, ...serverViews.slice(afterRegions)]
 }
 
 function asViewInfo(view: ModuleViewInfo): ViewInfo {
@@ -377,6 +389,9 @@ function sameRect(first: WorldRect | null, second: WorldRect): boolean {
 function legendTitle(layer: MapLayerQuery): string {
   if (layer.view === 'regions' && layer.preview === null) {
     return 'Regions on screen'
+  }
+  if (layer.view === 'rivers') {
+    return 'Water on screen'
   }
   return 'Biomes on screen'
 }

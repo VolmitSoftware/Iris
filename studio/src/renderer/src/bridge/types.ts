@@ -3,7 +3,8 @@
 import type { BlockLook } from '../scene/blockLooks'
 import type { CoverLook } from '../scene/coverLooks'
 
-export type LabelKind = 'BIOME' | 'REGION'
+/** WATER is a hydrology feature in the river view, such as a stream or a lake. */
+export type LabelKind = 'BIOME' | 'REGION' | 'WATER'
 
 export interface MapLabel {
   kind: LabelKind
@@ -236,6 +237,8 @@ export interface WorldInfo {
   fluidHeight: number
   tileSize: number
   hasPlayers: boolean
+  /** Whether the dimension plans water; without it the river view has nothing to show. */
+  hydrology: boolean
   views: ViewInfo[]
 }
 

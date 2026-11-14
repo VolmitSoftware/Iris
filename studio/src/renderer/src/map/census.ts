@@ -44,7 +44,7 @@ export function countShares(tiles: PlacedTile[], area: WorldArea): Share[] {
     for (let pixelZ = firstZ; pixelZ < endZ; pixelZ += stride) {
       for (let pixelX = firstX; pixelX < endX; pixelX += stride) {
         const subject = subjectAt(tile, gridIndex(tile, pixelX, pixelZ))
-        if (subject === null) {
+        if (subject === null || isDryGround(subject.subject)) {
           continue
         }
         const id = `${subject.subject.kind}:${subject.subject.key}`
@@ -73,6 +73,11 @@ export function heightBandShares(heights: readonly number[], seaLevel: number): 
       const { key, name, color } = HEIGHT_BANDS[band]
       return { subject: { kind: 'HEIGHT', key, name }, color, fraction: count / heights.length }
     })
+}
+
+/** The river view's label for ground without water, which the legend does not list. */
+function isDryGround(subject: Highlight): boolean {
+  return subject.kind === 'WATER' && subject.key === 'dry'
 }
 
 function subjectAt(tile: MapTile, cell: number): { subject: Highlight; color: number } | null {

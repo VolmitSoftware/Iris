@@ -32,6 +32,8 @@ import art.arcane.volmlib.util.json.JSONObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class SchemaBuilder {
@@ -137,6 +139,18 @@ public class SchemaBuilder {
         }
     }
 
+    private String snippetPattern(String snippetType) {
+        List<String> namespacedFolders = data.getNamespacedSnippetFolders(snippetType);
+        if (namespacedFolders.isEmpty()) {
+            return "^snippet/" + snippetType + "/";
+        }
+
+        List<String> folders = new ArrayList<>();
+        folders.add("snippet/" + snippetType);
+        folders.addAll(namespacedFolders);
+        return "^(?:" + String.join("|", folders) + ")/";
+    }
+
     JSONObject buildSnippet(JSONObject prop, Class<?> type) {
         Snippet snippet = type.getDeclaredAnnotation(Snippet.class);
         if (snippet == null) return prop;
@@ -155,7 +169,7 @@ public class SchemaBuilder {
             enumObj.put("enum", snl);
             JSONObject patternObj = new JSONObject();
             patternObj.put("type", "string");
-            patternObj.put("pattern", "^snippet/" + snippet.value() + "/");
+            patternObj.put("pattern", snippetPattern(snippet.value()));
             JSONArray snippetAlt = new JSONArray();
             snippetAlt.put(enumObj);
             snippetAlt.put(patternObj);

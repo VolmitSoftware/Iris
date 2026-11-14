@@ -19,6 +19,7 @@
 package art.arcane.iris.pack;
 
 import art.arcane.iris.generation.terrain.IrisDimensionType;
+import art.arcane.iris.pack.loading.SnippetFolders;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.structure.object.IrisObjectScale;
 import art.arcane.iris.world.IrisWorldBoundary;
@@ -35,6 +36,8 @@ import java.util.regex.Pattern;
 
 final class PackDimensionValidator {
     private static final String BORROWED_DIMENSION_TYPE = "borrowedDimensionType";
+    private static final String STYLE_SNIPPET_TYPE = "style";
+    private static final String RANGE_SNIPPET_TYPE = "range";
     private static final Pattern RESOURCE_KEY = Pattern.compile("[a-z0-9_.-]+:[a-z0-9/._-]+");
 
     private PackDimensionValidator() {
@@ -248,7 +251,8 @@ final class PackDimensionValidator {
             Object rawStyle = blend.opt("style");
             boolean styleObject = rawStyle instanceof JSONObject;
             boolean styleSnippet = rawStyle instanceof String reference
-                    && reference.startsWith("snippet/style/");
+                    && SnippetFolders.discover(packFolder, STYLE_SNIPPET_TYPE).folders().stream()
+                    .anyMatch(folder -> reference.startsWith(folder + "/"));
             if (!styleObject && !styleSnippet) {
                 blockingErrors.add(context + ".blend.style must be an object or style snippet reference.");
                 return;
@@ -263,13 +267,12 @@ final class PackDimensionValidator {
     private static void validateDimensionStackStyleSnippet(File packFolder, String context, String reference,
                                                            List<String> blockingErrors) {
         try {
-            File snippetRoot = new File(packFolder, "snippet/style").getCanonicalFile();
-            File snippetFile = new File(packFolder, reference + ".json").getCanonicalFile();
-            if (!snippetFile.toPath().startsWith(snippetRoot.toPath()) || !snippetFile.isFile()) {
+            SnippetFolders.Lookup snippet = SnippetFolders.discover(packFolder, STYLE_SNIPPET_TYPE).find(packFolder, reference);
+            if (!snippet.found()) {
                 blockingErrors.add(context + " references missing style snippet '" + reference + "'.");
                 return;
             }
-            new JSONObject(Files.readString(snippetFile.toPath(), StandardCharsets.UTF_8));
+            new JSONObject(Files.readString(snippet.file().toPath(), StandardCharsets.UTF_8));
         } catch (Throwable error) {
             blockingErrors.add(context + " references invalid style snippet '" + reference + "': "
                     + error.getMessage());
@@ -609,17 +612,12 @@ final class PackDimensionValidator {
         if (reference == null || !reference.startsWith("snippet/")) {
             return null;
         }
-        // Mirror IrisData's snippet adapter: canonical snippet/range/... is used verbatim; any other
-        // snippet/... reference is re-rooted under this field's snippet folder.
-        if (!reference.startsWith("snippet/range/")) {
-            reference = "snippet/range/" + reference.substring("snippet/".length());
-        }
-        File snippet = new File(packFolder, reference + ".json");
-        if (!snippet.isFile()) {
+        SnippetFolders.Lookup snippet = SnippetFolders.discover(packFolder, RANGE_SNIPPET_TYPE).find(packFolder, reference);
+        if (!snippet.found()) {
             return null;
         }
         try {
-            return new JSONObject(Files.readString(snippet.toPath(), StandardCharsets.UTF_8));
+            return new JSONObject(Files.readString(snippet.file().toPath(), StandardCharsets.UTF_8));
         } catch (Throwable e) {
             return null;
         }

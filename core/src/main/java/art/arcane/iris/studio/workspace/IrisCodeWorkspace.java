@@ -27,9 +27,7 @@ import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.iris.world.task.J;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -183,11 +181,7 @@ public class IrisCodeWorkspace {
             try {
                 String snipType = snippetClass.getDeclaredAnnotation(Snippet.class).value();
                 JSONObject schemaEntry = new JSONObject();
-                KList<String> fileMatches = new KList<>();
-
-                for (int depth = 1; depth < 8; depth++) {
-                    fileMatches.add("/snippet/" + snipType + Form.repeat("/*", depth) + ".json");
-                }
+                List<String> fileMatches = dm.getSnippetFolders(snipType).workspaceFileMatches();
 
                 schemaEntry.put("fileMatch", new JSONArray(fileMatches.toArray()));
                 schemaEntry.put("url", "./.iris/schema/snippet/" + snipType + "-schema.json");

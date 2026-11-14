@@ -845,7 +845,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     ? null
                     : writer.getDataIfPresent(candidateX, candidateY, candidateZ, MatterCavern.class);
             if (candidateY < 0
-                    || caveAnchorBiomeConflicts(candidateX, candidateY, candidateZ, expectedCaveBiomeKey)
+                    || caveAnchorBiomeConflicts(candidateX, candidateY, candidateZ, cavern, expectedCaveBiomeKey)
                     || !acceptsCaveAnchorAt(candidateX, candidateY, candidateZ, underwater, cavern, hydrology)) {
                 continue;
             }
@@ -1044,12 +1044,13 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     @ChunkCoordinates
-    private boolean caveAnchorBiomeConflicts(int x, int y, int z, String expectedCaveBiomeKey) {
+    private boolean caveAnchorBiomeConflicts(int x, int y, int z, MatterCavern carvedCell, String expectedCaveBiomeKey) {
         if (expectedCaveBiomeKey == null) {
             return false;
         }
         Engine engine = getEngineMantle().getEngine();
-        IrisBiome at = engine.getCaveBiome(x, y, z);
+        IrisBiome carvedBiome = engine.carvedCaveBiome(carvedCell);
+        IrisBiome at = carvedBiome != null ? carvedBiome : engine.getCaveBiome(x, y, z);
         IrisBiome surface = engine.getComplex().getTrueBiomeStream().get(x, z);
         return caveAnchorBiomeConflicts(at, surface, expectedCaveBiomeKey);
     }

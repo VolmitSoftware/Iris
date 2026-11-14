@@ -2,6 +2,8 @@ package art.arcane.iris.generation.terrain;
 
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
+import art.arcane.iris.generation.cave.IrisCave;
+import art.arcane.iris.generation.cave.TestSettings;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.testsupport.PackCompatFixtures;
@@ -11,6 +13,7 @@ import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -22,6 +25,37 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class IrisDimensionReachableBiomesTest {
+    @Test
+    @SuppressWarnings("unchecked")
+    public void includesTheBiomesOfCavesTheDimensionTheRegionsAndTheReachableBiomesList() {
+        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("reachable")).setCaves(new KList<>("dimension-cave"));
+        IrisRegion reachable = new IrisRegion().setLandBiomes(new KList<>("land")).setCaves(new KList<>("region-cave"));
+        IrisBiome land = biome("land").setCaves(new KList<>("biome-cave", "plain-cave", "ghost"));
+        IrisBiome unlisted = biome("unlisted-cave-biome");
+
+        IrisData data = mock(IrisData.class);
+        ResourceLoader<IrisRegion> regionLoader = mock(ResourceLoader.class);
+        ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
+        ResourceLoader<IrisCave> caveLoader = mock(ResourceLoader.class);
+        when(data.getRegionLoader()).thenReturn(regionLoader);
+        when(data.getBiomeLoader()).thenReturn(biomeLoader);
+        when(data.getCaveLoader()).thenReturn(caveLoader);
+        when(regionLoader.load("reachable")).thenReturn(reachable);
+        when(biomeLoader.load("land")).thenReturn(land);
+        for (String key : List.of("dimension-biome", "region-biome", "biome-biome")) {
+            when(biomeLoader.load(key)).thenReturn(biome(key));
+        }
+        when(biomeLoader.load("unlisted-cave-biome")).thenReturn(unlisted);
+        when(caveLoader.load("dimension-cave", false)).thenReturn(TestSettings.of(IrisCave.class, "{\"biome\": \"dimension-biome\"}"));
+        when(caveLoader.load("region-cave", false)).thenReturn(TestSettings.of(IrisCave.class, "{\"biome\": \"region-biome\"}"));
+        when(caveLoader.load("biome-cave", false)).thenReturn(TestSettings.of(IrisCave.class, "{\"biome\": \"biome-biome\"}"));
+        when(caveLoader.load("plain-cave", false)).thenReturn(TestSettings.of(IrisCave.class, "{}"));
+
+        Set<String> keys = dimension.getReachableBiomes(() -> data).stream().map(IrisBiome::getLoadKey).collect(Collectors.toSet());
+
+        assertEquals(Set.of("land", "dimension-biome", "region-biome", "biome-biome"), keys);
+    }
+
     @Test
     @SuppressWarnings("unchecked")
     public void includesOutOfPoolFocusBiomeAndRegion() {

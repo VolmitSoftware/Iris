@@ -695,12 +695,14 @@ public class IrisDimension extends IrisRegistrant {
 
         Deque<String> pending = new ArrayDeque<>();
         addReachableBiomeKey(pending, getFocus());
+        addListedCaveBiomeKeys(pending, data, getCaves());
         KList<IrisRegion> regions = getAllRegions(g);
         for (IrisRegion region : regions) {
             if (region == null) {
                 continue;
             }
             addReachableBiomeKeys(pending, region.getNaturalBiomeIds());
+            addListedCaveBiomeKeys(pending, data, region.getCaves());
         }
         addReachableBiomeKeys(pending, ShoreBiomeLineages.placed(this, regions, g));
         addReachableBiomeKeys(pending, getImageMapBiomeKeys(g));
@@ -746,6 +748,7 @@ public class IrisDimension extends IrisRegistrant {
             biomes.put(loadKey, biome);
             addReachableBiomeKeys(pending, biome.getChildren());
             addReachableBiomeKey(pending, biome.getCarvingBiome());
+            addListedCaveBiomeKeys(pending, data, biome.getCaves());
 
             KList<IrisFloatingChildBiomes> floatingChildren = biome.getFloatingChildBiomes();
             if (floatingChildren == null) {
@@ -830,6 +833,19 @@ public class IrisDimension extends IrisRegistrant {
         }
         for (String biomeKey : biomeKeys) {
             addReachableBiomeKey(pending, biomeKey);
+        }
+    }
+
+    /** The biomes that caves listed by key paint their walls with: a cave's biome is as reachable as the cave is listed. */
+    private void addListedCaveBiomeKeys(Deque<String> pending, IrisData data, Iterable<String> caveKeys) {
+        if (caveKeys == null || data.getCaveLoader() == null) {
+            return;
+        }
+        for (String caveKey : caveKeys) {
+            IrisCave cave = caveKey == null || caveKey.isBlank() ? null : data.getCaveLoader().load(caveKey, false);
+            if (cave != null) {
+                addReachableBiomeKey(pending, cave.biome());
+            }
         }
     }
 

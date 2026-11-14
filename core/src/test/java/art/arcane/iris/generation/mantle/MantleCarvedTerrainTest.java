@@ -57,6 +57,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -113,6 +114,26 @@ public class MantleCarvedTerrainTest {
         assertNull(carved.caveFluid(5, 20, 5));
         assertThrows(IllegalStateException.class, () -> carved.voxel(32, 20, 0));
         assertThrows(IllegalStateException.class, () -> carved.voxel(0, 20, -17));
+    }
+
+    @Test
+    public void aCellPaintedWithACaveBiomeTakesItsFluidFromThatBiomeInsteadOfTheBiomeOfThePlace() {
+        Scene scene = new Scene();
+        Matter[] sections = scene.chunk(0, 0);
+        sections[1].<MatterCavern>slice(MatterCavern.class).set(1, 4, 1, new MatterCavern(true, "magma-grotto", (byte) 0));
+        cavern(sections, 5, 20, 5, (byte) 0);
+        IrisBiome magmaGrotto = new IrisBiome();
+        magmaGrotto.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("lava"));
+        IrisBiome ofThePlace = new IrisBiome();
+        ofThePlace.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("water"));
+        when(scene.engine.carvedCaveBiome(argThat(cell -> cell != null && "magma-grotto".equals(cell.getCustomBiome())))).thenReturn(magmaGrotto);
+        when(scene.engine.getCaveBiomeBelowSurface(1, 20, 1)).thenReturn(ofThePlace);
+        when(scene.engine.getCaveBiomeBelowSurface(5, 20, 5)).thenReturn(ofThePlace);
+
+        MantleCarvedTerrain carved = scene.carved();
+
+        assertEquals("lava", carved.caveFluid(1, 20, 1));
+        assertEquals("water", carved.caveFluid(5, 20, 5));
     }
 
     @Test

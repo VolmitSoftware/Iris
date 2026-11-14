@@ -101,7 +101,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                 }
 
                 try {
-                    generated.add(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.getZoom(), j, (wz - j) / layer.getZoom(), data));
+                    generated.add(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.blocksPerSample(), j, (wz - j) / layer.blocksPerSample(), data));
                 } catch (Throwable e) {
                     GenerationFailures.skipPlacement(e, "surface layer", "block", (int) wx, -1, (int) wz, "floating");
                 }

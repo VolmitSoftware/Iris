@@ -21,6 +21,10 @@ package art.arcane.iris.command;
 import art.arcane.iris.Iris;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.studio.bridge.StudioBridge;
+import art.arcane.iris.studio.bridge.StudioBridges;
+import art.arcane.iris.studio.bridge.StudioWindow;
 import art.arcane.iris.studio.map.MapWindow;
 import art.arcane.iris.studio.map.PaletteExplorerStart;
 import art.arcane.iris.studio.view.GuiHost;
@@ -434,6 +438,28 @@ public class CommandStudio implements DirectorExecutor {
 
         requestMapStart(world, MapWindow::openMap);
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_MAP));
+    }
+
+    @Director(description = "Open the Iris Studio app on a world", descriptionKey = "iris.director.commandstudio.director.render_world_map_external_gui", aliases = "app")
+    public void studioApp(
+            @Param(name = "world", description = "The world to open the generator for", descriptionKey = "iris.director.commandstudio.param.world_open_generator", contextual = true, contextualOverride = true)
+            World world
+    ) {
+        if (!IrisToolbelt.isIrisWorld(world)) {
+            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_NEED_BE_SPECIFY_IRIS_GENERATED_WORLD));
+            return;
+        }
+        UUID openerId = sender().isPlayer() ? player().getUniqueId() : null;
+        PlatformChunkGenerator generator = IrisToolbelt.access(world);
+        try {
+            StudioBridge bridge = StudioBridges.open(world.getName(), generator::getEngine, openerId);
+            if (!StudioWindow.show(bridge)) {
+                IrisLogging.info("Iris Studio link for %s: %s", world.getName(), bridge.link());
+            }
+            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_MAP));
+        } catch (IOException error) {
+            IrisLogging.warn("Could not open the studio bridge: %s", error.getMessage());
+        }
     }
 
     // The map opens where the player stands when they are in that world, otherwise at the world origin.

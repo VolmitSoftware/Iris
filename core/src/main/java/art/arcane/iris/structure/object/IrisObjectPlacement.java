@@ -88,6 +88,7 @@ import java.util.function.Function;
 @Data
 public class IrisObjectPlacement {
     private static final int SURFACE_WARP_CACHE_SIZE = 8;
+    private static final String LOOT_TABLE_KEY_KIND = "missing-loot-table";
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final transient LazyBoundedCache<SurfaceWarpCacheKey, CNG> surfaceWarpCache =
@@ -422,7 +423,7 @@ public class IrisObjectPlacement {
         return (int) Math.round(densityStyle.get(rng, x, z, data));
     }
 
-    private TableCache getCache(IrisData manager) {
+    TableCache getCache(IrisData manager) {
         return cache.aquire(() -> {
             TableCache cache = new TableCache();
 
@@ -441,7 +442,8 @@ public class IrisObjectPlacement {
                 continue;
             IrisLootTable table = loader.apply(loot.getName());
             if (table == null) {
-                IrisLogging.warn("Couldn't find loot table " + loot.getName());
+                IrisLogging.warnOnce(IrisData.onceKey(manager, LOOT_TABLE_KEY_KIND, loot.getName()),
+                        "Couldn't find loot table " + loot.getName());
                 continue;
             }
             if (table.isCompatExcluded()) {

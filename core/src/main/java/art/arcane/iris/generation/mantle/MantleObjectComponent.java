@@ -34,6 +34,7 @@ import art.arcane.iris.structure.object.IrisAxisRotationClamp;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.cave.IrisCaveAnchorMode;
 import art.arcane.iris.generation.cave.IrisCaveProfile;
+import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
@@ -86,7 +87,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
     private static final int BEDROCK_CLEARANCE = 6;
     static final byte LIQUID_FORCED_AIR = 3;
     private static final Map<String, CaveRejectLogState> CAVE_REJECT_LOG_STATE = new ConcurrentHashMap<>();
-    private static final Set<String> MISSING_LOAD_KEY_WARNED = ConcurrentHashMap.newKeySet();
+    private static final String MISSING_LOAD_KEY_KIND = "marker-missing-load-key";
     private static final long SOURCE_PLAN_STATS_INTERVAL_MS = 30_000L;
     private static final int MAXIMUM_TREE_MATERIALS = 8192;
     private static final Map<NativeBlockState, TreeBlockMaterial> TREE_MATERIALS = new ConcurrentHashMap<>();
@@ -104,19 +105,27 @@ public class MantleObjectComponent extends IrisMantleComponent {
         this.collisionRuleState = -1;
     }
 
-    private static String placementMarker(IrisObject object, int id, String context) {
+    static String placementMarker(IrisObject object, int id, String context) {
         String key = object == null ? null : object.getLoadKey();
         if (key == null || key.isEmpty() || key.equals("null")) {
-            String fingerprint = context + "|" + (object == null ? "<null>" : object.getClass().getSimpleName());
-            if (MISSING_LOAD_KEY_WARNED.add(fingerprint)) {
-                java.io.File file = object == null ? null : object.getLoadFile();
-                IrisLogging.warn("Skipping placement marker write: IrisObject has no loadKey (context=" + context
-                        + ", file=" + (file == null ? "<unknown>" : file.getPath()) + "). "
-                        + "This would previously produce 'Couldn't find Object: null' warnings on chunk reload.");
-            }
+            warnMissingLoadKeyOnce(object, context);
             return null;
         }
         return key + "@" + id;
+    }
+
+    /**
+     * Keyed by call-site context and object class only: the file path and coordinates stay in the message,
+     * never in the key, so the key space is bounded.
+     */
+    private static void warnMissingLoadKeyOnce(IrisObject object, String context) {
+        String fingerprint = context + "|" + (object == null ? "<null>" : object.getClass().getSimpleName());
+        IrisData pack = object == null ? null : object.getLoader();
+        java.io.File file = object == null ? null : object.getLoadFile();
+        IrisLogging.warnOnce(IrisData.onceKey(pack, MISSING_LOAD_KEY_KIND, fingerprint),
+                "Skipping placement marker write: IrisObject has no loadKey (context=" + context
+                        + ", file=" + (file == null ? "<unknown>" : file.getPath()) + "). "
+                        + "This would previously produce 'Couldn't find Object: null' warnings on chunk reload.");
     }
 
     private static boolean isTreePlacement(IrisObject object, IrisObjectPlacement placement) {

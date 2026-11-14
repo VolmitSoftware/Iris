@@ -63,14 +63,14 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             try (ImageInputStream input = ImageIO.createImageInputStream(j)) {
                 if (input == null) {
-                    IrisLogging.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath()
-                            + " (unsupported or corrupt image)");
+                    warnReadFailureOnce(j, "Couldn't read " + resourceTypeName + " file: " + j.getPath()
+                            + " (unsupported or corrupt image)", null);
                     return null;
                 }
                 Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
                 if (!readers.hasNext()) {
-                    IrisLogging.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath()
-                            + " (unsupported or corrupt image)");
+                    warnReadFailureOnce(j, "Couldn't read " + resourceTypeName + " file: " + j.getPath()
+                            + " (unsupported or corrupt image)", null);
                     return null;
                 }
                 ImageReader reader = readers.next();
@@ -78,21 +78,21 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
                     reader.setInput(input, true, true);
                     String format = reader.getFormatName().toLowerCase(Locale.ROOT);
                     if (!"png".equals(format)) {
-                        IrisLogging.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath()
-                                + " (expected PNG, got " + format + ")");
+                        warnReadFailureOnce(j, "Couldn't read " + resourceTypeName + " file: " + j.getPath()
+                                + " (expected PNG, got " + format + ")", null);
                         return null;
                     }
                     int width = reader.getWidth(0);
                     int height = reader.getHeight(0);
                     if (!supportedDimensions(width, height)) {
-                        IrisLogging.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath()
-                                + " (dimensions " + width + "x" + height + " exceed the supported image-map limits)");
+                        warnReadFailureOnce(j, "Couldn't read " + resourceTypeName + " file: " + j.getPath()
+                                + " (dimensions " + width + "x" + height + " exceed the supported image-map limits)", null);
                         return null;
                     }
                     BufferedImage image = reader.read(0);
                     if (image == null) {
-                        IrisLogging.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath()
-                                + " (unsupported or corrupt image)");
+                        warnReadFailureOnce(j, "Couldn't read " + resourceTypeName + " file: " + j.getPath()
+                                + " (unsupported or corrupt image)", null);
                         return null;
                     }
                     IrisImage loaded = new IrisImage(image, format);
@@ -107,8 +107,7 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
                 }
             }
         } catch (Throwable e) {
-            IrisLogging.reportError(e);
-            IrisLogging.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
+            warnReadFailureOnce(j, "Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage(), e);
             return null;
         }
     }
@@ -180,7 +179,7 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
             return null;
         }
         if (name.equals("null")) {
-            IrisLogging.warn("Refusing " + resourceTypeName + " lookup for literal string \"null\" (called by " + callerHint() + ")");
+            warnLiteralNullOnce("lookup");
             return null;
         }
 
@@ -190,7 +189,7 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
             return file;
         }
 
-        IrisLogging.warn("Couldn't find " + resourceTypeName + ": " + name + " (called by " + callerHint() + ")");
+        warnMissingOnce(name);
 
         return null;
     }
@@ -206,7 +205,7 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
             return loadFile(file, name);
         }
 
-        IrisLogging.warn("Couldn't find " + resourceTypeName + ": " + name + " (called by " + callerHint() + ")");
+        warnMissingOnce(name);
 
         return null;
     }
@@ -216,7 +215,7 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
             return null;
         }
         if (name.equals("null") && warn) {
-            IrisLogging.warn("Refusing " + resourceTypeName + " load for literal string \"null\" (called by " + callerHint() + ")");
+            warnLiteralNullOnce("load");
             return null;
         }
         return loadCache.get(name);

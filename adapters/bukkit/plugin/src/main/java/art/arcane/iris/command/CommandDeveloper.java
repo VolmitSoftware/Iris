@@ -24,7 +24,6 @@ import art.arcane.iris.pack.datapack.ServerConfigurator;
 import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.world.runtime.ChunkClearer;
 import art.arcane.iris.generation.validation.GoldenHashScanner;
-import art.arcane.iris.world.runtime.InPlaceChunkRegenerator;
 import art.arcane.iris.generation.runtime.IrisEngineSVC;
 import art.arcane.iris.pack.IrisPackBenchmarking;
 import art.arcane.iris.world.IrisToolbelt;
@@ -302,51 +301,6 @@ public class CommandDeveloper implements DirectorExecutor {
             }
         } catch (Exception e) {
             Iris.reportError("Failed to inspect server network interfaces.", e);
-        }
-    }
-
-    // --- Regen ---
-
-    @Director(name = "regen", aliases = {"rg"}, description = "Delete and regenerate nearby chunks in place using Iris generation", descriptionKey = "iris.director.commanddeveloper.director.delete_regenerate_nearby_chunks_place_using_iris_generation", origin = DirectorOrigin.PLAYER)
-    public void regen(
-            @Param(name = "radius", description = "The radius of nearby chunks", descriptionKey = "iris.director.commanddeveloper.param.radius_nearby_chunks", defaultValue = "5")
-            int radius
-    ) {
-        if (radius < 0) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_DEVELOPER_RADIUS_MUST_BE_0_GREATER_2));
-            return;
-        }
-
-        Player player = player();
-        VolmitSender commandSender = sender();
-        World world = player.getWorld();
-        if (!IrisToolbelt.isIrisWorld(world)) {
-            commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_DEVELOPER_YOU_MUST_BE_IRIS_WORLD_USE_REGEN));
-            return;
-        }
-
-        Engine engine = IrisToolbelt.access(world).getEngine();
-        if (engine == null) {
-            commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_DEVELOPER_ENGINE_ACCESS_THIS_WORLD_IS_NULL_GENERATE_NEARBY_CHUNKS_FIRST));
-            return;
-        }
-
-        int chunks = (radius * 2 + 1) * (radius * 2 + 1);
-
-        // The player position must be read on the thread owning the player; the regenerator hops per chunk itself.
-        if (!J.runEntity(player, () -> {
-            int centerX = player.getLocation().getBlockX() >> 4;
-            int centerZ = player.getLocation().getBlockZ() >> 4;
-
-            commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_DEVELOPER_REGEN_STARTED_CHUNK_S_AROUND_DELETING_REGENERATING_PLACE, MessageArgument.untrusted("chunks", chunks), MessageArgument.untrusted("centerX", centerX), MessageArgument.untrusted("centerZ", centerZ)));
-            Iris.info("Regen run start: world=" + world.getName()
-                    + " center=" + centerX + "," + centerZ
-                    + " radius=" + radius
-                    + " chunks=" + chunks);
-
-            new InPlaceChunkRegenerator(world, engine, commandSender, centerX, centerZ, radius).start();
-        })) {
-            Iris.warn("Could not schedule regen on the thread owning " + player.getName() + ".");
         }
     }
 

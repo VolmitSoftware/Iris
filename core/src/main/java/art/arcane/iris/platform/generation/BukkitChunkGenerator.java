@@ -1086,9 +1086,21 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
         withExclusiveControl(() -> {
             if (!studioUpdatesPaused && !closing) {
-                getEngine().hotload();
+                hotloadEngine();
             }
         });
+    }
+
+    private void hotloadEngine() {
+        Engine activeEngine = getEngine();
+        long started = M.ms();
+        activeEngine.hotload();
+        IrisLogging.info("Hotloaded " + packKeyOf(activeEngine) + " in " + (M.ms() - started) + "ms");
+    }
+
+    private static String packKeyOf(Engine activeEngine) {
+        IrisDimension dimension = activeEngine.getDimension();
+        return dimension == null ? "unknown pack" : dimension.getLoadKey();
     }
 
     @Override
@@ -1100,7 +1112,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             if (!canHotloadStudio()) {
                 throw new IllegalStateException("Studio is not ready for hotload.");
             }
-            getEngine().hotload();
+            hotloadEngine();
         });
     }
 
@@ -1125,7 +1137,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                     if (!initialEntryPending && !studioUpdatesPaused && shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
                         IrisLogging.debug("Studio update admission: world=%s wait=%dms",
                                 getTarget().getWorld().name(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - queuedAt));
-                        getEngine().hotload();
+                        hotloadEngine();
                     }
                 }, pending));
             }

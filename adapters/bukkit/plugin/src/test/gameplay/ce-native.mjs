@@ -27,7 +27,7 @@ export default {
     await context.step('regeneration removes target furniture and preserves neighbor ownership', async () => {
       const ready = await context.command('/iriscenative neighbor', /CE_NEIGHBOR_READY|CE_FAILED/, 30000)
       context.expect(ready.includes('CE_NEIGHBOR_READY chunk=2,0 furniture=3 target=1'), ready)
-      const regenerated = await context.command('/iris developer regen radius=0', /Regen complete:|Regen failed:/, 90000)
+      const regenerated = await context.command('/iris studio regen radius=0', /Regen complete:|Regen failed:/, 90000)
       context.expect(regenerated.includes('Regen complete:'), regenerated)
       const response = await context.command('/iriscenative loaded', /CE_LOADED|CE_FAILED/, 30000)
       context.expect(response.includes('CE_LOADED removed=1 untouched=1 replacement=1 wall=1 target=1'), response)

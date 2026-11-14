@@ -69,8 +69,11 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.DataProvider;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -84,6 +87,7 @@ import java.util.function.BiConsumer;
 public class MantleObjectComponent extends IrisMantleComponent {
     private static final long CAVE_REJECT_LOG_THROTTLE_MS = 5000L;
     private static final int BEDROCK_CLEARANCE = 6;
+    private static final long OBJECT_SEPARATION_SEED_SALT = 0x5E9A2A7E0B1EC75L;
     static final byte LIQUID_FORCED_AIR = 3;
     private static final Map<String, CaveRejectLogState> CAVE_REJECT_LOG_STATE = new ConcurrentHashMap<>();
     private static final Set<String> MISSING_LOAD_KEY_WARNED = ConcurrentHashMap.newKeySet();
@@ -479,29 +483,17 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
         for (IrisObjectPlacement i : surfaceBiome.getSurfaceObjects()) {
             biomeSurfaceChecked++;
-            boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && !i.isCompatExcluded(getData());
-            if (traceRegen) {
-                IrisLogging.debug("Regen object placer chance: chunk=" + x + "," + z
-                        + " scope=biome-surface"
-                        + " chanceResult=" + chance
-                        + " chanceBase=" + i.getChance()
-                        + " densityMid=" + i.getDensity()
-                        + " objects=" + i.getPlace().size());
+            Optional<ObjectPlacementResult> triggered = placeSurfacePlacement(writer, rng, x, z, i, complex, traceRegen, "biome-surface", surfaceBiome.getLoadKey());
+            if (triggered.isEmpty()) {
+                continue;
             }
-            if (chance) {
-                biomeSurfaceTriggered++;
-                try {
-                    ObjectPlacementResult result = placeObject(writer, rng, x << 4, z << 4, i, complex, traceRegen, x, z, "biome-surface");
-                    attempts += result.attempts();
-                    placed += result.placed();
-                    rejected += result.rejected();
-                    nullObjects += result.nullObjects();
-                    errors += result.errors();
-                } catch (Throwable e) {
-                    GenerationFailures.skipPlacement(e, "object", i.getPlace().toString(", "), x << 4, -1, z << 4, surfaceBiome.getLoadKey());
-                    errors++;
-                }
-            }
+            biomeSurfaceTriggered++;
+            ObjectPlacementResult result = triggered.get();
+            attempts += result.attempts();
+            placed += result.placed();
+            rejected += result.rejected();
+            nullObjects += result.nullObjects();
+            errors += result.errors();
         }
 
         for (IrisObjectPlacement i : caveBiome.getCarvingObjects()) {
@@ -536,29 +528,17 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
         for (IrisObjectPlacement i : region.getSurfaceObjects()) {
             regionSurfaceChecked++;
-            boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && !i.isCompatExcluded(getData());
-            if (traceRegen) {
-                IrisLogging.debug("Regen object placer chance: chunk=" + x + "," + z
-                        + " scope=region-surface"
-                        + " chanceResult=" + chance
-                        + " chanceBase=" + i.getChance()
-                        + " densityMid=" + i.getDensity()
-                        + " objects=" + i.getPlace().size());
+            Optional<ObjectPlacementResult> triggered = placeSurfacePlacement(writer, rng, x, z, i, complex, traceRegen, "region-surface", region.getLoadKey());
+            if (triggered.isEmpty()) {
+                continue;
             }
-            if (chance) {
-                regionSurfaceTriggered++;
-                try {
-                    ObjectPlacementResult result = placeObject(writer, rng, x << 4, z << 4, i, complex, traceRegen, x, z, "region-surface");
-                    attempts += result.attempts();
-                    placed += result.placed();
-                    rejected += result.rejected();
-                    nullObjects += result.nullObjects();
-                    errors += result.errors();
-                } catch (Throwable e) {
-                    GenerationFailures.skipPlacement(e, "object", i.getPlace().toString(", "), x << 4, -1, z << 4, region.getLoadKey());
-                    errors++;
-                }
-            }
+            regionSurfaceTriggered++;
+            ObjectPlacementResult result = triggered.get();
+            attempts += result.attempts();
+            placed += result.placed();
+            rejected += result.rejected();
+            nullObjects += result.nullObjects();
+            errors += result.errors();
         }
 
         for (IrisObjectPlacement i : region.getCarvingObjects()) {
@@ -960,91 +940,198 @@ public class MantleObjectComponent extends IrisMantleComponent {
         int nullObjects = 0;
         int errors = 0;
         int density = objectPlacement.getDensity(rng, x, z, getData());
-        boolean golden = GoldenDebugObjectPlacer.isGoldenDebugChunk(chunkX, chunkZ);
 
         for (int i = 0; i < density; i++) {
             attempts++;
             IrisObject v = objectPlacement.scaleObject(rng, objectPlacement.getObject(complex, rng), getDimension());
             if (v == null) {
                 nullObjects++;
-                if (traceRegen) {
-                    IrisLogging.debug("Regen object placement null object: chunk=" + chunkX + "," + chunkZ
-                            + " scope=" + scope
-                            + " densityIndex=" + i
-                            + " density=" + density
-                            + " placementKeys=" + objectPlacement.getPlace().toString(","));
-                }
+                traceNullObject(traceRegen, chunkX, chunkZ, scope, i, density, objectPlacement);
                 continue;
             }
             int xx = rng.i(x, x + 16);
             int zz = rng.i(z, z + 16);
-            IrisObjectPlacement effectivePlacement = resolveEffectivePlacement(objectPlacement, v);
-            if (!allowsObjectPlacement(complex, v, effectivePlacement, xx, zz)) {
-                rejected++;
-                continue;
-            }
-            boolean treePlacement = isTreePlacement(v, effectivePlacement);
-            int id = rng.i(0, Integer.MAX_VALUE);
-            IObjectPlacer placePlacer = golden ? new GoldenDebugObjectPlacer(writer, scope + "/" + v.getLoadKey()) : writer;
-            if (golden) {
-                IrisLogging.debug("Goldendebug object attempt: chunk=" + chunkX + "," + chunkZ
-                        + " scope=" + scope
-                        + " object=" + v.getLoadKey()
-                        + " densityIndex=" + i
-                        + " xx=" + xx
-                        + " zz=" + zz
-                        + " mode=" + effectivePlacement.getMode());
-            }
-            try {
-                String marker = placementMarker(v, id, "surface");
-                int continuation = writer.beginObjectPlacement(effectivePlacement.waterRule());
-                int result = v.place(xx, zz, placePlacer, effectivePlacement, rng, (b, data) -> {
-                    if (marker != null) {
-                        writer.setData(b.getX(), b.getY(), b.getZ(), marker);
-                    }
-                    if (treePlacement && marker != null) {
-                        writeTreeMaterial(writer, b.getX(), b.getY(), b.getZ(), data);
-                    }
-                    if (effectivePlacement.isDolphinTarget() && effectivePlacement.isUnderwater() && B.isStorageChest(data)) {
-                        writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
-                    }
-                }, null, getData());
-
-                if (result >= 0) {
-                    writer.recordObjectPlacement(continuation);
-                    placed++;
-                } else {
-                    rejected++;
-                }
-
-                if (golden) {
-                    IrisLogging.debug("Goldendebug object result: chunk=" + chunkX + "," + chunkZ
-                            + " scope=" + scope
-                            + " object=" + v.getLoadKey()
-                            + " resultY=" + result
-                            + " fallback=surface");
-                }
-
-                if (traceRegen) {
-                    IrisLogging.debug("Regen object placement result: chunk=" + chunkX + "," + chunkZ
-                            + " scope=" + scope
-                            + " object=" + v.getLoadKey()
-                            + " resultY=" + result
-                            + " px=" + xx
-                            + " pz=" + zz
-                            + " fallback=surface"
-                            + " densityIndex=" + i
-                            + " density=" + density);
-                }
-            } catch (Throwable e) {
-                GenerationFailures.skipPlacement(e, "object", v.getLoadKey(), chunkX << 4, -1, chunkZ << 4, scope);
-                errors++;
-            } finally {
-                writer.endObjectPlacement();
-            }
+            ObjectPlacementResult result = placeObjectAt(writer, rng, v, xx, zz, objectPlacement, complex, traceRegen, chunkX, chunkZ, scope, i, density);
+            placed += result.placed();
+            rejected += result.rejected();
+            errors += result.errors();
         }
 
         return new ObjectPlacementResult(attempts, placed, rejected, nullObjects, errors);
+    }
+
+    private void traceNullObject(boolean traceRegen, int chunkX, int chunkZ, String scope, int densityIndex, int density, IrisObjectPlacement objectPlacement) {
+        if (!traceRegen) {
+            return;
+        }
+        IrisLogging.debug("Regen object placement null object: chunk=" + chunkX + "," + chunkZ
+                + " scope=" + scope
+                + " densityIndex=" + densityIndex
+                + " density=" + density
+                + " placementKeys=" + objectPlacement.getPlace().toString(","));
+    }
+
+    @BlockCoordinates
+    private ObjectPlacementResult placeObjectAt(
+            ObjectPassPlacer writer,
+            RNG rng,
+            IrisObject v,
+            int xx,
+            int zz,
+            IrisObjectPlacement objectPlacement,
+            IrisComplex complex,
+            boolean traceRegen,
+            int chunkX,
+            int chunkZ,
+            String scope,
+            int densityIndex,
+            int density
+    ) {
+        IrisObjectPlacement effectivePlacement = resolveEffectivePlacement(objectPlacement, v);
+        if (!allowsObjectPlacement(complex, v, effectivePlacement, xx, zz)) {
+            return new ObjectPlacementResult(0, 0, 1, 0, 0);
+        }
+        boolean golden = GoldenDebugObjectPlacer.isGoldenDebugChunk(chunkX, chunkZ);
+        boolean treePlacement = isTreePlacement(v, effectivePlacement);
+        int id = rng.i(0, Integer.MAX_VALUE);
+        IObjectPlacer placePlacer = golden ? new GoldenDebugObjectPlacer(writer, scope + "/" + v.getLoadKey()) : writer;
+        if (golden) {
+            IrisLogging.debug("Goldendebug object attempt: chunk=" + chunkX + "," + chunkZ
+                    + " scope=" + scope
+                    + " object=" + v.getLoadKey()
+                    + " densityIndex=" + densityIndex
+                    + " xx=" + xx
+                    + " zz=" + zz
+                    + " mode=" + effectivePlacement.getMode());
+        }
+        try {
+            String marker = placementMarker(v, id, "surface");
+            int continuation = writer.beginObjectPlacement(effectivePlacement.waterRule());
+            int result = v.place(xx, zz, placePlacer, effectivePlacement, rng, (b, data) -> {
+                if (marker != null) {
+                    writer.setData(b.getX(), b.getY(), b.getZ(), marker);
+                }
+                if (treePlacement && marker != null) {
+                    writeTreeMaterial(writer, b.getX(), b.getY(), b.getZ(), data);
+                }
+                if (effectivePlacement.isDolphinTarget() && effectivePlacement.isUnderwater() && B.isStorageChest(data)) {
+                    writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
+                }
+            }, null, getData());
+
+            if (result >= 0) {
+                writer.recordObjectPlacement(continuation);
+            }
+
+            if (golden) {
+                IrisLogging.debug("Goldendebug object result: chunk=" + chunkX + "," + chunkZ
+                        + " scope=" + scope
+                        + " object=" + v.getLoadKey()
+                        + " resultY=" + result
+                        + " fallback=surface");
+            }
+
+            if (traceRegen) {
+                IrisLogging.debug("Regen object placement result: chunk=" + chunkX + "," + chunkZ
+                        + " scope=" + scope
+                        + " object=" + v.getLoadKey()
+                        + " resultY=" + result
+                        + " px=" + xx
+                        + " pz=" + zz
+                        + " fallback=surface"
+                        + " densityIndex=" + densityIndex
+                        + " density=" + density);
+            }
+            return result >= 0 ? new ObjectPlacementResult(0, 1, 0, 0, 0) : new ObjectPlacementResult(0, 0, 1, 0, 0);
+        } catch (Throwable e) {
+            GenerationFailures.skipPlacement(e, "object", v.getLoadKey(), chunkX << 4, -1, chunkZ << 4, scope);
+            return new ObjectPlacementResult(0, 0, 0, 0, 1);
+        } finally {
+            writer.endObjectPlacement();
+        }
+    }
+
+    private Optional<ObjectPlacementResult> placeSurfacePlacement(
+            ObjectPassPlacer writer,
+            RNG rng,
+            int chunkX,
+            int chunkZ,
+            IrisObjectPlacement placement,
+            IrisComplex complex,
+            boolean traceRegen,
+            String scope,
+            String ownerKey
+    ) {
+        try {
+            if (placement.isSeparated()) {
+                return placeSeparatedObject(writer, chunkX, chunkZ, placement, complex, traceRegen, scope);
+            }
+            double chance = objectSeparation().chanceAt(placement, (chunkX << 4) + 8, (chunkZ << 4) + 8);
+            boolean passes = rng.chance(chance + rng.d(-0.005, 0.005)) && !placement.isCompatExcluded(getData());
+            traceSurfaceChance(traceRegen, chunkX, chunkZ, scope, passes, placement);
+            if (!passes) {
+                return Optional.empty();
+            }
+            return Optional.of(placeObject(writer, rng, chunkX << 4, chunkZ << 4, placement, complex, traceRegen, chunkX, chunkZ, scope));
+        } catch (Throwable e) {
+            GenerationFailures.skipPlacement(e, "object", placement.getPlace().toString(", "), chunkX << 4, -1, chunkZ << 4, ownerKey);
+            return Optional.of(new ObjectPlacementResult(0, 0, 0, 0, 1));
+        }
+    }
+
+    private void traceSurfaceChance(boolean traceRegen, int chunkX, int chunkZ, String scope, boolean passes, IrisObjectPlacement placement) {
+        if (!traceRegen) {
+            return;
+        }
+        IrisLogging.debug("Regen object placer chance: chunk=" + chunkX + "," + chunkZ
+                + " scope=" + scope
+                + " chanceResult=" + passes
+                + " chanceBase=" + placement.getChance()
+                + " densityMid=" + placement.getDensity()
+                + " objects=" + placement.getPlace().size());
+    }
+
+    private Optional<ObjectPlacementResult> placeSeparatedObject(
+            ObjectPassPlacer writer,
+            int chunkX,
+            int chunkZ,
+            IrisObjectPlacement placement,
+            IrisComplex complex,
+            boolean traceRegen,
+            String scope
+    ) {
+        Optional<ObjectSeparation.Candidate> kept = placement.isCompatExcluded(getData())
+                ? Optional.empty()
+                : objectSeparation().keptCandidate(chunkX, chunkZ, placement);
+        traceSurfaceChance(traceRegen, chunkX, chunkZ, scope, kept.isPresent(), placement);
+        if (kept.isEmpty()) {
+            return Optional.empty();
+        }
+        ObjectSeparation.Candidate candidate = kept.get();
+        IrisObject object = placement.scaleObject(candidate.rng(), placement.getObject(complex, candidate.rng()), getDimension());
+        if (object == null) {
+            traceNullObject(traceRegen, chunkX, chunkZ, scope, 0, 1, placement);
+            return Optional.of(new ObjectPlacementResult(1, 0, 0, 1, 0));
+        }
+        ObjectPlacementResult result = placeObjectAt(writer, candidate.rng(), object, candidate.x(), candidate.z(), placement, complex, traceRegen, chunkX, chunkZ, scope, 0, 1);
+        return Optional.of(new ObjectPlacementResult(1, result.placed(), result.rejected(), 0, result.errors()));
+    }
+
+    private ObjectSeparation objectSeparation() {
+        return new ObjectSeparation(seed() + OBJECT_SEPARATION_SEED_SALT, getData(), this::surfacePlacementsAt);
+    }
+
+    private List<IrisObjectPlacement> surfacePlacementsAt(int chunkX, int chunkZ) {
+        IrisComplex complex = getComplex();
+        if (!complex.allowsNewGenerationChunk(chunkX, chunkZ)) {
+            return List.of();
+        }
+        int blockX = (chunkX << 4) + 8;
+        int blockZ = (chunkZ << 4) + 8;
+        List<IrisObjectPlacement> placements = new ArrayList<>(complex.getTrueBiomeStream().get(blockX, blockZ).getSurfaceObjects());
+        placements.addAll(complex.getRegionStream().get(blockX, blockZ).getSurfaceObjects());
+        placements.removeIf(placement -> placement.isCompatExcluded(getData()));
+        return placements;
     }
 
     @ChunkCoordinates
@@ -1754,19 +1841,32 @@ public class MantleObjectComponent extends IrisMantleComponent {
         IrisBiome biome = getComplex().getTrueBiomeStream().get(blockX, blockZ);
         IrisRegion region = getComplex().getRegionStream().get(blockX, blockZ);
         Set<String> v = new KSet<>();
-        for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
-            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && !i.isCompatExcluded(getData())) {
-                v.addAll(guessPlacedKeys(rng, x, z, i));
-            }
-        }
-
-        for (IrisObjectPlacement i : region.getSurfaceObjects()) {
-            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && !i.isCompatExcluded(getData())) {
-                v.addAll(guessPlacedKeys(rng, x, z, i));
-            }
-        }
-
+        guessSurfaceKeys(rng, x, z, biome.getSurfaceObjects(), v);
+        guessSurfaceKeys(rng, x, z, region.getSurfaceObjects(), v);
         return v;
+    }
+
+    private void guessSurfaceKeys(RNG rng, int x, int z, List<IrisObjectPlacement> placements, Set<String> keys) {
+        ObjectSeparation separation = objectSeparation();
+        for (IrisObjectPlacement i : placements) {
+            if (i.isSeparated()) {
+                guessSeparatedKey(separation, x, z, i).ifPresent(keys::add);
+                continue;
+            }
+            double chance = separation.chanceAt(i, (x << 4) + 8, (z << 4) + 8);
+            if (rng.chance(chance + rng.d(-0.005, 0.005)) && !i.isCompatExcluded(getData())) {
+                keys.addAll(guessPlacedKeys(rng, x, z, i));
+            }
+        }
+    }
+
+    private Optional<String> guessSeparatedKey(ObjectSeparation separation, int x, int z, IrisObjectPlacement placement) {
+        if (placement.isCompatExcluded(getData())) {
+            return Optional.empty();
+        }
+        return separation.keptCandidate(x, z, placement)
+                .map(candidate -> placement.scaleObject(candidate.rng(), placement.getObject(getComplex(), candidate.rng()), getDimension()))
+                .map(IrisObject::getLoadKey);
     }
 
     protected int computeRadius() {

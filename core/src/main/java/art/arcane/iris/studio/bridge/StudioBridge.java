@@ -20,6 +20,7 @@ package art.arcane.iris.studio.bridge;
 
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.studio.map.StudioAssets;
 import art.arcane.iris.studio.map.StudioHover;
 import art.arcane.iris.studio.view.GuiHost;
 import art.arcane.iris.studio.view.GuiMarker;
@@ -44,6 +45,7 @@ import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -72,6 +74,10 @@ public final class StudioBridge implements AutoCloseable {
     private static final double LARGEST_BLOCKS_PER_PIXEL = 4_096D;
     private static final long DROPPED_TILE_KEPT_MINUTES = 10;
     private static final long ENTITY_WAIT_MILLIS = 3_000L;
+    private static final String ASSETS_ENDPOINT = "assets/";
+    private static final String ASSET_RETRY_SECONDS = "2";
+    private static final long ASSET_CACHE_SECONDS = 86_400L;
+    private static final String OVERRIDE_PREFIX = "set.";
     private static final String VIEW_BIOMES = "biomes";
     private static final String VIEW_REGIONS = "regions";
     private static final String VIEW_RIVERS = "rivers";
@@ -188,6 +194,10 @@ public final class StudioBridge implements AutoCloseable {
     private void route(HttpExchange exchange) throws IOException {
         String endpoint = exchange.getRequestURI().getPath().substring(API.length());
         Query query = Query.of(exchange.getRequestURI());
+        if (endpoint.startsWith(ASSETS_ENDPOINT)) {
+            sendAsset(exchange, endpoint);
+            return;
+        }
         switch (endpoint) {
             case "world" -> sendJson(exchange, STATUS_OK, worldInfo(get(exchange)));
             case "tile" -> sendBytes(exchange, "application/octet-stream", tile(get(exchange), query));
@@ -196,7 +206,11 @@ public final class StudioBridge implements AutoCloseable {
             case "picks" -> sendJson(exchange, STATUS_OK, new PickInspection("", List.of()));
             case "regions" -> sendJson(exchange, STATUS_OK, StudioHover.previewableRegions(get(exchange).engine()));
             case "entities" -> sendJson(exchange, STATUS_OK, entities(get(exchange)));
-            case "scenes", "patterns", "noise-sources", "saved-worlds" -> sendJson(exchange, STATUS_OK, List.of());
+            case "scenes" -> sendJson(exchange, STATUS_OK, profileViews());
+            case "scene-entries" -> sendJson(exchange, STATUS_OK, profileEntries(get(exchange).engine(), query));
+            case "scene" -> sendBytes(exchange, "application/octet-stream", profileScene(get(exchange).engine(), query));
+            case "profile-form" -> sendJson(exchange, STATUS_OK, profileForm(get(exchange).engine(), query));
+            case "patterns", "noise-sources", "saved-worlds" -> sendJson(exchange, STATUS_OK, List.of());
             case "events" -> streamEvents(exchange);
             case "teleport" -> teleport(exchange, query);
             case "open" -> throw new RequestError(STATUS_NOT_FOUND, "Opening a pack file from the studio is not available in Iris v4");
@@ -293,6 +307,63 @@ public final class StudioBridge implements AutoCloseable {
                 ? session.tiles().rivers(startX, startZ, blocksPerPixel, size, cancelled)
                 : session.tiles().biomesOrRegions(view, preview, startX, startZ, blocksPerPixel, size, query.flag("heights"), cancelled);
         return tile.encode(gson);
+    }
+
+    // Asset paths name one file of one Minecraft version, so a studio may keep what it fetched for as long as it runs.
+    private static void sendAsset(HttpExchange exchange, String endpoint) throws IOException {
+        requireMethod(exchange, "GET");
+        byte[] asset;
+        try {
+            asset = StudioAssets.read(endpoint).orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No asset " + endpoint));
+        } catch (StudioAssets.NotReadyException notReady) {
+            exchange.getResponseHeaders().set("Retry-After", ASSET_RETRY_SECONDS);
+            throw new RequestError(STATUS_UNAVAILABLE, notReady.getMessage());
+        }
+        exchange.getResponseHeaders().set("Cache-Control", "max-age=" + ASSET_CACHE_SECONDS + ", immutable");
+        sendBytes(exchange, endpoint.endsWith(".png") ? "image/png" : "application/json", asset);
+    }
+
+    private static List<SceneViewInfo> profileViews() {
+        return StudioProfiles.views().stream()
+                .map(view -> new SceneViewInfo(view.id(), view.label(), view.description(), false, false, false, false, view.sizes(), true))
+                .toList();
+    }
+
+    private static List<StudioProfiles.Entry> profileEntries(Engine engine, Query query) {
+        return profileView(query).entries(engine);
+    }
+
+    private static ProfileForm.Form profileForm(Engine engine, Query query) {
+        return profiling(() -> profileView(query).form(engine, query.text("key"), query.prefixed(OVERRIDE_PREFIX)));
+    }
+
+    private byte[] profileScene(Engine engine, Query query) {
+        StudioProfiles.ProfileView view = profileView(query);
+        int size = query.whole("size", view.sizes() == null ? 0 : view.sizes().opening());
+        if (view.sizes() != null && !view.sizes().blocksAcross().contains(size)) {
+            throw new RequestError(STATUS_BAD_REQUEST, "View " + view.id() + " builds scenes " + view.sizes().blocksAcross() + " blocks across, not " + size);
+        }
+        return profiling(() -> view.scene(engine, query.text("key"), query.whole("variant", 0), size, query.prefixed(OVERRIDE_PREFIX)).encode(gson));
+    }
+
+    private static StudioProfiles.ProfileView profileView(Query query) {
+        return profiling(() -> StudioProfiles.view(query.text("view")));
+    }
+
+    // A profile the pack does not have is the studio's to be told about, not a failure of the bridge.
+    private static <T> T profiling(ProfileTask<T> task) {
+        try {
+            return task.run();
+        } catch (NoSuchElementException unknown) {
+            throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
+        } catch (IOException failed) {
+            throw new IllegalStateException(failed);
+        }
+    }
+
+    @FunctionalInterface
+    private interface ProfileTask<T> {
+        T run() throws IOException;
     }
 
     private void cancelTile(HttpExchange exchange, Query query) throws IOException {
@@ -452,6 +523,17 @@ public final class StudioBridge implements AutoCloseable {
             }
         }
 
+        /** The parameters that start with {@code prefix}, by the rest of their names. */
+        Map<String, String> prefixed(String prefix) {
+            Map<String, String> found = new HashMap<>();
+            values.forEach((name, value) -> {
+                if (name.startsWith(prefix)) {
+                    found.put(name.substring(prefix.length()), value);
+                }
+            });
+            return found;
+        }
+
         boolean has(String name) {
             return values.containsKey(name);
         }
@@ -466,6 +548,11 @@ public final class StudioBridge implements AutoCloseable {
     }
 
     private record MessageBody(String message) {
+    }
+
+    /** A profile view as the studio lists its scene views; {@code form} when its entries have a settings form. */
+    private record SceneViewInfo(String id, String label, String description, boolean editable, boolean creatable, boolean baked,
+                                 boolean parts, StudioProfiles.Sizes sizes, boolean form) {
     }
 
     private record PickInspection(String detail, List<Object> sections) {

@@ -28,7 +28,7 @@ final class JsonSchemaValidator {
         }
         Set<String> known = FIELD_CACHE.computeIfAbsent(objectClass, JsonSchemaValidator::collectFieldNames);
         for (String key : parsed.keySet()) {
-            if (known.contains(key)) {
+            if (known.contains(key) || RemovedPackKeys.isReportedByPackValidation(key)) {
                 continue;
             }
             reportUnknownKey(key, rawText, file, resourceTypeName, known);

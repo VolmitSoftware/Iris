@@ -19,6 +19,7 @@
 package art.arcane.iris.pack;
 
 import art.arcane.iris.generation.cave.CaveBounds;
+import art.arcane.iris.pack.loading.RemovedPackKeys;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.JsonParseException;
@@ -42,7 +43,7 @@ import java.util.Set;
 final class PackCaveValidator {
     static final String CAVES_FOLDER = "caves";
     static final String CAVES_KEY = "caves";
-    static final String REMOVED_PROFILE_KEY = "caveProfile";
+    static final String REMOVED_PROFILE_KEY = RemovedPackKeys.CAVE_PROFILE;
     static final String REMOVED_PROFILE_SNIPPET_FOLDER = "snippet/cave-profile";
     private static final String REMOVED_PROFILE_ADVICE = "was removed and carves no caves; list caves under \"" + CAVES_KEY + "\" instead";
 

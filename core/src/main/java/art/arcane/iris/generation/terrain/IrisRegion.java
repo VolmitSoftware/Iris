@@ -19,6 +19,7 @@
 package art.arcane.iris.generation.terrain;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.cave.IrisCave;
 import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositVariant;
@@ -145,6 +146,10 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
     private double caveBiomeZoom = 1;
     @Description("Profile-driven 3D cave configuration")
     private IrisCaveProfile caveProfile = new IrisCaveProfile();
+    @ArrayType(type = String.class, min = 1)
+    @RegistryListResource(IrisCave.class)
+    @Description("Caves that carve in this region, by their file in the pack's caves folder. They add to the dimension's and the biomes' lists.")
+    private KList<String> caves = new KList<>();
     @Description("Water settings for this region: rainfall, pond density, where streams and ponds may form, and the fluid that fills them. A value left unset comes from the dimension.")
     private IrisHydrologyPolicy hydrologyPolicy = null;
     @RegistryListResource(IrisBiome.class)

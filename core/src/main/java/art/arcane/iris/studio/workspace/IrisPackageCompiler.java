@@ -30,6 +30,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.world.entity.IrisEntity;
+import art.arcane.iris.generation.cave.IrisCave;
 import art.arcane.iris.generation.noise.IrisExpression;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.world.loot.IrisLootTable;
@@ -144,6 +145,10 @@ public class IrisPackageCompiler {
         biomes.forEach((i) -> i.getGenerators().forEach((j) -> addIfPresent(generators, j.getCachedGenerator(() -> dm))));
         biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> addIfPresent(loot, dm.getLootLoader().load(i))));
         biomes.forEach((r) -> r.getEntitySpawners().forEach((sp) -> addIfPresent(spawners, dm.getSpawnerLoader().load(sp))));
+        KSet<IrisCave> caves = new KSet<>();
+        dimensions.forEach((exportedDimension) -> exportedDimension.getCaves().forEach((key) -> addIfPresent(caves, dm.getCaveLoader().load(key))));
+        regions.forEach((r) -> r.getCaves().forEach((key) -> addIfPresent(caves, dm.getCaveLoader().load(key))));
+        biomes.forEach((r) -> r.getCaves().forEach((key) -> addIfPresent(caves, dm.getCaveLoader().load(key))));
         KList<IrisObjectPlacement> allPlacements = new KList<>();
         regions.forEach((r) -> allPlacements.addAll(r.getObjects()));
         biomes.forEach((i) -> allPlacements.addAll(i.getObjects()));
@@ -267,6 +272,13 @@ public class IrisPackageCompiler {
                     .sorted(Comparator.comparing(IrisExpression::getLoadKey)).toList()) {
                 a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "expressions/" + i.getLoadKey() + ".json"), a);
+                b.append(IO.hash(a));
+            }
+
+            for (IrisCave i : caves.stream()
+                    .sorted(Comparator.comparing(IrisCave::getLoadKey)).toList()) {
+                a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
+                IO.writeAll(new File(folder, "caves/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 

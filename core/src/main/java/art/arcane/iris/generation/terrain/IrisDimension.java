@@ -24,6 +24,7 @@ import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.biome.IrisCustomBiomeAliasResolver;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
 import art.arcane.iris.generation.biome.IrisSurfaceLayerFallback;
+import art.arcane.iris.generation.cave.IrisCave;
 import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositVariant;
@@ -231,6 +232,10 @@ public class IrisDimension extends IrisRegistrant {
     private KList<IrisSubterrainFeature> subterrainFeatures = new KList<>();
     @Description("Profile-driven 3D cave configuration")
     private IrisCaveProfile caveProfile = new IrisCaveProfile();
+    @ArrayType(type = String.class, min = 1)
+    @RegistryListResource(IrisCave.class)
+    @Description("Caves that carve everywhere in this dimension, by their file in the pack's caves folder. The lists of the dimension, region and biomes of a place add up: every cave any of them lists carves there.")
+    private KList<String> caves = new KList<>();
     @Description("Water that follows how rain drains across the terrain: rivers and streams that step through every elevation, and ponds and lakes at any height.")
     private IrisHydrology hydrology = null;
     @Description("Water settings for this dimension: rainfall, pond density, where streams and ponds may form, and the fluid that fills them. Regions and biomes inherit every value they leave unset.")

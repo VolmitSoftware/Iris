@@ -49,6 +49,7 @@ import art.arcane.iris.structure.authoring.StructureRecoveryResult;
 import art.arcane.iris.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
+import art.arcane.iris.generation.cave.IrisCave;
 import art.arcane.iris.spi.PlatformGenerationRegistry;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -135,6 +136,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisMod> modLoader;
     private ResourceLoader<IrisBlockData> blockLoader;
     private ResourceLoader<IrisExpression> expressionLoader;
+    private ResourceLoader<IrisCave> caveLoader;
     private ResourceLoader<IrisObject> objectLoader;
     private ResourceLoader<IrisMatterObject> matterLoader;
     private ResourceLoader<IrisImage> imageLoader;
@@ -726,6 +728,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.markerLoader = registerLoader(IrisMarker.class, replacement);
         this.blockLoader = registerLoader(IrisBlockData.class, replacement);
         this.expressionLoader = registerLoader(IrisExpression.class, replacement);
+        this.caveLoader = registerLoader(IrisCave.class, replacement);
         this.objectLoader = registerLoader(IrisObject.class, replacement);
         this.imageLoader = registerLoader(IrisImage.class, replacement);
         this.imageMapLoader = registerLoader(IrisImageMap.class, replacement);

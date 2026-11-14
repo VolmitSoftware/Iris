@@ -19,6 +19,7 @@
 package art.arcane.iris.pack.schema;
 
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.pack.schema.annotation.AcceptsPlainNumber;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
@@ -65,7 +66,29 @@ final class SchemaPropertyBuilder {
             default -> unexpectedType(type, k, cl);
         };
 
-        return describeProperty(k, cl, prop, type, fancyType, description);
+        JSONObject described = describeProperty(k, cl, prop, type, fancyType, description);
+        if (k.getType().isAnnotationPresent(AcceptsPlainNumber.class)) {
+            acceptPlainNumber(k, described);
+        }
+        return described;
+    }
+
+    private void acceptPlainNumber(Field k, JSONObject prop) {
+        JSONObject number = new JSONObject();
+        number.put("type", "number");
+        if (k.isAnnotationPresent(MinNumber.class)) {
+            number.put("minimum", k.getDeclaredAnnotation(MinNumber.class).value());
+        }
+        if (k.isAnnotationPresent(MaxNumber.class)) {
+            number.put("maximum", k.getDeclaredAnnotation(MaxNumber.class).value());
+        }
+        JSONObject object = new JSONObject();
+        object.put("$ref", prop.remove("$ref"));
+        prop.remove("type");
+        JSONArray alternatives = new JSONArray();
+        alternatives.put(number);
+        alternatives.put(object);
+        prop.put("oneOf", alternatives);
     }
 
     private String integerProperty(Field k, JSONObject prop, KList<String> description) {
@@ -264,6 +287,8 @@ final class SchemaPropertyBuilder {
                 }
                 if (value instanceof List) {
                     d.add(SchemaBuilder.SYMBOL_LIMIT__N + " Default Value is an empty list");
+                } else if (k.getType().isAnnotationPresent(AcceptsPlainNumber.class)) {
+                    d.add(SchemaBuilder.SYMBOL_LIMIT__N + " Default Value is " + value);
                 } else if (!k.getType().isPrimitive() && !(value instanceof Number) && !(value instanceof String) && !(value instanceof Enum<?>) && !SchemaKeyedTypes.isKeyed(k.getType())) {
                     d.add(SchemaBuilder.SYMBOL_LIMIT__N + " Default Value is a default object (create this object to see default properties)");
                 } else {

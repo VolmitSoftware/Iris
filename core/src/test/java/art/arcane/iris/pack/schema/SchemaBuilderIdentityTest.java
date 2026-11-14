@@ -22,6 +22,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.IrisRegistrant;
 import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.cave.IrisCave;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.subterrain.IrisSubterrainFeature;
@@ -84,7 +85,7 @@ public class SchemaBuilderIdentityTest {
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
 
-    private static final String EXPECTED_SCHEMA_DIGEST = "89641e077a85bec8a27681f2ce6166150cc37277bc6f58793081b669432782f2";
+    private static final String EXPECTED_SCHEMA_DIGEST = "3f8aa1e56a2bd9e68c6b4d0036da22a9d5f3b64542ab6c90044d98ba3e5705c5";
 
     private static final List<Class<?>> SCHEMA_ROOTS = List.of(
             IrisDimension.class,
@@ -101,7 +102,8 @@ public class SchemaBuilderIdentityTest {
             IrisLootTable.class,
             IrisBlockData.class,
             IrisImageMap.class,
-            IrisExpression.class);
+            IrisExpression.class,
+            IrisCave.class);
 
     private IrisPlatform previous;
 
@@ -249,8 +251,13 @@ public class SchemaBuilderIdentityTest {
         ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisExpression> expressionLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisBlockData> blockLoader = mock(ResourceLoader.class);
+        ResourceLoader<IrisCave> caveLoader = mock(ResourceLoader.class);
         KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
         loaders.put(IrisExpression.class, expressionLoader);
+        loaders.put(IrisCave.class, caveLoader);
+        when(caveLoader.getPossibleKeys()).thenReturn(new String[]{"pack/tunnels", "pack/caverns"});
+        when(caveLoader.getFolderName()).thenReturn("caves");
+        when(caveLoader.getResourceTypeName()).thenReturn("Cave");
         when(data.getStructureLoader()).thenReturn(structureLoader);
         when(data.getJigsawPieceLoader()).thenReturn(pieceLoader);
         when(data.getBlockLoader()).thenReturn(blockLoader);

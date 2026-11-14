@@ -29,7 +29,9 @@ const VIEW_ICONS: Record<string, IdeIconName> = {
   'iris:decorant/decorators': 'decoration',
   'iris:objects': 'views/objects',
   'iris:objects/procedural': 'views/procedural',
-  noise: 'views/noise'
+  noise: 'views/noise',
+  imageMaps: 'grid',
+  pregen: 'lightning'
 }
 const FALLBACK_ICON: IdeIconName = 'blocks'
 /** Inset, because the stripe scrolls and so clips anything drawn outside its buttons. */

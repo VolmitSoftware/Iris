@@ -12,7 +12,9 @@ import { Legend } from './Legend'
 import { MapCanvas, type CanvasPoint } from './MapCanvas'
 import { PickInspector } from './PickInspector'
 import { RegionPreviewList } from './RegionPreviewList'
+import { ImageMapStudio } from './ImageMapStudio'
 import { NoiseStudio } from './NoiseStudio'
+import { PregenStudio } from './PregenStudio'
 import { PatternStudio } from './PatternStudio'
 import { SavedWorldStudio } from './SavedWorldStudio'
 import { SceneStudio } from './SceneStudio'
@@ -235,6 +237,10 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
           <WorldStudio3D title={view.label} client={client} world={world} mapArea={area} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : viewId === SAVED_WORLD.id ? (
           <SavedWorldStudio title={view.label} client={client} world={world} onSummary={setSceneSummary} onProgress={setSceneProgress} tell={tell} />
+        ) : viewId === PREGEN_VIEW_ID ? (
+          <PregenStudio title={view.label} client={client} onSummary={setSceneSummary} tell={tell} />
+        ) : viewId === IMAGE_MAPS_VIEW_ID ? (
+          <ImageMapStudio title={view.label} client={client} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : viewId === NOISE.id ? (
           <NoiseStudio title={view.label} client={client} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : (
@@ -347,7 +353,9 @@ const NOISE: ViewInfo = {
   group: 'PACK',
   groupLabel: 'Pack'
 }
-const APP_VIEW_IDS = new Set([WORLD_3D.id, SAVED_WORLD.id, NOISE.id])
+const IMAGE_MAPS_VIEW_ID = 'imageMaps'
+const PREGEN_VIEW_ID = 'pregen'
+const APP_VIEW_IDS = new Set([WORLD_3D.id, SAVED_WORLD.id, NOISE.id, IMAGE_MAPS_VIEW_ID, PREGEN_VIEW_ID])
 
 function withAppViews(serverViews: ViewInfo[]): ViewInfo[] {
   const afterRegions = serverViews.findIndex((candidate) => candidate.id === 'regions') + 1

@@ -8,6 +8,7 @@ import type {
   BlockSource,
   EditorState,
   GraphEdit,
+  ImageMapDetails,
   MapHover,
   MapLabel,
   MapTile,
@@ -18,6 +19,7 @@ import type {
   PatternEntry,
   PatternTile,
   PickInspection,
+  PregenStatus,
   ProfileFormState,
   SavedStart,
   SavedTile,
@@ -274,6 +276,36 @@ export class BridgeClient {
     })
     const response = await this.fetch(`pattern?${query}`, { signal })
     return decodePattern(await response.arrayBuffer())
+  }
+
+  pregen(signal?: AbortSignal): Promise<PregenStatus> {
+    return this.json('pregen', { signal })
+  }
+
+  /** The running pregeneration's chunks, one pixel each. */
+  async pregenMap(signal?: AbortSignal): Promise<Blob> {
+    const response = await this.fetch('pregen-map', { signal })
+    return response.blob()
+  }
+
+  /** Pauses the pregeneration, or resumes it when it is paused. */
+  async pregenPause(): Promise<void> {
+    await this.json('pregen-pause', { method: 'POST' })
+  }
+
+  /** The pack's image maps, listed like scene entries. */
+  imageMaps(): Promise<SceneEntry[]> {
+    return this.json('image-maps')
+  }
+
+  imageMap(key: string, signal?: AbortSignal): Promise<ImageMapDetails> {
+    return this.json(`image-map?${new URLSearchParams({ key })}`, { signal })
+  }
+
+  /** The image map painted over the world area it covers, {@code pixels} across its longer side. */
+  async imageMapPreview(key: string, pixels: number, signal?: AbortSignal): Promise<Blob> {
+    const response = await this.fetch(`image-map-preview?${new URLSearchParams({ key, size: String(pixels) })}`, { signal })
+    return response.blob()
   }
 
   /** The worlds saved on the server's disk. */

@@ -194,6 +194,56 @@ export interface PatternTile {
 
 export const NO_PATTERN_BLOCK = -1
 
+/** How far the running pregeneration is; times are in milliseconds. */
+export interface PregenProgress {
+  percent: number
+  generated: number
+  totalChunks: number
+  chunksPerSecond: number
+  overallChunksPerSecond: number
+  thirtySecondChunksPerSecond: number
+  sixtySecondChunksPerSecond: number
+  chunksRemaining: number
+  chunksInFlight: number
+  eta: number
+  elapsed: number
+  method: string
+  paused: boolean
+  failed: number
+  worldName: string
+}
+
+export type PregenPhase = 'INITIALIZING' | 'GENERATING' | 'PAUSED' | 'SAVING' | 'STOPPING' | 'COMPLETED' | 'ERROR'
+
+export interface PregenSnapshot {
+  bounds: { minX: number; minZ: number; maxX: number; maxZ: number }
+  progress: PregenProgress
+  phase: PregenPhase
+  cached: boolean
+  usedMemoryBytes: number
+  memoryUsage: number
+  failure: string | null
+}
+
+/** The server's pregeneration; `snapshot` is null while none runs. */
+export interface PregenStatus {
+  active: boolean
+  snapshot: PregenSnapshot | null
+}
+
+/** An image map of the pack and what it covers. */
+export interface ImageMapDetails {
+  key: string
+  type: string
+  source: string
+  width: number
+  height: number
+  blocksPerPixel: number
+  /** The world area it covers: minimum X, minimum Z, maximum X, maximum Z. */
+  bounds: [number, number, number, number]
+  facts: string[]
+}
+
 /** A world saved on the server's disk, a dimension folder of region files. */
 export interface SavedWorldInfo {
   /** Its folder below the server's level folder. */

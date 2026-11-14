@@ -55,7 +55,7 @@ const NOISE_HIGH = 0xffffff
 // Picks drawn by their noise keep some colour where the noise is low, so they still read as the pick.
 const DARKEST_PICK_SHADE = 0.3
 
-/** The tile's pixels as RGBA, as {@code style} draws them (v3e MapTile.styledPixels). */
+/** The tile's pixels as RGBA, as {@code style} draws them. */
 export function stylePixels(tile: MapTile, style: TileStyle): Uint8ClampedArray<ArrayBuffer> {
   const { size } = tile
   const pixels = new Uint8ClampedArray(size * size * 4)

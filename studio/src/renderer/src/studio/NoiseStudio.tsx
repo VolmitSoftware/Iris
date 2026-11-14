@@ -41,7 +41,7 @@ interface NoiseStudioProps {
   tell(message: string): void
 }
 
-/** The pack's noise and the built-in styles, from above or as terrain (v3e's noise explorer). */
+/** The pack's noise and the built-in styles, from above or as terrain. */
 export function NoiseStudio({ title, client, packRevision, onSummary, tell }: NoiseStudioProps): React.JSX.Element {
   const sources = useNoiseSources(client, packRevision, tell)
   const [chosenId, setChosenId] = useState<string | null>(null)

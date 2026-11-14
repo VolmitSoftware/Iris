@@ -28,7 +28,7 @@ interface PickInspectorProps {
 
 /**
  * How noise picks the regions or biomes in view, measured against what is in view, with a switch for how the map
- * draws the picks (v3e PickInspectorPanel).
+ * draws the picks.
  */
 export function PickInspector({ title, inspection, display }: PickInspectorProps): React.JSX.Element {
   return (

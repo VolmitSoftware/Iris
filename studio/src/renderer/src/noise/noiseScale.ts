@@ -12,7 +12,7 @@ interface NoisePalette {
   stops: number[] | null
 }
 
-/** v3e's noise palettes, each with the values it spans when the noise is not measured in blocks. */
+/** The noise palettes, each with the values it spans when the noise is not measured in blocks. */
 export const NOISE_PALETTES: readonly NoisePalette[] = [
   { id: 'terrain', label: 'Terrain', minimum: 0, maximum: 1, stops: [0x071a2f, 0x155e75, 0x2a9d8f, 0xe9c46a, 0xf4f1de] },
   { id: 'signed', label: 'Signed', minimum: -1, maximum: 1, stops: [0x173b66, 0x4f86c6, 0xe7edf3, 0xe89555, 0x9d3b35] },

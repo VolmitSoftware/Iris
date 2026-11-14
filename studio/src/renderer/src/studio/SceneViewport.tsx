@@ -5,13 +5,13 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { SightView } from '../scene/cameraSight'
 import { surfaceAlong } from '../scene/surfacePick'
 
-// Colours are worked out as Minecraft and v3e do, on the values a screen shows: a texture times its tint times the light
+// Colours are worked out as Minecraft does, on the values a screen shows: a texture times its tint times the light
 // on its face. Left to manage colours, three.js would take those values for linear light and encode them again, which
 // pales every colour and flattens the shading.
 ColorManagement.enabled = false
 
 const FIELD_OF_VIEW_DEGREES = 45
-// Looking down at the scene from the south east, as v3e's object view opens.
+// Looking down at the scene from the south east.
 const VIEW_DIRECTION = new Vector3(1, 0.8, 1.2).normalize()
 const FRAMING_MARGIN = 1.15
 const NEAREST_CLIP = 0.05

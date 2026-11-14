@@ -7,7 +7,7 @@ import type { NoiseScale } from './noiseScale'
 const FLUID_BLOCKS = 0
 
 /**
- * One tile of noise as terrain (v3e's 3D noise): noise measured in blocks stands at its own height with water at the
+ * One tile of noise as terrain: noise measured in blocks stands at its own height with water at the
  * fluid; other noise rises from its scale's minimum to {@code reliefBlocks} at its maximum, with no water.
  */
 export class NoiseTerrain implements TerrainSurface {

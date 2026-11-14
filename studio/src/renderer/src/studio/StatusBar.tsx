@@ -16,7 +16,7 @@ interface StatusBarProps {
 
 const NUMBER = new Intl.NumberFormat('en-US')
 
-/** What the map shows, what it is busy with, and where the cursor is (v3e StudioStatusBar). */
+/** What the map shows, what it is busy with, and where the cursor is. */
 export function StatusBar({ viewLabel, status, notice, usage, progress }: StatusBarProps): React.JSX.Element {
   const drawing = status !== null && status.tilesReady < status.tilesTotal
   return (

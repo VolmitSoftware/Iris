@@ -36,7 +36,7 @@ interface PatternStudioProps {
   tell(message: string): void
 }
 
-/** A pattern view: its entries on the right, what the chosen one places from above in the middle (v3e palette explorer). */
+/** A pattern view: its entries on the right, what the chosen one places from above in the middle. */
 export function PatternStudio({ client, view, packRevision, onSummary, tell }: PatternStudioProps): React.JSX.Element {
   const entries = usePatternEntries(client, view.id, packRevision, tell)
   const [chosen, setChosen] = useState<{ key: string; depth: number } | null>(null)

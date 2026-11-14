@@ -397,7 +397,7 @@ interface BlockListProps {
   onFarLeavesOnly(only: boolean): void
 }
 
-/** The blocks of the scene, most used first, each with its count (v3e ObjectOverviewPanel), and how many leaves are too far from wood. */
+/** The blocks of the scene, most used first, each with its count, and how many leaves are too far from wood. */
 function BlockList({ scene, blocks, farLeavesOnly, onFarLeavesOnly }: BlockListProps): React.JSX.Element {
   const counts = useMemo(() => (scene === null ? [] : blockCounts(scene)), [scene])
   const farLeaves = useMemo(() => (scene === null ? 0 : countFarLeaves(scene)), [scene])

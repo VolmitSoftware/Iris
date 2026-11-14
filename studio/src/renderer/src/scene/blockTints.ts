@@ -1,6 +1,6 @@
 /**
- * The colour each tinted face of a block is multiplied with, as Minecraft's BlockColors give it (v3e
- * MinecraftBlockTints). Scenes stand in no biome, so the biome tints are the plains' colours.
+ * The colour each tinted face of a block is multiplied with, as Minecraft's BlockColors give it.
+ * Scenes stand in no biome, so the biome tints are the plains' colours.
  */
 
 const NO_TINT = 0xffffff

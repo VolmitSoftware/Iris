@@ -1,4 +1,4 @@
-/** The height scale of the map, from deep water to snowy peaks, measured from sea level (v3e HeightColors). */
+/** The height scale of the map, from deep water to snowy peaks, measured from sea level. */
 
 export const DEEPEST_BELOW_SEA_BLOCKS = 90
 export const HIGHEST_ABOVE_SEA_BLOCKS = 300

@@ -14,7 +14,7 @@ interface RegionPreviewListProps {
   onSelect(regionKey: string | null): void
 }
 
-/** The region view's regions, any of which can fill the map with its biomes, or all of them as they are (v3e RegionNavigator). */
+/** The region view's regions, any of which can fill the map with its biomes, or all of them as they are. */
 export function RegionPreviewList({ regions, current, onSelect }: RegionPreviewListProps): React.JSX.Element {
   const [search, setSearch] = useState('')
   const wanted = search.trim().toLowerCase()

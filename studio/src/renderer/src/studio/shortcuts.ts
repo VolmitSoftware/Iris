@@ -1,4 +1,4 @@
-/** The studio's keys, as v3e's studio had them (StudioShortcut). */
+/** The studio's keys. */
 export type ShortcutAction =
   | 'nextView'
   | 'refresh'
@@ -66,7 +66,7 @@ export const SHORTCUTS: ShortcutDefinition[] = [
   { id: 'showAllNodes', label: 'Show every node', group: 'Node editor', chords: ['f', 'Home'] }
 ]
 
-/** The key of each view, as in v3e. */
+/** The key of each view. */
 const VIEW_KEYS: Record<string, Chord> = {
   biomes: '1',
   regions: '2',

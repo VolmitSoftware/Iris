@@ -37,7 +37,7 @@ interface SavedWorldStudioProps {
   tell(message: string): void
 }
 
-/** A world as its region files hold it, in 3D, around the region nearest its origin (v3e's saved world explorer). */
+/** A world as its region files hold it, in 3D, around the region nearest its origin. */
 export function SavedWorldStudio({ title, client, world, onSummary, onProgress, tell }: SavedWorldStudioProps): React.JSX.Element {
   const worlds = useSavedWorlds(client, tell)
   const [chosenId, setChosenId] = useState<string | null>(null)

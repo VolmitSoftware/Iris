@@ -16,7 +16,7 @@ interface NoiseChartProps {
 
 /**
  * One noise that picks regions or biomes: how its values in view spread over the bands that pick each option, and a
- * table of each option's share of the noise against its share of the ground in view (v3e NoisePickChart).
+ * table of each option's share of the noise against its share of the ground in view.
  */
 export function NoiseChart({ spread, optionNoun }: NoiseChartProps): React.JSX.Element {
   if (spread.rows.length === 1) {

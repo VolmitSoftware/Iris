@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 
-/** Where a view puts its own lists: under the views in the left island, as in v3e. */
+/** Where a view puts its own lists: under the views in the left island. */
 export const SidebarSlot = createContext<HTMLElement | null>(null)
 
 /** A section of the left island under the views, filled by the view that is shown. */

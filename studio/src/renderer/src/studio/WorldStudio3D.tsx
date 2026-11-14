@@ -52,7 +52,7 @@ interface WorldStudio3DProps {
 
 /**
  * The terrain around where the map looked, in 3D and without an edge, coloured by biome, region or height, beside how
- * the noise picks the biomes or regions the camera sees, or how much of that ground lies at each height (v3e's 3D world view).
+ * the noise picks the biomes or regions the camera sees, or how much of that ground lies at each height.
  */
 export function WorldStudio3D({ title, client, world, mapArea, packRevision, onSummary, tell }: WorldStudio3DProps): React.JSX.Element {
   const [coloring, setColoring] = useState<MapTerrainColoring>('biomes')

@@ -40,7 +40,7 @@ interface EntryBrowserProps {
 
 type MenuTarget = { entry: string } | { folder: string } | null
 
-/** A view's entries in a tree of their folders, with a search over keys, names and folders that opens every folder holding a match (v3e ObjectBrowser). */
+/** A view's entries in a tree of their folders, with a search over keys, names and folders that opens every folder holding a match. */
 export function EntryBrowser({ title, entries, current, onSelect, fileActions, className }: EntryBrowserProps): React.JSX.Element {
   const [search, setSearch] = useState('')
   const [menuTarget, setMenuTarget] = useState<MenuTarget>(null)

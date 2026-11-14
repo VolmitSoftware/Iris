@@ -5,7 +5,9 @@ import art.arcane.iris.generation.cave.CaveValue;
 import art.arcane.iris.generation.cave.IrisCave;
 import art.arcane.iris.generation.cave.TestSettings;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import org.junit.Test;
 
 import java.util.BitSet;
@@ -205,14 +207,25 @@ public class CaveValuesTest {
 
     @Test
     public void valuesOutsideTheirBoundsAreReportedByTheirPlaceInTheFile() {
-        IrisCave cave = TestSettings.of(IrisCave.class, """
-                {"fade": 200, "tunnel": {"width": {"min": 0, "max": 6}, "coverage": {"share": 2}},
+        JsonObject cave = JsonParser.parseString("""
+                {"fade": 200, "tunnel": {"width": {"min": 0, "max": 6}, "coverage": {"share": 2}, "spacing": {"horizontal": 8}},
                  "cavern": {"pillars": {"flare": 0.5}}}
-                """);
+                """).getAsJsonObject();
 
-        assertEquals(List.of("tunnel.width.min is 0; it must be at least 1", "tunnel.coverage.share is 2; it must be at most 1",
-                "cavern.pillars.flare is 0.5; it must be at least 1", "fade is 200; it must be at most 128"), CaveBounds.valuesOutOfBounds(cave));
-        assertEquals(List.of(), CaveBounds.valuesOutOfBounds(TestSettings.of(IrisCave.class, "{\"tunnel\": {}, \"cavern\": {\"pillars\": {}}}")));
+        assertEquals(List.of("fade is 200; it must be at most 128", "tunnel.width.min is 0; it must be at least 1",
+                "tunnel.coverage.share is 2; it must be at most 1", "tunnel.spacing.horizontal is 8; it must be at least 16",
+                "cavern.pillars.flare is 0.5; it must be at least 1"), CaveBounds.valuesOutOfBounds(cave));
+        assertEquals(List.of(), CaveBounds.valuesOutOfBounds(JsonParser.parseString("{\"tunnel\": {}, \"cavern\": {\"pillars\": {}}}").getAsJsonObject()));
+    }
+
+    @Test
+    public void aPlainCoverageIsAShareAndAnEqualRangeIsAPlainNumber() {
+        assertEquals(List.of("tunnel.coverage.share is 1.5; it must be at most 1"),
+                CaveBounds.valuesOutOfBounds(JsonParser.parseString("{\"tunnel\": {\"coverage\": 1.5}}").getAsJsonObject()));
+        assertEquals(List.of("fade is 300; it must be at most 128"),
+                CaveBounds.valuesOutOfBounds(JsonParser.parseString("{\"fade\": {\"min\": 300, \"max\": 300}}").getAsJsonObject()));
+        assertEquals(List.of("fade.max is 300; it must be at most 128"),
+                CaveBounds.valuesOutOfBounds(JsonParser.parseString("{\"fade\": {\"min\": 10, \"max\": 300, \"style\": \"snippet/style/any\"}}").getAsJsonObject()));
     }
 
     @Test

@@ -20,69 +20,85 @@ package art.arcane.iris.generation.cave;
 
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
- * The numbers a cave writes outside what their keys allow, read from the {@link MinNumber} and {@link MaxNumber} of
- * each key. A {@link CaveValue} is not a plain number, so the schema cannot bound its ends: this does.
+ * The numbers a cave file writes outside what their keys allow, read from the {@link MinNumber} and {@link MaxNumber} of
+ * each key and reported by their place in the file. A {@link CaveValue} is not a plain number, so the schema cannot
+ * bound its ends: this does. It reads the file as written, so a style that names a snippet needs no resolving.
  */
 public final class CaveBounds {
     private static final String CAVE_PACKAGE = IrisCave.class.getPackageName();
+    private static final String MIN = "min";
+    private static final String MAX = "max";
+    private static final String COVERAGE_SHARE = "share";
 
     private CaveBounds() {
     }
 
-    /** Each value of the cave outside the numbers its key allows, such as {@code fade is 200; it must be at most 128}. */
-    public static List<String> valuesOutOfBounds(IrisCave cave) {
+    /** Each number of the cave file outside what its key allows, such as {@code fade is 200; it must be at most 128}. */
+    public static List<String> valuesOutOfBounds(JsonObject cave) {
         List<String> problems = new ArrayList<>();
-        collect(cave, "", problems);
+        collect(IrisCave.class, cave, "", problems);
         return problems;
     }
 
-    private static void collect(Object holder, String path, List<String> problems) {
-        for (Field field : holder.getClass().getDeclaredFields()) {
-            if (Modifier.isStatic(field.getModifiers()) || Modifier.isTransient(field.getModifiers())) {
-                continue;
-            }
-            Object value = valueOf(field, holder);
-            if (value == null) {
-                continue;
-            }
-            String fieldPath = path.isEmpty() ? field.getName() : path + "." + field.getName();
-            if (value instanceof CaveValue caveValue) {
-                requireWithin(field, caveValue, fieldPath, problems);
-            } else if (value instanceof Number number) {
-                requireWithin(field, number.doubleValue(), fieldPath, problems);
-            } else if (isCaveSetting(value)) {
-                collect(value, fieldPath, problems);
+    private static void collect(Class<?> type, JsonObject written, String path, List<String> problems) {
+        for (Map.Entry<String, JsonElement> member : written.entrySet()) {
+            Field field = declaredField(type, member.getKey());
+            if (field != null) {
+                collectMember(field, member.getValue(), path.isEmpty() ? member.getKey() : path + "." + member.getKey(), problems);
             }
         }
     }
 
-    private static boolean isCaveSetting(Object value) {
-        return value.getClass().getPackageName().equals(CAVE_PACKAGE) && !(value instanceof IrisCave);
-    }
-
-    private static Object valueOf(Field field, Object holder) {
-        try {
-            field.setAccessible(true);
-            return field.get(holder);
-        } catch (ReflectiveOperationException | RuntimeException failure) {
-            throw new IllegalStateException("Cannot read " + holder.getClass().getSimpleName() + "." + field.getName(), failure);
+    private static void collectMember(Field field, JsonElement value, String path, List<String> problems) {
+        Class<?> type = field.getType();
+        if (type == CaveValue.class) {
+            collectValue(field, value, path, problems);
+        } else if (type == CaveTunnelCoverage.class && value.isJsonPrimitive()) {
+            collectValue(declaredField(CaveTunnelCoverage.class, COVERAGE_SHARE), value, path + "." + COVERAGE_SHARE, problems);
+        } else if (value.isJsonObject() && type.getPackageName().equals(CAVE_PACKAGE)) {
+            collect(type, value.getAsJsonObject(), path, problems);
+        } else if (isNumber(value)) {
+            requireWithin(field, value.getAsDouble(), path, problems);
         }
     }
 
-    private static void requireWithin(Field field, CaveValue value, String path, List<String> problems) {
-        if (!value.varies()) {
-            requireWithin(field, value.min(), path, problems);
+    private static void collectValue(Field field, JsonElement value, String path, List<String> problems) {
+        if (isNumber(value)) {
+            requireWithin(field, value.getAsDouble(), path, problems);
             return;
         }
-        requireWithin(field, value.min(), path + ".min", problems);
-        requireWithin(field, value.max(), path + ".max", problems);
+        if (!value.isJsonObject() || !isNumber(value.getAsJsonObject().get(MIN)) || !isNumber(value.getAsJsonObject().get(MAX))) {
+            return;
+        }
+        double min = value.getAsJsonObject().get(MIN).getAsDouble();
+        double max = value.getAsJsonObject().get(MAX).getAsDouble();
+        if (min == max) {
+            requireWithin(field, min, path, problems);
+            return;
+        }
+        requireWithin(field, min, path + "." + MIN, problems);
+        requireWithin(field, max, path + "." + MAX, problems);
+    }
+
+    private static boolean isNumber(JsonElement element) {
+        return element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber();
+    }
+
+    private static Field declaredField(Class<?> type, String name) {
+        try {
+            return type.getDeclaredField(name);
+        } catch (NoSuchFieldException unknown) {
+            return null;
+        }
     }
 
     private static void requireWithin(Field field, double value, String path, List<String> problems) {

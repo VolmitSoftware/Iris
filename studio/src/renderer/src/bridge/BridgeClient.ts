@@ -18,6 +18,7 @@ import type {
   PatternEntry,
   PatternTile,
   PickInspection,
+  ProfileFormState,
   SavedStart,
   SavedTile,
   SavedWorldInfo,
@@ -45,6 +46,8 @@ export interface ScenePlace {
   key: string
   variant: number
   size: number | null
+  /** Settings typed into a profile form, by name, which only change the preview. */
+  overrides?: Record<string, string>
 }
 
 export interface TileRequest {
@@ -211,6 +214,13 @@ export class BridgeClient {
     return this.json(`suggestions?${new URLSearchParams(of)}`)
   }
 
+  /** A profile entry's settings as a form, with the typed values applied. */
+  profileForm(viewId: string, key: string, overrides: Record<string, string>, signal?: AbortSignal): Promise<ProfileFormState> {
+    const query = sceneQuery(viewId, { key, variant: 0, size: null, overrides })
+    query.delete('variant')
+    return this.json(`profile-form?${query}`, { signal })
+  }
+
   sceneEntries(viewId: string): Promise<SceneEntry[]> {
     return this.json(`scene-entries?${new URLSearchParams({ view: viewId })}`)
   }
@@ -356,6 +366,9 @@ function sceneQuery(viewId: string, place: ScenePlace): URLSearchParams {
   const query = new URLSearchParams({ view: viewId, key: place.key, variant: String(place.variant) })
   if (place.size !== null) {
     query.set('size', String(place.size))
+  }
+  for (const [name, value] of Object.entries(place.overrides ?? {})) {
+    query.set(`set.${name}`, value)
   }
   return query
 }

@@ -45,6 +45,30 @@ export interface SceneViewInfo extends ModuleViewInfo {
   parts: boolean
   /** The sizes the scenes can be built at, or null when each entry has its own. */
   sizes: SceneSizes | null
+  /** Whether each entry has a settings form (a config profile view); absent for the module views. */
+  form?: boolean
+}
+
+/** One setting of a profile form: its value as the preview uses it, and what it is when nothing is typed. */
+export interface ProfileField {
+  name: string
+  description: string
+  kind: 'boolean' | 'integer' | 'decimal' | 'enum'
+  value: string | number | boolean
+  defaultValue: string | number | boolean
+  minimum: number | null
+  maximum: number | null
+  /** An enum's constants. */
+  choices: string[]
+  /** Whether the value was typed into the form. */
+  changed: boolean
+}
+
+/** The settings of a profile as a form, with short lines about it. */
+export interface ProfileFormState {
+  title: string
+  fields: ProfileField[]
+  notes: string[]
 }
 
 /** The sizes a scene view builds its scenes at, as blocks across, smallest first, and the one shown first (IrisApi SceneSizes). */

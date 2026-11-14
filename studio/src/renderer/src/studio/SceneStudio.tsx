@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { BridgeClient } from '../bridge/BridgeClient'
-import { NO_PART, type JsonPath, type SceneEntry, type SceneViewInfo } from '../bridge/types'
+import { NO_PART, type JsonPath, type ProfileFormState, type SceneEntry, type SceneViewInfo } from '../bridge/types'
 import { parsedText } from '../editor/jsonValues'
 import { nodeDrawingPart, nodeWithPath } from '../editor/nodeLayout'
 import { SuggestionStore } from '../editor/suggestionStore'
@@ -21,6 +21,7 @@ import { EntryBrowser } from './EntryBrowser'
 import { useEntryFiles } from './EntryFileDialogs'
 import { NodeInspector } from './NodeInspector'
 import { NodePane } from './NodePane'
+import { ProfileFormPanel } from './ProfileFormPanel'
 import { Panel, SidebarPanel, SizeChoice, Stepper, ViewIsland } from './Sidebar'
 import { SceneViewport, type PickedSurface } from './SceneViewport'
 
@@ -72,7 +73,21 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
 
   const [pickedPart, setPickedPart] = useState(NO_PART)
   const highlightedPart = view.parts ? (selected?.partId ?? pickedPart) : NO_PART
-  const { scene, shown, sceneParts, building } = useSceneMesh(client, view, entry, variant, size, packRevision, models, images, farLeavesOnly, highlightedPart, tell)
+  const [typed, setTyped] = useState<{ owner: string; values: Record<string, string> }>({ owner: '', values: NO_OVERRIDES })
+  const typedOwner = `${view.id}:${entry?.key ?? ''}`
+  const overrides = typed.owner === typedOwner ? typed.values : NO_OVERRIDES
+  const changeSetting = (name: string, value: string | null): void =>
+    setTyped((current) => {
+      const next = { ...(current.owner === typedOwner ? current.values : NO_OVERRIDES) }
+      if (value === null) {
+        delete next[name]
+      } else {
+        next[name] = value
+      }
+      return { owner: typedOwner, values: next }
+    })
+  const profileForm = useProfileForm(client, view, entry?.key ?? null, overrides, packRevision, tell)
+  const { scene, shown, sceneParts, building } = useSceneMesh(client, view, entry, variant, size, overrides, packRevision, models, images, farLeavesOnly, highlightedPart, tell)
   const shownScene = shown?.scene ?? null
   const blockIndex = useMemo(() => (shownScene === null ? null : new BlockIndex(shownScene)), [shownScene])
   const shownParts = partsOf(sceneParts, shownScene)
@@ -143,7 +158,8 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
           />
         )}
       </div>
-      <Panel className={view.editable ? 'w-[300px]' : 'w-[250px]'}>
+      <Panel className={view.editable || view.form ? 'w-[300px]' : 'w-[250px]'}>
+        {view.form === true && <ProfileFormPanel className="flex-[5]" state={profileForm} onChange={changeSetting} onResetAll={() => setTyped({ owner: typedOwner, values: NO_OVERRIDES })} />}
         {view.baked && entry !== null && <BakeMeter timing={bakeTiming} />}
         {selected !== null && editor.state !== null ? (
           <NodeInspector key={JSON.stringify(selected.path)} node={selected} state={editor.state} values={values} suggestions={suggestions} onEdit={editor.edit} />
@@ -217,6 +233,35 @@ function partNote(parts: Int32Array, part: number): string {
   return blocks === 0 ? ' · part has no blocks here' : ` · part has ${NUMBER.format(blocks)}`
 }
 
+const NO_OVERRIDES: Record<string, string> = {}
+
+/** The settings form of the chosen profile with the typed values applied, for a view that has one; read again after the pack reloads. */
+function useProfileForm(
+  client: BridgeClient,
+  view: SceneViewInfo,
+  key: string | null,
+  overrides: Record<string, string>,
+  packRevision: number,
+  tell: (message: string) => void
+): ProfileFormState | null {
+  const [form, setForm] = useState<ProfileFormState | null>(null)
+  const overridesKey = JSON.stringify(overrides)
+  const hasForm = view.form === true
+  useEffect(() => {
+    if (!hasForm || key === null) {
+      setForm(null)
+      return
+    }
+    const stop = new AbortController()
+    client
+      .profileForm(view.id, key, JSON.parse(overridesKey) as Record<string, string>, stop.signal)
+      .then((found) => !stop.signal.aborted && setForm(found))
+      .catch((failure: Error) => !stop.signal.aborted && tell(failure.message))
+    return () => stop.abort()
+  }, [client, view.id, hasForm, key, overridesKey, packRevision, tell])
+  return form
+}
+
 function useSceneEntries(client: BridgeClient, viewId: string, packRevision: number, tell: (message: string) => void): SceneEntry[] {
   const [entries, setEntries] = useState<SceneEntry[]>([])
   useEffect(() => {
@@ -259,6 +304,7 @@ function useSceneMesh(
   entry: SceneEntry | null,
   variant: number,
   size: number | null,
+  overrides: Record<string, string>,
   packRevision: number,
   models: BlockModels,
   images: BridgeAssets,
@@ -274,13 +320,14 @@ function useSceneMesh(
   const key = entry?.key ?? null
   const viewId = view.id
   const hasParts = view.parts
+  const overridesKey = JSON.stringify(overrides)
 
   useEffect(() => {
     if (key === null) {
       return
     }
     const stop = new AbortController()
-    const place = { key, variant, size }
+    const place = { key, variant, size, overrides: JSON.parse(overridesKey) as Record<string, string> }
     setBuilding(true)
     client
       .scene(viewId, place, stop.signal)
@@ -304,7 +351,7 @@ function useSceneMesh(
         setBuilding(false)
       })
     return () => stop.abort()
-  }, [client, viewId, hasParts, key, variant, size, packRevision, tell])
+  }, [client, viewId, hasParts, key, variant, size, overridesKey, packRevision, tell])
 
   const faint = useMemo(() => {
     const parts = partsOf(sceneParts, scene)

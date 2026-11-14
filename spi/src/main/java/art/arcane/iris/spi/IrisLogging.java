@@ -199,6 +199,19 @@ public final class IrisLogging {
         ONCE_KEYS.clear();
     }
 
+    /**
+     * Forgets only the once-keys that start with {@code prefix}, so one scope (a pack that was just
+     * hotloaded) can warn again while every other scope stays claimed. A null or empty prefix is ignored
+     * rather than clearing everything; {@link #resetOnceKeys()} is the global reset.
+     */
+    public static void forgetOnceKeys(String prefix) {
+        if (prefix == null || prefix.isEmpty()) {
+            return;
+        }
+
+        ONCE_KEYS.removeIf(key -> key.startsWith(prefix));
+    }
+
     private static boolean once(LogLevel level, String key, String format, Object... args) {
         String message = format(format, args);
         if (!claim(key)) {

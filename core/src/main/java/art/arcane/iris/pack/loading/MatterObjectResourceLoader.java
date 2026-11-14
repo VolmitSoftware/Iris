@@ -58,8 +58,7 @@ public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject>
             tlt.addAndGet(p.getMilliseconds());
             return t;
         } catch (Throwable e) {
-            IrisLogging.reportError(e);
-            IrisLogging.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
+            warnReadFailureOnce(j, "Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage(), e);
             return null;
         }
     }
@@ -120,7 +119,7 @@ public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject>
             return null;
         }
         if (name.equals("null")) {
-            IrisLogging.warn("Refusing " + resourceTypeName + " lookup for literal string \"null\" (called by " + callerHint() + ")");
+            warnLiteralNullOnce("lookup");
             return null;
         }
 
@@ -130,7 +129,7 @@ public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject>
             return file;
         }
 
-        IrisLogging.warn("Couldn't find " + resourceTypeName + ": " + name + " (called by " + callerHint() + ")");
+        warnMissingOnce(name);
 
         return null;
     }
@@ -146,7 +145,7 @@ public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject>
             return loadFile(file, name);
         }
 
-        IrisLogging.warn("Couldn't find " + resourceTypeName + ": " + name + " (called by " + callerHint() + ")");
+        warnMissingOnce(name);
 
         return null;
     }
@@ -156,7 +155,7 @@ public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject>
             return null;
         }
         if (name.equals("null") && warn) {
-            IrisLogging.warn("Refusing " + resourceTypeName + " load for literal string \"null\" (called by " + callerHint() + ")");
+            warnLiteralNullOnce("load");
             return null;
         }
         return loadCache.get(name);

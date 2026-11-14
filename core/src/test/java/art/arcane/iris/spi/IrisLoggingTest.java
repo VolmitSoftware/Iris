@@ -138,6 +138,34 @@ public class IrisLoggingTest {
         assertEquals(List.of(LogLevel.WARN), levels);
     }
 
+    @Test
+    public void forgettingAPrefixReleasesOnlyTheKeysUnderIt() {
+        String scope = uniqueKey() + "|";
+        String otherScope = uniqueKey() + "|";
+        assertTrue(IrisLogging.warnOnce(scope + "a", "a"));
+        assertTrue(IrisLogging.warnOnce(scope + "b", "b"));
+        assertTrue(IrisLogging.warnOnce(otherScope + "a", "other"));
+        levels.clear();
+
+        IrisLogging.forgetOnceKeys(scope);
+
+        assertTrue(IrisLogging.warnOnce(scope + "a", "a"));
+        assertTrue(IrisLogging.warnOnce(scope + "b", "b"));
+        assertFalse(IrisLogging.warnOnce(otherScope + "a", "other"));
+        assertEquals(List.of(LogLevel.WARN, LogLevel.WARN, LogLevel.DEBUG), levels);
+    }
+
+    @Test
+    public void forgettingANullOrEmptyPrefixKeepsEveryKeyClaimed() {
+        String key = uniqueKey();
+        assertTrue(IrisLogging.warnOnce(key, "claimed"));
+
+        IrisLogging.forgetOnceKeys(null);
+        IrisLogging.forgetOnceKeys("");
+
+        assertFalse(IrisLogging.warnOnce(key, "claimed"));
+    }
+
     private void bindCapturingPlatform() {
         IrisPlatform platform = mock(IrisPlatform.class);
         capturingPlatform = platform;

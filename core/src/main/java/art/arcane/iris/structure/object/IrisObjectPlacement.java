@@ -116,8 +116,13 @@ public class IrisObjectPlacement {
     @MaxNumber(1)
     @Description("The chance for this to place in a chunk. If you need multiple per chunk, set this to 1 and use density.")
     private double chance = 1;
+    @Description("If set, chance is multiplied by this noise (0 to 1) at the chunk, so objects gather in some areas and thin out in others.")
+    private IrisGeneratorStyle chanceStyle = null;
+    @MinNumber(0)
+    @Description("Keeps objects of this placement at least this many blocks apart, also across chunks and biomes that place the same objects. Each chunk then places at most one. 0 turns it off. Surface placements only.")
+    private int separation = 0;
     @MinNumber(1)
-    @Description("If the chance check passes, place this many in a single chunk")
+    @Description("If the chance check passes, place this many in a single chunk. Ignored when separation is set.")
     private int density = 1;
     @Description("If the chance check passes, and you specify this, it picks a number in the range based on noise, and 'density' is ignored.")
     private IrisStyledRange densityStyle = null;
@@ -342,6 +347,8 @@ public class IrisObjectPlacement {
         p.setDensity(density);
         p.setDensityStyle(densityStyle);
         p.setChance(chance);
+        p.setChanceStyle(chanceStyle);
+        p.setSeparation(separation);
         p.setSnow(snow);
         p.setClamp(clamp);
         p.setRotation(rotation);
@@ -405,6 +412,10 @@ public class IrisObjectPlacement {
         }
 
         return false;
+    }
+
+    public boolean isSeparated() {
+        return separation > 0;
     }
 
     public int getDensity() {

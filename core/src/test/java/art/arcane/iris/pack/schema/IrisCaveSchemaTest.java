@@ -63,6 +63,29 @@ public class IrisCaveSchemaTest {
     }
 
     @Test
+    public void everyCaveFieldStatesItsDefaultOnlyThroughTheSchemasDefaultLine() {
+        JSONObject schema = new SchemaBuilder(IrisCave.class, schemaData()).construct();
+        JSONObject definitions = schema.getJSONObject("definitions");
+        assertNoWrittenDefault("cave", schema);
+        for (String definitionName : definitions.keySet()) {
+            if (definitionName.contains("-generation-cave-")) {
+                assertNoWrittenDefault(definitionName, definitions.getJSONObject(definitionName));
+            }
+        }
+    }
+
+    private static void assertNoWrittenDefault(String owner, JSONObject definition) {
+        JSONObject properties = definition.optJSONObject("properties");
+        if (properties == null) {
+            return;
+        }
+        for (String field : properties.keySet()) {
+            String writtenDescription = properties.getJSONObject(field).getString("description").split("\n")[1];
+            assertFalse(owner + "." + field + ": " + writtenDescription, writtenDescription.contains("Default"));
+        }
+    }
+
+    @Test
     public void dimensionsRegionsAndBiomesOfferTheCavesOfThePackToList() throws Exception {
         for (Class<?> listing : new Class<?>[]{IrisDimension.class, IrisRegion.class, IrisBiome.class}) {
             SchemaBuilder builder = new SchemaBuilder(listing, schemaData());

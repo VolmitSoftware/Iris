@@ -35,7 +35,7 @@ public final class CaveTunnel {
 
     @MinNumber(1)
     @MaxNumber(64)
-    @Description("Tunnel width in blocks, 1 to 64. Default {min 4, max 7}. A range changes over about " + WIDTH_CHANGE_SPACINGS + " horizontal spacings.")
+    @Description("Tunnel width in blocks, 1 to 64. A range changes over about " + WIDTH_CHANGE_SPACINGS + " horizontal spacings.")
     private CaveValue width = CaveValue.between(4, 7);
 
     @MinNumber(1)
@@ -51,7 +51,7 @@ public final class CaveTunnel {
 
     @MinNumber(0)
     @MaxNumber(1)
-    @Description("How far the warp moves tunnels up and down, as a share of how far it swings them sideways, 0 to 1. 0 adds no rise and fall. Default 0.5. A range changes over about "
+    @Description("How far the warp moves tunnels up and down, as a share of how far it swings them sideways, 0 to 1. 0 adds no rise and fall. A range changes over about "
             + VALUE_CHANGE_SPACINGS + " horizontal spacings.")
     private CaveValue verticalWarp = CaveValue.of(0.5);
 

@@ -52,19 +52,19 @@ public final class IrisCave extends IrisRegistrant {
 
     @MinNumber(0)
     @MaxNumber(128)
-    @Description("Blocks over which the cave narrows to nothing at both ends of its depth range, 0 to 128. Default 12. A range changes over about "
+    @Description("Blocks over which the cave narrows to nothing at both ends of its depth range, 0 to 128. A range changes over about "
             + VALUE_CHANGE_BLOCKS + " blocks.")
     private CaveValue fade = CaveValue.of(12);
 
     @MinNumber(0)
     @MaxNumber(128)
-    @Description("Blocks of rock kept between the cave and the surface, 0 to 128. Default 8. Ignored when opensToSurface is set. A range changes over about "
+    @Description("Blocks of rock kept between the cave and the surface, 0 to 128. Ignored when opensToSurface is set. A range changes over about "
             + VALUE_CHANGE_BLOCKS + " blocks.")
     private CaveValue surfaceClearance = CaveValue.of(8);
 
     @MinNumber(0)
     @MaxNumber(128)
-    @Description("Blocks over which the cave closes under the rock it keeps, instead of ending in a flat ceiling, 0 to 128. Default 8. Ignored where it opens to the surface. A range changes over about "
+    @Description("Blocks over which the cave closes under the rock it keeps, instead of ending in a flat ceiling, 0 to 128. Ignored where it opens to the surface. A range changes over about "
             + VALUE_CHANGE_BLOCKS + " blocks.")
     private CaveValue ceilingFade = CaveValue.of(8);
 

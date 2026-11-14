@@ -33,23 +33,23 @@ public final class CaveCavern {
 
     @MinNumber(16)
     @MaxNumber(512)
-    @Description("Rough span of a room in blocks, 16 to 512. Default 56. A range changes over about " + VALUE_CHANGE_SIZES + " room sizes.")
+    @Description("Rough span of a room in blocks, 16 to 512. A range changes over about " + VALUE_CHANGE_SIZES + " room sizes.")
     private CaveValue size = CaveValue.of(56);
 
     @MinNumber(8)
     @MaxNumber(256)
-    @Description("Rough height of a room in blocks, 8 to 256. Default 22. A range changes over about " + VALUE_CHANGE_SIZES + " room sizes.")
+    @Description("Rough height of a room in blocks, 8 to 256. A range changes over about " + VALUE_CHANGE_SIZES + " room sizes.")
     private CaveValue height = CaveValue.of(22);
 
     @MinNumber(0)
     @MaxNumber(0.6)
-    @Description("Share of the underground that is cavern, 0 to 0.6. Default 0.1. 0.1 gives scattered rooms, 0.3 joins them into halls. A range changes over about "
+    @Description("Share of the underground that is cavern, 0 to 0.6. 0.1 gives scattered rooms, 0.3 joins them into halls. A range changes over about "
             + VALUE_CHANGE_SIZES + " room sizes; a min of 0 leaves areas without rooms. A range in size, height or roughness makes the share approximate.")
     private CaveValue coverage = CaveValue.of(0.1);
 
     @MinNumber(0)
     @MaxNumber(1)
-    @Description("Strength of the finer noise on room walls, 0 to 1. Default 0.3. 0 gives smooth bubbles. Ignored with a style, and in rooms under about 20 blocks tall or across. A range changes over about "
+    @Description("Strength of the finer noise on room walls, 0 to 1. 0 gives smooth bubbles. Ignored with a style, and in rooms under about 20 blocks tall or across. A range changes over about "
             + VALUE_CHANGE_SIZES + " room sizes.")
     private CaveValue roughness = CaveValue.of(0.3);
 

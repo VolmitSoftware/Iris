@@ -30,18 +30,18 @@ import java.util.Optional;
 public final class CavePillars {
     @MinNumber(6)
     @MaxNumber(256)
-    @Description("Rough distance between pillars in blocks, 6 to 256. Default 22. A range changes over about " + CaveCavern.VALUE_CHANGE_SIZES + " room sizes.")
+    @Description("Rough distance between pillars in blocks, 6 to 256. A range changes over about " + CaveCavern.VALUE_CHANGE_SIZES + " room sizes.")
     private CaveValue spacing = CaveValue.of(22);
 
     @MinNumber(1)
     @MaxNumber(64)
-    @Description("Rough thickness of a pillar at its middle, in blocks, 1 to 64. Default 4. Pillars widen towards floor and ceiling. A range changes over about "
+    @Description("Rough thickness of a pillar at its middle, in blocks, 1 to 64. Pillars widen towards floor and ceiling. A range changes over about "
             + CaveCavern.VALUE_CHANGE_SIZES + " room sizes.")
     private CaveValue thickness = CaveValue.of(4);
 
     @MinNumber(1)
     @MaxNumber(16)
-    @Description("How many times more ground a pillar covers at floor and ceiling than at its middle, 1 to 16. Default 4. 1 gives straight columns. A range changes over about "
+    @Description("How many times more ground a pillar covers at floor and ceiling than at its middle, 1 to 16. 1 gives straight columns. A range changes over about "
             + CaveCavern.VALUE_CHANGE_SIZES + " room sizes.")
     private CaveValue flare = CaveValue.of(4);
 

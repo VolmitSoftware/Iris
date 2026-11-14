@@ -23,10 +23,10 @@ import art.arcane.volmlib.util.documentation.Description;
 /** The world Y range a {@link IrisCave} occurs in. Either end may vary across the world. */
 @Description("World Y range a cave occurs in.")
 public final class CaveDepth {
-    @Description("Lowest world Y. A range changes over about " + IrisCave.VALUE_CHANGE_BLOCKS + " blocks. Default 16.")
+    @Description("Lowest world Y. A range changes over about " + IrisCave.VALUE_CHANGE_BLOCKS + " blocks.")
     private CaveValue min = CaveValue.of(16);
 
-    @Description("Highest world Y. A range changes over about " + IrisCave.VALUE_CHANGE_BLOCKS + " blocks. Default 32.")
+    @Description("Highest world Y. A range changes over about " + IrisCave.VALUE_CHANGE_BLOCKS + " blocks.")
     private CaveValue max = CaveValue.of(32);
 
     public CaveDepth() {

@@ -40,12 +40,12 @@ public final class CaveTunnelCoverage {
 
     @MinNumber(0)
     @MaxNumber(1)
-    @Description("Share of the underground that has tunnels, 0 to 1. Default 1. A range changes over about " + CaveTunnel.VALUE_CHANGE_SPACINGS + " horizontal spacings.")
+    @Description("Share of the underground that has tunnels, 0 to 1. A range changes over about " + CaveTunnel.VALUE_CHANGE_SPACINGS + " horizontal spacings.")
     private CaveValue share = CaveValue.of(1);
 
     @MinNumber(0)
     @MaxNumber(1)
-    @Description("How gradually tunnels thin out at the edge of an area, 0 for abrupt dead ends to 1 for long tails. Default " + DEFAULT_SOFTNESS + ".")
+    @Description("How gradually tunnels thin out at the edge of an area, 0 for abrupt dead ends to 1 for long tails.")
     private CaveValue softness = CaveValue.of(DEFAULT_SOFTNESS);
 
     @Description("The noise that shapes the areas with tunnels. Leave out for areas a few spacings across.")

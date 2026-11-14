@@ -20,7 +20,6 @@ package art.arcane.iris.studio.workspace;
 
 import art.arcane.iris.pack.schema.SchemaBuilder;
 
-import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.pack.schema.annotation.Snippet;
@@ -36,8 +35,6 @@ import art.arcane.volmlib.util.json.JSONObject;
 import org.dom4j.Document;
 import org.dom4j.Element;
 
-import java.awt.Desktop;
-import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -45,6 +42,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings("ALL")
 public class IrisCodeWorkspace {
@@ -54,11 +52,11 @@ public class IrisCodeWorkspace {
         this.project = project;
     }
 
-    public void openVSCode(VolmitSender sender) {
-        J.attemptAsync(this::prepareAndOpenVSCode);
+    public void openEditor(VolmitSender sender) {
+        J.attemptAsync(this::prepareAndOpenEditor);
     }
 
-    void prepareAndOpenVSCode() {
+    void prepareAndOpenEditor() {
         boolean updated = updateWorkspace(true);
         File workspace = getCodeWorkspaceFile();
         if (!workspace.isFile()) {
@@ -69,21 +67,7 @@ public class IrisCodeWorkspace {
             IrisLogging.warn("Could not refresh every schema for " + workspace.getAbsolutePath() + "; the editor will not be opened with stale autocomplete data.");
             return;
         }
-        if (!IrisSettings.get().getStudio().isOpenVSCode() || GraphicsEnvironment.isHeadless()) {
-            return;
-        }
-
-        IrisLogging.msg("Opening VSCode. You may see the output from VSCode.");
-        IrisLogging.msg("VSCode output always starts with: '(node:#####) electron'");
-        Thread launcherThread = new Thread(() -> {
-            try {
-                Desktop.getDesktop().open(workspace);
-            } catch (Throwable e) {
-                IrisLogging.reportError(e);
-            }
-        }, "Iris-VSCode-Launcher");
-        launcherThread.setDaemon(true);
-        launcherThread.start();
+        StudioEditorLauncher.openProject(project.getPath(), workspace);
     }
 
     public File getCodeWorkspaceFile() {
@@ -168,14 +152,19 @@ public class IrisCodeWorkspace {
         jc.put("editor.suggest.insertMode", "replace");
         settings.put("[json]", jc);
         settings.put("json.maxItemsComputed", 30000);
+        JSONObject associations = new JSONObject();
+        associations.put("*.json", "jsonc");
+        settings.put("files.associations", associations);
         JSONArray schemas = new JSONArray();
         List<JSONObject> schemaEntries = new ArrayList<>();
+        List<CompletableFuture<String>> schemaWrites = new ArrayList<>();
         IrisData dm = IrisData.get(project.getPath());
+        // The shared instance keeps its file listings across edits, so files added, moved or removed since would be missing.
+        dm.clearLists();
         for (ResourceLoader<?> resourceLoader : dm.getLoaders().v()) {
             if (resourceLoader.supportsSchemas()) {
-                schemaEntries.add(immediateSchemas
-                        ? resourceLoader.buildSchemaImmediately()
-                        : resourceLoader.buildSchema());
+                schemaEntries.add(resourceLoader.schemaMapping());
+                schemaWrites.add(resourceLoader.writeSchemaFile(immediateSchemas));
             }
         }
 
@@ -193,18 +182,7 @@ public class IrisCodeWorkspace {
                 schemaEntry.put("url", "./.iris/schema/snippet/" + snipType + "-schema.json");
                 schemaEntries.add(schemaEntry);
                 File schemaFile = new File(dm.getDataFolder(), ".iris/schema/snippet/" + snipType + "-schema.json");
-                if (immediateSchemas) {
-                    IO.writeAll(schemaFile, new SchemaBuilder(snippetClass, dm).construct().toString(4));
-                } else {
-                    IrisData snippetData = dm;
-                    J.attemptAsync(() -> {
-                        try {
-                            IO.writeAll(schemaFile, new SchemaBuilder(snippetClass, snippetData).construct().toString(4));
-                        } catch (Throwable e) {
-                            IrisLogging.reportError(e);
-                        }
-                    });
-                }
+                schemaWrites.add(SchemaFiles.write(schemaFile, () -> new SchemaBuilder(snippetClass, dm).construct().toString(4), immediateSchemas));
             } catch (Throwable e) {
                 if (immediateSchemas) {
                     throw new IllegalStateException("Could not write snippet schema for " + snippetClass.getName(), e);
@@ -226,6 +204,13 @@ public class IrisCodeWorkspace {
         } catch (Throwable e) {
             IrisLogging.reportError(e);
             IrisLogging.warn("Could not update IntelliJ schema mappings for " + project.getPath().getAbsolutePath() + "; VSCode workspace generation will continue.");
+        }
+
+        try {
+            new ZedProjectSettings(project.getPath()).writeIrisSettings(schemas, SchemaFiles.awaitTexts(schemaWrites));
+        } catch (Throwable e) {
+            IrisLogging.reportError(e);
+            IrisLogging.warn("Could not update Zed schema mappings for " + project.getPath().getAbsolutePath() + "; VSCode workspace generation will continue.");
         }
 
         return ws;

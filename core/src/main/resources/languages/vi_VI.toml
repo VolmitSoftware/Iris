@@ -95,6 +95,7 @@
 #   {dumpPath}  Vị trí lưu dữ liệu dọn dẹp hoặc khôi phục.
 #   {duration}  Thời lượng thao tác đã được định dạng.
 #   {e}  Nội dung ngoại lệ khi quét mẫu cấu trúc thất bại.
+#   {editor}  Tên trình soạn thảo studio mà Iris mở, ví dụ VSCode hoặc Zed.
 #   {elapsed}  Thời gian đã trôi qua từ lúc bắt đầu, có định dạng.
 #   {engines}  Số bộ máy sinh hoặc chiều không gian Iris đang hoạt động.
 #   {entity}  Loại thực thể được chọn trong lồng sinh đang kiểm tra.
@@ -659,7 +660,7 @@ regions_scan_failed = "§cQuét khu vực thất bại: {value}"
 opening_studio_pack_seed = "§aĐang mở Studio cho gói \"{value}\" (seed: {seed})"
 provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§cHãy cung cấp một gói chiều không gian: /iris std importvanilla pack=<dimension>"
 could_not_resolve_pack_dimension = "§cKhông thể xác định gói cho chiều không gian {value}"
-opening_vscode_pack = "§aĐang mở VSCode cho gói \"{value}\""
+opening_editor_pack = "§aĐang mở {editor} cho gói \"{value}\""
 pack_has_version = "§aGói \"{value}\" có phiên bản: {value2}"
 opening_noise_explorer = "§aĐang mở Noise Explorer!"
 cannot_add_items_virtual_inventory_because = "§cKhông thể thêm mục vào kho ảo vì: {value}"
@@ -723,13 +724,13 @@ you_must_be_studio_world = "§cBạn phải ở trong một thế giới Studio!
 cannot_open_files_headless_environments = "§cKhông thể mở tập tin trong môi trường không có giao diện đồ họa!"
 desktop_is_not_supported_by_this_environment = "§cMôi trường này không hỗ trợ Desktop!"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6Không tìm thấy tập tin này; có lẽ nó không được tải trực tiếp từ tập tin nào?"
-opening_vscode = "§aĐang mở {value} {value2} trong VSCode! "
+opening_in_editor = "§aĐang mở {value} {value2} trong {editor}!"
+could_not_open_editor = "§cKhông thể mở {editor}. Kiểm tra console."
+no_editor_configured = "§cChưa cấu hình trình soạn thảo. Đặt studio.editor thành vscode hoặc zed trong iris.json."
 cant_find_file_registrant_does_not_exist = "§cKhông tìm thấy tập tin. Hoặc mục đăng ký không tồn tại"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6Không tìm thấy tập tin này; có lẽ nó không được tải trực tiếp từ tập tin nào?"
-opening_vscode_2 = "§aĐang mở {value} {value2} trong VSCode! "
 cant_find_file_registrant_does_not_exist_2 = "§cKhông tìm thấy tập tin. Hoặc mục đăng ký không tồn tại"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6Không tìm thấy tập tin này; có lẽ nó không được tải trực tiếp từ tập tin nào?"
-opening_vscode_3 = "§aĐang mở {value} {value2} trong VSCode! "
 cant_find_file_registrant_does_not_exist_3 = "§cKhông tìm thấy tập tin. Hoặc mục đăng ký không tồn tại"
 
 [iris.bukkit.commandpregen]
@@ -1280,8 +1281,8 @@ replace_installed_types = "Các gói đã cài đặt: {value}"
 "param.dimension_pack_import_vanilla_content_into" = "Gói chiều không gian cần nhập nội dung vanilla vào"
 "param.how_many_variants_capture_per_tree_object_feature" = "Số biến thể cần thu thập cho mỗi feature cây/đối tượng"
 "param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "Đồng thời nhập structures/jigsaw của vanilla & datapack vào gói"
-"director.open_vscode_dimension" = "Mở VSCode cho một chiều không gian"
-"param.dimension_open_vscode" = "Chiều không gian cần mở VSCode"
+"director.open_editor_dimension" = "Mở trình soạn thảo đã cấu hình cho một chiều"
+"param.dimension_open_editor" = "Chiều để mở trình soạn thảo"
 "director.close_open_studio_project" = "Đóng một dự án Studio đang mở"
 "director.toggle_your_studio_debug_scoreboard" = "Bật/tắt bảng điểm debug Studio của bạn"
 "director.create_new_studio_project" = "Tạo một dự án Studio mới"

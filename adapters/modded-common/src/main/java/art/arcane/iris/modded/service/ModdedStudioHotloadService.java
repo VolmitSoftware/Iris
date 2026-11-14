@@ -21,6 +21,7 @@ package art.arcane.iris.modded.service;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.studio.view.PregeneratorJob;
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.studio.workspace.PackHotloadFolder;
 import art.arcane.iris.world.WorldMaintenance;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.world.history.SavedTerrainChunk;
@@ -364,12 +365,10 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
             if (watch.engine != engine) {
                 watch.close();
                 watch.engine = engine;
-                watch.folder = new ReactiveFolder(
+                watch.folder = PackHotloadFolder.watch(
                         engine.getData().getDataFolder(),
-                        (KList<File> created, KList<File> changed, KList<File> deleted) -> hotload(dimensionId, engine),
                         new KList<>(".iob", ".json"),
-                        new KList<>(".iris"),
-                        new KList<>());
+                        (KList<File> created, KList<File> changed, KList<File> deleted) -> hotload(dimensionId, engine));
                 return;
             }
             ReactiveFolder folder = watch.folder;

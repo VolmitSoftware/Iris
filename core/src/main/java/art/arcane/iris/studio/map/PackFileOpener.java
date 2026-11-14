@@ -22,8 +22,8 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.studio.map.components.MapLayer;
+import art.arcane.iris.studio.workspace.StudioEditorLauncher;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.util.Optional;
 
@@ -36,23 +36,23 @@ final class PackFileOpener {
 
     /** The opened file's name, or empty when nothing could be opened. */
     static Optional<String> openAt(Engine engine, double worldX, double worldZ, MapLayer layer) {
-        if (!Desktop.isDesktopSupported()) {
+        if (!StudioEditorLauncher.canLaunch(StudioEditorLauncher.configuredEditor())) {
             return Optional.empty();
         }
         IrisComplex complex = engine.getComplex();
         File file = switch (layer.type()) {
-            case BIOME, HEIGHT, RIVER, OBJECT_LOAD, DECORATOR_LOAD, LAYER_LOAD -> complex.getTrueBiomeStream().get(worldX, worldZ).openInVSCode();
-            case BIOME_LAND -> complex.getLandBiomeStream().get(worldX, worldZ).openInVSCode();
-            case BIOME_SEA -> complex.getSeaBiomeStream().get(worldX, worldZ).openInVSCode();
-            case REGION -> complex.getRegionStream().get(worldX, worldZ).openInVSCode();
+            case BIOME, HEIGHT, RIVER, OBJECT_LOAD, DECORATOR_LOAD, LAYER_LOAD -> complex.getTrueBiomeStream().get(worldX, worldZ).openInEditor();
+            case BIOME_LAND -> complex.getLandBiomeStream().get(worldX, worldZ).openInEditor();
+            case BIOME_SEA -> complex.getSeaBiomeStream().get(worldX, worldZ).openInEditor();
+            case REGION -> complex.getRegionStream().get(worldX, worldZ).openInEditor();
             case REGION_PREVIEW -> openPreviewedBiome(engine, layer.previewRegionKey(), worldX, worldZ);
-            case CAVE_LAND -> complex.getCaveBiomeStream().get(worldX, worldZ).openInVSCode();
+            case CAVE_LAND -> complex.getCaveBiomeStream().get(worldX, worldZ).openInEditor();
         };
         return Optional.ofNullable(file).map(File::getName);
     }
 
     private static File openPreviewedBiome(Engine engine, String regionKey, double worldX, double worldZ) {
         IrisRegion region = engine.getData().getRegionLoader().load(regionKey);
-        return region == null ? null : engine.getComplex().surfaceBiomeAsIfIn(region, worldX, worldZ).openInVSCode();
+        return region == null ? null : engine.getComplex().surfaceBiomeAsIfIn(region, worldX, worldZ).openInEditor();
     }
 }

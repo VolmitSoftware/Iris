@@ -92,6 +92,7 @@
 #   {dumpPath}  Ubicación de los datos guardados de limpieza o restauración.
 #   {duration}  Duración de la operación con formato.
 #   {e}  Texto de la excepción de una búsqueda fallida de plantillas de estructuras.
+#   {editor}  Nombre del editor de estudio que abre Iris, p. ej. VSCode o Zed.
 #   {elapsed}  Tiempo transcurrido desde el inicio de la operación, con formato.
 #   {engines}  Número de motores de generación o dimensiones de Iris activos.
 #   {entity}  Tipo de entidad seleccionado por el generador de entidades inspeccionado.
@@ -656,7 +657,7 @@ regions_scan_failed = "§cError al escanear regiones: {value}"
 opening_studio_pack_seed = "§aAbriendo Studio para el pack \"{value}\" (semilla: {seed})"
 provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§cIndica un pack de dimensión: /iris std importvanilla pack=<dimension>"
 could_not_resolve_pack_dimension = "§cNo se pudo resolver el pack de la dimensión {value}"
-opening_vscode_pack = "§aAbriendo VSCode para el pack \"{value}\""
+opening_editor_pack = "§aAbriendo {editor} para el pack \"{value}\""
 pack_has_version = "§aEl pack \"{value}\" tiene la versión: {value2}"
 opening_noise_explorer = "§a¡Abriendo Noise Explorer!"
 cannot_add_items_virtual_inventory_because = "§cNo se pueden añadir elementos al inventario virtual debido a: {value}"
@@ -720,13 +721,13 @@ you_must_be_studio_world = "§c¡Debes estar en un mundo de Studio!"
 cannot_open_files_headless_environments = "§c¡No se pueden abrir archivos en entornos sin interfaz gráfica!"
 desktop_is_not_supported_by_this_environment = "§c¡Este entorno no admite el escritorio!"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6No se encuentra el archivo; quizá no se cargó directamente desde un archivo."
-opening_vscode = "§aAbriendo {value} {value2} en VSCode. "
+opening_in_editor = "§aAbriendo {value} {value2} en {editor}!"
+could_not_open_editor = "§cNo se pudo abrir {editor}. Revisa la consola."
+no_editor_configured = "§cNo hay editor configurado. Define studio.editor como vscode o zed en iris.json."
 cant_find_file_registrant_does_not_exist = "§cNo se encuentra el archivo o el registrante no existe"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6No se encuentra el archivo; quizá no se cargó directamente desde un archivo."
-opening_vscode_2 = "§aAbriendo {value} {value2} en VSCode. "
 cant_find_file_registrant_does_not_exist_2 = "§cNo se encuentra el archivo o el registrante no existe"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6No se encuentra el archivo; quizá no se cargó directamente desde un archivo."
-opening_vscode_3 = "§aAbriendo {value} {value2} en VSCode. "
 cant_find_file_registrant_does_not_exist_3 = "§cNo se encuentra el archivo o el registrante no existe"
 
 [iris.bukkit.commandpregen]
@@ -1277,8 +1278,8 @@ replace_installed_types = "Packs instalados: {value}"
 "param.dimension_pack_import_vanilla_content_into" = "El pack de dimensión en el que se importará el contenido vanilla"
 "param.how_many_variants_capture_per_tree_object_feature" = "Número de variantes que se capturarán por cada feature de árbol u objeto"
 "param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "Importar también las structures/jigsaw vanilla y de datapacks en el pack"
-"director.open_vscode_dimension" = "Abrir VSCode para una dimensión"
-"param.dimension_open_vscode" = "La dimensión para la que se abrirá VSCode"
+"director.open_editor_dimension" = "Abrir el editor configurado para una dimensión"
+"param.dimension_open_editor" = "La dimensión para la que se abrirá el editor"
 "director.close_open_studio_project" = "Cerrar un proyecto de Studio abierto"
 "director.toggle_your_studio_debug_scoreboard" = "Mostrar u ocultar tu marcador de depuración de Studio"
 "director.create_new_studio_project" = "Crear un proyecto de Studio nuevo"

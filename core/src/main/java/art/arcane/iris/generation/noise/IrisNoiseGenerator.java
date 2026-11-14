@@ -62,6 +62,9 @@ public class IrisNoiseGenerator {
     private static final long GENERATOR_SEED_SALT = 33_955_677L;
     private static final int MINIMUM_FRACTURE_DEPTH = 4;
     private static final int MAXIMUM_FRACTURE_NODES = 32;
+    // Fracture axes as CNG.reseededForAxis numbers them for a 2D read: x is axis 0, z is axis 1.
+    static final int X_AXIS = 0;
+    static final int Z_AXIS = 1;
     private static final ThreadLocal<FractureSamples> FRACTURE_SAMPLES = ThreadLocal.withInitial(FractureSamples::new);
 
     @Getter(AccessLevel.NONE)
@@ -144,6 +147,14 @@ public class IrisNoiseGenerator {
     }
 
     double getNoise(long superSeed, double xv, double zv, IrisData data, Engine engine) {
+        return getNoiseForAxis(superSeed, xv, zv, data, engine, X_AXIS);
+    }
+
+    /**
+     * This layer read as the fracture of one axis. Each axis samples this layer's generator reseeded for that axis at
+     * the same coordinates, so the x and z warps are uncorrelated instead of mirror images of each other.
+     */
+    private double getNoiseForAxis(long superSeed, double xv, double zv, IrisData data, Engine engine, int axis) {
         if (!enabled) {
             return offsetY;
         }
@@ -154,7 +165,7 @@ public class IrisNoiseGenerator {
                 samples.active = true;
                 try {
                     if (samples.prepare(this, superSeed, data, engine)) {
-                        return samples.sample(xv, zv);
+                        return samples.sample(xv, zv, axis);
                     }
                 } finally {
                     samples.clear();
@@ -169,13 +180,13 @@ public class IrisNoiseGenerator {
         for (IrisNoiseGenerator i : fracture) {
             if (i.isEnabled()) {
                 double fractureOffset = i.getOpacity() / 2D;
-                x += i.getNoise(superSeed + seed + g, xv, zv, data, engine) - fractureOffset;
-                z += i.getNoise(superSeed + seed + g, zv, xv, data, engine) - fractureOffset;
+                x += i.getNoiseForAxis(superSeed + seed + g, xv, zv, data, engine, X_AXIS) - fractureOffset;
+                z += i.getNoiseForAxis(superSeed + seed + g, xv, zv, data, engine, Z_AXIS) - fractureOffset;
             }
             g += 819;
         }
 
-        return sample(getGenerator(superSeed, data, engine), x, z);
+        return sample(getGenerator(superSeed, data, engine).reseededForAxis(axis), x, z);
     }
 
     boolean supportsBatch() {
@@ -200,6 +211,10 @@ public class IrisNoiseGenerator {
     }
 
     NoiseLayerProgram compileProgram(long superSeed, IrisData data, Engine engine) {
+        return compileProgram(superSeed, data, engine, false);
+    }
+
+    private NoiseLayerProgram compileProgram(long superSeed, IrisData data, Engine engine, boolean readAsFracture) {
         if (!enabled) {
             return NoiseLayerProgram.disabled(this);
         }
@@ -215,13 +230,14 @@ public class IrisNoiseGenerator {
         int compiled = 0;
         for (IrisNoiseGenerator child : fracture) {
             if (child.isEnabled()) {
-                children[compiled] = child.compileProgram(superSeed + seed + salt, data, engine);
+                children[compiled] = child.compileProgram(superSeed + seed + salt, data, engine, true);
                 offsets[compiled++] = child.getOpacity() / 2D;
             }
             salt += 819;
         }
         CNG generator = Objects.requireNonNull(getGenerator(superSeed, data, engine), "Noise layer generator");
-        return NoiseLayerProgram.of(this, NoiseProgram.compile2D(generator), children, offsets);
+        NoiseProgram zAxisProgram = readAsFracture ? NoiseProgram.compile2D(generator.reseededForAxis(Z_AXIS)) : null;
+        return NoiseLayerProgram.of(this, NoiseProgram.compile2D(generator), zAxisProgram, children, offsets);
     }
 
     public KList<IrisNoiseGenerator> getAllComposites() {
@@ -357,20 +373,26 @@ public class IrisNoiseGenerator {
             return false;
         }
 
-        private double sample(double x, double z) {
+        /**
+         * Both axes of a fracture node read the same warped coordinates, since a reseeded generator shares the
+         * node's own fracture, so each level samples its generator once per axis.
+         */
+        private double sample(double x, double z, int rootAxis) {
             int leaf = size - 1;
-            double forward = nodes[leaf].sample(generators[leaf], x, z);
-            double reverse = nodes[leaf].sample(generators[leaf], z, x);
-            for (int index = leaf - 1; index >= 0; index--) {
-                double offset = nodes[index + 1].opacity / 2D;
-                double forwardX = x + (forward - offset);
-                double forwardZ = z + (reverse - offset);
-                forward = nodes[index].sample(generators[index], forwardX, forwardZ);
-                if (index > 0) {
-                    reverse = nodes[index].sample(generators[index], forwardZ, forwardX);
-                }
+            if (leaf == 0) {
+                return nodes[0].sample(generators[0].reseededForAxis(rootAxis), x, z);
             }
-            return forward;
+            double warpX = nodes[leaf].sample(generators[leaf], x, z);
+            double warpZ = nodes[leaf].sample(generators[leaf].reseededForAxis(Z_AXIS), x, z);
+            for (int index = leaf - 1; index > 0; index--) {
+                double offset = nodes[index + 1].opacity / 2D;
+                double warpedX = x + (warpX - offset);
+                double warpedZ = z + (warpZ - offset);
+                warpX = nodes[index].sample(generators[index], warpedX, warpedZ);
+                warpZ = nodes[index].sample(generators[index].reseededForAxis(Z_AXIS), warpedX, warpedZ);
+            }
+            double offset = nodes[1].opacity / 2D;
+            return nodes[0].sample(generators[0].reseededForAxis(rootAxis), x + (warpX - offset), z + (warpZ - offset));
         }
 
         private void clear() {

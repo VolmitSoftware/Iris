@@ -1,18 +1,27 @@
 package art.arcane.iris.pack.datapack.export.compile.cave;
 
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.pack.datapack.export.compile.CompileStage;
 import art.arcane.iris.pack.datapack.export.compile.PackCompileContext;
 import art.arcane.iris.pack.datapack.export.ir.BiomeDef;
-import art.arcane.iris.pack.datapack.export.ir.Field;
+import art.arcane.iris.pack.datapack.export.ir.ExportDiagnostic;
+import art.arcane.iris.pack.datapack.export.ir.ExportLimit;
+import art.arcane.iris.pack.loading.IrisData;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
+/**
+ * Empties the carvers of the exported biomes and exports the open water of the aquifer. Listed caves are not exported
+ * yet: the exported world has no caves, and the stage says so when the pack lists any.
+ */
 public final class CaveStage implements CompileStage {
+    static final String LISTED_CAVES_NOT_EXPORTED = "Listed caves are not exported yet; the exported world has no Iris caves";
     private static final String CARVERS = "carvers";
 
     @Override
@@ -23,21 +32,32 @@ public final class CaveStage implements CompileStage {
     @Override
     public void apply(PackCompileContext context) {
         CaveInputs inputs = CaveInputs.of(context);
-        CaveSelection selection = CaveSelection.resolve(inputs, context.dimension(), context.data(), context.biomeCodes());
-        CaveFieldCompiler compiler = new CaveFieldCompiler(context.styles(), inputs);
-        Optional<Field> caves = compiler.compile(selection);
-        if (caves.isPresent()) {
-            Field.Shared field = new Field.Shared(DeepCaveCompiler.FIELD, caves.get());
-            Optional<DeepCaveCompiler.DeepCaves> deep = new DeepCaveCompiler(inputs).compile(field, selection);
-            context.setCaveField(field, CaveFieldCompiler.WALL_BAND);
-            context.setCaves(deep.map(DeepCaveCompiler.DeepCaves::router).orElse(field));
-            deep.ifPresent(found -> context.setDeepCaves(found.opening()));
+        if (listsCaves(context.dimension(), context.data())) {
+            inputs.diagnostics().add(new ExportDiagnostic(ExportDiagnostic.Severity.WARNING, ExportLimit.LISTED_CAVES,
+                    inputs.resource(), LISTED_CAVES_NOT_EXPORTED));
         }
-        context.setAquifer(new AquiferCompiler(inputs).compile(selection));
+        context.setAquifer(new AquiferCompiler(inputs).compile());
         List<BiomeDef> biomes = context.biomes();
         if (biomes.stream().anyMatch(CaveStage::carves)) {
             context.setBiomes(withoutCarvers(biomes));
         }
+    }
+
+    private static boolean listsCaves(IrisDimension dimension, IrisData data) {
+        if (!dimension.getCaves().isEmpty()) {
+            return true;
+        }
+        for (IrisRegion region : dimension.getAllRegions(() -> data)) {
+            if (!region.getCaves().isEmpty()) {
+                return true;
+            }
+        }
+        for (IrisBiome biome : dimension.getReachableBiomes(() -> data)) {
+            if (!biome.getCaves().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static List<BiomeDef> withoutCarvers(List<BiomeDef> biomes) {

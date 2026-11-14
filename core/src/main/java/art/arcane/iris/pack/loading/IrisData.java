@@ -111,6 +111,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Data
 public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private static final int CUSTOM_BIOME_KEY_CACHE_LIMIT = 4096;
+    private static final String PACK_ONCE_KEY_PREFIX = "pack|";
+    private static final String PACK_ONCE_KEY_SEPARATOR = "|";
     private static final Map<File, IrisData> dataLoaders = new ConcurrentHashMap<>();
     // Loaders (cached or detached) that currently have registered engines; see hasActiveEngines.
     // Identity-keyed on purpose: Lombok's @Data hashCode over this class's mutable loader state
@@ -693,6 +695,8 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public synchronized void hotloaded() {
+        // Studio hotload reopens or rebuilds the pack through here without ever calling clearLists().
+        IrisLogging.forgetOnceKeys(onceKeyPrefix());
         blockDropMaterials = null;
         StructureGraphCatalog.invalidate(this);
         IrisObjectScale.invalidate(this);
@@ -814,7 +818,28 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         throw failure;
     }
 
+    /**
+     * Prefix shared by every warn-once key that belongs to this pack, so {@link #clearLists()} can forget
+     * them together. The trailing separator keeps {@code /packs/a} from matching {@code /packs/ab}.
+     */
+    public String onceKeyPrefix() {
+        return PACK_ONCE_KEY_PREFIX + dataFolder.getAbsolutePath() + PACK_ONCE_KEY_SEPARATOR;
+    }
+
+    public String onceKey(String kind, String detail) {
+        return onceKeyPrefix() + kind + PACK_ONCE_KEY_SEPARATOR + detail;
+    }
+
+    /**
+     * Key for a warning whose site may not know its pack: scoped to the pack when there is one so a
+     * hotload forgets it, otherwise a plain stable key.
+     */
+    public static String onceKey(IrisData data, String kind, String detail) {
+        return data == null ? kind + PACK_ONCE_KEY_SEPARATOR + detail : data.onceKey(kind, detail);
+    }
+
     public void clearLists() {
+        IrisLogging.forgetOnceKeys(onceKeyPrefix());
         blockDropMaterials = null;
         for (ResourceLoader<?> i : loaders.values()) {
             i.clearList();

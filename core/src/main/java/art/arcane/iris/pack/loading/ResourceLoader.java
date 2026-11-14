@@ -91,6 +91,9 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     private static final int PREFETCH_ENTRY_LIMIT = 1_024;
     private static final int PREFETCH_KEY_LENGTH_LIMIT = 1_024;
     private static final long PREFETCH_FILE_SIZE_LIMIT = 4L * 1_024L * 1_024L;
+    private static final String MISSING_KEY_KIND = "missing:";
+    private static final String LITERAL_NULL_KEY_KIND = "literal-null:";
+    private static final String READ_KEY_KIND = "read:";
     private static volatile ExecutorService schemaBuildExecutor;
     private static final Set<String> schemaBuildQueue = ConcurrentHashMap.newKeySet();
     protected final AtomicCache<KList<File>> folderCache;
@@ -217,7 +220,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             return null;
         }
         if (name.equals("null")) {
-            IrisLogging.warn("Refusing " + resourceTypeName + " lookup for literal string \"null\" (called by " + callerHint() + ")");
+            warnLiteralNullOnce("lookup");
             return null;
         }
 
@@ -227,7 +230,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             return file;
         }
 
-        IrisLogging.warn("Couldn't find " + resourceTypeName + ": " + name + " (called by " + callerHint() + ")");
+        warnMissingOnce(name);
 
         return null;
     }
@@ -304,6 +307,27 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
                         + "." + f.getMethodName() + ":" + f.getLineNumber())
                 .reduce((a, b) -> a + " <- " + b)
                 .orElse("<unknown>"));
+    }
+
+    protected void warnMissingOnce(String name) {
+        IrisLogging.warnOnce(manager.onceKey(MISSING_KEY_KIND + resourceTypeName, name),
+                "Couldn't find " + resourceTypeName + ": " + name + " (called by " + callerHint() + ")");
+    }
+
+    protected void warnLiteralNullOnce(String action) {
+        IrisLogging.warnOnce(manager.onceKey(LITERAL_NULL_KEY_KIND + resourceTypeName, action),
+                "Refusing " + resourceTypeName + " " + action + " for literal string \"null\" (called by " + callerHint() + ")");
+    }
+
+    /**
+     * Warns once per file; only that first warning carries the stack trace, so a file that fails on every
+     * lookup does not repeat it.
+     */
+    protected void warnReadFailureOnce(File file, String message, Throwable failure) {
+        String key = manager.onceKey(READ_KEY_KIND + resourceTypeName, file.getPath());
+        if (IrisLogging.warnOnce(key, message) && failure != null) {
+            IrisLogging.reportError(failure);
+        }
     }
 
     public void logLoad(File path, T t) {
@@ -529,7 +553,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             return null;
         }
         if (name.equals("null") && warn) {
-            IrisLogging.warn("Refusing " + resourceTypeName + " load for literal string \"null\" (called by " + callerHint() + ")");
+            warnLiteralNullOnce("load");
             return null;
         }
 

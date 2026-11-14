@@ -60,13 +60,12 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
             tlt.addAndGet(p.getMilliseconds());
             return t;
         } catch (Throwable e) {
-            IrisLogging.reportError(e);
             String message = e.getMessage();
             String reason = e.getClass().getSimpleName();
             if (message != null && !message.isBlank()) {
                 reason = reason + ": " + message;
             }
-            IrisLogging.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + " (" + reason + ")");
+            warnReadFailureOnce(j, "Couldn't read " + resourceTypeName + " file: " + j.getPath() + " (" + reason + ")", e);
             return null;
         }
     }
@@ -127,7 +126,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
             return null;
         }
         if (name.equals("null")) {
-            IrisLogging.warn("Refusing " + resourceTypeName + " lookup for literal string \"null\" (called by " + callerHint() + ")");
+            warnLiteralNullOnce("lookup");
             return null;
         }
 
@@ -137,7 +136,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
             return file;
         }
 
-        IrisLogging.warn("Couldn't find " + resourceTypeName + ": " + name + " (called by " + callerHint() + ")");
+        warnMissingOnce(name);
 
         return null;
     }
@@ -156,12 +155,12 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
             return null;
         }
         if (name.equals("null") && warn) {
-            IrisLogging.warn("Refusing " + resourceTypeName + " load for literal string \"null\" (called by " + callerHint() + ")");
+            warnLiteralNullOnce("load");
             return null;
         }
         IrisObject result = loadCache.get(name);
         if (result == null && warn) {
-            IrisLogging.warn("Couldn't find " + resourceTypeName + ": " + name + " (called by " + callerHint() + ")");
+            warnMissingOnce(name);
         }
         return result;
     }

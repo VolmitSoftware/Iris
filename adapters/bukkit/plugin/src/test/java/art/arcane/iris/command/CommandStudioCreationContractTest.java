@@ -28,6 +28,15 @@ public class CommandStudioCreationContractTest {
     }
 
     @Test
+    public void editorDimensionIsOptionalSoTheOpenStudioCanBeUsed() throws NoSuchMethodException {
+        Method command = CommandStudio.class.getDeclaredMethod("editor", IrisDimension.class);
+        Param dimension = command.getParameters()[0].getAnnotation(Param.class);
+
+        assertEquals("null", dimension.defaultValue());
+        assertEquals(NullableDimensionHandler.class, dimension.customHandler());
+    }
+
+    @Test
     public void openExposesAnOptInForceFlag() throws NoSuchMethodException {
         Method command = CommandStudio.class.getDeclaredMethod(
                 "open",

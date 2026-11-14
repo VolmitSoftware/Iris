@@ -25,6 +25,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.schema.SchemaBuilder;
 import art.arcane.iris.pack.PackValidator;
+import art.arcane.iris.studio.workspace.SchemaFiles;
 import art.arcane.iris.generation.runtime.PreservationRegistry;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
@@ -66,8 +67,10 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -75,6 +78,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
@@ -92,7 +96,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     private static final int PREFETCH_KEY_LENGTH_LIMIT = 1_024;
     private static final long PREFETCH_FILE_SIZE_LIMIT = 4L * 1_024L * 1_024L;
     private static volatile ExecutorService schemaBuildExecutor;
-    private static final Set<String> schemaBuildQueue = ConcurrentHashMap.newKeySet();
+    private static final Map<String, CompletableFuture<String>> schemaBuildQueue = new ConcurrentHashMap<>();
     protected final AtomicCache<KList<File>> folderCache;
     protected volatile KSet<String> firstAccess;
     protected File root;
@@ -144,7 +148,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     private static synchronized ExecutorService schemaBuildExecutor() {
         ExecutorService current = schemaBuildExecutor;
         if (current == null || current.isShutdown()) {
-            schemaBuildQueue.clear();
+            abandonQueuedSchemaBuilds();
             current = Executors.newSingleThreadExecutor(runnable -> {
                 Thread thread = new Thread(runnable, "Iris-Schema-Builder");
                 thread.setDaemon(true);
@@ -160,16 +164,12 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
         return current;
     }
 
-    public JSONObject buildSchema() {
-        return buildSchema(false);
+    private static void abandonQueuedSchemaBuilds() {
+        schemaBuildQueue.values().forEach(build -> build.complete(SchemaFiles.FAILED_SCHEMA_TEXT));
+        schemaBuildQueue.clear();
     }
 
-    public JSONObject buildSchemaImmediately() {
-        return buildSchema(true);
-    }
-
-    private JSONObject buildSchema(boolean immediate) {
-        IrisLogging.debug("Building Schema " + objectClass.getSimpleName() + " " + root.getPath());
+    public JSONObject schemaMapping() {
         JSONObject o = new JSONObject();
         KList<String> fm = new KList<>();
 
@@ -179,37 +179,38 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
 
         o.put("fileMatch", new JSONArray(fm.toArray()));
         o.put("url", "./.iris/schema/" + getFolderName() + "-schema.json");
-        File a = new File(getManager().getDataFolder(), ".iris/schema/" + getFolderName() + "-schema.json");
-        if (immediate) {
-            try {
-                IO.writeAll(a, new SchemaBuilder(objectClass, manager).construct().toString(4));
-            } catch (IOException e) {
-                throw new IllegalStateException("Could not write schema " + a.getAbsolutePath(), e);
-            }
-            return o;
-        }
-
-        String schemaPath = a.getAbsolutePath();
-        if (schemaBuildQueue.add(schemaPath)) {
-            try {
-                schemaBuildExecutor().execute(() -> {
-                    try {
-                        IO.writeAll(a, new SchemaBuilder(objectClass, manager).construct().toString(4));
-                    } catch (Throwable e) {
-                        IrisLogging.reportError(e);
-                    } finally {
-                        schemaBuildQueue.remove(schemaPath);
-                    }
-                });
-            } catch (RejectedExecutionException rejected) {
-                // Never let a dead pool leak the queue entry or escape into workspace
-                // generation (which would delete the user's .code-workspace on the way out).
-                schemaBuildQueue.remove(schemaPath);
-                IrisLogging.warn("Schema build skipped (executor unavailable): " + schemaPath);
-            }
-        }
-
         return o;
+    }
+
+    public CompletableFuture<String> writeSchemaFile(boolean immediate) {
+        IrisLogging.debug("Building Schema " + objectClass.getSimpleName() + " " + root.getPath());
+        File schemaFile = new File(getManager().getDataFolder(), ".iris/schema/" + getFolderName() + "-schema.json");
+        Supplier<String> schemaText = () -> new SchemaBuilder(objectClass, manager).construct().toString(4);
+        if (immediate) {
+            return SchemaFiles.write(schemaFile, schemaText, true);
+        }
+
+        String schemaPath = schemaFile.getAbsolutePath();
+        CompletableFuture<String> build = new CompletableFuture<>();
+        CompletableFuture<String> queued = schemaBuildQueue.putIfAbsent(schemaPath, build);
+        if (queued != null) {
+            return queued;
+        }
+
+        try {
+            schemaBuildExecutor().execute(() -> {
+                String text = SchemaFiles.writeReporting(schemaFile, schemaText);
+                schemaBuildQueue.remove(schemaPath, build);
+                build.complete(text);
+            });
+        } catch (RejectedExecutionException rejected) {
+            // Never let a dead pool leak the queue entry or escape into workspace
+            // generation (which would delete the user's .code-workspace on the way out).
+            schemaBuildQueue.remove(schemaPath, build);
+            build.complete(SchemaFiles.FAILED_SCHEMA_TEXT);
+            IrisLogging.warn("Schema build skipped (executor unavailable): " + schemaPath);
+        }
+        return build;
     }
 
     public File findFile(String name) {

@@ -24,6 +24,7 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.studio.map.MapWindow;
 import art.arcane.iris.studio.map.PaletteExplorerStart;
 import art.arcane.iris.studio.view.GuiHost;
+import art.arcane.iris.pack.PackDownloader;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.workspace.IrisProject;
 import art.arcane.iris.studio.workspace.IrisCodeWorkspace;
@@ -170,9 +171,15 @@ public class CommandStudio implements DirectorExecutor {
 
     @Director(description = "Open the configured editor for a dimension", descriptionKey = "iris.director.commandstudio.director.open_editor_dimension", aliases = {"vscode", "vsc"})
     public void editor(
-            @Param(defaultValue = "default", description = "The dimension to open the editor for", descriptionKey = "iris.director.commandstudio.param.dimension_open_editor", aliases = "dim", customHandler = DimensionHandler.class)
+            @Param(defaultValue = "null", description = "The dimension to open the editor for", descriptionKey = "iris.director.commandstudio.param.dimension_open_editor", aliases = "dim", customHandler = NullableDimensionHandler.class)
             IrisDimension dimension
     ) {
+        StudioSVC studio = Iris.service(StudioSVC.class);
+        String pack = dimension != null ? dimension.getLoadKey() : packForEditor(studio);
+        if (!PackDownloader.isPackPresent(studio.getWorkspaceFolder(), pack)) {
+            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_COULD_NOT_RESOLVE_PACK_DIMENSION, MessageArgument.untrusted("value", pack)));
+            return;
+        }
         StudioEditor editor = StudioEditorLauncher.configuredEditor();
         if (editor == StudioEditor.NONE) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_NO_EDITOR_CONFIGURED));
@@ -183,8 +190,15 @@ public class CommandStudio implements DirectorExecutor {
             return;
         }
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_EDITOR_PACK,
-                MessageArgument.untrusted("editor", editor.getDisplayName()), MessageArgument.untrusted("value", dimension.getName())));
-        Iris.service(StudioSVC.class).openEditor(sender(), dimension.getLoadKey());
+                MessageArgument.untrusted("editor", editor.getDisplayName()), MessageArgument.untrusted("value", pack)));
+        studio.openEditor(sender(), pack);
+    }
+
+    private static String packForEditor(StudioSVC studio) {
+        if (studio.isProjectOpen()) {
+            return studio.getActiveProject().getName();
+        }
+        return IrisSettings.get().getGenerator().getDefaultWorldType();
     }
 
     @Director(description = "Close an open studio project", descriptionKey = "iris.director.commandstudio.director.close_open_studio_project", aliases = {"x"}, sync = true)

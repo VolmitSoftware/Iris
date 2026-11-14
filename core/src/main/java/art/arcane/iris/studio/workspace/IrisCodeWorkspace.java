@@ -42,6 +42,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings("ALL")
 public class IrisCodeWorkspace {
@@ -156,12 +157,14 @@ public class IrisCodeWorkspace {
         settings.put("files.associations", associations);
         JSONArray schemas = new JSONArray();
         List<JSONObject> schemaEntries = new ArrayList<>();
+        List<CompletableFuture<String>> schemaWrites = new ArrayList<>();
         IrisData dm = IrisData.get(project.getPath());
+        // The shared instance keeps its file listings across edits, so files added, moved or removed since would be missing.
+        dm.clearLists();
         for (ResourceLoader<?> resourceLoader : dm.getLoaders().v()) {
             if (resourceLoader.supportsSchemas()) {
-                schemaEntries.add(immediateSchemas
-                        ? resourceLoader.buildSchemaImmediately()
-                        : resourceLoader.buildSchema());
+                schemaEntries.add(resourceLoader.schemaMapping());
+                schemaWrites.add(resourceLoader.writeSchemaFile(immediateSchemas));
             }
         }
 
@@ -179,18 +182,7 @@ public class IrisCodeWorkspace {
                 schemaEntry.put("url", "./.iris/schema/snippet/" + snipType + "-schema.json");
                 schemaEntries.add(schemaEntry);
                 File schemaFile = new File(dm.getDataFolder(), ".iris/schema/snippet/" + snipType + "-schema.json");
-                if (immediateSchemas) {
-                    IO.writeAll(schemaFile, new SchemaBuilder(snippetClass, dm).construct().toString(4));
-                } else {
-                    IrisData snippetData = dm;
-                    J.attemptAsync(() -> {
-                        try {
-                            IO.writeAll(schemaFile, new SchemaBuilder(snippetClass, snippetData).construct().toString(4));
-                        } catch (Throwable e) {
-                            IrisLogging.reportError(e);
-                        }
-                    });
-                }
+                schemaWrites.add(SchemaFiles.write(schemaFile, () -> new SchemaBuilder(snippetClass, dm).construct().toString(4), immediateSchemas));
             } catch (Throwable e) {
                 if (immediateSchemas) {
                     throw new IllegalStateException("Could not write snippet schema for " + snippetClass.getName(), e);
@@ -215,7 +207,7 @@ public class IrisCodeWorkspace {
         }
 
         try {
-            new ZedProjectSettings(project.getPath()).writeIrisSettings(schemas);
+            new ZedProjectSettings(project.getPath()).writeIrisSettings(schemas, SchemaFiles.awaitTexts(schemaWrites));
         } catch (Throwable e) {
             IrisLogging.reportError(e);
             IrisLogging.warn("Could not update Zed schema mappings for " + project.getPath().getAbsolutePath() + "; VSCode workspace generation will continue.");

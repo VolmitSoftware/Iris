@@ -233,6 +233,7 @@ public final class StudioBridge implements AutoCloseable {
             case "scenes" -> sendJson(exchange, STATUS_OK, profileViews());
             case "scene-entries" -> sendJson(exchange, STATUS_OK, profileEntries(get(exchange).engine(), query));
             case "scene" -> sendBytes(exchange, "application/octet-stream", profileScene(get(exchange).engine(), query));
+            case "scene-bake" -> sendJson(exchange, STATUS_OK, sceneBake(get(exchange).engine(), query));
             case "profile-form" -> sendJson(exchange, STATUS_OK, profileForm(get(exchange).engine(), query));
             case "noise-sources" -> sendJson(exchange, STATUS_OK, NoiseSources.of(get(exchange).engine()).list());
             case "noise-tile" -> sendBytes(exchange, "application/octet-stream", noiseTile(get(exchange).engine(), query));
@@ -410,12 +411,20 @@ public final class StudioBridge implements AutoCloseable {
 
     private static List<SceneViewInfo> profileViews() {
         return StudioProfiles.views().stream()
-                .map(view -> new SceneViewInfo(view.id(), view.label(), view.description(), false, false, false, false, view.sizes(), true))
+                .map(view -> new SceneViewInfo(view.id(), view.label(), view.description(), false, false, view.isBaked(), false, view.sizes(), view.hasForm()))
                 .toList();
     }
 
     private static List<StudioProfiles.Entry> profileEntries(Engine engine, Query query) {
         return profileView(query).entries(engine);
+    }
+
+    private static StudioObjects.BakeTiming sceneBake(Engine engine, Query query) {
+        StudioProfiles.ProfileView view = profileView(query);
+        if (!view.isBaked()) {
+            throw new RequestError(STATUS_BAD_REQUEST, "View " + view.id() + " is not baked");
+        }
+        return profiling(() -> view.timeBake(engine, query.text("key")));
     }
 
     private static ProfileForm.Form profileForm(Engine engine, Query query) {

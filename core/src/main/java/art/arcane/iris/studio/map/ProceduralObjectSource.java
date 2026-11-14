@@ -41,7 +41,7 @@ import java.util.OptionalLong;
  * The procedural objects the pack's biomes and regions bake, one entry per placement, filed under the biome or region
  * that declares it.
  */
-final class ProceduralObjectSource implements ObjectSource {
+public final class ProceduralObjectSource implements ObjectSource {
     private static final int EMPTY_ICON_SIZE = 40;
     private static final String BIOME_FOLDER = "biomes";
     private static final String REGION_FOLDER = "regions";

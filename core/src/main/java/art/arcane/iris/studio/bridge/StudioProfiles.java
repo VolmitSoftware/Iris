@@ -56,7 +56,8 @@ final class StudioProfiles {
     static final String FORMATIONS = "formationProfiles";
     static final String FLUIDS = "fluidProfiles";
 
-    private static final List<ProfileView> VIEWS = List.of(new CaveView(), new TreeView(), new FormationView(), new FluidView());
+    private static final List<ProfileView> VIEWS = List.of(new CaveView(), new TreeView(), new FormationView(), new FluidView(),
+            StudioObjects.packObjects(), StudioObjects.proceduralObjects());
 
     private StudioProfiles() {
     }
@@ -91,6 +92,21 @@ final class StudioProfiles {
 
         ProfileForm.Form form(Engine engine, String key, Map<String, String> overrides);
 
+        /** Whether each entry has a settings form; the object views have none. */
+        default boolean hasForm() {
+            return true;
+        }
+
+        /** Whether the entries are baked from settings, so their bake can be timed. */
+        default boolean isBaked() {
+            return false;
+        }
+
+        /** One timed bake of the entry; only asked of baked views. */
+        default StudioObjects.BakeTiming timeBake(Engine engine, String key) {
+            throw new UnsupportedOperationException(id() + " is not baked");
+        }
+
         SceneBlocks scene(Engine engine, String key, int variant, int size, Map<String, String> overrides) throws IOException;
     }
 
@@ -113,7 +129,7 @@ final class StudioProfiles {
         return new Entry(key, readable(key), "Presets", variants);
     }
 
-    private static SceneBlocks sceneOf(IrisObject object) {
+    static SceneBlocks sceneOf(IrisObject object) {
         SceneBlocks scene = new SceneBlocks();
         object.getBlocks().forEach((position, state) -> scene.add(position.getBlockX(), position.getBlockY(), position.getBlockZ(), state.key()));
         return scene;

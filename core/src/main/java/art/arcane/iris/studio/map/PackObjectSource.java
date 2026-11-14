@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * The pack's object files, by their load keys.
  */
-final class PackObjectSource implements ObjectSource {
+public final class PackObjectSource implements ObjectSource {
     private static final int EMPTY_ICON_SIZE = 40;
 
     @Override

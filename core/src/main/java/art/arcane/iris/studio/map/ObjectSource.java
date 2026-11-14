@@ -28,7 +28,7 @@ import java.util.OptionalLong;
  * Where an object explorer gets what it shows: the pack's object files, or the objects Iris generates from settings.
  * Both are called on the explorer's loader thread only.
  */
-interface ObjectSource {
+public interface ObjectSource {
     /** What one entry is called, such as "object", for the browser's texts. */
     String noun();
 

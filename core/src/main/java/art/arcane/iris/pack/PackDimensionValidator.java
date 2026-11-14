@@ -63,7 +63,6 @@ final class PackDimensionValidator {
             validateDimensionHeights(packFolder, dimensionKey, dimJson, blockingErrors);
             validateBorrowedDimensionType(dimensionKey, dimJson, borrowedDimensionTypesSupported(), blockingErrors);
             validateSamplingStep(dimensionKey, dimJson, "terrainSamplingStep", 1, blockingErrors);
-            validateSamplingStep(dimensionKey, dimJson, "caveDensitySamplingStep", 1, blockingErrors);
             validateSamplingStep(dimensionKey, dimJson, "biomeBoundsSamplingStep", 4, blockingErrors);
             validateWorldBoundary(dimensionKey, dimJson, blockingErrors);
             validateStaticObjects(packFolder, dimensionKey, dimJson, blockingErrors);

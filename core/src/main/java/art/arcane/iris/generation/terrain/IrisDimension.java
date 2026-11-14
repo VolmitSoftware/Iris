@@ -25,7 +25,6 @@ import art.arcane.iris.generation.biome.IrisCustomBiomeAliasResolver;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
 import art.arcane.iris.generation.biome.IrisSurfaceLayerFallback;
 import art.arcane.iris.generation.cave.IrisCave;
-import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositVariant;
 import art.arcane.iris.generation.decoration.IrisOreGenerator;
@@ -230,8 +229,6 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(type = IrisSubterrainFeature.class, min = 1)
     @Description("Deterministic bounded underground features with owned geometry, biome, fluids and room formations.")
     private KList<IrisSubterrainFeature> subterrainFeatures = new KList<>();
-    @Description("Profile-driven 3D cave configuration")
-    private IrisCaveProfile caveProfile = new IrisCaveProfile();
     @ArrayType(type = String.class, min = 1)
     @RegistryListResource(IrisCave.class)
     @Description("Caves that carve everywhere in this dimension, by their file in the pack's caves folder. The lists of the dimension, region and biomes of a place add up: every cave any of them lists carves there.")
@@ -315,11 +312,6 @@ public class IrisDimension extends IrisRegistrant {
     @IntegerOptions({4, 8, 16, 32})
     @Description("Biome height-bound sampling interval in blocks: 4, 8, 16, or 32. 4 retains the original biome blending. Larger intervals interpolate the configured generator bounds between shared anchors, smoothing small biome-height features. Generator interpolation styles and radii remain active at the anchors. Set before creating a world.")
     private int biomeBoundsSamplingStep = 4;
-    @MinNumber(1)
-    @MaxNumber(8)
-    @IntegerOptions({1, 2, 4, 8})
-    @Description("Vertical cave density sampling interval in blocks: 1, 2, 4, or 8. Larger intervals interpolate density while retaining cave module bounds, surface protection, and fluid rules. Changes cave geometry. Set before creating a world.")
-    private int caveDensitySamplingStep = 1;
     @MinNumber(0)
     @MaxNumber(360)
     @Description("You can rotate the input coordinates by an angle. This can make terrain appear more natural (less sharp corners and lines). This literally rotates the entire dimension by an angle. Hint: Try 12 degrees or something not on a 90 or 45 degree angle.")
@@ -731,7 +723,6 @@ public class IrisDimension extends IrisRegistrant {
         }
 
         Set<String> visited = new HashSet<>();
-        Map<String, IrisDimensionCarvingEntry> carvingEntryIndex = getCarvingEntryIndex();
         while (!pending.isEmpty()) {
             String biomeKey = pending.removeFirst();
             if (!visited.add(biomeKey)) {
@@ -763,10 +754,6 @@ public class IrisDimension extends IrisRegistrant {
             for (IrisFloatingChildBiomes floatingChild : floatingChildren) {
                 if (floatingChild != null) {
                     addReachableBiomeKey(pending, floatingChild.getBiome());
-                    String carvingReference = floatingChild.getCarving();
-                    IrisDimensionCarvingEntry carvingEntry = carvingEntryIndex.get(carvingReference);
-                    addReachableBiomeKey(pending,
-                            carvingEntry == null ? carvingReference : carvingEntry.getBiome());
                 }
             }
         }

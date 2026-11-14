@@ -33,7 +33,6 @@ import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.structure.object.IrisAxisRotationClamp;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.cave.IrisCaveAnchorMode;
-import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
@@ -72,7 +71,6 @@ import art.arcane.iris.generation.block.DataProvider;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -82,6 +80,11 @@ import java.util.function.BiConsumer;
 
 @ComponentFlag(ReservedFlag.OBJECT)
 public class MantleObjectComponent extends IrisMantleComponent {
+    /** The anchor a cave object takes when its placement names none. */
+    private static final IrisCaveAnchorMode DEFAULT_CAVE_ANCHOR = IrisCaveAnchorMode.FLOOR;
+    private static final int CAVE_ANCHOR_SCAN_STEP_BLOCKS = 1;
+    private static final int CAVE_ANCHOR_SEARCH_ATTEMPTS = 6;
+    private static final int CAVE_OBJECT_MIN_DEPTH_BELOW_SURFACE_BLOCKS = 6;
     private static final long CAVE_REJECT_LOG_THROTTLE_MS = 5000L;
     private static final int BEDROCK_CLEARANCE = 6;
     static final byte LIQUID_FORCED_AIR = 3;
@@ -473,8 +476,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
         int rejected = 0;
         int nullObjects = 0;
         int errors = 0;
-        IrisCaveProfile biomeCaveProfile = resolveCaveProfile(caveBiome.getCaveProfile(), region.getCaveProfile());
-        IrisCaveProfile regionCaveProfile = resolveCaveProfile(region.getCaveProfile(), caveBiome.getCaveProfile());
         CaveAnchorCache caveAnchorCache = new CaveAnchorCache();
 
         for (IrisObjectPlacement i : surfaceBiome.getSurfaceObjects()) {
@@ -521,7 +522,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             if (chance) {
                 biomeCaveTriggered++;
                 try {
-                    ObjectPlacementResult result = placeCaveObject(writer, rng, x, z, i, biomeCaveProfile, complex, traceRegen, x, z, "biome-cave", caveBiome.getLoadKey(), caveAnchorCache);
+                    ObjectPlacementResult result = placeCaveObject(writer, rng, x, z, i, complex, traceRegen, x, z, "biome-cave", caveBiome.getLoadKey(), caveAnchorCache);
                     attempts += result.attempts();
                     placed += result.placed();
                     rejected += result.rejected();
@@ -578,7 +579,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             if (chance) {
                 regionCaveTriggered++;
                 try {
-                    ObjectPlacementResult result = placeCaveObject(writer, rng, x, z, i, regionCaveProfile, complex, traceRegen, x, z, "region-cave", null, caveAnchorCache);
+                    ObjectPlacementResult result = placeCaveObject(writer, rng, x, z, i, complex, traceRegen, x, z, "region-cave", null, caveAnchorCache);
                     attempts += result.attempts();
                     placed += result.placed();
                     rejected += result.rejected();
@@ -610,13 +611,10 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     @ChunkCoordinates
     private void placeProceduralObjects(ObjectPassPlacer writer, RNG rng, int x, int z, IrisBiome surfaceBiome, IrisBiome caveBiome, IrisRegion region, IrisComplex complex) {
-        IrisCaveProfile surfaceCaveProfile = resolveCaveProfile(surfaceBiome.getCaveProfile(), region.getCaveProfile());
-        IrisCaveProfile regionCaveProfile = resolveCaveProfile(region.getCaveProfile(), caveBiome == null ? null : caveBiome.getCaveProfile());
-        placeProceduralFrom(writer, rng, x, z, surfaceBiome.getProceduralObjects(), surfaceBiome.getName(), surfaceCaveProfile, surfaceBiome.getLoadKey());
-        placeProceduralFrom(writer, rng, x, z, region.getProceduralObjects(), region.getName(), regionCaveProfile, null);
+        placeProceduralFrom(writer, rng, x, z, surfaceBiome.getProceduralObjects(), surfaceBiome.getName(), surfaceBiome.getLoadKey());
+        placeProceduralFrom(writer, rng, x, z, region.getProceduralObjects(), region.getName(), null);
         if (caveBiome != null && caveBiome != surfaceBiome) {
-            IrisCaveProfile caveProfile = resolveCaveProfile(caveBiome.getCaveProfile(), region.getCaveProfile());
-            placeProceduralFrom(writer, rng, x, z, caveBiome.getProceduralObjects(), caveBiome.getName(), caveProfile, caveBiome.getLoadKey());
+            placeProceduralFrom(writer, rng, x, z, caveBiome.getProceduralObjects(), caveBiome.getName(), caveBiome.getLoadKey());
         }
         if (complex.getSubterrainPlanner() != null && !complex.getSubterrainPlanner().isEmpty()) {
             Set<String> placed = new HashSet<>();
@@ -630,8 +628,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 }
                 IrisBiome featureBiome = getData().getBiomeLoader().load(plan.biome());
                 if (featureBiome != null) {
-                    placeProceduralFrom(writer, rng, x, z, featureBiome.getProceduralObjects(), featureBiome.getName(),
-                            resolveCaveProfile(featureBiome.getCaveProfile(), region.getCaveProfile()), featureBiome.getLoadKey());
+                    placeProceduralFrom(writer, rng, x, z, featureBiome.getProceduralObjects(), featureBiome.getName(), featureBiome.getLoadKey());
                 }
             }
         }
@@ -645,7 +642,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
             int z,
             IrisProceduralObjects proceduralObjects,
             String scope,
-            IrisCaveProfile caveProfile,
             String expectedCaveBiomeKey
     ) {
         if (proceduralObjects == null || proceduralObjects.isEmpty()) {
@@ -672,13 +668,13 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
             IrisObjectPlacement placement = p.asPlacement();
             boolean carving = placement.getCarvingSupport() == CarvingMode.CARVING_ONLY;
-            IrisCaveAnchorMode anchorMode = resolveAnchorMode(placement, caveProfile);
+            IrisCaveAnchorMode anchorMode = resolveAnchorMode(placement);
             if (placement.getMode() == ObjectPlaceMode.CEILING_HANG) {
                 anchorMode = IrisCaveAnchorMode.CEILING;
             }
-            int anchorScanStep = resolveAnchorScanStep(caveProfile);
-            int minDepthBelowSurface = resolveObjectMinDepthBelowSurface(caveProfile);
-            int anchorSearchAttempts = resolveAnchorSearchAttempts(caveProfile);
+            int anchorScanStep = CAVE_ANCHOR_SCAN_STEP_BLOCKS;
+            int minDepthBelowSurface = CAVE_OBJECT_MIN_DEPTH_BELOW_SURFACE_BLOCKS;
+            int anchorSearchAttempts = CAVE_ANCHOR_SEARCH_ATTEMPTS;
             IObjectPlacer basePlacer = p.isPlausible() ? new DecayControlPlacer(writer) : writer;
             IObjectPlacer placer = golden ? new GoldenDebugObjectPlacer(basePlacer, scope + "/" + p.getName()) : basePlacer;
             int density = Math.max(1, p.getDensity());
@@ -745,7 +741,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                                     + " zz=" + zz
                                     + " caveFloorY=" + caveFloorY);
                         }
-                        IrisObjectPlacement effectivePlacement = resolveCavePlacement(placement, variant, caveProfile);
+                        IrisObjectPlacement effectivePlacement = resolveEffectivePlacement(placement, variant);
                         ContainedPlacementResult contained = placeContainedCaveObject(
                                 placer,
                                 variant,
@@ -1078,7 +1074,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
             int chunkX,
             int chunkZ,
             IrisObjectPlacement objectPlacement,
-            IrisCaveProfile caveProfile,
             IrisComplex complex,
             boolean traceRegen,
             int metricChunkX,
@@ -1095,13 +1090,13 @@ public class MantleObjectComponent extends IrisMantleComponent {
         int minX = chunkX << 4;
         int minZ = chunkZ << 4;
         int density = objectPlacement.getDensity(rng, minX, minZ, getData());
-        IrisCaveAnchorMode anchorMode = resolveAnchorMode(objectPlacement, caveProfile);
+        IrisCaveAnchorMode anchorMode = resolveAnchorMode(objectPlacement);
         if (objectPlacement.getMode() == ObjectPlaceMode.CEILING_HANG) {
             anchorMode = IrisCaveAnchorMode.CEILING;
         }
-        int anchorScanStep = resolveAnchorScanStep(caveProfile);
-        int objectMinDepthBelowSurface = resolveObjectMinDepthBelowSurface(caveProfile);
-        int anchorSearchAttempts = resolveAnchorSearchAttempts(caveProfile);
+        int anchorScanStep = CAVE_ANCHOR_SCAN_STEP_BLOCKS;
+        int objectMinDepthBelowSurface = CAVE_OBJECT_MIN_DEPTH_BELOW_SURFACE_BLOCKS;
+        int anchorSearchAttempts = CAVE_ANCHOR_SEARCH_ATTEMPTS;
 
         for (int i = 0; i < density; i++) {
             attempts++;
@@ -1174,7 +1169,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             int z = anchor.z();
 
             int id = rng.i(0, Integer.MAX_VALUE);
-            IrisObjectPlacement effectivePlacement = resolveCavePlacement(objectPlacement, object, caveProfile);
+            IrisObjectPlacement effectivePlacement = resolveEffectivePlacement(objectPlacement, object);
 
             try {
                 int continuation = writer.beginObjectPlacement(effectivePlacement.waterRule());
@@ -1513,26 +1508,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
         return effectivePlacement;
     }
 
-    private IrisObjectPlacement resolveCavePlacement(IrisObjectPlacement objectPlacement, IrisObject object, IrisCaveProfile caveProfile) {
-        IrisObjectPlacement resolvedPlacement = resolveEffectivePlacement(objectPlacement, object);
-        if (resolvedPlacement.getMode() != ObjectPlaceMode.CENTER_HEIGHT || caveProfile == null) {
-            return resolvedPlacement;
-        }
-
-        ObjectPlaceMode profileMode = caveProfile.getDefaultObjectPlaceMode();
-        if (profileMode == null) {
-            return resolvedPlacement;
-        }
-
-        String loadKey = object.getLoadKey();
-        if (loadKey == null || loadKey.isBlank()) {
-            resolvedPlacement = resolvedPlacement.toPlacement();
-        } else {
-            resolvedPlacement = resolvedPlacement.toPlacement(loadKey);
-        }
-        resolvedPlacement.setMode(profileMode);
-        return resolvedPlacement;
-    }
 
     static int proceduralFloorY(IObjectPlacer placer, int x, int scannedY, int z) {
         int floorY = scannedY;
@@ -1633,63 +1608,12 @@ public class MantleObjectComponent extends IrisMantleComponent {
         };
     }
 
-    private IrisCaveProfile resolveCaveProfile(IrisCaveProfile preferred, IrisCaveProfile secondary) {
-        IrisCaveProfile dimensionProfile = getDimension().getCaveProfile();
-        if (preferred != null && preferred.isEnabled()) {
-            return preferred;
-        }
-
-        if (secondary != null && secondary.isEnabled()) {
-            return secondary;
-        }
-
-        if (dimensionProfile != null) {
-            return dimensionProfile;
-        }
-
-        return new IrisCaveProfile();
-    }
-
-    private IrisCaveAnchorMode resolveAnchorMode(IrisObjectPlacement objectPlacement, IrisCaveProfile caveProfile) {
+    private IrisCaveAnchorMode resolveAnchorMode(IrisObjectPlacement objectPlacement) {
         IrisCaveAnchorMode placementMode = objectPlacement.getCaveAnchorMode();
-        if (placementMode != null && !placementMode.equals(IrisCaveAnchorMode.PROFILE_DEFAULT)) {
-            return placementMode;
+        if (placementMode == null || placementMode == IrisCaveAnchorMode.PROFILE_DEFAULT) {
+            return DEFAULT_CAVE_ANCHOR;
         }
-
-        if (caveProfile == null) {
-            return IrisCaveAnchorMode.FLOOR;
-        }
-
-        IrisCaveAnchorMode profileMode = caveProfile.getDefaultObjectAnchor();
-        if (profileMode == null || profileMode.equals(IrisCaveAnchorMode.PROFILE_DEFAULT)) {
-            return IrisCaveAnchorMode.FLOOR;
-        }
-
-        return profileMode;
-    }
-
-    private int resolveAnchorScanStep(IrisCaveProfile caveProfile) {
-        if (caveProfile == null) {
-            return 1;
-        }
-
-        return Math.max(1, caveProfile.getAnchorScanStep());
-    }
-
-    private int resolveObjectMinDepthBelowSurface(IrisCaveProfile caveProfile) {
-        if (caveProfile == null) {
-            return 6;
-        }
-
-        return Math.max(0, caveProfile.getObjectMinDepthBelowSurface());
-    }
-
-    private int resolveAnchorSearchAttempts(IrisCaveProfile caveProfile) {
-        if (caveProfile == null) {
-            return 6;
-        }
-
-        return Math.max(1, caveProfile.getAnchorSearchAttempts());
+        return placementMode;
     }
 
     private boolean isRegenTraceThread() {
@@ -1912,14 +1836,12 @@ public class MantleObjectComponent extends IrisMantleComponent {
         private final DataProvider dataProvider;
         private final KSet<String> warnedLargeObjects;
         private final Map<String, PlacementReach.Extent> extents;
-        private final Set<ObjectPlaceMode> caveVacuumModes;
 
         private ReachScan(IrisDimension dimension, DataProvider dataProvider, KSet<String> warnedLargeObjects) {
             this.dimension = dimension;
             this.dataProvider = dataProvider;
             this.warnedLargeObjects = warnedLargeObjects;
             this.extents = new HashMap<>();
-            this.caveVacuumModes = caveVacuumModes(dimension, dataProvider);
         }
 
         private PlacementReach dimension() {
@@ -2038,17 +1960,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
 
         private KList<PlacementReach.Profile> profiles(IrisObjectPlacement placement) {
-            KList<PlacementReach.Profile> profiles = new KList<>(PlacementReach.profile(placement));
-            if (placement.getMode() != ObjectPlaceMode.CENTER_HEIGHT
-                    || placement.getCarvingSupport() == CarvingMode.SURFACE_ONLY) {
-                return profiles;
-            }
-            for (ObjectPlaceMode mode : caveVacuumModes) {
-                IrisObjectPlacement cave = placement.toPlacement(placement.getPlace().toArray(new String[0]));
-                cave.setMode(mode);
-                profiles.add(PlacementReach.profile(cave));
-            }
-            return profiles;
+            return new KList<>(PlacementReach.profile(placement));
         }
 
         private PlacementReach.Extent extent(String objectKey) {
@@ -2059,32 +1971,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
             PlacementReach.Extent extent = object == null ? null : PlacementReach.Extent.of(object);
             extents.put(objectKey, extent);
             return extent;
-        }
-
-        private static Set<ObjectPlaceMode> caveVacuumModes(IrisDimension dimension, DataProvider dataProvider) {
-            Set<ObjectPlaceMode> modes = EnumSet.noneOf(ObjectPlaceMode.class);
-            addCaveVacuumMode(modes, dimension.getCaveProfile());
-            for (IrisRegion region : dimension.getAllRegions(dataProvider)) {
-                if (region != null) {
-                    addCaveVacuumMode(modes, region.getCaveProfile());
-                }
-            }
-            for (IrisBiome biome : dimension.getReachableBiomes(dataProvider)) {
-                if (biome != null) {
-                    addCaveVacuumMode(modes, biome.getCaveProfile());
-                }
-            }
-            return modes;
-        }
-
-        private static void addCaveVacuumMode(Set<ObjectPlaceMode> modes, IrisCaveProfile profile) {
-            if (profile == null) {
-                return;
-            }
-            ObjectPlaceMode mode = profile.getDefaultObjectPlaceMode();
-            if (mode != null && IrisObjectVacuum.isVacuumMode(mode)) {
-                modes.add(mode);
-            }
         }
     }
 

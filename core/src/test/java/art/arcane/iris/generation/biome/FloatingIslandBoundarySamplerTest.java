@@ -577,8 +577,6 @@ public class FloatingIslandBoundarySamplerTest {
         when(entry.getMaxAbsoluteY()).thenReturn(null);
         when(entry.getWallWarpCng(anyLong(), same(data))).thenReturn(null);
         when(entry.getWallWarpAmplitude()).thenReturn(0.0D);
-        when(entry.getCarvingProfileSampler(engine, data)).thenReturn(null);
-        when(entry.hasCarvingReference()).thenReturn(false);
         when(entry.getCarveCng(anyLong(), same(data))).thenReturn(constant);
         when(entry.getCarveThreshold()).thenReturn(0.5D);
         when(engine.getWorld()).thenReturn(world);
@@ -657,8 +655,6 @@ public class FloatingIslandBoundarySamplerTest {
             when(entry.getMaxAbsoluteY()).thenReturn(null);
             when(entry.getWallWarpCng(anyLong(), same(data))).thenReturn(null);
             when(entry.getWallWarpAmplitude()).thenReturn(0.0D);
-            when(entry.getCarvingProfileSampler(engine, data)).thenReturn(null);
-            when(entry.hasCarvingReference()).thenReturn(false);
             when(entry.getCarveCng(anyLong(), same(data))).thenReturn(null);
             when(entry.getCarveThreshold()).thenReturn(1.0D);
         }

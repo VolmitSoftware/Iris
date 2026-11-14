@@ -14,9 +14,6 @@
   },
   "logicalHeight": 128,
   "fluidHeight": 40,
-  "caveProfile": {
-    "enabled": false
-  },
   "rockPalette": {
     "palette": [
       {

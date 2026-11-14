@@ -19,7 +19,6 @@
 package art.arcane.iris.generation.biome;
 
 import art.arcane.iris.generation.cave.IrisCave;
-import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
@@ -161,8 +160,6 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     private boolean lockLayers = false;
     @Description("The max layers to iterate below the surface for locked layer biomes (mesa).")
     private int lockLayersMax = 7;
-    @Description("Profile-driven 3D cave configuration")
-    private IrisCaveProfile caveProfile = new IrisCaveProfile();
     @ArrayType(type = String.class, min = 1)
     @RegistryListResource(IrisCave.class)
     @Description("Caves that carve under this biome, by their file in the pack's caves folder. As a cave biome, they carve where the cave biome is. They add to the dimension's and the region's lists.")

@@ -103,8 +103,12 @@ public final class CaveCarver {
      * @param sealed       columns whose surface the cave must not cut through, even if it opens to the surface
      * @param topLimitY    the highest height the cave may carve in each column, where something else caps it, such as the
      *                     ceiling of a cave pool; the cave closes under the cap like it does under the rock it keeps. Null for no caps
+     * @param depthRange   which heights the cave carves at
      */
-    public record ChunkColumns(int[] surfaceY, double[] weight, boolean[] sealed, int[] topLimitY) {
+    public record ChunkColumns(int[] surfaceY, double[] weight, boolean[] sealed, int[] topLimitY, DepthRange depthRange) {
+        public ChunkColumns(int[] surfaceY, double[] weight, boolean[] sealed, int[] topLimitY) {
+            this(surfaceY, weight, sealed, topLimitY, DepthRange.OWN);
+        }
     }
 
     private record PartShape(CavePart part, LatticeShape shape) {
@@ -145,10 +149,11 @@ public final class CaveCarver {
         Columns columns = Columns.of(chunk.weight());
         fillBlocks(fade, originX, originZ, columns.fadeBlocks());
         fillBlocks(ceilingFade, originX, originZ, columns.ceilingFadeBlocks());
-        boolean depthVaries = depthMin.varies() || depthMax.varies();
+        boolean wholeDimension = chunk.depthRange() == DepthRange.WHOLE_DIMENSION;
+        boolean depthVaries = !wholeDimension && (depthMin.varies() || depthMax.varies());
         int constantClearance = surfaceClearanceAt(originX, originZ);
-        int constantDepthMinY = depthMinYAt(originX, originZ);
-        int constantDepthMaxY = depthMaxYAt(originX, originZ);
+        int constantDepthMinY = wholeDimension ? ROCK_KEPT_ABOVE_BOTTOM_BLOCKS : depthMinYAt(originX, originZ);
+        int constantDepthMaxY = wholeDimension ? worldHeight - 1 : depthMaxYAt(originX, originZ);
         for (int column = 0; column < CaveLimits.CHUNK_COLUMNS; column++) {
             double x = originX + (column >> 4);
             double z = originZ + (column & 15);

@@ -18,12 +18,8 @@
 
 package art.arcane.iris.generation.biome;
 
-import art.arcane.iris.generation.cave.IrisCaveProfileSampler;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
-import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.generation.terrain.IrisDimensionCarvingEntry;
-import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.pack.validation.CompatPools;
 import art.arcane.iris.pack.value.OverrideMode;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
@@ -68,12 +64,6 @@ public class IrisFloatingChildBiomes implements Rarity {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private transient volatile CachedEdgeProfile recentEdgeProfile;
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient LazyBoundedCache<RuntimeKey, IrisCaveProfileSampler> carvingProfileSamplers = new LazyBoundedCache<>(8);
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private transient volatile CachedCarvingProfile recentCarvingProfile;
     private final transient AtomicCache<IrisObjectScale> shrinkScaleCache = new AtomicCache<>();
 
     public CNG getFootprintCng(long baseSeed, IrisData data) {
@@ -131,52 +121,6 @@ public class IrisFloatingChildBiomes implements Rarity {
             return null;
         }
         return style.create(baseSeed ^ 0xCA5EC1EE5EL, data);
-    }
-
-    public IrisCaveProfileSampler getCarvingProfileSampler(Engine engine, IrisData data) {
-        if (!hasCarvingReference()) {
-            return null;
-        }
-
-        CachedCarvingProfile recent = recentCarvingProfile;
-        if (recent != null && recent.key.matches(0L, data, engine)) {
-            return recent.sampler;
-        }
-        RuntimeKey key = new RuntimeKey(0L, data, engine);
-        IrisCaveProfileSampler sampler = carvingProfileSamplers.computeIfAbsent(key, ignored -> {
-            IrisBiome resolved = resolveCarvingBiome(carving, engine, data);
-            if (resolved == null || resolved.getCaveProfile() == null || !resolved.getCaveProfile().isEnabled()) {
-                return null;
-            }
-
-            return new IrisCaveProfileSampler(engine, resolved.getCaveProfile());
-        });
-        recentCarvingProfile = new CachedCarvingProfile(key, sampler);
-        return sampler;
-    }
-
-    public boolean hasCarvingReference() {
-        return carving != null && !carving.isBlank();
-    }
-
-    static IrisBiome resolveCarvingBiome(String carving, Engine engine, IrisData data) {
-        if (carving == null || carving.isBlank() || engine == null || data == null) {
-            return null;
-        }
-
-        IrisDimension dimension = engine.getDimension();
-        if (dimension != null && dimension.getCarvingEntryIndex() != null) {
-            IrisDimensionCarvingEntry entry = dimension.getCarvingEntryIndex().get(carving);
-            if (entry != null) {
-                return IrisDimensionCarvingResolver.resolveEntryBiome(engine, entry);
-            }
-        }
-
-        if (data.getBiomeLoader() == null) {
-            return null;
-        }
-
-        return data.getBiomeLoader().load(carving);
     }
 
     @RegistryListResource(IrisBiome.class)
@@ -293,12 +237,9 @@ public class IrisFloatingChildBiomes implements Rarity {
     @Description("Optional 3D noise that swiss-cheeses the island interior by marking individual blocks as air when the noise exceeds carveThreshold. Leave null to keep the island solid. Good defaults: {\"style\":\"CELLULAR\",\"zoom\":0.3} for bubble pockets, {\"style\":\"VASCULAR\",\"zoom\":0.25} for wormy tunnels.")
     private IrisGeneratorStyle carveStyle = null;
 
-    @Description("Optional carving biome key or dimension carving entry id whose caveProfile drives floating-island internal air pockets. Dimension carving ids resolve first; biome keys such as carving/mushroom resolve second. When set, this overrides carveStyle while carveThreshold remains a final tuning bias.")
-    private String carving = "";
-
     @MinNumber(0)
     @MaxNumber(1)
-    @Description("Threshold (0..1) above which carveStyle noise carves air pockets. 1.0 = no direct-noise carving. 0.75 = sparse pockets. 0.55 = heavy swiss-cheese. 0.4 = shredded lattice. When carving is set, lower values add a final positive threshold bias to the referenced caveProfile.")
+    @Description("Threshold (0..1) above which carveStyle noise carves air pockets. 1.0 = no direct-noise carving. 0.75 = sparse pockets. 0.55 = heavy swiss-cheese. 0.4 = shredded lattice.")
     private double carveThreshold = 1.0;
 
     @Description("Optional water surface height above the island base, in blocks. null = no internal water. Positive = water fills any dip in the top profile up to baseY + localFluidHeight (forms lakes/ponds in concavities of the biome-top heightmap).")
@@ -420,8 +361,5 @@ public class IrisFloatingChildBiomes implements Rarity {
     }
 
     private record CachedEdgeProfile(RuntimeKey key, FloatingIslandEdgeProfile profile) {
-    }
-
-    private record CachedCarvingProfile(RuntimeKey key, IrisCaveProfileSampler sampler) {
     }
 }

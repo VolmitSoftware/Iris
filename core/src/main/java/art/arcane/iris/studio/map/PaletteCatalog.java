@@ -98,7 +98,7 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
         if (engine.getDimension().hasFocusRegion()) {
             keys.add(engine.getDimension().getFocusRegion());
         }
-        keys.addAll(engine.getDimension().getRegions());
+        keys.addAll(engine.getDimension().getRegionKeys());
         return keys;
     }
 
@@ -141,7 +141,7 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
                 key,
                 biome.getName(),
                 summarizePalettes(key, biome),
-                biome.getChildren().stream().filter(loaded::containsKey).distinct().toList(),
+                biome.getChildKeys().stream().filter(loaded::containsKey).distinct().toList(),
                 parentsByChild.getOrDefault(key, List.of())
         )));
         return biomes;
@@ -149,7 +149,7 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
 
     private static Map<String, List<String>> parentsByChild(Map<String, IrisBiome> biomes) {
         Map<String, List<String>> parents = new LinkedHashMap<>();
-        biomes.forEach((parentKey, parent) -> parent.getChildren().stream().distinct().forEach(childKey ->
+        biomes.forEach((parentKey, parent) -> parent.getChildKeys().stream().distinct().forEach(childKey ->
                 parents.computeIfAbsent(childKey, key -> new ArrayList<>()).add(parentKey)));
         return parents;
     }
@@ -189,10 +189,10 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
 
     private static RegionEntry describeRegion(String key, IrisRegion region, Map<String, BiomeEntry> biomes) {
         List<BiomeGroup> groups = new ArrayList<>();
-        addGroup(groups, "Land", region.getLandBiomes(), biomes);
-        addGroup(groups, "Shore", region.getShoreBiomes(), biomes);
-        addGroup(groups, "Sea", region.getSeaBiomes(), biomes);
-        addGroup(groups, "Cave", region.getCaveBiomes(), biomes);
+        addGroup(groups, "Land", region.getLandBiomeKeys(), biomes);
+        addGroup(groups, "Shore", region.getShoreBiomeKeys(), biomes);
+        addGroup(groups, "Sea", region.getSeaBiomeKeys(), biomes);
+        addGroup(groups, "Cave", region.getCaveBiomeKeys(), biomes);
         return new RegionEntry(key, region.getName(), List.copyOf(groups));
     }
 

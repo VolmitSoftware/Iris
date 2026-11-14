@@ -1,6 +1,7 @@
 package art.arcane.iris.platform.bukkit.nms;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisEngine;
@@ -48,9 +49,9 @@ public class BukkitBiomeLocateTest {
         isles.setLoadKey("isles");
         IrisBiome meadow = new IrisBiome().setDerivative("minecraft:plains");
         meadow.setLoadKey("meadow");
-        IrisRegion main = new IrisRegion().setLandBiomes(new KList<>("meadow"));
+        IrisRegion main = new IrisRegion().setLandBiomes(IrisBiomeEntry.plainList("meadow"));
         main.setLoadKey("main");
-        IrisRegion archipelago = new IrisRegion().setLandBiomes(new KList<>("isles"));
+        IrisRegion archipelago = new IrisRegion().setLandBiomes(IrisBiomeEntry.plainList("isles"));
         archipelago.setLoadKey("archipelago");
         IrisDimension dimension = mock(IrisDimension.class);
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>(meadow, isles));

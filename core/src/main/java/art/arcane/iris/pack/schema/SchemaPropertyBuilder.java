@@ -23,9 +23,11 @@ import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
 import art.arcane.iris.pack.schema.annotation.IntegerOptions;
+import art.arcane.iris.pack.schema.annotation.RegistryListResource;
 import art.arcane.iris.pack.schema.annotation.RegistryMapBlockState;
 import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.iris.pack.schema.annotation.Snippet;
+import art.arcane.iris.pack.value.WeightedReference;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.volmlib.util.json.JSONArray;
@@ -162,13 +164,13 @@ final class SchemaPropertyBuilder {
         return switch (builder.getType(t.type())) {
             case "integer" -> "List of Integers";
             case "number" -> "List of Numbers";
-            case "object" -> objectArrayProperty(t, prop);
+            case "object" -> objectArrayProperty(t, prop, description);
             case "string" -> stringArrayProperty(k, t, prop, description);
             default -> "List of Something...?";
         };
     }
 
-    private String objectArrayProperty(ArrayType t, JSONObject prop) {
+    private String objectArrayProperty(ArrayType t, JSONObject prop, KList<String> description) {
         String key = "obj-" + t.type().getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
         if (!builder.definitions.containsKey(key)) {
             builder.definitions.put(key, new JSONObject());
@@ -176,8 +178,28 @@ final class SchemaPropertyBuilder {
         }
         JSONObject items = new JSONObject();
         items.put("$ref", "#/definitions/" + key);
+        if (WeightedReference.class.isAssignableFrom(t.type())) {
+            return weightedReferenceArrayProperty(t.type(), items, prop, description);
+        }
         prop.put("items", items);
         return "List of " + t.type().getSimpleName().replaceAll("\\QIris\\E", "") + "s (Objects)";
+    }
+
+    private String weightedReferenceArrayProperty(Class<?> entryType, JSONObject objectItem, JSONObject prop, KList<String> description) {
+        JSONObject keyItem = new JSONObject();
+        keyItem.put("type", "string");
+        for (Field field : entryType.getDeclaredFields()) {
+            if (field.isAnnotationPresent(RegistryListResource.class)) {
+                registryProperties.stringRegistryType(field, keyItem, description);
+            }
+        }
+        JSONArray alternatives = new JSONArray();
+        alternatives.put(keyItem);
+        alternatives.put(objectItem);
+        JSONObject items = new JSONObject();
+        items.put("anyOf", alternatives);
+        prop.put("items", items);
+        return "List of " + entryType.getSimpleName().replaceAll("\\QIris\\E|\\QEntry\\E", "") + "s (names or weighted objects)";
     }
 
     private String stringArrayProperty(Field k, ArrayType t, JSONObject prop, KList<String> description) {

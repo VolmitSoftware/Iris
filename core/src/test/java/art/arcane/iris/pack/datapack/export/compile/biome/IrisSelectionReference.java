@@ -35,7 +35,7 @@ final class IrisSelectionReference {
         childStyleSeed = IrisBiome.childStyleSeed(rng, 123);
         landChance = dimension.getLandChance();
         KList<IrisRegion> loaded = new KList<>();
-        for (IrisRegion region : data.getRegionLoader().loadAll(dimension.getRegions())) {
+        for (IrisRegion region : data.getRegionLoader().loadAll(dimension.getRegionKeys())) {
             if (!region.isCompatExcluded()) {
                 loaded.add(region);
             }
@@ -45,11 +45,11 @@ final class IrisSelectionReference {
         for (IrisRegion region : loaded) {
             Map<InferredType, RarityStream<IrisBiome>> streams = new EnumMap<>(InferredType.class);
             streams.put(InferredType.LAND, new RarityStream<>(dimension.getLandBiomeStyle().create(rng.nextParallelRNG(InferredType.LAND.ordinal()), data).stream()
-                    .zoom(dimension.getBiomeZoom()).zoom(dimension.getLandZoom()).zoom(region.getLandBiomeZoom()), pool(region.getLandBiomes())));
+                    .zoom(dimension.getBiomeZoom()).zoom(dimension.getLandZoom()).zoom(region.getLandBiomeZoom()), pool(region.getLandBiomeKeys())));
             streams.put(InferredType.SEA, new RarityStream<>(dimension.getSeaBiomeStyle().create(rng.nextParallelRNG(InferredType.SEA.ordinal()), data).stream()
-                    .zoom(dimension.getBiomeZoom()).zoom(dimension.getSeaZoom()).zoom(region.getSeaBiomeZoom()), pool(region.getSeaBiomes())));
+                    .zoom(dimension.getBiomeZoom()).zoom(dimension.getSeaZoom()).zoom(region.getSeaBiomeZoom()), pool(region.getSeaBiomeKeys())));
             streams.put(InferredType.SHORE, new RarityStream<>(dimension.getShoreBiomeStyle().create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), data).stream()
-                    .zoom(dimension.getBiomeZoom()).zoom(region.getShoreBiomeZoom()), pool(region.getShoreBiomes())));
+                    .zoom(dimension.getBiomeZoom()).zoom(region.getShoreBiomeZoom()), pool(region.getShoreBiomeKeys())));
             picks.put(region, streams);
         }
     }

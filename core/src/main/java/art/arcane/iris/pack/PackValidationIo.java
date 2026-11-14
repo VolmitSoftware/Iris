@@ -18,6 +18,7 @@
 
 package art.arcane.iris.pack;
 
+import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
@@ -44,6 +45,11 @@ public final class PackValidationIo {
             // parse failure as a blocking error. Reporting here too would duplicate it per scan.
             return null;
         }
+    }
+
+    static String referenceKey(JSONArray references, int index, String keyField) {
+        JSONObject weighted = references.optJSONObject(index);
+        return weighted == null ? references.optString(index, null) : weighted.optString(keyField, null);
     }
 
     static boolean isScannableJsonPath(Path path) {

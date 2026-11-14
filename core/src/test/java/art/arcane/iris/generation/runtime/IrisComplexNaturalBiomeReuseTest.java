@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.volmlib.util.collection.KList;
@@ -25,7 +26,7 @@ public class IrisComplexNaturalBiomeReuseTest {
         }
         leaf.setChildStyle(new IrisGeneratorStyle().setExpression("context"));
         assertTrue(IrisComplex.hasFixedNaturalBiomeNoise(dimension, List.of(leaf)));
-        leaf.setChildren(new KList<>("child"));
+        leaf.setChildren(IrisBiomeEntry.plainList("child"));
         assertFalse(IrisComplex.hasFixedNaturalBiomeNoise(dimension, List.of(leaf)));
         leaf.setChildStyle(new IrisGeneratorStyle().setFracture(new IrisGeneratorStyle().setExpression("context")));
         assertFalse(IrisComplex.hasFixedNaturalBiomeNoise(dimension, List.of(leaf)));

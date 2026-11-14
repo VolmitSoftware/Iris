@@ -36,7 +36,7 @@ final class PlacementScopes {
                 placements(dimension.getStructures())));
         Map<String, IrisRegion> regions = new LinkedHashMap<>();
         Map<String, SortedSet<String>> regionIds = new LinkedHashMap<>();
-        for (String regionKey : dimension.getRegions()) {
+        for (String regionKey : dimension.getRegionKeys()) {
             IrisRegion region = regionKey == null ? null : data.getRegionLoader().load(regionKey, false);
             if (region != null && !region.isCompatExcluded() && !regions.containsKey(region.getLoadKey())) {
                 regions.put(region.getLoadKey(), region);
@@ -74,7 +74,7 @@ final class PlacementScopes {
     private static SortedSet<String> closure(IrisData data, IrisRegion region) {
         SortedSet<String> keys = new TreeSet<>();
         List<IrisBiome> frontier = new ArrayList<>();
-        for (KList<String> pool : List.of(region.getLandBiomes(), region.getSeaBiomes(), region.getShoreBiomes(), region.getCaveBiomes())) {
+        for (KList<String> pool : List.of(region.getLandBiomeKeys(), region.getSeaBiomeKeys(), region.getShoreBiomeKeys(), region.getCaveBiomeKeys())) {
             for (IrisBiome biome : data.getBiomeLoader().loadAll(pool)) {
                 if (!biome.isCompatExcluded() && keys.add(biome.getLoadKey())) {
                     frontier.add(biome);

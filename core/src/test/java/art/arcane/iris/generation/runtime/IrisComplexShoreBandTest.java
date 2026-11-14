@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.noise.CNG;
@@ -162,9 +163,9 @@ public class IrisComplexShoreBandTest {
         IrisRegion region = new IrisRegion();
         region.setName("Shore Region " + variant);
         region.setLandBiomeZoom(1D + variant * 0.25D);
-        KList<String> lands = new KList<>();
+        KList<IrisBiomeEntry> lands = new KList<>();
         for (int index = 0; index < variant % 5; index++) {
-            lands.add("land-" + index);
+            lands.add(IrisBiomeEntry.plain("land-" + index));
         }
         region.setLandBiomes(lands);
         return region;

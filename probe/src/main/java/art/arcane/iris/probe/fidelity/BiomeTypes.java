@@ -28,9 +28,9 @@ public final class BiomeTypes {
     public static SortedMap<String, String> of(List<IrisRegion> regions, Function<String, IrisBiome> biomes) {
         SortedMap<String, SortedSet<String>> types = new TreeMap<>();
         for (IrisRegion region : regions) {
-            visit(region.getLandBiomes(), LAND, biomes, types);
-            visit(region.getSeaBiomes(), SEA, biomes, types);
-            visit(region.getShoreBiomes(), SHORE, biomes, types);
+            visit(region.getLandBiomeKeys(), LAND, biomes, types);
+            visit(region.getSeaBiomeKeys(), SEA, biomes, types);
+            visit(region.getShoreBiomeKeys(), SHORE, biomes, types);
         }
         SortedMap<String, String> joined = new TreeMap<>();
         for (Map.Entry<String, SortedSet<String>> entry : types.entrySet()) {
@@ -50,7 +50,7 @@ public final class BiomeTypes {
             types.computeIfAbsent(key, ignored -> new TreeSet<>()).add(type);
             IrisBiome biome = biomes.apply(key);
             if (biome != null) {
-                pending.addAll(biome.getChildren());
+                pending.addAll(biome.getChildKeys());
             }
         }
     }

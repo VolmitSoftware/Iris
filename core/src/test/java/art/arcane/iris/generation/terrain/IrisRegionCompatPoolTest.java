@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.terrain;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.testsupport.PackCompatFixtures;
 
 import art.arcane.iris.pack.validation.CompatAction;
@@ -52,7 +53,7 @@ public class IrisRegionCompatPoolTest {
         IrisData data = dataWith(report, plains, sulfur);
         IrisRegion region = PackCompatFixtures.region("overworld");
         region.setLoader(data);
-        region.setLandBiomes(new KList<>("land/plains", "cave/sulfur-grotto"));
+        region.setLandBiomes(IrisBiomeEntry.plainList("land/plains", "cave/sulfur-grotto"));
 
         KList<IrisBiome> pool = region.getRealLandBiomes(() -> data);
 
@@ -72,9 +73,9 @@ public class IrisRegionCompatPoolTest {
         IrisData data = dataWith(report, shore);
         IrisRegion region = PackCompatFixtures.region("overworld");
         region.setLoader(data);
-        region.setSeaBiomes(new KList<>("sea/gone"));
-        region.setShoreBiomes(new KList<>("shore/sand"));
-        region.setCaveBiomes(new KList<>("cave/gone"));
+        region.setSeaBiomes(IrisBiomeEntry.plainList("sea/gone"));
+        region.setShoreBiomes(IrisBiomeEntry.plainList("shore/sand"));
+        region.setCaveBiomes(IrisBiomeEntry.plainList("cave/gone"));
 
         assertTrue(region.getRealSeaBiomes(() -> data).isEmpty());
         assertEquals(1, region.getRealShoreBiomes(() -> data).size());
@@ -87,13 +88,13 @@ public class IrisRegionCompatPoolTest {
         PackCompatReport report = new PackCompatReport();
         IrisBiome plains = biome("land/plains");
         IrisBiome sulfur = excludeBlock(biome("cave/sulfur-grotto"));
-        sulfur.setChildren(new KList<>("cave/sulfur-deep"));
+        sulfur.setChildren(IrisBiomeEntry.plainList("cave/sulfur-deep"));
         IrisBiome sulfurDeep = biome("cave/sulfur-deep");
         IrisData data = dataWith(report, plains, sulfur, sulfurDeep);
         IrisRegion region = PackCompatFixtures.region("overworld");
         region.setLoader(data);
-        region.setLandBiomes(new KList<>("land/plains"));
-        region.setCaveBiomes(new KList<>("cave/sulfur-grotto"));
+        region.setLandBiomes(IrisBiomeEntry.plainList("land/plains"));
+        region.setCaveBiomes(IrisBiomeEntry.plainList("cave/sulfur-grotto"));
 
         KList<IrisBiome> natural = region.getNaturalBiomes(() -> data);
 
@@ -108,7 +109,7 @@ public class IrisRegionCompatPoolTest {
         IrisData data = dataWith(report, sulfur);
         IrisRegion region = PackCompatFixtures.region("sulfur-lands");
         region.setLoader(data);
-        region.setLandBiomes(new KList<>("cave/sulfur-flats"));
+        region.setLandBiomes(IrisBiomeEntry.plainList("cave/sulfur-flats"));
 
         CompatStatus status = region.evaluateCompat(gate(report));
 
@@ -128,7 +129,7 @@ public class IrisRegionCompatPoolTest {
         IrisData data = dataWith(report, plains, sulfur);
         IrisRegion region = PackCompatFixtures.region("overworld");
         region.setLoader(data);
-        region.setLandBiomes(new KList<>("land/plains", "cave/sulfur-flats"));
+        region.setLandBiomes(IrisBiomeEntry.plainList("land/plains", "cave/sulfur-flats"));
 
         assertFalse(region.evaluateCompat(gate(report)).excluded());
     }
@@ -142,8 +143,8 @@ public class IrisRegionCompatPoolTest {
         IrisData data = dataWith(report, plains, beach);
         IrisRegion region = PackCompatFixtures.region("swamp");
         region.setLoader(data);
-        region.setLandBiomes(new KList<>("land/plains"));
-        region.setShoreBiomes(new KList<>("swamp/shore/beach"));
+        region.setLandBiomes(IrisBiomeEntry.plainList("land/plains"));
+        region.setShoreBiomes(IrisBiomeEntry.plainList("swamp/shore/beach"));
 
         CompatStatus status = region.evaluateCompat(gate(report));
 
@@ -166,8 +167,8 @@ public class IrisRegionCompatPoolTest {
         IrisData data = dataWith(report, plains, sea);
         IrisRegion region = PackCompatFixtures.region("overworld");
         region.setLoader(data);
-        region.setLandBiomes(new KList<>("land/plains"));
-        region.setSeaBiomes(new KList<>("sea/sulfur"));
+        region.setLandBiomes(IrisBiomeEntry.plainList("land/plains"));
+        region.setSeaBiomes(IrisBiomeEntry.plainList("sea/sulfur"));
 
         assertTrue(region.evaluateCompat(gate(report)).excluded());
         CompatFinding cascade = find(report, CompatAction.EXCLUDED, "region", "overworld");
@@ -187,9 +188,9 @@ public class IrisRegionCompatPoolTest {
         IrisData data = dataWith(report, plains, sea, sand, gravel, sulfur);
         IrisRegion region = PackCompatFixtures.region("overworld");
         region.setLoader(data);
-        region.setLandBiomes(new KList<>("land/plains"));
-        region.setSeaBiomes(new KList<>("shore/sulfur", "sea/ocean"));
-        region.setShoreBiomes(new KList<>("shore/sand", "shore/sulfur", "shore/gravel"));
+        region.setLandBiomes(IrisBiomeEntry.plainList("land/plains"));
+        region.setSeaBiomes(IrisBiomeEntry.plainList("shore/sulfur", "sea/ocean"));
+        region.setShoreBiomes(IrisBiomeEntry.plainList("shore/sand", "shore/sulfur", "shore/gravel"));
 
         assertFalse(region.evaluateCompat(gate(report)).excluded());
         KList<IrisBiome> shores = region.getRealShoreBiomes(() -> data);
@@ -207,8 +208,8 @@ public class IrisRegionCompatPoolTest {
         IrisData data = dataWith(report, plains, sulfur);
         IrisRegion region = PackCompatFixtures.region("highlands");
         region.setLoader(data);
-        region.setLandBiomes(new KList<>("land/plains"));
-        region.setCaveBiomes(new KList<>("cave/sulfur"));
+        region.setLandBiomes(IrisBiomeEntry.plainList("land/plains"));
+        region.setCaveBiomes(IrisBiomeEntry.plainList("cave/sulfur"));
 
         assertFalse(region.evaluateCompat(gate(report)).excluded());
         assertTrue(region.getRealSeaBiomes(() -> data).isEmpty());
@@ -224,8 +225,8 @@ public class IrisRegionCompatPoolTest {
         IrisData data = dataWith(report, plains, sulfur);
         IrisRegion region = PackCompatFixtures.region("overworld");
         region.setLoader(data);
-        region.setLandBiomes(new KList<>("land/plains", "land/sulfur"));
-        region.setShoreBiomes(new KList<>("shore/missing"));
+        region.setLandBiomes(IrisBiomeEntry.plainList("land/plains", "land/sulfur"));
+        region.setShoreBiomes(IrisBiomeEntry.plainList("shore/missing"));
 
         assertFalse(region.evaluateCompat(gate(report)).excluded());
     }
@@ -239,15 +240,15 @@ public class IrisRegionCompatPoolTest {
         IrisData data = dataWith(report, plains, beach);
         IrisRegion swamp = PackCompatFixtures.region("swamp");
         swamp.setLoader(data);
-        swamp.setLandBiomes(new KList<>("land/plains"));
-        swamp.setShoreBiomes(new KList<>("shore/sulfur"));
+        swamp.setLandBiomes(IrisBiomeEntry.plainList("land/plains"));
+        swamp.setShoreBiomes(IrisBiomeEntry.plainList("shore/sulfur"));
         swamp.setCompat(swamp.evaluateCompat(gate(report)));
         IrisRegion highlands = PackCompatFixtures.region("highlands");
         ResourceLoader<IrisRegion> regions = mock(ResourceLoader.class);
         when(data.getRegionLoader()).thenReturn(regions);
         when(regions.load("swamp")).thenReturn(swamp);
         when(regions.load("highlands")).thenReturn(highlands);
-        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("swamp", "highlands"));
+        IrisDimension dimension = new IrisDimension().setRegions(IrisRegionEntry.plainList("swamp", "highlands"));
         dimension.setLoadKey("overworld");
         dimension.setLoader(data);
 

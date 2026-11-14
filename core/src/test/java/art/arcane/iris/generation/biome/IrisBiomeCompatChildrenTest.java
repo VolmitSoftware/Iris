@@ -41,7 +41,7 @@ public class IrisBiomeCompatChildrenTest {
         IrisBiome parent = biome("land/plains");
         IrisBiome hills = biome("land/hills");
         IrisBiome sulfur = excludeBlock(biome("land/sulfur-flats"));
-        parent.setChildren(new KList<>("land/hills", "land/sulfur-flats"));
+        parent.setChildren(IrisBiomeEntry.plainList("land/hills", "land/sulfur-flats"));
         IrisData data = dataWith(report, parent, hills, sulfur);
         parent.setLoader(data);
 
@@ -59,7 +59,7 @@ public class IrisBiomeCompatChildrenTest {
     public void realChildrenSkipsUnloadableChild() {
         PackCompatReport report = new PackCompatReport();
         IrisBiome parent = biome("land/plains");
-        parent.setChildren(new KList<>("land/gone"));
+        parent.setChildren(IrisBiomeEntry.plainList("land/gone"));
         IrisData data = dataWith(report, parent);
         parent.setLoader(data);
 

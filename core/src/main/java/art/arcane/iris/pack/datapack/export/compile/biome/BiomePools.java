@@ -40,16 +40,16 @@ final class BiomePools {
     static BiomePools load(IrisDimension dimension, IrisData data) {
         List<RegionPools> regions = new ArrayList<>();
         SortedMap<String, IrisBiome> biomes = new TreeMap<>();
-        for (IrisRegion region : data.getRegionLoader().loadAll(dimension.getRegions())) {
+        for (IrisRegion region : data.getRegionLoader().loadAll(dimension.getRegionKeys())) {
             if (region.isCompatExcluded()) {
                 continue;
             }
             RegionPools pools = new RegionPools(
                     region,
-                    pool(data, region.getLandBiomes(), biomes),
-                    pool(data, region.getSeaBiomes(), biomes),
-                    pool(data, region.getShoreBiomes(), biomes),
-                    pool(data, region.getCaveBiomes(), biomes));
+                    pool(data, region.getLandBiomeKeys(), biomes),
+                    pool(data, region.getSeaBiomeKeys(), biomes),
+                    pool(data, region.getShoreBiomeKeys(), biomes),
+                    pool(data, region.getCaveBiomeKeys(), biomes));
             if (pools.land().isEmpty() && pools.sea().isEmpty()) {
                 throw new IllegalStateException("Region '" + region.getLoadKey() + "' has no land or sea biome to export");
             }

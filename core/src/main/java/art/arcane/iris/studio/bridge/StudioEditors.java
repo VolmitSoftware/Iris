@@ -49,13 +49,16 @@ final class StudioEditors {
 
     private final StudioScenes scenes;
     private final Engine engine;
+    // A studio world generates from a copy of the pack; edits go to the pack itself, which the world reloads from.
     private final Path packFolder;
+    private final Path loadedFolder;
     private final SceneFiles.DesktopTrash desktopTrash;
 
     StudioEditors(StudioScenes scenes, Engine engine, SceneFiles.DesktopTrash desktopTrash) {
         this.scenes = scenes;
         this.engine = engine;
-        this.packFolder = engine.getData().getDataFolder().toPath().toAbsolutePath().normalize();
+        this.packFolder = engine.getPackSource().toAbsolutePath().normalize();
+        this.loadedFolder = engine.getData().getDataFolder().toPath().toAbsolutePath().normalize();
         this.desktopTrash = desktopTrash;
     }
 
@@ -166,10 +169,14 @@ final class StudioEditors {
     }
 
     private Path fileOf(String viewId, String key) {
-        Path file = scenes.editableView(viewId).fileOf(engine, key)
+        Path loaded = scenes.editableView(viewId).fileOf(engine, key)
                 .orElseThrow(() -> new NoSuchElementException("Entry " + key + " has no file to edit"))
                 .toPath().toAbsolutePath().normalize();
-        if (!file.startsWith(packFolder) || !Files.isRegularFile(file)) {
+        if (!loaded.startsWith(loadedFolder)) {
+            throw new NoSuchElementException("Entry " + key + " has no file in the pack");
+        }
+        Path file = packFolder.resolve(loadedFolder.relativize(loaded));
+        if (!Files.isRegularFile(file)) {
             throw new NoSuchElementException("Entry " + key + " has no file in the pack");
         }
         return file;

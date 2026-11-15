@@ -46,6 +46,8 @@ public class StudioEditorsTest {
     public final TemporaryFolder folder = new TemporaryFolder();
 
     private Path pack;
+    // A studio world generates from a copy of the pack, which no edit may touch.
+    private Path loadedCopy;
     private Path boulder;
     private Engine engine;
 
@@ -55,6 +57,10 @@ public class StudioEditorsTest {
         boulder = pack.resolve("procedural/rocks/boulder.json");
         Files.createDirectories(boulder.getParent());
         Files.writeString(boulder, BOULDER, StandardCharsets.UTF_8);
+        loadedCopy = folder.newFolder("loaded").toPath();
+        Path loadedBoulder = loadedCopy.resolve("procedural/rocks/boulder.json");
+        Files.createDirectories(loadedBoulder.getParent());
+        Files.copy(boulder, loadedBoulder);
         engine = studioEngine(true);
     }
 
@@ -177,13 +183,14 @@ public class StudioEditorsTest {
     private Engine studioEngine(boolean studio) {
         ResourceLoader<ProceduralObject> definitions = mock(ResourceLoader.class);
         when(definitions.getPossibleKeys()).thenReturn(new String[]{KEY});
-        when(definitions.findFile(anyString())).thenAnswer(asked -> pack.resolve("procedural").resolve(asked.getArgument(0) + ".json").toFile());
+        when(definitions.findFile(anyString())).thenAnswer(asked -> loadedCopy.resolve("procedural").resolve(asked.getArgument(0) + ".json").toFile());
         IrisData data = mock(IrisData.class);
-        when(data.getDataFolder()).thenReturn(pack.toFile());
+        when(data.getDataFolder()).thenReturn(loadedCopy.toFile());
         when(data.getProceduralObjectLoader()).thenReturn(definitions);
         when(data.getGson()).thenReturn(new Gson());
         Engine studioEngine = mock(Engine.class);
         when(studioEngine.getData()).thenReturn(data);
+        when(studioEngine.getPackSource()).thenReturn(pack);
         when(studioEngine.isStudio()).thenReturn(studio);
         return studioEngine;
     }

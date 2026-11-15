@@ -46,6 +46,7 @@ const VIEW_ICONS: Record<string, LucideIcon> = {
   'object-load': Boxes,
   'decorator-load': Sprout,
   'layer-load': Layers,
+  caves: Pickaxe,
   caveProfiles: Pickaxe,
   treeProfiles: TreePine,
   formationProfiles: Pyramid,
@@ -55,7 +56,7 @@ const VIEW_ICONS: Record<string, LucideIcon> = {
   'iris:terrain/palettes': Palette,
   'iris:decorant/decorators': Flower2,
   'iris:objects': Package,
-  'iris:objects/procedural': Workflow,
+  proceduralParts: Workflow,
   noise: AudioWaveform,
   imageMaps: ImageIcon,
   pregen: Zap

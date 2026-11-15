@@ -26,6 +26,13 @@ import art.arcane.iris.studio.imagemap.ImageMapPreviews;
 import art.arcane.iris.studio.map.PalettePatterns;
 import art.arcane.iris.studio.noise.NoiseSources;
 import art.arcane.iris.studio.noise.NoiseTile;
+import art.arcane.iris.studio.scene.SceneBakeTiming;
+import art.arcane.iris.studio.scene.SceneBlocks;
+import art.arcane.iris.studio.scene.SceneEntry;
+import art.arcane.iris.studio.scene.SceneForm;
+import art.arcane.iris.studio.scene.SceneRequest;
+import art.arcane.iris.studio.scene.SceneSizes;
+import art.arcane.iris.studio.scene.SceneView;
 import art.arcane.iris.studio.view.GuiHost;
 import art.arcane.iris.studio.view.GuiMarker;
 import art.arcane.iris.studio.view.PregenRenderSnapshot;
@@ -137,6 +144,7 @@ public final class StudioBridge implements AutoCloseable {
     private final ExecutorService workers;
     private final ScheduledExecutorService ticker;
     private final StudioEvents events;
+    private final StudioScenes scenes = new StudioScenes();
     private final Runnable hotloadHook;
     private final Cache<String, AtomicBoolean> droppedTiles = Caffeine.newBuilder().expireAfterWrite(DROPPED_TILE_KEPT_MINUTES, TimeUnit.MINUTES).build();
     private volatile boolean closed;
@@ -239,11 +247,12 @@ public final class StudioBridge implements AutoCloseable {
             case "picks" -> sendJson(exchange, STATUS_OK, new PickInspection("", List.of()));
             case "regions" -> sendJson(exchange, STATUS_OK, StudioHover.previewableRegions(get(exchange).engine()));
             case "entities" -> sendJson(exchange, STATUS_OK, entities(get(exchange)));
-            case "scenes" -> sendJson(exchange, STATUS_OK, profileViews());
-            case "scene-entries" -> sendJson(exchange, STATUS_OK, profileEntries(get(exchange).engine(), query));
-            case "scene" -> sendBytes(exchange, "application/octet-stream", profileScene(get(exchange).engine(), query));
+            case "scenes" -> sendJson(exchange, STATUS_OK, scenes.infos());
+            case "scene-entries" -> sendJson(exchange, STATUS_OK, sceneEntries(get(exchange).engine(), query));
+            case "scene" -> sendBytes(exchange, "application/octet-stream", scene(get(exchange).engine(), query).encode(gson));
+            case "scene-parts" -> sendBytes(exchange, "application/octet-stream", StudioScenes.encodeParts(scene(get(exchange).engine(), query)));
+            case "profile-form" -> sendJson(exchange, STATUS_OK, sceneForm(get(exchange).engine(), query));
             case "scene-bake" -> sendJson(exchange, STATUS_OK, sceneBake(get(exchange).engine(), query));
-            case "profile-form" -> sendJson(exchange, STATUS_OK, profileForm(get(exchange).engine(), query));
             case "noise-sources" -> sendJson(exchange, STATUS_OK, NoiseSources.of(get(exchange).engine()).list());
             case "noise-tile" -> sendBytes(exchange, "application/octet-stream", noiseTile(get(exchange).engine(), query));
             case "patterns" -> sendJson(exchange, STATUS_OK, List.of(PALETTES_VIEW));
@@ -253,7 +262,7 @@ public final class StudioBridge implements AutoCloseable {
             case "pregen-map" -> sendBytes(exchange, "image/png", pregenMap(exchange));
             case "pregen-pause" -> sendJson(exchange, STATUS_OK, pregenPause(exchange));
             case "image-maps" -> sendJson(exchange, STATUS_OK, ImageMapPreviews.entries(get(exchange).engine()));
-            case "image-map" -> sendJson(exchange, STATUS_OK, profiling(() -> ImageMapPreviews.details(get(exchange).engine(), query.text("key"))));
+            case "image-map" -> sendJson(exchange, STATUS_OK, answering(() -> ImageMapPreviews.details(get(exchange).engine(), query.text("key"))));
             case "image-map-preview" -> sendBytes(exchange, "image/png", imageMapPreview(get(exchange).engine(), query));
             case "saved-worlds" -> sendJson(exchange, STATUS_OK, List.of());
             case "events" -> streamEvents(exchange);
@@ -382,7 +391,7 @@ public final class StudioBridge implements AutoCloseable {
 
     private static byte[] imageMapPreview(Engine engine, Query query) {
         try {
-            return profiling(() -> ImageMapPreviews.preview(engine, query.text("key"), query.whole("size", DEFAULT_IMAGE_MAP_PREVIEW_PIXELS)));
+            return answering(() -> ImageMapPreviews.preview(engine, query.text("key"), query.whole("size", DEFAULT_IMAGE_MAP_PREVIEW_PIXELS)));
         } catch (IllegalArgumentException refused) {
             throw new RequestError(STATUS_BAD_REQUEST, refused.getMessage());
         }
@@ -458,43 +467,51 @@ public final class StudioBridge implements AutoCloseable {
         sendBytes(exchange, endpoint.endsWith(".png") ? "image/png" : "application/json", asset);
     }
 
-    private static List<SceneViewInfo> profileViews() {
-        return StudioProfiles.views().stream()
-                .map(view -> new SceneViewInfo(view.id(), view.label(), view.description(), false, false, view.isBaked(), false, view.sizes(), view.hasForm()))
-                .toList();
+    private List<SceneEntry> sceneEntries(Engine engine, Query query) {
+        return answering(() -> sceneView(query).entries(engine));
     }
 
-    private static List<StudioProfiles.Entry> profileEntries(Engine engine, Query query) {
-        return profileView(query).entries(engine);
+    private SceneForm sceneForm(Engine engine, Query query) {
+        SceneView view = sceneView(query);
+        if (!view.hasForm()) {
+            throw new RequestError(STATUS_NOT_FOUND, "The entries of " + view.id() + " have no settings form");
+        }
+        return answering(() -> view.form(engine, query.text("key"), query.prefixed(OVERRIDE_PREFIX)));
     }
 
-    private static StudioObjects.BakeTiming sceneBake(Engine engine, Query query) {
-        StudioProfiles.ProfileView view = profileView(query);
+    private SceneBakeTiming sceneBake(Engine engine, Query query) {
+        SceneView view = sceneView(query);
         if (!view.isBaked()) {
-            throw new RequestError(STATUS_BAD_REQUEST, "View " + view.id() + " is not baked");
+            throw new RequestError(STATUS_NOT_FOUND, "The entries of " + view.id() + " are not baked");
         }
-        return profiling(() -> view.timeBake(engine, query.text("key")));
+        return answering(() -> view.timeBake(engine, query.text("key")));
     }
 
-    private static ProfileForm.Form profileForm(Engine engine, Query query) {
-        return profiling(() -> profileView(query).form(engine, query.text("key"), query.prefixed(OVERRIDE_PREFIX)));
+    private SceneBlocks scene(Engine engine, Query query) {
+        SceneView view = sceneView(query);
+        SceneRequest request = new SceneRequest(query.text("key"), query.whole("variant", 0), sizeOf(view, query), query.prefixed(OVERRIDE_PREFIX));
+        return answering(() -> view.scene(engine, request));
     }
 
-    private byte[] profileScene(Engine engine, Query query) {
-        StudioProfiles.ProfileView view = profileView(query);
-        int size = query.whole("size", view.sizes() == null ? 0 : view.sizes().opening());
-        if (view.sizes() != null && !view.sizes().blocksAcross().contains(size)) {
-            throw new RequestError(STATUS_BAD_REQUEST, "View " + view.id() + " builds scenes " + view.sizes().blocksAcross() + " blocks across, not " + size);
+    // A view with sizes is asked at one of them, the one it opens with when the studio names none.
+    private static int sizeOf(SceneView view, Query query) {
+        SceneSizes sizes = view.sizes();
+        if (sizes == null) {
+            return 0;
         }
-        return profiling(() -> view.scene(engine, query.text("key"), query.whole("variant", 0), size, query.prefixed(OVERRIDE_PREFIX)).encode(gson));
+        int size = query.whole("size", sizes.opening());
+        if (!sizes.blocksAcross().contains(size)) {
+            throw new RequestError(STATUS_BAD_REQUEST, "View " + view.id() + " builds scenes " + sizes.blocksAcross() + " blocks across, not " + size);
+        }
+        return size;
     }
 
-    private static StudioProfiles.ProfileView profileView(Query query) {
-        return profiling(() -> StudioProfiles.view(query.text("view")));
+    private SceneView sceneView(Query query) {
+        return answering(() -> scenes.view(query.text("view")));
     }
 
-    // A profile the pack does not have is the studio's to be told about, not a failure of the bridge.
-    private static <T> T profiling(ProfileTask<T> task) {
+    // An entry the pack does not have is the studio's to be told about, not a failure of the bridge.
+    private static <T> T answering(SceneTask<T> task) {
         try {
             return task.run();
         } catch (NoSuchElementException unknown) {
@@ -505,7 +522,7 @@ public final class StudioBridge implements AutoCloseable {
     }
 
     @FunctionalInterface
-    private interface ProfileTask<T> {
+    private interface SceneTask<T> {
         T run() throws IOException;
     }
 
@@ -699,11 +716,6 @@ public final class StudioBridge implements AutoCloseable {
     }
 
     private record MessageBody(String message) {
-    }
-
-    /** A profile view as the studio lists its scene views; {@code form} when its entries have a settings form. */
-    private record SceneViewInfo(String id, String label, String description, boolean editable, boolean creatable, boolean baked,
-                                 boolean parts, StudioProfiles.Sizes sizes, boolean form) {
     }
 
     /** @param snapshot null while no pregeneration runs */

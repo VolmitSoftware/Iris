@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 /**
- * Something of a pack the studio can list and draw as blocks, such as its cave profiles. A feature implements this next
+ * Something of a pack the studio can list and draw as blocks, such as its caves. A feature implements this next
  * to its own code and names it in {@link SceneViews}; the studio shows whatever is listed there and knows nothing else
  * about the feature.
  */

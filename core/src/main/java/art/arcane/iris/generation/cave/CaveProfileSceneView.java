@@ -8,7 +8,6 @@ import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.scene.SceneBlocks;
 import art.arcane.iris.studio.scene.SceneEntry;
-import art.arcane.iris.studio.scene.SceneForm;
 import art.arcane.iris.studio.scene.SceneRequest;
 import art.arcane.iris.studio.scene.SceneSizes;
 import art.arcane.iris.studio.scene.SceneView;
@@ -16,9 +15,7 @@ import art.arcane.iris.studio.scene.SceneView;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Set;
 
 /** The carved space of each enabled cave profile, as blocks coloured by depth. */
 public final class CaveProfileSceneView implements SceneView {
@@ -76,19 +73,8 @@ public final class CaveProfileSceneView implements SceneView {
     }
 
     @Override
-    public boolean hasForm() {
-        return true;
-    }
-
-    @Override
-    public SceneForm form(Engine engine, String key, Map<String, String> overrides) {
-        IrisCaveProfile profile = SceneForm.withOverrides(profileOf(engine, key), overrides);
-        return SceneForm.of("Cave profile", profile, Set.of(), overrides, List.of("Values typed here change the preview only"));
-    }
-
-    @Override
     public SceneBlocks scene(Engine engine, SceneRequest request) throws IOException {
-        IrisCaveProfile profile = SceneForm.withOverrides(profileOf(engine, request.key()), request.overrides());
+        IrisCaveProfile profile = profileOf(engine, request.key());
         int size = request.size();
         int surfaceY = Math.min(engine.getHeight() - 1, engine.getDimension().getFluidHeight() + SURFACE_ABOVE_SEA_BLOCKS);
         int bottomY = Math.max(0, Math.max((int) Math.floor(profile.getVerticalRange().getMin()), surfaceY - MAX_DEPTH_BLOCKS));

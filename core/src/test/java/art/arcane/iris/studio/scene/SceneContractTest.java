@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -174,6 +175,38 @@ public class SceneContractTest {
     @Test
     public void theOpeningSizeIsOneOfTheSizes() {
         assertThrows(IllegalArgumentException.class, () -> new SceneSizes(List.of(16, 32), 64));
+    }
+
+    @Test
+    public void aPathIsBuiltStepByStepFromTheRoot() {
+        JsonPath stem = JsonPath.ROOT.member("parts").element(0).member("stem");
+
+        assertEquals("parts.0.stem", stem.toString());
+        assertEquals(JsonPath.ROOT.member("parts").element(0), stem.parent());
+        assertTrue(stem.startsWith(JsonPath.ROOT.member("parts")));
+        assertFalse(stem.isElement());
+        assertTrue(stem.parent().isElement());
+        assertThrows(IllegalStateException.class, JsonPath.ROOT::parent);
+    }
+
+    @Test
+    public void onlyANodeInAnArrayCanMove() {
+        GraphNode.Edits movable = new GraphNode.Edits(Optional.empty(), true, List.of());
+
+        assertThrows(IllegalArgumentException.class, () -> nodeAt(JsonPath.ROOT, movable));
+        assertEquals(movable, nodeAt(JsonPath.ROOT.member("parts").element(1), movable).edits());
+    }
+
+    @Test
+    public void aNodeThatCanBeAddedStartsAsJson() {
+        JsonPath parts = JsonPath.ROOT.member("parts");
+
+        assertThrows(IllegalArgumentException.class, () -> new GraphNode.Addition("Stem", parts, "{stem:"));
+        assertEquals("{\"stem\":{}}", new GraphNode.Addition("Stem", parts, "{\"stem\":{}}").literal());
+    }
+
+    private static GraphNode nodeAt(JsonPath path, GraphNode.Edits edits) {
+        return new GraphNode("Stem", "Stem", path, SceneBlocks.NO_PART, List.of(), List.of(), List.of(), edits);
     }
 
     private static JsonObject headerOf(SceneBlocks scene) {

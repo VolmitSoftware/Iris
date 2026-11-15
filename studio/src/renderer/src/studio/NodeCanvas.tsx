@@ -105,35 +105,46 @@ export function NodeCanvas({ roots, types, values, file, selectedId, locked, sug
     }
   }
 
+  // The gesture as it stands at {@code event}, worked out from the event itself: a release can come before the last
+  // move was drawn.
+  const gestureAt = (event: React.PointerEvent): NodeGesture | null => {
+    if (gesture?.kind === 'moving') {
+      const [dx, dy] = [event.clientX - gesture.start.x, event.clientY - gesture.start.y]
+      const moved = gesture.moved || Math.hypot(dx, dy) > DRAG_START_PIXELS
+      return { ...gesture, moved, offset: moved ? { x: dx / view.camera.scale, y: dy / view.camera.scale } : gesture.offset }
+    }
+    if (gesture?.kind === 'regrowing') {
+      const pointer = view.graphPoint(event.clientX, event.clientY)
+      const over = nodeAt(layout.nodes, pointer)
+      const takesIt = over !== null && over !== gesture.placed && canRegrow(gesture.placed.node, over.node)
+      return { ...gesture, pointer, target: takesIt ? over : null }
+    }
+    return null
+  }
+
   const pointerMove = (event: React.PointerEvent): void => {
     if (panFrom.current !== null) {
       view.panBy(event.clientX - panFrom.current.x, event.clientY - panFrom.current.y)
       panFrom.current = { x: event.clientX, y: event.clientY }
       return
     }
-    if (gesture?.kind === 'moving') {
-      const [dx, dy] = [event.clientX - gesture.start.x, event.clientY - gesture.start.y]
-      const moved = gesture.moved || Math.hypot(dx, dy) > DRAG_START_PIXELS
-      setGesture({ ...gesture, moved, offset: moved ? { x: dx / view.camera.scale, y: dy / view.camera.scale } : gesture.offset })
-    } else if (gesture?.kind === 'regrowing') {
-      const pointer = view.graphPoint(event.clientX, event.clientY)
-      const over = nodeAt(layout.nodes, pointer)
-      const takesIt = over !== null && over !== gesture.placed && canRegrow(gesture.placed.node, over.node)
-      setGesture({ ...gesture, pointer, target: takesIt ? over : null })
+    if (gesture !== null) {
+      setGesture(gestureAt(event))
     }
   }
 
-  const pointerUp = (): void => {
+  const pointerUp = (event: React.PointerEvent): void => {
     panFrom.current = null
+    const finished = gestureAt(event)
     setGesture(null)
-    if (gesture?.kind === 'moving' && gesture.moved) {
-      const { placed, offset } = gesture
+    if (finished?.kind === 'moving' && finished.moved) {
+      const { placed, offset } = finished
       const dropped = { x: snappedToGrid(placed.x + offset.x), y: snappedToGrid(placed.y + offset.y) }
       if (dropped.x !== placed.x || dropped.y !== placed.y) {
         setPositions((current) => ({ ...current, [placed.id]: dropped }))
       }
-    } else if (gesture?.kind === 'regrowing' && gesture.target !== null) {
-      edit({ op: 'move', path: gesture.placed.node.path, toList: gesture.target.node.childList! })
+    } else if (finished?.kind === 'regrowing' && finished.target !== null) {
+      edit({ op: 'move', path: finished.placed.node.path, toList: finished.target.node.childList! })
     }
   }
 

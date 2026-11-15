@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canBecomeCurve, curveAt, curveFrom, isCurve, keyframesFrom, plotRange, roundedNumber, samplesOf, shapeFrom, withAddedKeyframe, withKeyframe, withoutKeyframe, withSetting, withShape } from './curves'
+import { canBecomeCurve, curveAt, curveFrom, curveLiteral, isCurve, keyframesFrom, plotRange, roundedNumber, samplesOf, shapeFrom, withAddedKeyframe, withKeyframe, withoutKeyframe, withSetting, withShape } from './curves'
 
 describe('isCurve', () => {
   it('holds only for keyframes and named shapes', () => {
@@ -90,6 +90,13 @@ describe('plotRange', () => {
     expect(rounded(plotRange([0.2, 0.5]))).toEqual([0, 1.1])
     expect(rounded(plotRange([0, 3]))).toEqual([0, 3.3])
     expect(rounded(plotRange([-1, 1]))).toEqual([-1.2, 1.2])
+  })
+})
+
+describe('curveLiteral', () => {
+  it('writes keyframes and shapes spaced like hand-written JSON', () => {
+    expect(curveLiteral([[0, 1.4], [1, 0.4]])).toBe('[[0, 1.4], [1, 0.4]]')
+    expect(curveLiteral({ shape: 'power', from: 0, to: 2 })).toBe('{"shape": "power", "from": 0, "to": 2}')
   })
 })
 

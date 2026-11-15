@@ -37,6 +37,7 @@ export const NodeBox = memo(function NodeBox({ placed, rows, selected, dropTarge
       className={cn(
         'absolute cursor-move rounded-md bg-popover text-[11.5px] outline -outline-offset-1 dark:bg-secondary',
         dropTarget ? 'outline-2 outline-success' : selected ? 'outline-2 outline-primary' : 'outline-1 outline-overlay-border',
+        selected && 'z-[5]',
         offset !== null && 'z-10 shadow-lg'
       )}
       style={{ left: placed.x + (offset?.x ?? 0), top: placed.y + (offset?.y ?? 0), width: NODE_WIDTH, height: placed.height }}

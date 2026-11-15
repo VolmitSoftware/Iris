@@ -170,6 +170,11 @@ export function plotRange(samples: number[]): [number, number] {
   return [low < 0 ? low - margin : 0, high + margin]
 }
 
+/** The curve as the JSON written to the file, spaced like hand-written JSON: {@code [[0, 1.4], [1, 0.4]]}. */
+export function curveLiteral(curve: unknown): string {
+  return JSON.stringify(curve).replaceAll(',', ', ').replaceAll('":', '": ')
+}
+
 /** A number only to be read, never typed back: two decimals at most, like 1.3 or 0.25. */
 export function roundedNumber(value: number): string {
   return String(Math.round(value * READ_PRECISION) / READ_PRECISION)

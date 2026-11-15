@@ -1,6 +1,6 @@
 import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuShortcut, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger } from '@/components/ui/context-menu'
 import type { GraphEdit, GraphNode } from '../bridge/types'
-import { canBecomeCurve, curveFrom, isCurve, roundedNumber, samplesOf } from '../editor/curves'
+import { canBecomeCurve, curveFrom, curveLiteral, isCurve, roundedNumber, samplesOf } from '../editor/curves'
 import { idOf } from '../editor/nodeLayout'
 import type { SettingRow } from './nodeEditing'
 import { useKeyText } from './useBindings'
@@ -58,7 +58,7 @@ function CurveItems({ setting, locked, onEdit, onOpenCurve }: { setting: Setting
   }
   const set = (literal: string): void => onEdit({ op: 'set', object: fold.path, key: option.name, literal })
   const makeCurve = (): void => {
-    set(JSON.stringify(curveFrom(current)))
+    set(curveLiteral(curveFrom(current)))
     onOpenCurve(setting.id)
   }
   return (

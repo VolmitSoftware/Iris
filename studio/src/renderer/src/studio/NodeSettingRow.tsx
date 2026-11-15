@@ -3,7 +3,7 @@ import { useRef, useState } from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { isCurve } from '../editor/curves'
+import { curveLiteral, isCurve } from '../editor/curves'
 import { NODE_ROW } from '../editor/nodeRows'
 import { defaultText, isNumber, isStringList, literalOf, NOT_SET, problemWith, textOf } from '../editor/settingText'
 import { suggestionSourceOf } from '../editor/suggestions'
@@ -53,6 +53,11 @@ interface RowButtonProps {
   hidden?: boolean
   title: string
   onClick(): void
+}
+
+/** A menu in a node gives no focus back to what opened it, which would leave a focus ring on the node. */
+export function keepFocusOnCanvas(event: Event): void {
+  event.preventDefault()
 }
 
 /** The small round control at a row's right end: × removes, + adds. */
@@ -130,7 +135,7 @@ function ChoiceValue({ row, editable }: SettingRowProps): React.JSX.Element {
           <IdeIcon name="chevronRight" className="size-3 shrink-0 rotate-90 text-secondary-text" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
+      <DropdownMenuContent align="start" onCloseAutoFocus={keepFocusOnCanvas}>
         {constants.map((constant) => (
           <DropdownMenuItem
             key={constant.name}
@@ -163,7 +168,7 @@ function CurveValue({ row, editable }: SettingRowProps): React.JSX.Element {
         </button>
       </PopoverAnchor>
       <PopoverContent onOpenAutoFocus={(event) => event.preventDefault()}>
-        <CurveEditor value={row.value} locked={!editable} onWrite={(next) => onEdit({ op: 'set', object: row.fold.path, key: row.option.name, literal: JSON.stringify(next) })} />
+        <CurveEditor value={row.value} locked={!editable} onWrite={(next) => onEdit({ op: 'set', object: row.fold.path, key: row.option.name, literal: curveLiteral(next) })} />
       </PopoverContent>
     </Popover>
   )

@@ -6,7 +6,7 @@ import { NODE_HEADING, NODE_ROW, type NodeRow } from '../editor/nodeRows'
 import { idOfFold, type SettingsFold } from '../editor/settingFolds'
 import { defaultLiteral, defaultText } from '../editor/settingText'
 import { useNodeEditing } from './nodeEditing'
-import { NodeSettingRow, ROW_INDENT, RowButton } from './NodeSettingRow'
+import { keepFocusOnCanvas, NodeSettingRow, ROW_INDENT, RowButton } from './NodeSettingRow'
 
 const ADD_SETTING_TEXT = '+ Setting'
 
@@ -74,7 +74,7 @@ function AddSettingRow({ addable }: { addable: SettingsFold[] }): React.JSX.Elem
             {ADD_SETTING_TEXT}
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="min-w-[180px]">
+        <DropdownMenuContent align="start" className="min-w-[180px]" onCloseAutoFocus={keepFocusOnCanvas}>
           {addable.length === 1 ? (
             <UnsetItems fold={addable[0]} />
           ) : (

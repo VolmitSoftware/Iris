@@ -1,314 +1,293 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuShortcut, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '@/components/ui/context-menu'
-import { IdeIcon, type IdeIconName } from '@/components/IdeIcon'
-import { cn } from '@/lib/utils'
-import type { GraphEdit, GraphNode, JsonPath } from '../bridge/types'
-import { idOf, isWithin, layoutNodes, NODE_HEIGHT, NODE_WIDTH, type NodeLayout, type PlacedNode } from '../editor/nodeLayout'
-import { useKeyText } from './useBindings'
+import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
+import type { GraphEdit, GraphNode, SettingsType } from '../bridge/types'
+import { boundsOf, canRegrow, GRID, idOf, layoutNodes, NODE_WIDTH, nodeAt, snappedToGrid, type PlacedNode, type Point } from '../editor/nodeLayout'
+import { positionsAfterEdit } from '../editor/nodePositions'
+import { nodeRows, type NodeRows } from '../editor/nodeRows'
+import type { SuggestionStore } from '../editor/suggestionStore'
+import { rolesOf, type SuggestionSource } from '../editor/suggestions'
+import { NodeBox } from './NodeBox'
+import { NodeEditingContext, type NodeEditing, type SettingRow } from './nodeEditing'
+import { NodeMenu, type MenuTarget } from './NodeMenus'
+import { NodeWires } from './NodeWires'
+import { useNodeCamera, type Camera } from './useNodeCamera'
+import { useNodePositions } from './useNodePositions'
 
-const PART_ICON: IdeIconName = 'views/procedural'
-const KIND_ICONS: Record<string, IdeIconName> = {
-  Object: 'views/objects',
-  Stem: PART_ICON,
-  Blob: PART_ICON,
-  Branches: PART_ICON,
-  Cluster: PART_ICON,
-  Group: 'groups',
-  'Shared part': 'symlink',
-  Material: 'views/palettes',
-  Decoration: 'decoration'
-}
-const FIT_MARGIN = 24
-const LARGEST_FIT_SCALE = 1
-// Below this the node text can't be read; a larger tree is panned instead of shrunk further.
-const SMALLEST_FIT_SCALE = 0.8
-const SMALLEST_SCALE = 0.25
-const LARGEST_SCALE = 2
-const WHEEL_ZOOM_PER_PIXEL = 0.0015
-const DRAG_START_PIXELS = 4
-const GRID_SPACING = 16
+const DRAG_START_PIXELS = 3
+const MIDDLE_BUTTON = 1
+const SMALLEST_DOT_SPACING = 6
+const DOT_RADIUS = 1
 
-interface Camera {
-  x: number
-  y: number
-  scale: number
-}
-
-interface NodeDrag {
-  placed: PlacedNode
-  startX: number
-  startY: number
-  pointerX: number
-  pointerY: number
-  moved: boolean
-  target: PlacedNode | null
-}
+/** A node being dragged to another place, or a part's ring being dragged onto the node it should grow from. */
+type NodeGesture =
+  | { kind: 'moving'; placed: PlacedNode; start: Point; moved: boolean; offset: Point }
+  | { kind: 'regrowing'; placed: PlacedNode; pointer: Point; target: PlacedNode | null }
 
 interface NodeCanvasProps {
   roots: GraphNode[]
-  /** Tells files apart, so a new one is fitted into view. */
-  fileKey: string
+  types: Record<string, SettingsType>
+  /** The file parsed, to read what each setting is set to. */
+  values: unknown
+  /** The file, by its place in the pack, which keeps where its nodes were dragged. */
+  file: string
   selectedId: string | null
   locked: boolean
+  suggestions: SuggestionStore
   /** Filled with the way to fit every node into view, for the keys that live outside the canvas. */
   showAllRef: React.RefObject<(() => void) | null>
   onSelect(node: GraphNode | null): void
   onEdit(edit: GraphEdit): void
 }
 
-/** The file as a tree of nodes: drag the background to look around, drag a node onto another to grow it from there. */
-export function NodeCanvas({ roots, fileKey, selectedId, locked, showAllRef, onSelect, onEdit }: NodeCanvasProps): React.JSX.Element {
-  const layout = useMemo(() => layoutNodes(roots), [roots])
+/**
+ * The file's nodes on a grid, each listing its settings to edit in place, wired to the nodes they grow from. Drag the
+ * background to look around, a node to move it, and a part's ring onto another node to grow it from there.
+ */
+export function NodeCanvas({ roots, types, values, file, selectedId, locked, suggestions, showAllRef, onSelect, onEdit }: NodeCanvasProps): React.JSX.Element {
   const frame = useRef<HTMLDivElement>(null)
-  const [camera, setCamera] = useCamera(frame, layout, fileKey)
-  const [drag, setDrag] = useState<NodeDrag | null>(null)
-  const [menuNode, setMenuNode] = useState<GraphNode | null>(null)
-  const pan = useRef<{ x: number; y: number } | null>(null)
-  const showAll = useCallback(() => setCamera(fitted(frame.current!, layout)), [setCamera, layout])
+  const [open, setOpen] = useState<ReadonlySet<string>>(new Set())
+  const [openCurve, setOpenCurve] = useState<string | null>(null)
+  const [positions, setPositions] = useNodePositions(file)
+  const rowsById = useMemo(() => rowsOfNodes(roots, types, values, open, !locked), [roots, types, values, open, locked])
+  const layout = useMemo(() => layoutNodes(roots, (node) => rowsById.get(idOf(node.path))!.height, new Map(Object.entries(positions))), [roots, rowsById, positions])
+  const view = useNodeCamera(frame, boundsOf(layout.nodes))
+  const [gesture, setGesture] = useState<NodeGesture | null>(null)
+  const [menu, setMenu] = useState<MenuTarget | null>(null)
+  const panFrom = useRef<Point | null>(null)
+  const settingUnderMenu = useRef<SettingRow | null>(null)
+  const chosenHere = useRef<string | null>(null)
+
+  const edit = useCallback(
+    (change: GraphEdit) => {
+      setPositions((current) => positionsAfterEdit(current, change, values))
+      onEdit(change)
+    },
+    [setPositions, onEdit, values]
+  )
+  const select = useCallback(
+    (node: GraphNode) => {
+      chosenHere.current = idOf(node.path)
+      onSelect(node)
+    },
+    [onSelect]
+  )
+  const { showAll } = view
+  const showEveryNode = useCallback(() => showAll(boundsOf(layout.nodes)), [showAll, layout])
   useEffect(() => {
-    showAllRef.current = showAll
+    showAllRef.current = showEveryNode
     return () => {
       showAllRef.current = null
     }
-  }, [showAllRef, showAll])
+  }, [showAllRef, showEveryNode])
+  useRevealChosen(layout.nodes, selectedId, chosenHere, view.reveal)
+  const editing = useEditing({ roots, locked, openCurve, setOpenCurve, setOpen, edit, suggestions, settingUnderMenu })
 
-  const canvasPoint = (clientX: number, clientY: number): { x: number; y: number } => {
-    const bounds = frame.current!.getBoundingClientRect()
-    return { x: (clientX - bounds.left - camera.x) / camera.scale, y: (clientY - bounds.top - camera.y) / camera.scale }
-  }
-
-  const pointerDown = (event: React.PointerEvent): void => {
-    if (event.button !== 0) {
+  const pointerDown = (event: React.PointerEvent<HTMLDivElement>): void => {
+    const target = event.target as Element
+    if (!event.currentTarget.contains(target) || (event.button !== 0 && event.button !== MIDDLE_BUTTON)) {
+      return
+    }
+    const placed = event.button === 0 ? placedUnder(target, layout.nodes) : null
+    if (placed === null) {
+      event.currentTarget.setPointerCapture(event.pointerId)
+      panFrom.current = { x: event.clientX, y: event.clientY }
+      return
+    }
+    select(placed.node)
+    if (target.closest('[data-node-control]') !== null) {
       return
     }
     event.currentTarget.setPointerCapture(event.pointerId)
-    const placed = nodeAt(layout, canvasPoint(event.clientX, event.clientY))
-    if (placed === null) {
-      pan.current = { x: event.clientX, y: event.clientY }
-      return
+    if (target.closest('[data-port="regrow"]') !== null) {
+      setGesture({ kind: 'regrowing', placed, pointer: view.graphPoint(event.clientX, event.clientY), target: null })
+    } else {
+      setGesture({ kind: 'moving', placed, start: { x: event.clientX, y: event.clientY }, moved: false, offset: { x: 0, y: 0 } })
     }
-    setDrag({ placed, startX: event.clientX, startY: event.clientY, pointerX: event.clientX, pointerY: event.clientY, moved: false, target: null })
   }
 
   const pointerMove = (event: React.PointerEvent): void => {
-    if (pan.current !== null) {
-      const [dx, dy] = [event.clientX - pan.current.x, event.clientY - pan.current.y]
-      pan.current = { x: event.clientX, y: event.clientY }
-      setCamera((current) => ({ ...current, x: current.x + dx, y: current.y + dy }))
+    if (panFrom.current !== null) {
+      view.panBy(event.clientX - panFrom.current.x, event.clientY - panFrom.current.y)
+      panFrom.current = { x: event.clientX, y: event.clientY }
       return
     }
-    if (drag === null) {
-      return
+    if (gesture?.kind === 'moving') {
+      const [dx, dy] = [event.clientX - gesture.start.x, event.clientY - gesture.start.y]
+      const moved = gesture.moved || Math.hypot(dx, dy) > DRAG_START_PIXELS
+      setGesture({ ...gesture, moved, offset: moved ? { x: dx / view.camera.scale, y: dy / view.camera.scale } : gesture.offset })
+    } else if (gesture?.kind === 'regrowing') {
+      const pointer = view.graphPoint(event.clientX, event.clientY)
+      const over = nodeAt(layout.nodes, pointer)
+      const takesIt = over !== null && over !== gesture.placed && canRegrow(gesture.placed.node, over.node)
+      setGesture({ ...gesture, pointer, target: takesIt ? over : null })
     }
-    const moved = drag.moved || Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > DRAG_START_PIXELS
-    const canMove = moved && !locked && drag.placed.node.movable
-    const target = canMove ? moveTarget(layout, drag.placed, canvasPoint(event.clientX, event.clientY)) : null
-    setDrag({ ...drag, pointerX: event.clientX, pointerY: event.clientY, moved, target })
   }
 
   const pointerUp = (): void => {
-    pan.current = null
-    if (drag === null) {
-      return
+    panFrom.current = null
+    setGesture(null)
+    if (gesture?.kind === 'moving' && gesture.moved) {
+      const { placed, offset } = gesture
+      const dropped = { x: snappedToGrid(placed.x + offset.x), y: snappedToGrid(placed.y + offset.y) }
+      if (dropped.x !== placed.x || dropped.y !== placed.y) {
+        setPositions((current) => ({ ...current, [placed.id]: dropped }))
+      }
+    } else if (gesture?.kind === 'regrowing' && gesture.target !== null) {
+      edit({ op: 'move', path: gesture.placed.node.path, toList: gesture.target.node.childList! })
     }
-    if (!drag.moved) {
-      onSelect(drag.placed.node)
-    } else if (drag.target !== null) {
-      onEdit({ op: 'move', path: drag.placed.node.path, toList: drag.target.node.childList! })
-    }
-    setDrag(null)
   }
 
-  const dragging = drag !== null && drag.moved && drag.placed.node.movable && !locked
-  const dragOffset = dragging ? { x: (drag.pointerX - drag.startX) / camera.scale, y: (drag.pointerY - drag.startY) / camera.scale } : null
+  const contextMenu = (event: React.MouseEvent<HTMLDivElement>): void => {
+    const target = event.target as Element
+    const setting = settingUnderMenu.current
+    settingUnderMenu.current = null
+    if (!event.currentTarget.contains(target)) {
+      event.preventDefault()
+      return
+    }
+    const placed = placedUnder(target, layout.nodes)
+    if (placed === null) {
+      setMenu({ on: 'background', root: roots[0] ?? null })
+      return
+    }
+    select(placed.node)
+    setMenu({ on: 'node', node: placed.node, setting })
+  }
+
+  const moved = gesture?.kind === 'moving' && gesture.moved ? { id: gesture.placed.id, offset: gesture.offset } : null
+  const regrow = gesture?.kind === 'regrowing' ? { part: gesture.placed, pointer: gesture.pointer, onTarget: gesture.target !== null } : null
+  const dropTargetId = gesture?.kind === 'regrowing' ? (gesture.target?.id ?? null) : null
+  const { camera } = view
 
   return (
-    <ContextMenu onOpenChange={(open) => !open && setMenuNode(null)}>
+    <ContextMenu onOpenChange={(isOpen) => !isOpen && setMenu(null)}>
       <ContextMenuTrigger asChild>
         <div
           ref={frame}
-          className="relative h-full w-full touch-none overflow-hidden bg-background select-none"
-          style={{
-            backgroundImage: 'radial-gradient(var(--overlay-border) 1px, transparent 1px)',
-            backgroundSize: `${GRID_SPACING * camera.scale}px ${GRID_SPACING * camera.scale}px`,
-            backgroundPosition: `${camera.x}px ${camera.y}px`
-          }}
+          className="relative h-full w-full touch-none overflow-hidden bg-card select-none"
+          style={gridStyle(camera)}
           onPointerDown={pointerDown}
           onPointerMove={pointerMove}
           onPointerUp={pointerUp}
           onPointerCancel={() => {
-            pan.current = null
-            setDrag(null)
+            panFrom.current = null
+            setGesture(null)
           }}
-          onContextMenu={(event) => {
-            const placed = nodeAt(layout, canvasPoint(event.clientX, event.clientY))
-            setMenuNode(placed?.node ?? null)
-            if (placed === null) {
-              event.preventDefault()
-            } else {
-              onSelect(placed.node)
-            }
-          }}
-          onDoubleClick={(event) => nodeAt(layout, canvasPoint(event.clientX, event.clientY)) === null && showAll()}
+          onContextMenu={contextMenu}
+          onDoubleClick={(event) => placedUnder(event.target as Element, layout.nodes) === null && event.currentTarget.contains(event.target as Element) && showEveryNode()}
         >
           <div className="absolute top-0 left-0 origin-top-left" style={{ transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})` }}>
-            <Wires layout={layout} />
-            {layout.nodes.map((placed) => (
-              <NodeBox
-                key={placed.id}
-                placed={placed}
-                selected={placed.id === selectedId}
-                target={drag?.target?.id === placed.id}
-                offset={dragging && drag.placed.id === placed.id ? dragOffset : null}
-              />
-            ))}
+            <NodeEditingContext.Provider value={editing}>
+              <NodeWires wires={layout.wires} selectedId={selectedId} moved={moved} regrow={regrow} />
+              {layout.nodes.map((placed) => (
+                <NodeBox
+                  key={placed.id}
+                  placed={placed}
+                  rows={rowsById.get(placed.id)!}
+                  selected={placed.id === selectedId}
+                  dropTarget={placed.id === dropTargetId}
+                  offset={moved?.id === placed.id ? moved.offset : null}
+                  locked={locked}
+                />
+              ))}
+            </NodeEditingContext.Provider>
           </div>
+          {Math.abs(camera.scale - 1) > 0.001 && (
+            <span className="pointer-events-none absolute right-2 bottom-1.5 text-[11px] text-muted-foreground tabular-nums">{Math.round(camera.scale * 100)}%</span>
+          )}
         </div>
       </ContextMenuTrigger>
-      {menuNode !== null && <NodeMenu node={menuNode} locked={locked} onEdit={onEdit} />}
+      {menu !== null && (
+        <NodeMenu
+          target={menu}
+          locked={locked}
+          onEdit={edit}
+          onOpenCurve={setOpenCurve}
+          onArrange={() => setPositions({})}
+          onShowAll={showEveryNode}
+          onResetZoom={view.resetZoom}
+        />
+      )}
     </ContextMenu>
   )
 }
 
-function NodeBox({ placed, selected, target, offset }: { placed: PlacedNode; selected: boolean; target: boolean; offset: { x: number; y: number } | null }): React.JSX.Element {
-  const { node } = placed
-  const icon = KIND_ICONS[node.kind] ?? PART_ICON
-  const detail = node.roles.length > 0 ? node.roles.join(', ') : node.title === node.kind ? null : node.kind
-  return (
-    <div
-      className={cn(
-        'absolute flex items-center gap-2 rounded-md border bg-card px-2.5 shadow-xs',
-        selected ? 'border-primary ring-1 ring-primary' : 'border-overlay-border',
-        target && 'border-primary bg-selection',
-        offset !== null && 'z-10 opacity-80 shadow-md'
-      )}
-      style={{
-        left: placed.x + (offset?.x ?? 0),
-        top: placed.y + (offset?.y ?? 0),
-        width: NODE_WIDTH,
-        height: NODE_HEIGHT,
-        cursor: node.movable ? 'grab' : 'default'
-      }}
-    >
-      <IdeIcon name={icon} />
-      <div className="min-w-0 leading-tight">
-        <div className="truncate text-[12.5px] font-medium">{node.title}</div>
-        {detail !== null && <div className="truncate text-[11px] text-secondary-text">{detail}</div>}
-      </div>
-    </div>
-  )
-}
-
-function Wires({ layout }: { layout: NodeLayout }): React.JSX.Element {
-  return (
-    <svg className="pointer-events-none absolute top-0 left-0 overflow-visible" width={layout.width} height={layout.height}>
-      {layout.wires.map(({ from, to, label }) => {
-        const [startX, startY] = [from.x + NODE_WIDTH, from.y + NODE_HEIGHT / 2]
-        const [endX, endY] = [to.x, to.y + NODE_HEIGHT / 2]
-        const bend = (endX - startX) / 2
-        return (
-          <g key={`${from.id}>${to.id}`}>
-            <path d={`M${startX},${startY} C${startX + bend},${startY} ${endX - bend},${endY} ${endX},${endY}`} className="fill-none stroke-input" strokeWidth={1.5} />
-            {label !== '' && (
-              <text x={endX - 6} y={endY - 6} textAnchor="end" className="fill-secondary-text text-[10.5px]">
-                {label}
-              </text>
-            )}
-          </g>
-        )
-      })}
-    </svg>
-  )
-}
-
-function NodeMenu({ node, locked, onEdit }: { node: GraphNode; locked: boolean; onEdit(edit: GraphEdit): void }): React.JSX.Element {
-  const keyText = useKeyText()
-  const removable = node.duplicable
-  return (
-    <ContextMenuContent className="min-w-[180px]">
-      {node.additions.length > 0 && (
-        <ContextMenuSub>
-          <ContextMenuSubTrigger disabled={locked}>Add</ContextMenuSubTrigger>
-          <ContextMenuSubContent>
-            {node.additions.map((addition) => (
-              <ContextMenuItem key={`${idOf(addition.list)}:${addition.label}`} onSelect={() => onEdit({ op: 'append', list: addition.list, literal: addition.literal })}>
-                {addition.label}
-              </ContextMenuItem>
-            ))}
-          </ContextMenuSubContent>
-        </ContextMenuSub>
-      )}
-      <ContextMenuItem disabled={locked || !node.duplicable} onSelect={() => onEdit({ op: 'duplicate', path: node.path })}>
-        Duplicate
-        <ContextMenuShortcut>{keyText('duplicateNode')}</ContextMenuShortcut>
-      </ContextMenuItem>
-      <ContextMenuSeparator />
-      <ContextMenuItem variant="destructive" disabled={locked || !removable} onSelect={() => onEdit({ op: 'delete', path: node.path })}>
-        Delete
-        <ContextMenuShortcut>{keyText('deleteNode')}</ContextMenuShortcut>
-      </ContextMenuItem>
-    </ContextMenuContent>
-  )
-}
-
-function nodeAt(layout: NodeLayout, point: { x: number; y: number }): PlacedNode | null {
-  return layout.nodes.find((placed) => point.x >= placed.x && point.x <= placed.x + NODE_WIDTH && point.y >= placed.y && point.y <= placed.y + NODE_HEIGHT) ?? null
-}
-
-// A node can grow from any other that takes children, except from inside itself or from where it already grows.
-function moveTarget(layout: NodeLayout, dragged: PlacedNode, point: { x: number; y: number }): PlacedNode | null {
-  const over = nodeAt(layout, point)
-  const toList = over?.node.childList
-  if (over === null || toList === null || toList === undefined || isWithin(toList, dragged.node.path) || isParentList(dragged.node.path, toList)) {
-    return null
+function rowsOfNodes(roots: GraphNode[], types: Record<string, SettingsType>, values: unknown, open: ReadonlySet<string>, editable: boolean): Map<string, NodeRows> {
+  const rows = new Map<string, NodeRows>()
+  const visit = (node: GraphNode): void => {
+    rows.set(idOf(node.path), nodeRows(node, types, values, open, editable))
+    node.children.forEach((link) => visit(link.node))
   }
-  return over
+  roots.forEach(visit)
+  return rows
 }
 
-function isParentList(path: JsonPath, list: JsonPath): boolean {
-  return path.length === list.length + 1 && isWithin(path, list)
+function placedUnder(target: Element, nodes: PlacedNode[]): PlacedNode | null {
+  const id = target.closest('[data-node-id]')?.getAttribute('data-node-id')
+  return nodes.find((placed) => placed.id === id) ?? null
 }
 
-function useCamera(frame: React.RefObject<HTMLDivElement | null>, layout: NodeLayout, fileKey: string): [Camera, React.Dispatch<React.SetStateAction<Camera>>] {
-  const [camera, setCamera] = useState<Camera>({ x: FIT_MARGIN, y: FIT_MARGIN, scale: 1 })
-  const fittedFile = useRef<string | null>(null)
+// Each dot sits on a point nodes snap to, so they stay on the dots at any zoom.
+function gridStyle(camera: Camera): React.CSSProperties {
+  const spacing = GRID * camera.scale
+  if (spacing < SMALLEST_DOT_SPACING) {
+    return {}
+  }
+  return {
+    backgroundImage: `radial-gradient(circle at ${DOT_RADIUS}px ${DOT_RADIUS}px, var(--overlay-border) ${DOT_RADIUS}px, transparent ${DOT_RADIUS + 0.5}px)`,
+    backgroundSize: `${spacing}px ${spacing}px`,
+    backgroundPosition: `${camera.x - DOT_RADIUS}px ${camera.y - DOT_RADIUS}px`
+  }
+}
 
+// A node chosen elsewhere, such as by picking its part in the scene, is brought into sight; one chosen here already is.
+function useRevealChosen(nodes: PlacedNode[], selectedId: string | null, chosenHere: React.RefObject<string | null>, reveal: (area: { left: number; top: number; right: number; bottom: number }) => void): void {
+  const handled = useRef<string | null>(null)
   useEffect(() => {
-    if (frame.current === null || layout.nodes.length === 0 || fittedFile.current === fileKey) {
+    if (selectedId === handled.current) {
       return
     }
-    fittedFile.current = fileKey
-    setCamera(fitted(frame.current, layout))
-  }, [frame, layout, fileKey])
-
-  useEffect(() => {
-    const element = frame.current
-    if (element === null) {
+    handled.current = selectedId
+    const placed = nodes.find((candidate) => candidate.id === selectedId)
+    if (placed === undefined || selectedId === chosenHere.current) {
       return
     }
-    const wheel = (event: WheelEvent): void => {
-      event.preventDefault()
-      const bounds = element.getBoundingClientRect()
-      const [pointerX, pointerY] = [event.clientX - bounds.left, event.clientY - bounds.top]
-      setCamera((current) => {
-        const scale = clamp(current.scale * Math.exp(-event.deltaY * WHEEL_ZOOM_PER_PIXEL), SMALLEST_SCALE, LARGEST_SCALE)
-        const ratio = scale / current.scale
-        return { scale, x: pointerX - (pointerX - current.x) * ratio, y: pointerY - (pointerY - current.y) * ratio }
-      })
-    }
-    element.addEventListener('wheel', wheel, { passive: false })
-    return () => element.removeEventListener('wheel', wheel)
-  }, [frame])
-
-  return [camera, setCamera]
+    reveal({ left: placed.x, top: placed.y, right: placed.x + NODE_WIDTH, bottom: placed.y + placed.height })
+  }, [nodes, selectedId, chosenHere, reveal])
 }
 
-function fitted(frame: HTMLDivElement, layout: NodeLayout): Camera {
-  const [width, height] = [frame.clientWidth - 2 * FIT_MARGIN, frame.clientHeight - 2 * FIT_MARGIN]
-  const scale = clamp(Math.min(width / Math.max(layout.width, 1), height / Math.max(layout.height, 1)), SMALLEST_FIT_SCALE, LARGEST_FIT_SCALE)
-  return { scale, x: FIT_MARGIN, y: FIT_MARGIN + Math.max(0, (height - layout.height * scale) / 2) }
+interface EditingInputs {
+  roots: GraphNode[]
+  locked: boolean
+  openCurve: string | null
+  setOpenCurve(rowId: string | null): void
+  setOpen: React.Dispatch<React.SetStateAction<ReadonlySet<string>>>
+  edit(change: GraphEdit): void
+  suggestions: SuggestionStore
+  settingUnderMenu: React.RefObject<SettingRow | null>
 }
 
-function clamp(value: number, lowest: number, highest: number): number {
-  return Math.min(highest, Math.max(lowest, value))
+function useEditing({ roots, locked, openCurve, setOpenCurve, setOpen, edit, suggestions, settingUnderMenu }: EditingInputs): NodeEditing {
+  const roles = useMemo(() => rolesOf(roots), [roots])
+  return useMemo(
+    () => ({
+      locked,
+      openCurve,
+      onOpenCurve: setOpenCurve,
+      onToggleFold: (foldId: string) =>
+        setOpen((current) => {
+          const next = new Set(current)
+          if (!next.delete(foldId)) {
+            next.add(foldId)
+          }
+          return next
+        }),
+      onEdit: edit,
+      loadSuggestions: (source: SuggestionSource) => (source.from === 'roles' ? Promise.resolve(roles) : suggestions.load(source)),
+      onSettingMenu: (row: SettingRow) => {
+        settingUnderMenu.current = row
+      }
+    }),
+    [locked, openCurve, setOpenCurve, setOpen, edit, roles, suggestions, settingUnderMenu]
+  )
 }

@@ -21,6 +21,8 @@ const NARROWEST_BELL = 1e-6
 const SHAPE_STOPS = 5
 const FIRST_STOP = 0
 const LAST_STOP = 1
+const PLOT_MARGIN = 0.1
+const READ_PRECISION = 100
 
 export const CURVE_SHAPES: CurveShape[] = [
   { key: 'linear', parameters: [], at: (t) => t },
@@ -155,6 +157,22 @@ export function samplesOf(value: unknown, count: number): number[] | null {
     return null
   }
   return Array.from({ length: count }, (_, index) => curveAt(value, count === 1 ? 0 : index / (count - 1)))
+}
+
+/**
+ * The values a plot of the curve with {@code samples} spans: from 0 to 1 at least and a tenth past its highest. It goes
+ * below 0 only when the curve already does, since most values along a part, like a radius, can't be negative.
+ */
+export function plotRange(samples: number[]): [number, number] {
+  const low = Math.min(0, ...samples)
+  const high = Math.max(1, ...samples)
+  const margin = (high - low) * PLOT_MARGIN
+  return [low < 0 ? low - margin : 0, high + margin]
+}
+
+/** A number only to be read, never typed back: two decimals at most, like 1.3 or 0.25. */
+export function roundedNumber(value: number): string {
+  return String(Math.round(value * READ_PRECISION) / READ_PRECISION)
 }
 
 /** The curve as keyframes, such as to move a named curve's shape by hand: its values at evenly spaced points. */

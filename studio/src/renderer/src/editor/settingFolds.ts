@@ -1,7 +1,7 @@
-import type { JsonPath, NodeSettings, SettingOption, SettingsType } from '../bridge/types'
+import type { JsonPath, NodeSettings, SettingOption, SettingsType, ValueKind } from '../bridge/types'
 import { isCurve } from './curves'
 import { isWithin } from './nodeLayout'
-import { textOf } from './settingText'
+import { isSpan, textOf } from './settingText'
 import { valueAt } from './jsonValues'
 
 const SUMMARY_SETTINGS = 3
@@ -14,7 +14,7 @@ const DEFAULT_NAMESPACE = 'minecraft:'
  */
 export type FoldKind = 'own' | 'group' | 'list' | 'item'
 
-/** One object of the file whose settings the inspector shows, below the ones that hold it. */
+/** One object of the file whose settings a node lists, below the ones that hold it. */
 export interface SettingsFold {
   title: string
   path: JsonPath
@@ -26,8 +26,10 @@ export interface SettingsFold {
   summary: string
   /** The object and member that hold a group or list, to unset it; null for the rest. */
   holder: { object: JsonPath; key: string } | null
-  /** The settings written plainly in it, as fields; those that are folds of their own are not among them. */
-  options: SettingOption[]
+  /** The settings listed as rows: those written plainly in it, and the plain ones it requires but leaves unset. */
+  settings: SettingOption[]
+  /** What it could set but leaves at the default, to add. */
+  unset: SettingOption[]
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -42,10 +44,19 @@ export function idOfFold(fold: SettingsFold): string {
   return JSON.stringify(fold.path)
 }
 
+/** The schema type of a setting that folds open as a section of its own when written; null for one that is a row. */
+function groupTypeOf(kind: ValueKind): string | null {
+  return kind.kind === 'object' && !isSpan(kind) ? kind.type : null
+}
+
+function itemTypeOf(kind: ValueKind): string | null {
+  return kind.kind === 'list' && kind.element.kind === 'object' ? kind.element.type : null
+}
+
 /**
  * The sections of one object of a node and the objects inside it, in file order, each followed by those inside it. A
- * setting that is itself an object whose type the schema describes is a section of its own one level deeper, and so is
- * each element of a list of objects; one that is not written stays a field.
+ * setting written as an object whose type the schema describes is a section of its own one level deeper, and so is
+ * each element of a list of objects. Only what is written is listed; the rest can be added.
  */
 export function foldedSections(section: NodeSettings, types: Record<string, SettingsType>, values: unknown): SettingsFold[] {
   const folds: SettingsFold[] = []
@@ -56,7 +67,8 @@ export function foldedSections(section: NodeSettings, types: Record<string, Sett
 type FoldHead = Pick<SettingsFold, 'title' | 'path' | 'type' | 'kind' | 'depth' | 'holder'>
 
 function addFold(into: SettingsFold[], types: Record<string, SettingsType>, values: unknown, head: FoldHead, shownAsNodes: Set<string>): void {
-  const options: SettingOption[] = []
+  const settings: SettingOption[] = []
+  const unset: SettingOption[] = []
   const inside: SettingsFold[] = []
   const summary: string[] = []
   for (const option of types[head.type]?.options ?? []) {
@@ -66,10 +78,18 @@ function addFold(into: SettingsFold[], types: Record<string, SettingsType>, valu
     const path = [...head.path, option.name]
     const value = valueAt(values, path)
     const holder = { object: head.path, key: option.name }
-    const objectType = option.kind.kind === 'object' ? option.kind.type : null
-    const itemType = option.kind.kind === 'list' && option.kind.element.kind === 'object' ? option.kind.element.type : null
-    if (objectType !== null && isObject(value) && types[objectType] !== undefined) {
-      addFold(inside, types, values, { title: option.name, path, type: objectType, kind: 'group', depth: head.depth + 1, holder }, new Set())
+    const groupType = groupTypeOf(option.kind)
+    const itemType = itemTypeOf(option.kind)
+    if (value === undefined) {
+      if (option.required && groupType === null && itemType === null) {
+        settings.push(option)
+      } else {
+        unset.push(option)
+      }
+      continue
+    }
+    if (groupType !== null && isObject(value) && types[groupType] !== undefined) {
+      addFold(inside, types, values, { title: option.name, path, type: groupType, kind: 'group', depth: head.depth + 1, holder }, new Set())
       continue
     }
     if (itemType !== null && isObjects(value) && types[itemType] !== undefined) {
@@ -77,12 +97,10 @@ function addFold(into: SettingsFold[], types: Record<string, SettingsType>, valu
       summary.push(`${option.name} ${value.length}`)
       continue
     }
-    options.push(option)
-    if (value !== undefined) {
-      summary.push(`${option.name} ${shortText(option, value)}`)
-    }
+    settings.push(option)
+    summary.push(`${option.name} ${shortText(option, value)}`)
   }
-  into.push({ ...head, summary: summary.slice(0, SUMMARY_SETTINGS).join(SUMMARY_SEPARATOR), options })
+  into.push({ ...head, summary: summary.slice(0, SUMMARY_SETTINGS).join(SUMMARY_SEPARATOR), settings, unset })
   into.push(...inside)
 }
 
@@ -104,7 +122,8 @@ function addList(into: SettingsFold[], types: Record<string, SettingsType>, valu
     depth: list.depth,
     summary: `${list.count} ${list.count === 1 ? 'item' : 'items'}`,
     holder: list.holder,
-    options: []
+    settings: [],
+    unset: []
   })
   for (let index = 0; index < list.count; index++) {
     addFold(

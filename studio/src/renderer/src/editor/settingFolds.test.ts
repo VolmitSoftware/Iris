@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { NodeSettings, SettingOption, SettingsType, ValueKind } from '../bridge/types'
 import { foldedSections, idOfFold, visibleFolds } from './settingFolds'
+import { SPAN_TYPE } from './settingText'
 
 function option(name: string, kind: ValueKind): SettingOption {
   return { name, description: '', required: false, minimum: null, maximum: null, minItems: null, defaultValue: null, kind }
@@ -47,10 +48,34 @@ describe('foldedSections', () => {
     expect(folds[2].holder).toEqual({ object: ['materials', 0], key: 'rules' })
   })
 
-  it('leaves the folded settings and the ones shown as nodes out of the fields of the section that holds them', () => {
+  it('leaves the folded settings and the ones shown as nodes out of the rows of the section that holds them', () => {
     const [own] = foldedSections(material, types, file)
 
-    expect(own.options.map((setting) => setting.name)).toEqual(['role', 'block'])
+    expect(own.settings.map((setting) => setting.name)).toEqual(['role', 'block'])
+  })
+
+  it('lists only what is written, and keeps the rest to add', () => {
+    const [own] = foldedSections(material, types, { materials: [{ block: 'minecraft:stone' }] })
+
+    expect(own.settings.map((setting) => setting.name)).toEqual(['block'])
+    expect(own.unset.map((setting) => setting.name)).toEqual(['role', 'offset', 'rules'])
+  })
+
+  it('lists a plain setting the type requires even while it is unset, so its default shows', () => {
+    const required: Record<string, SettingsType> = { ...types, Material: { ...types.Material, options: [{ ...option('role', text), required: true }] } }
+    const [own] = foldedSections(material, required, { materials: [{}] })
+
+    expect(own.settings.map((setting) => setting.name)).toEqual(['role'])
+    expect(own.unset).toEqual([])
+  })
+
+  it('keeps a span a row rather than a section, since it is typed as a range', () => {
+    const spanned: Record<string, SettingsType> = { ...types, Material: { description: '', options: [option('along', { kind: 'object', type: SPAN_TYPE })] }, [SPAN_TYPE]: { description: '', options: [option('from', any), option('to', any)] } }
+    const folds = foldedSections(material, spanned, { materials: [{ along: { from: 0.2, to: 0.8 } }] })
+
+    expect(folds).toHaveLength(1)
+    expect(folds[0].settings.map((setting) => setting.name)).toEqual(['along'])
+    expect(folds[0].summary).toBe('along 0.2 – 0.8')
   })
 
   it('sums a section up by what it holds, a curve as curve and the default namespace left off', () => {
@@ -61,11 +86,11 @@ describe('foldedSections', () => {
     expect(folds[2].summary).toBe('2 items')
   })
 
-  it('keeps a setting that is not written as an object a field', () => {
-    const [own, ...inside] = foldedSections(material, types, { materials: [{ role: 'wood' }] })
+  it('keeps an object setting that is not written as an object a row', () => {
+    const [own, ...inside] = foldedSections(material, types, { materials: [{ offset: 3 }] })
 
     expect(inside).toEqual([])
-    expect(own.options.map((setting) => setting.name)).toEqual(['role', 'block', 'offset', 'rules'])
+    expect(own.settings.map((setting) => setting.name)).toEqual(['offset'])
   })
 })
 

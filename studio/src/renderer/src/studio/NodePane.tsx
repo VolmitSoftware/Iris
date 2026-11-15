@@ -2,24 +2,30 @@ import { IdeIcon } from '@/components/IdeIcon'
 import { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import type { GraphNode } from '../bridge/types'
+import { idOf } from '../editor/nodeLayout'
+import type { SuggestionStore } from '../editor/suggestionStore'
 import type { NodeEditor } from '../editor/useNodeEditor'
 import { NodeCanvas } from './NodeCanvas'
 import { isInEntryBrowser, isTypingInto, nodeEditorActionFor, type NodeEditorAction } from './shortcuts'
-import { useBindings } from './useBindings'
+import { useBindings, useKeyText } from './useBindings'
 
 interface NodePaneProps {
   editor: NodeEditor
   /** The entry the file belongs to. */
   entryKey: string
+  /** The file parsed, to read what each setting is set to. */
+  values: unknown
+  suggestions: SuggestionStore
   selected: GraphNode | null
   onSelect(node: GraphNode | null): void
 }
 
-/** The node editor under the scene: the entry's file as nodes, with undo and redo. */
-export function NodePane({ editor, entryKey, selected, onSelect }: NodePaneProps): React.JSX.Element {
+/** The node editor under the scene: the entry's file as nodes, their settings edited in place, with undo and redo. */
+export function NodePane({ editor, entryKey, values, suggestions, selected, onSelect }: NodePaneProps): React.JSX.Element {
   const { state } = editor
   const locked = state === null || state.locked !== null
   const showAllRef = useRef<(() => void) | null>(null)
+  const keyText = useKeyText()
   useEditorKeys(editor, selected, locked, showAllRef, onSelect)
 
   return (
@@ -28,6 +34,7 @@ export function NodePane({ editor, entryKey, selected, onSelect }: NodePaneProps
         <h2 className="text-[12px] font-semibold">Nodes</h2>
         <span className="min-w-0 truncate text-[11.5px] text-secondary-text">{state?.file ?? entryKey}</span>
         <span className="flex-1" />
+        {!locked && <span className="min-w-0 truncate text-[11.5px] text-muted-foreground">Right-click to add or delete · Drag a ring onto a node to regrow · {keyText('undo')} undoes</span>}
         {state?.locked != null && (
           <span className="flex shrink-0 items-center gap-1 text-[11.5px] whitespace-nowrap text-secondary-text" title={state.locked}>
             <IdeIcon name="locked" className="size-3.5" />
@@ -52,10 +59,14 @@ export function NodePane({ editor, entryKey, selected, onSelect }: NodePaneProps
         )}
         {state !== null && state.roots !== null && (
           <NodeCanvas
+            key={state.file}
             roots={state.roots}
-            fileKey={entryKey}
-            selectedId={selected === null ? null : JSON.stringify(selected.path)}
+            types={state.types}
+            values={values}
+            file={state.file}
+            selectedId={selected === null ? null : idOf(selected.path)}
             locked={locked}
+            suggestions={suggestions}
             showAllRef={showAllRef}
             onSelect={onSelect}
             onEdit={editor.edit}

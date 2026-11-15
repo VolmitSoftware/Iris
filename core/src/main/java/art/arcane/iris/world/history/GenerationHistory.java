@@ -429,10 +429,19 @@ public final class GenerationHistory {
                 candidate.epochId(),
                 candidate.packFingerprint(),
                 candidate.packFingerprintVersion(),
-                packSource
+                packSource,
+                activePackAsLinkBasis()
         );
         forceEpochPublication(paths, candidate.epochId());
         return store.preparePendingActivation(candidate, transitionWidthBlocks);
+    }
+
+    private Path activePackAsLinkBasis() {
+        try {
+            return packs.requireSafePackRoot(store.activeEpoch().epochId());
+        } catch (IOException missingOrUnsafe) {
+            return null;
+        }
     }
 
     GenerationActivation promotePending(

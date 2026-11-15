@@ -21,9 +21,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
@@ -61,11 +63,25 @@ public final class GenerationPackRepository {
         return epochRoot(epochId).resolve("pack");
     }
 
-    public synchronized Path publish(
+    public Path publish(
             String epochId,
             String packFingerprint,
             int packFingerprintVersion,
             Path source
+    ) throws IOException {
+        return publish(epochId, packFingerprint, packFingerprintVersion, source, null);
+    }
+
+    /**
+     * Files identical to the published {@code basisPack} are hard-linked instead of copied. Published packs are
+     * immutable and were already synced, so only new or changed files pay for a copy and an fsync.
+     */
+    public synchronized Path publish(
+            String epochId,
+            String packFingerprint,
+            int packFingerprintVersion,
+            Path source,
+            Path basisPack
     ) throws IOException {
         String requiredEpochId = requireDigest(epochId, "epochId");
         String requiredFingerprint = requireDigest(packFingerprint, "packFingerprint");
@@ -75,7 +91,7 @@ public final class GenerationPackRepository {
                 ".epoch-" + requiredEpochId + ".lock"
         )) {
             ensureEpochsRoot();
-            return publishLocked(requiredEpochId, requiredFingerprint, packFingerprintVersion, source);
+            return publishLocked(requiredEpochId, requiredFingerprint, packFingerprintVersion, source, basisPack);
         }
     }
 
@@ -83,7 +99,8 @@ public final class GenerationPackRepository {
             String epochId,
             String packFingerprint,
             int packFingerprintVersion,
-            Path source
+            Path source,
+            Path basisPack
     ) throws IOException {
         Path epochDirectory = ensureChildDirectory(epochsRoot, epochId);
         Path target = epochDirectory.resolve("pack");
@@ -94,7 +111,7 @@ public final class GenerationPackRepository {
         Path stage = Files.createTempDirectory(epochDirectory, ".pack-");
         try {
             Files.delete(stage);
-            copyPackTree(source, stage);
+            copyPackTree(source, stage, defaultExecutor(), defaultWorkers(), PackCopyMode.DURABLE, basisPack);
             requireFingerprint(stage, packFingerprint, packFingerprintVersion);
             try (AtomicDirectoryPublisher.Publication publication =
                          AtomicDirectoryPublisher.publishAbsent(stage, target)) {
@@ -202,12 +219,23 @@ public final class GenerationPackRepository {
     }
 
     public static void copyPackTree(Path source, Path target) throws IOException {
-        Executor executor = IrisPlatforms.isBound() ? MultiBurst.ioBurst : ForkJoinPool.commonPool();
-        int workers = Math.max(1, Math.min(MAXIMUM_COPY_WORKERS, Runtime.getRuntime().availableProcessors()));
-        copyPackTree(source, target, executor, workers);
+        copyPackTree(source, target, defaultExecutor(), defaultWorkers());
+    }
+
+    /**
+     * Copies a pack without syncing it, for scratch copies that are discarded and never published.
+     */
+    public static void snapshotPackTree(Path source, Path target) throws IOException {
+        copyPackTree(source, target, defaultExecutor(), defaultWorkers(), PackCopyMode.SCRATCH, null);
     }
 
     static void copyPackTree(Path source, Path target, Executor executor, int workers) throws IOException {
+        copyPackTree(source, target, executor, workers, PackCopyMode.DURABLE, null);
+    }
+
+    static void copyPackTree(
+            Path source, Path target, Executor executor, int workers, PackCopyMode mode, Path basisPack
+    ) throws IOException {
         Objects.requireNonNull(executor, "executor");
         if (workers < 1 || workers > MAXIMUM_COPY_WORKERS) {
             throw new IllegalArgumentException("Pack copy workers must be between 1 and " + MAXIMUM_COPY_WORKERS + ".");
@@ -268,17 +296,49 @@ public final class GenerationPackRepository {
                 throw new IOException("Unable to copy pack entry: " + file, failure);
             }
         });
-        executeFilePhase(sourceFiles, executor, workers, sourceFile ->
-                Files.copy(sourceFile, copyDestination(normalizedSource, normalizedTarget, sourceFile),
-                        StandardCopyOption.COPY_ATTRIBUTES));
-        executeFilePhase(sourceFiles, executor, workers, sourceFile ->
-                forceFile(copyDestination(normalizedSource, normalizedTarget, sourceFile)));
+        Path basis = basisPack == null ? null : basisPack.toAbsolutePath().normalize();
+        Set<Path> unsyncedCopies = ConcurrentHashMap.newKeySet();
+        executeFilePhase(sourceFiles, executor, workers, sourceFile -> {
+            Path destination = copyDestination(normalizedSource, normalizedTarget, sourceFile);
+            if (basis != null && linkUnchangedFile(normalizedSource.relativize(sourceFile), sourceFile, basis, destination)) {
+                return;
+            }
+            Files.copy(sourceFile, destination, StandardCopyOption.COPY_ATTRIBUTES);
+            unsyncedCopies.add(destination);
+        });
+        if (mode == PackCopyMode.SCRATCH) {
+            return;
+        }
+        executeFilePhase(List.copyOf(unsyncedCopies), executor, workers, GenerationPackRepository::forceFile);
+    }
+
+    private static boolean linkUnchangedFile(Path relative, Path sourceFile, Path basis, Path destination) {
+        Path basisFile = basis.resolve(relative).normalize();
+        if (!basisFile.startsWith(basis)) {
+            return false;
+        }
+        try {
+            if (!Files.isRegularFile(basisFile, LinkOption.NOFOLLOW_LINKS)
+                    || Files.mismatch(basisFile, sourceFile) != -1L) {
+                return false;
+            }
+            Files.createLink(destination, basisFile);
+            return true;
+        } catch (IOException | UnsupportedOperationException | SecurityException unsupported) {
+            return false;
+        }
+    }
+
+    private static Executor defaultExecutor() {
+        return IrisPlatforms.isBound() ? MultiBurst.ioBurst : ForkJoinPool.commonPool();
+    }
+
+    private static int defaultWorkers() {
+        return Math.max(1, Math.min(MAXIMUM_COPY_WORKERS, Runtime.getRuntime().availableProcessors()));
     }
 
     static void forceDirectoryTree(Path root, FileAction force) throws IOException {
-        Executor executor = IrisPlatforms.isBound() ? MultiBurst.ioBurst : ForkJoinPool.commonPool();
-        int workers = Math.max(1, Math.min(MAXIMUM_COPY_WORKERS, Runtime.getRuntime().availableProcessors()));
-        forceDirectoryTree(root, executor, workers, force);
+        forceDirectoryTree(root, defaultExecutor(), defaultWorkers(), force);
     }
 
     static void forceDirectoryTree(Path root, Executor executor, int workers, FileAction force) throws IOException {
@@ -394,6 +454,11 @@ public final class GenerationPackRepository {
             throw new IllegalArgumentException(field + " must be a lowercase SHA-256 digest");
         }
         return requiredValue;
+    }
+
+    enum PackCopyMode {
+        DURABLE,
+        SCRATCH
     }
 
     @FunctionalInterface

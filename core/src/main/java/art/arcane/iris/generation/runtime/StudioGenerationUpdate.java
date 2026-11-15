@@ -37,7 +37,7 @@ record StudioGenerationUpdate(
         Path stagingRoot = Files.createTempDirectory(history.paths().generationRoot(), ".studio-");
         Path snapshot = stagingRoot.resolve(source.getFileName());
         try {
-            GenerationPackRepository.copyPackTree(source, snapshot);
+            GenerationPackRepository.snapshotPackTree(source, snapshot);
             if (!fingerprint.equals(GenerationPackFingerprint.compute(snapshot, GenerationPackFingerprint.CURRENT_VERSION))) {
                 throw new IOException("Studio pack changed while its update snapshot was being captured.");
             }

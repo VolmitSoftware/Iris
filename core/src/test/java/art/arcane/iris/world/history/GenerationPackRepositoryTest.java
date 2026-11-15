@@ -50,6 +50,41 @@ public class GenerationPackRepositoryTest {
     }
 
     @Test
+    public void publishLinksUnchangedFilesFromTheBasisPackAndCopiesChangedOnes() throws Exception {
+        Path dimensionRoot = temporaryFolder.newFolder("basis-world").toPath();
+        Path first = createPack("basis-first", "{}");
+        Files.createDirectories(first.resolve("biomes"));
+        Files.writeString(first.resolve("biomes/plains.json"), "{\"name\":\"plains\"}");
+        GenerationPackRepository repository = new GenerationPackRepository(dimensionRoot);
+        Path basis = repository.publish(digest('1'), fingerprint(first), GenerationPackFingerprint.CURRENT_VERSION, first);
+        Path second = createPack("basis-second", "{\"changed\":true}");
+        Files.createDirectories(second.resolve("biomes"));
+        Files.writeString(second.resolve("biomes/plains.json"), "{\"name\":\"plains\"}");
+        Files.writeString(second.resolve("biomes/desert.json"), "{\"name\":\"desert\"}");
+
+        Path published = repository.publish(
+                digest('2'), fingerprint(second), GenerationPackFingerprint.CURRENT_VERSION, second, basis);
+
+        assertTrue(Files.isSameFile(basis.resolve("biomes/plains.json"), published.resolve("biomes/plains.json")));
+        assertFalse(Files.isSameFile(basis.resolve("dimensions/main.json"), published.resolve("dimensions/main.json")));
+        assertEquals("{\"changed\":true}", Files.readString(published.resolve("dimensions/main.json")));
+        assertEquals("{}", Files.readString(basis.resolve("dimensions/main.json")));
+        assertEquals("{\"name\":\"desert\"}", Files.readString(published.resolve("biomes/desert.json")));
+        assertEquals(fingerprint(second), fingerprint(published));
+    }
+
+    @Test
+    public void scratchSnapshotCopiesThePackWithoutLinkingTheSource() throws Exception {
+        Path source = createPack("snapshot-source", "{}");
+        Path snapshot = temporaryFolder.getRoot().toPath().resolve("snapshot");
+
+        GenerationPackRepository.snapshotPackTree(source, snapshot);
+
+        assertEquals(fingerprint(source), fingerprint(snapshot));
+        assertFalse(Files.isSameFile(source.resolve("dimensions/main.json"), snapshot.resolve("dimensions/main.json")));
+    }
+
+    @Test
     public void rejectsMutationOfAnExistingEpoch() throws Exception {
         Path dimensionRoot = temporaryFolder.newFolder("mutation-world").toPath();
         Path source = createPack("first", "{}");

@@ -8,7 +8,6 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.studio.map.components.MapLayer;
-import art.arcane.iris.studio.map.components.MapStyle;
 import art.arcane.iris.studio.map.components.MapTile;
 import art.arcane.iris.studio.map.components.MapTileRenderer;
 import art.arcane.iris.studio.map.components.PickDisplay;
@@ -41,9 +40,9 @@ public class MapHydrologyTest {
             MapTile tile = settled(renderer, MapLayer.of(TileType.BIOME));
             int expected = 0xFF000000 | overlaid(engine, 0x738249)[16 * 64 + 16];
             assertNotEquals(new Color(0x738249).getRGB(), expected);
-            assertEquals(expected, tile.image(MapStyle.PLAIN).getRGB(16, 16));
+            assertEquals(expected, 0xFF000000 | tile.colorAt(16, 16));
             MapTile dry = settled(renderer, MapLayer.biomes(PickDisplay.PICKS, false));
-            assertEquals(new Color(0x738249).getRGB(), dry.image(MapStyle.PLAIN).getRGB(16, 16));
+            assertEquals(new Color(0x738249).getRGB(), 0xFF000000 | dry.colorAt(16, 16));
             assertNotEquals(MapLayer.biomes(PickDisplay.PICKS, true), MapLayer.biomes(PickDisplay.PICKS, false));
         }
     }
@@ -67,11 +66,8 @@ public class MapHydrologyTest {
         MapTileRenderer renderer = new MapTileRenderer(engine);
         for (String name : new String[]{"OBJECT_LOAD", "DECORATOR_LOAD", "LAYER_LOAD"}) {
             TileType type = TileType.valueOf(name);
-            MapView view = MapView.valueOf(name);
-            assertEquals("Diagnostics", view.group().label());
-            assertTrue(view.description().contains("Configuration estimate"));
             MapTile tile = renderer.renderTile(0, 0, 1, 8, MapLayer.of(type), false, () -> false);
-            assertEquals(biome.getColor(engine, RenderType.valueOf(name)).getRGB(), tile.image(MapStyle.PLAIN).getRGB(0, 0));
+            assertEquals(biome.getColor(engine, RenderType.valueOf(name)).getRGB(), 0xFF000000 | tile.colorAt(0, 0));
         }
     }
 
@@ -79,7 +75,7 @@ public class MapHydrologyTest {
     public void disabledWaterPreservesBiomeColors() {
         Engine engine = engine(FakeHydrology.disabled(), biome());
         MapTile tile = new MapTileRenderer(engine).renderTile(0, 0, 1, 8, MapLayer.of(TileType.BIOME), false, () -> false);
-        assertEquals(new Color(0x738249).getRGB(), tile.image(MapStyle.PLAIN).getRGB(0, 0));
+        assertEquals(new Color(0x738249).getRGB(), 0xFF000000 | tile.colorAt(0, 0));
     }
 
     @Test

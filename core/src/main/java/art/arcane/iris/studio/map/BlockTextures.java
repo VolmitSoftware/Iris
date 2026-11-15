@@ -49,10 +49,8 @@ final class BlockTextures {
     private final ZipFile clientJar;
     private final MinecraftBiomeColors biomeColors;
     private final Map<String, Optional<ResolvedTexture>> resolvedTextures = new ConcurrentHashMap<>();
-    private final Map<String, Optional<BlockModel>> resolvedModels = new ConcurrentHashMap<>();
     private final Map<String, Optional<BlockTexture>> faceTextures = new ConcurrentHashMap<>();
     private final Map<String, Optional<BlockTexture>> icons = new ConcurrentHashMap<>();
-    private final BlockModelBuilder modelBuilder = new BlockModelBuilder(this);
 
     private BlockTextures(ZipFile clientJar, MinecraftBiomeColors biomeColors) {
         this.clientJar = clientJar;
@@ -132,13 +130,6 @@ final class BlockTextures {
     Optional<BlockTexture> upperHalfIcon(NativeBlockState block) {
         return withHalf(block, BlockHalf.UPPER).flatMap(this::resolve)
                 .filter(ResolvedTexture::isSideOnSprite).map(ResolvedTexture::texture);
-    }
-
-    /**
-     * What the block looks like from every side, for drawing it in 3D.
-     */
-    Optional<BlockModel> model(NativeBlockState block) {
-        return resolvedModels.computeIfAbsent(block.key(), modelBuilder::build);
     }
 
     private static Optional<NativeBlockState> withHalf(NativeBlockState block, BlockHalf half) {

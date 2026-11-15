@@ -1,6 +1,33 @@
 import { DropdownMenu } from 'radix-ui'
 import { Fragment } from 'react'
-import { IdeIcon, type IdeIconName } from '@/components/IdeIcon'
+import {
+  AudioWaveform,
+  Box,
+  Boxes,
+  Droplets,
+  Ellipsis,
+  Fish,
+  Flower2,
+  Gem,
+  HardDrive,
+  ImageIcon,
+  Layers,
+  Map,
+  MountainSnow,
+  Package,
+  Palette,
+  Pickaxe,
+  Pyramid,
+  Shapes,
+  Sprout,
+  TreeDeciduous,
+  TreePine,
+  Trees,
+  Waves,
+  Workflow,
+  Zap,
+  type LucideIcon
+} from 'lucide-react'
 import { Kbd } from '@/components/ui/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -8,38 +35,43 @@ import type { ViewInfo } from '../bridge/types'
 import { viewShortcutId } from './shortcuts'
 import { useKeyText } from './useBindings'
 
-const VIEW_ICONS: Record<string, IdeIconName> = {
-  biomes: 'views/biomes',
-  regions: 'views/regions',
-  rivers: 'views/rivers',
-  height: 'shading',
-  'land-biomes': 'views/biomes',
-  'sea-biomes': 'views/biomes',
-  'cave-biomes': 'views/biomes',
-  'object-load': 'views/objects',
-  'decorator-load': 'decoration',
-  'layer-load': 'groups',
-  caveProfiles: 'views/cave-profiles',
-  treeProfiles: 'views/tree-profiles',
-  formationProfiles: 'views/formation-profiles',
-  fluidProfiles: 'views/fluid-profiles',
-  world3d: 'views/world-3d',
-  savedWorld: 'views/saved-world',
-  'iris:terrain/palettes': 'views/palettes',
-  'iris:decorant/decorators': 'decoration',
-  'iris:objects': 'views/objects',
-  'iris:objects/procedural': 'views/procedural',
-  noise: 'views/noise',
-  imageMaps: 'grid',
-  pregen: 'lightning'
+const VIEW_ICONS: Record<string, LucideIcon> = {
+  biomes: Trees,
+  regions: Map,
+  rivers: Waves,
+  height: MountainSnow,
+  'land-biomes': TreeDeciduous,
+  'sea-biomes': Fish,
+  'cave-biomes': Gem,
+  'object-load': Boxes,
+  'decorator-load': Sprout,
+  'layer-load': Layers,
+  caveProfiles: Pickaxe,
+  treeProfiles: TreePine,
+  formationProfiles: Pyramid,
+  fluidProfiles: Droplets,
+  world3d: Box,
+  savedWorld: HardDrive,
+  'iris:terrain/palettes': Palette,
+  'iris:decorant/decorators': Flower2,
+  'iris:objects': Package,
+  'iris:objects/procedural': Workflow,
+  noise: AudioWaveform,
+  imageMaps: ImageIcon,
+  pregen: Zap
 }
-const FALLBACK_ICON: IdeIconName = 'blocks'
+const FALLBACK_ICON: LucideIcon = Shapes
 /** Inset, because the stripe scrolls and so clips anything drawn outside its buttons. */
 const STRIPE_BUTTON = 'flex size-8 shrink-0 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset'
 
 /** The icon a view has in the stripe, which its island's header repeats beside its name. */
-export function viewIcon(viewId: string): IdeIconName {
+export function viewIcon(viewId: string): LucideIcon {
   return VIEW_ICONS[viewId] ?? FALLBACK_ICON
+}
+
+function ViewIcon({ viewId, className }: { viewId: string; className: string }): React.JSX.Element {
+  const Icon = viewIcon(viewId)
+  return <Icon className={className} />
 }
 
 interface ViewListProps {
@@ -99,9 +131,9 @@ function ViewButton({ view, selected, onSelect }: { view: ViewInfo; selected: bo
           onClick={onSelect}
           aria-label={view.label}
           aria-pressed={selected}
-          className={cn(STRIPE_BUTTON, selected ? 'bg-primary [&_img]:brightness-0 [&_img]:invert' : 'hover:bg-selection')}
+          className={cn(STRIPE_BUTTON, selected ? 'bg-primary text-primary-foreground' : 'hover:bg-selection')}
         >
-          <IdeIcon name={viewIcon(view.id)} className="size-[18px]" />
+          <ViewIcon viewId={view.id} className="size-[18px]" />
         </button>
       </TooltipTrigger>
       <TooltipContent side="right" className="flex max-w-64 flex-col items-start gap-0.5">
@@ -122,11 +154,7 @@ function NamedViews({ groups, current, onSelect }: { groups: ViewGroup[]; curren
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button aria-label="All views" title="All views" className={cn(STRIPE_BUTTON, 'text-secondary-text hover:bg-selection data-[state=open]:bg-selection')}>
-          <svg viewBox="0 0 16 16" className="size-4" fill="currentColor">
-            <circle cx="3" cy="8" r="1.25" />
-            <circle cx="8" cy="8" r="1.25" />
-            <circle cx="13" cy="8" r="1.25" />
-          </svg>
+          <Ellipsis />
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
@@ -143,7 +171,7 @@ function NamedViews({ groups, current, onSelect }: { groups: ViewGroup[]; curren
                     view.id === current && 'bg-selection'
                   )}
                 >
-                  <IdeIcon name={viewIcon(view.id)} className="size-3.5" />
+                  <ViewIcon viewId={view.id} className="size-3.5" />
                   <span className="min-w-0 flex-1 truncate">{view.label}</span>
                   {keyText(viewShortcutId(view.id)) !== '' && (
                     <Kbd className="h-4 min-w-4 border border-input/60 bg-transparent text-[10px] uppercase">{keyText(viewShortcutId(view.id))}</Kbd>

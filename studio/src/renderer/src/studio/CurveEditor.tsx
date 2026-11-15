@@ -1,4 +1,4 @@
-import { IdeIcon } from '@/components/IdeIcon'
+import { Plus, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -192,12 +192,12 @@ function PointsForm({ keys, locked, onWrite }: { keys: Keyframe[]; locked: boole
           <NumberBox label="at" value={t} disabled={locked} onCommit={(next) => next !== undefined && onWrite(withKeyframe(keys, index, [next, value]))} />
           <NumberBox label="value" value={value} disabled={locked} onCommit={(next) => next !== undefined && onWrite(withKeyframe(keys, index, [t, next]))} />
           <Button variant="ghost" size="icon-sm" title="Remove the point" className="size-6 shrink-0" disabled={locked || keys.length <= 1} onClick={() => onWrite(withoutKeyframe(keys, index))}>
-            <IdeIcon name="delete" className="size-3.5" />
+            <Trash2 className="size-3.5" />
           </Button>
         </div>
       ))}
       <Button variant="ghost" size="xs" disabled={locked} onClick={() => onWrite(withAddedKeyframe(keys))}>
-        <IdeIcon name="add" className="size-3.5" /> Point
+        <Plus className="size-3.5" /> Point
       </Button>
     </div>
   )

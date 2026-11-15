@@ -1,6 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { IdeIcon } from "@/components/IdeIcon"
+import { ChevronRight } from "lucide-react"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 
 const MENU_SURFACE =
@@ -45,7 +45,7 @@ function DropdownMenuSubTrigger({ className, children, ...props }: React.Compone
       {...props}
     >
       {children}
-      <IdeIcon name="chevronRight" className="ml-auto size-3.5" />
+      <ChevronRight className="ml-auto size-3.5" />
     </DropdownMenuPrimitive.SubTrigger>
   )
 }

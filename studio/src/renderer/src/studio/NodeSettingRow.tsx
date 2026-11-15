@@ -1,4 +1,4 @@
-import { IdeIcon } from '@/components/IdeIcon'
+import { Check, ChevronDown } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
@@ -114,11 +114,7 @@ function CheckValue({ row, editable }: SettingRowProps): React.JSX.Element {
       className={cn('flex size-3.5 items-center justify-center rounded-[4px] border', checked ? 'border-primary bg-primary' : 'border-input bg-muted', editable && 'hover:border-primary', row.value === undefined && 'opacity-60')}
       onClick={() => onEdit({ op: 'set', object: row.fold.path, key: row.option.name, literal: String(!checked) })}
     >
-      {checked && (
-        <svg viewBox="0 0 14 14" className="size-3.5 text-primary-foreground" aria-hidden>
-          <path d="M3.5 7 L6 9.5 L10.5 4" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )}
+      {checked && <Check className="size-3 text-primary-foreground" />}
     </button>
   )
 }
@@ -132,7 +128,7 @@ function ChoiceValue({ row, editable }: SettingRowProps): React.JSX.Element {
       <DropdownMenuTrigger asChild disabled={!editable}>
         <button type="button" data-node-control className={cn(FIELD, editable && EDITABLE_FIELD)}>
           <ShownText row={row} />
-          <IdeIcon name="chevronRight" className="size-3 shrink-0 rotate-90 text-secondary-text" />
+          <ChevronDown className="size-3 text-secondary-text" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" onCloseAutoFocus={keepFocusOnCanvas}>

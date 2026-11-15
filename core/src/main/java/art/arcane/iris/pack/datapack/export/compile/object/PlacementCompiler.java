@@ -37,7 +37,6 @@ public final class PlacementCompiler {
     private static final int MAX_ANCHOR = 2031;
     private static final int DEFAULT_FLUID_HEIGHT = 63;
     private static final long WEIGHT_CEILING = 1_000_000L;
-    private static final long ROTATION_SHARES = 12L;
     private static final List<String> QUARTER_NAMES = List.of("none", "counterclockwise_90", "180", "clockwise_90");
     static final List<String> FLUIDS = List.of("minecraft:water", "minecraft:flowing_water", "minecraft:lava", "minecraft:flowing_lava");
     private static final Set<ObjectPlaceMode> STILT_MODES = Set.of(ObjectPlaceMode.STILT, ObjectPlaceMode.FAST_STILT,
@@ -50,14 +49,12 @@ public final class PlacementCompiler {
     private final FeatureJson json;
     private final DimensionDef dimension;
     private final WideObjectStructures wide;
-    private final RootExtension roots;
 
     public PlacementCompiler(String namespace, ExportCapabilities capabilities, DimensionDef dimension) {
         this.namespace = VanillaResourceIdentifier.requireNamespace(namespace, "placement namespace");
         json = new FeatureJson(capabilities);
         this.dimension = dimension;
         wide = new WideObjectStructures(namespace);
-        roots = new RootExtension(this.namespace, json);
     }
 
     public static boolean stilted(ObjectPlaceMode mode) {
@@ -124,11 +121,10 @@ public final class PlacementCompiler {
         }
         HeightAnchor.Sampling sampling = input.anchor() == PlacementInput.Anchor.SURFACE && !paint
                 && placement.getMode() != ObjectPlaceMode.FLOATING ? HeightAnchor.sampling(placement.getMode()) : HeightAnchor.Sampling.CENTER;
-        boolean grounded = grounds(input) && rooted(templates);
-        boolean branched = grounded || sampling != HeightAnchor.Sampling.CENTER;
+        boolean branched = sampling != HeightAnchor.Sampling.CENTER;
         JsonObject feature;
         if (branched) {
-            feature = branches(input, templates, processors, sampling, grounded, resources);
+            feature = branches(input, templates, processors, sampling);
         } else {
             feature = template(templates, processors);
             if (stilted(placement.getMode())) {
@@ -212,29 +208,16 @@ public final class PlacementCompiler {
     }
 
     private JsonObject branches(PlacementInput input, List<TemplateChoice> templates, List<JsonObject> processors,
-                                HeightAnchor.Sampling sampling, boolean grounded, List<JsonResource> resources) {
+                                HeightAnchor.Sampling sampling) {
         IrisObjectPlacement placement = input.placement();
-        Map<String, JsonResource> shared = new TreeMap<>();
-        Branching branching = new Branching(input, processors, sampling, grounded, surfaceOffset(placement, lowestBase(templates)),
-                clamp(placement.getClamp()), shared);
+        Branching branching = new Branching(input, processors, sampling, surfaceOffset(placement, lowestBase(templates)),
+                clamp(placement.getClamp()));
         List<JsonObject> branches = new ArrayList<>();
         List<Long> weights = new ArrayList<>();
         for (TemplateChoice choice : templates) {
-            long weight = grounded ? choice.weight() * (ROTATION_SHARES / choice.quarters().size()) : choice.weight();
-            List<List<Integer>> groups = new ArrayList<>(choice.quarters().size());
-            if (grounded) {
-                for (int quarter : choice.quarters()) {
-                    groups.add(List.of(quarter));
-                }
-            } else {
-                groups.add(choice.quarters());
-            }
-            for (List<Integer> quarters : groups) {
-                branches.add(branch(branching, choice.variant(), quarters));
-                weights.add(weight);
-            }
+            branches.add(branch(branching, choice.variant(), choice.quarters()));
+            weights.add(choice.weight());
         }
-        resources.addAll(shared.values());
         long divisor = 0;
         for (long weight : weights) {
             divisor = BigInteger.valueOf(divisor).gcd(BigInteger.valueOf(weight)).longValue();
@@ -261,14 +244,7 @@ public final class PlacementCompiler {
                     variant.volume(), quarters, new TemplateColumn(placement.getTranslate().getX(), placement.getTranslate().getZ())));
         }
         modifiers.addAll(branching.offset());
-        if (branching.grounded() && variant.roots().present()) {
-            int quarter = quarters.getFirst();
-            feature = overlay(feature, roots.pillars(variant.roots(), variant.volume(), quarter, branching.shared()));
-            JsonObject gap = RootExtension.gap(variant.roots(), variant.volume(), quarter);
-            if (gap != null) {
-                modifiers.add(Placements.filter(gap));
-            }
-        } else if (stilted(placement.getMode())) {
+        if (stilted(placement.getMode())) {
             feature = stilts(feature, List.of(single), branching.input().stiltBases());
         }
         if (branching.clamp() != null) {
@@ -278,37 +254,6 @@ public final class PlacementCompiler {
         branch.add("feature", feature);
         branch.add("placement", array(modifiers));
         return branch;
-    }
-
-    private JsonObject overlay(JsonObject template, List<JsonObject> parts) {
-        JsonArray features = new JsonArray(parts.size() + 1);
-        JsonObject anchored = new JsonObject();
-        anchored.add("feature", template);
-        anchored.add("placement", new JsonArray());
-        features.add(anchored);
-        for (JsonObject part : parts) {
-            features.add(part);
-        }
-        JsonObject fields = new JsonObject();
-        fields.add("features", features);
-        return json.syntax().feature("minecraft:overlay", fields);
-    }
-
-    private static boolean grounds(PlacementInput input) {
-        IrisObjectPlacement placement = input.placement();
-        ObjectPlaceMode mode = placement.getMode();
-        return input.anchor() == PlacementInput.Anchor.SURFACE && !placement.isForcePlace() && !placement.isFromBottom()
-                && mode != ObjectPlaceMode.PAINT && mode != ObjectPlaceMode.FLOATING && mode != ObjectPlaceMode.CEILING_HANG
-                && mode != ObjectPlaceMode.STRUCTURE_PIECE;
-    }
-
-    private static boolean rooted(List<TemplateChoice> templates) {
-        for (TemplateChoice template : templates) {
-            if (template.variant().roots().present()) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static JsonArray array(List<JsonObject> values) {
@@ -671,7 +616,7 @@ public final class PlacementCompiler {
         return tallest;
     }
 
-    private record Branching(PlacementInput input, List<JsonObject> processors, HeightAnchor.Sampling sampling, boolean grounded,
-                             List<JsonObject> offset, JsonObject clamp, Map<String, JsonResource> shared) {
+    private record Branching(PlacementInput input, List<JsonObject> processors, HeightAnchor.Sampling sampling,
+                             List<JsonObject> offset, JsonObject clamp) {
     }
 }

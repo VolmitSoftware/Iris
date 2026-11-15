@@ -1,6 +1,5 @@
 package art.arcane.iris.structure.object;
 
-import art.arcane.iris.generation.decoration.tree.TreeGrounding;
 import art.arcane.iris.structure.object.PlacementContext.TransformedBounds;
 import art.arcane.iris.structure.object.PlacementContext.WorldBounds;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
@@ -34,7 +33,6 @@ public final class PlacementState {
     WorldBounds worldBounds;
     IrisPaintSurfaceProjection paintProjection;
     art.arcane.volmlib.util.collection.KList<IrisBlockVector> paintSupport;
-    TreeGrounding.Plan grounding;
     ObjectPlacementBake bake;
     PlacementPalette palette;
     int vacuumLowest = Integer.MAX_VALUE;

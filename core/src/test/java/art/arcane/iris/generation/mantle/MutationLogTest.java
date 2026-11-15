@@ -19,10 +19,10 @@ public class MutationLogTest {
     public void logKeepsPositionsValuesAndFlagsInOrder() {
         NativeBlockState state = new KeyedBlockState("minecraft:stone");
         MutationLog log = MutationLog.of(List.of(
-                new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(3, 70, -2, String.class), "marker", true),
-                new ObjectDestinationTransaction.CustomBlockMutation(new ObjectDestinationTransaction.DataKey(-17, 4, 40, NativeBlockState.class), state, false)));
+                new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(3, 70, -2, String.class), "marker"),
+                new ObjectDestinationTransaction.CustomBlockMutation(new ObjectDestinationTransaction.DataKey(-17, 4, 40, NativeBlockState.class), state)));
         for (int index = 0; index < 100; index++) {
-            log.add(index, index + 1, -index, "grow" + index, (index & 1) == 0, (index & 2) == 0,
+            log.add(index, index + 1, -index, "grow" + index, (index & 1) == 0,
                     (index & 4) == 0 ? ObjectWaterRule.ENTERS_WATER : (index & 8) == 0 ? ObjectWaterRule.FORCED : ObjectWaterRule.KEEP_OUT);
         }
 
@@ -32,17 +32,13 @@ public class MutationLogTest {
         assertEquals(-2, log.z(0));
         assertEquals("marker", log.value(0));
         assertFalse(log.custom(0));
-        assertTrue(log.canopy(0));
         assertSame(String.class, log.type(0));
         assertSame(state, log.value(1));
         assertTrue(log.custom(1));
-        assertFalse(log.canopy(1));
         assertSame(NativeBlockState.class, log.type(1));
         assertEquals(99, log.x(101));
         assertEquals("grow99", log.value(101));
         assertFalse(log.custom(101));
-        assertTrue(log.canopy(98));
-        assertFalse(log.canopy(100));
         assertEquals(ObjectWaterRule.KEEP_OUT, log.waterRule(0));
         assertEquals(ObjectWaterRule.ENTERS_WATER, log.waterRule(98));
         assertEquals(ObjectWaterRule.FORCED, log.waterRule(6));
@@ -52,7 +48,7 @@ public class MutationLogTest {
     @Test
     public void mismatchedMutationTypesAreRejected() {
         assertThrows(IllegalArgumentException.class, () -> MutationLog.of(List.of(
-                new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(0, 4, 0, Integer.class), "text", false))));
+                new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(0, 4, 0, Integer.class), "text"))));
     }
 
     @Test
@@ -64,10 +60,9 @@ public class MutationLogTest {
             int y = 4 + index;
             int z = (index * 5) - 20;
             String value = "value" + (index % 9);
-            boolean canopy = index % 4 == 0;
-            log.add(x, y, z, value, false, canopy, ObjectWaterRule.KEEP_OUT);
+            log.add(x, y, z, value, false, ObjectWaterRule.KEEP_OUT);
             if (index >= 10) {
-                tail.add(new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(x, y, z, String.class), value, canopy));
+                tail.add(new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(x, y, z, String.class), value));
             }
         }
         ObjectSourcePlan sliced = new ObjectSourcePlan(log, 10, List.of());

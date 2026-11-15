@@ -9,7 +9,6 @@ import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
-import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.world.storage.matter.TileWrapper;
 import art.arcane.volmlib.util.matter.MatterCavern;
@@ -35,7 +34,6 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     private final MutationLog log = new MutationLog();
     private final List<PlacementRange> placements = new ArrayList<>();
     private final Long2ObjectOpenHashMap<Int2ObjectOpenHashMap<OverlayCell>> overlay;
-    private BlockPosition canopyPosition;
     private boolean subterrainKnown;
     private int subterrainX;
     private int subterrainY;
@@ -98,7 +96,6 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         }
         int baseX = destinationChunkX << 4;
         int baseZ = destinationChunkZ << 4;
-        boolean skipCanopy = false;
         int end = plan.slotEnd(slot);
         for (int index = plan.slotStart(slot); index < end; index++) {
             int cell = plan.cellAt(index);
@@ -106,20 +103,11 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             int y = ObjectSourcePlan.cellY(cell);
             int z = baseZ | ObjectSourcePlan.cellZ(cell);
             Object value = plan.valueAt(index);
-            boolean custom = ObjectSourcePlan.isCustom(cell);
-            boolean canopy = ObjectSourcePlan.isCanopy(cell);
             ObjectWaterRule rule = ObjectSourcePlan.waterRule(cell);
-            if (custom || value instanceof NativeBlockState) {
-                NativeBlockState existing = canopy ? get(x, y, z) : null;
-                skipCanopy = existing != null && existing.isSolid();
-            }
-            if (canopy && skipCanopy) {
-                continue;
-            }
-            if (custom) {
-                set(x, y, z, (NativeBlockState) value, canopy, rule);
+            if (ObjectSourcePlan.isCustom(cell)) {
+                set(x, y, z, (NativeBlockState) value, rule);
             } else {
-                setData(x, y, z, value, canopy, rule);
+                setData(x, y, z, value, rule);
             }
         }
     }
@@ -184,10 +172,10 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     @Override
     public void set(int x, int y, int z, NativeBlockState state) {
-        set(x, y, z, state, isCanopy(x, y, z), waterRule);
+        set(x, y, z, state, waterRule);
     }
 
-    private void set(int x, int y, int z, NativeBlockState state, boolean canopy, ObjectWaterRule rule) {
+    private void set(int x, int y, int z, NativeBlockState state, ObjectWaterRule rule) {
         if (state == null) {
             return;
         }
@@ -202,29 +190,10 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             cell.block = baseState;
             cell.tile = CLEARED;
             cell.identifier = identifier;
-            log.add(x, y, z, state, true, canopy, rule);
+            log.add(x, y, z, state, true, rule);
             return;
         }
-        setData(x, y, z, state, canopy, rule);
-    }
-
-    @Override
-    public boolean beginTreeCanopy(BlockPosition position) {
-        if (!ObjectPassPlacer.super.beginTreeCanopy(position)) {
-            return false;
-        }
-        canopyPosition = position;
-        return true;
-    }
-
-    @Override
-    public void endTreeCanopy() {
-        canopyPosition = null;
-    }
-
-    private boolean isCanopy(int x, int y, int z) {
-        return canopyPosition != null && canopyPosition.getX() == x
-                && canopyPosition.getY() == y && canopyPosition.getZ() == z;
+        setData(x, y, z, state, rule);
     }
 
     @Override
@@ -296,10 +265,10 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     @Override
     public <T> void setData(int x, int y, int z, T data) {
-        setData(x, y, z, data, isCanopy(x, y, z), waterRule);
+        setData(x, y, z, data, waterRule);
     }
 
-    private void setData(int x, int y, int z, Object data, boolean canopy, ObjectWaterRule rule) {
+    private void setData(int x, int y, int z, Object data, ObjectWaterRule rule) {
         if (data == null || y < 0 || y >= worldHeight
                 || protectsSubterrain(x, y, z)) {
             return;
@@ -319,7 +288,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         } else {
             cell.put(type, data);
         }
-        log.add(x, y, z, data, false, canopy, rule);
+        log.add(x, y, z, data, false, rule);
     }
 
     @Override
@@ -548,11 +517,9 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         int z();
 
         DataKey key();
-
-        boolean canopy();
     }
 
-    record SetMutation(DataKey key, Object value, boolean canopy) implements Mutation {
+    record SetMutation(DataKey key, Object value) implements Mutation {
         @Override
         public int x() {
             return key.x();
@@ -564,7 +531,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         }
     }
 
-    record CustomBlockMutation(DataKey key, NativeBlockState state, boolean canopy) implements Mutation {
+    record CustomBlockMutation(DataKey key, NativeBlockState state) implements Mutation {
         @Override
         public int x() {
             return key.x();

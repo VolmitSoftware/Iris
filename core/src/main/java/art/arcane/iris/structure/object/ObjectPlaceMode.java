@@ -133,7 +133,6 @@ public enum ObjectPlaceMode {
         new PlacementModuleNativeStructureProtection().install(lifecycle);
         new PlacementModuleBounds().install(lifecycle);
         new PlacementModuleCollision().install(lifecycle);
-        new PlacementModuleTreeGrounding().install(lifecycle);
         new PlacementModuleBore().install(lifecycle);
         new PlacementModuleBlocks().install(lifecycle);
         PlacementLifecycleDependency finish = switch (this) {

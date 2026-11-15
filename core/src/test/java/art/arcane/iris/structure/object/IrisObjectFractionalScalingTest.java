@@ -1,22 +1,15 @@
 package art.arcane.iris.structure.object;
 
 import art.arcane.iris.generation.block.TileData;
-import art.arcane.iris.generation.decoration.tree.TreeBlockCanvas;
-import art.arcane.iris.generation.decoration.tree.TreeGrounding;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.Vector3i;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Set;
-
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -120,40 +113,6 @@ public class IrisObjectFractionalScalingTest {
         assertNotSame(lower.getProperties(), scaledLower.getProperties());
         assertNotSame(upper, scaledUpper);
         assertNotSame(scaledLower.getProperties(), scaledUpper.getProperties());
-    }
-
-    @Test
-    public void sameMaterialCanopyRolesAndRootContactsFollowTheDominantSourceVoxel() {
-        NativeBlockState wood = state("minecraft:spruce_wood");
-        IrisObject source = layers(wood, wood);
-        TreeGrounding grounding = TreeGrounding.create(List.of(new TreeGrounding.Root(0, 0, 0, wood)),
-                8, Set.of(new TreeBlockCanvas.Vec(0, 1, 0)));
-        source.setTreeGrounding(grounding);
-        for (boolean savedOrigin : new boolean[]{false, true}) {
-            IrisObject scaled = scale(source, 0.75D, savedOrigin);
-            int bottom = -scaled.getCenter().getY();
-            TreeGrounding result = scaled.getTreeGrounding();
-
-            assertEquals(List.of(new TreeGrounding.Root(0, bottom, 0, wood)), result.roots());
-            assertFalse(result.isCanopy(0, bottom, 0));
-            assertTrue(result.isCanopy(0, bottom + 1, 0));
-            assertEquals(6, result.maxExtension());
-        }
-        assertSame(grounding, source.getTreeGrounding());
-    }
-
-    @Test
-    public void canopyWinningAnUnresolvableRootCollisionDoesNotBecomeAGroundContact() {
-        NativeBlockState wood = state("minecraft:spruce_wood");
-        IrisObject source = layers(wood, wood);
-        source.setTreeGrounding(TreeGrounding.create(List.of(new TreeGrounding.Root(0, 0, 0, wood)),
-                8, Set.of(new TreeBlockCanvas.Vec(0, 1, 0))));
-
-        IrisObject scaled = source.scaled(0.5D, IrisObjectPlacementScaleInterpolator.NONE);
-
-        assertEquals(1, scaled.getBlocks().size());
-        assertTrue(scaled.getTreeGrounding().roots().isEmpty());
-        assertTrue(scaled.getTreeGrounding().isCanopy(0, 0, 0));
     }
 
     private static IrisObject layers(NativeBlockState lower, NativeBlockState upper) {

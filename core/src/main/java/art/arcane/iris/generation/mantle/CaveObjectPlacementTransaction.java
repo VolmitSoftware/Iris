@@ -28,7 +28,6 @@ import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
-import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.iris.generation.block.B;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
@@ -56,13 +55,11 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     private int[] mutationZ = new int[64];
     private Object[] mutationValues = new Object[64];
     private byte[] mutationKinds = new byte[64];
-    private boolean[] mutationCanopies = new boolean[64];
     private int mutationCount;
     private final Long2ObjectOpenHashMap<NativeBlockState> bufferedBlocks;
     private final Long2IntOpenHashMap surfaceHeights;
     private final Long2IntOpenHashMap caveCeilings;
     private int blockWrites;
-    private BlockPosition canopyPosition;
     private boolean originKnown;
     private int originX;
     private int originZ;
@@ -129,34 +126,15 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     }
 
     private void applyMutations() {
-        boolean canopyOpen = false;
-        boolean skipCanopy = false;
-        try {
-            for (int index = 0; index < mutationCount; index++) {
-                int x = mutationX[index];
-                int y = mutationY[index];
-                int z = mutationZ[index];
-                Object value = mutationValues[index];
-                boolean canopy = mutationCanopies[index];
-                if (value instanceof NativeBlockState) {
-                    if (canopyOpen) {
-                        delegate.endTreeCanopy();
-                        canopyOpen = false;
-                    }
-                    skipCanopy = canopy && !delegate.beginTreeCanopy(new BlockPosition(x, y, z));
-                    canopyOpen = canopy && !skipCanopy;
-                }
-                if (!canopy || !skipCanopy) {
-                    switch (mutationKinds[index]) {
-                        case BLOCK -> delegate.set(x, y, z, (NativeBlockState) value);
-                        case TILE -> delegate.setTile(x, y, z, (TileData) value);
-                        default -> delegate.setData(x, y, z, value);
-                    }
-                }
-            }
-        } finally {
-            if (canopyOpen) {
-                delegate.endTreeCanopy();
+        for (int index = 0; index < mutationCount; index++) {
+            int x = mutationX[index];
+            int y = mutationY[index];
+            int z = mutationZ[index];
+            Object value = mutationValues[index];
+            switch (mutationKinds[index]) {
+                case BLOCK -> delegate.set(x, y, z, (NativeBlockState) value);
+                case TILE -> delegate.setTile(x, y, z, (TileData) value);
+                default -> delegate.setData(x, y, z, value);
             }
         }
     }
@@ -176,14 +154,12 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
             mutationZ = Arrays.copyOf(mutationZ, capacity);
             mutationValues = Arrays.copyOf(mutationValues, capacity);
             mutationKinds = Arrays.copyOf(mutationKinds, capacity);
-            mutationCanopies = Arrays.copyOf(mutationCanopies, capacity);
         }
         mutationX[mutationCount] = x;
         mutationY[mutationCount] = y;
         mutationZ[mutationCount] = z;
         mutationValues[mutationCount] = value;
         mutationKinds[mutationCount] = kind;
-        mutationCanopies[mutationCount] = isCanopy(x, y, z);
         mutationCount++;
     }
 
@@ -221,25 +197,6 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         buffer(BLOCK, x, y, z, state);
         bufferedBlocks.put(bufferKey(x, y, z), state);
         blockWrites++;
-    }
-
-    @Override
-    public boolean beginTreeCanopy(BlockPosition position) {
-        if (!IObjectPlacer.super.beginTreeCanopy(position)) {
-            return false;
-        }
-        canopyPosition = position;
-        return true;
-    }
-
-    @Override
-    public void endTreeCanopy() {
-        canopyPosition = null;
-    }
-
-    private boolean isCanopy(int x, int y, int z) {
-        return canopyPosition != null && canopyPosition.getX() == x
-                && canopyPosition.getY() == y && canopyPosition.getZ() == z;
     }
 
     @Override

@@ -7,7 +7,6 @@ import art.arcane.iris.pack.datapack.export.VanillaBlockState;
 import art.arcane.iris.pack.datapack.export.compile.object.BakedVariant;
 import art.arcane.iris.pack.datapack.export.compile.object.ObjectSource;
 import art.arcane.iris.pack.datapack.export.compile.object.ObjectVariantBaker;
-import art.arcane.iris.pack.datapack.export.compile.object.TreeRoots;
 import art.arcane.iris.pack.datapack.export.compile.object.VariantSpec;
 import art.arcane.iris.testsupport.KeyedBlockState;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -210,8 +209,7 @@ public class ObjectPlacementBakeTest {
             blocks.add(new TemplateBlock(key.getBlockX() + object.getCenter().getX(), key.getBlockY() + object.getCenter().getY(),
                     key.getBlockZ() + object.getCenter().getZ(), VanillaBlockState.parse(object.getBlocks().get(key).key()), null));
         }
-        ObjectSource source = new ObjectSource(new TemplateVolume(object.getW(), object.getH(), object.getD(), blocks), 0,
-                TreeRoots.NONE);
+        ObjectSource source = new ObjectSource(new TemplateVolume(object.getW(), object.getH(), object.getD(), blocks), 0);
         double[][] angles = {{0D, 45D, 0D}, {0D, 135D, 0D}, {0D, 30D, 0D}, {20D, 45D, 0D}, {0D, 60D, 15D}};
         for (double[] angle : angles) {
             IrisObjectRotation rotation = IrisObjectRotation.of(angle[0], angle[1], angle[2]);

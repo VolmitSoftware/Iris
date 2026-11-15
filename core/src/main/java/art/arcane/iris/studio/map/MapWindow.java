@@ -47,9 +47,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.IntConsumer;
 
 /**
@@ -59,6 +57,7 @@ import java.util.function.IntConsumer;
 public final class MapWindow implements MapCanvas.Listener {
     private static final String MAP_CARD = "map";
     private static final String PALETTES_CARD = "palettes";
+    private static final String OBJECTS_CARD = "objects";
     private static final String NOISE_CARD = "noise";
     private static final String WORLD_CARD = "world";
     private static final String IMAGE_MAPS_CARD = "image maps";
@@ -104,7 +103,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private final BiomeExplorer biomeExplorer;
 
     private NoiseExplorerGUI paletteExplorer;
-    private final Map<MapView, ObjectExplorer> objectExplorers = new EnumMap<>(MapView.class);
+    private ObjectExplorer objectExplorer;
     private NoiseExplorerGUI noiseExplorer;
     private JComponent noiseSidebar;
     private WorldExplorer worldExplorer;
@@ -301,8 +300,8 @@ public final class MapWindow implements MapCanvas.Listener {
             showWorld();
         } else if (view == MapView.PALETTES) {
             showPalettes(previousView);
-        } else if (view == MapView.OBJECTS || view == MapView.PROCEDURAL) {
-            showObjectExplorer(view);
+        } else if (view == MapView.OBJECTS) {
+            showObjectExplorer();
         } else if (view == MapView.IMAGE_MAPS) {
             showImageMaps();
         } else {
@@ -384,17 +383,19 @@ public final class MapWindow implements MapCanvas.Listener {
         }
     }
 
-    private void showObjectExplorer(MapView view) {
-        boolean firstOpen = !objectExplorers.containsKey(view);
-        ObjectExplorer explorer = objectExplorers.computeIfAbsent(view, this::createObjectExplorer);
+    private void showObjectExplorer() {
+        boolean firstOpen = objectExplorer == null;
+        if (firstOpen) {
+            createObjectExplorer();
+        }
         canvas.setActive(false);
         showControls(explorerControls);
-        useSidebar(viewListAbove(explorer.browser()));
-        useInspector(explorer.overview());
-        showCard(view.name());
+        useSidebar(viewListAbove(objectExplorer.browser()));
+        useInspector(objectExplorer.overview());
+        showCard(OBJECTS_CARD);
         EventQueue.invokeLater(() -> viewList.select(currentView));
         if (firstOpen) {
-            explorer.open();
+            objectExplorer.open();
         }
     }
 
@@ -434,13 +435,11 @@ public final class MapWindow implements MapCanvas.Listener {
         });
     }
 
-    private ObjectExplorer createObjectExplorer(MapView view) {
-        ObjectSource source = view == MapView.PROCEDURAL ? new ProceduralObjectSource() : new PackObjectSource();
-        ObjectExplorer explorer = new ObjectExplorer(start.engine(), start.worldId(), source);
-        keepClearOfIsland(explorer::setCoveredLeftWidth);
-        content.add(explorer.view(), view.name());
-        statusBars.add(explorer.statusBar(), view.name());
-        return explorer;
+    private void createObjectExplorer() {
+        objectExplorer = new ObjectExplorer(start.engine(), start.worldId(), new PackObjectSource());
+        keepClearOfIsland(objectExplorer::setCoveredLeftWidth);
+        content.add(objectExplorer.view(), OBJECTS_CARD);
+        statusBars.add(objectExplorer.statusBar(), OBJECTS_CARD);
     }
 
     private void showNoise() {
@@ -599,7 +598,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private void resetExplorerView() {
         switch (currentView) {
             case WORLD_3D -> worldExplorer.resetCamera();
-            case OBJECTS, PROCEDURAL -> objectExplorers.get(currentView).resetCamera();
+            case OBJECTS -> objectExplorer.resetCamera();
             case NOISE -> noiseExplorer.resetViewport();
             case PALETTES -> paletteExplorer.resetViewport();
             default -> {
@@ -702,7 +701,9 @@ public final class MapWindow implements MapCanvas.Listener {
         if (paletteExplorer != null) {
             paletteExplorer.close();
         }
-        objectExplorers.values().forEach(ObjectExplorer::close);
+        if (objectExplorer != null) {
+            objectExplorer.close();
+        }
         if (noiseExplorer != null) {
             noiseExplorer.close();
         }

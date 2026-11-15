@@ -42,8 +42,6 @@ enum MapView {
             Group.BLOCKS, null, KeyEvent.VK_P),
     OBJECTS("Objects", "Every object in the pack in 3D, with the blocks it is made of",
             Group.BLOCKS, null, KeyEvent.VK_O),
-    PROCEDURAL("Procedural", "Trees, rock formations and more that Iris generates from settings, every variant in 3D",
-            Group.BLOCKS, null, KeyEvent.VK_T),
     NOISE("Noise", "The pack's noise generators and Iris' built-in noise styles",
             Group.GENERATORS, null, KeyEvent.VK_N),
     IMAGE_MAPS("Image maps", "Terrain height, biomes or masks painted from a PNG, previewed and exported into the pack",
@@ -82,7 +80,7 @@ enum MapView {
     }
 
     /**
-     * The tile renderer's mode for this view, or null for the 3D world, palette, object, procedural, noise and image map
+     * The tile renderer's mode for this view, or null for the 3D world, palette, object, noise and image map
      * views, which draw themselves.
      */
     TileType renderType() {

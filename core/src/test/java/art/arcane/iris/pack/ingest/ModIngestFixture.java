@@ -246,7 +246,6 @@ final class ModIngestFixture {
                   "biomeScatter": ["minecraft:birch_forest"],
                   "children": ["temperate/plains"],
                   "objects": [{"chance": 0.4, "place": ["trees/oak"]}],
-                  "proceduralObjects": {"trees": [{"chance": 0.2}], "ruins": [{"chance": 0.01}]},
                   "decorators": [{"chance": 0.3, "palette": [{"block": "minecraft:short_grass"}]}]
                 }
                 """);

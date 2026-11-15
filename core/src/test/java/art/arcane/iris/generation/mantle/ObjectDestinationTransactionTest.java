@@ -19,7 +19,6 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.BlockPosition;
-import art.arcane.iris.structure.object.DecayControlPlacer;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.structure.object.IrisObjectRotation;
@@ -80,13 +79,12 @@ public class ObjectDestinationTransactionTest {
             TreeBlockMaterial trunkMaterial = new TreeBlockMaterial("test:trunk");
             TreeBlockMaterial canopyMaterial = new TreeBlockMaterial("test:canopy");
             ObjectDestinationTransaction source = new ObjectDestinationTransaction(writer, 0, 0);
-            DecayControlPlacer placer = new DecayControlPlacer(source);
             for (int x : new int[]{17, 18}) {
-                assertTrue(placer.beginTreeCanopy(new BlockPosition(x, 7, 1)));
-                placer.set(x, 7, 1, canopy);
-                placer.setData(x, 7, 1, "canopy");
-                placer.setData(x, 7, 1, canopyMaterial);
-                placer.endTreeCanopy();
+                assertTrue(source.beginTreeCanopy(new BlockPosition(x, 7, 1)));
+                source.set(x, 7, 1, canopy);
+                source.setData(x, 7, 1, "canopy");
+                source.setData(x, 7, 1, canopyMaterial);
+                source.endTreeCanopy();
             }
             ObjectSourcePlan plan = source.sourcePlanSince(0);
             for (ObjectDestinationTransaction.Mutation mutation : plan.mutationsFor(1, 0)) {

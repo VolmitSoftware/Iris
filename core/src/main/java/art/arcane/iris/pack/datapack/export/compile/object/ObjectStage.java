@@ -2,9 +2,6 @@ package art.arcane.iris.pack.datapack.export.compile.object;
 
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.generation.decoration.IrisProceduralObjects;
-import art.arcane.iris.generation.decoration.IrisProceduralPlacement;
-import art.arcane.iris.generation.decoration.tree.IrisProceduralTree;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.pack.datapack.DataVersion;
@@ -23,7 +20,6 @@ import art.arcane.iris.pack.datapack.export.ir.JsonResource;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
-import art.arcane.volmlib.util.collection.KList;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -59,7 +55,6 @@ public final class ObjectStage implements CompileStage {
     private static final class Run {
         private static final int MAX_STILT_BASES = 16;
         private static final String TREE_FOLDER = "trees/";
-        private static final String PROCEDURAL_FOLDER = "procedural/";
         private static final String CAVE_SUFFIX = "_cave";
 
         private final PackCompileContext context;
@@ -75,7 +70,6 @@ public final class ObjectStage implements CompileStage {
         private final WideObjectStructures wide;
         private final StructureTemplateEncoder encoder = new StructureTemplateEncoder();
         private final Map<String, ObjectSource> sources = new HashMap<>();
-        private final Map<IrisProceduralPlacement, IrisObjectPlacement> proceduralPlacements = new IdentityHashMap<>();
         private final Map<String, BakedVariant> baked = new HashMap<>();
         private final Map<IrisObjectPlacement, VariantPlanner.Plan> plans = new IdentityHashMap<>();
         private final Map<IrisObjectPlacement, List<ObjectTemplates>> templates = new IdentityHashMap<>();
@@ -119,10 +113,8 @@ public final class ObjectStage implements CompileStage {
                 IrisRegion region = regions.get(entry.getValue());
                 LootCompiler.LootScope scope = new LootCompiler.LootScope(dimension, region, biome);
                 List<IrisObjectPlacement> placements = new ArrayList<>(biome.getObjects());
-                placements.addAll(procedural(biome.getProceduralObjects()));
                 if (region != null) {
                     placements.addAll(region.getObjects());
-                    placements.addAll(procedural(region.getProceduralObjects()));
                 }
                 for (IrisObjectPlacement placement : placements) {
                     if (placement == null || placement.getPlace().isEmpty()) {
@@ -141,32 +133,6 @@ public final class ObjectStage implements CompileStage {
                         "dimensions/" + dimension.getLoadKey(), "Objects do not avoid Minecraft structures"));
             }
             emit();
-        }
-
-        private List<IrisObjectPlacement> procedural(IrisProceduralObjects objects) {
-            if (objects == null || objects.isEmpty()) {
-                return List.of();
-            }
-            List<IrisObjectPlacement> placements = new ArrayList<>();
-            for (IrisProceduralPlacement placement : objects.getAllPlacements()) {
-                placements.add(proceduralPlacements.computeIfAbsent(placement, this::procedural));
-            }
-            return placements;
-        }
-
-        private IrisObjectPlacement procedural(IrisProceduralPlacement source) {
-            IrisObjectPlacement placement = source.asPlacement();
-            String folder = (source instanceof IrisProceduralTree ? TREE_FOLDER : "") + PROCEDURAL_FOLDER + source.getName() + "-";
-            KList<String> keys = new KList<>();
-            for (IrisObject variant : source.getVariantObjects(data)) {
-                ObjectSource object = ObjectSource.of(variant, variant.getLoadKey(), diagnostics);
-                String key = folder + ContentIds.hash(object.volume() + ";base=" + object.baseY()
-                        + (object.roots().present() ? ";roots=" + object.roots() : ""));
-                sources.putIfAbsent(key, object);
-                keys.add(key);
-            }
-            placement.setPlace(keys);
-            return placement;
         }
 
         private void place(String biomeId, IrisObjectPlacement placement, PlacementInput.Anchor anchor, LootCompiler.LootScope scope) {

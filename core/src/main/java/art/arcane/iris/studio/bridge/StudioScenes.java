@@ -45,6 +45,14 @@ final class StudioScenes {
                 .orElseThrow(() -> new NoSuchElementException("No scene view " + id));
     }
 
+    /** @throws NoSuchElementException when no view has {@code id}, or its entries can't be edited */
+    EditableSceneView editableView(String id) {
+        if (view(id) instanceof EditableSceneView editable) {
+            return editable;
+        }
+        throw new NoSuchElementException("The entries of " + id + " can't be edited");
+    }
+
     /** The part of each block of {@code scene}, in the order it encodes them, as little endian 32-bit integers. */
     static byte[] encodeParts(SceneBlocks scene) {
         int[] parts = scene.parts();

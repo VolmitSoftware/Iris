@@ -97,6 +97,7 @@ public final class StudioBridge implements AutoCloseable {
     private static final String ASSET_RETRY_SECONDS = "2";
     private static final long ASSET_CACHE_SECONDS = 86_400L;
     private static final String OVERRIDE_PREFIX = "set.";
+    private static final int LARGEST_BODY_BYTES = 4 * 1024 * 1024;
     private static final String VIEW_BIOMES = "biomes";
     private static final String VIEW_REGIONS = "regions";
     private static final String VIEW_RIVERS = "rivers";
@@ -104,8 +105,10 @@ public final class StudioBridge implements AutoCloseable {
     static final int STATUS_NO_CONTENT = 204;
     static final int STATUS_BAD_REQUEST = 400;
     static final int STATUS_UNAUTHORIZED = 401;
+    static final int STATUS_FORBIDDEN = 403;
     static final int STATUS_NOT_FOUND = 404;
     static final int STATUS_METHOD_NOT_ALLOWED = 405;
+    static final int STATUS_CONFLICT = 409;
     static final int STATUS_UNPROCESSABLE = 422;
     static final int STATUS_SERVER_ERROR = 500;
     static final int STATUS_UNAVAILABLE = 503;
@@ -253,6 +256,13 @@ public final class StudioBridge implements AutoCloseable {
             case "scene-parts" -> sendBytes(exchange, "application/octet-stream", StudioScenes.encodeParts(scene(get(exchange).engine(), query)));
             case "profile-form" -> sendJson(exchange, STATUS_OK, sceneForm(get(exchange).engine(), query));
             case "scene-bake" -> sendJson(exchange, STATUS_OK, sceneBake(get(exchange).engine(), query));
+            case "scene-file" -> sendJson(exchange, STATUS_OK, sceneFile(get(exchange).engine(), query));
+            case "scene-edit" -> sendJson(exchange, STATUS_OK, sceneEdit(exchange, query));
+            case "scene-write" -> sendJson(exchange, STATUS_OK, sceneWrite(exchange, query));
+            case "scene-create" -> sendJson(exchange, STATUS_OK, sceneCreate(exchange, query));
+            case "scene-uses" -> sendJson(exchange, STATUS_OK, sceneUses(get(exchange).engine(), query));
+            case "scene-delete" -> sendJson(exchange, STATUS_OK, sceneDelete(exchange, query));
+            case "suggestions" -> sendJson(exchange, STATUS_OK, suggestions(get(exchange).engine(), query));
             case "noise-sources" -> sendJson(exchange, STATUS_OK, NoiseSources.of(get(exchange).engine()).list());
             case "noise-tile" -> sendBytes(exchange, "application/octet-stream", noiseTile(get(exchange).engine(), query));
             case "patterns" -> sendJson(exchange, STATUS_OK, List.of(PALETTES_VIEW));
@@ -526,6 +536,77 @@ public final class StudioBridge implements AutoCloseable {
         T run() throws IOException;
     }
 
+    private StudioEditors.EditorState sceneFile(Engine engine, Query query) {
+        return editing(() -> editorsOf(engine).read(query.text("view"), query.text("key")));
+    }
+
+    private StudioEditors.EditorState sceneEdit(HttpExchange exchange, Query query) throws IOException {
+        Engine engine = post(exchange).engine();
+        String body = readBody(exchange);
+        return editing(() -> {
+            GraphEditRequest request = GraphEditRequest.parse(body);
+            return editorsOf(engine).edit(query.text("view"), query.text("key"), request.revision(), request.edit());
+        });
+    }
+
+    private StudioEditors.EditorState sceneWrite(HttpExchange exchange, Query query) throws IOException {
+        Engine engine = post(exchange).engine();
+        String body = readBody(exchange);
+        return editing(() -> {
+            GraphEditRequest.FileWrite write = GraphEditRequest.FileWrite.parse(body);
+            return editorsOf(engine).write(query.text("view"), query.text("key"), write.revision(), write.text());
+        });
+    }
+
+    private MessageBody sceneCreate(HttpExchange exchange, Query query) {
+        Engine engine = post(exchange).engine();
+        return editing(() -> {
+            editorsOf(engine).create(query.text("view"), query.text("key"));
+            return new MessageBody("Created " + query.text("key"));
+        });
+    }
+
+    private UsesBody sceneUses(Engine engine, Query query) {
+        return editing(() -> new UsesBody(editorsOf(engine).usesOf(query.text("view"), query.text("key"))));
+    }
+
+    private TrashedBody sceneDelete(HttpExchange exchange, Query query) {
+        Engine engine = post(exchange).engine();
+        return editing(() -> new TrashedBody(editorsOf(engine).delete(query.text("view"), query.text("key"))));
+    }
+
+    // What a setting naming a block (reference) or a pack resource (resource) may be typed as.
+    private static List<String> suggestions(Engine engine, Query query) {
+        return answering(() -> query.has("reference")
+                ? StudioSuggestions.ofReference(engine.getData(), query.text("reference"))
+                : StudioSuggestions.ofResource(engine.getData(), query.text("resource")));
+    }
+
+    private StudioEditors editorsOf(Engine engine) {
+        return new StudioEditors(scenes, engine, SceneFiles.systemTrash());
+    }
+
+    // A refused edit is the user's to fix, so it answers with why rather than as a failure of the bridge.
+    private static <T> T editing(SceneTask<T> task) {
+        try {
+            return answering(task);
+        } catch (StudioEditors.StaleEditException stale) {
+            throw new RequestError(STATUS_CONFLICT, stale.getMessage());
+        } catch (StudioEditors.EditsLockedException locked) {
+            throw new RequestError(STATUS_FORBIDDEN, locked.getMessage());
+        } catch (IllegalArgumentException refused) {
+            throw new RequestError(STATUS_UNPROCESSABLE, refused.getMessage());
+        }
+    }
+
+    private static String readBody(HttpExchange exchange) throws IOException {
+        byte[] body = exchange.getRequestBody().readNBytes(LARGEST_BODY_BYTES + 1);
+        if (body.length > LARGEST_BODY_BYTES) {
+            throw new RequestError(STATUS_BAD_REQUEST, "The body is over " + LARGEST_BODY_BYTES + " bytes");
+        }
+        return new String(body, StandardCharsets.UTF_8);
+    }
+
     private void cancelTile(HttpExchange exchange, Query query) throws IOException {
         requireMethod(exchange, "POST");
         droppedFlagOf(query.text("request")).set(true);
@@ -724,6 +805,14 @@ public final class StudioBridge implements AutoCloseable {
 
     /** A view the studio lists beside the scene and pattern views. */
     private record ModuleViewInfo(String id, String label, String description) {
+    }
+
+    /** The pack files that still name an entry. */
+    private record UsesBody(List<String> files) {
+    }
+
+    /** Where a deleted entry's file went. */
+    private record TrashedBody(String to) {
     }
 
     private record PickInspection(String detail, List<Object> sections) {

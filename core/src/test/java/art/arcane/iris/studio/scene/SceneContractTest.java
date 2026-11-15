@@ -36,7 +36,7 @@ public class SceneContractTest {
     public void theViewsTheStudioAlreadyShowsKeepTheirIds() {
         List<String> ids = SceneViews.all().stream().map(SceneView::id).toList();
 
-        assertEquals(List.of("caves", "treeProfiles", "formationProfiles", "fluidProfiles"), ids);
+        assertEquals(List.of("caves", "treeProfiles", "formationProfiles", "fluidProfiles", "proceduralParts"), ids);
     }
 
     @Test

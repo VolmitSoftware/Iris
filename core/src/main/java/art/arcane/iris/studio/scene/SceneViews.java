@@ -22,6 +22,7 @@ import art.arcane.iris.generation.cave.CaveSceneView;
 import art.arcane.iris.generation.decoration.formation.FormationProfileSceneView;
 import art.arcane.iris.generation.decoration.tree.TreeProfileSceneView;
 import art.arcane.iris.generation.hydrology.config.FluidProfileSceneView;
+import art.arcane.iris.generation.procedural.ProceduralPartsSceneView;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -35,7 +36,8 @@ public final class SceneViews {
             new CaveSceneView(),
             new TreeProfileSceneView(),
             new FormationProfileSceneView(),
-            new FluidProfileSceneView()));
+            new FluidProfileSceneView(),
+            new ProceduralPartsSceneView()));
 
     private SceneViews() {
     }

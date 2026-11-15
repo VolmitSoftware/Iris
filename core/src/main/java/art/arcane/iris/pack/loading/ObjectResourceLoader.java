@@ -42,6 +42,11 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
         loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getObjectLoaderCacheSize());
     }
 
+    /** The procedural objects this loader bakes and places, forgotten whenever its cache is cleared. */
+    public ProceduralObjectCatalog procedural() {
+        return procedural;
+    }
+
     public boolean supportsSchemas() {
         return false;
     }

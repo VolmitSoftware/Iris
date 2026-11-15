@@ -126,10 +126,7 @@ function BackgroundItems({ root, locked, onEdit, onArrange, onShowAll, onResetZo
         Show every node
         <ContextMenuShortcut>{keyText('showAllNodes')}</ContextMenuShortcut>
       </ContextMenuItem>
-      <ContextMenuItem onSelect={onResetZoom}>
-        Reset zoom
-        <ContextMenuShortcut>{keyText('resetZoom')}</ContextMenuShortcut>
-      </ContextMenuItem>
+      <ContextMenuItem onSelect={onResetZoom}>Reset zoom</ContextMenuItem>
     </>
   )
 }

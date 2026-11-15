@@ -36,7 +36,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,9 +45,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * The map window's Objects and Procedural views: everything its source offers in a folder tree, the chosen one in 3D,
- * and what it is made of. A procedural object's variants can also be compared side by side, baked from any seed.
- * Inspired by the Procedural Objects workbench.
+ * The map window's Objects view: everything its source offers in a folder tree, the chosen one in 3D, and what it is
+ * made of. The variants of an entry can also be compared side by side. Inspired by the Procedural Objects workbench.
  */
 final class ObjectExplorer {
     private static final String TINT_BIOME = "minecraft:plains";
@@ -63,14 +61,13 @@ final class ObjectExplorer {
     private final ObjectBrowser browser;
     private final OrbitViewport viewport = new OrbitViewport("Iris Object Viewer", "Choose an object");
     private final ObjectLayerCut layerCut = new ObjectLayerCut(shownLayers -> showLayerCut());
-    private final ObjectVariantPicker variantPicker = new ObjectVariantPicker(this::showVariant, this::showSeed, this::toggleComparing);
+    private final ObjectVariantPicker variantPicker = new ObjectVariantPicker(this::showVariant, this::toggleComparing);
     private final ObjectVariantGallery gallery = new ObjectVariantGallery(this::openVariant, this::redrawThumbnails);
     private final CardLayout viewCards = new CardLayout();
     private final JPanel views = new JPanel(viewCards);
     private final JComponent viewWithOverlays;
     private final ObjectOverviewPanel overview;
     private final StudioStatusBar statusBar = new StudioStatusBar();
-    private final LatestMeasurement<BakeTiming> bakeTimer = new LatestMeasurement<>("Iris Bake Timer");
     private final ExecutorService loader = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "Iris Object Loader");
         thread.setDaemon(true);
@@ -94,8 +91,6 @@ final class ObjectExplorer {
     private String shownKey;
     private List<IrisObject> shownVariants = List.of();
     private int shownVariantIndex;
-    private OptionalLong packSeed = OptionalLong.empty();
-    private OptionalLong shownSeed = OptionalLong.empty();
     private boolean comparingVariants;
     private long thumbnailsDrawnForRevision = -1;
     private LoadedObject shown;
@@ -107,7 +102,7 @@ final class ObjectExplorer {
         this.worldId = worldId;
         this.source = source;
         this.browser = new ObjectBrowser(source.noun(), this::showObject);
-        this.overview = new ObjectOverviewPanel(this::showSeeThrough, source.isBaked());
+        this.overview = new ObjectOverviewPanel(this::showSeeThrough);
         views.add(layerCut.floatingOver(viewport), ONE_VARIANT_CARD);
         views.add(gallery, ALL_VARIANTS_CARD);
         this.viewWithOverlays = variantPicker.floatingOver(views);
@@ -132,7 +127,7 @@ final class ObjectExplorer {
 
     /**
      * The 3D view with the slider that cuts away its top layers, or every variant side by side, under the bar that
-     * steps through variants and seeds.
+     * steps through variants.
      */
     JComponent view() {
         return viewWithOverlays;
@@ -182,8 +177,6 @@ final class ObjectExplorer {
         meshRevision.incrementAndGet();
         loader.shutdownNow();
         thumbnailPainter.shutdownNow();
-        bakeTimer.discardPending();
-        bakeTimer.close();
         viewport.close();
         gallery.close();
     }
@@ -234,13 +227,12 @@ final class ObjectExplorer {
         String key = shownKey != null && keys.contains(shownKey) ? shownKey : browser.firstObject();
         if (key == null) {
             viewport.showEmptyState(source.emptyState());
-            bakeTimer.discardPending();
             overview.clear();
             layerCut.showHeight(1);
             if (comparingVariants) {
                 toggleComparing();
             }
-            showVariantList(List.of(), OptionalLong.empty(), OptionalLong.empty(), 0);
+            showVariantList(List.of(), 0);
             return;
         }
         browser.select(key);
@@ -248,59 +240,35 @@ final class ObjectExplorer {
     }
 
     /**
-     * Shows the first variant of the entry, baked from the pack's seed. The pack reloading the shown entry keeps the
-     * variant and the seed being looked at, unless the pack itself now sets another seed.
+     * Shows the first variant of the entry. The pack reloading the shown entry keeps the variant being looked at.
      */
     private synchronized void showObject(String key) {
         if (closed) {
             return;
         }
         boolean reloadingShownObject = key.equals(shownKey);
-        OptionalLong previousPackSeed = packSeed;
-        OptionalLong exploredSeed = shownSeed;
         int variantIndex = reloadingShownObject ? shownVariantIndex : 0;
         shownKey = key;
         if (!reloadingShownObject) {
-            variantPicker.forgetTriedSeeds();
-            showVariantList(List.of(), OptionalLong.empty(), OptionalLong.empty(), 0);
+            showVariantList(List.of(), 0);
         }
-        long revision = startBaking(key);
+        long revision = startLoadingVariants(key);
         loader.execute(() -> {
             if (closed || revision != objectRevision.get()) {
                 return;
             }
-            OptionalLong pack = source.seed(key);
-            OptionalLong seed = reloadingShownObject && pack.equals(previousPackSeed) ? exploredSeed : pack;
-            loadVariants(revision, key, pack, seed, variantIndex);
-        });
-    }
-
-    // The seed shows at once, so stepping again continues from it even while this one bakes or fails.
-    private synchronized void showSeed(long seed) {
-        if (closed) {
-            return;
-        }
-        String key = shownKey;
-        OptionalLong pack = packSeed;
-        int variantIndex = shownVariantIndex;
-        shownSeed = OptionalLong.of(seed);
-        variantPicker.showSeed(shownSeed, pack);
-        long revision = startBaking(key + " with seed " + seed);
-        loader.execute(() -> {
-            if (!closed && revision == objectRevision.get()) {
-                loadVariants(revision, key, pack, OptionalLong.of(seed), variantIndex);
-            }
+            loadVariants(revision, key, variantIndex);
         });
     }
 
     // On the loader thread.
-    private void loadVariants(long revision, String key, OptionalLong pack, OptionalLong seed, int preferredIndex) {
+    private void loadVariants(long revision, String key, int preferredIndex) {
         if (closed || revision != objectRevision.get()) {
             return;
         }
         try {
             IrisData data = engine().getData();
-            List<IrisObject> variants = seed.isPresent() ? source.variants(data, key, seed.getAsLong()) : source.variants(data, key);
+            List<IrisObject> variants = source.variants(data, key);
             if (variants.isEmpty()) {
                 throw new IllegalStateException("Nothing could be loaded for " + key);
             }
@@ -313,34 +281,19 @@ final class ObjectExplorer {
                 if (closed || revision != objectRevision.get()) {
                     return;
                 }
-                showVariantList(variants, pack, seed, index);
+                showVariantList(variants, index);
                 showLoaded(revision, loaded);
-                timeBake(data, key, seed);
             });
         } catch (RuntimeException error) {
             publish(() -> showFailure(revision, key, error));
         }
     }
 
-    // Off the loader thread, so stepping through variants and seeds never waits on the timing.
-    private void timeBake(IrisData data, String key, OptionalLong seed) {
-        if (!source.isBaked() || seed.isEmpty()) {
-            return;
-        }
-        long bakedSeed = seed.getAsLong();
-        overview.showTimingBake();
-        bakeTimer.measureUntilSuperseded(stillWanted -> BakeTiming.measure(() -> source.timeBake(data, key, bakedSeed), stillWanted),
-                timing -> publish(() -> overview.showBakeTiming(timing)));
-    }
-
-    private void showVariantList(List<IrisObject> variants, OptionalLong pack, OptionalLong seed, int index) {
+    private void showVariantList(List<IrisObject> variants, int index) {
         shownVariants = variants;
         shownVariantIndex = index;
-        packSeed = pack;
-        shownSeed = seed;
         variantListRevision.incrementAndGet();
         variantPicker.showVariants(variants.size(), index);
-        variantPicker.showSeed(seed, pack);
         if (!comparingVariants) {
             return;
         }
@@ -448,7 +401,7 @@ final class ObjectExplorer {
     }
 
     private String galleryHeading() {
-        return String.format(Locale.ROOT, "%s · %d variants%s", shownKey, shownVariants.size(), seedNote());
+        return String.format(Locale.ROOT, "%s · %d variants", shownKey, shownVariants.size());
     }
 
     private static ObjectMesh.Bounds largestSize(List<ObjectMesh> meshes) {
@@ -464,7 +417,7 @@ final class ObjectExplorer {
     }
 
     // A new list of variants is on its way, so every thumbnail is outdated, unlike when stepping to another variant.
-    private long startBaking(String key) {
+    private long startLoadingVariants(String key) {
         if (comparingVariants) {
             gallery.showLoading();
         }
@@ -481,8 +434,7 @@ final class ObjectExplorer {
 
     private LoadedObject load(IrisObject object) {
         Map<IrisBlockVector, NativeBlockState> blocks = visibleBlocks(object);
-        ObjectMesh.Bounds extent = ObjectMesh.Bounds.of(blocks.keySet());
-        ObjectMesh.Bounds bounds = source.groundY(object).stream().mapToObj(extent::standingOn).findFirst().orElse(extent);
+        ObjectMesh.Bounds bounds = ObjectMesh.Bounds.of(blocks.keySet());
         ObjectMesh mesh = ObjectMesh.build(blocks, this::modelOf, bounds, block -> false);
         ObjectSummary summary = ObjectSummary.of(object.getLoadKey(), mesh.bounds(), blocks.values(), this::iconOf);
         return new LoadedObject(blocks, mesh, summary);
@@ -518,17 +470,8 @@ final class ObjectExplorer {
         String cut = layerCut.isCutting()
                 ? String.format(Locale.ROOT, " · showing layers 1-%d of %d", layerCut.shownLayerCount(), layerCut.layerCount())
                 : "";
-        statusBar.showSummary(String.format(Locale.ROOT, "%s%s · %,d blocks · %,d faces drawn%s",
-                summary.key(), seedNote(), summary.blockCount(), mesh.faceCount(), cut));
-    }
-
-    // A seed being tried is not in the pack until its "seed" field says so.
-    private String seedNote() {
-        if (shownSeed.isEmpty()) {
-            return "";
-        }
-        String note = " · seed " + shownSeed.getAsLong();
-        return shownSeed.equals(packSeed) ? note : note + " (the pack has " + packSeed.getAsLong() + ")";
+        statusBar.showSummary(String.format(Locale.ROOT, "%s · %,d blocks · %,d faces drawn%s",
+                summary.key(), summary.blockCount(), mesh.faceCount(), cut));
     }
 
     private synchronized void showSeeThrough(Set<String> blockTypes) {
@@ -588,7 +531,6 @@ final class ObjectExplorer {
         viewport.showMessage("Could not load " + key);
         gallery.showMessage("Could not load " + key);
         thumbnailsDrawnForRevision = -1;
-        bakeTimer.discardPending();
         overview.clear();
         layerCut.showHeight(1);
         statusBar.showError(error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage());

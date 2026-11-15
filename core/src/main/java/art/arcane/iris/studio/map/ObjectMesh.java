@@ -247,11 +247,6 @@ record ObjectMesh(List<Quad> solidQuads, List<Quad> translucentQuads, List<Quad>
             this(minX, minY, minZ, maxX, maxY, maxZ, minY);
         }
 
-        /** This extent with the terrain surface at {@code groundY}, so anything below it shows as buried. */
-        Bounds standingOn(int groundY) {
-            return new Bounds(minX, minY, minZ, maxX, maxY, maxZ, groundY);
-        }
-
         static Bounds of(Iterable<IrisBlockVector> positions) {
             int minX = Integer.MAX_VALUE;
             int minY = Integer.MAX_VALUE;

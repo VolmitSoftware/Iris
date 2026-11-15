@@ -25,9 +25,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -50,18 +48,9 @@ final class LatestMeasurement<T> {
      * measured nothing.
      */
     void measure(Supplier<T> measurement, Consumer<T> show) {
-        measureUntilSuperseded(stillWanted -> measurement.get(), show);
-    }
-
-    /**
-     * Like {@link #measure}, for long measurements that ask {@code stillWanted} between steps and give up once another
-     * measurement was asked for.
-     */
-    void measureUntilSuperseded(Function<BooleanSupplier, T> measurement, Consumer<T> show) {
         long requested = generation.incrementAndGet();
-        BooleanSupplier stillWanted = () -> requested == generation.get();
         worker.execute(() -> {
-            T result = measureSafely(() -> measurement.apply(stillWanted));
+            T result = measureSafely(measurement);
             EventQueue.invokeLater(() -> {
                 if (requested == generation.get() && result != null) {
                     show.accept(result);

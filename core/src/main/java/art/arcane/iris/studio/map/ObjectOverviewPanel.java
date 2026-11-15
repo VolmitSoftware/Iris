@@ -72,7 +72,6 @@ final class ObjectOverviewPanel extends JPanel {
     private final JLabel blockCount = statValue();
     private final JLabel blockTypes = statValue();
     private final JLabel filled = statValue();
-    private final BakeMeter bakeMeter = new BakeMeter();
     private final JTextField filterField = new JTextField();
     private final DefaultListModel<ObjectSummary.BlockUse> rows = new DefaultListModel<>();
     private final JList<ObjectSummary.BlockUse> list = new JList<>(rows) {
@@ -89,15 +88,14 @@ final class ObjectOverviewPanel extends JPanel {
 
     /**
      * @param onSeeThroughChanged told which block types to draw see-through whenever the user changes them
-     * @param showsBakeTime       whether the objects are baked, so the time their bake takes is shown
      */
-    ObjectOverviewPanel(Consumer<Set<String>> onSeeThroughChanged, boolean showsBakeTime) {
+    ObjectOverviewPanel(Consumer<Set<String>> onSeeThroughChanged) {
         super(new BorderLayout());
         this.onSeeThroughChanged = onSeeThroughChanged;
         setPreferredSize(StudioTheme.scaledSize(PANEL_WIDTH, 0));
         setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, StudioTheme.SEPARATOR));
         setBackground(StudioTheme.PANEL_BACKGROUND);
-        add(buildHeader(showsBakeTime), BorderLayout.NORTH);
+        add(buildHeader(), BorderLayout.NORTH);
         add(buildBlockList(), BorderLayout.CENTER);
     }
 
@@ -115,14 +113,6 @@ final class ObjectOverviewPanel extends JPanel {
         refilter();
     }
 
-    void showTimingBake() {
-        bakeMeter.showTiming();
-    }
-
-    void showBakeTiming(BakeTiming timing) {
-        bakeMeter.show(timing);
-    }
-
     void clear() {
         summary = null;
         title.setText(" ");
@@ -130,13 +120,12 @@ final class ObjectOverviewPanel extends JPanel {
         for (JLabel value : List.of(size, blockCount, blockTypes, filled)) {
             value.setText("—");
         }
-        bakeMeter.clear();
         rows.clear();
         seeThroughTypes.clear();
         showSeeThroughState();
     }
 
-    private JPanel buildHeader(boolean showsBakeTime) {
+    private JPanel buildHeader() {
         JPanel header = new JPanel();
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
         header.setOpaque(false);
@@ -156,11 +145,6 @@ final class ObjectOverviewPanel extends JPanel {
         stats.add(stat("Filled volume", filled));
         filled.setToolTipText("How much of the object's bounding box its blocks fill");
         header.add(leftAligned(stats));
-        if (showsBakeTime) {
-            JPanel bakeTime = stat("Bake time", bakeMeter);
-            bakeTime.setBorder(StudioTheme.emptyBorder(4, 0, 4, 0));
-            header.add(leftAligned(bakeTime));
-        }
         clear();
         return header;
     }

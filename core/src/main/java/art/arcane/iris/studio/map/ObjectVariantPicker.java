@@ -30,14 +30,11 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.RoundRectangle2D;
-import java.util.OptionalLong;
 import java.util.function.IntConsumer;
-import java.util.function.LongConsumer;
 
 /**
- * A small bar floating at the bottom of the object view that steps through the variants of a procedural object and
- * the seeds they are baked from, and switches between one variant in 3D and all of them side by side. It hides itself
- * for anything with a single variant and no seed.
+ * A small bar floating at the bottom of the object view that steps through the variants of an entry and switches
+ * between one variant in 3D and all of them side by side. It hides itself for anything with a single variant.
  */
 final class ObjectVariantPicker extends JPanel {
     private static final long serialVersionUID = -2716301839488217455L;
@@ -49,20 +46,17 @@ final class ObjectVariantPicker extends JPanel {
 
     private final JLabel shownVariant = label(VARIANT_LABEL_WIDTH);
     private final JComponent variantStepper;
-    private final ObjectSeedChooser seedChooser;
     private final JButton compareButton;
     private final IntConsumer onVariantChosen;
     private int variantCount;
     private int shownIndex;
-    private boolean seeded;
     private int coveredLeftWidth;
 
     /**
      * @param onVariantChosen told the index of the variant to show whenever the user steps to another one
-     * @param onSeedChosen    told the seed to bake the variants from whenever the user chooses another one
      * @param onCompareToggled told when the user switches between one variant and all of them
      */
-    ObjectVariantPicker(IntConsumer onVariantChosen, LongConsumer onSeedChosen, Runnable onCompareToggled) {
+    ObjectVariantPicker(IntConsumer onVariantChosen, Runnable onCompareToggled) {
         this.onVariantChosen = onVariantChosen;
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         setOpaque(false);
@@ -70,11 +64,8 @@ final class ObjectVariantPicker extends JPanel {
         variantStepper = stepper(shownVariant,
                 StudioToolbar.button("‹", "Previous variant" + VARIANT_SHORTCUT_HINT, () -> stepBy(-1)),
                 StudioToolbar.button("›", "Next variant" + VARIANT_SHORTCUT_HINT, () -> stepBy(1)));
-        seedChooser = new ObjectSeedChooser(onSeedChosen);
         compareButton = StudioToolbar.button("", "", onCompareToggled);
         add(variantStepper);
-        add(Box.createHorizontalStrut(StudioTheme.scale(SECTION_GAP)));
-        add(seedChooser);
         add(Box.createHorizontalStrut(StudioTheme.scale(SECTION_GAP)));
         add(compareButton);
         showComparing(false);
@@ -139,21 +130,8 @@ final class ObjectVariantPicker extends JPanel {
         shownVariant.setText("Variant " + (index + 1) + " of " + count);
         variantStepper.setVisible(count > 1);
         compareButton.setVisible(count > 1);
-        showWhenUseful();
-    }
-
-    /**
-     * Shows the seed the variants are baked from; empty for objects not generated from a seed.
-     */
-    void showSeed(OptionalLong shown, OptionalLong pack) {
-        seeded = shown.isPresent();
-        seedChooser.setVisible(seeded);
-        shown.ifPresent(seed -> seedChooser.showSeed(seed, pack));
-        showWhenUseful();
-    }
-
-    void forgetTriedSeeds() {
-        seedChooser.forgetTriedSeeds();
+        setVisible(count > 1);
+        relayout();
     }
 
     void showComparing(boolean comparing) {
@@ -169,11 +147,6 @@ final class ObjectVariantPicker extends JPanel {
         shownIndex = Math.floorMod(shownIndex + step, variantCount);
         showVariants(variantCount, shownIndex);
         onVariantChosen.accept(shownIndex);
-    }
-
-    private void showWhenUseful() {
-        setVisible(variantCount > 1 || seeded);
-        relayout();
     }
 
     private void relayout() {

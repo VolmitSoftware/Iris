@@ -29,9 +29,9 @@ import java.nio.ByteOrder;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-/** The scene views the studio lists: every feature's, then the studio's own, none of which it has yet. */
+/** The scene views the studio lists: every feature's, then the studio's own. */
 final class StudioScenes {
-    private static final List<SceneView> STUDIO_VIEWS = List.of();
+    private static final List<SceneView> STUDIO_VIEWS = List.of(new PackObjectsSceneView());
 
     private final List<SceneView> views = SceneViews.withStudioViews(STUDIO_VIEWS);
 

@@ -7,11 +7,13 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class StudioScenesTest {
@@ -30,10 +32,24 @@ public class StudioScenesTest {
     }
 
     @Test
-    public void theStudioListsEveryFeaturesViewInOrder() {
+    public void theStudioListsEveryFeaturesViewInOrderThenItsObjects() {
         List<String> listed = new StudioScenes().infos().stream().map(StudioScenes.SceneViewInfo::id).toList();
+        List<String> expected = new ArrayList<>(SceneViews.all().stream().map(SceneView::id).toList());
+        expected.add(PackObjectsSceneView.ID);
 
-        assertEquals(SceneViews.all().stream().map(SceneView::id).toList(), listed);
+        assertEquals(expected, listed);
+    }
+
+    @Test
+    public void objectFilesAreOnlyShown() {
+        StudioScenes.SceneViewInfo objects = new StudioScenes().infos().stream()
+                .filter(info -> info.id().equals(PackObjectsSceneView.ID)).findFirst().orElseThrow();
+
+        assertFalse(objects.editable());
+        assertFalse(objects.baked());
+        assertFalse(objects.parts());
+        assertFalse(objects.form());
+        assertNull(objects.sizes());
     }
 
     @Test

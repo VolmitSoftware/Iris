@@ -6,9 +6,9 @@ import { NODE_HEADER, NODE_STRIPE, type NodeRows } from '../editor/nodeRows'
 import { colorOfKind, colorOfRole } from './nodeColors'
 import { NodeRowView } from './NodeRows'
 
-/** Where a node's ports sit below its top: level with the middle of its header. */
-export const PORT_TOP = NODE_STRIPE + NODE_HEADER / 2
-const PORT_SIZE = 9
+/** Where a node's sockets sit below its top: level with the middle of its header. */
+export const SOCKET_TOP = NODE_STRIPE + NODE_HEADER / 2
+const SOCKET_SIZE = 9
 const CHIP_FILL_ALPHA = '47'
 
 interface NodeBoxProps {
@@ -25,8 +25,8 @@ interface NodeBoxProps {
 
 /**
  * One node as the editor draws it: a stripe in the colour of its kind, a header with its title and roles, and a row
- * per setting, edited in place. A part has an input port on its left, a ring to drag when it can grow elsewhere; a
- * node others grow from has an output port on its right.
+ * per setting, edited in place. A part has an input socket on its left, a ring to drag when it can grow elsewhere; a
+ * node others grow from has an output socket on its right.
  */
 export const NodeBox = memo(function NodeBox({ placed, rows, selected, dropTarget, offset, locked }: NodeBoxProps): React.JSX.Element {
   const { node } = placed
@@ -47,8 +47,8 @@ export const NodeBox = memo(function NodeBox({ placed, rows, selected, dropTarge
       {rows.rows.map((row) => (
         <NodeRowView key={row.id} row={row} addable={rows.addable} editable={editable} />
       ))}
-      {placed.grown && <InputPort handle={node.movable && !locked} />}
-      {placed.growing && <span className="absolute rounded-full bg-secondary-text" style={portStyle('right')} />}
+      {placed.grown && <InputSocket handle={node.movable && !locked} />}
+      {placed.growing && <span className="absolute rounded-full bg-secondary-text" style={socketStyle('right')} />}
     </div>
   )
 })
@@ -76,20 +76,20 @@ function RoleChip({ role }: { role: string }): React.JSX.Element {
 }
 
 // A part that can grow elsewhere has a ring for an input, a handle to drag onto the node it should grow from.
-function InputPort({ handle }: { handle: boolean }): React.JSX.Element {
+function InputSocket({ handle }: { handle: boolean }): React.JSX.Element {
   return (
     <span
-      data-port={handle ? 'regrow' : 'input'}
+      data-socket={handle ? 'regrow' : 'input'}
       title={handle ? 'Drag onto another node to grow from it' : undefined}
       className={cn(
         'absolute rounded-full border-[1.5px] border-secondary-text transition-transform',
         handle ? 'cursor-pointer bg-popover hover:scale-[1.35] hover:border-primary dark:bg-secondary' : 'bg-secondary-text'
       )}
-      style={portStyle('left')}
+      style={socketStyle('left')}
     />
   )
 }
 
-function portStyle(side: 'left' | 'right'): React.CSSProperties {
-  return { [side]: -PORT_SIZE / 2, top: PORT_TOP - PORT_SIZE / 2, width: PORT_SIZE, height: PORT_SIZE }
+function socketStyle(side: 'left' | 'right'): React.CSSProperties {
+  return { [side]: -SOCKET_SIZE / 2, top: SOCKET_TOP - SOCKET_SIZE / 2, width: SOCKET_SIZE, height: SOCKET_SIZE }
 }

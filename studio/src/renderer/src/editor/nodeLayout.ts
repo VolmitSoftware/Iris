@@ -19,9 +19,9 @@ export interface PlacedNode {
   x: number
   y: number
   height: number
-  /** Whether it grows from another node, so it has an input port. */
+  /** Whether it grows from another node, so it has an input socket. */
   grown: boolean
-  /** Whether other nodes grow from it, so it has an output port. */
+  /** Whether other nodes grow from it, so it has an output socket. */
   growing: boolean
 }
 

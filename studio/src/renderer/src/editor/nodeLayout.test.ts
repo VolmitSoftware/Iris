@@ -49,7 +49,7 @@ describe('layoutNodes', () => {
     expect(placedAt(layout, ['parts', 1]).y).toBeGreaterThan(placedAt(layout, ['parts', 0]).y + 300)
   })
 
-  it('puts a node where it was dragged, and marks which nodes have ports', () => {
+  it('puts a node where it was dragged, and marks which nodes have sockets', () => {
     const layout = layoutNodes([node([], [node(['parts', 0])])], height, new Map([[JSON.stringify(['parts', 0]), { x: 500, y: 44 }]]))
     const part = placedAt(layout, ['parts', 0])
 

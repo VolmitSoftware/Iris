@@ -2,7 +2,7 @@ import { memo } from 'react'
 import { cn } from '@/lib/utils'
 import { NODE_WIDTH, type PlacedNode, type PlacedWire, type Point } from '../editor/nodeLayout'
 import { colorOfKind } from './nodeColors'
-import { PORT_TOP } from './NodeBox'
+import { SOCKET_TOP } from './NodeBox'
 
 /** The wire to a part placed once per copy, such as a branch of branches, rather than once. */
 export const EACH_COPY_WIRE = 'each copy'
@@ -41,7 +41,7 @@ export const NodeWires = memo(function NodeWires({ wires, selectedId, moved, reg
         return (
           <path
             key={`${from.id}>${to.id}`}
-            d={curve({ x: start.x + NODE_WIDTH, y: start.y + PORT_TOP }, { x: end.x, y: end.y + PORT_TOP })}
+            d={curve({ x: start.x + NODE_WIDTH, y: start.y + SOCKET_TOP }, { x: end.x, y: end.y + SOCKET_TOP })}
             className={cn('fill-none', lit ? 'stroke-primary' : !copies && 'stroke-input')}
             style={copies && !lit ? { stroke: colorOfKind(from.node.kind) } : undefined}
             strokeWidth={lit ? 2 : 1.5}
@@ -52,7 +52,7 @@ export const NodeWires = memo(function NodeWires({ wires, selectedId, moved, reg
       })}
       {regrow !== null && (
         <path
-          d={curve(regrow.pointer, { x: regrow.part.x, y: regrow.part.y + PORT_TOP })}
+          d={curve(regrow.pointer, { x: regrow.part.x, y: regrow.part.y + SOCKET_TOP })}
           className={cn('fill-none', regrow.onTarget ? 'stroke-success' : 'stroke-primary')}
           strokeWidth={2}
           strokeDasharray={COPY_DASH}

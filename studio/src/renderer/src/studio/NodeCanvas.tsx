@@ -98,7 +98,7 @@ export function NodeCanvas({ roots, types, values, file, selectedId, locked, sug
       return
     }
     event.currentTarget.setPointerCapture(event.pointerId)
-    if (target.closest('[data-port="regrow"]') !== null) {
+    if (target.closest('[data-socket="regrow"]') !== null) {
       setGesture({ kind: 'regrowing', placed, pointer: view.graphPoint(event.clientX, event.clientY), target: null })
     } else {
       setGesture({ kind: 'moving', placed, start: { x: event.clientX, y: event.clientY }, moved: false, offset: { x: 0, y: 0 } })

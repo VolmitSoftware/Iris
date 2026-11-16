@@ -1,8 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.pack.PackValidationResult;
-import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.pack.AtomicDirectoryPublisher;
 import art.arcane.iris.world.history.GenerationEpoch;
 import art.arcane.iris.world.history.GenerationEpochContractFactory;
@@ -25,6 +23,8 @@ record StudioGenerationUpdate(
         GenerationEpoch.DimensionContract dimensionContract,
         GenerationRegistryContract registryContract
 ) implements AutoCloseable {
+    private static final String TRIAL_MANTLE_DIRECTORY = "trial-mantle";
+
     static StudioGenerationUpdate prepare(IrisEngine engine, GenerationHistory history) throws IOException {
         Path source = engine.getStudioGenerationSource().toRealPath();
         IrisData.invalidateLoadedAuthoringResources(source.toFile());
@@ -56,10 +56,6 @@ record StudioGenerationUpdate(
                                                            Path stagingRoot, Path source, String fingerprint)
             throws IOException {
         GenerationEpoch active = history.activeEpoch();
-        PackValidationResult validation = PackValidator.validate(source.toFile());
-        if (!validation.isLoadable()) {
-            throw new IOException("Studio pack update is invalid: " + String.join("; ", validation.getBlockingErrors()));
-        }
         IrisData data = IrisData.openRuntime(source.toFile());
         try {
             IrisDimension replacement = data.getDimensionLoader().load(active.dimensionContract().dimensionKey());
@@ -75,10 +71,39 @@ record StudioGenerationUpdate(
             }
             GenerationRegistryContract registry = GenerationRegistryContractFactory.create(data, replacement, fingerprint);
             registry.requireDefinitionsAvailableIn(GenerationRegistryContractFactory.captureRequiredDefinitions(List.of(registry)));
+            requireBuildableRuntime(engine, data, replacement, registry, stagingRoot.resolve(TRIAL_MANTLE_DIRECTORY));
             return new StudioGenerationUpdate(stagingRoot, source, fingerprint, contract, registry);
         } finally {
-            data.close();
+            if (!data.isClosed()) {
+                data.close();
+            }
         }
+    }
+
+    /**
+     * The activation builds its runtime only after the manifest already points at the update, so a pack that cannot
+     * build there leaves the Studio engine failed. Building and discarding one here rejects such a pack first.
+     */
+    private static void requireBuildableRuntime(IrisEngine engine, IrisData data, IrisDimension dimension,
+                                                GenerationRegistryContract registry, Path mantleDirectory)
+            throws IOException {
+        data.bindGenerationRegistryContract(registry);
+        IrisEngine.GenerationRuntimeBinding trial;
+        try {
+            trial = engine.buildDetachedGenerationRuntime(
+                    new EngineTarget(engine.getWorld(), dimension, data), mantleDirectory, null);
+        } catch (RuntimeException failure) {
+            throw new IOException("Studio pack update cannot build a generation runtime: " + rootCauseMessage(failure), failure);
+        }
+        engine.closeDetachedGenerationRuntime(trial);
+    }
+
+    private static String rootCauseMessage(Throwable failure) {
+        Throwable cause = failure;
+        while (cause.getCause() != null && cause.getCause() != cause) {
+            cause = cause.getCause();
+        }
+        return cause.getClass().getSimpleName() + ": " + cause.getMessage();
     }
 
     @Override

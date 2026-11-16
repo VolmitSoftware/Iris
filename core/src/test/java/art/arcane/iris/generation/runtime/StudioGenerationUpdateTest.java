@@ -1,13 +1,19 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.world.history.GenerationEpoch;
+import art.arcane.iris.world.history.GenerationEpochContractFactory;
 import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.GenerationHistoryPaths;
 import art.arcane.iris.world.history.GenerationPackFingerprint;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.MockedStatic;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,7 +24,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -26,6 +34,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public final class StudioGenerationUpdateTest {
+    private static final String MISSING_DIMENSION = "missing";
+
     @Rule
     public final TemporaryFolder temporary = new TemporaryFolder();
 
@@ -90,11 +100,12 @@ public final class StudioGenerationUpdateTest {
         when(history.paths()).thenReturn(paths);
         when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
         when(active.packFingerprint()).thenReturn("0".repeat(64));
+        when(active.dimensionContract()).thenReturn(contract(MISSING_DIMENSION));
 
-        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history));
+        IOException failure = prepareWithoutTheDimension(engine, history);
 
         assertTrue(failure.getMessage(), failure.getMessage().contains(
-                "Studio pack update is invalid: Dimension 'test' declares no regions."));
+                "Studio pack update is missing dimension '" + MISSING_DIMENSION + "'."));
         assertEquals("unchanged manifest", Files.readString(paths.manifest()));
         try (Stream<Path> entries = Files.list(paths.generationRoot())) {
             assertEquals(1L, entries.count());
@@ -140,10 +151,11 @@ public final class StudioGenerationUpdateTest {
         when(history.paths()).thenReturn(paths);
         when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
         when(active.packFingerprint()).thenReturn("0".repeat(64));
+        when(active.dimensionContract()).thenReturn(contract("test"));
 
-        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history));
+        IOException failure = prepareWithoutTheDimension(engine, history);
 
-        assertTrue(failure.getMessage().contains("Missing dimensions/ folder"));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("Studio pack update is missing dimension 'test'."));
         assertEquals("unchanged manifest", Files.readString(paths.manifest()));
         try (Stream<Path> entries = Files.list(paths.generationRoot())) {
             assertEquals(1L, entries.count());
@@ -153,37 +165,21 @@ public final class StudioGenerationUpdateTest {
         verifyNoMoreInteractions(history);
     }
 
-    @Test
-    public void invalidNativeAnchorCannotStageOrPromoteStudioUpdate() throws Exception {
-        Path source = temporary.newFolder("invalid-anchor-pack").toPath();
-        Files.createDirectories(source.resolve("dimensions"));
-        Files.writeString(source.resolve("dimensions/test.json"), """
-                {"structures":[{"placementId":"village","anchor":"SURFACE",
-                  "nativeStructures":[{"structure":"minecraft:village_plains"}]}]}
-                """);
-        GenerationHistoryPaths paths = GenerationHistoryPaths.forDimension(
-                temporary.newFolder("invalid-anchor-world").toPath());
-        Files.createDirectories(paths.generationRoot());
-        Files.writeString(paths.manifest(), "unchanged manifest");
-        IrisEngine engine = mock(IrisEngine.class);
-        GenerationHistory history = mock(GenerationHistory.class);
-        GenerationEpoch active = mock(GenerationEpoch.class);
-        when(engine.getStudioGenerationSource()).thenReturn(source);
-        when(history.activeEpoch()).thenReturn(active);
-        when(history.paths()).thenReturn(paths);
-        when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
-        when(active.packFingerprint()).thenReturn("0".repeat(64));
-
-        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history));
-
-        assertTrue(failure.getMessage(), failure.getMessage().contains(
-                "Dimension 'test' structures[0].anchor must be omitted, null, or LEGACY for nativeStructures."));
-        assertEquals("unchanged manifest", Files.readString(paths.manifest()));
-        try (Stream<Path> entries = Files.list(paths.generationRoot())) {
-            assertEquals(1L, entries.count());
+    @SuppressWarnings("unchecked")
+    private static IOException prepareWithoutTheDimension(IrisEngine engine, GenerationHistory history) {
+        IrisData data = mock(IrisData.class);
+        ResourceLoader<IrisDimension> dimensions = mock(ResourceLoader.class);
+        when(data.getDimensionLoader()).thenReturn(dimensions);
+        try (MockedStatic<IrisData> loaders = mockStatic(IrisData.class)) {
+            loaders.when(() -> IrisData.openRuntime(any(File.class))).thenReturn(data);
+            return assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history));
         }
-        verify(history, times(2)).activeEpoch();
-        verify(history).paths();
-        verifyNoMoreInteractions(history);
+    }
+
+    private static GenerationEpoch.DimensionContract contract(String dimensionKey) {
+        return new GenerationEpoch.DimensionContract(
+                dimensionKey, "iris:overworld_type", "NORMAL", "OVERWORLD", 127,
+                -64, 384, 384, 1D, false, "none", 0, "0".repeat(64),
+                GenerationEpochContractFactory.CURRENT_DIMENSION_TYPE_FINGERPRINT_SCHEMA, "c".repeat(64));
     }
 }

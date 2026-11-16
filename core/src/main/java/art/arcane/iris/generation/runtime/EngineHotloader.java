@@ -27,6 +27,7 @@ import art.arcane.iris.generation.runtime.IrisEngine.LifecycleState;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.placement.StructureReachability;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.world.history.GenerationActivation;
 import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.IrisBoundarySignatureSampler;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
@@ -263,7 +264,7 @@ final class EngineHotloader {
                             update.registryContract(), transitionWidth);
                 }
                 long stagedAt = System.nanoTime();
-                cutover.promotePending();
+                GenerationActivation activated = cutover.promotePending();
                 long promotedAt = System.nanoTime();
                 synchronized (engine.lifecycleLock) {
                     if (engine.lifecycleState != LifecycleState.HOTLOADING) {
@@ -283,6 +284,7 @@ final class EngineHotloader {
                         elapsedMillis(drainedAt, checkpointedAt), elapsedMillis(checkpointedAt, stagedAt),
                         elapsedMillis(stagedAt, promotedAt), elapsedMillis(promotedAt, completedAt));
                 broadcastStudioHotload(false, "");
+                auditActivatedPack(history, activated);
             } catch (Throwable failure) {
                 if (previous != null) {
                     synchronized (engine.lifecycleLock) {
@@ -327,6 +329,18 @@ final class EngineHotloader {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Never throws: it runs after the activation is durable, where any failure would mark the engine failed.
+     */
+    private void auditActivatedPack(GenerationHistory history, GenerationActivation activated) {
+        try {
+            new StudioPackAudit(engine, history, activated.epochId(), message -> broadcastStudioHotload(true, message))
+                    .runInBackground();
+        } catch (Throwable auditFailure) {
+            IrisLogging.reportError("Failed to start Studio pack validation.", auditFailure);
         }
     }
 

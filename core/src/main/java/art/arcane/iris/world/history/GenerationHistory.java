@@ -140,18 +140,33 @@ public final class GenerationHistory {
             GenerationKernelRegistry kernels
     ) throws IOException {
         return create(new FreshCreation(dimensionRoot, packSource, packFingerprint, worldSeed, dimensionContract, registryContract),
-                version, kernels, false);
+                version, kernels, false, EpochDurability.configured());
+    }
+
+    public static GenerationHistory create(
+            Path dimensionRoot,
+            Path packSource,
+            String packFingerprint,
+            long worldSeed,
+            GenerationEpoch.DimensionContract dimensionContract,
+            GenerationRegistryContract registryContract,
+            EpochDurability durability
+    ) throws IOException {
+        GenerationKernelRegistry kernels = GenerationKernelRegistry.standard();
+        return create(new FreshCreation(dimensionRoot, packSource, packFingerprint, worldSeed, dimensionContract, registryContract),
+                kernels.current(), kernels, false, durability);
     }
 
     public static GenerationHistory createUnpublished(FreshCreation creation) throws IOException {
         Objects.requireNonNull(creation, "creation");
         Files.createDirectory(creation.dimensionRoot());
         GenerationKernelRegistry kernels = GenerationKernelRegistry.standard();
-        return create(creation, kernels.current(), kernels, true);
+        return create(creation, kernels.current(), kernels, true, EpochDurability.configured());
     }
 
     private static GenerationHistory create(FreshCreation creation, GenerationKernelRegistry.Version version,
-                                             GenerationKernelRegistry kernels, boolean unpublished) throws IOException {
+                                             GenerationKernelRegistry kernels, boolean unpublished,
+                                             EpochDurability durability) throws IOException {
         Path dimensionRoot = creation.dimensionRoot();
         Path packSource = creation.packSource();
         String packFingerprint = creation.packFingerprint();
@@ -180,14 +195,14 @@ public final class GenerationHistory {
                 kernels
         );
         requireSourceFingerprint(packSource, epoch.packFingerprint(), epoch.packFingerprintVersion());
-        GenerationPackRepository packs = new GenerationPackRepository(paths.dimensionRoot());
+        GenerationPackRepository packs = new GenerationPackRepository(paths.dimensionRoot(), durability);
         Path publishedPack = packs.publish(
                 epoch.epochId(),
                 epoch.packFingerprint(),
                 epoch.packFingerprintVersion(),
                 packSource
         );
-        forceEpochPublication(paths, epoch.epochId());
+        forceEpochPublication(paths, epoch.epochId(), durability);
         GenerationSemanticIndex.initialize(paths.dimensionRoot());
         GenerationHistoryStore store = GenerationHistoryStore.initialize(paths.generationRoot(), epoch);
         return new GenerationHistory(paths, packs, store, ownership, kernels,
@@ -315,7 +330,7 @@ public final class GenerationHistory {
                     expectedEpoch.packFingerprint(),
                     expectedEpoch.packFingerprintVersion()
             );
-            forceEpochPublication(paths, expectedEpoch.epochId());
+            forceEpochPublication(paths, expectedEpoch.epochId(), history.packs.durability());
         }
         migrateLegacyMantle(paths, history.activeActivation().activationId());
         if (!legacyExists) {
@@ -432,7 +447,7 @@ public final class GenerationHistory {
                 packSource,
                 activePackAsLinkBasis()
         );
-        forceEpochPublication(paths, candidate.epochId());
+        forceEpochPublication(paths, candidate.epochId(), packs.durability());
         return store.preparePendingActivation(candidate, transitionWidthBlocks);
     }
 
@@ -1339,20 +1354,20 @@ public final class GenerationHistory {
 
     private static void forceEpochPublication(
             GenerationHistoryPaths paths,
-            String epochId
+            String epochId,
+            EpochDurability durability
     ) throws IOException {
         Path epochRoot = paths.epochRoot(epochId);
         if (!Files.isDirectory(epochRoot, LinkOption.NOFOLLOW_LINKS)
                 || Files.isSymbolicLink(epochRoot)) {
             throw new IOException("Generation epoch is not a safe directory: " + epochRoot);
         }
-        if (File.separatorChar != '\\') {
-            if (Durability.enabled()) {
-                GenerationPackRepository.forceDirectoryTree(epochRoot, GenerationHistory::forceDirectory);
-            }
-            forceDirectory(paths.epochsRoot());
-            forceDirectory(paths.generationRoot());
+        if (!durability.syncs() || File.separatorChar == '\\') {
+            return;
         }
+        GenerationPackRepository.forceDirectoryTree(epochRoot, GenerationHistory::forceDirectory);
+        forceDirectory(paths.epochsRoot());
+        forceDirectory(paths.generationRoot());
     }
 
     private static void forceDirectory(Path directory) throws IOException {

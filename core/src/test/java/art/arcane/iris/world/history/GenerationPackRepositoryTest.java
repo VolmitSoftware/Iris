@@ -1,5 +1,6 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.world.storage.Durability;
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
@@ -9,6 +10,7 @@ import org.mockito.MockedStatic;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -71,6 +73,42 @@ public class GenerationPackRepositoryTest {
         assertEquals("{}", Files.readString(basis.resolve("dimensions/main.json")));
         assertEquals("{\"name\":\"desert\"}", Files.readString(published.resolve("biomes/desert.json")));
         assertEquals(fingerprint(second), fingerprint(published));
+    }
+
+    @Test
+    public void unsyncedRepositoryPublishesTheSamePackWithoutDirectorySyncs() throws Exception {
+        Path source = createPack("unsynced-source", "{}");
+        Path syncedWorld = temporaryFolder.newFolder("synced-world").toPath();
+        Path unsyncedWorld = temporaryFolder.newFolder("unsynced-world").toPath();
+        GenerationPackRepository synced = new GenerationPackRepository(syncedWorld, EpochDurability.SYNCED);
+        GenerationPackRepository unsynced = new GenerationPackRepository(unsyncedWorld, EpochDurability.UNSYNCED);
+
+        List<Path> syncedOpens = DirectorySyncCounter.openedDirectories(() -> synced.publish(
+                digest('a'), fingerprint(source), GenerationPackFingerprint.CURRENT_VERSION, source));
+        List<Path> unsyncedOpens = DirectorySyncCounter.openedDirectories(() -> unsynced.publish(
+                digest('a'), fingerprint(source), GenerationPackFingerprint.CURRENT_VERSION, source));
+
+        assertTrue(DirectorySyncCounter.countUnder(syncedWorld, syncedOpens) > 0);
+        assertEquals(0L, DirectorySyncCounter.countUnder(unsyncedWorld, unsyncedOpens));
+        assertEquals(fingerprint(source), fingerprint(unsynced.packRoot(digest('a'))));
+    }
+
+    @Test
+    public void defaultRepositoryFollowsTheGlobalDurabilityProperty() throws Exception {
+        Path dimensionRoot = temporaryFolder.newFolder("configured-world").toPath();
+        String previous = System.getProperty(Durability.MODE_PROPERTY);
+        try {
+            System.clearProperty(Durability.MODE_PROPERTY);
+            assertEquals(EpochDurability.SYNCED, new GenerationPackRepository(dimensionRoot).durability());
+            System.setProperty(Durability.MODE_PROPERTY, "relaxed");
+            assertEquals(EpochDurability.UNSYNCED, new GenerationPackRepository(dimensionRoot).durability());
+        } finally {
+            if (previous == null) {
+                System.clearProperty(Durability.MODE_PROPERTY);
+            } else {
+                System.setProperty(Durability.MODE_PROPERTY, previous);
+            }
+        }
     }
 
     @Test

@@ -41,14 +41,24 @@ public final class GenerationPackRepository {
     private final Path dimensionRoot;
     private final Path generationRoot;
     private final Path epochsRoot;
+    private final EpochDurability durability;
 
     public GenerationPackRepository(Path dimensionRoot) {
+        this(dimensionRoot, EpochDurability.configured());
+    }
+
+    public GenerationPackRepository(Path dimensionRoot, EpochDurability durability) {
         Path root = Objects.requireNonNull(dimensionRoot, "dimensionRoot")
                 .toAbsolutePath()
                 .normalize();
         this.dimensionRoot = root;
         generationRoot = root.resolve("iris").resolve("generation");
         epochsRoot = generationRoot.resolve("epochs");
+        this.durability = Objects.requireNonNull(durability, "durability");
+    }
+
+    public EpochDurability durability() {
+        return durability;
     }
 
     public Path generationRoot() {
@@ -74,7 +84,8 @@ public final class GenerationPackRepository {
 
     /**
      * Files identical to the published {@code basisPack} are hard-linked instead of copied. Published packs are
-     * immutable and were already synced, so only new or changed files pay for a copy and an fsync.
+     * immutable and were already synced, so only new or changed files pay for a copy and an fsync. Unsynced
+     * repositories skip every fsync.
      */
     public synchronized Path publish(
             String epochId,
@@ -111,7 +122,7 @@ public final class GenerationPackRepository {
         Path stage = Files.createTempDirectory(epochDirectory, ".pack-");
         try {
             Files.delete(stage);
-            copyPackTree(source, stage, defaultExecutor(), defaultWorkers(), PackCopyMode.DURABLE, basisPack);
+            copyPackTree(source, stage, defaultExecutor(), defaultWorkers(), publicationCopyMode(), basisPack);
             requireFingerprint(stage, packFingerprint, packFingerprintVersion);
             try (AtomicDirectoryPublisher.Publication publication =
                          AtomicDirectoryPublisher.publishAbsent(stage, target)) {
@@ -119,7 +130,7 @@ public final class GenerationPackRepository {
             } catch (FileAlreadyExistsException race) {
                 return requireExactPack(epochId, packFingerprint, packFingerprintVersion);
             }
-            forceDirectory(epochDirectory);
+            syncDirectory(epochDirectory);
             validateExistingAncestors(epochId);
             requireSafeDirectory(target, "Generation epoch pack is missing or unsafe");
             return target;
@@ -174,21 +185,25 @@ public final class GenerationPackRepository {
         requireSafeDirectory(epoch, "Generation epoch path is not a safe directory");
     }
 
-    private static Path ensureChildDirectory(Path parent, String name) throws IOException {
+    private PackCopyMode publicationCopyMode() {
+        return durability.syncs() ? PackCopyMode.DURABLE : PackCopyMode.SCRATCH;
+    }
+
+    private Path ensureChildDirectory(Path parent, String name) throws IOException {
         Path child = parent.resolve(name);
         if (Files.exists(child, LinkOption.NOFOLLOW_LINKS)) {
             requireSafeDirectory(child, "Generation epoch ancestor is not a safe directory");
-            forceDirectory(parent);
+            syncDirectory(parent);
             return child;
         }
         try {
             Files.createDirectory(child);
         } catch (FileAlreadyExistsException race) {
             requireSafeDirectory(child, "Generation epoch ancestor is not a safe directory");
-            forceDirectory(parent);
+            syncDirectory(parent);
             return child;
         }
-        forceDirectory(parent);
+        syncDirectory(parent);
         requireSafeDirectory(child, "Generation epoch ancestor is not a safe directory");
         return child;
     }
@@ -207,8 +222,8 @@ public final class GenerationPackRepository {
         }
     }
 
-    private static void forceDirectory(Path directory) throws IOException {
-        if (File.separatorChar == '\\') {
+    private void syncDirectory(Path directory) throws IOException {
+        if (!durability.syncs() || File.separatorChar == '\\') {
             return;
         }
         try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {

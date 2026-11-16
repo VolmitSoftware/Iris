@@ -1,5 +1,7 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.world.storage.Durability;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -63,6 +65,41 @@ public class GenerationHistoryTest extends GenerationHistorySupport {
             GenerationHistory.open(world);
             assertEquals(4, hashes.get());
         }
+    }
+
+    @Test
+    public void onlyUnsyncedHistoriesSkipTheEpochTreeSyncWhenStaging() throws Exception {
+        String previous = System.getProperty(Durability.MODE_PROPERTY);
+        System.clearProperty(Durability.MODE_PROPERTY);
+        try {
+            assertEquals(1, stagingEpochTreeSyncs("synced", EpochDurability.SYNCED));
+            assertEquals(0, stagingEpochTreeSyncs("unsynced", EpochDurability.UNSYNCED));
+        } finally {
+            if (previous != null) {
+                System.setProperty(Durability.MODE_PROPERTY, previous);
+            }
+        }
+    }
+
+    private int stagingEpochTreeSyncs(String name, EpochDurability durability) throws Exception {
+        Path world = temporaryFolder.newFolder(name + "-staging-world").toPath();
+        Path packA = createPack(name + "-staging-a", "alpha");
+        Path packB = createPack(name + "-staging-b", "beta");
+        GenerationHistory history = GenerationHistory.create(world, packA, fingerprint(packA), 42L, contract(),
+                GenerationRegistryContract.empty(), durability);
+        AtomicInteger treeSyncs = new AtomicInteger();
+        try (MockedStatic<GenerationPackRepository> ignored = mockStatic(GenerationPackRepository.class, invocation -> {
+            if (invocation.getMethod().getName().equals("forceDirectoryTree") && invocation.getArguments().length == 2) {
+                treeSyncs.incrementAndGet();
+            }
+            return invocation.callRealMethod();
+        })) {
+            stage(history, packB);
+        }
+
+        Path stagedPack = history.packRoot(history.pendingActivation().orElseThrow().activationId());
+        assertEquals(fingerprint(packB), fingerprint(stagedPack));
+        return treeSyncs.get();
     }
 
     @Test

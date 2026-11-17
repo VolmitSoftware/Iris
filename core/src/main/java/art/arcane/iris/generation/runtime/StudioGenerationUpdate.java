@@ -90,6 +90,7 @@ record StudioGenerationUpdate(
         GenerationEpoch active = history.activeEpoch();
         IrisData data = IrisData.openRuntime(pack.root().toFile());
         try {
+            data.useVerifiedGenerationPackFingerprint(pack.fingerprint());
             IrisDimension replacement = data.getDimensionLoader().load(active.dimensionContract().dimensionKey());
             if (replacement == null) {
                 throw new IOException("Studio pack update is missing dimension '"

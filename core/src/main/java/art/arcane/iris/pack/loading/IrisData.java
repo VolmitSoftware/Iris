@@ -331,6 +331,18 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         }
     }
 
+    /**
+     * Supplies the current-version fingerprint the caller already computed or verified for this data folder, so
+     * {@link #generationPackFingerprint()} does not hash the pack again.
+     */
+    public synchronized void useVerifiedGenerationPackFingerprint(String fingerprint) {
+        String required = Objects.requireNonNull(fingerprint, "fingerprint");
+        if (generationPackFingerprint != null && !generationPackFingerprint.equals(required)) {
+            throw new IllegalStateException("Iris data already has a different generation pack fingerprint.");
+        }
+        generationPackFingerprint = required;
+    }
+
     public boolean hasGenerationRegistryContract() {
         return generationRegistryContract != null;
     }

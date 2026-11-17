@@ -81,7 +81,6 @@ import art.arcane.iris.generation.chunk.SectionBuffer;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.volmlib.util.io.ReactiveFolder;
-import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.iris.world.task.J;
 import art.arcane.iris.world.runtime.WorldRuntimeControlService;
 import art.arcane.volmlib.util.scheduling.Looper;
@@ -128,7 +127,7 @@ import java.util.function.BooleanSupplier;
 @Data
 public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChunkGenerator, Listener {
     private static final int LOAD_LOCKS = Runtime.getRuntime().availableProcessors() * 4;
-    private static final long HOTLOAD_LOOP_DELAY_MS = 250L;
+    private static final long HOTLOAD_LOOP_DELAY_MS = 100L;
     private static final long HOTLOAD_MAINTENANCE_DELAY_MS = 4000L;
     private static final int PLAYER_ENTRY_MOVE_PADDING = 3;
     private static final int SPAWN_HYDROLOGY_REACH = 256;
@@ -140,7 +139,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final ReactiveFolder folder;
     private final ReentrantLock lock = new ReentrantLock();
     private final KList<BlockPopulator> populators;
-    private final ChronoLatch hotloadChecker;
     private final AtomicBoolean setup;
     private final boolean studio;
     private final AtomicBoolean studioEntryBootstrapActive;
@@ -183,7 +181,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         populators = new KList<>();
         loadLock = new GenerationStageGate(LOAD_LOCKS, () -> closing);
         this.world = world;
-        this.hotloadChecker = new ChronoLatch(1000, false);
         this.studio = studio;
         this.studioEntryBootstrapActive = new AtomicBoolean(studio);
         this.dataLocation = dataLocation;
@@ -838,10 +835,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                         return HOTLOAD_MAINTENANCE_DELAY_MS;
                     }
 
-                    if (hotloadChecker.flip()) {
-                        folder.check();
-                    }
-
+                    folder.check();
                     return HOTLOAD_LOOP_DELAY_MS;
                 }
 

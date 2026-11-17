@@ -1,6 +1,7 @@
 package art.arcane.iris.world.history;
 
 import art.arcane.iris.testsupport.DurabilityMode;
+import art.arcane.iris.world.storage.Durability;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.junit.Assume;
@@ -42,6 +43,30 @@ public class GenerationHistoryStoreTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Test
+    public void onlySyncingPoliciesForceManifestAndEpochMetadata() throws Exception {
+        String previous = System.getProperty(Durability.MODE_PROPERTY);
+        System.clearProperty(Durability.MODE_PROPERTY);
+        try {
+            assertTrue(storeDirectorySyncs("durable-store", EpochPolicy.DURABLE) > 0);
+            assertEquals(0L, storeDirectorySyncs("studio-store", EpochPolicy.STUDIO));
+        } finally {
+            if (previous != null) {
+                System.setProperty(Durability.MODE_PROPERTY, previous);
+            }
+        }
+    }
+
+    private long storeDirectorySyncs(String name, EpochPolicy policy) throws Exception {
+        Path directory = temporaryFolder.getRoot().toPath().resolve(name).resolve("generation");
+        Files.createDirectories(directory.getParent());
+        List<Path> opened = DirectorySyncCounter.openedDirectories(() -> {
+            GenerationHistoryStore store = GenerationHistoryStore.initialize(directory, epoch(PACK_A), policy);
+            store.preparePendingActivation(epoch(PACK_B), 256);
+        });
+        return DirectorySyncCounter.countUnder(directory.getParent(), opened);
+    }
 
     @Test
     public void persistsActiveAndPendingHistoryAcrossReopen() throws Exception {

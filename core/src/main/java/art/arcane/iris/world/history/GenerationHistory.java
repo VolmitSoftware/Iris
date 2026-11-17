@@ -204,7 +204,7 @@ public final class GenerationHistory {
         );
         forceEpochPublication(paths, epoch.epochId(), epochPolicy);
         GenerationSemanticIndex.initialize(paths.dimensionRoot());
-        GenerationHistoryStore store = GenerationHistoryStore.initialize(paths.generationRoot(), epoch);
+        GenerationHistoryStore store = GenerationHistoryStore.initialize(paths.generationRoot(), epoch, epochPolicy);
         return new GenerationHistory(paths, packs, store, ownership, kernels,
                 Optional.of(new FreshPublication(publishedPack, epoch)), unpublished);
     }

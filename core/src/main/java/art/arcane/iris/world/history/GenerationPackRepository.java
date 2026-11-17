@@ -19,7 +19,9 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
@@ -41,24 +43,25 @@ public final class GenerationPackRepository {
     private final Path dimensionRoot;
     private final Path generationRoot;
     private final Path epochsRoot;
-    private final EpochDurability durability;
+    private final EpochPolicy policy;
+    private final Set<String> verifiedPacks = ConcurrentHashMap.newKeySet();
 
     public GenerationPackRepository(Path dimensionRoot) {
-        this(dimensionRoot, EpochDurability.configured());
+        this(dimensionRoot, EpochPolicy.configured());
     }
 
-    public GenerationPackRepository(Path dimensionRoot, EpochDurability durability) {
+    public GenerationPackRepository(Path dimensionRoot, EpochPolicy policy) {
         Path root = Objects.requireNonNull(dimensionRoot, "dimensionRoot")
                 .toAbsolutePath()
                 .normalize();
         this.dimensionRoot = root;
         generationRoot = root.resolve("iris").resolve("generation");
         epochsRoot = generationRoot.resolve("epochs");
-        this.durability = Objects.requireNonNull(durability, "durability");
+        this.policy = Objects.requireNonNull(policy, "policy");
     }
 
-    public EpochDurability durability() {
-        return durability;
+    public EpochPolicy policy() {
+        return policy;
     }
 
     public Path generationRoot() {
@@ -124,35 +127,98 @@ public final class GenerationPackRepository {
             Files.delete(stage);
             copyPackTree(source, stage, defaultExecutor(), defaultWorkers(), publicationCopyMode(), basisPack);
             requireFingerprint(stage, packFingerprint, packFingerprintVersion);
-            try (AtomicDirectoryPublisher.Publication publication =
-                         AtomicDirectoryPublisher.publishAbsent(stage, target)) {
-                publication.commit();
-            } catch (FileAlreadyExistsException race) {
-                return requireExactPack(epochId, packFingerprint, packFingerprintVersion);
-            }
-            syncDirectory(epochDirectory);
-            validateExistingAncestors(epochId);
-            requireSafeDirectory(target, "Generation epoch pack is missing or unsafe");
-            return target;
+            return commitStage(epochId, stage, packFingerprint, packFingerprintVersion);
         } finally {
-            if (Files.exists(stage, LinkOption.NOFOLLOW_LINKS)) {
-                AtomicDirectoryPublisher.deleteTree(stage);
-            }
+            deleteLeftoverStage(stage);
         }
     }
 
+    /**
+     * Publishes a tree this process already hashed by moving it into place instead of copying and hashing it again.
+     * The tree must be on the repository's filesystem and is consumed. Its files were never synced, so only
+     * repositories that skip fsyncs may adopt one.
+     */
+    public synchronized Path adopt(String epochId, VerifiedPackTree pack) throws IOException {
+        if (policy.syncs()) {
+            throw new IllegalStateException("Durable generation epochs cannot adopt an unsynced pack tree.");
+        }
+        String requiredEpochId = requireDigest(epochId, "epochId");
+        requireDigest(pack.fingerprint(), "packFingerprint");
+        ensureEpochsRoot();
+        try (GenerationPublicationLock ignored = GenerationPublicationLock.acquire(
+                epochsRoot,
+                ".epoch-" + requiredEpochId + ".lock"
+        )) {
+            ensureEpochsRoot();
+            return adoptLocked(requiredEpochId, pack);
+        }
+    }
+
+    private Path adoptLocked(String epochId, VerifiedPackTree pack) throws IOException {
+        Path epochDirectory = ensureChildDirectory(epochsRoot, epochId);
+        if (Files.exists(epochDirectory.resolve("pack"), LinkOption.NOFOLLOW_LINKS)) {
+            return requireExactPack(epochId, pack.fingerprint(), pack.fingerprintVersion());
+        }
+        Path stage = Files.createTempDirectory(epochDirectory, ".pack-");
+        try {
+            Files.delete(stage);
+            Files.move(pack.root(), stage, StandardCopyOption.ATOMIC_MOVE);
+            return commitStage(epochId, stage, pack.fingerprint(), pack.fingerprintVersion());
+        } finally {
+            deleteLeftoverStage(stage);
+        }
+    }
+
+    private Path commitStage(String epochId, Path stage, String packFingerprint, int packFingerprintVersion)
+            throws IOException {
+        Path epochDirectory = stage.getParent();
+        Path target = epochDirectory.resolve("pack");
+        try (AtomicDirectoryPublisher.Publication publication =
+                     AtomicDirectoryPublisher.publishAbsent(stage, target)) {
+            publication.commit();
+        } catch (FileAlreadyExistsException race) {
+            return requireExactPack(epochId, packFingerprint, packFingerprintVersion);
+        }
+        syncDirectory(epochDirectory);
+        validateExistingAncestors(epochId);
+        requireSafeDirectory(target, "Generation epoch pack is missing or unsafe");
+        rememberVerifiedPack(epochId, packFingerprint, packFingerprintVersion);
+        return target;
+    }
+
+    private static void deleteLeftoverStage(Path stage) throws IOException {
+        if (Files.exists(stage, LinkOption.NOFOLLOW_LINKS)) {
+            AtomicDirectoryPublisher.deleteTree(stage);
+        }
+    }
+
+    /**
+     * Hashes the published pack unless this repository trusts packs it verified itself and already did so.
+     */
     public Path requireExactPack(
             String epochId,
             String packFingerprint,
             int packFingerprintVersion
     ) throws IOException {
         Path pack = requireSafePackRoot(epochId);
-        requireFingerprint(
-                pack,
-                requireDigest(packFingerprint, "packFingerprint"),
-                packFingerprintVersion
-        );
+        String requiredFingerprint = requireDigest(packFingerprint, "packFingerprint");
+        if (policy.trustsVerifiedPacks()
+                && verifiedPacks.contains(verifiedPackKey(epochId, requiredFingerprint, packFingerprintVersion))) {
+            return pack;
+        }
+        requireFingerprint(pack, requiredFingerprint, packFingerprintVersion);
+        rememberVerifiedPack(epochId, requiredFingerprint, packFingerprintVersion);
         return pack;
+    }
+
+    private void rememberVerifiedPack(String epochId, String packFingerprint, int packFingerprintVersion) {
+        if (policy.trustsVerifiedPacks()) {
+            verifiedPacks.add(verifiedPackKey(epochId, packFingerprint, packFingerprintVersion));
+        }
+    }
+
+    private static String verifiedPackKey(String epochId, String packFingerprint, int packFingerprintVersion) {
+        return epochId + '/' + packFingerprintVersion + '/' + packFingerprint;
     }
 
     Path requireSafePackRoot(String epochId) throws IOException {
@@ -186,7 +252,7 @@ public final class GenerationPackRepository {
     }
 
     private PackCopyMode publicationCopyMode() {
-        return durability.syncs() ? PackCopyMode.DURABLE : PackCopyMode.SCRATCH;
+        return policy.syncs() ? PackCopyMode.DURABLE : PackCopyMode.SCRATCH;
     }
 
     private Path ensureChildDirectory(Path parent, String name) throws IOException {
@@ -223,7 +289,7 @@ public final class GenerationPackRepository {
     }
 
     private void syncDirectory(Path directory) throws IOException {
-        if (!durability.syncs() || File.separatorChar == '\\') {
+        if (!policy.syncs() || File.separatorChar == '\\') {
             return;
         }
         try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
@@ -238,10 +304,11 @@ public final class GenerationPackRepository {
     }
 
     /**
-     * Copies a pack without syncing it, for scratch copies that are discarded and never published.
+     * Copies a pack without syncing it, for scratch copies that are not published as they are. Files identical to
+     * the optional {@code basisPack} are hard-linked to it, so the copy must be treated as read-only.
      */
-    public static void snapshotPackTree(Path source, Path target) throws IOException {
-        copyPackTree(source, target, defaultExecutor(), defaultWorkers(), PackCopyMode.SCRATCH, null);
+    public static void snapshotPackTree(Path source, Path target, Path basisPack) throws IOException {
+        copyPackTree(source, target, defaultExecutor(), defaultWorkers(), PackCopyMode.SCRATCH, basisPack);
     }
 
     static void copyPackTree(Path source, Path target, Executor executor, int workers) throws IOException {
@@ -255,14 +322,7 @@ public final class GenerationPackRepository {
         if (workers < 1 || workers > MAXIMUM_COPY_WORKERS) {
             throw new IllegalArgumentException("Pack copy workers must be between 1 and " + MAXIMUM_COPY_WORKERS + ".");
         }
-        Path sourcePath = Objects.requireNonNull(source, "source").toAbsolutePath().normalize();
-        if (Files.isSymbolicLink(sourcePath)) {
-            throw new IOException("Pack source is a symbolic link: " + sourcePath);
-        }
-        Path normalizedSource = sourcePath.toRealPath();
-        if (!Files.isDirectory(normalizedSource, LinkOption.NOFOLLOW_LINKS)) {
-            throw new IOException("Pack source is not a directory: " + normalizedSource);
-        }
+        Path normalizedSource = requirePackSource(source);
         Path normalizedTarget = Objects.requireNonNull(target, "target").toAbsolutePath().normalize();
         if (Files.exists(normalizedTarget, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(normalizedTarget)) {
             throw new IOException("Pack publication stage already exists: " + normalizedTarget);
@@ -272,7 +332,41 @@ public final class GenerationPackRepository {
                     + normalizedSource + " and " + normalizedTarget);
         }
 
-        List<Path> sourceFiles = new ArrayList<>();
+        PackTreeState sourceState = walkPackTree(normalizedSource, directory ->
+                Files.createDirectories(copyDestination(normalizedSource, normalizedTarget, directory)));
+        List<Path> sourceFiles = sourceState.files().keySet().stream().map(normalizedSource::resolve).toList();
+        Path basis = basisPack == null ? null : basisPack.toAbsolutePath().normalize();
+        Set<Path> unsyncedCopies = ConcurrentHashMap.newKeySet();
+        executeFilePhase(sourceFiles, executor, workers, sourceFile -> {
+            Path destination = copyDestination(normalizedSource, normalizedTarget, sourceFile);
+            if (basis != null && linkUnchangedFile(normalizedSource.relativize(sourceFile), sourceFile, basis, destination)) {
+                return;
+            }
+            Files.copy(sourceFile, destination, StandardCopyOption.COPY_ATTRIBUTES);
+            unsyncedCopies.add(destination);
+        });
+        if (mode == PackCopyMode.DURABLE) {
+            executeFilePhase(List.copyOf(unsyncedCopies), executor, workers, GenerationPackRepository::forceFile);
+        }
+    }
+
+    static Path requirePackSource(Path source) throws IOException {
+        Path sourcePath = Objects.requireNonNull(source, "source").toAbsolutePath().normalize();
+        if (Files.isSymbolicLink(sourcePath)) {
+            throw new IOException("Pack source is a symbolic link: " + sourcePath);
+        }
+        Path normalizedSource = sourcePath.toRealPath();
+        if (!Files.isDirectory(normalizedSource, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IOException("Pack source is not a directory: " + normalizedSource);
+        }
+        return normalizedSource;
+    }
+
+    /**
+     * Visits every directory and lists every file a pack copy includes, rejecting links and special files.
+     */
+    static PackTreeState walkPackTree(Path normalizedSource, FileAction includedDirectory) throws IOException {
+        Map<Path, PackTreeState.FileStamp> files = new LinkedHashMap<>();
         Files.walkFileTree(normalizedSource, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes attributes) throws IOException {
@@ -284,7 +378,7 @@ public final class GenerationPackRepository {
                         && PackDirectoryResolver.isHiddenName(directory.getFileName().toString())) {
                     return FileVisitResult.SKIP_SUBTREE;
                 }
-                Files.createDirectories(copyDestination(normalizedSource, normalizedTarget, directory));
+                includedDirectory.run(directory);
                 return FileVisitResult.CONTINUE;
             }
 
@@ -302,7 +396,7 @@ public final class GenerationPackRepository {
                         || fileName.endsWith(".code-workspace")) {
                     return FileVisitResult.CONTINUE;
                 }
-                sourceFiles.add(file);
+                files.put(relative, new PackTreeState.FileStamp(attributes.size(), attributes.lastModifiedTime()));
                 return FileVisitResult.CONTINUE;
             }
 
@@ -311,20 +405,7 @@ public final class GenerationPackRepository {
                 throw new IOException("Unable to copy pack entry: " + file, failure);
             }
         });
-        Path basis = basisPack == null ? null : basisPack.toAbsolutePath().normalize();
-        Set<Path> unsyncedCopies = ConcurrentHashMap.newKeySet();
-        executeFilePhase(sourceFiles, executor, workers, sourceFile -> {
-            Path destination = copyDestination(normalizedSource, normalizedTarget, sourceFile);
-            if (basis != null && linkUnchangedFile(normalizedSource.relativize(sourceFile), sourceFile, basis, destination)) {
-                return;
-            }
-            Files.copy(sourceFile, destination, StandardCopyOption.COPY_ATTRIBUTES);
-            unsyncedCopies.add(destination);
-        });
-        if (mode == PackCopyMode.SCRATCH) {
-            return;
-        }
-        executeFilePhase(List.copyOf(unsyncedCopies), executor, workers, GenerationPackRepository::forceFile);
+        return new PackTreeState(files);
     }
 
     private static boolean linkUnchangedFile(Path relative, Path sourceFile, Path basis, Path destination) {

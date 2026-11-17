@@ -5,10 +5,11 @@ import art.arcane.iris.pack.AtomicDirectoryPublisher;
 import art.arcane.iris.world.history.GenerationEpoch;
 import art.arcane.iris.world.history.GenerationEpochContractFactory;
 import art.arcane.iris.world.history.GenerationHistory;
-import art.arcane.iris.world.history.GenerationPackFingerprint;
 import art.arcane.iris.world.history.GenerationPackRepository;
 import art.arcane.iris.world.history.GenerationRegistryContract;
 import art.arcane.iris.world.history.GenerationRegistryContractFactory;
+import art.arcane.iris.world.history.PackTreeState;
+import art.arcane.iris.world.history.VerifiedPackTree;
 import art.arcane.iris.generation.terrain.IrisDimension;
 
 import java.io.IOException;
@@ -16,32 +17,30 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 import java.util.List;
 
+/**
+ * A Studio pack edit captured as one read-only snapshot inside the world's generation folder. The snapshot is
+ * hashed once and later moved into the epoch repository as it is.
+ */
 record StudioGenerationUpdate(
         Path stagingRoot,
-        Path source,
-        String fingerprint,
+        VerifiedPackTree pack,
+        PackTreeState sourceState,
         GenerationEpoch.DimensionContract dimensionContract,
         GenerationRegistryContract registryContract
 ) implements AutoCloseable {
-    private static final String TRIAL_MANTLE_DIRECTORY = "trial-mantle";
+    private static final String TRIAL_MANTLE_DIRECTORY = ".trial-mantle";
 
     static StudioGenerationUpdate prepare(IrisEngine engine, GenerationHistory history) throws IOException {
         Path source = engine.getStudioGenerationSource().toRealPath();
         IrisData.invalidateLoadedAuthoringResources(source.toFile());
-        String fingerprint = GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION);
-        GenerationEpoch active = history.activeEpoch();
-        if (active.packFingerprintVersion() == GenerationPackFingerprint.CURRENT_VERSION
-                && fingerprint.equals(active.packFingerprint())) {
-            return null;
-        }
+        PackTreeState sourceState = PackTreeState.capture(source);
         Path stagingRoot = Files.createTempDirectory(history.paths().generationRoot(), ".studio-");
-        Path snapshot = stagingRoot.resolve(source.getFileName());
         try {
-            GenerationPackRepository.snapshotPackTree(source, snapshot);
-            if (!fingerprint.equals(GenerationPackFingerprint.compute(snapshot, GenerationPackFingerprint.CURRENT_VERSION))) {
-                throw new IOException("Studio pack changed while its update snapshot was being captured.");
+            StudioGenerationUpdate update = prepareStaged(engine, history, source, sourceState, stagingRoot);
+            if (update == null) {
+                AtomicDirectoryPublisher.deleteTree(stagingRoot);
             }
-            return prepareSnapshot(engine, history, stagingRoot, snapshot, fingerprint);
+            return update;
         } catch (Throwable failure) {
             try {
                 AtomicDirectoryPublisher.deleteTree(stagingRoot);
@@ -52,11 +51,31 @@ record StudioGenerationUpdate(
         }
     }
 
-    private static StudioGenerationUpdate prepareSnapshot(IrisEngine engine, GenerationHistory history,
-                                                           Path stagingRoot, Path source, String fingerprint)
+    private static StudioGenerationUpdate prepareStaged(IrisEngine engine, GenerationHistory history, Path source,
+                                                        PackTreeState sourceState, Path stagingRoot)
             throws IOException {
+        Path snapshot = stagingRoot.resolve(source.getFileName());
+        GenerationPackRepository.snapshotPackTree(source, snapshot, history.activePackLinkBasis().orElse(null));
+        VerifiedPackTree pack = VerifiedPackTree.hash(snapshot);
+        if (isActive(history.activeEpoch(), pack)) {
+            return null;
+        }
+        if (!sourceState.equals(PackTreeState.capture(source))) {
+            throw new IOException("Studio pack changed while its update snapshot was being captured.");
+        }
+        return prepareSnapshot(engine, history, stagingRoot, pack, sourceState);
+    }
+
+    private static boolean isActive(GenerationEpoch active, VerifiedPackTree pack) {
+        return active.packFingerprintVersion() == pack.fingerprintVersion()
+                && active.packFingerprint().equals(pack.fingerprint());
+    }
+
+    private static StudioGenerationUpdate prepareSnapshot(IrisEngine engine, GenerationHistory history,
+                                                           Path stagingRoot, VerifiedPackTree pack,
+                                                           PackTreeState sourceState) throws IOException {
         GenerationEpoch active = history.activeEpoch();
-        IrisData data = IrisData.openRuntime(source.toFile());
+        IrisData data = IrisData.openRuntime(pack.root().toFile());
         try {
             IrisDimension replacement = data.getDimensionLoader().load(active.dimensionContract().dimensionKey());
             if (replacement == null) {
@@ -69,10 +88,10 @@ record StudioGenerationUpdate(
             if (!active.dimensionContract().hasSameLayout(contract)) {
                 throw new IOException("Studio pack update changes the world's immutable dimension layout.");
             }
-            GenerationRegistryContract registry = GenerationRegistryContractFactory.create(data, replacement, fingerprint);
+            GenerationRegistryContract registry = GenerationRegistryContractFactory.create(data, replacement, pack.fingerprint());
             registry.requireDefinitionsAvailableIn(GenerationRegistryContractFactory.captureRequiredDefinitions(List.of(registry)));
             requireBuildableRuntime(engine, data, replacement, registry, stagingRoot.resolve(TRIAL_MANTLE_DIRECTORY));
-            return new StudioGenerationUpdate(stagingRoot, source, fingerprint, contract, registry);
+            return new StudioGenerationUpdate(stagingRoot, pack, sourceState, contract, registry);
         } finally {
             if (!data.isClosed()) {
                 data.close();

@@ -40,45 +40,49 @@ public final class StudioGenerationUpdateTest {
     public final TemporaryFolder temporary = new TemporaryFolder();
 
     @Test
-    public void unchangedSourceNeedsNoSnapshotOrManifestUpdate() throws Exception {
+    public void unchangedSourceNeedsNoManifestUpdateAndLeavesNoSnapshot() throws Exception {
         Path source = temporary.newFolder("unchanged-pack").toPath();
         Files.createDirectories(source.resolve("dimensions"));
         Files.writeString(source.resolve("dimensions/test.json"), "{}");
-        String fingerprint = GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION);
-        IrisEngine engine = mock(IrisEngine.class);
-        GenerationHistory history = mock(GenerationHistory.class);
-        GenerationEpoch active = mock(GenerationEpoch.class);
-        when(engine.getStudioGenerationSource()).thenReturn(source);
-        when(history.activeEpoch()).thenReturn(active);
-        when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
-        when(active.packFingerprint()).thenReturn(fingerprint);
 
-        assertNull(StudioGenerationUpdate.prepare(engine, history));
-
-        verify(history).activeEpoch();
-        verifyNoMoreInteractions(history);
+        assertUnchangedSourceStagesNothing(source, source);
     }
 
     @Test
-    public void unchangedAuthoringRootAliasNeedsNoSnapshot() throws Exception {
+    public void unchangedAuthoringRootAliasNeedsNoManifestUpdate() throws Exception {
         Path source = temporary.newFolder("unchanged-alias-target").toPath();
         Files.createDirectories(source.resolve("dimensions"));
         Files.writeString(source.resolve("dimensions/test.json"), "{}");
         Path alias = temporary.getRoot().toPath().resolve("unchanged-alias");
         Files.createSymbolicLink(alias, source);
+
+        assertUnchangedSourceStagesNothing(alias, source);
+        assertThrows(IOException.class, () -> GenerationPackFingerprint.compute(alias, GenerationPackFingerprint.CURRENT_VERSION));
+    }
+
+    private void assertUnchangedSourceStagesNothing(Path authoringRoot, Path source) throws Exception {
         String fingerprint = GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION);
+        GenerationHistoryPaths paths = GenerationHistoryPaths.forDimension(temporary.newFolder().toPath());
+        Files.createDirectories(paths.generationRoot());
+        Files.writeString(paths.manifest(), "unchanged manifest");
         IrisEngine engine = mock(IrisEngine.class);
         GenerationHistory history = mock(GenerationHistory.class);
         GenerationEpoch active = mock(GenerationEpoch.class);
-        when(engine.getStudioGenerationSource()).thenReturn(alias);
+        when(engine.getStudioGenerationSource()).thenReturn(authoringRoot);
         when(history.activeEpoch()).thenReturn(active);
+        when(history.paths()).thenReturn(paths);
         when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
         when(active.packFingerprint()).thenReturn(fingerprint);
 
         assertNull(StudioGenerationUpdate.prepare(engine, history));
 
-        assertThrows(IOException.class, () -> GenerationPackFingerprint.compute(alias, GenerationPackFingerprint.CURRENT_VERSION));
+        assertEquals("unchanged manifest", Files.readString(paths.manifest()));
+        try (Stream<Path> entries = Files.list(paths.generationRoot())) {
+            assertEquals(1L, entries.count());
+        }
         verify(history).activeEpoch();
+        verify(history).paths();
+        verify(history).activePackLinkBasis();
         verifyNoMoreInteractions(history);
     }
 
@@ -112,6 +116,7 @@ public final class StudioGenerationUpdateTest {
         }
         verify(history, times(2)).activeEpoch();
         verify(history).paths();
+        verify(history).activePackLinkBasis();
         verifyNoMoreInteractions(history);
     }
 
@@ -130,7 +135,7 @@ public final class StudioGenerationUpdateTest {
 
             IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history));
 
-            assertTrue(failure.getMessage(), failure.getMessage().contains("rejected symbolic link"));
+            assertTrue(failure.getMessage(), failure.getMessage().contains("Pack contains a symbolic link"));
             verifyNoInteractions(history);
         }
     }
@@ -162,6 +167,7 @@ public final class StudioGenerationUpdateTest {
         }
         verify(history, times(2)).activeEpoch();
         verify(history).paths();
+        verify(history).activePackLinkBasis();
         verifyNoMoreInteractions(history);
     }
 

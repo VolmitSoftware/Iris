@@ -68,12 +68,12 @@ public class GenerationHistoryTest extends GenerationHistorySupport {
     }
 
     @Test
-    public void onlyUnsyncedHistoriesSkipTheEpochTreeSyncWhenStaging() throws Exception {
+    public void onlyDurableHistoriesSyncTheEpochTreeWhenStaging() throws Exception {
         String previous = System.getProperty(Durability.MODE_PROPERTY);
         System.clearProperty(Durability.MODE_PROPERTY);
         try {
-            assertEquals(1, stagingEpochTreeSyncs("synced", EpochDurability.SYNCED));
-            assertEquals(0, stagingEpochTreeSyncs("unsynced", EpochDurability.UNSYNCED));
+            assertEquals(1, stagingEpochTreeSyncs("durable", EpochPolicy.DURABLE));
+            assertEquals(0, stagingEpochTreeSyncs("studio", EpochPolicy.STUDIO));
         } finally {
             if (previous != null) {
                 System.setProperty(Durability.MODE_PROPERTY, previous);
@@ -81,12 +81,41 @@ public class GenerationHistoryTest extends GenerationHistorySupport {
         }
     }
 
-    private int stagingEpochTreeSyncs(String name, EpochDurability durability) throws Exception {
+    @Test
+    public void studioHistoryStagesAndPromotesAVerifiedTreeWithoutHashingItAgain() throws Exception {
+        Path world = temporaryFolder.newFolder("verified-stage-world").toPath();
+        Path packA = createPack("verified-stage-a", "alpha");
+        Path packB = createPack("verified-stage-b", "beta");
+        GenerationHistory history = GenerationHistory.create(world, packA, fingerprint(packA), 42L, contract(),
+                GenerationRegistryContract.empty(), EpochPolicy.STUDIO);
+        Path tree = history.paths().generationRoot().resolve(".studio-test");
+        GenerationPackRepository.snapshotPackTree(packB, tree, history.activePackLinkBasis().orElseThrow());
+        VerifiedPackTree verified = VerifiedPackTree.hash(tree);
+        AtomicInteger hashes = new AtomicInteger();
+        try (MockedStatic<GenerationPackFingerprint> ignored = mockStatic(GenerationPackFingerprint.class, invocation -> {
+            if (invocation.getMethod().getName().equals("compute")) {
+                hashes.incrementAndGet();
+            }
+            return invocation.callRealMethod();
+        })) {
+            GenerationActivation pending = history.stageVerifiedUpdate(
+                    verified, contract(), GenerationRegistryContract.empty(), 0);
+            history.promotePending(List.of());
+            history.packRoot(pending.activationId());
+
+            assertEquals(0, hashes.get());
+        }
+        assertFalse(Files.exists(tree));
+        assertEquals(verified.fingerprint(), history.activeEpoch().packFingerprint());
+        assertEquals(verified.fingerprint(), fingerprint(history.activePackRoot()));
+    }
+
+    private int stagingEpochTreeSyncs(String name, EpochPolicy policy) throws Exception {
         Path world = temporaryFolder.newFolder(name + "-staging-world").toPath();
         Path packA = createPack(name + "-staging-a", "alpha");
         Path packB = createPack(name + "-staging-b", "beta");
         GenerationHistory history = GenerationHistory.create(world, packA, fingerprint(packA), 42L, contract(),
-                GenerationRegistryContract.empty(), durability);
+                GenerationRegistryContract.empty(), policy);
         AtomicInteger treeSyncs = new AtomicInteger();
         try (MockedStatic<GenerationPackRepository> ignored = mockStatic(GenerationPackRepository.class, invocation -> {
             if (invocation.getMethod().getName().equals("forceDirectoryTree") && invocation.getArguments().length == 2) {

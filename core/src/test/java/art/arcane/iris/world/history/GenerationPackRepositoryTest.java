@@ -16,6 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -80,8 +81,8 @@ public class GenerationPackRepositoryTest {
         Path source = createPack("unsynced-source", "{}");
         Path syncedWorld = temporaryFolder.newFolder("synced-world").toPath();
         Path unsyncedWorld = temporaryFolder.newFolder("unsynced-world").toPath();
-        GenerationPackRepository synced = new GenerationPackRepository(syncedWorld, EpochDurability.SYNCED);
-        GenerationPackRepository unsynced = new GenerationPackRepository(unsyncedWorld, EpochDurability.UNSYNCED);
+        GenerationPackRepository synced = new GenerationPackRepository(syncedWorld, EpochPolicy.DURABLE);
+        GenerationPackRepository unsynced = new GenerationPackRepository(unsyncedWorld, EpochPolicy.STUDIO);
 
         List<Path> syncedOpens = DirectorySyncCounter.openedDirectories(() -> synced.publish(
                 digest('a'), fingerprint(source), GenerationPackFingerprint.CURRENT_VERSION, source));
@@ -99,9 +100,9 @@ public class GenerationPackRepositoryTest {
         String previous = System.getProperty(Durability.MODE_PROPERTY);
         try {
             System.clearProperty(Durability.MODE_PROPERTY);
-            assertEquals(EpochDurability.SYNCED, new GenerationPackRepository(dimensionRoot).durability());
+            assertEquals(EpochPolicy.DURABLE, new GenerationPackRepository(dimensionRoot).policy());
             System.setProperty(Durability.MODE_PROPERTY, "relaxed");
-            assertEquals(EpochDurability.UNSYNCED, new GenerationPackRepository(dimensionRoot).durability());
+            assertEquals(EpochPolicy.RELAXED, new GenerationPackRepository(dimensionRoot).policy());
         } finally {
             if (previous == null) {
                 System.clearProperty(Durability.MODE_PROPERTY);
@@ -116,10 +117,92 @@ public class GenerationPackRepositoryTest {
         Path source = createPack("snapshot-source", "{}");
         Path snapshot = temporaryFolder.getRoot().toPath().resolve("snapshot");
 
-        GenerationPackRepository.snapshotPackTree(source, snapshot);
+        GenerationPackRepository.snapshotPackTree(source, snapshot, null);
 
         assertEquals(fingerprint(source), fingerprint(snapshot));
         assertFalse(Files.isSameFile(source.resolve("dimensions/main.json"), snapshot.resolve("dimensions/main.json")));
+    }
+
+    @Test
+    public void snapshotLinksUnchangedFilesToTheBasis() throws Exception {
+        Path dimensionRoot = temporaryFolder.newFolder("snapshot-basis-world").toPath();
+        Path first = createPack("snapshot-basis-first", "{}");
+        Files.writeString(first.resolve("biomes.json"), "{\"name\":\"plains\"}");
+        GenerationPackRepository repository = new GenerationPackRepository(dimensionRoot, EpochPolicy.STUDIO);
+        Path basis = repository.publish(digest('1'), fingerprint(first), GenerationPackFingerprint.CURRENT_VERSION, first);
+        Path source = createPack("snapshot-basis-source", "{\"changed\":true}");
+        Files.writeString(source.resolve("biomes.json"), "{\"name\":\"plains\"}");
+        Path snapshot = temporaryFolder.getRoot().toPath().resolve("basis-snapshot");
+
+        GenerationPackRepository.snapshotPackTree(source, snapshot, basis);
+
+        assertTrue(Files.isSameFile(basis.resolve("biomes.json"), snapshot.resolve("biomes.json")));
+        assertFalse(Files.isSameFile(basis.resolve("dimensions/main.json"), snapshot.resolve("dimensions/main.json")));
+        assertEquals(fingerprint(source), fingerprint(snapshot));
+    }
+
+    @Test
+    public void packTreeStateNoticesRewrittenAddedAndIgnoredFiles() throws Exception {
+        Path source = createPack("state-source", "{}");
+        PackTreeState initial = PackTreeState.capture(source);
+        Files.createDirectories(source.resolve(".git"));
+        Files.writeString(source.resolve(".git/config"), "local");
+        Files.writeString(source.resolve("pack.code-workspace"), "{}");
+
+        assertEquals(initial, PackTreeState.capture(source));
+        Files.writeString(source.resolve("dimensions/main.json"), "{\"changed\":true}");
+        assertFalse(initial.equals(PackTreeState.capture(source)));
+        PackTreeState rewritten = PackTreeState.capture(source);
+        Files.writeString(source.resolve("dimensions/extra.json"), "{}");
+        assertFalse(rewritten.equals(PackTreeState.capture(source)));
+    }
+
+    @Test
+    public void studioRepositoryAdoptsAVerifiedTreeAndTrustsItsOwnVerification() throws Exception {
+        Path dimensionRoot = temporaryFolder.newFolder("adopt-world").toPath();
+        GenerationPackRepository repository = new GenerationPackRepository(dimensionRoot, EpochPolicy.STUDIO);
+        Path tree = Files.createDirectories(repository.generationRoot()).resolve("staged");
+        GenerationPackRepository.snapshotPackTree(createPack("adopt-source", "{}"), tree, null);
+        VerifiedPackTree verified = VerifiedPackTree.hash(tree);
+        AtomicInteger hashes = new AtomicInteger();
+        try (MockedStatic<GenerationPackFingerprint> ignored = countingHashes(hashes)) {
+            Path published = repository.adopt(digest('a'), verified);
+            assertEquals(published, repository.requireExactPack(
+                    digest('a'), verified.fingerprint(), verified.fingerprintVersion()));
+
+            assertEquals(0, hashes.get());
+            assertFalse(Files.exists(tree));
+        }
+        assertEquals(verified.fingerprint(), fingerprint(repository.packRoot(digest('a'))));
+    }
+
+    @Test
+    public void nonStudioRepositoriesStillHashOnEveryAccessAndRefuseAdoption() throws Exception {
+        Path source = createPack("rehash-source", "{}");
+        String expected = fingerprint(source);
+        GenerationPackRepository durable = new GenerationPackRepository(
+                temporaryFolder.newFolder("rehash-world").toPath(), EpochPolicy.DURABLE);
+        durable.publish(digest('a'), expected, GenerationPackFingerprint.CURRENT_VERSION, source);
+        Path tree = Files.createDirectories(durable.generationRoot()).resolve("staged");
+        GenerationPackRepository.snapshotPackTree(source, tree, null);
+        AtomicInteger hashes = new AtomicInteger();
+        try (MockedStatic<GenerationPackFingerprint> ignored = countingHashes(hashes)) {
+            durable.requireExactPack(digest('a'), expected, GenerationPackFingerprint.CURRENT_VERSION);
+            durable.requireExactPack(digest('a'), expected, GenerationPackFingerprint.CURRENT_VERSION);
+        }
+
+        assertEquals(2, hashes.get());
+        VerifiedPackTree verified = VerifiedPackTree.hash(tree);
+        assertThrows(IllegalStateException.class, () -> durable.adopt(digest('b'), verified));
+    }
+
+    private static MockedStatic<GenerationPackFingerprint> countingHashes(AtomicInteger hashes) {
+        return mockStatic(GenerationPackFingerprint.class, invocation -> {
+            if (invocation.getMethod().getName().equals("compute")) {
+                hashes.incrementAndGet();
+            }
+            return invocation.callRealMethod();
+        });
     }
 
     @Test

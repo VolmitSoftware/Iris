@@ -140,7 +140,7 @@ public final class GenerationHistory {
             GenerationKernelRegistry kernels
     ) throws IOException {
         return create(new FreshCreation(dimensionRoot, packSource, packFingerprint, worldSeed, dimensionContract, registryContract),
-                version, kernels, false, EpochDurability.configured());
+                version, kernels, false, EpochPolicy.configured());
     }
 
     public static GenerationHistory create(
@@ -150,23 +150,23 @@ public final class GenerationHistory {
             long worldSeed,
             GenerationEpoch.DimensionContract dimensionContract,
             GenerationRegistryContract registryContract,
-            EpochDurability durability
+            EpochPolicy epochPolicy
     ) throws IOException {
         GenerationKernelRegistry kernels = GenerationKernelRegistry.standard();
         return create(new FreshCreation(dimensionRoot, packSource, packFingerprint, worldSeed, dimensionContract, registryContract),
-                kernels.current(), kernels, false, durability);
+                kernels.current(), kernels, false, epochPolicy);
     }
 
     public static GenerationHistory createUnpublished(FreshCreation creation) throws IOException {
         Objects.requireNonNull(creation, "creation");
         Files.createDirectory(creation.dimensionRoot());
         GenerationKernelRegistry kernels = GenerationKernelRegistry.standard();
-        return create(creation, kernels.current(), kernels, true, EpochDurability.configured());
+        return create(creation, kernels.current(), kernels, true, EpochPolicy.configured());
     }
 
     private static GenerationHistory create(FreshCreation creation, GenerationKernelRegistry.Version version,
                                              GenerationKernelRegistry kernels, boolean unpublished,
-                                             EpochDurability durability) throws IOException {
+                                             EpochPolicy epochPolicy) throws IOException {
         Path dimensionRoot = creation.dimensionRoot();
         Path packSource = creation.packSource();
         String packFingerprint = creation.packFingerprint();
@@ -195,14 +195,14 @@ public final class GenerationHistory {
                 kernels
         );
         requireSourceFingerprint(packSource, epoch.packFingerprint(), epoch.packFingerprintVersion());
-        GenerationPackRepository packs = new GenerationPackRepository(paths.dimensionRoot(), durability);
+        GenerationPackRepository packs = new GenerationPackRepository(paths.dimensionRoot(), epochPolicy);
         Path publishedPack = packs.publish(
                 epoch.epochId(),
                 epoch.packFingerprint(),
                 epoch.packFingerprintVersion(),
                 packSource
         );
-        forceEpochPublication(paths, epoch.epochId(), durability);
+        forceEpochPublication(paths, epoch.epochId(), epochPolicy);
         GenerationSemanticIndex.initialize(paths.dimensionRoot());
         GenerationHistoryStore store = GenerationHistoryStore.initialize(paths.generationRoot(), epoch);
         return new GenerationHistory(paths, packs, store, ownership, kernels,
@@ -330,7 +330,7 @@ public final class GenerationHistory {
                     expectedEpoch.packFingerprint(),
                     expectedEpoch.packFingerprintVersion()
             );
-            forceEpochPublication(paths, expectedEpoch.epochId(), history.packs.durability());
+            forceEpochPublication(paths, expectedEpoch.epochId(), history.packs.policy());
         }
         migrateLegacyMantle(paths, history.activeActivation().activationId());
         if (!legacyExists) {
@@ -386,6 +386,75 @@ public final class GenerationHistory {
             int transitionWidthBlocks,
             GenerationKernelRegistry.Version version
     ) throws IOException {
+        GenerationEpoch candidate = stageableCandidate(
+                packFingerprint, packFingerprintVersion, dimensionContract, registryContract, version);
+        Optional<GenerationActivation> pending = pendingActivationFor(candidate);
+        if (pending.isPresent()) {
+            return pending.get();
+        }
+        requireSourceFingerprint(
+                packSource,
+                candidate.packFingerprint(),
+                candidate.packFingerprintVersion()
+        );
+        if (store.activeEpoch().equals(candidate)) {
+            return requireActiveCandidate(candidate);
+        }
+        packs.publish(
+                candidate.epochId(),
+                candidate.packFingerprint(),
+                candidate.packFingerprintVersion(),
+                packSource,
+                activePackLinkBasis().orElse(null)
+        );
+        return preparePublishedCandidate(candidate, transitionWidthBlocks);
+    }
+
+    /**
+     * Stages a pack tree this process already hashed. Unsynced histories move it into the epoch repository, so
+     * neither the tree nor the published pack is hashed again; durable ones still copy, sync and re-hash it. The
+     * tree must not be modified after it was hashed.
+     */
+    public synchronized GenerationActivation stageVerifiedUpdate(
+            VerifiedPackTree pack,
+            GenerationEpoch.DimensionContract dimensionContract,
+            GenerationRegistryContract registryContract,
+            int transitionWidthBlocks
+    ) throws IOException {
+        GenerationEpoch candidate = stageableCandidate(
+                pack.fingerprint(), pack.fingerprintVersion(), dimensionContract, registryContract, kernels.current());
+        Optional<GenerationActivation> pending = pendingActivationFor(candidate);
+        if (pending.isPresent()) {
+            return pending.get();
+        }
+        if (store.activeEpoch().equals(candidate)) {
+            return requireActiveCandidate(candidate);
+        }
+        publishVerifiedPack(candidate, pack);
+        return preparePublishedCandidate(candidate, transitionWidthBlocks);
+    }
+
+    private void publishVerifiedPack(GenerationEpoch candidate, VerifiedPackTree pack) throws IOException {
+        if (!packs.policy().syncs()) {
+            packs.adopt(candidate.epochId(), pack);
+            return;
+        }
+        packs.publish(
+                candidate.epochId(),
+                candidate.packFingerprint(),
+                candidate.packFingerprintVersion(),
+                pack.root(),
+                activePackLinkBasis().orElse(null)
+        );
+    }
+
+    private GenerationEpoch stageableCandidate(
+            String packFingerprint,
+            int packFingerprintVersion,
+            GenerationEpoch.DimensionContract dimensionContract,
+            GenerationRegistryContract registryContract,
+            GenerationKernelRegistry.Version version
+    ) throws IOException {
         GenerationEpoch candidate = epoch(
                 packFingerprint,
                 packFingerprintVersion,
@@ -406,56 +475,51 @@ public final class GenerationHistory {
         if (!store.activeEpoch().dimensionContract().hasSameLayout(candidate.dimensionContract())) {
             throw new IllegalArgumentException("Generation update changes the immutable dimension contract.");
         }
+        return candidate;
+    }
 
+    private Optional<GenerationActivation> pendingActivationFor(GenerationEpoch candidate) throws IOException {
         Optional<GenerationActivation> pending = store.pendingActivation();
-        if (pending.isPresent()) {
-            GenerationActivation activation = pending.get();
-            if (!activation.epochId().equals(candidate.epochId())) {
-                throw new IllegalStateException("A different generation activation is already pending.");
-            }
-            packs.requireExactPack(
-                    candidate.epochId(),
-                    candidate.packFingerprint(),
-                    candidate.packFingerprintVersion()
-            );
-            return activation;
+        if (pending.isEmpty()) {
+            return Optional.empty();
         }
-
-        if (store.activeEpoch().equals(candidate)) {
-            requireSourceFingerprint(
-                    packSource,
-                    candidate.packFingerprint(),
-                    candidate.packFingerprintVersion()
-            );
-            packs.requireExactPack(
-                    candidate.epochId(),
-                    candidate.packFingerprint(),
-                    candidate.packFingerprintVersion()
-            );
-            return store.activeActivation();
+        if (!pending.get().epochId().equals(candidate.epochId())) {
+            throw new IllegalStateException("A different generation activation is already pending.");
         }
-
-        requireSourceFingerprint(
-                packSource,
+        packs.requireExactPack(
+                candidate.epochId(),
                 candidate.packFingerprint(),
                 candidate.packFingerprintVersion()
         );
-        packs.publish(
+        return pending;
+    }
+
+    private GenerationActivation requireActiveCandidate(GenerationEpoch candidate) throws IOException {
+        packs.requireExactPack(
                 candidate.epochId(),
                 candidate.packFingerprint(),
-                candidate.packFingerprintVersion(),
-                packSource,
-                activePackAsLinkBasis()
+                candidate.packFingerprintVersion()
         );
-        forceEpochPublication(paths, candidate.epochId(), packs.durability());
+        return store.activeActivation();
+    }
+
+    private GenerationActivation preparePublishedCandidate(
+            GenerationEpoch candidate,
+            int transitionWidthBlocks
+    ) throws IOException {
+        forceEpochPublication(paths, candidate.epochId(), packs.policy());
         return store.preparePendingActivation(candidate, transitionWidthBlocks);
     }
 
-    private Path activePackAsLinkBasis() {
+    /**
+     * The active epoch's published pack, which new packs hard-link unchanged files against. Empty when it is
+     * missing or unsafe, in which case every file is copied.
+     */
+    public Optional<Path> activePackLinkBasis() {
         try {
-            return packs.requireSafePackRoot(store.activeEpoch().epochId());
+            return Optional.of(packs.requireSafePackRoot(store.activeEpoch().epochId()));
         } catch (IOException missingOrUnsafe) {
-            return null;
+            return Optional.empty();
         }
     }
 
@@ -1355,14 +1419,14 @@ public final class GenerationHistory {
     private static void forceEpochPublication(
             GenerationHistoryPaths paths,
             String epochId,
-            EpochDurability durability
+            EpochPolicy epochPolicy
     ) throws IOException {
         Path epochRoot = paths.epochRoot(epochId);
         if (!Files.isDirectory(epochRoot, LinkOption.NOFOLLOW_LINKS)
                 || Files.isSymbolicLink(epochRoot)) {
             throw new IOException("Generation epoch is not a safe directory: " + epochRoot);
         }
-        if (!durability.syncs() || File.separatorChar == '\\') {
+        if (!epochPolicy.syncs() || File.separatorChar == '\\') {
             return;
         }
         GenerationPackRepository.forceDirectoryTree(epochRoot, GenerationHistory::forceDirectory);

@@ -117,7 +117,7 @@ public class GenerationPackRepositoryTest {
         Path source = createPack("snapshot-source", "{}");
         Path snapshot = temporaryFolder.getRoot().toPath().resolve("snapshot");
 
-        GenerationPackRepository.snapshotPackTree(source, snapshot, null);
+        GenerationPackRepository.snapshotPackTree(source, snapshot, null, null);
 
         assertEquals(fingerprint(source), fingerprint(snapshot));
         assertFalse(Files.isSameFile(source.resolve("dimensions/main.json"), snapshot.resolve("dimensions/main.json")));
@@ -134,11 +134,30 @@ public class GenerationPackRepositoryTest {
         Files.writeString(source.resolve("biomes.json"), "{\"name\":\"plains\"}");
         Path snapshot = temporaryFolder.getRoot().toPath().resolve("basis-snapshot");
 
-        GenerationPackRepository.snapshotPackTree(source, snapshot, basis);
+        GenerationPackRepository.snapshotPackTree(source, snapshot, basis, null);
 
         assertTrue(Files.isSameFile(basis.resolve("biomes.json"), snapshot.resolve("biomes.json")));
         assertFalse(Files.isSameFile(basis.resolve("dimensions/main.json"), snapshot.resolve("dimensions/main.json")));
         assertEquals(fingerprint(source), fingerprint(snapshot));
+    }
+
+    @Test
+    public void recordedSourceStateLinksFilesByStampWithoutComparingContent() throws Exception {
+        Path dimensionRoot = temporaryFolder.newFolder("stamp-world").toPath();
+        Path source = createPack("stamp-source", "{}");
+        Files.writeString(source.resolve("biomes.json"), "{\"name\":\"plains\"}");
+        GenerationPackRepository repository = new GenerationPackRepository(dimensionRoot, EpochPolicy.STUDIO);
+        Path basis = repository.publish(digest('1'), fingerprint(source), GenerationPackFingerprint.CURRENT_VERSION, source);
+        PackTreeState recorded = PackTreeState.capture(source);
+        Files.writeString(basis.resolve("biomes.json"), "{\"name\":\"desert\"}");
+        Files.writeString(source.resolve("dimensions/main.json"), "{\"changed\":true}");
+        Path snapshot = temporaryFolder.getRoot().toPath().resolve("stamp-snapshot");
+
+        GenerationPackRepository.snapshotPackTree(source, snapshot, basis, recorded);
+
+        assertTrue(Files.isSameFile(basis.resolve("biomes.json"), snapshot.resolve("biomes.json")));
+        assertFalse(Files.isSameFile(basis.resolve("dimensions/main.json"), snapshot.resolve("dimensions/main.json")));
+        assertEquals("{\"changed\":true}", Files.readString(snapshot.resolve("dimensions/main.json")));
     }
 
     @Test
@@ -162,7 +181,7 @@ public class GenerationPackRepositoryTest {
         Path dimensionRoot = temporaryFolder.newFolder("adopt-world").toPath();
         GenerationPackRepository repository = new GenerationPackRepository(dimensionRoot, EpochPolicy.STUDIO);
         Path tree = Files.createDirectories(repository.generationRoot()).resolve("staged");
-        GenerationPackRepository.snapshotPackTree(createPack("adopt-source", "{}"), tree, null);
+        GenerationPackRepository.snapshotPackTree(createPack("adopt-source", "{}"), tree, null, null);
         VerifiedPackTree verified = VerifiedPackTree.hash(tree);
         AtomicInteger hashes = new AtomicInteger();
         try (MockedStatic<GenerationPackFingerprint> ignored = countingHashes(hashes)) {
@@ -184,7 +203,7 @@ public class GenerationPackRepositoryTest {
                 temporaryFolder.newFolder("rehash-world").toPath(), EpochPolicy.DURABLE);
         durable.publish(digest('a'), expected, GenerationPackFingerprint.CURRENT_VERSION, source);
         Path tree = Files.createDirectories(durable.generationRoot()).resolve("staged");
-        GenerationPackRepository.snapshotPackTree(source, tree, null);
+        GenerationPackRepository.snapshotPackTree(source, tree, null, null);
         AtomicInteger hashes = new AtomicInteger();
         try (MockedStatic<GenerationPackFingerprint> ignored = countingHashes(hashes)) {
             durable.requireExactPack(digest('a'), expected, GenerationPackFingerprint.CURRENT_VERSION);

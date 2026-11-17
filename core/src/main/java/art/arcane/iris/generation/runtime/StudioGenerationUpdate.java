@@ -30,13 +30,25 @@ record StudioGenerationUpdate(
 ) implements AutoCloseable {
     private static final String TRIAL_MANTLE_DIRECTORY = ".trial-mantle";
 
-    static StudioGenerationUpdate prepare(IrisEngine engine, GenerationHistory history) throws IOException {
+    /**
+     * @param previous the source the active epoch came from, when this engine activated it; without it every file
+     *                 is compared by content against the active epoch
+     * @return null when the source still matches the active epoch
+     */
+    static StudioGenerationUpdate prepare(IrisEngine engine, GenerationHistory history,
+                                          ActivatedStudioSource previous) throws IOException {
         Path source = engine.getStudioGenerationSource().toRealPath();
         IrisData.invalidateLoadedAuthoringResources(source.toFile());
         PackTreeState sourceState = PackTreeState.capture(source);
+        PackTreeState activeSourceState = previous == null ? null
+                : previous.sourceStateOf(history.activeEpoch()).orElse(null);
+        if (sourceState.equals(activeSourceState)) {
+            return null;
+        }
         Path stagingRoot = Files.createTempDirectory(history.paths().generationRoot(), ".studio-");
         try {
-            StudioGenerationUpdate update = prepareStaged(engine, history, source, sourceState, stagingRoot);
+            StudioGenerationUpdate update = prepareStaged(
+                    engine, history, source, sourceState, activeSourceState, stagingRoot);
             if (update == null) {
                 AtomicDirectoryPublisher.deleteTree(stagingRoot);
             }
@@ -52,10 +64,11 @@ record StudioGenerationUpdate(
     }
 
     private static StudioGenerationUpdate prepareStaged(IrisEngine engine, GenerationHistory history, Path source,
-                                                        PackTreeState sourceState, Path stagingRoot)
-            throws IOException {
+                                                        PackTreeState sourceState, PackTreeState activeSourceState,
+                                                        Path stagingRoot) throws IOException {
         Path snapshot = stagingRoot.resolve(source.getFileName());
-        GenerationPackRepository.snapshotPackTree(source, snapshot, history.activePackLinkBasis().orElse(null));
+        GenerationPackRepository.snapshotPackTree(
+                source, snapshot, history.activePackLinkBasis().orElse(null), activeSourceState);
         VerifiedPackTree pack = VerifiedPackTree.hash(snapshot);
         if (isActive(history.activeEpoch(), pack)) {
             return null;
@@ -123,6 +136,10 @@ record StudioGenerationUpdate(
             cause = cause.getCause();
         }
         return cause.getClass().getSimpleName() + ": " + cause.getMessage();
+    }
+
+    ActivatedStudioSource activatedAs(String epochId) {
+        return new ActivatedStudioSource(epochId, sourceState);
     }
 
     @Override

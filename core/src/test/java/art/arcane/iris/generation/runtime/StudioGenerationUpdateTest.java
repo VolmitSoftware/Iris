@@ -8,6 +8,7 @@ import art.arcane.iris.world.history.GenerationEpochContractFactory;
 import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.GenerationHistoryPaths;
 import art.arcane.iris.world.history.GenerationPackFingerprint;
+import art.arcane.iris.world.history.PackTreeState;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -60,6 +61,37 @@ public final class StudioGenerationUpdateTest {
         assertThrows(IOException.class, () -> GenerationPackFingerprint.compute(alias, GenerationPackFingerprint.CURRENT_VERSION));
     }
 
+    @Test
+    public void sourceMatchingTheActivatedRecordNeedsNoSnapshot() throws Exception {
+        Path source = temporary.newFolder("recorded-pack").toPath();
+        Files.createDirectories(source.resolve("dimensions"));
+        Files.writeString(source.resolve("dimensions/test.json"), "{}");
+        IrisEngine engine = mock(IrisEngine.class);
+        GenerationHistory history = mock(GenerationHistory.class);
+        GenerationEpoch active = mock(GenerationEpoch.class);
+        when(engine.getStudioGenerationSource()).thenReturn(source);
+        when(history.activeEpoch()).thenReturn(active);
+        when(active.epochId()).thenReturn("a".repeat(64));
+        ActivatedStudioSource recorded = new ActivatedStudioSource("a".repeat(64), PackTreeState.capture(source));
+
+        assertNull(StudioGenerationUpdate.prepare(engine, history, recorded));
+
+        verify(history).activeEpoch();
+        verifyNoMoreInteractions(history);
+    }
+
+    @Test
+    public void recordOfAnotherEpochIsIgnored() throws Exception {
+        Path source = temporary.newFolder("stale-record-pack").toPath();
+        Files.createDirectories(source.resolve("dimensions"));
+        Files.writeString(source.resolve("dimensions/test.json"), "{}");
+        GenerationEpoch active = mock(GenerationEpoch.class);
+        when(active.epochId()).thenReturn("a".repeat(64));
+        ActivatedStudioSource stale = new ActivatedStudioSource("b".repeat(64), PackTreeState.capture(source));
+
+        assertTrue(stale.sourceStateOf(active).isEmpty());
+    }
+
     private void assertUnchangedSourceStagesNothing(Path authoringRoot, Path source) throws Exception {
         String fingerprint = GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION);
         GenerationHistoryPaths paths = GenerationHistoryPaths.forDimension(temporary.newFolder().toPath());
@@ -74,7 +106,7 @@ public final class StudioGenerationUpdateTest {
         when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
         when(active.packFingerprint()).thenReturn(fingerprint);
 
-        assertNull(StudioGenerationUpdate.prepare(engine, history));
+        assertNull(StudioGenerationUpdate.prepare(engine, history, null));
 
         assertEquals("unchanged manifest", Files.readString(paths.manifest()));
         try (Stream<Path> entries = Files.list(paths.generationRoot())) {
@@ -133,7 +165,7 @@ public final class StudioGenerationUpdateTest {
             when(engine.getStudioGenerationSource()).thenReturn(alias);
             GenerationHistory history = mock(GenerationHistory.class);
 
-            IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history));
+            IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null));
 
             assertTrue(failure.getMessage(), failure.getMessage().contains("Pack contains a symbolic link"));
             verifyNoInteractions(history);
@@ -178,7 +210,7 @@ public final class StudioGenerationUpdateTest {
         when(data.getDimensionLoader()).thenReturn(dimensions);
         try (MockedStatic<IrisData> loaders = mockStatic(IrisData.class)) {
             loaders.when(() -> IrisData.openRuntime(any(File.class))).thenReturn(data);
-            return assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history));
+            return assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null));
         }
     }
 

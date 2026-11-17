@@ -48,6 +48,7 @@ import static art.arcane.iris.generation.runtime.EngineShutdownSequence.runClean
 final class EngineHotloader {
     private final IrisEngine engine;
     private final Object studioTransitionLock = new Object();
+    private ActivatedStudioSource activatedStudioSource;
 
     EngineHotloader(IrisEngine engine) {
         this.engine = engine;
@@ -231,7 +232,7 @@ final class EngineHotloader {
                 long startedAt = System.nanoTime();
                 engine.requireRunning("hotload the Studio pack");
                 GenerationHistory history = router.history();
-                update = StudioGenerationUpdate.prepare(engine, history);
+                update = StudioGenerationUpdate.prepare(engine, history, activatedStudioSource);
                 if (update == null) {
                     return;
                 }
@@ -284,7 +285,7 @@ final class EngineHotloader {
                         elapsedMillis(drainedAt, checkpointedAt), elapsedMillis(checkpointedAt, stagedAt),
                         elapsedMillis(stagedAt, promotedAt), elapsedMillis(promotedAt, completedAt));
                 broadcastStudioHotload(false, "");
-                auditActivatedPack(history, activated);
+                followUpActivation(history, update, activated);
             } catch (Throwable failure) {
                 if (previous != null) {
                     synchronized (engine.lifecycleLock) {
@@ -335,12 +336,14 @@ final class EngineHotloader {
     /**
      * Never throws: it runs after the activation is durable, where any failure would mark the engine failed.
      */
-    private void auditActivatedPack(GenerationHistory history, GenerationActivation activated) {
+    private void followUpActivation(GenerationHistory history, StudioGenerationUpdate update,
+                                    GenerationActivation activated) {
         try {
+            activatedStudioSource = update.activatedAs(activated.epochId());
             new StudioPackAudit(engine, history, activated.epochId(), message -> broadcastStudioHotload(true, message))
                     .runInBackground();
-        } catch (Throwable auditFailure) {
-            IrisLogging.reportError("Failed to start Studio pack validation.", auditFailure);
+        } catch (Throwable followUpFailure) {
+            IrisLogging.reportError("Failed to follow up the Studio pack activation.", followUpFailure);
         }
     }
 

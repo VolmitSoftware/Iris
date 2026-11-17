@@ -89,7 +89,7 @@ public class GenerationHistoryTest extends GenerationHistorySupport {
         GenerationHistory history = GenerationHistory.create(world, packA, fingerprint(packA), 42L, contract(),
                 GenerationRegistryContract.empty(), EpochPolicy.STUDIO);
         Path tree = history.paths().generationRoot().resolve(".studio-test");
-        GenerationPackRepository.snapshotPackTree(packB, tree, history.activePackLinkBasis().orElseThrow());
+        GenerationPackRepository.snapshotPackTree(packB, tree, history.activePackLinkBasis().orElseThrow(), null);
         VerifiedPackTree verified = VerifiedPackTree.hash(tree);
         AtomicInteger hashes = new AtomicInteger();
         try (MockedStatic<GenerationPackFingerprint> ignored = mockStatic(GenerationPackFingerprint.class, invocation -> {

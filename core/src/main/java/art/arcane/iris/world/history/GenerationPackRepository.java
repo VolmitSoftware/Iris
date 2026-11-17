@@ -125,7 +125,7 @@ public final class GenerationPackRepository {
         Path stage = Files.createTempDirectory(epochDirectory, ".pack-");
         try {
             Files.delete(stage);
-            copyPackTree(source, stage, defaultExecutor(), defaultWorkers(), publicationCopyMode(), basisPack);
+            copyPackTree(source, stage, defaultExecutor(), defaultWorkers(), publicationCopyMode(), basisPack, null);
             requireFingerprint(stage, packFingerprint, packFingerprintVersion);
             return commitStage(epochId, stage, packFingerprint, packFingerprintVersion);
         } finally {
@@ -306,17 +306,24 @@ public final class GenerationPackRepository {
     /**
      * Copies a pack without syncing it, for scratch copies that are not published as they are. Files identical to
      * the optional {@code basisPack} are hard-linked to it, so the copy must be treated as read-only.
+     *
+     * @param basisSourceState the state the source had when {@code basisPack} was copied from it, or null. With it,
+     *                         a file whose size and modification time still match is linked without reading either
+     *                         copy; without it, files are compared by content
      */
-    public static void snapshotPackTree(Path source, Path target, Path basisPack) throws IOException {
-        copyPackTree(source, target, defaultExecutor(), defaultWorkers(), PackCopyMode.SCRATCH, basisPack);
+    public static void snapshotPackTree(Path source, Path target, Path basisPack, PackTreeState basisSourceState)
+            throws IOException {
+        copyPackTree(source, target, defaultExecutor(), defaultWorkers(), PackCopyMode.SCRATCH, basisPack,
+                basisSourceState);
     }
 
     static void copyPackTree(Path source, Path target, Executor executor, int workers) throws IOException {
-        copyPackTree(source, target, executor, workers, PackCopyMode.DURABLE, null);
+        copyPackTree(source, target, executor, workers, PackCopyMode.DURABLE, null, null);
     }
 
     static void copyPackTree(
-            Path source, Path target, Executor executor, int workers, PackCopyMode mode, Path basisPack
+            Path source, Path target, Executor executor, int workers, PackCopyMode mode, Path basisPack,
+            PackTreeState basisSourceState
     ) throws IOException {
         Objects.requireNonNull(executor, "executor");
         if (workers < 1 || workers > MAXIMUM_COPY_WORKERS) {
@@ -336,10 +343,14 @@ public final class GenerationPackRepository {
                 Files.createDirectories(copyDestination(normalizedSource, normalizedTarget, directory)));
         List<Path> sourceFiles = sourceState.files().keySet().stream().map(normalizedSource::resolve).toList();
         Path basis = basisPack == null ? null : basisPack.toAbsolutePath().normalize();
+        UnchangedFile unchanged = basisSourceState == null
+                ? GenerationPackRepository::hasSameContent
+                : (relative, sourceFile, basisFile) -> basisSourceState.stamp(relative).equals(sourceState.stamp(relative));
         Set<Path> unsyncedCopies = ConcurrentHashMap.newKeySet();
         executeFilePhase(sourceFiles, executor, workers, sourceFile -> {
             Path destination = copyDestination(normalizedSource, normalizedTarget, sourceFile);
-            if (basis != null && linkUnchangedFile(normalizedSource.relativize(sourceFile), sourceFile, basis, destination)) {
+            if (basis != null && linkUnchangedFile(
+                    normalizedSource.relativize(sourceFile), sourceFile, basis, destination, unchanged)) {
                 return;
             }
             Files.copy(sourceFile, destination, StandardCopyOption.COPY_ATTRIBUTES);
@@ -408,14 +419,16 @@ public final class GenerationPackRepository {
         return new PackTreeState(files);
     }
 
-    private static boolean linkUnchangedFile(Path relative, Path sourceFile, Path basis, Path destination) {
+    private static boolean linkUnchangedFile(
+            Path relative, Path sourceFile, Path basis, Path destination, UnchangedFile unchanged
+    ) {
         Path basisFile = basis.resolve(relative).normalize();
         if (!basisFile.startsWith(basis)) {
             return false;
         }
         try {
             if (!Files.isRegularFile(basisFile, LinkOption.NOFOLLOW_LINKS)
-                    || Files.mismatch(basisFile, sourceFile) != -1L) {
+                    || !unchanged.test(relative, sourceFile, basisFile)) {
                 return false;
             }
             Files.createLink(destination, basisFile);
@@ -423,6 +436,10 @@ public final class GenerationPackRepository {
         } catch (IOException | UnsupportedOperationException | SecurityException unsupported) {
             return false;
         }
+    }
+
+    private static boolean hasSameContent(Path relative, Path sourceFile, Path basisFile) throws IOException {
+        return Files.mismatch(basisFile, sourceFile) == -1L;
     }
 
     private static Executor defaultExecutor() {
@@ -560,6 +577,11 @@ public final class GenerationPackRepository {
     @FunctionalInterface
     interface FileAction {
         void run(Path file) throws IOException;
+    }
+
+    @FunctionalInterface
+    private interface UnchangedFile {
+        boolean test(Path relative, Path sourceFile, Path basisFile) throws IOException;
     }
 
     private record FileWork(List<Path> files, FileAction action, AtomicInteger next, AtomicBoolean failed) {

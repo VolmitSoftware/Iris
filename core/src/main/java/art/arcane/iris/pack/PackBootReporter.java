@@ -4,6 +4,8 @@ import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.pack.validation.PackCompatReport;
 import art.arcane.iris.spi.IrisLogging;
 
+import java.util.List;
+
 /** Console output for pack validation at startup, shared by every platform so the boot log reads the same. */
 public final class PackBootReporter {
     private static final int BOOT_ITEM_LIMIT = 5;
@@ -14,13 +16,9 @@ public final class PackBootReporter {
 
     public static void logBroken(PackValidationResult result) {
         String pack = result.getPackName();
-        ChatReport.of(ChatReport.Tone.ERROR,
-                        "Pack '" + pack + "' failed validation; world and Studio creation with it are refused")
-                .items(result.getBlockingErrors())
-                .limit(BOOT_ITEM_LIMIT)
-                .hint(listEverythingHint(pack), null)
-                .build()
-                .log();
+        logCapped(ChatReport.Tone.ERROR,
+                "Pack '" + pack + "' failed validation; world and Studio creation with it are refused",
+                pack, result.getBlockingErrors());
     }
 
     public static void logValidated(PackValidationResult result, String minecraftVersion, boolean announceClean) {
@@ -28,13 +26,9 @@ public final class PackBootReporter {
         String compatSummary = PackValidator.compatSummary(result, minecraftVersion);
         String compatSuffix = compatSummary.isEmpty() ? "" : " " + compatSummary;
         if (!result.getWarnings().isEmpty()) {
-            ChatReport.of(ChatReport.Tone.WARNING,
-                            "Pack '" + pack + "' validated with " + result.getWarnings().size() + " warning(s)." + compatSuffix)
-                    .items(result.getWarnings())
-                    .limit(BOOT_ITEM_LIMIT)
-                    .hint(listEverythingHint(pack), null)
-                    .build()
-                    .log();
+            logCapped(ChatReport.Tone.WARNING,
+                    "Pack '" + pack + "' validated with " + result.getWarnings().size() + " warning(s)." + compatSuffix,
+                    pack, result.getWarnings());
             return;
         }
         if (announceClean || !compatSummary.isEmpty()) {
@@ -52,7 +46,11 @@ public final class PackBootReporter {
                 .log();
     }
 
-    private static String listEverythingHint(String pack) {
-        return "/iris pack validate " + pack + " lists everything";
+    private static void logCapped(ChatReport.Tone tone, String title, String pack, List<String> items) {
+        ChatReport.Builder report = ChatReport.of(tone, title).items(items).limit(BOOT_ITEM_LIMIT);
+        if (items.size() > BOOT_ITEM_LIMIT) {
+            report.hint("/iris pack validate " + pack + " lists everything", null);
+        }
+        report.build().log();
     }
 }

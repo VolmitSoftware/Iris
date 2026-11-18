@@ -17,7 +17,6 @@
  */
 package art.arcane.iris.pack.validation;
 
-import art.arcane.iris.localization.ChatReport;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -167,16 +166,15 @@ public final class PackCompatReport {
         return lines;
     }
 
-    /** The boot listing as a themed report, capped to {@code maxKeys} keys; null when there are no findings. */
-    public synchronized ChatReport bootReport(String packName, String minecraftVersion, int perKeyCap, int maxKeys) {
-        if (findings.isEmpty()) {
-            return null;
-        }
-        return ChatReport.of(ChatReport.Tone.WARNING, bootHeader(packName, minecraftVersion))
-                .items(keyLines(perKeyCap))
-                .limit(maxKeys)
-                .hint(bootRemedy(packName), null)
-                .build();
+    /** {@code 4 content keys unavailable on Minecraft 26.3: create:limestone, create:scoria +2 more} */
+    public synchronized String bootItem(String minecraftVersion, int maxKeys) {
+        List<String> keys = byKey().values().stream().map(group -> group.getFirst().key()).toList();
+        int shown = Math.min(maxKeys, keys.size());
+        int hidden = keys.size() - shown;
+        return keys.size() + (keys.size() == 1 ? " content key" : " content keys")
+                + " unavailable on Minecraft " + versionOrUnknown(minecraftVersion) + ": "
+                + String.join(", ", keys.subList(0, shown))
+                + (hidden > 0 ? " +" + hidden + " more" : "");
     }
 
     private static String bootHeader(String packName, String minecraftVersion) {

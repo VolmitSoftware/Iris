@@ -105,12 +105,16 @@ public final class IrisSafeguard {
 
     public static void printReports() {
         switch (mode) {
-            case STABLE -> IrisLogging.info(C.BLUE + "0 Conflicts found");
+            case STABLE -> {
+            }
             case WARNING -> IrisLogging.warn(C.GOLD + "%s Issues found", count);
             case UNSTABLE -> IrisLogging.error(C.DARK_RED + "%s Issues found", count);
         }
 
         for (CheckResult value : results.values()) {
+            if (value.mode() == Mode.STABLE) {
+                continue;
+            }
             // Without the stack trace: Diagnostic.Logger splits on newlines, so a trace became one log
             // record per frame at the diagnostic's own severity. Traces go through reportError.
             value.log(true, false);
@@ -119,7 +123,7 @@ public final class IrisSafeguard {
 
     public static void printFooter() {
         switch (mode) {
-            case STABLE -> IrisLogging.info(C.BLUE + "Iris is running Stable");
+            case STABLE -> IrisLogging.info(C.BLUE + "Stable, 0 conflicts");
             case WARNING -> warning();
             case UNSTABLE -> unstable();
         }

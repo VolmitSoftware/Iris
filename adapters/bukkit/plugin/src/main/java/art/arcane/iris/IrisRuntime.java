@@ -24,6 +24,8 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.configuration.SettingsHotloadWatch;
 import art.arcane.iris.diagnostics.LogFilterSVC;
 import art.arcane.iris.diagnostics.splash.IrisSplashComposer;
+import art.arcane.iris.diagnostics.splash.IrisSplashPackScanner;
+import art.arcane.iris.pack.DefaultPackBootstrapProvisioner;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.runtime.BlockEditAccess;
@@ -144,6 +146,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -259,7 +262,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
         if (current == null) {
             Iris plugin = Iris.instance;
             current = new VolmitSender(Bukkit.getConsoleSender());
-            current.setTag(plugin == null ? IrisSafeguard.mode().tag("") : plugin.getTag());
+            current.setTag(IrisSafeguard.mode().logTag());
             sender = current;
         }
         return current;
@@ -309,14 +312,14 @@ public final class IrisRuntime implements IrisPluginRuntime {
             ComponentLog.logMarkup(
                     plugin,
                     Logger.getLogger("Iris"),
-                    logPrefix(plugin),
+                    logPrefix(),
                     Level.INFO,
                     string,
                     null);
         } catch (Throwable e) {
             try {
                 Iris plugin = Iris.instance;
-                String plainPrefix = ComponentText.legacy(logPrefix(plugin)).plain();
+                String plainPrefix = ComponentText.legacy(logPrefix()).plain();
                 Logger.getLogger("Iris").log(Level.INFO, plainPrefix + IrisLogging.clean(string));
             } catch (Throwable inner) {
                 System.err.println("[Iris] Failed to emit log message: " + inner.getMessage());
@@ -602,14 +605,14 @@ public final class IrisRuntime implements IrisPluginRuntime {
         ComponentLog.logLegacy(
                 plugin,
                 Logger.getLogger("Iris"),
-                logPrefix(plugin),
+                logPrefix(),
                 level,
                 message,
                 null);
     }
 
-    private static String logPrefix(Iris plugin) {
-        return plugin == null ? ComponentLog.discriminator("Iris", "&a") : plugin.getTag();
+    private static String logPrefix() {
+        return IrisSafeguard.mode().logTag();
     }
 
     static int irisVersion(String input) {
@@ -715,7 +718,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
         timings.mark("datapacks");
         IrisSafeguard.execute();
         timings.mark("safeguard");
-        getSender().setTag(plugin.getTag());
+        getSender().setTag(IrisSafeguard.mode().logTag());
         // A cosmetic banner must never abort the bootstrap.
         J.attempt(this::splash);
         IrisSafeguard.printReports();
@@ -814,19 +817,17 @@ public final class IrisRuntime implements IrisPluginRuntime {
     }
 
     private static final class EnableTimings {
-        private static final int REPORTED_SERVICES = 3;
+        private static final long REPORTED_PHASE_MIN_MS = 100;
+        private static final long SLOW_SERVICE_MIN_MS = 1000;
 
         private final long startedAt = System.nanoTime();
-        private final StringBuilder phases = new StringBuilder();
+        private final Map<String, Long> phaseMillis = new LinkedHashMap<>();
         private final Map<String, Long> serviceMillis = new LinkedHashMap<>();
         private long lastMark = startedAt;
 
         private void mark(String phase) {
             long now = System.nanoTime();
-            if (!phases.isEmpty()) {
-                phases.append(' ');
-            }
-            phases.append(phase).append('=').append(TimeUnit.NANOSECONDS.toMillis(now - lastMark)).append("ms");
+            phaseMillis.put(phase, TimeUnit.NANOSECONDS.toMillis(now - lastMark));
             lastMark = now;
         }
 
@@ -835,16 +836,25 @@ public final class IrisRuntime implements IrisPluginRuntime {
         }
 
         private void report() {
-            IrisLogging.notice("Enabled in %dms (%s)",
-                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt), phases);
-            String slowest = serviceMillis.entrySet().stream()
-                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                    .limit(REPORTED_SERVICES)
-                    .map(entry -> entry.getKey() + "=" + entry.getValue() + "ms")
-                    .collect(Collectors.joining(" "));
-            if (!slowest.isBlank()) {
-                IrisLogging.notice("Slowest services: %s", slowest);
+            String total = seconds(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
+            String phases = slowestFirst(phaseMillis, REPORTED_PHASE_MIN_MS);
+            IrisLogging.notice(phases.isEmpty() ? "Enabled in " + total : "Enabled in " + total + " (" + phases + ")");
+            String slowServices = slowestFirst(serviceMillis, SLOW_SERVICE_MIN_MS);
+            if (!slowServices.isEmpty()) {
+                IrisLogging.notice("Slow services: " + slowServices);
             }
+        }
+
+        private static String slowestFirst(Map<String, Long> millisByName, long minimumMillis) {
+            return millisByName.entrySet().stream()
+                    .filter(entry -> entry.getValue() >= minimumMillis)
+                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                    .map(entry -> entry.getKey() + " " + seconds(entry.getValue()))
+                    .collect(Collectors.joining(", "));
+        }
+
+        private static String seconds(long millis) {
+            return String.format(Locale.ROOT, "%.1fs", millis / 1000.0);
         }
     }
 
@@ -1489,15 +1499,34 @@ public final class IrisRuntime implements IrisPluginRuntime {
     }
 
     private void splash() {
-        Iris.info("Custom Biomes: " + INMS.get().countCustomBiomes());
-        printPacks();
-
-        IrisSafeguard.mode().trySplash();
+        File packFolder = Iris.service(StudioSVC.class).getWorkspaceFolder();
+        List<IrisSplashPackScanner.SplashPackMetadata> packs = IrisSplashPackScanner.collect(packFolder, Iris::reportError);
+        List<List<IrisSplashComposer.Detail>> startupFacts = startupFacts(packs);
+        if (IrisSettings.get().getGeneral().isSplashLogoStartup()) {
+            printWithoutLogPrefix(IrisSafeguard.mode().composeSplash(startupFacts));
+        } else {
+            startupFacts.forEach(row -> Iris.info(IrisSplashComposer.plainRow(row)));
+        }
+        announcePackUpdates(packs);
     }
 
-    private void printPacks() {
-        File packFolder = Iris.service(StudioSVC.class).getWorkspaceFolder();
-        IrisSplashComposer.composePackLines(packFolder, Iris::reportError).thenAccept(lines -> {
+    private void printWithoutLogPrefix(String text) {
+        ComponentLog.logLegacy(plugin, Logger.getLogger("Iris"), "", Level.INFO, text, null);
+    }
+
+    private static List<List<IrisSplashComposer.Detail>> startupFacts(List<IrisSplashPackScanner.SplashPackMetadata> packs) {
+        boolean eagerInjection = IrisSettings.get().getGeneral().isEagerRuntimeInjection();
+        boolean datapackFromBootstrap = DefaultPackBootstrapProvisioner.wasProvisionedThisStartup();
+        return List.of(
+                List.of(new IrisSplashComposer.Detail("Packs", IrisSplashComposer.packSummary(packs))),
+                List.of(new IrisSplashComposer.Detail("Custom biomes", String.valueOf(INMS.get().countCustomBiomes()))),
+                List.of(new IrisSplashComposer.Detail("SIMD", SimdSupport.shortStatus()),
+                        new IrisSplashComposer.Detail("Datapack", datapackFromBootstrap ? "bootstrap" : "startup install"),
+                        new IrisSplashComposer.Detail("Injection", eagerInjection ? "eager" : "deferred")));
+    }
+
+    private void announcePackUpdates(List<IrisSplashPackScanner.SplashPackMetadata> packs) {
+        IrisSplashComposer.composeUpdateLines(packs).thenAccept(lines -> {
             if (plugin.isEnabled()) {
                 lines.forEach(Iris::info);
             }

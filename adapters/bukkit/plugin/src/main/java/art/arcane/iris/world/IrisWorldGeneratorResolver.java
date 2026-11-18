@@ -243,12 +243,10 @@ public final class IrisWorldGeneratorResolver {
                     Iris.info("Pack '" + result.getPackName() + "' is waiting for external block providers to initialize.");
                     continue;
                 }
-                PackBootReporter.logBroken(result);
+                PackBootReporter.logBroken(result, minecraftVersion);
             } else {
-                PackBootReporter.logValidated(result, minecraftVersion, cached.isEmpty());
+                PackBootReporter.logValidated(result, minecraftVersion, false);
             }
-            // Cache hits carry the persisted findings, so the listing prints on every boot, not only after a miss.
-            PackBootReporter.logCompat(result, minecraftVersion);
         }
         IrisStartupValidation.markPacksReady();
     }

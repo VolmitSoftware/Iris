@@ -67,8 +67,7 @@ public class Agent {
             return false;
 
         try {
-            IrisLogging.info("Installing Java Agent...");
-            IrisLogging.info("Note: JVM [Attach Listener/ERROR] [STDERR] warning lines during this step are expected and not Iris errors.");
+            IrisLogging.info("Installing Java agent, the JVM warnings below are expected");
             ByteBuddyAgent.attach(AGENT_JAR, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE);
         } catch (Throwable e) {
             IrisLogging.error("Failed to install Java Agent: " + e.getMessage());

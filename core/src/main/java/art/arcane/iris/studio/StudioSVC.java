@@ -154,7 +154,7 @@ public class StudioSVC implements IrisService {
             String configuredPack = IrisSettings.get().getGenerator().getDefaultWorldType();
             if (!PackDownloader.isPackPresent(getWorkspaceFolder(), configuredPack)) {
                 IrisLogging.warn("Default pack '" + configuredPack
-                        + "' is not installed. Install a built-in pack with /iris download pack=overworld or provide /iris download link=<zip-url>.");
+                        + "' is not installed: /iris download pack=overworld");
             }
             return null;
         });

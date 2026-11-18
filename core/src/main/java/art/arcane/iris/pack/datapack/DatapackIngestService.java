@@ -94,7 +94,7 @@ public final class DatapackIngestService {
                         urls,
                         localFingerprint)) {
                     DatapackStartupValidation.activeStartupValidation = cached;
-                    IrisLogging.info("External datapacks match the persisted startup validation; remote resolution and full revalidation were skipped.");
+                    IrisLogging.debug("External datapacks match the persisted startup validation; remote resolution and full revalidation were skipped.");
                     IrisStartupValidation.markDatapacksReady();
                     return StartupValidationOutcome.READY;
                 }

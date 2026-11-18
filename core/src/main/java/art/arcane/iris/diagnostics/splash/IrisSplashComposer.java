@@ -3,21 +3,68 @@ package art.arcane.iris.diagnostics.splash;
 import art.arcane.iris.BuildConstants;
 import art.arcane.iris.pack.BuiltInPackUpdates;
 
-import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public final class IrisSplashComposer {
     private static final String SPLASH_PADDING = " ".repeat(4);
+    private static final int FIRST_SPARE_INFO_ROW = 8;
+    private static final int SPARE_INFO_ROWS = 3;
+    private static final int PACKS_SHOWN = 6;
+    private static final int SHORT_COMMIT_LENGTH = 7;
 
     private IrisSplashComposer() {
     }
 
     public static String[] composeInfo(String version, String serverLine, InfoStyle style) {
+        return composeInfo(version, serverLine, style, List.of());
+    }
+
+    public static String[] composeInfo(String version, String serverLine, InfoStyle style, List<List<Detail>> detailRows) {
+        String[] info = composeHeader(version, serverLine, style);
+        int rows = Math.min(detailRows.size(), SPARE_INFO_ROWS);
+        for (int row = 0; row < rows; row++) {
+            info[FIRST_SPARE_INFO_ROW + row] = style.linePrefix() + styledRow(detailRows.get(row), style);
+        }
+        return info;
+    }
+
+    public static String plainRow(List<Detail> row) {
+        return styledRow(row, InfoStyle.PLAIN).strip();
+    }
+
+    public static String packSummary(List<IrisSplashPackScanner.SplashPackMetadata> packs) {
+        if (packs.isEmpty()) {
+            return "none";
+        }
+        String shown = packs.stream()
+                .limit(PACKS_SHOWN)
+                .map(pack -> pack.name() + " v" + pack.version())
+                .collect(Collectors.joining(", "));
+        int hidden = packs.size() - PACKS_SHOWN;
+        return hidden > 0 ? shown + " +" + hidden + " more" : shown;
+    }
+
+    private static String styledRow(List<Detail> row, InfoStyle style) {
+        StringBuilder styled = new StringBuilder();
+        for (Detail detail : row) {
+            String separator = styled.isEmpty() ? " " : " | ";
+            styled.append(style.label(separator + detail.label() + ": ")).append(style.value(detail.value()));
+        }
+        return styled.toString();
+    }
+
+    private static String shortCommit() {
+        String commit = BuildConstants.COMMIT;
+        return commit.length() > SHORT_COMMIT_LENGTH ? commit.substring(0, SHORT_COMMIT_LENGTH) : commit;
+    }
+
+    private static String[] composeHeader(String version, String serverLine, InfoStyle style) {
         String releaseTrain = releaseTrain(version);
         String prefix = style.linePrefix();
         return new String[]{
@@ -28,7 +75,7 @@ public final class IrisSplashComposer {
                 prefix + style.label(" Web: ") + style.value("VolmitSoftware.com"),
                 prefix + style.label(" Server: ") + style.value(serverLine),
                 prefix + style.label(" Java: ") + style.value(javaVersion() < 0 ? "unknown" : String.valueOf(javaVersion())) + style.label(" | Date: ") + style.value(startupDate()),
-                prefix + style.label(" Commit: ") + style.value(BuildConstants.COMMIT) + style.label("/") + style.value(BuildConstants.ENVIRONMENT),
+                prefix + style.label(" Commit: ") + style.value(shortCommit()) + style.label("/") + style.value(BuildConstants.ENVIRONMENT),
                 "",
                 "",
                 ""
@@ -43,25 +90,14 @@ public final class IrisSplashComposer {
         return builder.toString();
     }
 
-    public static CompletableFuture<List<String>> composePackLines(File packFolder, IrisSplashPackScanner.SplashPackErrorReporter reporter) {
-        List<IrisSplashPackScanner.SplashPackMetadata> packs = IrisSplashPackScanner.collect(packFolder, reporter);
+    public static CompletableFuture<List<String>> composeUpdateLines(List<IrisSplashPackScanner.SplashPackMetadata> packs) {
         return BuiltInPackUpdates.check(packs.stream().map(IrisSplashPackScanner.SplashPackMetadata::name).toList())
-                .thenApply(updates -> composePackLines(packs, updates));
+                .thenApply(updates -> composeUpdateLines(packs, updates));
     }
 
-    static List<String> composePackLines(List<IrisSplashPackScanner.SplashPackMetadata> packs,
-                                       Map<String, BuiltInPackUpdates.Update> updates) {
-        if (packs.isEmpty()) {
-            return List.of();
-        }
-
-        List<String> lines = new ArrayList<>(packs.size() + 1);
-        lines.add("Custom Dimensions: " + packs.size());
-        for (IrisSplashPackScanner.SplashPackMetadata pack : packs) {
-            BuiltInPackUpdates.Update update = updates.get(pack.name());
-            lines.add("  " + pack.name() + " v" + pack.version()
-                    + (update == null ? "" : update.suffix(pack.version())));
-        }
+    static List<String> composeUpdateLines(List<IrisSplashPackScanner.SplashPackMetadata> packs,
+                                         Map<String, BuiltInPackUpdates.Update> updates) {
+        List<String> lines = new ArrayList<>();
         for (IrisSplashPackScanner.SplashPackMetadata pack : packs) {
             BuiltInPackUpdates.Update update = updates.get(pack.name());
             if (update != null && update.newerThan(pack.version())) {
@@ -104,6 +140,9 @@ public final class IrisSplashComposer {
 
     private static String startupDate() {
         return LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
+    }
+
+    public record Detail(String label, String value) {
     }
 
     public interface InfoStyle {

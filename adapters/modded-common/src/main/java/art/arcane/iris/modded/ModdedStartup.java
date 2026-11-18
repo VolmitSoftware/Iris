@@ -145,9 +145,8 @@ public final class ModdedStartup {
                 if (result.isLoadable()) {
                     PackBootReporter.logValidated(result, minecraftVersion, true);
                 } else {
-                    PackBootReporter.logBroken(result);
+                    PackBootReporter.logBroken(result, minecraftVersion);
                 }
-                PackBootReporter.logCompat(result, minecraftVersion);
             } catch (Throwable e) {
                 ModdedIrisLog.error("Iris pack validation failed for '{}'", packDir.getName(), e);
                 String detail = e.getMessage();

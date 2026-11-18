@@ -134,7 +134,7 @@ public class ServerConfigurator {
                     && pinLoadedDatapackCompilerInputs(
                             DefaultPackBootstrapProvisioner.compilerInputFingerprintThisStartup())
                     && pinLoadedDatapackRegistryRequirements();
-            IrisLogging.info("Paper loaded the Iris datapack during bootstrap; skipping the legacy startup install.");
+            IrisLogging.debug("Paper loaded the Iris datapack during bootstrap; skipping the legacy startup install.");
         } else {
             DatapackInstallResult result = installDataPacks(true);
             loadedDatapackRuntimeReady = result.succeeded()

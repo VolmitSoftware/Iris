@@ -1,7 +1,6 @@
 package art.arcane.iris.localization;
 
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.volmlib.util.localization.MessageArgument;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,7 +42,7 @@ public final class ChatReport {
 
     private final Tone tone;
     private final String title;
-    private final List<String> items;
+    private final List<List<String>> entries;
     private final int itemLimit;
     private final String hint;
     private final String hintCommand;
@@ -51,7 +50,7 @@ public final class ChatReport {
     private ChatReport(Builder builder) {
         this.tone = builder.tone;
         this.title = builder.title;
-        this.items = List.copyOf(builder.items);
+        this.entries = List.copyOf(builder.entries);
         this.itemLimit = builder.itemLimit;
         this.hint = builder.hint;
         this.hintCommand = builder.hintCommand;
@@ -85,20 +84,26 @@ public final class ChatReport {
 
     public List<Line> lines() {
         List<Line> lines = new ArrayList<>();
-        lines.add(new Line(tone.paint(title), null));
-        int shown = Math.min(itemLimit, items.size());
+        lines.add(new Line(ReportText.title(tone, clean(title)), null));
+        int shown = Math.min(itemLimit, entries.size());
         for (int index = 0; index < shown; index++) {
-            lines.add(new Line(C.DARK_GRAY + ITEM_BULLET + C.GRAY + items.get(index), null));
+            addEntryLines(lines, entries.get(index));
         }
-        int hidden = items.size() - shown;
+        int hidden = entries.size() - shown;
         if (hidden > 0) {
-            lines.add(new Line(C.DARK_GRAY + CONTINUATION_INDENT
-                    + clean(IrisLanguage.plain(RuntimeUiMessages.REPORT_MORE, MessageArgument.trusted("count", hidden))), null));
+            lines.add(new Line(C.DARK_GRAY + CONTINUATION_INDENT + ReportText.moreLabel(hidden), null));
         }
         if (hint != null) {
             lines.add(new Line(C.GRAY + hint, hintCommand));
         }
         return lines;
+    }
+
+    private void addEntryLines(List<Line> lines, List<String> entry) {
+        lines.add(new Line(tone.color() + ITEM_BULLET + C.GRAY + entry.getFirst(), null));
+        for (int index = 1; index < entry.size(); index++) {
+            lines.add(new Line(entry.get(index), null));
+        }
     }
 
     public void log() {
@@ -119,7 +124,7 @@ public final class ChatReport {
     public static final class Builder {
         private final Tone tone;
         private final String title;
-        private final List<String> items = new ArrayList<>();
+        private final List<List<String>> entries = new ArrayList<>();
         private int itemLimit = DEFAULT_ITEM_LIMIT;
         private String hint;
         private String hintCommand;
@@ -132,27 +137,33 @@ public final class ChatReport {
         public Builder item(String text) {
             String cleaned = clean(text);
             if (!cleaned.isEmpty()) {
-                items.add(cleaned);
+                entries.add(List.of(ReportText.body(cleaned)));
             }
             return this;
         }
 
         public Builder styledItem(String styledText) {
             if (styledText != null && !styledText.isBlank()) {
-                items.add(styledText);
+                entries.add(List.of(styledText));
             }
             return this;
         }
 
+        /** Adds reasons, collapsing ones that differ only in their quoted subject into a single entry. */
         public Builder items(Collection<String> texts) {
+            List<String> cleaned = new ArrayList<>(texts.size());
             for (String text : texts) {
-                item(text);
+                String reason = clean(text);
+                if (!reason.isEmpty()) {
+                    cleaned.add(reason);
+                }
             }
+            entries.addAll(ReportText.groupedBodies(cleaned, CONTINUATION_INDENT));
             return this;
         }
 
         public Builder entry(String label, Object value) {
-            items.add(label(label, String.valueOf(value)));
+            entries.add(List.of(label(label, String.valueOf(value))));
             return this;
         }
 

@@ -28,6 +28,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.workspace.IrisProject;
 import art.arcane.iris.studio.workspace.IrisCodeWorkspace;
 import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.iris.localization.RuntimeProgressMessages;
 import art.arcane.iris.platform.bukkit.BoardSVC;
 import art.arcane.iris.studio.StudioSVC;
 import art.arcane.iris.structure.BulkStructureImporter;
@@ -35,6 +36,8 @@ import art.arcane.iris.structure.FeatureImporter;
 import art.arcane.iris.structure.StructureImporter;
 import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.world.runtime.InPlaceChunkRegenerator;
+import art.arcane.iris.generation.runtime.DimensionStackContext;
+import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.world.loot.InventorySlotType;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -60,6 +63,7 @@ import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.function.NoiseProvider;
 import art.arcane.volmlib.util.interpolation.InterpolationMethod;
@@ -95,11 +99,13 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import art.arcane.iris.localization.IrisLanguage;
@@ -110,8 +116,14 @@ import art.arcane.iris.localization.BukkitCommandMessagesExtended;
 @Director(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", descriptionKey = "iris.director.commandstudio.director.studio_commands")
 public class CommandStudio implements DirectorExecutor {
     private static final long CHUNK_SCAN_TIMEOUT_MS = 3_000;
+    private static final String REGEN_STOP_COMMAND = "/iris std regen-stop";
     private CommandEdit edit;
     //private CommandDeepSearch deepSearch;
+
+    private static String regionShareLine(String region, int rarity, double share) {
+        return C.WHITE + ChatReport.clean(region) + C.DARK_GRAY + ": " + C.IRIS + Form.pc(share, 1)
+                + C.DARK_GRAY + " · " + C.GRAY + "rarity " + rarity;
+    }
 
     public static String hrf(Duration duration) {
         return duration.toString().substring(2).replaceAll("(\\d[HMS])(?!$)", "$1 ").toLowerCase();
@@ -125,7 +137,6 @@ public class CommandStudio implements DirectorExecutor {
             long seed,
             @Param(defaultValue = "false", description = "Attempt to open Studio before a required registry restart", aliases = "f")
             boolean force) {
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_STUDIO_PACK_SEED, MessageArgument.untrusted("value", dimension.getName()), MessageArgument.untrusted("seed", seed)));
         Iris.service(StudioSVC.class).open(sender(), seed, dimension.getLoadKey(), force);
     }
 
@@ -252,16 +263,55 @@ public class CommandStudio implements DirectorExecutor {
             int centerX = player.getLocation().getBlockX() >> 4;
             int centerZ = player.getLocation().getBlockZ() >> 4;
 
-            commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_DEVELOPER_REGEN_STARTED_CHUNK_S_AROUND_DELETING_REGENERATING_PLACE, MessageArgument.untrusted("chunks", chunks), MessageArgument.untrusted("centerX", centerX), MessageArgument.untrusted("centerZ", centerZ)));
+            InPlaceChunkRegenerator regenerator = new InPlaceChunkRegenerator(world, engine, commandSender, centerX, centerZ, radius);
+            if (!regenerator.start()) {
+                InPlaceChunkRegenerator.activeIn(world).ifPresent(running -> sendRegenAlreadyRunning(commandSender, world, running));
+                return;
+            }
+
+            String started = IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_DEVELOPER_REGEN_STARTED_CHUNK_S_AROUND_DELETING_REGENERATING_PLACE, MessageArgument.untrusted("chunks", chunks), MessageArgument.untrusted("centerX", centerX), MessageArgument.untrusted("centerZ", centerZ));
+            commandSender.sendReport(withRegenStopHint(ChatReport.of(ChatReport.Tone.INFO, started), world).build());
             Iris.info("Regen run start: world=" + world.getName()
                     + " center=" + centerX + "," + centerZ
                     + " radius=" + radius
                     + " chunks=" + chunks);
-
-            new InPlaceChunkRegenerator(world, engine, commandSender, centerX, centerZ, radius).start();
         })) {
             Iris.warn("Could not schedule regen on the thread owning " + player.getName() + ".");
         }
+    }
+
+    @Director(name = "regen-stop", aliases = {"rgstop"}, description = "Stop the regen running in a world", descriptionKey = "iris.director.commanddeveloper.director.stop_regen_running_world", origin = DirectorOrigin.BOTH)
+    public void regenStop(
+            @Param(description = "The world whose regen to stop", descriptionKey = "iris.director.commanddeveloper.param.world_regen_stop", contextual = true, contextualOverride = true)
+            World world
+    ) {
+        String regenTitle = IrisLanguage.text(RuntimeProgressMessages.CHUNK_TITLE_REGEN);
+        Optional<InPlaceChunkRegenerator> running = world == null ? Optional.empty() : InPlaceChunkRegenerator.activeIn(world);
+        if (running.isEmpty()) {
+            sender().sendInfo(IrisLanguage.text(RuntimeProgressMessages.CHUNK_NONE_RUNNING,
+                    MessageArgument.trusted("title", regenTitle),
+                    MessageArgument.untrusted("world", world == null ? "?" : world.getName())));
+            return;
+        }
+
+        running.get().requestStop();
+        sender().sendWarning(IrisLanguage.text(RuntimeProgressMessages.CHUNK_STOPPING,
+                MessageArgument.trusted("title", regenTitle),
+                MessageArgument.untrusted("world", world.getName())));
+    }
+
+    private static void sendRegenAlreadyRunning(VolmitSender sender, World world, InPlaceChunkRegenerator running) {
+        String alreadyRunning = IrisLanguage.text(RuntimeProgressMessages.CHUNK_ALREADY_RUNNING,
+                MessageArgument.trusted("title", IrisLanguage.text(RuntimeProgressMessages.CHUNK_TITLE_REGEN)),
+                MessageArgument.untrusted("world", world.getName()),
+                MessageArgument.trusted("applied", running.appliedChunks()),
+                MessageArgument.trusted("total", running.totalChunks() <= 0 ? "?" : running.totalChunks()));
+        sender.sendReport(withRegenStopHint(ChatReport.of(ChatReport.Tone.WARNING, alreadyRunning), world).build());
+    }
+
+    private static ChatReport.Builder withRegenStopHint(ChatReport.Builder report, World world) {
+        String hint = IrisLanguage.text(RuntimeProgressMessages.CHUNK_STOP_HINT, MessageArgument.untrusted("command", REGEN_STOP_COMMAND));
+        return report.hint(hint, REGEN_STOP_COMMAND, REGEN_STOP_COMMAND + " world=" + world.getName());
     }
 
     @Director(description = "Toggle your Studio debug scoreboard", descriptionKey = "iris.director.commandstudio.director.toggle_your_studio_debug_scoreboard", aliases = {"board", "sidebar", "sb"}, origin = DirectorOrigin.PLAYER)
@@ -397,6 +447,21 @@ public class CommandStudio implements DirectorExecutor {
         player().openInventory(inv);
     }
 
+    /**
+     * Region chances describe the pack's generator, so sample it directly; the engine's getRegion answers from saved
+     * world history instead, which throws for every chunk whose history is not loaded.
+     */
+    private static IrisRegion generatorRegion(Engine engine, int blockX, int blockZ) {
+        DimensionStackContext stack = engine.getDimensionStackContext();
+        if (stack != null) {
+            DimensionStackLayout.Layer layer = stack.getLayout(blockX, blockZ).surfaceLayer();
+            if (layer != null && layer.region() != null) {
+                return layer.region();
+            }
+        }
+        return engine.getComplex().getRegionStream().get(blockX, blockZ);
+    }
+
     @Director(description = "Calculate the chance for each region to generate", descriptionKey = "iris.director.commandstudio.director.calculate_chance_each_region_generate", origin = DirectorOrigin.PLAYER)
     public void regions(@Param(description = "The radius in chunks", descriptionKey = "iris.director.commandstudio.param.radius_chunks", defaultValue = "500") int radius) {
         var engine = engine();
@@ -428,6 +493,7 @@ public class CommandStudio implements DirectorExecutor {
                     var loc = player.getLocation();
                     int totalTasks = d * d;
                     AtomicInteger completedTasks = new AtomicInteger(0);
+                    AtomicReference<Throwable> firstFailure = new AtomicReference<>();
                     progressShown = true;
                     c = J.ar(() -> {
                         double jobProgress = (double) completedTasks.get() / totalTasks;
@@ -435,16 +501,32 @@ public class CommandStudio implements DirectorExecutor {
                         BukkitPlatform.showProgressLane(player, "iris:job", IrisLanguage.text(RuntimeUiMessages.FINDING_REGIONS) + " " + Form.pc(jobProgress, 0), jobProgress, 4000L);
                     }, 0);
                     new Spiraler(d, d, (x, z) -> executor.queue(() -> {
-                        var region = engine.getRegion((x << 4) + 8, (z << 4) + 8);
-                        data.computeIfAbsent(region.getLoadKey(), (k) -> new AtomicInteger(0))
-                                .incrementAndGet();
-                        completedTasks.incrementAndGet();
+                        if (firstFailure.get() != null) {
+                            return;
+                        }
+                        try {
+                            var region = generatorRegion(engine, (x << 4) + 8, (z << 4) + 8);
+                            data.computeIfAbsent(region.getLoadKey(), (k) -> new AtomicInteger(0))
+                                    .incrementAndGet();
+                            completedTasks.incrementAndGet();
+                        } catch (Throwable failure) {
+                            firstFailure.compareAndSet(null, failure);
+                        }
                     })).setOffset(loc.getBlockX(), loc.getBlockZ()).drain();
                     executor.complete();
+                    if (firstFailure.get() != null) {
+                        throw firstFailure.get();
+                    }
 
-                    sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_DONE));
                     var loader = engine.getData().getRegionLoader();
-                    data.forEach((k, v) -> sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_MESSAGE, MessageArgument.untrusted("k", k), MessageArgument.untrusted("value", loader.load(k).getRarity()), MessageArgument.untrusted("value2", Form.f((double) v.get() / totalTasks * 100, 2)))));
+                    ChatReport.Builder report = ChatReport.of(ChatReport.Tone.SUCCESS,
+                            IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_DONE)).unlimited();
+                    data.entrySet().stream()
+                            .sorted((a, b) -> Integer.compare(b.getValue().get(), a.getValue().get()))
+                            .forEach(entry -> report.styledItem(regionShareLine(entry.getKey(),
+                                    loader.load(entry.getKey()).getRarity(),
+                                    (double) entry.getValue().get() / totalTasks)));
+                    sender.sendReport(report.build());
                     } catch (Throwable e) {
                         Iris.reportError(e);
                         sender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_REGIONS_SCAN_FAILED,

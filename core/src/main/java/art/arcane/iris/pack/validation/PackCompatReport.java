@@ -17,6 +17,8 @@
  */
 package art.arcane.iris.pack.validation;
 
+import art.arcane.iris.localization.ChatReport;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -157,13 +159,33 @@ public final class PackCompatReport {
         if (findings.isEmpty()) {
             return lines;
         }
-        lines.add("Pack '" + packName + "': content unavailable on Minecraft " + versionOrUnknown(minecraftVersion));
+        lines.add(bootHeader(packName, minecraftVersion));
         for (String line : keyLines(perKeyCap)) {
             lines.add("  " + line);
         }
-        lines.add("  Update the server to a newer Minecraft to restore this content, or declare fallbacks"
-                + " (dimension blockFallbacks, block backup). /iris pack compat " + packName + " lists everything.");
+        lines.add("  " + bootRemedy(packName));
         return lines;
+    }
+
+    /** The boot listing as a themed report, capped to {@code maxKeys} keys; null when there are no findings. */
+    public synchronized ChatReport bootReport(String packName, String minecraftVersion, int perKeyCap, int maxKeys) {
+        if (findings.isEmpty()) {
+            return null;
+        }
+        return ChatReport.of(ChatReport.Tone.WARNING, bootHeader(packName, minecraftVersion))
+                .items(keyLines(perKeyCap))
+                .limit(maxKeys)
+                .hint(bootRemedy(packName), null)
+                .build();
+    }
+
+    private static String bootHeader(String packName, String minecraftVersion) {
+        return "Pack '" + packName + "': content unavailable on Minecraft " + versionOrUnknown(minecraftVersion);
+    }
+
+    private static String bootRemedy(String packName) {
+        return "Update the server to a newer Minecraft to restore this content, or declare fallbacks"
+                + " (dimension blockFallbacks, block backup). /iris pack compat " + packName + " lists everything.";
     }
 
     /**

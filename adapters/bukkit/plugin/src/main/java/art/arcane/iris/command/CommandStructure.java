@@ -42,6 +42,7 @@ import art.arcane.iris.structure.nativegen.NativeStructureGenerationStatus;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
@@ -61,11 +62,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.generator.structure.Structure;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.BukkitCommandMessages;
@@ -73,6 +76,9 @@ import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.iris.localization.BukkitCommandMessagesExtended;
 @Director(name = "structure", aliases = {"struct", "str"}, description = "Iris structure tools (index, import, info)", descriptionKey = "iris.director.commandstructure.director.iris_structure_tools_index_import_info")
 public class CommandStructure implements DirectorExecutor {
+    private static final int VERIFY_ITEM_LIMIT = 15;
+    private static final int UNREACHABLE_BIOMES_SHOWN = 3;
+    private static final String VANILLA_NAMESPACE = "minecraft:";
     @Director(description = "Regenerate structure-index.json listing all vanilla, datapack & iris structures", descriptionKey = "iris.director.commandstructure.director.regenerate_structure_index_json_listing_all_vanilla_datapack_iris_structures", aliases = {"ls"}, origin = DirectorOrigin.BOTH)
     public void list(
             @Param(description = "The dimension whose pack to index", descriptionKey = "iris.director.commandstructure.param.dimension_whose_pack_index", aliases = "dim")
@@ -171,7 +177,6 @@ public class CommandStructure implements DirectorExecutor {
 
     private void runVerification(Engine engine, KList<String> structureKeys, int centerX, int centerZ,
                                  int searchRadius, VolmitSender commandSender, Player target) {
-        KList<String> messages = new KList<>();
         Map<String, IrisNativeStructureDecision> decisions = new HashMap<>(structureKeys.size());
         boolean requiresNativeReachability = false;
         for (String keyName : structureKeys) {
@@ -185,8 +190,8 @@ public class CommandStructure implements DirectorExecutor {
             try {
                 reachable = StructureReachability.reachableKeys(engine);
             } catch (Throwable error) {
-                messages.add(C.RED + "Structure verification could not resolve native biome reachability.");
-                sendVerificationMessages(commandSender, target, messages);
+                sendVerificationReport(commandSender, target, ChatReport.of(ChatReport.Tone.ERROR,
+                        "Structure verification could not resolve native biome reachability").build());
                 Iris.reportError("Could not resolve native structure biome reachability for verification.", error);
                 return;
             }
@@ -197,6 +202,9 @@ public class CommandStructure implements DirectorExecutor {
         int unreachable = 0;
         int searchLimited = 0;
         int errors = 0;
+        List<String> problems = new ArrayList<>();
+        List<String> planned = new ArrayList<>();
+        List<String> unreachableLines = new ArrayList<>();
         for (String keyName : structureKeys) {
             IrisNativeStructureDecision decision = decisions.get(keyName);
             if (IrisStructureLocator.isPlaced(engine, keyName)) {
@@ -205,56 +213,81 @@ public class CommandStructure implements DirectorExecutor {
                             IrisStructureLocator.locate(engine, keyName, centerX, centerZ, searchRadius);
                     if (result.status() == IrisStructureLocator.LocateStatus.SEARCH_LIMIT_REACHED) {
                         searchLimited++;
-                        messages.add(C.YELLOW + "[iris-search-limit] " + C.WHITE + keyName + C.YELLOW
-                                + ": unable to complete the density search before its safety limit was reached");
+                        problems.add(verifyLine(C.GOLD, keyName, "density search hit its safety limit"));
                         continue;
                     }
                     if (!result.found()) {
-                        messages.add(C.YELLOW + "[iris-not-found] " + C.WHITE + keyName);
+                        problems.add(verifyLine(C.GOLD, keyName, "not found in range"));
                         continue;
                     }
                     located++;
-                    messages.add(C.AQUA + "[iris-planned] " + C.WHITE + keyName + C.GREEN + " @ "
-                            + result.originX() + "," + result.baseY() + "," + result.originZ());
+                    planned.add(verifyLine(C.IRIS, keyName,
+                            result.originX() + ", " + result.baseY() + ", " + result.originZ()));
                 } catch (Throwable error) {
                     errors++;
-                    messages.add(C.RED + "[error] " + C.WHITE + keyName + C.RED + ": "
-                            + error.getClass().getSimpleName());
+                    problems.add(verifyLine(C.RED, keyName, error.getClass().getSimpleName()));
                     Iris.reportError("Could not verify Iris-placed structure '" + keyName + "'.", error);
                 }
                 continue;
             }
             if (!decision.generate()) {
                 disabled++;
-                messages.add(C.GRAY + "[disabled] " + C.WHITE + keyName);
                 continue;
             }
             if (!reachable.contains(keyName.toLowerCase(Locale.ROOT))) {
                 unreachable++;
-                KList<String> missing = StructureReachability.missingBiomeKeys(engine, keyName);
-                messages.add(C.YELLOW + "[unreachable] " + C.WHITE + keyName
-                        + (missing.isEmpty() ? "" : C.YELLOW + " needs " + String.join("/", missing)));
+                unreachableLines.add(unreachableLine(keyName, StructureReachability.missingBiomeKeys(engine, keyName)));
                 continue;
             }
             nativeEligible++;
-            messages.add(C.GREEN + "[native-eligible] " + C.WHITE + keyName);
         }
-        messages.add(C.GREEN + "Structure verify: " + C.WHITE + located + C.GREEN + " Iris placement plans found, "
-                + C.WHITE + nativeEligible + C.GREEN + " native structures eligible, "
-                + C.WHITE + disabled + C.GREEN + " disabled by policy, "
-                + C.WHITE + unreachable + C.GREEN + " biome-unreachable, "
-                + C.WHITE + searchLimited + C.GREEN + " density searches safety-limited, "
-                + C.WHITE + errors + C.GREEN + " errors. Native eligibility is checked without running blocking live locates.");
-        sendVerificationMessages(commandSender, target, messages);
+        ChatReport.Tone tone = errors > 0 ? ChatReport.Tone.ERROR
+                : problems.isEmpty() ? ChatReport.Tone.SUCCESS : ChatReport.Tone.WARNING;
+        ChatReport.Builder report = ChatReport.of(tone, "Structure verify").limit(VERIFY_ITEM_LIMIT);
+        report.styledItem(String.join(C.DARK_GRAY + " · ", List.of(
+                        verifyCount(located, "planned", C.IRIS),
+                        verifyCount(nativeEligible, "native", C.AQUA),
+                        verifyCount(problems.size() - errors - searchLimited, "not found", C.GOLD),
+                        verifyCount(searchLimited, "search-limited", C.GOLD),
+                        verifyCount(errors, "errors", C.RED),
+                        verifyCount(unreachable, "unreachable", C.GRAY),
+                        verifyCount(disabled, "disabled", C.GRAY))
+                .stream().filter(count -> !count.isEmpty()).toList()));
+        problems.forEach(report::styledItem);
+        planned.forEach(report::styledItem);
+        unreachableLines.forEach(report::styledItem);
+        report.hint("Unreachable: no biome in this dimension can place it. Native eligibility is checked without blocking locates.", null);
+        sendVerificationReport(commandSender, target, report.build());
     }
 
-    private void sendVerificationMessages(VolmitSender commandSender, Player target,
-                                          KList<String> messages) {
-        Runnable send = () -> {
-            for (String message : messages) {
-                commandSender.sendMessage(message);
-            }
-        };
+    private static String verifyLine(C accent, String keyName, String detail) {
+        return C.WHITE + structureName(keyName) + C.DARK_GRAY + "  " + accent + ChatReport.clean(detail);
+    }
+
+    private static String verifyCount(int count, String label, C color) {
+        return count == 0 ? "" : color.toString() + count + C.GRAY + " " + label;
+    }
+
+    private static String unreachableLine(String keyName, List<String> missingBiomes) {
+        String name = C.GRAY + structureName(keyName) + C.DARK_GRAY + "  ";
+        if (missingBiomes.isEmpty()) {
+            return name + "no biome can place it";
+        }
+        int shown = Math.min(UNREACHABLE_BIOMES_SHOWN, missingBiomes.size());
+        String biomes = missingBiomes.subList(0, shown).stream()
+                .map(CommandStructure::structureName)
+                .collect(Collectors.joining(C.DARK_GRAY + ", " + C.GRAY, C.GRAY.toString(), ""));
+        int hidden = missingBiomes.size() - shown;
+        return name + "needs " + biomes + (hidden > 0 ? C.DARK_GRAY + " +" + hidden + " more" : "");
+    }
+
+    private static String structureName(String key) {
+        String cleaned = ChatReport.clean(key);
+        return cleaned.startsWith(VANILLA_NAMESPACE) ? cleaned.substring(VANILLA_NAMESPACE.length()) : cleaned;
+    }
+
+    private void sendVerificationReport(VolmitSender commandSender, Player target, ChatReport report) {
+        Runnable send = () -> commandSender.sendReport(report);
         if (target != null) {
             J.runEntity(target, send);
         } else {

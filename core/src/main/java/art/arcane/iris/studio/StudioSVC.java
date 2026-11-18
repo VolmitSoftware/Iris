@@ -103,7 +103,9 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+import art.arcane.iris.localization.BukkitCommandMessagesExtended;
 import art.arcane.iris.localization.BukkitRuntimeMessages;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.PackDownloadMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
@@ -659,14 +661,14 @@ public class StudioSVC implements IrisService {
 
     public IrisDimension installInto(VolmitSender sender, String type, File folder) {
         if (J.isPrimaryThread()) {
-            sender.sendMessage("Iris refused to download or copy a pack on the Bukkit primary thread.");
+            sender.sendMessage(ChatReport.Tone.ERROR.paint("Iris refused to download or copy a pack on the Bukkit primary thread."));
             return null;
         }
-        sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_LOOKING_PACKAGE, MessageArgument.untrusted("type", String.valueOf(type))));
+        sender.sendInfo(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_LOOKING_PACKAGE,MessageArgument.untrusted("type", String.valueOf(type))));
         IrisDimension dimension = IrisData.loadAnyDimension(type, null);
         if (dimension == null) {
-            sender.sendMessage("Iris cannot repair world pack '" + type
-                    + "' because no installed source contains it.");
+            sender.sendMessage(ChatReport.Tone.ERROR.paint("Iris cannot repair world pack '" + type
+                    + "' because no installed source contains it."));
             return null;
         }
         return replaceIntoPackDirectory(sender, dimension, folder);
@@ -778,7 +780,7 @@ public class StudioSVC implements IrisService {
             });
         } catch (Exception e) {
             IrisLogging.reportError("Failed to open studio world \"" + dimm + "\".", e);
-            sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_FAILED_OPEN_STUDIO_WORLD, MessageArgument.untrusted("error", String.valueOf(e.getMessage()))));
+            sender.sendError(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_FAILED_OPEN_STUDIO_WORLD,MessageArgument.untrusted("error", String.valueOf(e.getMessage()))));
         }
     }
 
@@ -799,20 +801,30 @@ public class StudioSVC implements IrisService {
                 packName, startupDenial, validation);
         if (failure == null) {
             if (force && unforcedStartupDenial.isPresent()) {
-                sender.sendMessage("Force-opening Studio with the currently loaded registry state. The open may fail; restart remains required.");
+                sender.sendMessage(ChatReport.Tone.WARNING.paint("Force-opening Studio with the currently loaded registry state. The open may fail; restart remains required."));
             }
             return null;
         }
+        String title = IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_CANNOT_OPEN_STUDIO_PACK_HAS_BLOCKING_ERRORS,
+                MessageArgument.untrusted("dimm", packName));
         if (startupDenial.isPresent()) {
-            sender.sendMessage(startupDenial.get());
+            sender.sendReport(ChatReport.of(ChatReport.Tone.ERROR, title).item(startupDenial.get()).build());
             return failure;
         }
-        sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_CANNOT_OPEN_STUDIO_PACK_HAS_BLOCKING_ERRORS, MessageArgument.untrusted("dimm", String.valueOf(dimm))));
-        for (String reason : failure.getReasons()) {
-            sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_MESSAGE, MessageArgument.untrusted("reason", String.valueOf(reason))));
-        }
-        sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_FIX_PACK_RUN_IRIS_PACK_VALIDATE_REVALIDATE, MessageArgument.untrusted("dimm", String.valueOf(packName))));
+        String validateCommand = "/iris pack validate " + packName;
+        sender.sendReport(ChatReport.of(ChatReport.Tone.ERROR, title)
+                .items(failure.getReasons())
+                .hint(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_FIX_PACK_RUN_IRIS_PACK_VALIDATE_REVALIDATE,
+                        MessageArgument.untrusted("dimm", packName)), validateCommand)
+                .build());
         return failure;
+    }
+
+    private static void announceOpen(VolmitSender sender, String dimm, long seed) {
+        IrisDimension dimension = IrisToolbelt.getDimension(dimm);
+        String displayName = dimension == null ? dimm : dimension.getName();
+        sender.sendInfo(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_STUDIO_PACK_SEED,
+                MessageArgument.untrusted("value", displayName), MessageArgument.untrusted("seed", seed)));
     }
 
     static void retainPackRestartRequirement(PackDownloader.PackInstallResult result) {
@@ -853,6 +865,7 @@ public class StudioSVC implements IrisService {
         if (reportPackAdmissionFailure(sender, dimm, openKind) != null) {
             return;
         }
+        announceOpen(sender, dimm, seed);
         StudioOpenCoordinator.StudioOpenKind requiredOpenKind = Objects.requireNonNull(
                 openKind,
                 "Studio open kind");
@@ -868,7 +881,7 @@ public class StudioSVC implements IrisService {
                         return;
                     }
                     IrisLogging.reportError("Failed to replace the active studio project with \"" + dimm + "\".", throwable);
-                    J.s(() -> sender.sendMessage(IrisLanguage.text(
+                    J.s(() -> sender.sendError(IrisLanguage.text(
                             BukkitRuntimeMessages.STUDIO_S_V_C_FAILED_OPEN_STUDIO_WORLD_2,
                             MessageArgument.untrusted("error", String.valueOf(errorDetail(throwable))))));
                 });
@@ -970,7 +983,7 @@ public class StudioSVC implements IrisService {
         return closeActiveProjectForReplacement(sender).handle((closeResult, closeThrowable) -> {
             if (closeThrowable != null) {
                 IrisLogging.reportError("Failed while closing an existing studio project before opening \"" + dimension + "\".", closeThrowable);
-                J.s(() -> sender.sendMessage(IrisLanguage.text(
+                J.s(() -> sender.sendError(IrisLanguage.text(
                         BukkitRuntimeMessages.STUDIO_S_V_C_FAILED_CLOSE_EXISTING_STUDIO_PROJECT,
                         MessageArgument.untrusted("error", String.valueOf(errorDetail(closeThrowable))))));
                 return false;
@@ -978,7 +991,7 @@ public class StudioSVC implements IrisService {
             if (closeResult == null) {
                 IllegalStateException failure = new IllegalStateException("Studio close completed without a result.");
                 IrisLogging.reportError("Failed while closing an existing studio project before opening \"" + dimension + "\".", failure);
-                J.s(() -> sender.sendMessage(IrisLanguage.text(
+                J.s(() -> sender.sendError(IrisLanguage.text(
                         BukkitRuntimeMessages.STUDIO_S_V_C_FAILED_CLOSE_EXISTING_STUDIO_PROJECT_2,
                         MessageArgument.untrusted("error", String.valueOf(errorDetail(failure))))));
                 return false;
@@ -986,7 +999,7 @@ public class StudioSVC implements IrisService {
             if (closeResult.failureCause() != null) {
                 Throwable failure = closeResult.failureCause();
                 IrisLogging.reportError("Failed while closing an existing studio project before opening \"" + dimension + "\".", failure);
-                J.s(() -> sender.sendMessage(IrisLanguage.text(
+                J.s(() -> sender.sendError(IrisLanguage.text(
                         BukkitRuntimeMessages.STUDIO_S_V_C_FAILED_CLOSE_EXISTING_STUDIO_PROJECT_2,
                         MessageArgument.untrusted("error", String.valueOf(errorDetail(failure))))));
                 return false;
@@ -1025,7 +1038,7 @@ public class StudioSVC implements IrisService {
             if (activeProject == project) {
                 activeProject = null;
             }
-            J.s(() -> sender.sendMessage(IrisLanguage.text(
+            J.s(() -> sender.sendError(IrisLanguage.text(
                     BukkitRuntimeMessages.STUDIO_S_V_C_FAILED_OPEN_STUDIO_WORLD_2,
                     MessageArgument.untrusted("error", String.valueOf(errorDetail(e))))));
             return CompletableFuture.completedFuture(null);
@@ -1229,7 +1242,7 @@ public class StudioSVC implements IrisService {
     private void createProject(VolmitSender sender, String requestedName, String requestedTemplate, File selectedTemplatePack) {
         Optional<String> startupDenial = IrisStartupValidation.denialReason();
         if (startupDenial.isPresent()) {
-            sender.sendMessage("Studio project creation refused: " + startupDenial.get());
+            sender.sendMessage(ChatReport.Tone.ERROR.paint("Studio project creation refused: " + startupDenial.get()));
             return;
         }
         String normalizedName;
@@ -1240,7 +1253,7 @@ public class StudioSVC implements IrisService {
             templateName = requestedTemplate == null ? null : normalizeProjectName(requestedTemplate);
             workspace = requireSafeWorkspace(getWorkspaceFolder());
         } catch (IOException e) {
-            sender.sendMessage("Studio project creation refused: " + errorDetail(e));
+            sender.sendMessage(ChatReport.Tone.ERROR.paint("Studio project creation refused: " + errorDetail(e)));
             return;
         }
 
@@ -1268,7 +1281,7 @@ public class StudioSVC implements IrisService {
             File newPack = new File(workspace, projectName);
             createdPack = newPack;
             if (Files.exists(newPack.toPath(), LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(newPack.toPath())) {
-                sender.sendMessage("Studio project '" + projectName + "' already exists; nothing was changed.");
+                sender.sendMessage(ChatReport.Tone.WARNING.paint("Studio project '" + projectName + "' already exists; nothing was changed."));
                 return;
             }
 
@@ -1277,13 +1290,15 @@ public class StudioSVC implements IrisService {
             } else {
                 File importPack = selectedTemplatePack == null ? new File(workspace, templateName) : selectedTemplatePack;
                 if (!hasLoadableDimensionFile(importPack, templateName)) {
-                    sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_COULDN_T_FIND_PACK_CREATE_NEW_DIMENSION_FROM));
-                    sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_MISSING_IMPORTED_DIMENSION_FILE));
+                    sender.sendReport(ChatReport.of(ChatReport.Tone.ERROR,
+                                    IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_COULDN_T_FIND_PACK_CREATE_NEW_DIMENSION_FROM))
+                            .item(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_MISSING_IMPORTED_DIMENSION_FILE))
+                            .build());
                     return;
                 }
                 PackValidationRegistry.requireLoadable(importPack.getName());
 
-                sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_IMPORTING_INTO_NEW_PROJECT, MessageArgument.untrusted("downloadable", String.valueOf(templateName)), MessageArgument.untrusted("s", String.valueOf(projectName))));
+                sender.sendInfo(IrisLanguage.text(BukkitRuntimeMessages.STUDIO_S_V_C_IMPORTING_INTO_NEW_PROJECT,MessageArgument.untrusted("downloadable", String.valueOf(templateName)), MessageArgument.untrusted("s", String.valueOf(projectName))));
                 createFrom(importPack, templateName, projectName);
             }
             projectPublished = true;
@@ -1292,10 +1307,8 @@ public class StudioSVC implements IrisService {
             PackValidationRegistry.publish(createdValidation);
             if (!createdValidation.isLoadable()) {
                 rollbackCreatedProject(sender, newPack,
-                        "Studio project validation failed; the new project was rolled back.");
-                for (String reason : createdValidation.getBlockingErrors()) {
-                    sender.sendMessage(reason);
-                }
+                        "Studio project validation failed; the new project was rolled back",
+                        createdValidation.getBlockingErrors());
                 return;
             }
 
@@ -1310,17 +1323,14 @@ public class StudioSVC implements IrisService {
                 return;
             }
 
-            sender.sendMessage("Created studio project '" + projectName + "' at " + newPack.getAbsolutePath() + ".");
-            if (installOutcome == CreationOutcome.RESTART) {
-                sender.sendMessage("The project is complete, but Iris must restart before opening it. After restart, run /iris studio open " + projectName + ".");
-            }
+            sendCreated(sender, projectName, newPack, installOutcome == CreationOutcome.RESTART);
             outcome = installOutcome;
         } catch (Throwable e) {
             if (projectPublished && createdPack != null) {
                 rollbackCreatedProject(sender, createdPack, "Studio project creation failed; the new project was rolled back.");
             }
             IrisLogging.reportError("Failed to create studio project '" + projectName + "'.", e);
-            sender.sendMessage("Studio project creation failed: " + errorDetail(e));
+            sender.sendMessage(ChatReport.Tone.ERROR.paint("Studio project creation failed: " + errorDetail(e)));
         } finally {
             closeLease(lease);
         }
@@ -1573,15 +1583,30 @@ public class StudioSVC implements IrisService {
                 && Files.isRegularFile(dimension, LinkOption.NOFOLLOW_LINKS);
     }
 
-    private static void rollbackCreatedProject(VolmitSender sender, File project, String message) {
-        Throwable cleanupFailure = rollbackCreatedProjectFiles(project);
-        if (cleanupFailure == null) {
-            sender.sendMessage(message);
-            return;
+    private static void sendCreated(VolmitSender sender, String projectName, File pack, boolean restartRequired) {
+        String openCommand = "/iris studio open " + projectName;
+        ChatReport.Builder report = ChatReport.of(ChatReport.Tone.SUCCESS, "Created Studio project " + projectName)
+                .entry("Folder", pack.getAbsolutePath());
+        if (restartRequired) {
+            report.hint("Restart the server, then run " + openCommand, openCommand);
+        } else {
+            report.hint("Run " + openCommand, openCommand);
         }
-        IrisLogging.reportError("Failed to fully roll back studio project " + project.getPath(), cleanupFailure);
-        sender.sendMessage(message + " Cleanup was incomplete; check the console and "
-                + project.getAbsolutePath() + ".");
+        sender.sendReport(report.build());
+    }
+
+    private static void rollbackCreatedProject(VolmitSender sender, File project, String message) {
+        rollbackCreatedProject(sender, project, message, List.of());
+    }
+
+    private static void rollbackCreatedProject(VolmitSender sender, File project, String message, List<String> reasons) {
+        ChatReport.Builder report = ChatReport.of(ChatReport.Tone.ERROR, message).items(reasons);
+        Throwable cleanupFailure = rollbackCreatedProjectFiles(project);
+        if (cleanupFailure != null) {
+            IrisLogging.reportError("Failed to fully roll back studio project " + project.getPath(), cleanupFailure);
+            report.hint("Cleanup was incomplete; check the console and " + project.getAbsolutePath(), null);
+        }
+        sender.sendReport(report.build());
     }
 
     static Throwable rollbackCreatedProjectFiles(File project) {
@@ -1608,7 +1633,7 @@ public class StudioSVC implements IrisService {
     }
 
     private static void sendBusy(VolmitSender sender, LifecycleOperationCoordinator.BusyException busy) {
-        sender.sendMessage(packMutationBusyMessage(busy.currentOperation()));
+        sender.sendMessage(ChatReport.Tone.WARNING.paint(packMutationBusyMessage(busy.currentOperation())));
     }
 
     static String packMutationBusyMessage(LifecycleOperationCoordinator.ActiveOperation operation) {

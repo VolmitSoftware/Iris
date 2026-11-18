@@ -45,6 +45,7 @@ import java.util.Objects;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public final class PackValidator {
     static final String TRASH_ROOT = ".iris-trash";
@@ -164,8 +165,6 @@ public final class PackValidator {
         // Strict content mode promotes unresolved keys and bad block properties from advisory to blocking. Palette
         // -sourced findings are exempt and stay warnings - see ContentKeyValidator.collectContentKeyIssues.
         ContentKeyValidator.ContentKeyIssues contentKeys = ContentKeyValidator.collectContentKeyIssues(packFolder);
-        addDistinct(ContentKeyValidator.strictContent() ? blockingErrors : warnings, contentKeys.strict());
-        addDistinct(warnings, contentKeys.advisory());
 
         String minecraftVersion = validateLiveRegistries && IrisPlatforms.isBound()
                 ? IrisPlatforms.get().minecraftVersion()
@@ -173,6 +172,11 @@ public final class PackValidator {
         List<CompatFinding> compatFindings = validateLiveRegistries
                 ? gateContent(packFolder, dimensionFiles, minecraftVersion, blockingErrors, warnings)
                 : List.of();
+
+        // Keys the version gate already names in its own line are not repeated as unknown-key findings.
+        Set<String> gatedKeys = compatFindings.stream().map(CompatFinding::key).collect(Collectors.toSet());
+        addDistinct(ContentKeyValidator.strictContent() ? blockingErrors : warnings, contentKeys.strict(gatedKeys));
+        addDistinct(warnings, contentKeys.advisory(gatedKeys));
 
         return new PackValidationResult(
                 packName, blockingErrors, warnings, validatedAt, compatFindings, minecraftVersion);
@@ -321,14 +325,16 @@ public final class PackValidator {
         Set<String> reasons = new LinkedHashSet<>();
         if (findings != null) {
             for (CompatFinding finding : findings) {
-                if (reasons.size() == BLOCKING_REASON_LIMIT) {
-                    break;
-                }
                 reasons.add(finding.key() + " (" + finding.registry().label() + ")");
             }
         }
-        sb.append(reasons.isEmpty() ? "the dimension composes content this server does not have"
-                : String.join(", ", reasons));
+        if (reasons.isEmpty()) {
+            return sb.append("the dimension composes content this server does not have").toString();
+        }
+        sb.append(String.join(", ", reasons.stream().limit(BLOCKING_REASON_LIMIT).toList()));
+        if (reasons.size() > BLOCKING_REASON_LIMIT) {
+            sb.append(" +").append(reasons.size() - BLOCKING_REASON_LIMIT).append(" more");
+        }
         return sb.toString();
     }
 
@@ -350,7 +356,7 @@ public final class PackValidator {
                 .summaryLine(versionOf(result, minecraftVersion));
     }
 
-    private static String versionOf(PackValidationResult result, String minecraftVersion) {
+    static String versionOf(PackValidationResult result, String minecraftVersion) {
         if (minecraftVersion != null && !minecraftVersion.isBlank()) {
             return minecraftVersion;
         }

@@ -1124,6 +1124,8 @@ replace_installed_types = "Asennetut paketit: {value}"
 "export.invalid" = "Virheelliset datapaketin vientiargumentit: {reason}"
 
 [iris.director.commanddeveloper]
+"director.stop_regen_running_world" = "Pysäytä maailmassa käynnissä oleva uudelleengenerointi"
+"param.world_regen_stop" = "Maailma, jonka uudelleengenerointi pysäytetään"
 "director.iris_world_manager" = "Iris-maailmanhallinta"
 "director.get_loaded_tectonicplates_count" = "Hae ladattujen TectonicPlates-olioiden määrä"
 "director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "Laske kiinteän alueen generoidun lohkotuloksen hash determinismi-/identiteettitestausta varten"
@@ -1640,6 +1642,14 @@ progress = "§eMaailman {world} korvaaminen: {stage} ({elapsed}s kulunut)"
 "stage.cleanup" = "Siivotaan epäonnistunutta korvausyritystä"
 
 [iris.runtime.chunk_job]
+"stage.stopping" = "Pysäytetään"
+"bossbar.stopped" = "§6{title} §ePYSÄYTETTY§7 §e{summary}"
+"action.stopped" = "{bar}§7 §ePysäytetty§7 | §f{summary}"
+stopped = "§6{title} pysäytetty: {summary}"
+already_running = "{title} on jo käynnissä maailmassa {world}: {applied}/{total} chunkkia"
+stop_hint = "Pysäytä komennolla {command}"
+stopping = "Pysäytetään {title} maailmassa {world}; käynnissä olevat chunkit valmistuvat ensin"
+none_running = "Maailmassa {world} ei ole käynnissä {title}-ajoa"
 "title.regen" = "Regen"
 "title.delete" = "Poista"
 "title.golden_hash" = "GoldenHash"
@@ -2131,3 +2141,7 @@ open = "Avaa: {url}"
 open-description = "Avaa lähetetty vianmääritysraportti."
 copy-path = "Kopioi paikallinen polku"
 copy-path-description = "Kopioi paikallisen raportin polku."
+
+[iris.runtime.report]
+more = "+{count} lisää"
+click_to_insert = "Napsauta lisätäksesi {command}"

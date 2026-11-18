@@ -99,11 +99,12 @@ public final class FeatureImporter {
         List<Row> rows = parseRows(INMS.get().getObjectFeatureKeys());
         int total = rows.size();
         if (total == 0) {
-            sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_NO_VANILLA_TREE_OBJECT_FEATURES_ARE_EXPOSED_BY_ACTIVE_NMS_BINDING_IMPORTING));
+            sender.sendWarning(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_NO_VANILLA_TREE_OBJECT_FEATURES_ARE_EXPOSED_BY_ACTIVE_NMS_BINDING_IMPORTING));
             return new Report(0, 0, 0, 0);
         }
 
-        sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_IMPORTING_VANILLA_TREE_OBJECT_FEATURES_VARIANTS_EACH_INTO_SCRATCH_WORLD, MessageArgument.untrusted("total", String.valueOf(total)), MessageArgument.untrusted("wantVariants", String.valueOf(wantVariants))));
+        ImportFeed feed = new ImportFeed(sender);
+        feed.start(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_IMPORTING_VANILLA_TREE_OBJECT_FEATURES_VARIANTS_EACH_INTO_SCRATCH_WORLD, MessageArgument.untrusted("total", String.valueOf(total)), MessageArgument.untrusted("wantVariants", String.valueOf(wantVariants))));
 
         World scratch = createScratchWorld(sender);
         if (scratch == null) {
@@ -147,27 +148,25 @@ public final class FeatureImporter {
 
                     if (written > 0) {
                         imported++;
-                        sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_OBJ_OBJECTS_VANILLA, MessageArgument.untrusted("key", String.valueOf(row.key())), MessageArgument.untrusted("group", String.valueOf(row.group())), MessageArgument.untrusted("safeName", String.valueOf(row.safeName())), MessageArgument.untrusted("written", String.valueOf(written))));
+                        feed.success(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_OBJ_OBJECTS_VANILLA, MessageArgument.untrusted("key", String.valueOf(row.key())), MessageArgument.untrusted("group", String.valueOf(row.group())), MessageArgument.untrusted("safeName", String.valueOf(row.safeName())), MessageArgument.untrusted("written", String.valueOf(written))));
                     } else {
                         skipped++;
-                        sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_SKIP_FEATURE_PLACED_NOTHING_AFTER_RETRIES, MessageArgument.untrusted("key", String.valueOf(row.key()))));
+                        feed.success(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_SKIP_FEATURE_PLACED_NOTHING_AFTER_RETRIES, MessageArgument.untrusted("key", String.valueOf(row.key()))));
                     }
                 } catch (Throwable e) {
                     failed++;
-                    sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_FAIL, MessageArgument.untrusted("key", String.valueOf(row.key())), MessageArgument.untrusted("error", String.valueOf(e.getMessage()))));
+                    feed.problem(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_FAIL, MessageArgument.untrusted("key", String.valueOf(row.key())), MessageArgument.untrusted("error", String.valueOf(e.getMessage()))));
                     IrisLogging.reportError(e);
                 }
 
                 int processed = imported + skipped + failed;
-                if (processed % 25 == 0) {
-                    sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_IMPORTED_SKIPPED_FAILED, MessageArgument.untrusted("processed", String.valueOf(processed)), MessageArgument.untrusted("total", String.valueOf(total)), MessageArgument.untrusted("imported", String.valueOf(imported)), MessageArgument.untrusted("skipped", String.valueOf(skipped)), MessageArgument.untrusted("failed", String.valueOf(failed))));
-                }
+                feed.progress(processed, total, IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_IMPORTED_SKIPPED_FAILED, MessageArgument.untrusted("processed", String.valueOf(processed)), MessageArgument.untrusted("total", String.valueOf(total)), MessageArgument.untrusted("imported", String.valueOf(imported)), MessageArgument.untrusted("skipped", String.valueOf(skipped)), MessageArgument.untrusted("failed", String.valueOf(failed))));
             }
         } finally {
             destroyScratchWorld(scratch, sender);
         }
 
-        sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_FEATURE_IMPORT_COMPLETE_FEATURES_WRITTEN_SKIPPED_FAILED_TOTAL, MessageArgument.untrusted("imported", String.valueOf(imported)), MessageArgument.untrusted("skipped", String.valueOf(skipped)), MessageArgument.untrusted("failed", String.valueOf(failed)), MessageArgument.untrusted("total", String.valueOf(total))));
+        feed.finish(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_FEATURE_IMPORT_COMPLETE_FEATURES_WRITTEN_SKIPPED_FAILED_TOTAL, MessageArgument.untrusted("imported", String.valueOf(imported)), MessageArgument.untrusted("skipped", String.valueOf(skipped)), MessageArgument.untrusted("failed", String.valueOf(failed)), MessageArgument.untrusted("total", String.valueOf(total))));
         return new Report(total, imported, skipped, failed);
     }
 
@@ -371,7 +370,7 @@ public final class FeatureImporter {
                         + (reservation == null ? "unreserved" : reservation.name()) + "\".");
             }
             if (sender != null) {
-                sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_COULD_NOT_CREATE_SCRATCH_WORLD_FEATURE_IMPORT_SKIPPING_TREE_OBJECT_PASS, MessageArgument.untrusted("error", String.valueOf(failure.getMessage()))));
+                sender.sendError(IrisLanguage.text(BukkitRuntimeMessages.FEATURE_IMPORTER_COULD_NOT_CREATE_SCRATCH_WORLD_FEATURE_IMPORT_SKIPPING_TREE_OBJECT_PASS, MessageArgument.untrusted("error", String.valueOf(failure.getMessage()))));
             }
             return null;
         } finally {
@@ -486,7 +485,7 @@ public final class FeatureImporter {
             state.lease().close();
         }
         if (failure != null && sender != null) {
-            sender.sendMessage("Feature-import scratch world cleanup was deferred until the next startup: "
+            sender.sendWarning("Feature-import scratch world cleanup was deferred until the next startup: "
                     + failure.getMessage());
         }
     }

@@ -1124,6 +1124,8 @@ replace_installed_types = "חבילות מותקנות: {value}"
 "export.invalid" = "ארגומנטים לא תקינים לייצוא datapack: {reason}"
 
 [iris.director.commanddeveloper]
+"director.stop_regen_running_world" = "עצירת היצירה מחדש הפועלת בעולם"
+"param.world_regen_stop" = "העולם שבו תיעצר היצירה מחדש"
 "director.iris_world_manager" = "מנהל העולמות של Iris"
 "director.get_loaded_tectonicplates_count" = "קבלת מספר ה-TectonicPlates הטעונים"
 "director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "חישוב hash של פלט הבלוקים שנוצר באזור קבוע לבדיקות דטרמיניזם/זהות"
@@ -1640,6 +1642,14 @@ progress = "§eהחלפה עבור {world}: {stage} ({elapsed} שניות חלפ
 "stage.cleanup" = "מנקה את ההחלפה שנכשלה"
 
 [iris.runtime.chunk_job]
+"stage.stopping" = "עוצר"
+"bossbar.stopped" = "§6{title} §eנעצר§7 §e{summary}"
+"action.stopped" = "{bar}§7 §eנעצר§7 | §f{summary}"
+stopped = "§6{title} נעצר: {summary}"
+already_running = "{title} כבר פועל ב-{world}: {applied}/{total} צ'אנקים"
+stop_hint = "עצור באמצעות {command}"
+stopping = "עוצר את {title} ב-{world}; צ'אנקים בתהליך יסתיימו קודם"
+none_running = "אין {title} פועל ב-{world}"
 "title.regen" = "יצירה מחדש"
 "title.delete" = "מחיקה"
 "title.golden_hash" = "GoldenHash"
@@ -2131,3 +2141,7 @@ open = "פתיחה: {url}"
 open-description = "פתיחת דוח האבחון שהועלה."
 copy-path = "העתקת הנתיב המקומי"
 copy-path-description = "העתקת הנתיב של הדוח המקומי."
+
+[iris.runtime.report]
+more = "+{count} נוספים"
+click_to_insert = "לחצו כדי להוסיף את {command}"

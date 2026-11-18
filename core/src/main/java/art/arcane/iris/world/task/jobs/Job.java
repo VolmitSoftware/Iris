@@ -21,7 +21,6 @@ package art.arcane.iris.world.task.jobs;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
-import art.arcane.iris.localization.C;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
@@ -31,6 +30,9 @@ import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import java.util.concurrent.CompletableFuture;
 
 public interface Job {
+    int PLAYER_PROGRESS_INTERVAL_TICKS = 4;
+    int CONSOLE_PROGRESS_INTERVAL_TICKS = 100;
+
     String getName();
 
     void execute();
@@ -74,7 +76,7 @@ public interface Job {
             } else {
                 sender.sendMessage(getName() + ": " + getProgressString());
             }
-        }, sender.isPlayer() ? 0 : 20);
+        }, sender.isPlayer() ? PLAYER_PROGRESS_INTERVAL_TICKS : CONSOLE_PROGRESS_INTERVAL_TICKS);
         f.whenComplete((fs, ff) -> {
             J.car(c);
             if (sender.isPlayer()) {
@@ -82,7 +84,7 @@ public interface Job {
                 BukkitPlatform.hudLanes().hide(sender.player(), "iris:job");
             }
             if (!silentMsg) {
-                sender.sendMessage(C.AQUA + IrisLanguage.text(
+                sender.sendSuccess(IrisLanguage.text(
                         RuntimeUiMessages.JOB_COMPLETED,
                         MessageArgument.untrusted("job", getName()),
                         MessageArgument.trusted("duration", Form.duration(p.getMilliseconds(), 1))

@@ -19,7 +19,7 @@
 package art.arcane.iris.world;
 
 import art.arcane.iris.Iris;
-import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.world.safeguard.GenerationRefusalNotice;
 import art.arcane.volmlib.util.bukkit.WorldIdentity;
 import org.bukkit.Bukkit;
@@ -84,8 +84,17 @@ public final class WorldRefusalReporter implements Listener {
         if (!player.isOp() && !player.hasPermission("iris.all")) {
             return;
         }
-        for (String notice : operatorNotices.values()) {
-            player.sendMessage(C.RED + notice);
+        ChatReport report = ChatReport.of(ChatReport.Tone.ERROR, operatorNotices.size() == 1
+                        ? "An Iris world did not load and refuses to generate"
+                        : operatorNotices.size() + " Iris worlds did not load and refuse to generate")
+                .items(operatorNotices.values())
+                .hint("The console has the full refusal notice", null)
+                .build();
+        String tag = Iris.instance == null ? "" : Iris.instance.getTag();
+        player.sendMessage(ChatReport.SPACER.text());
+        player.sendMessage(tag + report.titleLine().text());
+        for (ChatReport.Line line : report.bodyLines(true)) {
+            player.sendMessage(line.text());
         }
     }
 
@@ -99,8 +108,8 @@ public final class WorldRefusalReporter implements Listener {
             for (String line : notice(worldName, key, failure, startupWorldsCreated)) {
                 Iris.error(line);
             }
-            operatorNotices.put(worldKey == null ? worldName : key, "Iris world '" + worldName + "' (" + key
-                    + ") did not load and refuses to generate: " + GenerationRefusalNotice.summary(failure));
+            operatorNotices.put(worldKey == null ? worldName : key, worldName + " (" + key + "): "
+                    + GenerationRefusalNotice.summary(failure));
         } catch (Throwable reportingFailure) {
             System.err.println("[Iris] Iris refused to generate world '" + worldName + "' (" + key
                     + "); the refusal could not be reported: " + reportingFailure.getClass().getName());

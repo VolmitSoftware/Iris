@@ -1124,6 +1124,8 @@ replace_installed_types = "Yüklü paketler: {value}"
 "export.invalid" = "Geçersiz datapack dışa aktarma argümanları: {reason}"
 
 [iris.director.commanddeveloper]
+"director.stop_regen_running_world" = "Bir dünyada çalışan yeniden oluşturmayı durdur"
+"param.world_regen_stop" = "Yeniden oluşturması durdurulacak dünya"
 "director.iris_world_manager" = "Iris Dünya Yöneticisi"
 "director.get_loaded_tectonicplates_count" = "Yüklü TectonicPlates sayısını al"
 "director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "Belirlenimcilik/kimlik testi için sabit bir alanın oluşturulan blok çıktısını hash'le"
@@ -1640,6 +1642,14 @@ progress = "§e{world} değişimi: {stage} ({elapsed} saniye geçti)"
 "stage.cleanup" = "Başarısız değişim temizleniyor"
 
 [iris.runtime.chunk_job]
+"stage.stopping" = "Durduruluyor"
+"bossbar.stopped" = "§6{title} §eDURDURULDU§7 §e{summary}"
+"action.stopped" = "{bar}§7 §eDurduruldu§7 | §f{summary}"
+stopped = "§6{title} durduruldu: {summary}"
+already_running = "{title} zaten {world} içinde çalışıyor: {applied}/{total} chunk"
+stop_hint = "{command} ile durdurun"
+stopping = "{world} içindeki {title} durduruluyor; işlemdeki chunk'lar önce tamamlanır"
+none_running = "{world} içinde çalışan {title} yok"
 "title.regen" = "Regen"
 "title.delete" = "Silme"
 "title.golden_hash" = "GoldenHash"
@@ -2131,3 +2141,7 @@ open = "Aç: {url}"
 open-description = "Yüklenen tanılama raporunu açın."
 copy-path = "Yerel yolu kopyala"
 copy-path-description = "Yerel raporun yolunu kopyalayın."
+
+[iris.runtime.report]
+more = "+{count} tane daha"
+click_to_insert = "{command} eklemek için tıklayın"

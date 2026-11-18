@@ -32,6 +32,7 @@ import art.arcane.iris.studio.StudioSVC;
 import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.world.lifecycle.LifecycleOperationCoordinator;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.command.handlers.DimensionHandler;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
@@ -45,8 +46,10 @@ import org.bukkit.World;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.BukkitCommandMessages;
@@ -54,6 +57,9 @@ import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.iris.localization.BukkitRuntimeMessages;
 @Director(name = "pack", aliases = {"pk"}, description = "Pack validation and maintenance", descriptionKey = "iris.director.commandpack.director.pack_validation_maintenance")
 public class CommandPack implements DirectorExecutor {
+    private static final int PATH_REPORT_LIMIT = 10;
+    private static final Pattern LEADING_COLOR = Pattern.compile("^§[0-9a-fk-or]");
+
     @Director(name = "update-world", description = "Stage an installed pack for a world and request a clean restart", descriptionKey = "iris.director.commanddeveloper.director.stage_world_generation_update")
     public void updateWorld(
             @Param(description = "The world to update", descriptionKey = "iris.director.commanddeveloper.param.world_update", contextual = true, contextualOverride = true)
@@ -119,13 +125,15 @@ public class CommandPack implements DirectorExecutor {
             }
             int broken = 0;
             for (File dir : dirs) {
-                PackValidationResult result = runValidate(s, dir);
-                if (result != null && !result.isLoadable()) {
+                PackValidationResult result = runValidate(dir);
+                if (!result.isLoadable()) {
                     broken++;
+                    reportResult(s, result);
                 }
             }
             persistValidationCache(packsRoot);
-            s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_VALIDATION_COMPLETE_BROKEN_PACKS, MessageArgument.untrusted("broken", String.valueOf(broken)), MessageArgument.untrusted("value", String.valueOf(dirs.size()))));
+            ChatReport.Tone summaryTone = broken == 0 ? ChatReport.Tone.SUCCESS : ChatReport.Tone.ERROR;
+            s.sendMessage(summaryTone.paint(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_VALIDATION_COMPLETE_BROKEN_PACKS, MessageArgument.untrusted("broken", String.valueOf(broken)), MessageArgument.untrusted("value", String.valueOf(dirs.size())))));
             return;
         }
 
@@ -134,7 +142,7 @@ public class CommandPack implements DirectorExecutor {
             s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_PACK_NOT_FOUND_UNDER_PACKS, MessageArgument.untrusted("pack", String.valueOf(pack))));
             return;
         }
-        runValidate(s, target);
+        reportResult(s, runValidate(target));
         persistValidationCache(packsRoot);
     }
 
@@ -165,19 +173,18 @@ public class CommandPack implements DirectorExecutor {
         if ("apply".equalsIgnoreCase(mode)) {
             PackResourceCleanup.ApplyResult result = PackResourceCleanup.apply(packFolder);
             if (!result.success()) {
-                s.sendMessage(IrisLanguage.text(
+                reportPaths(s, ChatReport.Tone.ERROR, IrisLanguage.text(
                         BukkitRuntimeMessages.COMMAND_PACK_CLEANUP_FAILED,
                         MessageArgument.untrusted("error", String.valueOf(result.error()))
-                ));
-                reportPaths(s, result.quarantinedPaths(), BukkitRuntimeMessages.COMMAND_PACK_PATH_STILL_QUARANTINED);
+                ), result.quarantinedPaths(), BukkitRuntimeMessages.COMMAND_PACK_PATH_STILL_QUARANTINED);
                 return;
             }
             if (!result.changed()) {
                 s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_NO_CLEANUP_CANDIDATES_FOUND_PACK, MessageArgument.untrusted("pack", String.valueOf(pack))));
                 return;
             }
-            s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_QUARANTINED_CLEANUP_CANDIDATE_S_UNDER, MessageArgument.untrusted("size", String.valueOf(result.quarantinedPaths().size())), MessageArgument.untrusted("quarantinePath", String.valueOf(result.quarantinePath()))));
-            reportPaths(s, result.quarantinedPaths(), BukkitRuntimeMessages.COMMAND_PACK_PATH_QUARANTINED);
+            reportPaths(s, ChatReport.Tone.SUCCESS, IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_QUARANTINED_CLEANUP_CANDIDATE_S_UNDER, MessageArgument.untrusted("size", String.valueOf(result.quarantinedPaths().size())), MessageArgument.untrusted("quarantinePath", String.valueOf(result.quarantinePath()))),
+                    result.quarantinedPaths(), BukkitRuntimeMessages.COMMAND_PACK_PATH_QUARANTINED);
             return;
         }
         if (!"preview".equalsIgnoreCase(mode)) {
@@ -196,8 +203,8 @@ public class CommandPack implements DirectorExecutor {
             s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_NO_CLEANUP_CANDIDATES_FOUND_PACK_2, MessageArgument.untrusted("pack", String.valueOf(pack))));
             return;
         }
-        s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_CLEANUP_PREVIEW_PACK_CANDIDATE_S_NO_FILES_WERE_CHANGED, MessageArgument.untrusted("pack", String.valueOf(pack)), MessageArgument.untrusted("size", String.valueOf(preview.candidatePaths().size()))));
-        reportPaths(s, preview.candidatePaths(), BukkitRuntimeMessages.COMMAND_PACK_PATH_CANDIDATE);
+        reportPaths(s, ChatReport.Tone.INFO, IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_CLEANUP_PREVIEW_PACK_CANDIDATE_S_NO_FILES_WERE_CHANGED, MessageArgument.untrusted("pack", String.valueOf(pack)), MessageArgument.untrusted("size", String.valueOf(preview.candidatePaths().size()))),
+                preview.candidatePaths(), BukkitRuntimeMessages.COMMAND_PACK_PATH_CANDIDATE);
         s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_RUN_IRIS_PACK_CLEANUP_MODE_APPLY_QUARANTINE_THESE_CANDIDATES_AFTER_FRESH_SCAN, MessageArgument.untrusted("pack", String.valueOf(pack))));
     }
 
@@ -216,8 +223,8 @@ public class CommandPack implements DirectorExecutor {
         if ("apply".equalsIgnoreCase(mode)) {
             PackResourceCleanup.RestoreResult result = PackResourceCleanup.restoreLatest(packFolder);
             if (!result.conflicts().isEmpty()) {
-                s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_RESTORE_REFUSED_BECAUSE_DESTINATION_S_ALREADY_EXIST, MessageArgument.untrusted("size", String.valueOf(result.conflicts().size()))));
-                reportPaths(s, result.conflicts(), BukkitRuntimeMessages.COMMAND_PACK_PATH_CONFLICT);
+                reportPaths(s, ChatReport.Tone.ERROR, IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_RESTORE_REFUSED_BECAUSE_DESTINATION_S_ALREADY_EXIST, MessageArgument.untrusted("size", String.valueOf(result.conflicts().size()))),
+                        result.conflicts(), BukkitRuntimeMessages.COMMAND_PACK_PATH_CONFLICT);
                 return;
             }
             if (!result.success()) {
@@ -231,8 +238,8 @@ public class CommandPack implements DirectorExecutor {
                 s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_NOTHING_RESTORE_PACK, MessageArgument.untrusted("pack", String.valueOf(pack))));
                 return;
             }
-            s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_RESTORED_FILE_S_FROM, MessageArgument.untrusted("size", String.valueOf(result.restoredPaths().size())), MessageArgument.untrusted("dumpPath", String.valueOf(result.dumpPath()))));
-            reportPaths(s, result.restoredPaths(), BukkitRuntimeMessages.COMMAND_PACK_PATH_RESTORED);
+            reportPaths(s, ChatReport.Tone.SUCCESS, IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_RESTORED_FILE_S_FROM, MessageArgument.untrusted("size", String.valueOf(result.restoredPaths().size())), MessageArgument.untrusted("dumpPath", String.valueOf(result.dumpPath()))),
+                    result.restoredPaths(), BukkitRuntimeMessages.COMMAND_PACK_PATH_RESTORED);
             return;
         }
         if (!"preview".equalsIgnoreCase(mode)) {
@@ -251,11 +258,11 @@ public class CommandPack implements DirectorExecutor {
             s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_NOTHING_RESTORE_PACK_2, MessageArgument.untrusted("pack", String.valueOf(pack))));
             return;
         }
-        s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_RESTORE_PREVIEW_FILE_S_NO_FILES_WERE_CHANGED, MessageArgument.untrusted("dumpPath", String.valueOf(preview.dumpPath())), MessageArgument.untrusted("size", String.valueOf(preview.filePaths().size()))));
-        reportPaths(s, preview.filePaths(), BukkitRuntimeMessages.COMMAND_PACK_PATH_FILE);
+        reportPaths(s, ChatReport.Tone.INFO, IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_RESTORE_PREVIEW_FILE_S_NO_FILES_WERE_CHANGED, MessageArgument.untrusted("dumpPath", String.valueOf(preview.dumpPath())), MessageArgument.untrusted("size", String.valueOf(preview.filePaths().size()))),
+                preview.filePaths(), BukkitRuntimeMessages.COMMAND_PACK_PATH_FILE);
         if (!preview.conflicts().isEmpty()) {
-            s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_RESTORE_IS_BLOCKED_BY_EXISTING_DESTINATION_S, MessageArgument.untrusted("size", String.valueOf(preview.conflicts().size()))));
-            reportPaths(s, preview.conflicts(), BukkitRuntimeMessages.COMMAND_PACK_PATH_CONFLICT);
+            reportPaths(s, ChatReport.Tone.ERROR, IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_RESTORE_IS_BLOCKED_BY_EXISTING_DESTINATION_S, MessageArgument.untrusted("size", String.valueOf(preview.conflicts().size()))),
+                    preview.conflicts(), BukkitRuntimeMessages.COMMAND_PACK_PATH_CONFLICT);
             return;
         }
         s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_RUN_IRIS_PACK_RESTORE_MODE_APPLY_RESTORE_AFTER_FRESH_CONFLICT_CHECK, MessageArgument.untrusted("pack", String.valueOf(pack))));
@@ -272,17 +279,13 @@ public class CommandPack implements DirectorExecutor {
                 s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_NO_VALIDATION_RESULTS_RECORDED_RUN_IRIS_PACK_VALIDATE_FIRST));
                 return;
             }
-            PackValidationRegistry.snapshot().forEach((name, result) -> {
-                TextKey key = result.isLoadable()
-                        ? BukkitRuntimeMessages.COMMAND_PACK_STATUS_OK
-                        : BukkitRuntimeMessages.COMMAND_PACK_STATUS_BROKEN;
-                s.sendMessage(IrisLanguage.text(
-                        key,
-                        MessageArgument.untrusted("pack", name),
-                        MessageArgument.trusted("blocking", result.getBlockingErrors().size()),
-                        MessageArgument.trusted("warnings", result.getWarnings().size())
-                ));
-            });
+            ChatReport.Builder report = ChatReport.of(ChatReport.Tone.INFO, "Pack validation status").unlimited();
+            PackValidationRegistry.snapshot().entrySet().stream()
+                    .sorted(Comparator.comparing((Map.Entry<String, PackValidationResult> entry) -> statusTone(entry.getValue()).ordinal())
+                            .reversed()
+                            .thenComparing(Map.Entry::getKey))
+                    .forEach(entry -> report.styledItem(statusLine(entry.getKey(), entry.getValue())));
+            s.sendReport(report.build());
             return;
         }
         PackValidationResult result = PackValidationRegistry.get(pack);
@@ -306,15 +309,11 @@ public class CommandPack implements DirectorExecutor {
                 return;
             }
             for (Map.Entry<String, PackValidationResult> entry : snapshot.entrySet()) {
-                for (String line : compatOutput(entry.getKey(), entry.getValue())) {
-                    s.sendMessage(line);
-                }
+                s.sendReport(compatReport(entry.getKey(), entry.getValue()));
             }
             return;
         }
-        for (String line : compatOutput(pack, PackValidationRegistry.get(pack))) {
-            s.sendMessage(line);
-        }
+        s.sendReport(compatReport(pack, PackValidationRegistry.get(pack)));
     }
 
     /**
@@ -322,33 +321,31 @@ public class CommandPack implements DirectorExecutor {
      * printed with every subject; the boot listing is the capped form of the same data.
      */
     static List<String> compatOutput(String pack, PackValidationResult result) {
-        List<String> lines = new ArrayList<>();
+        return compatReport(pack, result).lines().stream().map(ChatReport.Line::text).toList();
+    }
+
+    static ChatReport compatReport(String pack, PackValidationResult result) {
         if (result == null) {
-            lines.add(IrisLanguage.text(
+            return ChatReport.of(ChatReport.Tone.WARNING, IrisLanguage.text(
                     BukkitRuntimeMessages.COMMAND_PACK_NO_VALIDATION_RESULT_RUN_IRIS_PACK_VALIDATE,
                     MessageArgument.untrusted("pack", String.valueOf(pack)),
-                    MessageArgument.untrusted("pack2", String.valueOf(pack))));
-            return lines;
+                    MessageArgument.untrusted("pack2", String.valueOf(pack)))).build();
         }
         String version = compatVersion(result);
         if (result.getCompatFindings().isEmpty()) {
-            lines.add(IrisLanguage.text(
+            return ChatReport.of(ChatReport.Tone.SUCCESS, IrisLanguage.text(
                     BukkitRuntimeMessages.COMMAND_PACK_COMPAT_NONE,
                     MessageArgument.untrusted("pack", pack),
-                    MessageArgument.untrusted("version", version)));
-            return lines;
+                    MessageArgument.untrusted("version", version))).build();
         }
-        lines.add(IrisLanguage.text(
-                BukkitRuntimeMessages.COMMAND_PACK_COMPAT_HEADER,
-                MessageArgument.untrusted("pack", pack),
-                MessageArgument.untrusted("version", version)));
-        for (String line : PackCompatReport.of(result.getCompatFindings()).keyLines(0)) {
-            lines.add(IrisLanguage.text(
-                    BukkitRuntimeMessages.COMMAND_PACK_MESSAGE_2,
-                    MessageArgument.untrusted("value", line)));
-        }
-        lines.add(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_COMPAT_REMEDY));
-        return lines;
+        return ChatReport.of(ChatReport.Tone.WARNING, IrisLanguage.text(
+                        BukkitRuntimeMessages.COMMAND_PACK_COMPAT_HEADER,
+                        MessageArgument.untrusted("pack", pack),
+                        MessageArgument.untrusted("version", version)))
+                .items(PackCompatReport.of(result.getCompatFindings()).keyLines(0))
+                .unlimited()
+                .hint(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_COMPAT_REMEDY), null)
+                .build();
     }
 
     /** The live Minecraft version, falling back to the one the validation ran against. */
@@ -363,7 +360,7 @@ public class CommandPack implements DirectorExecutor {
         return persisted == null || persisted.isBlank() ? "unknown" : persisted;
     }
 
-    PackValidationResult runValidate(VolmitSender s, File packFolder) {
+    PackValidationResult runValidate(File packFolder) {
         PackValidationRegistry.ValidationTicket ticket =
                 PackValidationRegistry.tryBeginValidation(packFolder.toPath());
         PackValidationResult result;
@@ -399,7 +396,6 @@ public class CommandPack implements DirectorExecutor {
             result = new PackValidationResult(packFolder.getName(),
                     List.of("Pack content changed during validation."), List.of(), System.currentTimeMillis());
         }
-        reportResult(s, result);
         return result;
     }
 
@@ -443,24 +439,46 @@ public class CommandPack implements DirectorExecutor {
     }
 
     private void reportResult(VolmitSender s, PackValidationResult result) {
-        if (result.isLoadable()) {
-            s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_PACK_IS_LOADABLE_WARNINGS, MessageArgument.untrusted("packName", String.valueOf(result.getPackName())), MessageArgument.untrusted("size", String.valueOf(result.getWarnings().size()))));
-        } else {
-            s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_PACK_IS_BROKEN, MessageArgument.untrusted("packName", String.valueOf(result.getPackName()))));
-            for (String reason : result.getBlockingErrors()) {
-                s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_MESSAGE, MessageArgument.untrusted("reason", String.valueOf(reason))));
-            }
+        s.sendReport(validationReport(result));
+    }
+
+    private static String statusLine(String name, PackValidationResult result) {
+        TextKey key = result.isLoadable()
+                ? BukkitRuntimeMessages.COMMAND_PACK_STATUS_OK
+                : BukkitRuntimeMessages.COMMAND_PACK_STATUS_BROKEN;
+        String line = IrisLanguage.text(
+                key,
+                MessageArgument.trusted("pack", C.WHITE + ChatReport.clean(name)),
+                MessageArgument.trusted("blocking", statusCount(result.getBlockingErrors().size(), C.RED)),
+                MessageArgument.trusted("warnings", statusCount(result.getWarnings().size(), C.GOLD)));
+        return LEADING_COLOR.matcher(line).replaceFirst(statusTone(result).color().toString());
+    }
+
+    private static ChatReport.Tone statusTone(PackValidationResult result) {
+        return !result.isLoadable() ? ChatReport.Tone.ERROR
+                : result.getWarnings().isEmpty() ? ChatReport.Tone.SUCCESS : ChatReport.Tone.WARNING;
+    }
+
+    private static String statusCount(int count, C color) {
+        return (count == 0 ? C.DARK_GRAY : color) + String.valueOf(count) + C.GRAY;
+    }
+
+    static ChatReport validationReport(PackValidationResult result) {
+        String packName = String.valueOf(result.getPackName());
+        if (!result.isLoadable()) {
+            String revalidate = "/iris pack validate " + packName;
+            return ChatReport.of(ChatReport.Tone.ERROR, IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_PACK_IS_BROKEN,
+                            MessageArgument.untrusted("packName", packName)))
+                    .items(result.getBlockingErrors())
+                    .hint("Fix the pack, then run " + revalidate, revalidate)
+                    .build();
         }
-        int wMax = Math.min(10, result.getWarnings().size());
-        for (int i = 0; i < wMax; i++) {
-            s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_MESSAGE_2, MessageArgument.untrusted("value", String.valueOf(result.getWarnings().get(i)))));
-        }
-        if (result.getWarnings().size() > wMax) {
-            s.sendMessage(IrisLanguage.text(
-                    BukkitRuntimeMessages.COMMAND_PACK_MORE_WARNING_S,
-                    MessageArgument.trusted("count", result.getWarnings().size() - wMax)
-            ));
-        }
+        ChatReport.Tone tone = result.getWarnings().isEmpty() ? ChatReport.Tone.SUCCESS : ChatReport.Tone.WARNING;
+        return ChatReport.of(tone, IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_PACK_IS_LOADABLE_WARNINGS,
+                        MessageArgument.untrusted("packName", packName),
+                        MessageArgument.untrusted("size", String.valueOf(result.getWarnings().size()))))
+                .items(result.getWarnings())
+                .build();
     }
 
     private File findPack(VolmitSender sender, String pack) {
@@ -476,17 +494,12 @@ public class CommandPack implements DirectorExecutor {
         return packFolder;
     }
 
-    private void reportPaths(VolmitSender sender, List<String> paths, TextKey label) {
-        int max = Math.min(10, paths.size());
-        for (int i = 0; i < max; i++) {
-            sender.sendMessage(IrisLanguage.text(
-                    BukkitCommandMessages.COMMAND_PACK_MESSAGE,
-                    MessageArgument.untrusted("label", IrisLanguage.text(label)),
-                    MessageArgument.untrusted("value", paths.get(i))
-            ));
+    private void reportPaths(VolmitSender sender, ChatReport.Tone tone, String header, List<String> paths, TextKey label) {
+        ChatReport.Builder report = ChatReport.of(tone, header).limit(PATH_REPORT_LIMIT);
+        String labelText = IrisLanguage.plain(label);
+        for (String path : paths) {
+            report.entry(labelText, path);
         }
-        if (paths.size() > max) {
-            sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_PACK_MORE, MessageArgument.untrusted("value", (paths.size() - max))));
-        }
+        sender.sendReport(report.build());
     }
 }

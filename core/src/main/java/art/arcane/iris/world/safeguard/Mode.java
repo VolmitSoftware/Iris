@@ -102,7 +102,7 @@ public enum Mode {
     }
 
     private String wrap(String tag) {
-        return C.BOLD.toString() + C.DARK_GRAY + "[" + C.BOLD + color + tag + C.BOLD + C.DARK_GRAY + "]" + C.RESET;
+        return C.DARK_GRAY.toString() + C.BOLD + "[" + color + C.BOLD + tag + C.DARK_GRAY + C.BOLD + "]" + C.RESET;
     }
 
     private String getServerVersion() {

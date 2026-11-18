@@ -191,15 +191,19 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
         }
         if (!(args.length > 1 && args[0].equalsIgnoreCase("debug") && args[1].equalsIgnoreCase("dump"))
             && !sender.hasPermission(ROOT_PERMISSION)) {
-            String tag = Iris.instance == null ? "" : Iris.instance.getTag();
-            ComponentMessenger.sendSection(sender, tag + ChatReport.Tone.ERROR.paint(IrisLanguage.text(
+            sendTaggedError(sender, IrisLanguage.text(
                     IrisMessages.COMMAND_PERMISSION_DENIED,
                     MessageArgument.trusted("permission", ROOT_PERMISSION)
-            )));
+            ));
             return;
         }
 
         J.aBukkit(() -> executeCommand(sender, label, args));
+    }
+
+    private static void sendTaggedError(CommandSender sender, String message) {
+        String tag = Iris.instance == null ? "" : Iris.instance.getTag();
+        ComponentMessenger.sendSection(sender, tag + ChatReport.Tone.ERROR.paint(message));
     }
 
     public List<String> tabCompleteRoot(CommandSender sender, String alias, String[] args) {
@@ -351,10 +355,11 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
             return sender instanceof Player;
         }
 
+        /** The director only reports parse and execution failures here, so they get the error style. */
         @Override
         public void sendMessage(String message) {
             if (message != null && !message.trim().isEmpty()) {
-                ComponentMessenger.sendLiteral(sender, message);
+                sendTaggedError(sender, message);
             }
         }
     }

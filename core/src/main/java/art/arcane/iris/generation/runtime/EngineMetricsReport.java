@@ -50,8 +50,8 @@ final class EngineMetricsReport {
             totalWeight += j;
         }
 
-        for (String j : timings.k()) {
-            weights.put(engine.getName() + "." + j, (wallClock / totalWeight) * timings.get(j));
+        for (String metric : timings.k()) {
+            weights.put(metric, (wallClock / totalWeight) * timings.get(metric));
         }
 
         totals.put(engine.getName(), wallClock);
@@ -84,13 +84,17 @@ final class EngineMetricsReport {
 
         output.accept(IrisLanguage.text(BukkitRuntimeMessages.IRIS_ENGINE_DETAILS));
 
-        for (String i : weights.sortKNumber().reverse()) {
-            String befb = C.UNDERLINE + "" + C.GREEN + "" + i.split("\\Q[\\E")[0] + C.RESET + C.GRAY + "[";
-            String num = C.GOLD + i.split("\\Q[\\E")[1].split("]")[0] + C.RESET + C.GRAY + "].";
-            String afb = C.ITALIC + "" + C.AQUA + i.split("\\Q]\\E")[1].substring(1) + C.RESET + C.GRAY;
-
-            output.accept(IrisLanguage.text(BukkitRuntimeMessages.IRIS_ENGINE_MESSAGE, MessageArgument.untrusted("befb", String.valueOf(befb)), MessageArgument.untrusted("num", String.valueOf(num)), MessageArgument.untrusted("afb", String.valueOf(afb)), MessageArgument.untrusted("value", String.valueOf(Form.pc(weights.get(i), 0)))));
+        for (String metric : weights.sortKNumber().reverse()) {
+            output.accept(timingLine(metric, weights.get(metric)));
         }
+    }
+
+    private static String timingLine(String metric, double share) {
+        return IrisLanguage.text(BukkitRuntimeMessages.IRIS_ENGINE_MESSAGE,
+                MessageArgument.untrusted("befb", C.AQUA + metric + C.GRAY),
+                MessageArgument.untrusted("num", ""),
+                MessageArgument.untrusted("afb", ""),
+                MessageArgument.untrusted("value", Form.pc(share, 0)));
     }
 
     double getGeneratedPerSecond() {

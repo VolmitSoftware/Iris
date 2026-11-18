@@ -18,7 +18,6 @@
 
 package art.arcane.iris.command;
 
-import art.arcane.iris.command.specialhandlers.PackFolderOrAllHandler;
 import art.arcane.iris.command.specialhandlers.PackFolderHandler;
 import art.arcane.iris.pack.PackFingerprints;
 
@@ -110,7 +109,7 @@ public class CommandPack implements DirectorExecutor {
 
     @Director(description = "Validate a pack (or all packs) and re-publish results", descriptionKey = "iris.director.commandpack.director.validate_pack_all_packs_re_publish_results", aliases = {"v"})
     public void validate(
-            @Param(description = "The pack folder name to validate, or * for every pack", descriptionKey = "iris.director.commandpack.param.pack_folder_name_validate_leave_empty_all", defaultValue = "*", customHandler = PackFolderOrAllHandler.class)
+            @Param(description = "The pack folder name to validate; omit for every pack", descriptionKey = "iris.director.commandpack.param.pack_folder_name_validate_leave_empty_all", defaultValue = "*", customHandler = PackFolderHandler.class)
             String pack
     ) {
         VolmitSender s = sender();
@@ -273,7 +272,7 @@ public class CommandPack implements DirectorExecutor {
 
     @Director(description = "Show cached validation status for a pack", descriptionKey = "iris.director.commandpack.director.show_cached_validation_status_pack", aliases = {"s"})
     public void status(
-            @Param(description = "The pack folder name, or * for every pack", descriptionKey = "iris.director.commandpack.param.pack_folder_name", defaultValue = "*", customHandler = PackFolderOrAllHandler.class)
+            @Param(description = "The pack folder name; omit for every pack", descriptionKey = "iris.director.commandpack.param.pack_folder_name", defaultValue = "*", customHandler = PackFolderHandler.class)
             String pack
     ) {
         VolmitSender s = sender();
@@ -301,7 +300,7 @@ public class CommandPack implements DirectorExecutor {
 
     @Director(description = "Show pack content that cannot generate on this Minecraft version", descriptionKey = "iris.director.commandpack.director.show_content_cannot_generate_this_minecraft_version", aliases = {"cp"})
     public void compat(
-            @Param(description = "The pack folder name to report on, or * for every pack", descriptionKey = "iris.director.commandpack.param.pack_folder_name_compat", defaultValue = "*", customHandler = PackFolderOrAllHandler.class)
+            @Param(description = "The pack folder name to report on; omit for every pack", descriptionKey = "iris.director.commandpack.param.pack_folder_name_compat", defaultValue = "*", customHandler = PackFolderHandler.class)
             String pack
     ) {
         VolmitSender s = sender();

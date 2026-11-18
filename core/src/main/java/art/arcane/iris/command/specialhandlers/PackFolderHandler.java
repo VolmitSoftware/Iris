@@ -6,7 +6,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import java.io.File;
 import java.util.Collection;
 
-public class PackFolderHandler extends OpenSuggestionHandler {
+public final class PackFolderHandler extends OpenSuggestionHandler {
     @Override
     protected Collection<String> suggestions() {
         return PackDirectoryResolver.listVisiblePackDirectories(IrisPlatforms.get().packsFolder())

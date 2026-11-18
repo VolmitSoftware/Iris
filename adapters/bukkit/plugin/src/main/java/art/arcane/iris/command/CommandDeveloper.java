@@ -65,10 +65,10 @@ import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.BukkitCommandMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.iris.localization.BukkitCommandMessagesExtended;
-@Director(name = "Developer", origin = DirectorOrigin.BOTH, description = "Iris World Manager", descriptionKey = "iris.director.commanddeveloper.director.iris_world_manager", aliases = {"dev"})
+@Director(name = "developer",origin = DirectorOrigin.BOTH, description = "Iris World Manager", descriptionKey = "iris.director.commanddeveloper.director.iris_world_manager", aliases = {"dev"})
 public class CommandDeveloper implements DirectorExecutor {
-    @Director(description = "Get Loaded TectonicPlates Count", descriptionKey = "iris.director.commanddeveloper.director.get_loaded_tectonicplates_count", origin = DirectorOrigin.BOTH, sync = true)
-    public void EngineStatus() {
+    @Director(name = "engine-status", description = "Get Loaded TectonicPlates Count",descriptionKey = "iris.director.commanddeveloper.director.get_loaded_tectonicplates_count", origin = DirectorOrigin.BOTH, sync = true)
+    public void engineStatus() {
         Iris.service(IrisEngineSVC.class)
                 .engineStatus(sender());
     }
@@ -79,9 +79,9 @@ public class CommandDeveloper implements DirectorExecutor {
             World world,
             @Param(description = "Radius in chunks around the center", descriptionKey = "iris.director.commanddeveloper.param.radius_chunks_around_center", defaultValue = "4")
             int radius,
-            @Param(description = "Center chunk X", descriptionKey = "iris.director.commanddeveloper.param.center_chunk_x", defaultValue = "0")
+            @Param(name = "center-x", description = "Center chunk X", descriptionKey = "iris.director.commanddeveloper.param.center_chunk_x", defaultValue = "0")
             int centerX,
-            @Param(description = "Center chunk Z", descriptionKey = "iris.director.commanddeveloper.param.center_chunk_z", defaultValue = "0")
+            @Param(name = "center-z", description = "Center chunk Z", descriptionKey = "iris.director.commanddeveloper.param.center_chunk_z", defaultValue = "0")
             int centerZ) {
         if (world == null) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_DEVELOPER_WORLD_IS_NULL));
@@ -214,7 +214,7 @@ public class CommandDeveloper implements DirectorExecutor {
         }
     }
 
-    @Director(description = "Test", descriptionKey = "iris.director.commanddeveloper.director.test_2")
+    @Director(name = "pack-benchmark", description = "Test", descriptionKey = "iris.director.commanddeveloper.director.test_2")
     public void packBenchmark(
             @Param(description = "The pack to bench", descriptionKey = "iris.director.commanddeveloper.param.pack_bench", aliases = {"pack"}, defaultValue = "overworld")
             IrisDimension dimension,

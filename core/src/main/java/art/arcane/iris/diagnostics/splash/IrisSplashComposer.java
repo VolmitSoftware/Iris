@@ -54,7 +54,9 @@ public final class IrisSplashComposer {
         StringBuilder styled = new StringBuilder();
         for (Detail detail : row) {
             String separator = styled.isEmpty() ? " " : " | ";
-            styled.append(style.label(separator + detail.label() + ": ")).append(style.value(detail.value()));
+            String label = separator + detail.label() + ": ";
+            styled.append(detail.key() ? style.label(label) : style.quietLabel(label))
+                    .append(detail.key() ? style.value(detail.value()) : style.quietValue(detail.value()));
         }
         return styled.toString();
     }
@@ -71,10 +73,10 @@ public final class IrisSplashComposer {
                 "",
                 prefix + style.title(" Iris, ") + style.subtitle("Dimension Engine ") + style.tag("[" + releaseTrain + "]"),
                 prefix + style.label(" Version: ") + style.value(version),
-                prefix + style.label(" By: ") + style.value("Volmit Software (Arcane Arts)"),
-                prefix + style.label(" Web: ") + style.value("VolmitSoftware.com"),
+                prefix + style.quietLabel(" By: ") + style.quietValue("Volmit Software (Arcane Arts)"),
+                prefix + style.quietLabel(" Web: ") + style.quietValue("VolmitSoftware.com"),
                 prefix + style.label(" Server: ") + style.value(serverLine),
-                prefix + style.label(" Java: ") + style.value(javaVersion() < 0 ? "unknown" : String.valueOf(javaVersion())) + style.label(" | Date: ") + style.value(startupDate()),
+                prefix + style.quietLabel(" Java: ") + style.quietValue(javaVersion() < 0 ? "unknown" : String.valueOf(javaVersion())) + style.quietLabel(" | Date: ") + style.quietValue(startupDate()),
                 prefix + style.label(" Commit: ") + style.value(shortCommit()) + style.label("/") + style.value(BuildConstants.ENVIRONMENT),
                 "",
                 "",
@@ -142,7 +144,15 @@ public final class IrisSplashComposer {
         return LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
     }
 
-    public record Detail(String label, String value) {
+    /** One labelled fact; a key fact is what support reads first and keeps the accent color, the rest are dimmed. */
+    public record Detail(String label, String value, boolean key) {
+        public Detail(String label, String value) {
+            this(label, value, false);
+        }
+
+        public static Detail key(String label, String value) {
+            return new Detail(label, value, true);
+        }
     }
 
     public interface InfoStyle {
@@ -171,6 +181,14 @@ public final class IrisSplashComposer {
 
         default String value(String text) {
             return text;
+        }
+
+        default String quietLabel(String text) {
+            return label(text);
+        }
+
+        default String quietValue(String text) {
+            return value(text);
         }
     }
 }

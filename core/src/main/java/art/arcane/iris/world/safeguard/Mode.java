@@ -68,12 +68,12 @@ public enum Mode {
 
             @Override
             public String subtitle(String text) {
-                return C.AQUA + text;
+                return C.WHITE + text;
             }
 
             @Override
             public String tag(String text) {
-                return C.RED + text;
+                return C.DARK_GRAY + text;
             }
 
             @Override
@@ -84,6 +84,16 @@ public enum Mode {
             @Override
             public String value(String text) {
                 return color + text;
+            }
+
+            @Override
+            public String quietLabel(String text) {
+                return C.DARK_GRAY + text;
+            }
+
+            @Override
+            public String quietValue(String text) {
+                return C.GRAY + text;
             }
         };
     }

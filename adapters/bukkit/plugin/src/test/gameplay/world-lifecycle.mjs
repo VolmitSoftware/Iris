@@ -62,12 +62,12 @@ export default {
     })
     await context.step('unload while the player is inside and verify evacuation', async () => {
       context.expect((await playerWorld()) === storageName, 'Player must be inside the world before unload')
-      await context.command(`/iris unloadWorld ${worldKey}`)
+      await context.command(`/iris unload-world ${worldKey}`)
       await wait(async () => await settledStatus('loaded=false registered=true configured=true disk=true'), 'World unloaded with storage preserved')
       await assertEvacuated('Unload evacuated the player to a loaded world')
     })
     await context.step('reload the saved world and enter it again', async () => {
-      await context.command(`/iris loadWorld ${worldName}`)
+      await context.command(`/iris load-world ${worldName}`)
       await wait(async () => await settledStatus('loaded=true registered=true configured=true disk=true'), 'World reloaded')
       await context.command(`/iris tp ${worldKey}`)
       await assertSafeEntry()

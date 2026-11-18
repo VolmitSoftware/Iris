@@ -502,7 +502,7 @@ public class CommandIris implements DirectorExecutor {
     }
 
 
-    @Director(description = "Unload an Iris World", descriptionKey = "iris.director.commandiris.director.unload_iris_world", origin = DirectorOrigin.PLAYER, sync = true)
+    @Director(name = "unload-world", description = "Unload an Iris World", descriptionKey = "iris.director.commandiris.director.unload_iris_world", origin = DirectorOrigin.PLAYER, sync = true)
     public void unloadWorld(
             @Param(description = "The world to unload", descriptionKey = "iris.director.commandiris.param.world_unload")
             World world
@@ -622,7 +622,7 @@ public class CommandIris implements DirectorExecutor {
         }
     }
 
-    @Director(description = "Load an Iris World", descriptionKey = "iris.director.commandiris.director.load_iris_world", origin = DirectorOrigin.PLAYER, sync = true, aliases = {"import"})
+    @Director(name = "load-world", description = "Load an Iris World", descriptionKey = "iris.director.commandiris.director.load_iris_world", origin = DirectorOrigin.PLAYER, sync = true, aliases = {"import"})
     public void loadWorld(
             @Param(
                     description = "The name of the world to load",

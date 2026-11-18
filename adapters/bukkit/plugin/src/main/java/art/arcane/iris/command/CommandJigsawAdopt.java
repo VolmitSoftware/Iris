@@ -95,7 +95,7 @@ public class CommandJigsawAdopt implements DirectorExecutor {
     @Director(description = "Apply one inspected adoption plan without overwriting", sync = true,
             origin = DirectorOrigin.PLAYER)
     public void apply(
-            @Param(description = "Plan UUID returned by adopt inspect",
+            @Param(name = "plan-id", description = "Plan UUID returned by adopt inspect",
                     customHandler = JigsawAdoptionPlanHandler.class) String planId
     ) {
         VolmitSender commandSender = sender();

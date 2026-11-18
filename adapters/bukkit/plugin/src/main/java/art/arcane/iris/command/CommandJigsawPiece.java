@@ -25,8 +25,8 @@ public class CommandJigsawPiece implements DirectorExecutor {
     @Director(description = "Create an owned piece from the selected Studio topology", sync = true,
             origin = DirectorOrigin.PLAYER)
     public void create(
-            @Param(description = "Owned pool resource key") String poolKey,
-            @Param(description = "New owned piece and object key") String pieceKey,
+            @Param(name = "pool-key", description = "Owned pool resource key") String poolKey,
+            @Param(name = "piece-key", description = "New owned piece and object key") String pieceKey,
             @Param(description = "Positive selection weight", defaultValue = "1") int weight
     ) {
         CommandJigsaw.ActiveContext context = CommandJigsaw.active(player());
@@ -81,8 +81,8 @@ public class CommandJigsawPiece implements DirectorExecutor {
     @Director(description = "Add an existing jigsaw piece to an owned pool transactionally", sync = true,
             origin = DirectorOrigin.PLAYER)
     public void add(
-            @Param(description = "Owned pool resource key") String poolKey,
-            @Param(description = "Existing jigsaw piece key") String pieceKey,
+            @Param(name = "pool-key", description = "Owned pool resource key") String poolKey,
+            @Param(name = "piece-key", description = "Existing jigsaw piece key") String pieceKey,
             @Param(description = "Positive selection weight", defaultValue = "1") int weight
     ) {
         CommandJigsaw.ActiveContext context = CommandJigsaw.active(player());
@@ -153,7 +153,7 @@ public class CommandJigsawPiece implements DirectorExecutor {
     @Director(description = "Remove the selected piece from an owned pool transactionally", sync = true,
             origin = DirectorOrigin.PLAYER)
     public void remove(
-            @Param(description = "Owned pool resource key") String poolKey
+            @Param(name = "pool-key", description = "Owned pool resource key") String poolKey
     ) {
         CommandJigsaw.ActiveContext context = CommandJigsaw.active(player());
         if (context == null) {

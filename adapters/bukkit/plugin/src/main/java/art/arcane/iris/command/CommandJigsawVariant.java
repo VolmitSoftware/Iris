@@ -16,7 +16,7 @@ public class CommandJigsawVariant implements DirectorExecutor {
     @Director(description = "Set the selected piece weight in a pool", sync = true,
             origin = DirectorOrigin.PLAYER)
     public void weight(
-            @Param(description = "Pool resource key") String poolKey,
+            @Param(name = "pool-key", description = "Pool resource key") String poolKey,
             @Param(description = "Positive selection weight") int weight
     ) {
         CommandJigsaw.ActiveContext context = CommandJigsaw.active(player());
@@ -85,7 +85,7 @@ public class CommandJigsawVariant implements DirectorExecutor {
     @Director(description = "Set the active variant's author-facing label", sync = true,
             origin = DirectorOrigin.PLAYER)
     public void label(
-            @Param(description = "Display label; quote labels containing spaces") String displayName
+            @Param(name = "display-name", description = "Display label; quote labels containing spaces") String displayName
     ) {
         CommandJigsaw.ActiveContext context = CommandJigsaw.active(player());
         if (context == null) {
@@ -147,7 +147,7 @@ public class CommandJigsawVariant implements DirectorExecutor {
             description = "Duplicate every enabled workcell's active variant as one coherent family",
             sync = true, origin = DirectorOrigin.PLAYER)
     public void duplicateFamily(
-            @Param(description = "Family key or next", defaultValue = "next") String themeKey
+            @Param(name = "theme-key", description = "Family key or next", defaultValue = "next") String themeKey
     ) {
         CommandJigsaw.ActiveContext context = CommandJigsaw.active(player());
         if (context == null) {

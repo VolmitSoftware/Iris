@@ -1534,6 +1534,10 @@ public final class IrisRuntime implements IrisPluginRuntime {
     }
 
     private void printWithoutLogPrefix(String text) {
+        if (shadesConsole()) {
+            ComponentLog.logMarkup(plugin, Logger.getLogger("Iris"), "", Level.INFO, C.mini(C.escapeTags(text)), null);
+            return;
+        }
         ComponentLog.logLegacy(plugin, Logger.getLogger("Iris"), "", Level.INFO, text, null);
     }
 

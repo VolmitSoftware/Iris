@@ -116,6 +116,7 @@ import art.arcane.iris.localization.BukkitCommandMessagesExtended;
 @Director(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", descriptionKey = "iris.director.commandstudio.director.studio_commands")
 public class CommandStudio implements DirectorExecutor {
     private static final long CHUNK_SCAN_TIMEOUT_MS = 3_000;
+    private static final String REGEN_STOP_COMMAND = "/iris std regen-stop";
     private CommandEdit edit;
     //private CommandDeepSearch deepSearch;
 
@@ -268,9 +269,8 @@ public class CommandStudio implements DirectorExecutor {
                 return;
             }
 
-            commandSender.sendReport(ChatReport.of(ChatReport.Tone.INFO, IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_DEVELOPER_REGEN_STARTED_CHUNK_S_AROUND_DELETING_REGENERATING_PLACE, MessageArgument.untrusted("chunks", chunks), MessageArgument.untrusted("centerX", centerX), MessageArgument.untrusted("centerZ", centerZ)))
-                    .hint(regenStopHint(world), regenStopCommand(world))
-                    .build());
+            String started = IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_DEVELOPER_REGEN_STARTED_CHUNK_S_AROUND_DELETING_REGENERATING_PLACE, MessageArgument.untrusted("chunks", chunks), MessageArgument.untrusted("centerX", centerX), MessageArgument.untrusted("centerZ", centerZ));
+            commandSender.sendReport(withRegenStopHint(ChatReport.of(ChatReport.Tone.INFO, started), world).build());
             Iris.info("Regen run start: world=" + world.getName()
                     + " center=" + centerX + "," + centerZ
                     + " radius=" + radius
@@ -306,17 +306,12 @@ public class CommandStudio implements DirectorExecutor {
                 MessageArgument.untrusted("world", world.getName()),
                 MessageArgument.trusted("applied", running.appliedChunks()),
                 MessageArgument.trusted("total", running.totalChunks() <= 0 ? "?" : running.totalChunks()));
-        sender.sendReport(ChatReport.of(ChatReport.Tone.WARNING, alreadyRunning)
-                .hint(regenStopHint(world), regenStopCommand(world))
-                .build());
+        sender.sendReport(withRegenStopHint(ChatReport.of(ChatReport.Tone.WARNING, alreadyRunning), world).build());
     }
 
-    private static String regenStopCommand(World world) {
-        return "/iris std regen-stop world=" + world.getName();
-    }
-
-    private static String regenStopHint(World world) {
-        return IrisLanguage.text(RuntimeProgressMessages.CHUNK_STOP_HINT, MessageArgument.untrusted("command", regenStopCommand(world)));
+    private static ChatReport.Builder withRegenStopHint(ChatReport.Builder report, World world) {
+        String hint = IrisLanguage.text(RuntimeProgressMessages.CHUNK_STOP_HINT, MessageArgument.untrusted("command", REGEN_STOP_COMMAND));
+        return report.hint(hint, REGEN_STOP_COMMAND, REGEN_STOP_COMMAND + " world=" + world.getName());
     }
 
     @Director(description = "Toggle your Studio debug scoreboard", descriptionKey = "iris.director.commandstudio.director.toggle_your_studio_debug_scoreboard", aliases = {"board", "sidebar", "sb"}, origin = DirectorOrigin.PLAYER)

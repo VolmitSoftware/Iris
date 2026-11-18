@@ -178,9 +178,14 @@ public final class ChatReport {
         }
 
         public Builder hint(String text, String command) {
+            return hint(text, command, command);
+        }
+
+        /** Shows {@code shownCommand} in the hint text while a click runs {@code clickCommand}. */
+        public Builder hint(String text, String shownCommand, String clickCommand) {
             String cleaned = clean(text);
-            this.hint = command == null ? cleaned : cleaned.replace(command, highlight(command));
-            this.hintCommand = command;
+            this.hint = shownCommand == null ? cleaned : cleaned.replace(shownCommand, highlight(shownCommand));
+            this.hintCommand = clickCommand;
             return this;
         }
 

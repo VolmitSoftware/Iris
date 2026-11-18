@@ -265,7 +265,7 @@ public class CommandStructure implements DirectorExecutor {
     }
 
     private static String verifyCount(int count, String label, C color) {
-        return count == 0 ? "" : color.toString() + C.BOLD + count + C.GRAY + " " + label;
+        return count == 0 ? "" : color.toString() + count + C.GRAY + " " + label;
     }
 
     private static String unreachableLine(String keyName, List<String> missingBiomes) {

@@ -448,10 +448,10 @@ public class CommandPack implements DirectorExecutor {
                 : BukkitRuntimeMessages.COMMAND_PACK_STATUS_BROKEN;
         String line = IrisLanguage.text(
                 key,
-                MessageArgument.trusted("pack", C.WHITE.toString() + C.BOLD + ChatReport.clean(name)),
+                MessageArgument.trusted("pack", C.WHITE + ChatReport.clean(name)),
                 MessageArgument.trusted("blocking", statusCount(result.getBlockingErrors().size(), C.RED)),
                 MessageArgument.trusted("warnings", statusCount(result.getWarnings().size(), C.GOLD)));
-        return LEADING_COLOR.matcher(line).replaceFirst(statusTone(result).color().toString() + C.BOLD);
+        return LEADING_COLOR.matcher(line).replaceFirst(statusTone(result).color().toString());
     }
 
     private static ChatReport.Tone statusTone(PackValidationResult result) {
@@ -460,7 +460,7 @@ public class CommandPack implements DirectorExecutor {
     }
 
     private static String statusCount(int count, C color) {
-        return (count == 0 ? C.DARK_GRAY.toString() : color.toString() + C.BOLD) + count + C.GRAY;
+        return (count == 0 ? C.DARK_GRAY : color) + String.valueOf(count) + C.GRAY;
     }
 
     static ChatReport validationReport(PackValidationResult result) {

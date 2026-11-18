@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class ChatReportTest {
@@ -62,14 +63,33 @@ public class ChatReportTest {
     public void apostrophesAreNotTreatedAsQuotedNames() {
         String styled = ReportText.title(ChatReport.Tone.ERROR, "Can't open Studio for 'uitest'");
 
-        assertTrue(styled.contains("Can't open Studio for " + C.WHITE + C.BOLD + "'uitest'"));
+        assertTrue(styled.contains("Can't open Studio for " + C.WHITE + "'uitest'"));
     }
 
     @Test
-    public void boldTitlesSurviveTheMarkupConversion() {
-        String markup = C.mini(ReportText.title(ChatReport.Tone.ERROR, "Title") + C.GRAY + " rest");
+    public void titlesStayRegularWeight() {
+        String styled = ReportText.title(ChatReport.Tone.ERROR, "Can't open Studio for 'uitest'");
+
+        assertFalse(styled.contains(C.BOLD.toString()));
+    }
+
+    @Test
+    public void boldCodesSurviveTheMarkupConversion() {
+        String markup = C.mini(C.RED.toString() + C.BOLD + "Title" + C.GRAY + " rest");
 
         assertTrue(markup, markup.contains("<bold>Title<reset><gray> rest"));
+    }
+
+    @Test
+    public void hintCanShowAShorterCommandThanItRuns() {
+        ChatReport.Line hint = ChatReport.of(ChatReport.Tone.INFO, "t")
+                .hint("Stop it with /iris std regen-stop", "/iris std regen-stop", "/iris std regen-stop world=w")
+                .build()
+                .lines()
+                .getLast();
+
+        assertEquals("Stop it with /iris std regen-stop", hint.text().replaceAll("§.", ""));
+        assertEquals("/iris std regen-stop world=w", hint.command());
     }
 
     private static List<String> plainLines(ChatReport report) {

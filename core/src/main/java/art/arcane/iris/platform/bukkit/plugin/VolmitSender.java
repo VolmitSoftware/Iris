@@ -27,6 +27,10 @@ import art.arcane.volmlib.util.hud.HudSlot;
 import art.arcane.volmlib.util.plugin.ComponentMessenger;
 import art.arcane.volmlib.util.plugin.ComponentText;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ChatReport;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.math.M;
 import lombok.Getter;
@@ -302,6 +306,52 @@ public class VolmitSender implements CommandSender {
         }
 
         deliver(createComponent(message));
+    }
+
+    public void sendSuccess(String message) {
+        sendMessage(ChatReport.Tone.SUCCESS.paint(message));
+    }
+
+    public void sendInfo(String message) {
+        sendMessage(ChatReport.Tone.INFO.paint(message));
+    }
+
+    public void sendWarning(String message) {
+        sendMessage(ChatReport.Tone.WARNING.paint(message));
+    }
+
+    public void sendError(String message) {
+        sendMessage(ChatReport.Tone.ERROR.paint(message));
+    }
+
+    public void sendReport(ChatReport report) {
+        java.util.List<ChatReport.Line> lines = report.lines();
+        sendMessage(lines.getFirst().text());
+        for (int index = 1; index < lines.size(); index++) {
+            sendUntagged(lines.get(index));
+        }
+    }
+
+    private void sendUntagged(ChatReport.Line line) {
+        if (!rendersMarkup()) {
+            ComponentMessenger.sendSection(s, line.text());
+            return;
+        }
+        String text = line.clickable() && isPlayer() ? clickable(line) : line.text();
+        deliver(createNoPrefixComponent(text));
+    }
+
+    private String clickable(ChatReport.Line line) {
+        String command = line.command().replace("'", "\\'");
+        String hover = ChatReport.clean(IrisLanguage.plain(RuntimeUiMessages.REPORT_CLICK_TO_INSERT,
+                MessageArgument.untrusted("command", line.command()))).replace("'", "\\'");
+        return "<click:suggest_command:'" + command + "'><hover:show_text:'" + hover + "'>"
+                + line.text() + "</hover></click>";
+    }
+
+    private boolean rendersMarkup() {
+        boolean playerWithoutColors = !IrisSettings.get().getGeneral().isUseCustomColorsIngame() && s instanceof Player;
+        return !playerWithoutColors && IrisSettings.get().getGeneral().isUseConsoleCustomColors();
     }
 
     public void sendMessageBasic(String message) {

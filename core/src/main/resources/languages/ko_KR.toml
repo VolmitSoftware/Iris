@@ -2129,3 +2129,7 @@ open = "열기: {url}"
 open-description = "업로드한 진단 보고서를 엽니다."
 copy-path = "로컬 경로 복사"
 copy-path-description = "로컬 보고서 경로를 복사합니다."
+
+[iris.runtime.report]
+more = "외 {count}개"
+click_to_insert = "클릭하여 {command} 입력"

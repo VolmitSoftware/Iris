@@ -2126,3 +2126,7 @@ open = "Openen: {url}"
 open-description = "Open het geüploade diagnoserapport."
 copy-path = "Lokaal pad kopiëren"
 copy-path-description = "Kopieer het pad van het lokale rapport."
+
+[iris.runtime.report]
+more = "+{count} meer"
+click_to_insert = "Klik om {command} in te voegen"

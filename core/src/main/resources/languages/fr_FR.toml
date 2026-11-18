@@ -2126,3 +2126,7 @@ open = "Ouvrir : {url}"
 open-description = "Ouvrir le rapport de diagnostic envoyé."
 copy-path = "Copier le chemin local"
 copy-path-description = "Copier le chemin du rapport local."
+
+[iris.runtime.report]
+more = "+{count} de plus"
+click_to_insert = "Cliquez pour insérer {command}"

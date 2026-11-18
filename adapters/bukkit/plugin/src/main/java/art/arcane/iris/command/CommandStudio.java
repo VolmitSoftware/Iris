@@ -125,7 +125,6 @@ public class CommandStudio implements DirectorExecutor {
             long seed,
             @Param(defaultValue = "false", description = "Attempt to open Studio before a required registry restart", aliases = "f")
             boolean force) {
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_STUDIO_PACK_SEED, MessageArgument.untrusted("value", dimension.getName()), MessageArgument.untrusted("seed", seed)));
         Iris.service(StudioSVC.class).open(sender(), seed, dimension.getLoadKey(), force);
     }
 

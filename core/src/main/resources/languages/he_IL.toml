@@ -2131,3 +2131,7 @@ open = "פתיחה: {url}"
 open-description = "פתיחת דוח האבחון שהועלה."
 copy-path = "העתקת הנתיב המקומי"
 copy-path-description = "העתקת הנתיב של הדוח המקומי."
+
+[iris.runtime.report]
+more = "+{count} נוספים"
+click_to_insert = "לחצו כדי להוסיף את {command}"

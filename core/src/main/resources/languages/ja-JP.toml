@@ -2129,3 +2129,7 @@ open = "開く: {url}"
 open-description = "アップロードした診断レポートを開きます。"
 copy-path = "ローカルパスをコピー"
 copy-path-description = "ローカルのレポートのパスをコピーします。"
+
+[iris.runtime.report]
+more = "他 {count} 件"
+click_to_insert = "クリックして {command} を入力"

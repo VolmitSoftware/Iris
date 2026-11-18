@@ -7,7 +7,6 @@ import art.arcane.iris.pack.PackValidationRegistry;
 import art.arcane.iris.pack.PackValidationCache;
 import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
-import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -83,7 +82,7 @@ public class CommandPackValidationPublicationTest {
         try (MockedStatic<PackValidator> validator = mockStatic(PackValidator.class)) {
             validator.when(() -> PackValidator.validate(root)).thenReturn(valid);
 
-            assertSame(valid, new CommandPack().runValidate(mock(VolmitSender.class), root));
+            assertSame(valid, new CommandPack().runValidate(root));
 
             assertSame(valid, PackValidationRegistry.get(root.toPath()));
             assertSame(valid, PackValidationRegistry.get(root.getName()));
@@ -101,7 +100,7 @@ public class CommandPackValidationPublicationTest {
                 }
             });
 
-            assertFalse(new CommandPack().runValidate(mock(VolmitSender.class), root).isLoadable());
+            assertFalse(new CommandPack().runValidate(root).isLoadable());
             assertNull(PackValidationRegistry.get(root.toPath()));
             assertNull(PackValidationRegistry.get(root.getName()));
         }
@@ -119,7 +118,7 @@ public class CommandPackValidationPublicationTest {
                 return new PackValidationResult(root.getName(), List.of(), List.of(), 1L);
             });
 
-            assertFalse(new CommandPack().runValidate(mock(VolmitSender.class), root).isLoadable());
+            assertFalse(new CommandPack().runValidate(root).isLoadable());
             assertFalse(PackValidationRegistry.get(root.toPath()).isLoadable());
         }
     }

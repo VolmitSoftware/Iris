@@ -2131,3 +2131,7 @@ open = "Avaa: {url}"
 open-description = "Avaa lähetetty vianmääritysraportti."
 copy-path = "Kopioi paikallinen polku"
 copy-path-description = "Kopioi paikallisen raportin polku."
+
+[iris.runtime.report]
+more = "+{count} lisää"
+click_to_insert = "Napsauta lisätäksesi {command}"

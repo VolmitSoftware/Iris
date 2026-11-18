@@ -2131,3 +2131,7 @@ open = "Aç: {url}"
 open-description = "Yüklenen tanılama raporunu açın."
 copy-path = "Yerel yolu kopyala"
 copy-path-description = "Yerel raporun yolunu kopyalayın."
+
+[iris.runtime.report]
+more = "+{count} tane daha"
+click_to_insert = "{command} eklemek için tıklayın"

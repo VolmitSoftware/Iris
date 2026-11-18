@@ -2129,3 +2129,7 @@ open = "Mở: {url}"
 open-description = "Mở báo cáo chẩn đoán đã tải lên."
 copy-path = "Sao chép đường dẫn cục bộ"
 copy-path-description = "Sao chép đường dẫn của báo cáo cục bộ."
+
+[iris.runtime.report]
+more = "+{count} mục khác"
+click_to_insert = "Nhấp để chèn {command}"

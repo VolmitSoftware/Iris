@@ -2129,3 +2129,7 @@ open = "開啟：{url}"
 open-description = "開啟已上傳的診斷報告。"
 copy-path = "複製本機路徑"
 copy-path-description = "複製本機報告的路徑。"
+
+[iris.runtime.report]
+more = "另有 {count} 項"
+click_to_insert = "點擊插入 {command}"

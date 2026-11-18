@@ -2131,3 +2131,7 @@ open = "Atidaryti: {url}"
 open-description = "Atidaryti įkeltą diagnostikos ataskaitą."
 copy-path = "Kopijuoti vietinį kelią"
 copy-path-description = "Kopijuoti vietinės ataskaitos kelią."
+
+[iris.runtime.report]
+more = "dar {count}"
+click_to_insert = "Spustelėkite, kad įterptumėte {command}"

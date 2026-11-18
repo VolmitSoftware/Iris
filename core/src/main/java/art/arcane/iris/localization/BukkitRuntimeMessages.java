@@ -442,7 +442,7 @@ public final class BukkitRuntimeMessages {
     );
     public static final TextKey STUDIO_S_V_C_CANNOT_OPEN_STUDIO_PACK_HAS_BLOCKING_ERRORS = TextKey.of(
             "iris.bukkit.runtime.studiosvc.cannot_open_studio_pack_has_blocking_errors",
-            "Cannot open studio '" + "{dimm}" + "' - pack has blocking errors:"
+            "Can't open Studio for " + "{dimm}" + ": the pack has blocking errors"
     );
     public static final TextKey STUDIO_S_V_C_MESSAGE = TextKey.of(
             "iris.bukkit.runtime.studiosvc.message",
@@ -450,7 +450,7 @@ public final class BukkitRuntimeMessages {
     );
     public static final TextKey STUDIO_S_V_C_FIX_PACK_RUN_IRIS_PACK_VALIDATE_REVALIDATE = TextKey.of(
             "iris.bukkit.runtime.studiosvc.fix_pack_run_iris_pack_validate_revalidate",
-            "Fix the pack and run /iris pack validate " + "{dimm}" + " to revalidate."
+            "Fix the pack, then run /iris pack validate " + "{dimm}"
     );
     public static final TextKey STUDIO_S_V_C_FAILED_CLOSE_EXISTING_STUDIO_PROJECT = TextKey.of(
             "iris.bukkit.runtime.studiosvc.failed_close_existing_studio_project",

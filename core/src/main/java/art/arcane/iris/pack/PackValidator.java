@@ -356,7 +356,7 @@ public final class PackValidator {
                 .summaryLine(versionOf(result, minecraftVersion));
     }
 
-    private static String versionOf(PackValidationResult result, String minecraftVersion) {
+    static String versionOf(PackValidationResult result, String minecraftVersion) {
         if (minecraftVersion != null && !minecraftVersion.isBlank()) {
             return minecraftVersion;
         }

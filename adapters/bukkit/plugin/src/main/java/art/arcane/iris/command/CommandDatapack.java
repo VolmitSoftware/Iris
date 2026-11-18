@@ -20,6 +20,8 @@ package art.arcane.iris.command;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.command.handlers.DimensionHandler;
+import art.arcane.iris.command.specialhandlers.ExportFormatHandler;
+import art.arcane.iris.command.specialhandlers.ExportModeHandler;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.localization.BukkitCommandMessages;
 import art.arcane.iris.localization.C;
@@ -104,13 +106,13 @@ public class CommandDatapack implements DirectorExecutor {
             IrisDimension dimension,
             @Param(name = "version", description = "Target Minecraft version, 26.3 or later (blank uses the latest)", descriptionKey = "iris.director.commanddatapack.param.export_version", defaultValue = "")
             String version,
-            @Param(name = "mode", description = "Output mode: preset, dimension, or overworld", descriptionKey = "iris.director.commanddatapack.param.export_mode", defaultValue = WorldgenExportRequest.DEFAULT_MODE)
+            @Param(name = "mode", description = "Output mode: preset, dimension, or overworld", descriptionKey = "iris.director.commanddatapack.param.export_mode", defaultValue = WorldgenExportRequest.DEFAULT_MODE, customHandler = ExportModeHandler.class)
             String mode,
             @Param(name = "namespace", description = "Namespace for the exported resources", descriptionKey = "iris.director.commanddatapack.param.export_namespace", defaultValue = WorldgenExportRequest.DEFAULT_NAMESPACE)
             String namespace,
             @Param(name = "output", description = "Output name in the datapack exports folder (blank uses the dimension and version)", descriptionKey = "iris.director.commanddatapack.param.export_output", defaultValue = "")
             String output,
-            @Param(name = "format", description = "zip or directory", descriptionKey = "iris.director.commanddatapack.param.export_format", defaultValue = WorldgenExportRequest.DEFAULT_FORMAT)
+            @Param(name = "format", description = "zip or directory", descriptionKey = "iris.director.commanddatapack.param.export_format", defaultValue = WorldgenExportRequest.DEFAULT_FORMAT, customHandler = ExportFormatHandler.class)
             String format,
             @Param(name = "objects", description = "Include objects as structure templates", descriptionKey = "iris.director.commanddatapack.param.export_objects", defaultValue = "true")
             boolean objects,

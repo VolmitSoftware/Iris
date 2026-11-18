@@ -35,6 +35,7 @@ import art.arcane.iris.localization.C;
 import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.command.handlers.DimensionHandler;
+import art.arcane.iris.command.specialhandlers.CleanupModeHandler;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
@@ -162,7 +163,7 @@ public class CommandPack implements DirectorExecutor {
     public void cleanup(
             @Param(description = "The pack folder name to clean", descriptionKey = "iris.director.commandpack.param.pack_folder_name_clean")
             String pack,
-            @Param(description = "preview or apply", descriptionKey = "iris.director.commandpack.param.preview_apply", defaultValue = "preview")
+            @Param(description = "preview or apply", descriptionKey = "iris.director.commandpack.param.preview_apply", defaultValue = "preview", customHandler = CleanupModeHandler.class)
             String mode
     ) {
         VolmitSender s = sender();

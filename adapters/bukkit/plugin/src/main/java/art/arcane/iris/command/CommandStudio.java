@@ -35,6 +35,8 @@ import art.arcane.iris.structure.FeatureImporter;
 import art.arcane.iris.structure.StructureImporter;
 import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.world.runtime.InPlaceChunkRegenerator;
+import art.arcane.iris.generation.runtime.DimensionStackContext;
+import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.world.loot.InventorySlotType;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -101,6 +103,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import art.arcane.iris.localization.IrisLanguage;
@@ -402,6 +405,21 @@ public class CommandStudio implements DirectorExecutor {
         player().openInventory(inv);
     }
 
+    /**
+     * Region chances describe the pack's generator, so sample it directly; the engine's getRegion answers from saved
+     * world history instead, which throws for every chunk whose history is not loaded.
+     */
+    private static IrisRegion generatorRegion(Engine engine, int blockX, int blockZ) {
+        DimensionStackContext stack = engine.getDimensionStackContext();
+        if (stack != null) {
+            DimensionStackLayout.Layer layer = stack.getLayout(blockX, blockZ).surfaceLayer();
+            if (layer != null && layer.region() != null) {
+                return layer.region();
+            }
+        }
+        return engine.getComplex().getRegionStream().get(blockX, blockZ);
+    }
+
     @Director(description = "Calculate the chance for each region to generate", descriptionKey = "iris.director.commandstudio.director.calculate_chance_each_region_generate", origin = DirectorOrigin.PLAYER)
     public void regions(@Param(description = "The radius in chunks", descriptionKey = "iris.director.commandstudio.param.radius_chunks", defaultValue = "500") int radius) {
         var engine = engine();
@@ -433,6 +451,7 @@ public class CommandStudio implements DirectorExecutor {
                     var loc = player.getLocation();
                     int totalTasks = d * d;
                     AtomicInteger completedTasks = new AtomicInteger(0);
+                    AtomicReference<Throwable> firstFailure = new AtomicReference<>();
                     progressShown = true;
                     c = J.ar(() -> {
                         double jobProgress = (double) completedTasks.get() / totalTasks;
@@ -440,12 +459,22 @@ public class CommandStudio implements DirectorExecutor {
                         BukkitPlatform.showProgressLane(player, "iris:job", IrisLanguage.text(RuntimeUiMessages.FINDING_REGIONS) + " " + Form.pc(jobProgress, 0), jobProgress, 4000L);
                     }, 0);
                     new Spiraler(d, d, (x, z) -> executor.queue(() -> {
-                        var region = engine.getRegion((x << 4) + 8, (z << 4) + 8);
-                        data.computeIfAbsent(region.getLoadKey(), (k) -> new AtomicInteger(0))
-                                .incrementAndGet();
-                        completedTasks.incrementAndGet();
+                        if (firstFailure.get() != null) {
+                            return;
+                        }
+                        try {
+                            var region = generatorRegion(engine, (x << 4) + 8, (z << 4) + 8);
+                            data.computeIfAbsent(region.getLoadKey(), (k) -> new AtomicInteger(0))
+                                    .incrementAndGet();
+                            completedTasks.incrementAndGet();
+                        } catch (Throwable failure) {
+                            firstFailure.compareAndSet(null, failure);
+                        }
                     })).setOffset(loc.getBlockX(), loc.getBlockZ()).drain();
                     executor.complete();
+                    if (firstFailure.get() != null) {
+                        throw firstFailure.get();
+                    }
 
                     var loader = engine.getData().getRegionLoader();
                     ChatReport.Builder report = ChatReport.of(ChatReport.Tone.SUCCESS,

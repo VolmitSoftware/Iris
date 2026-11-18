@@ -7,6 +7,13 @@ import java.util.Map;
 
 /** Swaps the non-ASCII glyphs Iris prints for ASCII ones when the console charset cannot encode them. */
 public final class ConsoleGlyphs {
+    public static final String BAR = "\u2502";
+    public static final String BRANCH = "\u251c";
+    public static final String LAST_BRANCH = "\u2514";
+    public static final String CHECK = "\u2714";
+    public static final String CAUTION = "\u25b2";
+    public static final String CROSS = "\u2716";
+
     private static final Map<String, String> ASCII_FALLBACKS = asciiFallbacks();
     private static final String[] CONSOLE_CHARSET_PROPERTIES = {"stdout.encoding", "native.encoding"};
     private static final ConsoleGlyphs CONSOLE = forCharset(consoleCharset());
@@ -45,8 +52,14 @@ public final class ConsoleGlyphs {
     private static Map<String, String> asciiFallbacks() {
         Map<String, String> fallbacks = new LinkedHashMap<>();
         fallbacks.put("\u00bb", ">");
-        fallbacks.put("\u2039", "<");
-        fallbacks.put("\u203a", ">");
+        fallbacks.put(BAR, "|");
+        fallbacks.put(BRANCH, "|-");
+        fallbacks.put(LAST_BRANCH, "`-");
+        fallbacks.put(CHECK, "+");
+        fallbacks.put(CAUTION, "!");
+        fallbacks.put(CROSS, "x");
+        fallbacks.put("\u2039", "[");
+        fallbacks.put("\u203a", "]");
         return fallbacks;
     }
 

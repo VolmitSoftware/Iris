@@ -49,6 +49,7 @@ import art.arcane.iris.integration.IrisPapiState;
 import art.arcane.iris.integration.MultiverseCoreLink;
 import art.arcane.iris.integration.MultiverseSVC;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.localization.ConsoleGlyphs;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.pack.datapack.DatapackIngestService;
@@ -263,7 +264,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
         if (current == null) {
             Iris plugin = Iris.instance;
             current = new VolmitSender(Bukkit.getConsoleSender());
-            current.setTag(IrisSafeguard.mode().logTag());
+            current.setTag(logPrefix());
             sender = current;
         }
         return current;
@@ -310,8 +311,9 @@ public final class IrisRuntime implements IrisPluginRuntime {
     static void msg(String string) {
         try {
             Iris plugin = Iris.instance;
+            String markup = ConsoleGlyphs.console().fit(string);
             if (shadesConsole()) {
-                logShaded(Level.INFO, logPrefix() + string);
+                logShaded(Level.INFO, logPrefix() + markup);
                 return;
             }
             ComponentLog.logMarkup(
@@ -319,7 +321,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
                     Logger.getLogger("Iris"),
                     logPrefix(),
                     Level.INFO,
-                    string,
+                    markup,
                     null);
         } catch (Throwable e) {
             try {
@@ -632,7 +634,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
     }
 
     private static String logPrefix() {
-        return IrisSafeguard.mode().logTag();
+        return ConsoleGlyphs.console().fit(IrisSafeguard.mode().logTag());
     }
 
     static int irisVersion(String input) {
@@ -738,7 +740,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
         timings.mark("datapacks");
         IrisSafeguard.execute();
         timings.mark("safeguard");
-        getSender().setTag(IrisSafeguard.mode().logTag());
+        getSender().setTag(logPrefix());
         // A cosmetic banner must never abort the bootstrap.
         J.attempt(this::splash);
         IrisSafeguard.printReports();
@@ -858,7 +860,8 @@ public final class IrisRuntime implements IrisPluginRuntime {
         private void report() {
             String total = seconds(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
             String phases = slowestFirst(phaseMillis, REPORTED_PHASE_MIN_MS);
-            IrisLogging.notice(phases.isEmpty() ? "Enabled in " + total : "Enabled in " + total + " (" + phases + ")");
+            String enabled = phases.isEmpty() ? "Enabled in " + total : "Enabled in " + total + " (" + phases + ")";
+            IrisLogging.notice(ChatReport.Tone.SUCCESS.marked(C.RESET + enabled));
             String slowServices = slowestFirst(serviceMillis, SLOW_SERVICE_MIN_MS);
             if (!slowServices.isEmpty()) {
                 IrisLogging.notice("Slow services: " + slowServices);

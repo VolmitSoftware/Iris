@@ -11,18 +11,29 @@ public final class ChatReport {
     public static final int DEFAULT_ITEM_LIMIT = 8;
     private static final String ITEM_BULLET = "  » ";
     private static final String CONTINUATION_INDENT = "     ";
+    private static final String TREE_CONTINUATION_INDENT = "   ";
     private static final Pattern LEGACY_COLOR = Pattern.compile("(?i)[§&][0-9A-FK-ORX]");
 
     public enum Tone {
-        SUCCESS(C.IRIS),
-        INFO(C.AQUA),
-        WARNING(C.GOLD),
-        ERROR(C.RED);
+        SUCCESS(C.IRIS, ConsoleGlyphs.CHECK),
+        INFO(C.AQUA, ""),
+        WARNING(C.GOLD, ConsoleGlyphs.CAUTION),
+        ERROR(C.RED, ConsoleGlyphs.CROSS);
 
         private final C color;
+        private final String mark;
 
-        Tone(C color) {
+        Tone(C color, String mark) {
             this.color = color;
+            this.mark = mark;
+        }
+
+        /** Prefixes already styled console text with this tone's status mark; a tone without one leaves it as is. */
+        public String marked(String styledText) {
+            if (mark.isEmpty()) {
+                return styledText;
+            }
+            return color + mark + " " + styledText;
         }
 
         public C color() {
@@ -124,9 +135,42 @@ public final class ChatReport {
         }
     }
 
+    /** The console layout: a status mark on the title and the body drawn as a tree under it. */
+    public List<String> consoleLines() {
+        List<String> lines = new ArrayList<>();
+        lines.add(tone.marked(ReportText.title(tone, clean(title))));
+        List<List<String>> branches = consoleBranches();
+        for (int index = 0; index < branches.size(); index++) {
+            addBranchLines(lines, branches.get(index), index == branches.size() - 1);
+        }
+        return lines;
+    }
+
+    private List<List<String>> consoleBranches() {
+        int shown = Math.min(itemLimit, entries.size());
+        List<List<String>> branches = new ArrayList<>(entries.subList(0, shown));
+        int hidden = entries.size() - shown;
+        if (hidden > 0) {
+            branches.add(List.of(C.DARK_GRAY + ReportText.moreLabel(hidden)));
+        }
+        if (hint != null) {
+            branches.add(List.of(C.GRAY + hint));
+        }
+        return branches;
+    }
+
+    private void addBranchLines(List<String> lines, List<String> branch, boolean last) {
+        String connector = last ? ConsoleGlyphs.LAST_BRANCH : ConsoleGlyphs.BRANCH;
+        String trunk = last ? " " : ConsoleGlyphs.BAR;
+        lines.add(tone.color() + connector + " " + C.GRAY + branch.getFirst());
+        for (int index = 1; index < branch.size(); index++) {
+            lines.add(tone.color() + trunk + TREE_CONTINUATION_INDENT + branch.get(index).stripLeading());
+        }
+    }
+
     public void log() {
-        for (Line line : lines()) {
-            logLine(line.text());
+        for (String line : consoleLines()) {
+            logLine(line);
         }
     }
 

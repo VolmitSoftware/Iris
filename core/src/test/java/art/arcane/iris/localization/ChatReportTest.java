@@ -104,6 +104,33 @@ public class ChatReportTest {
         assertEquals(3, report.lines().size());
     }
 
+    @Test
+    public void consoleLayoutMarksTheTitleAndDrawsTheBodyAsATree() {
+        List<String> console = ChatReport.of(ChatReport.Tone.ERROR, "Pack 'uitest' failed validation")
+                .items(List.of(
+                        "Biome 'dev'" + REMOVED_FIELD_TAIL,
+                        "Biome 'vanilla/grove'" + REMOVED_FIELD_TAIL,
+                        "Missing dimensions/ folder."))
+                .hint("Details: /iris pack validate uitest", null)
+                .build()
+                .consoleLines().stream().map(line -> line.replaceAll("§.", "")).toList();
+
+        assertEquals(List.of(
+                "\u2716 Pack 'uitest' failed validation",
+                "\u251c 2 biomes: caveProfile.allowWater was removed; use caveProfile.allowFluid. Cave aquifers use the dimension fluidPalette.",
+                "\u2502   dev, vanilla/grove",
+                "\u251c Missing dimensions/ folder.",
+                "\u2514 Details: /iris pack validate uitest"), console);
+    }
+
+    @Test
+    public void consoleLayoutLeavesInfoTitlesUnmarked() {
+        List<String> console = ChatReport.of(ChatReport.Tone.INFO, "Worlds").item("world").build().consoleLines();
+
+        assertEquals("Worlds", console.get(0).replaceAll("§.", ""));
+        assertEquals("\u2514 world", console.get(1).replaceAll("§.", ""));
+    }
+
     private static List<String> plainLines(ChatReport report) {
         return report.lines().stream().map(line -> line.text().replaceAll("§.", "")).toList();
     }

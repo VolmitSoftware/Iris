@@ -4,6 +4,7 @@ import art.arcane.iris.diagnostics.splash.IrisSplashComposer;
 import art.arcane.iris.diagnostics.splash.IrisSplashRenderer;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ConsoleGlyphs;
 import org.bukkit.Bukkit;
 
 import java.util.List;
@@ -43,7 +44,7 @@ public enum Mode {
     }
 
     public String logTag() {
-        return color.toString() + C.BOLD + "Iris" + C.RESET + C.DARK_GRAY + " | " + C.RESET;
+        return color.toString() + C.BOLD + "Iris" + C.RESET + C.DARK_GRAY + " " + ConsoleGlyphs.BAR + " " + C.RESET;
     }
 
     public String composeSplash(List<List<IrisSplashComposer.Detail>> detailRows) {

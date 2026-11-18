@@ -1,10 +1,14 @@
 package art.arcane.iris.pack.loading;
 
 import art.arcane.iris.localization.C;
-import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.localization.ChatReport;
+import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.world.history.GenerationHistoryPaths;
+import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +24,9 @@ import java.util.concurrent.TimeUnit;
 final class UnknownFieldReport {
     private static final long QUIET_PERIOD_BEFORE_FLUSH_MS = 1_500L;
     private static final String FLUSH_THREAD_NAME = "Iris Unknown Field Report";
+    private static final String EPOCH_METADATA_FILE_NAME = "epoch.json";
     private static final Set<String> REPORTED = ConcurrentHashMap.newKeySet();
+    private static final Map<Path, String> PACK_LABELS = new ConcurrentHashMap<>();
     private static final List<UnknownField> PENDING = new ArrayList<>();
     private static final ScheduledExecutorService FLUSHER = Executors.newSingleThreadScheduledExecutor(runnable -> {
         Thread thread = new Thread(runnable, FLUSH_THREAD_NAME);
@@ -46,18 +52,24 @@ final class UnknownFieldReport {
     }
 
     static void flush() {
-        drainReportLines().forEach(line -> IrisLogging.warn("%s", line));
+        if (!IrisPlatforms.isBound()) {
+            synchronized (PENDING) {
+                rescheduleFlush();
+            }
+            return;
+        }
+        drainReports().forEach(ChatReport::log);
     }
 
-    static List<String> drainReportLines() {
+    static List<ChatReport> drainReports() {
         List<UnknownField> batch;
         synchronized (PENDING) {
             batch = new ArrayList<>(PENDING);
             PENDING.clear();
         }
-        List<String> lines = new ArrayList<>();
-        groupByPack(batch).forEach((pack, fields) -> appendPackLines(lines, pack, fields));
-        return lines;
+        List<ChatReport> reports = new ArrayList<>();
+        groupByPack(batch).forEach((pack, fields) -> reports.add(packReport(pack, fields)));
+        return reports;
     }
 
     static void resetForTests() {
@@ -65,6 +77,7 @@ final class UnknownFieldReport {
             PENDING.clear();
         }
         REPORTED.clear();
+        PACK_LABELS.clear();
     }
 
     private static void rescheduleFlush() {
@@ -84,21 +97,24 @@ final class UnknownFieldReport {
         return packs;
     }
 
-    private static void appendPackLines(List<String> lines, String pack, Map<String, List<UnknownField>> fields) {
-        lines.add(pack + ": unknown fields, ignored");
+    private static ChatReport packReport(String pack, Map<String, List<UnknownField>> fields) {
+        String title = "Pack '" + pack + "': " + fields.size() + (fields.size() == 1 ? " unknown field" : " unknown fields") + ", ignored";
+        ChatReport.Builder report = ChatReport.of(ChatReport.Tone.WARNING, title);
         int labelWidth = fields.keySet().stream().mapToInt(String::length).max().orElse(0);
-        fields.forEach((typeAndField, occurrences) -> lines.add(describeField(typeAndField, occurrences, labelWidth)));
+        fields.forEach((typeAndField, occurrences) -> report.styledItem(describeField(typeAndField, occurrences, labelWidth)));
+        return report.build();
     }
 
     private static String describeField(String typeAndField, List<UnknownField> occurrences, int labelWidth) {
         UnknownField first = occurrences.getFirst();
         int count = occurrences.size();
-        StringBuilder out = new StringBuilder("  ")
-                .append(C.WHITE).append(padRight(typeAndField, labelWidth)).append(C.YELLOW)
-                .append("  ").append(count).append(count == 1 ? " file " : " files")
-                .append("  ").append(count == 1 ? "" : "e.g. ").append(first.location());
+        StringBuilder out = new StringBuilder()
+                .append(C.WHITE).append(padRight(typeAndField, labelWidth))
+                .append(C.DARK_GRAY).append("  ").append(count).append(count == 1 ? " file " : " files")
+                .append("  ").append(C.GRAY).append(count == 1 ? "" : "e.g. ")
+                .append(C.AQUA).append(first.location());
         if (first.suggestion() != null) {
-            out.append(" (did you mean ").append(C.WHITE).append('"').append(first.suggestion()).append('"').append(C.YELLOW).append("?)");
+            out.append(C.GRAY).append(" did you mean ").append(C.WHITE).append('\'').append(first.suggestion()).append('\'').append(C.GRAY).append('?');
         }
         return out.toString();
     }
@@ -111,17 +127,29 @@ final class UnknownFieldReport {
         if (dataFolder == null) {
             return "pack";
         }
-        Path epochDimension = epochDimensionRoot(dataFolder.toPath().toAbsolutePath().normalize());
-        return epochDimension != null ? epochDimension.getFileName().toString() : dataFolder.getName();
+        Path folder = dataFolder.toPath().toAbsolutePath().normalize();
+        return PACK_LABELS.computeIfAbsent(folder, UnknownFieldReport::resolvePackLabel);
     }
 
-    private static Path epochDimensionRoot(Path dataFolder) {
+    private static String resolvePackLabel(Path dataFolder) {
         Path epochs = ancestor(dataFolder, 2);
-        if (!GenerationHistoryPaths.LEGACY_PACK_DIRECTORY_NAME.equals(name(dataFolder))
-                || !GenerationHistoryPaths.EPOCHS_DIRECTORY_NAME.equals(name(epochs))) {
+        boolean epochSnapshot = GenerationHistoryPaths.LEGACY_PACK_DIRECTORY_NAME.equals(name(dataFolder))
+                && GenerationHistoryPaths.EPOCHS_DIRECTORY_NAME.equals(name(epochs));
+        if (!epochSnapshot) {
+            return name(dataFolder);
+        }
+        String dimensionKey = epochDimensionKey(dataFolder.getParent().resolve(EPOCH_METADATA_FILE_NAME));
+        return dimensionKey != null ? dimensionKey : name(ancestor(epochs, 3));
+    }
+
+    private static String epochDimensionKey(Path epochMetadata) {
+        try {
+            JSONObject contract = new JSONObject(Files.readString(epochMetadata)).optJSONObject("dimensionContract");
+            String dimensionKey = contract == null ? "" : contract.optString("dimensionKey", "");
+            return dimensionKey.isBlank() ? null : dimensionKey;
+        } catch (IOException | RuntimeException unreadable) {
             return null;
         }
-        return ancestor(epochs, 3);
     }
 
     private static Path ancestor(Path path, int levels) {
@@ -150,7 +178,7 @@ final class UnknownFieldReport {
 
     private record UnknownField(String pack, String resourceTypeName, String field, String location, String suggestion) {
         String typeAndField() {
-            return resourceTypeName + " \"" + field + "\"";
+            return resourceTypeName + " '" + field + "'";
         }
 
         String identity() {

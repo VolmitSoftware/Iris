@@ -2,7 +2,6 @@ package art.arcane.iris.pack;
 
 import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.pack.validation.PackCompatReport;
-import art.arcane.iris.spi.IrisLogging;
 
 import java.util.List;
 
@@ -32,7 +31,7 @@ public final class PackBootReporter {
             return;
         }
         if (announceClean || !compatSummary.isEmpty()) {
-            IrisLogging.info("Pack '" + pack + "' validated." + compatSuffix);
+            ChatReport.of(ChatReport.Tone.SUCCESS, "Pack '" + pack + "' validated." + compatSuffix).build().log();
         }
     }
 

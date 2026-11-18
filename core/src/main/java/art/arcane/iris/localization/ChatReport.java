@@ -130,8 +130,7 @@ public final class ChatReport {
         }
     }
 
-    private void logLine(String styledText) {
-        String text = IrisLogging.clean(styledText);
+    private void logLine(String text) {
         switch (tone) {
             case ERROR -> IrisLogging.error(text);
             case WARNING -> IrisLogging.warn(text);

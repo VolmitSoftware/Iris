@@ -598,14 +598,13 @@ public final class IrisRuntime implements IrisPluginRuntime {
     }
 
     private static void diagnostic(Level level, String message) {
-        String line = IrisLogging.clean(message);
         Iris plugin = Iris.instance;
-        ComponentLog.log(
+        ComponentLog.logLegacy(
                 plugin,
                 Logger.getLogger("Iris"),
                 logPrefix(plugin),
                 level,
-                ComponentText.literal(line),
+                message,
                 null);
     }
 

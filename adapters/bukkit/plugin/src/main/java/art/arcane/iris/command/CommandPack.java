@@ -46,8 +46,10 @@ import org.bukkit.World;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.BukkitCommandMessages;
@@ -56,6 +58,7 @@ import art.arcane.iris.localization.BukkitRuntimeMessages;
 @Director(name = "pack", aliases = {"pk"}, description = "Pack validation and maintenance", descriptionKey = "iris.director.commandpack.director.pack_validation_maintenance")
 public class CommandPack implements DirectorExecutor {
     private static final int PATH_REPORT_LIMIT = 10;
+    private static final Pattern LEADING_COLOR = Pattern.compile("^§[0-9a-fk-or]");
 
     @Director(name = "update-world", description = "Stage an installed pack for a world and request a clean restart", descriptionKey = "iris.director.commanddeveloper.director.stage_world_generation_update")
     public void updateWorld(
@@ -277,7 +280,11 @@ public class CommandPack implements DirectorExecutor {
                 return;
             }
             ChatReport.Builder report = ChatReport.of(ChatReport.Tone.INFO, "Pack validation status").unlimited();
-            PackValidationRegistry.snapshot().forEach((name, result) -> report.styledItem(statusLine(name, result)));
+            PackValidationRegistry.snapshot().entrySet().stream()
+                    .sorted(Comparator.comparing((Map.Entry<String, PackValidationResult> entry) -> statusTone(entry.getValue()).ordinal())
+                            .reversed()
+                            .thenComparing(Map.Entry::getKey))
+                    .forEach(entry -> report.styledItem(statusLine(entry.getKey(), entry.getValue())));
             s.sendReport(report.build());
             return;
         }
@@ -439,13 +446,21 @@ public class CommandPack implements DirectorExecutor {
         TextKey key = result.isLoadable()
                 ? BukkitRuntimeMessages.COMMAND_PACK_STATUS_OK
                 : BukkitRuntimeMessages.COMMAND_PACK_STATUS_BROKEN;
-        ChatReport.Tone tone = !result.isLoadable() ? ChatReport.Tone.ERROR
-                : result.getWarnings().isEmpty() ? ChatReport.Tone.SUCCESS : ChatReport.Tone.WARNING;
-        return tone.paint(IrisLanguage.text(
+        String line = IrisLanguage.text(
                 key,
-                MessageArgument.untrusted("pack", name),
-                MessageArgument.trusted("blocking", result.getBlockingErrors().size()),
-                MessageArgument.trusted("warnings", result.getWarnings().size())));
+                MessageArgument.trusted("pack", C.WHITE.toString() + C.BOLD + ChatReport.clean(name)),
+                MessageArgument.trusted("blocking", statusCount(result.getBlockingErrors().size(), C.RED)),
+                MessageArgument.trusted("warnings", statusCount(result.getWarnings().size(), C.GOLD)));
+        return LEADING_COLOR.matcher(line).replaceFirst(statusTone(result).color().toString() + C.BOLD);
+    }
+
+    private static ChatReport.Tone statusTone(PackValidationResult result) {
+        return !result.isLoadable() ? ChatReport.Tone.ERROR
+                : result.getWarnings().isEmpty() ? ChatReport.Tone.SUCCESS : ChatReport.Tone.WARNING;
+    }
+
+    private static String statusCount(int count, C color) {
+        return (count == 0 ? C.DARK_GRAY.toString() : color.toString() + C.BOLD) + count + C.GRAY;
     }
 
     static ChatReport validationReport(PackValidationResult result) {

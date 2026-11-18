@@ -18,6 +18,7 @@
 
 package art.arcane.iris.command;
 
+import art.arcane.iris.command.specialhandlers.IrisStructureHandler;
 import art.arcane.iris.Iris;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.BulkStructureImporter;
@@ -326,7 +327,7 @@ public class CommandStructure implements DirectorExecutor {
     public void info(
             @Param(description = "The dimension whose pack holds the structure", descriptionKey = "iris.director.commandstructure.param.dimension_whose_pack_holds_structure", aliases = "dim")
             IrisDimension dimension,
-            @Param(description = "The iris structure key to inspect", descriptionKey = "iris.director.commandstructure.param.iris_structure_key_inspect")
+            @Param(description = "The iris structure key to inspect", descriptionKey = "iris.director.commandstructure.param.iris_structure_key_inspect", customHandler = IrisStructureHandler.class)
             String structure
     ) {
         IrisData data = dimension.getLoader();
@@ -364,7 +365,7 @@ public class CommandStructure implements DirectorExecutor {
     public void place(
             @Param(description = "The dimension whose pack holds the structure", descriptionKey = "iris.director.commandstructure.param.dimension_whose_pack_holds_structure_2", aliases = "dim")
             IrisDimension dimension,
-            @Param(description = "The iris structure key to place", descriptionKey = "iris.director.commandstructure.param.iris_structure_key_place")
+            @Param(description = "The iris structure key to place", descriptionKey = "iris.director.commandstructure.param.iris_structure_key_place", customHandler = IrisStructureHandler.class)
             String structure
     ) {
         IrisData data = dimension.getLoader();

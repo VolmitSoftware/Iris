@@ -18,6 +18,8 @@
 
 package art.arcane.iris.command;
 
+import art.arcane.iris.command.specialhandlers.ExportVersionHandler;
+import art.arcane.iris.command.specialhandlers.InstalledDatapackHandler;
 import art.arcane.iris.Iris;
 import art.arcane.iris.command.handlers.DimensionHandler;
 import art.arcane.iris.command.specialhandlers.ExportFormatHandler;
@@ -94,7 +96,7 @@ public class CommandDatapack implements DirectorExecutor {
 
     @Director(description = "Remove an installed datapack by id (also delete its URL from datapackImports to keep it gone)", descriptionKey = "iris.director.commanddatapack.director.remove_installed_datapack_by_id_also_delete_its_url_from_datapackimports_keep", aliases = {"rm"})
     public void remove(
-            @Param(description = "The datapack id (folder name) shown by /iris datapack list", descriptionKey = "iris.director.commanddatapack.param.datapack_id_folder_name_shown_by_iris_datapack_list")
+            @Param(description = "The datapack id (folder name) shown by /iris datapack list", descriptionKey = "iris.director.commanddatapack.param.datapack_id_folder_name_shown_by_iris_datapack_list", customHandler = InstalledDatapackHandler.class)
             String id
     ) {
         DatapackIngestService.remove(sender(), id);
@@ -104,7 +106,7 @@ public class CommandDatapack implements DirectorExecutor {
     public void export(
             @Param(name = "dimension", description = "The dimension to export", descriptionKey = "iris.director.commanddatapack.param.export_dimension", customHandler = DimensionHandler.class)
             IrisDimension dimension,
-            @Param(name = "version", description = "Target Minecraft version, 26.3 or later (blank uses the latest)", descriptionKey = "iris.director.commanddatapack.param.export_version", defaultValue = "")
+            @Param(name = "version", description = "Target Minecraft version, 26.3 or later (blank uses the latest)", descriptionKey = "iris.director.commanddatapack.param.export_version", defaultValue = "", customHandler = ExportVersionHandler.class)
             String version,
             @Param(name = "mode", description = "Output mode: preset, dimension, or overworld", descriptionKey = "iris.director.commanddatapack.param.export_mode", defaultValue = WorldgenExportRequest.DEFAULT_MODE, customHandler = ExportModeHandler.class)
             String mode,

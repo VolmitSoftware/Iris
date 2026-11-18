@@ -18,6 +18,7 @@
 
 package art.arcane.iris.command;
 
+import art.arcane.iris.command.specialhandlers.OpenSuggestionHandler;
 import art.arcane.iris.Iris;
 import art.arcane.iris.IrisRuntime;
 import art.arcane.iris.world.BukkitWorldReconciler;
@@ -61,6 +62,7 @@ import org.bukkit.entity.Player;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -200,7 +202,8 @@ public class CommandIris implements DirectorExecutor {
                     name = "target",
                     aliases = "world-name",
                     description = "The exact existing world slot to replace",
-                    descriptionKey = "iris.director.commandiris.param.replace_exact_existing_world_slot_next_restart"
+                    descriptionKey = "iris.director.commandiris.param.replace_exact_existing_world_slot_next_restart",
+                    customHandler = WorldSlotHandler.class
             )
             String target,
             @Param(
@@ -719,6 +722,13 @@ public class CommandIris implements DirectorExecutor {
                 IrisWorldStorage.configuredWorldName(worldKey, levelRoot.getName()),
                 worldKey
         ).isPresent();
+    }
+
+    public static final class WorldSlotHandler extends OpenSuggestionHandler {
+        @Override
+        protected Collection<String> suggestions() {
+            return Bukkit.getWorlds().stream().map(world -> world.getKey().toString()).toList();
+        }
     }
 
     public static class ManagedWorldNameHandler implements DirectorParameterHandler<String> {

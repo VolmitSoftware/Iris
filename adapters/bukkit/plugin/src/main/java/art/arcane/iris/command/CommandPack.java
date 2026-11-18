@@ -18,6 +18,8 @@
 
 package art.arcane.iris.command;
 
+import art.arcane.iris.command.specialhandlers.PackFolderOrAllHandler;
+import art.arcane.iris.command.specialhandlers.PackFolderHandler;
 import art.arcane.iris.pack.PackFingerprints;
 
 import art.arcane.iris.Iris;
@@ -35,7 +37,7 @@ import art.arcane.iris.localization.C;
 import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.command.handlers.DimensionHandler;
-import art.arcane.iris.command.specialhandlers.CleanupModeHandler;
+import art.arcane.iris.command.specialhandlers.PreviewApplyModeHandler;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
@@ -108,7 +110,7 @@ public class CommandPack implements DirectorExecutor {
 
     @Director(description = "Validate a pack (or all packs) and re-publish results", descriptionKey = "iris.director.commandpack.director.validate_pack_all_packs_re_publish_results", aliases = {"v"})
     public void validate(
-            @Param(description = "The pack folder name to validate, or * for every pack", descriptionKey = "iris.director.commandpack.param.pack_folder_name_validate_leave_empty_all", defaultValue = "*")
+            @Param(description = "The pack folder name to validate, or * for every pack", descriptionKey = "iris.director.commandpack.param.pack_folder_name_validate_leave_empty_all", defaultValue = "*", customHandler = PackFolderOrAllHandler.class)
             String pack
     ) {
         VolmitSender s = sender();
@@ -161,9 +163,9 @@ public class CommandPack implements DirectorExecutor {
 
     @Director(description = "Preview or apply unused-resource cleanup", descriptionKey = "iris.director.commandpack.director.preview_apply_unused_resource_cleanup", aliases = {"c"})
     public void cleanup(
-            @Param(description = "The pack folder name to clean", descriptionKey = "iris.director.commandpack.param.pack_folder_name_clean")
+            @Param(description = "The pack folder name to clean", descriptionKey = "iris.director.commandpack.param.pack_folder_name_clean", customHandler = PackFolderHandler.class)
             String pack,
-            @Param(description = "preview or apply", descriptionKey = "iris.director.commandpack.param.preview_apply", defaultValue = "preview", customHandler = CleanupModeHandler.class)
+            @Param(description = "preview or apply", descriptionKey = "iris.director.commandpack.param.preview_apply", defaultValue = "preview", customHandler = PreviewApplyModeHandler.class)
             String mode
     ) {
         VolmitSender s = sender();
@@ -211,9 +213,9 @@ public class CommandPack implements DirectorExecutor {
 
     @Director(description = "Preview or apply restoration of the latest quarantine", descriptionKey = "iris.director.commandpack.director.preview_apply_restoration_latest_quarantine", aliases = {"r"})
     public void restore(
-            @Param(description = "The pack folder name to restore", descriptionKey = "iris.director.commandpack.param.pack_folder_name_restore")
+            @Param(description = "The pack folder name to restore", descriptionKey = "iris.director.commandpack.param.pack_folder_name_restore", customHandler = PackFolderHandler.class)
             String pack,
-            @Param(description = "preview or apply", descriptionKey = "iris.director.commandpack.param.preview_apply_2", defaultValue = "preview")
+            @Param(description = "preview or apply", descriptionKey = "iris.director.commandpack.param.preview_apply_2", defaultValue = "preview", customHandler = PreviewApplyModeHandler.class)
             String mode
     ) {
         VolmitSender s = sender();
@@ -271,7 +273,7 @@ public class CommandPack implements DirectorExecutor {
 
     @Director(description = "Show cached validation status for a pack", descriptionKey = "iris.director.commandpack.director.show_cached_validation_status_pack", aliases = {"s"})
     public void status(
-            @Param(description = "The pack folder name, or * for every pack", descriptionKey = "iris.director.commandpack.param.pack_folder_name", defaultValue = "*")
+            @Param(description = "The pack folder name, or * for every pack", descriptionKey = "iris.director.commandpack.param.pack_folder_name", defaultValue = "*", customHandler = PackFolderOrAllHandler.class)
             String pack
     ) {
         VolmitSender s = sender();
@@ -299,7 +301,7 @@ public class CommandPack implements DirectorExecutor {
 
     @Director(description = "Show pack content that cannot generate on this Minecraft version", descriptionKey = "iris.director.commandpack.director.show_content_cannot_generate_this_minecraft_version", aliases = {"cp"})
     public void compat(
-            @Param(description = "The pack folder name to report on, or * for every pack", descriptionKey = "iris.director.commandpack.param.pack_folder_name_compat", defaultValue = "*")
+            @Param(description = "The pack folder name to report on, or * for every pack", descriptionKey = "iris.director.commandpack.param.pack_folder_name_compat", defaultValue = "*", customHandler = PackFolderOrAllHandler.class)
             String pack
     ) {
         VolmitSender s = sender();

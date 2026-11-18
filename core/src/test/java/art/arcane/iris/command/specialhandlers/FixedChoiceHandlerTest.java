@@ -26,10 +26,19 @@ public class FixedChoiceHandlerTest {
     }
 
     @Test
-    public void cleanupModeSuggestsAndRejectsUnknownModes() throws Exception {
-        CleanupModeHandler handler = new CleanupModeHandler();
+    public void previewApplyModeSuggestsAndRejectsUnknownModes() throws Exception {
+        PreviewApplyModeHandler handler = new PreviewApplyModeHandler();
         assertEquals(List.of("preview", "apply"), handler.getPossibilities());
         assertEquals("apply", handler.parse("Apply", false));
         assertThrows(DirectorParsingException.class, () -> handler.parse("delete", false));
+    }
+
+    @Test
+    public void exportVersionKeepsBlankAsLatestAndRejectsOlderTargets() throws Exception {
+        ExportVersionHandler handler = new ExportVersionHandler();
+        assertEquals(List.of("26.3"), handler.getPossibilities());
+        assertEquals("", handler.parse("", false));
+        assertEquals("26.3", handler.parse("26.3.0", false));
+        assertThrows(DirectorParsingException.class, () -> handler.parse("26.2", false));
     }
 }

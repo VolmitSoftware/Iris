@@ -91,9 +91,10 @@ public final class WorldRefusalReporter implements Listener {
                 .hint("The console has the full refusal notice", null)
                 .build();
         String tag = Iris.instance == null ? "" : Iris.instance.getTag();
-        List<ChatReport.Line> lines = report.lines();
-        for (int index = 0; index < lines.size(); index++) {
-            player.sendMessage((index == 0 ? tag : "") + lines.get(index).text());
+        player.sendMessage(ChatReport.SPACER.text());
+        player.sendMessage(tag + report.titleLine().text());
+        for (ChatReport.Line line : report.bodyLines(true)) {
+            player.sendMessage(line.text());
         }
     }
 

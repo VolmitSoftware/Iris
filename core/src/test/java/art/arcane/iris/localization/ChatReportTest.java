@@ -92,6 +92,18 @@ public class ChatReportTest {
         assertEquals("/iris std regen-stop world=w", hint.command());
     }
 
+    @Test
+    public void chatBodySeparatesTheHintButTheCompactLayoutDoesNot() {
+        ChatReport report = ChatReport.of(ChatReport.Tone.ERROR, "t")
+                .item("Missing dimensions/ folder.")
+                .hint("Run /iris pack validate p", "/iris pack validate p")
+                .build();
+
+        assertEquals(List.of(report.bodyLines(false).get(0), ChatReport.SPACER, report.bodyLines(false).get(1)),
+                report.bodyLines(true));
+        assertEquals(3, report.lines().size());
+    }
+
     private static List<String> plainLines(ChatReport report) {
         return report.lines().stream().map(line -> line.text().replaceAll("§.", "")).toList();
     }

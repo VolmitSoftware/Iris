@@ -325,10 +325,13 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendReport(ChatReport report) {
-        java.util.List<ChatReport.Line> lines = report.lines();
-        sendMessage(lines.getFirst().text());
-        for (int index = 1; index < lines.size(); index++) {
-            sendUntagged(lines.get(index));
+        boolean spaced = isPlayer();
+        if (spaced) {
+            sendUntagged(ChatReport.SPACER);
+        }
+        sendMessage(report.titleLine().text());
+        for (ChatReport.Line line : report.bodyLines(spaced)) {
+            sendUntagged(line);
         }
     }
 

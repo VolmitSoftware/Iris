@@ -34,6 +34,9 @@ public final class ChatReport {
         }
     }
 
+    /** A blank chat line. A single space, because some clients drop fully empty messages. */
+    public static final Line SPACER = new Line(" ", null);
+
     public record Line(String text, String command) {
         public boolean clickable() {
             return command != null && !command.isBlank();
@@ -82,9 +85,21 @@ public final class ChatReport {
         return tone;
     }
 
+    /** The compact layout: title first, no spacing. Used for logs and other plain output. */
     public List<Line> lines() {
         List<Line> lines = new ArrayList<>();
-        lines.add(new Line(ReportText.title(tone, clean(title)), null));
+        lines.add(titleLine());
+        lines.addAll(bodyLines(false));
+        return lines;
+    }
+
+    public Line titleLine() {
+        return new Line(ReportText.title(tone, clean(title)), null);
+    }
+
+    /** Every line after the title; {@code spaced} adds a blank line between the list and the hint, for chat. */
+    public List<Line> bodyLines(boolean spaced) {
+        List<Line> lines = new ArrayList<>();
         int shown = Math.min(itemLimit, entries.size());
         for (int index = 0; index < shown; index++) {
             addEntryLines(lines, entries.get(index));
@@ -94,6 +109,9 @@ public final class ChatReport {
             lines.add(new Line(C.DARK_GRAY + CONTINUATION_INDENT + ReportText.moreLabel(hidden), null));
         }
         if (hint != null) {
+            if (spaced && !lines.isEmpty()) {
+                lines.add(SPACER);
+            }
             lines.add(new Line(C.GRAY + hint, hintCommand));
         }
         return lines;

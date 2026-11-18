@@ -1119,6 +1119,8 @@ replace_installed_types = "Geïnstalleerde pakketten: {value}"
 "export.invalid" = "Ongeldige argumenten voor datapack-export: {reason}"
 
 [iris.director.commanddeveloper]
+"director.stop_regen_running_world" = "Stop de regen die in een wereld draait"
+"param.world_regen_stop" = "De wereld waarvan de regen moet stoppen"
 "director.iris_world_manager" = "Iris-wereldbeheer"
 "director.get_loaded_tectonicplates_count" = "Aantal geladen TectonicPlates opvragen"
 "director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "Hash van de gegenereerde blokuitvoer van een vast gebied voor determinisme-/identiteitstests"
@@ -1635,6 +1637,14 @@ progress = "§eVervanging van {world}: {stage} ({elapsed}s verstreken)"
 "stage.cleanup" = "Mislukte vervanging opruimen"
 
 [iris.runtime.chunk_job]
+"stage.stopping" = "Stoppen"
+"bossbar.stopped" = "§6{title} §eGESTOPT§7 §e{summary}"
+"action.stopped" = "{bar}§7 §eGestopt§7 | §f{summary}"
+stopped = "§6{title} gestopt: {summary}"
+already_running = "{title} draait al in {world}: {applied}/{total} chunks"
+stop_hint = "Stop het met {command}"
+stopping = "{title} in {world} wordt gestopt; chunks die bezig zijn worden eerst afgemaakt"
+none_running = "Er draait geen {title} in {world}"
 "title.regen" = "Regeneratie"
 "title.delete" = "Verwijderen"
 "title.golden_hash" = "GoldenHash"

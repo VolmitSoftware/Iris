@@ -53,9 +53,12 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -65,6 +68,7 @@ public final class InPlaceChunkRegenerator {
     private static final int APPLY_AHEAD = 8;
     private static final int PROBE_BATCH_CHUNKS = 256;
     private static final String GENERATION_STAGE = "regen";
+    private static final ConcurrentMap<String, InPlaceChunkRegenerator> ACTIVE_BY_WORLD = new ConcurrentHashMap<>();
 
     private final World world;
     private final Engine engine;
@@ -72,6 +76,7 @@ public final class InPlaceChunkRegenerator {
     private final int centerChunkZ;
     private final int radius;
     private final ChunkJobReporter reporter;
+    private final AtomicBoolean stopRequested = new AtomicBoolean();
 
     public InPlaceChunkRegenerator(World world, Engine engine, VolmitSender sender, int centerChunkX, int centerChunkZ, int radius) {
         this.world = world;
@@ -82,11 +87,35 @@ public final class InPlaceChunkRegenerator {
         this.reporter = new ChunkJobReporter(sender, IrisLanguage.text(RuntimeProgressMessages.CHUNK_TITLE_REGEN), world);
     }
 
-    public void start() {
+    public static Optional<InPlaceChunkRegenerator> activeIn(World world) {
+        return Optional.ofNullable(ACTIVE_BY_WORLD.get(world.getName()));
+    }
+
+    /** Starts the regen unless one is already running in this world; overlapping regens fight over the same mantle. */
+    public boolean start() {
+        if (ACTIVE_BY_WORLD.putIfAbsent(world.getName(), this) != null) {
+            return false;
+        }
         reporter.start();
         Thread thread = new Thread(this::run, "Iris Regenerate");
         thread.setDaemon(true);
         thread.start();
+        return true;
+    }
+
+    /** Stops queueing chunks; chunks already generating still finish so none is left half-applied. */
+    public void requestStop() {
+        if (stopRequested.compareAndSet(false, true)) {
+            reporter.setStage(IrisLanguage.text(RuntimeProgressMessages.CHUNK_STAGE_STOPPING));
+        }
+    }
+
+    public int appliedChunks() {
+        return reporter.applied();
+    }
+
+    public int totalChunks() {
+        return reporter.total();
     }
 
     private void run() {
@@ -97,14 +126,17 @@ public final class InPlaceChunkRegenerator {
 
             List<int[]> targets = ChunkJobReporter.orderedTargets(centerChunkX, centerChunkZ, radius);
             reporter.setTotal(targets.size());
-            reporter.setStage(IrisLanguage.text(RuntimeProgressMessages.CHUNK_STAGE_REGENERATING));
+            if (!stopRequested.get()) {
+                reporter.setStage(IrisLanguage.text(RuntimeProgressMessages.CHUNK_STAGE_REGENERATING));
+            }
             regenerate(targets);
             logSkippedChunks();
         } catch (Throwable e) {
             IrisLogging.reportError(e);
             error = true;
         } finally {
-            reporter.finish(error);
+            ACTIVE_BY_WORLD.remove(world.getName(), this);
+            reporter.finish(error, stopRequested.get());
         }
     }
 
@@ -131,9 +163,12 @@ public final class InPlaceChunkRegenerator {
     private void regenerate(List<int[]> targets) throws InterruptedException {
         Semaphore inFlight = new Semaphore(APPLY_AHEAD);
 
-        for (int from = 0; from < targets.size(); from += PROBE_BATCH_CHUNKS) {
+        for (int from = 0; from < targets.size() && !stopRequested.get(); from += PROBE_BATCH_CHUNKS) {
             List<int[]> batch = targets.subList(from, Math.min(targets.size(), from + PROBE_BATCH_CHUNKS));
             for (int[] generated : generatedChunksOf(batch)) {
+                if (stopRequested.get()) {
+                    break;
+                }
                 inFlight.acquire();
                 MultiBurst.burst.lazy(() -> regenerateChunk(generated[0], generated[1], inFlight::release));
             }

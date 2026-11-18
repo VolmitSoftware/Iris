@@ -1124,6 +1124,8 @@ replace_installed_types = "Установленные пакеты: {value}"
 "export.invalid" = "Недопустимые аргументы экспорта датапака: {reason}"
 
 [iris.director.commanddeveloper]
+"director.stop_regen_running_world" = "Остановить регенерацию, запущенную в мире"
+"param.world_regen_stop" = "Мир, в котором остановить регенерацию"
 "director.iris_world_manager" = "Менеджер миров Iris"
 "director.get_loaded_tectonicplates_count" = "Получить количество загруженных TectonicPlates"
 "director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "Хешировать сгенерированные блоки фиксированной области для проверки детерминизма/идентичности"
@@ -1640,6 +1642,14 @@ progress = "§eЗамена {world}: {stage} (прошло {elapsed}с)"
 "stage.cleanup" = "Очистка данных неудавшейся замены"
 
 [iris.runtime.chunk_job]
+"stage.stopping" = "Остановка"
+"bossbar.stopped" = "§6{title} §eОСТАНОВЛЕНО§7 §e{summary}"
+"action.stopped" = "{bar}§7 §eОстановлено§7 | §f{summary}"
+stopped = "§6{title} остановлено: {summary}"
+already_running = "{title} уже выполняется в {world}: {applied}/{total} чанков"
+stop_hint = "Остановить: {command}"
+stopping = "Остановка {title} в {world}; чанки в работе будут завершены"
+none_running = "В {world} нет запущенного {title}"
 "title.regen" = "Регенерация"
 "title.delete" = "Удаление"
 "title.golden_hash" = "GoldenHash"

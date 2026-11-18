@@ -1122,6 +1122,8 @@ replace_installed_types = "Các gói đã cài đặt: {value}"
 "export.invalid" = "Đối số xuất datapack không hợp lệ: {reason}"
 
 [iris.director.commanddeveloper]
+"director.stop_regen_running_world" = "Dừng quá trình tái tạo đang chạy trong một thế giới"
+"param.world_regen_stop" = "Thế giới cần dừng tái tạo"
 "director.iris_world_manager" = "Trình quản lý thế giới Iris"
 "director.get_loaded_tectonicplates_count" = "Lấy số lượng TectonicPlates đã tải"
 "director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "Băm kết quả khối được tạo của một vùng cố định để kiểm thử tính tất định/đồng nhất"
@@ -1638,6 +1640,14 @@ progress = "§eThay thế {world}: {stage} (đã qua {elapsed} giây)"
 "stage.cleanup" = "Đang dọn dẹp bản thay thế bị lỗi"
 
 [iris.runtime.chunk_job]
+"stage.stopping" = "Đang dừng"
+"bossbar.stopped" = "§6{title} §eĐÃ DỪNG§7 §e{summary}"
+"action.stopped" = "{bar}§7 §eĐã dừng§7 | §f{summary}"
+stopped = "§6{title} đã dừng: {summary}"
+already_running = "{title} đang chạy trong {world}: {applied}/{total} chunk"
+stop_hint = "Dừng bằng {command}"
+stopping = "Đang dừng {title} trong {world}; các chunk đang xử lý sẽ hoàn tất trước"
+none_running = "Không có {title} nào đang chạy trong {world}"
 "title.regen" = "Tái tạo"
 "title.delete" = "Xoá"
 "title.golden_hash" = "GoldenHash"

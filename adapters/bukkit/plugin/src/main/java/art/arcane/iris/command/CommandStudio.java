@@ -28,6 +28,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.workspace.IrisProject;
 import art.arcane.iris.studio.workspace.IrisCodeWorkspace;
 import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.iris.localization.RuntimeProgressMessages;
 import art.arcane.iris.platform.bukkit.BoardSVC;
 import art.arcane.iris.studio.StudioSVC;
 import art.arcane.iris.structure.BulkStructureImporter;
@@ -98,6 +99,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -260,16 +262,61 @@ public class CommandStudio implements DirectorExecutor {
             int centerX = player.getLocation().getBlockX() >> 4;
             int centerZ = player.getLocation().getBlockZ() >> 4;
 
-            commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_DEVELOPER_REGEN_STARTED_CHUNK_S_AROUND_DELETING_REGENERATING_PLACE, MessageArgument.untrusted("chunks", chunks), MessageArgument.untrusted("centerX", centerX), MessageArgument.untrusted("centerZ", centerZ)));
+            InPlaceChunkRegenerator regenerator = new InPlaceChunkRegenerator(world, engine, commandSender, centerX, centerZ, radius);
+            if (!regenerator.start()) {
+                InPlaceChunkRegenerator.activeIn(world).ifPresent(running -> sendRegenAlreadyRunning(commandSender, world, running));
+                return;
+            }
+
+            commandSender.sendReport(ChatReport.of(ChatReport.Tone.INFO, IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_DEVELOPER_REGEN_STARTED_CHUNK_S_AROUND_DELETING_REGENERATING_PLACE, MessageArgument.untrusted("chunks", chunks), MessageArgument.untrusted("centerX", centerX), MessageArgument.untrusted("centerZ", centerZ)))
+                    .hint(regenStopHint(world), regenStopCommand(world))
+                    .build());
             Iris.info("Regen run start: world=" + world.getName()
                     + " center=" + centerX + "," + centerZ
                     + " radius=" + radius
                     + " chunks=" + chunks);
-
-            new InPlaceChunkRegenerator(world, engine, commandSender, centerX, centerZ, radius).start();
         })) {
             Iris.warn("Could not schedule regen on the thread owning " + player.getName() + ".");
         }
+    }
+
+    @Director(name = "regen-stop", aliases = {"rgstop"}, description = "Stop the regen running in a world", descriptionKey = "iris.director.commanddeveloper.director.stop_regen_running_world", origin = DirectorOrigin.BOTH)
+    public void regenStop(
+            @Param(description = "The world whose regen to stop", descriptionKey = "iris.director.commanddeveloper.param.world_regen_stop", contextual = true, contextualOverride = true)
+            World world
+    ) {
+        String regenTitle = IrisLanguage.text(RuntimeProgressMessages.CHUNK_TITLE_REGEN);
+        Optional<InPlaceChunkRegenerator> running = world == null ? Optional.empty() : InPlaceChunkRegenerator.activeIn(world);
+        if (running.isEmpty()) {
+            sender().sendInfo(IrisLanguage.text(RuntimeProgressMessages.CHUNK_NONE_RUNNING,
+                    MessageArgument.trusted("title", regenTitle),
+                    MessageArgument.untrusted("world", world == null ? "?" : world.getName())));
+            return;
+        }
+
+        running.get().requestStop();
+        sender().sendWarning(IrisLanguage.text(RuntimeProgressMessages.CHUNK_STOPPING,
+                MessageArgument.trusted("title", regenTitle),
+                MessageArgument.untrusted("world", world.getName())));
+    }
+
+    private static void sendRegenAlreadyRunning(VolmitSender sender, World world, InPlaceChunkRegenerator running) {
+        String alreadyRunning = IrisLanguage.text(RuntimeProgressMessages.CHUNK_ALREADY_RUNNING,
+                MessageArgument.trusted("title", IrisLanguage.text(RuntimeProgressMessages.CHUNK_TITLE_REGEN)),
+                MessageArgument.untrusted("world", world.getName()),
+                MessageArgument.trusted("applied", running.appliedChunks()),
+                MessageArgument.trusted("total", running.totalChunks() <= 0 ? "?" : running.totalChunks()));
+        sender.sendReport(ChatReport.of(ChatReport.Tone.WARNING, alreadyRunning)
+                .hint(regenStopHint(world), regenStopCommand(world))
+                .build());
+    }
+
+    private static String regenStopCommand(World world) {
+        return "/iris std regen-stop world=" + world.getName();
+    }
+
+    private static String regenStopHint(World world) {
+        return IrisLanguage.text(RuntimeProgressMessages.CHUNK_STOP_HINT, MessageArgument.untrusted("command", regenStopCommand(world)));
     }
 
     @Director(description = "Toggle your Studio debug scoreboard", descriptionKey = "iris.director.commandstudio.director.toggle_your_studio_debug_scoreboard", aliases = {"board", "sidebar", "sb"}, origin = DirectorOrigin.PLAYER)

@@ -1124,6 +1124,8 @@ replace_installed_types = "Įdiegti paketai: {value}"
 "export.invalid" = "Netinkami datapack eksporto argumentai: {reason}"
 
 [iris.director.commanddeveloper]
+"director.stop_regen_running_world" = "Sustabdyti pasaulyje vykdomą regeneravimą"
+"param.world_regen_stop" = "Pasaulis, kurio regeneravimą sustabdyti"
 "director.iris_world_manager" = "Iris pasaulių tvarkyklė"
 "director.get_loaded_tectonicplates_count" = "Gauti įkeltų TectonicPlates skaičių"
 "director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "Apskaičiuoti fiksuotos srities sugeneruotų blokų išvesties maišą determinizmo / tapatumo bandymams"
@@ -1640,6 +1642,14 @@ progress = "§e{world} pakeitimas: {stage} (praėjo {elapsed}s)"
 "stage.cleanup" = "Valomi nepavykusio pakeitimo duomenys"
 
 [iris.runtime.chunk_job]
+"stage.stopping" = "Stabdoma"
+"bossbar.stopped" = "§6{title} §eSUSTABDYTA§7 §e{summary}"
+"action.stopped" = "{bar}§7 §eSustabdyta§7 | §f{summary}"
+stopped = "§6{title} sustabdyta: {summary}"
+already_running = "{title} jau vykdoma pasaulyje {world}: {applied}/{total} chunkų"
+stop_hint = "Sustabdykite komanda {command}"
+stopping = "Stabdoma {title} pasaulyje {world}; vykdomi chunkai bus užbaigti"
+none_running = "Pasaulyje {world} nevykdoma jokia {title}"
 "title.regen" = "Regeneravimas"
 "title.delete" = "Trinti"
 "title.golden_hash" = "GoldenHash"

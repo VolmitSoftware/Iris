@@ -1119,6 +1119,8 @@ replace_installed_types = "Packs instalados: {value}"
 "export.invalid" = "Argumentos de exportación de datapack no válidos: {reason}"
 
 [iris.director.commanddeveloper]
+"director.stop_regen_running_world" = "Detener la regeneración en curso de un mundo"
+"param.world_regen_stop" = "El mundo cuya regeneración se detendrá"
 "director.iris_world_manager" = "Gestor de mundos de Iris"
 "director.get_loaded_tectonicplates_count" = "Obtener el número de TectonicPlates cargadas"
 "director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "Calcular el hash de los bloques generados en un área fija para comprobar el determinismo y la identidad"
@@ -1635,6 +1637,14 @@ progress = "§eReemplazo de {world}: {stage} ({elapsed}s transcurridos)"
 "stage.cleanup" = "Limpiando el reemplazo fallido"
 
 [iris.runtime.chunk_job]
+"stage.stopping" = "Deteniendo"
+"bossbar.stopped" = "§6{title} §eDETENIDO§7 §e{summary}"
+"action.stopped" = "{bar}§7 §eDetenido§7 | §f{summary}"
+stopped = "§6{title} detenido: {summary}"
+already_running = "{title} ya se está ejecutando en {world}: {applied}/{total} chunks"
+stop_hint = "Detenlo con {command}"
+stopping = "Deteniendo {title} en {world}; los chunks en curso terminarán primero"
+none_running = "No hay ningún {title} en ejecución en {world}"
 "title.regen" = "Regenerar"
 "title.delete" = "Eliminar"
 "title.golden_hash" = "GoldenHash"

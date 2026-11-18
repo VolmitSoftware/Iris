@@ -49,6 +49,7 @@ import art.arcane.iris.integration.IrisPapiState;
 import art.arcane.iris.integration.MultiverseCoreLink;
 import art.arcane.iris.integration.MultiverseSVC;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ConsoleGlyphs;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.pack.datapack.DatapackIngestService;
 import art.arcane.iris.pack.datapack.DatapackIngestService.StartupValidationOutcome;
@@ -604,7 +605,8 @@ public final class IrisRuntime implements IrisPluginRuntime {
         };
     }
 
-    private static void diagnostic(Level level, String message) {
+    private static void diagnostic(Level level, String rawMessage) {
+        String message = ConsoleGlyphs.console().fit(rawMessage);
         if (shadesConsole()) {
             logShaded(level, logPrefix() + C.escapeTags(message));
             return;

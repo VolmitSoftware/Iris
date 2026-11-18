@@ -20,7 +20,7 @@ package art.arcane.iris.world;
 
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.RuntimeProgressMessages;
-import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ProgressBar;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.format.Form;
@@ -33,8 +33,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 final class WorldCreationProgressReporter {
-    private static final int PLAYER_BAR_WIDTH = 44;
-    private static final int CONSOLE_BAR_WIDTH = 20;
     private static final long CONSOLE_UPDATE_INTERVAL_MILLIS = 1500L;
 
     private final VolmitSender sender;
@@ -207,11 +205,11 @@ final class WorldCreationProgressReporter {
     }
 
     static String buildPlayerBar(double progress) {
-        return buildBar(progress, PLAYER_BAR_WIDTH, true);
+        return ProgressBar.player(progress);
     }
 
     static String buildConsoleBar(double progress) {
-        return buildBar(progress, CONSOLE_BAR_WIDTH, false);
+        return ProgressBar.console(progress);
     }
 
     static String terminalPlayerMessage(
@@ -237,25 +235,6 @@ final class WorldCreationProgressReporter {
         );
     }
 
-    private static String buildBar(double progress, int width, boolean colored) {
-        int filled = (int) Math.round(clampProgress(progress) * width);
-        StringBuilder bar = new StringBuilder(colored ? width * 3 + 4 : width + 2);
-        if (colored) {
-            bar.append(C.DARK_GRAY);
-        }
-        bar.append("[");
-        for (int index = 0; index < width; index++) {
-            if (colored) {
-                bar.append(index < filled ? C.GREEN : C.DARK_GRAY).append("|");
-            } else {
-                bar.append(index < filled ? "#" : "-");
-            }
-        }
-        if (colored) {
-            bar.append(C.DARK_GRAY);
-        }
-        return bar.append("]").toString();
-    }
 
     static TextKey stageKey(String stage) {
         if (stage == null || stage.isBlank()) {

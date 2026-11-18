@@ -22,6 +22,7 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.platform.bukkit.plugin.IrisService;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.iris.world.task.J;
@@ -190,10 +191,11 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
         }
         if (!(args.length > 1 && args[0].equalsIgnoreCase("debug") && args[1].equalsIgnoreCase("dump"))
             && !sender.hasPermission(ROOT_PERMISSION)) {
-            ComponentMessenger.sendSection(sender, IrisLanguage.text(
+            String tag = Iris.instance == null ? "" : Iris.instance.getTag();
+            ComponentMessenger.sendSection(sender, tag + ChatReport.Tone.ERROR.paint(IrisLanguage.text(
                     IrisMessages.COMMAND_PERMISSION_DENIED,
                     MessageArgument.trusted("permission", ROOT_PERMISSION)
-            ));
+            )));
             return;
         }
 

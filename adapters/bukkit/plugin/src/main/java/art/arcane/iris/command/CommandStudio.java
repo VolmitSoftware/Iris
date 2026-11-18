@@ -60,6 +60,7 @@ import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.function.NoiseProvider;
 import art.arcane.volmlib.util.interpolation.InterpolationMethod;
@@ -112,6 +113,11 @@ public class CommandStudio implements DirectorExecutor {
     private static final long CHUNK_SCAN_TIMEOUT_MS = 3_000;
     private CommandEdit edit;
     //private CommandDeepSearch deepSearch;
+
+    private static String regionShareLine(String region, int rarity, double share) {
+        return C.WHITE + ChatReport.clean(region) + C.DARK_GRAY + ": " + C.IRIS + Form.pc(share, 1)
+                + C.DARK_GRAY + " · " + C.GRAY + "rarity " + rarity;
+    }
 
     public static String hrf(Duration duration) {
         return duration.toString().substring(2).replaceAll("(\\d[HMS])(?!$)", "$1 ").toLowerCase();
@@ -441,9 +447,15 @@ public class CommandStudio implements DirectorExecutor {
                     })).setOffset(loc.getBlockX(), loc.getBlockZ()).drain();
                     executor.complete();
 
-                    sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_DONE));
                     var loader = engine.getData().getRegionLoader();
-                    data.forEach((k, v) -> sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_MESSAGE, MessageArgument.untrusted("k", k), MessageArgument.untrusted("value", loader.load(k).getRarity()), MessageArgument.untrusted("value2", Form.f((double) v.get() / totalTasks * 100, 2)))));
+                    ChatReport.Builder report = ChatReport.of(ChatReport.Tone.SUCCESS,
+                            IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_DONE)).unlimited();
+                    data.entrySet().stream()
+                            .sorted((a, b) -> Integer.compare(b.getValue().get(), a.getValue().get()))
+                            .forEach(entry -> report.styledItem(regionShareLine(entry.getKey(),
+                                    loader.load(entry.getKey()).getRarity(),
+                                    (double) entry.getValue().get() / totalTasks)));
+                    sender.sendReport(report.build());
                     } catch (Throwable e) {
                         Iris.reportError(e);
                         sender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_REGIONS_SCAN_FAILED,

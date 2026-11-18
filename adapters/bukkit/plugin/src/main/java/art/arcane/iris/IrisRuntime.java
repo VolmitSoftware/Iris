@@ -930,7 +930,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
             Iris.debug("Starting up auto Studio!");
             try {
                 Player r = new KList<>(plugin.getServer().getOnlinePlayers()).getRandom();
-                Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r) : getSender(), 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
+                Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r, plugin.getTag()) : getSender(), 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
                     J.s(() -> {
                         final Location spawn = w.getSpawnLocation();
                         for (Player i : plugin.getServer().getOnlinePlayers()) {

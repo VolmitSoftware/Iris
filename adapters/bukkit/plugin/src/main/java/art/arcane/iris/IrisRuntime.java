@@ -309,6 +309,10 @@ public final class IrisRuntime implements IrisPluginRuntime {
     static void msg(String string) {
         try {
             Iris plugin = Iris.instance;
+            if (shadesConsole()) {
+                logShaded(Level.INFO, logPrefix() + string);
+                return;
+            }
             ComponentLog.logMarkup(
                     plugin,
                     Logger.getLogger("Iris"),
@@ -601,6 +605,10 @@ public final class IrisRuntime implements IrisPluginRuntime {
     }
 
     private static void diagnostic(Level level, String message) {
+        if (shadesConsole()) {
+            logShaded(level, logPrefix() + C.escapeTags(message));
+            return;
+        }
         Iris plugin = Iris.instance;
         ComponentLog.logLegacy(
                 plugin,
@@ -609,6 +617,16 @@ public final class IrisRuntime implements IrisPluginRuntime {
                 level,
                 message,
                 null);
+    }
+
+    private static boolean shadesConsole() {
+        return IrisSettings.get().getGeneral().isUseConsoleCustomColors();
+    }
+
+    private static void logShaded(Level level, String prefixedLine) {
+        IrisSettings.IrisSettingsGeneral general = IrisSettings.get().getGeneral();
+        String shaded = C.aura(prefixedLine, general.getSpinh(), general.getSpins(), general.getSpinb());
+        ComponentLog.logMarkup(Iris.instance, Logger.getLogger("Iris"), "", level, shaded, null);
     }
 
     private static String logPrefix() {

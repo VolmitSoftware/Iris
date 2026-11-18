@@ -387,6 +387,10 @@ public enum C {
         return toMarkup(s, color -> color.token);
     }
 
+    public static String escapeTags(String s) {
+        return MiniMessage.miniMessage().escapeTags(s);
+    }
+
     public static String aura(String s, int hrad, int srad, int vrad) {
         return aura(s, hrad, srad, vrad, 0.3D);
     }

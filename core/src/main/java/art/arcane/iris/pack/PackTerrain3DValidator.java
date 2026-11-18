@@ -1,5 +1,6 @@
 package art.arcane.iris.pack;
 
+import art.arcane.iris.pack.loading.SnippetFolders;
 import art.arcane.iris.generation.terrain.IrisTerrain3D;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import com.google.gson.Gson;
@@ -12,7 +13,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -169,15 +169,12 @@ final class PackTerrain3DValidator {
             return null;
         }
         String reference = raw.getAsString();
-        String prefix = "snippet/" + snippetType + "/";
-        String resolved = reference.startsWith(prefix) ? reference : prefix + reference.substring(8);
-        Path root = packFolder.toPath().toAbsolutePath().normalize();
-        Path path = root.resolve(resolved + ".json").normalize();
-        if (!path.startsWith(root.resolve(prefix)) || !Files.isRegularFile(path)) {
+        SnippetFolders.Lookup snippet = SnippetFolders.discover(packFolder, snippetType).find(packFolder, reference);
+        if (!snippet.found()) {
             errors.add(location + " references an unavailable " + snippetType + " snippet '" + reference + "'.");
             return null;
         }
-        return readObject(path.toFile(), location + " (" + reference + ")", errors);
+        return readObject(snippet.file(), location + " (" + reference + ")", errors);
     }
 
     private static JsonObject readObject(File file, String location, List<String> errors) {

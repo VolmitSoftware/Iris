@@ -18,17 +18,12 @@
 
 package art.arcane.iris.studio.bridge;
 
-import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.decoration.formation.IrisFormation;
 import art.arcane.iris.generation.decoration.formation.IrisFormationProfile;
 import art.arcane.iris.generation.decoration.tree.IrisProceduralTree;
 import art.arcane.iris.generation.decoration.tree.IrisTreeProfile;
 import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
-import art.arcane.iris.generation.mantle.CaveProfilePreview;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.volmlib.util.collection.KList;
@@ -46,17 +41,16 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * The views of the config profiles Iris v4 has: cave profiles, tree profiles, formation profiles and fluid profiles.
+ * The views of the config profiles Iris v4 has: tree profiles, formation profiles and fluid profiles.
  * Each lists what the pack has of its kind, shows its settings as a form and draws it as blocks, so the studio's scene
  * viewer can show them. Values typed into a form only change the preview.
  */
 final class StudioProfiles {
-    static final String CAVES = "caveProfiles";
     static final String TREES = "treeProfiles";
     static final String FORMATIONS = "formationProfiles";
     static final String FLUIDS = "fluidProfiles";
 
-    private static final List<ProfileView> VIEWS = List.of(new CaveView(), new TreeView(), new FormationView(), new FluidView(),
+    private static final List<ProfileView> VIEWS = List.of(new TreeView(), new FormationView(), new FluidView(),
             StudioObjects.packObjects(), StudioObjects.proceduralObjects());
 
     private StudioProfiles() {
@@ -140,129 +134,6 @@ final class StudioProfiles {
             throw new NoSuchElementException("This " + what + " bakes nothing");
         }
         return variants.get(Math.floorMod(variant, variants.size()));
-    }
-
-    // Caves ------------------------------------------------------------------------------------------------------
-
-    private static final class CaveView implements ProfileView {
-        private static final Sizes SIZES = new Sizes(List.of(64, 128, 256), 128);
-        private static final int VARIANTS = 4;
-        private static final int VARIANT_SPACING_BLOCKS = 4096;
-        private static final int SURFACE_ABOVE_SEA_BLOCKS = 48;
-        private static final int MAX_DEPTH_BLOCKS = 160;
-        private static final String DIMENSION_KEY = "dimension";
-        private static final String REGION_PREFIX = "region/";
-        private static final String BIOME_PREFIX = "biome/";
-        private static final String[] DEPTH_BANDS = {"minecraft:yellow_concrete", "minecraft:lime_concrete", "minecraft:light_blue_concrete",
-                "minecraft:purple_concrete"};
-        private static final int[][] NEIGHBOURS = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
-
-        @Override
-        public String id() {
-            return CAVES;
-        }
-
-        @Override
-        public String label() {
-            return "Cave profiles";
-        }
-
-        @Override
-        public String description() {
-            return "The carved space of each enabled cave profile of the dimension, its regions and its biomes";
-        }
-
-        @Override
-        public Sizes sizes() {
-            return SIZES;
-        }
-
-        @Override
-        public List<Entry> entries(Engine engine) {
-            IrisData data = engine.getData();
-            IrisDimension dimension = engine.getDimension();
-            List<Entry> entries = new ArrayList<>();
-            if (dimension.getCaveProfile().isEnabled()) {
-                entries.add(new Entry(DIMENSION_KEY, dimension.getName(), "Dimension", VARIANTS));
-            }
-            for (IrisRegion region : data.getRegionLoader().loadAll(data.getRegionLoader().getPossibleKeys())) {
-                if (region != null && region.getCaveProfile().isEnabled()) {
-                    entries.add(new Entry(REGION_PREFIX + region.getLoadKey(), region.getName(), "Regions", VARIANTS));
-                }
-            }
-            for (IrisBiome biome : data.getBiomeLoader().loadAll(data.getBiomeLoader().getPossibleKeys())) {
-                if (biome != null && biome.getCaveProfile().isEnabled()) {
-                    entries.add(new Entry(BIOME_PREFIX + biome.getLoadKey(), biome.getName(), "Biomes", VARIANTS));
-                }
-            }
-            return entries;
-        }
-
-        @Override
-        public ProfileForm.Form form(Engine engine, String key, Map<String, String> overrides) {
-            IrisCaveProfile profile = ProfileForm.withOverrides(profileOf(engine, key), overrides);
-            return ProfileForm.of("Cave profile", profile, Set.of(), overrides, List.of("Values typed here change the preview only"));
-        }
-
-        @Override
-        public SceneBlocks scene(Engine engine, String key, int variant, int size, Map<String, String> overrides) throws IOException {
-            IrisCaveProfile profile = ProfileForm.withOverrides(profileOf(engine, key), overrides);
-            int surfaceY = Math.min(engine.getHeight() - 1, engine.getDimension().getFluidHeight() + SURFACE_ABOVE_SEA_BLOCKS);
-            int bottomY = Math.max(0, Math.max((int) Math.floor(profile.getVerticalRange().getMin()), surfaceY - MAX_DEPTH_BLOCKS));
-            boolean[] carved = CaveProfilePreview.carve(engine, profile, Math.floorMod(variant, VARIANTS) * VARIANT_SPACING_BLOCKS, size, bottomY, surfaceY);
-            return outsideOf(carved, size, surfaceY - bottomY + 1);
-        }
-
-        private static IrisCaveProfile profileOf(Engine engine, String key) {
-            IrisData data = engine.getData();
-            IrisCaveProfile profile = null;
-            if (DIMENSION_KEY.equals(key)) {
-                profile = engine.getDimension().getCaveProfile();
-            } else if (key.startsWith(REGION_PREFIX)) {
-                IrisRegion region = data.getRegionLoader().load(key.substring(REGION_PREFIX.length()));
-                profile = region == null ? null : region.getCaveProfile();
-            } else if (key.startsWith(BIOME_PREFIX)) {
-                IrisBiome biome = data.getBiomeLoader().load(key.substring(BIOME_PREFIX.length()));
-                profile = biome == null ? null : biome.getCaveProfile();
-            }
-            if (profile == null) {
-                throw new NoSuchElementException("No cave profile " + key);
-            }
-            return profile;
-        }
-
-        // Only the carved blocks on the outside of the space are kept, as the inside could not be seen.
-        private static SceneBlocks outsideOf(boolean[] carved, int size, int height) {
-            SceneBlocks scene = new SceneBlocks();
-            for (int y = 0; y < height; y++) {
-                String band = DEPTH_BANDS[Math.min(DEPTH_BANDS.length - 1, (height - 1 - y) * DEPTH_BANDS.length / height)];
-                for (int z = 0; z < size; z++) {
-                    for (int x = 0; x < size; x++) {
-                        if (carved[cellOf(x, y, z, size)] && touchesRock(carved, x, y, z, size, height)) {
-                            scene.add(x, y, z, band);
-                        }
-                    }
-                }
-            }
-            return scene;
-        }
-
-        private static boolean touchesRock(boolean[] carved, int x, int y, int z, int size, int height) {
-            for (int[] step : NEIGHBOURS) {
-                int nx = x + step[0];
-                int ny = y + step[1];
-                int nz = z + step[2];
-                boolean inside = nx >= 0 && ny >= 0 && nz >= 0 && nx < size && ny < height && nz < size;
-                if (!inside || !carved[cellOf(nx, ny, nz, size)]) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private static int cellOf(int x, int y, int z, int size) {
-            return (y * size + z) * size + x;
-        }
     }
 
     // Trees ------------------------------------------------------------------------------------------------------

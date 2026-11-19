@@ -29,8 +29,8 @@ public class IrisDimensionReachableBiomesTest {
     @Test
     @SuppressWarnings("unchecked")
     public void includesTheBiomesOfCavesTheDimensionTheRegionsAndTheReachableBiomesList() {
-        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("reachable")).setCaves(new KList<>("dimension-cave"));
-        IrisRegion reachable = new IrisRegion().setLandBiomes(new KList<>("land")).setCaves(new KList<>("region-cave"));
+        IrisDimension dimension = new IrisDimension().setRegions(IrisRegionEntry.plainList("reachable")).setCaves(new KList<>("dimension-cave"));
+        IrisRegion reachable = new IrisRegion().setLandBiomes(IrisBiomeEntry.plainList("land")).setCaves(new KList<>("region-cave"));
         IrisBiome land = biome("land").setCaves(new KList<>("biome-cave", "plain-cave", "ghost"));
         IrisBiome unlisted = biome("unlisted-cave-biome");
 

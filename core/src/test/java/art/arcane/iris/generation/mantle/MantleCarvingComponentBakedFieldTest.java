@@ -16,6 +16,7 @@ import art.arcane.iris.generation.stream.BakedDoubleStream;
 import art.arcane.iris.generation.stream.BakedStream;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.terrain.IrisRegionEntry;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.testsupport.FakeHydrology;
@@ -136,7 +137,7 @@ public class MantleCarvingComponentBakedFieldTest {
         EngineMantle engineMantle = mock(EngineMantle.class);
         when(engineMantle.getEngine()).thenReturn(engine);
         MantleCarvingComponent component = new MantleCarvingComponent(engineMantle);
-        IrisDimension dimension = new IrisDimension().setCaves(new KList<>("dimension-cave")).setRegions(new KList<>("region"));
+        IrisDimension dimension = new IrisDimension().setCaves(new KList<>("dimension-cave")).setRegions(IrisRegionEntry.plainList("region"));
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getWorld()).thenReturn(IrisWorld.builder().minHeight(0).maxHeight(WORLD_HEIGHT).build());
         when(engine.getMetrics()).thenReturn(new EngineMetrics(16));

@@ -173,6 +173,16 @@ public class IrisObjectTransformsNearestBlockIndexTest {
         }
 
         @Override
+        public boolean isLog() {
+            return false;
+        }
+
+        @Override
+        public boolean isLeaves() {
+            return false;
+        }
+
+        @Override
         public boolean isFoliagePlantable() {
             return false;
         }

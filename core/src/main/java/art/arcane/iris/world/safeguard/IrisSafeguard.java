@@ -3,7 +3,6 @@ package art.arcane.iris.world.safeguard;
 import art.arcane.iris.world.IrisStartupValidation;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.localization.ChatReport;
-import art.arcane.iris.localization.ConsoleLayout;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -128,7 +127,7 @@ public final class IrisSafeguard {
 
     public static void printFooter() {
         switch (mode) {
-            case STABLE -> IrisLogging.info(ChatReport.Tone.SUCCESS.marked("Stable, no conflicts"));
+            case STABLE -> IrisLogging.info(ChatReport.Tone.SUCCESS.marked(ChatReport.Tone.SUCCESS.paint("Stable, no conflicts")));
             case WARNING -> warning();
             case UNSTABLE -> unstable();
         }
@@ -142,14 +141,18 @@ public final class IrisSafeguard {
     // A log record carries a level, so a blank record renders as an empty [WARN] line and a rule of
     // dashes renders as a [SEVERE] one. Spacing belongs to a console, not to the server log.
     private static void warning() {
-        IrisLogging.warn(ChatReport.Tone.WARNING.marked("Iris is running in Warning Mode"));
-        IrisLogging.warn(ConsoleLayout.row("Some startup checks need attention. The warnings above suggest fixes."));
-        IrisLogging.warn(ConsoleLayout.row("Startup continues."));
+        ChatReport.of(ChatReport.Tone.WARNING, "Iris is running in Warning Mode")
+                .item("Some startup checks need attention. The warnings above suggest fixes.")
+                .item("Startup continues.")
+                .build()
+                .log();
     }
 
     private static void unstable() {
-        IrisLogging.error(ChatReport.Tone.ERROR.marked("Iris is running in Danger Mode"));
-        IrisLogging.error(ConsoleLayout.row("Critical startup checks failed. Fix the errors above."));
+        ChatReport.of(ChatReport.Tone.ERROR, "Iris is running in Danger Mode")
+                .item("Critical startup checks failed. Fix the errors above.")
+                .build()
+                .log();
         // No startup sleep: blocking the boot thread protected nothing — world creation and
         // player admission are already gated by IrisStartupValidation.
     }

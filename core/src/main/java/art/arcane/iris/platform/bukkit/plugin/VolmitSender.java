@@ -325,7 +325,7 @@ public class VolmitSender implements CommandSender {
     }
 
     private void sendToned(ChatReport.Tone tone, String message) {
-        sendMessage(isPlayer() ? tone.paint(message) : tone.marked(ChatReport.clean(message)));
+        sendMessage(isPlayer() ? tone.paint(message) : tone.marked(tone.paint(message)));
     }
 
     public void sendReport(ChatReport report) {

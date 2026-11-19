@@ -11,22 +11,23 @@ public final class ChatReport {
     public static final int DEFAULT_ITEM_LIMIT = 8;
     private static final String ITEM_BULLET = "  » ";
     private static final String CONTINUATION_INDENT = "     ";
+    private static final String CONSOLE_CONTINUATION_INDENT = "  ";
+    private static final String CONSOLE_COMMAND_INDENT = "  ";
+    private static final int CONSOLE_LABEL_WIDTH = 16;
     private static final Pattern LEGACY_COLOR = Pattern.compile("(?i)[§&][0-9A-FK-ORX]");
 
     public enum Tone {
-        SUCCESS(C.IRIS, ConsoleGlyphs.CHECK, C.GREEN),
-        INFO(C.AQUA, "", C.RESET),
-        WARNING(C.GOLD, ConsoleGlyphs.WARNING, C.YELLOW),
-        ERROR(C.RED, ConsoleGlyphs.CROSS, C.RED);
+        SUCCESS(C.IRIS, ConsoleGlyphs.CHECK),
+        INFO(C.AQUA, ""),
+        WARNING(C.GOLD, ConsoleGlyphs.WARNING),
+        ERROR(C.RED, ConsoleGlyphs.CROSS);
 
         private final C color;
         private final String mark;
-        private final C markColor;
 
-        Tone(C color, String mark, C markColor) {
+        Tone(C color, String mark) {
             this.color = color;
             this.mark = mark;
-            this.markColor = markColor;
         }
 
         /** Puts already styled console text on the gutter behind this tone's status glyph, or a blank one for info. */
@@ -34,7 +35,7 @@ public final class ChatReport {
             if (!hasMark()) {
                 return ConsoleLayout.row(styledText);
             }
-            return markColor + mark + " " + C.RESET + styledText;
+            return color + mark + " " + styledText;
         }
 
         public boolean hasMark() {
@@ -67,10 +68,7 @@ public final class ChatReport {
     private record NextStep(String instruction, String command) {
     }
 
-    /**
-     * One report entry. Chat shows its styled lines; the console shows the same words on the gutter in normal
-     * foreground, and a labelled entry as an aligned label row.
-     */
+    /** One report entry. Chat shows its styled lines; the console draws them as a branch, a labelled entry as an aligned label row. */
     private record Entry(List<String> styledLines, String label, String value) {
         static Entry styled(List<String> styledLines) {
             return new Entry(List.copyOf(styledLines), null, null);
@@ -80,16 +78,26 @@ public final class ChatReport {
             return new Entry(List.of(ChatReport.label(label, value)), clean(label), clean(value));
         }
 
-        List<String> consoleLines() {
+        /** The branch's lines from column 2 on: the first sits on the branch, the rest on the trunk. */
+        List<String> consoleBranch() {
             if (label != null) {
-                return ConsoleLayout.labelRows(label, value);
+                return labelRow();
             }
             List<String> lines = new ArrayList<>(styledLines.size());
-            lines.add(ConsoleLayout.row(ConsoleLayout.withoutColors(styledLines.getFirst())));
+            lines.add(styledLines.getFirst());
             for (int index = 1; index < styledLines.size(); index++) {
-                lines.add(ConsoleLayout.continuation(ConsoleLayout.withoutColors(styledLines.get(index)).stripLeading()));
+                lines.add(CONSOLE_CONTINUATION_INDENT + styledLines.get(index).stripLeading());
             }
             return lines;
+        }
+
+        /** The value starts at column 18; a label too long for its column puts the value on the next line. */
+        private List<String> labelRow() {
+            if (label.length() < CONSOLE_LABEL_WIDTH) {
+                String padding = " ".repeat(CONSOLE_LABEL_WIDTH - label.length());
+                return List.of(C.GRAY + label + padding + C.IRIS + value);
+            }
+            return List.of(C.GRAY + label, " ".repeat(CONSOLE_LABEL_WIDTH) + C.IRIS + value);
         }
     }
 
@@ -188,42 +196,68 @@ public final class ChatReport {
         }
     }
 
-    /** The console layout: the title behind the tone's status glyph, then the body, hint and next steps on the gutter. */
+    /**
+     * The console layout: the title behind the tone's status glyph, then the body, hint and next steps as a tree whose
+     * rails sit in the gutter, so branch text lines up with the title.
+     */
     public List<String> consoleLines() {
         List<String> lines = new ArrayList<>();
-        lines.add(tone.marked(consoleTitle()));
-        for (Entry entry : shownEntries()) {
-            lines.addAll(entry.consoleLines());
-        }
-        int hidden = hiddenEntryCount();
-        if (hidden > 0) {
-            lines.add(ConsoleLayout.row(ReportText.moreLabel(hidden)));
-        }
-        if (hint != null) {
-            lines.addAll(consoleHintLines());
-        }
-        for (NextStep step : nextSteps) {
-            lines.addAll(ConsoleLayout.nextStep(step.instruction(), step.command()));
+        lines.add(tone.marked(ReportText.title(tone, clean(title))));
+        List<List<String>> branches = consoleBranches();
+        for (int index = 0; index < branches.size(); index++) {
+            addBranchLines(lines, branches.get(index), index == branches.size() - 1);
         }
         return lines;
     }
 
-    private String consoleTitle() {
-        String plainTitle = clean(title);
-        return tone == Tone.SUCCESS ? C.BOLD + plainTitle : plainTitle;
+    private List<List<String>> consoleBranches() {
+        List<List<String>> branches = new ArrayList<>();
+        for (Entry entry : shownEntries()) {
+            branches.add(entry.consoleBranch());
+        }
+        int hidden = hiddenEntryCount();
+        if (hidden > 0) {
+            branches.add(List.of(C.DARK_GRAY + ReportText.moreLabel(hidden)));
+        }
+        if (hint != null) {
+            branches.add(consoleHintBranch());
+        }
+        for (NextStep step : nextSteps) {
+            branches.add(nextStepBranch(step.instruction(), step.command()));
+        }
+        return branches;
+    }
+
+    private void addBranchLines(List<String> lines, List<String> branch, boolean last) {
+        String connector = last ? ConsoleGlyphs.LAST_BRANCH : ConsoleGlyphs.BRANCH;
+        String trunk = last ? " " : ConsoleGlyphs.BAR;
+        lines.add(tone.color() + connector + " " + C.GRAY + branch.getFirst());
+        for (int index = 1; index < branch.size(); index++) {
+            lines.add(tone.color() + trunk + " " + C.GRAY + branch.get(index));
+        }
     }
 
     /**
      * A hint that ends in its command reads as a next step; any other hint stays one sentence. The console can't
      * click, so the step shows the full command a click would run.
      */
-    private List<String> consoleHintLines() {
+    private List<String> consoleHintBranch() {
         if (hintShownCommand != null && hint.endsWith(hintShownCommand)) {
             String instruction = hint.substring(0, hint.length() - hintShownCommand.length());
             String runnable = hintClickCommand == null ? hintShownCommand : clean(hintClickCommand);
-            return ConsoleLayout.nextStep(instruction, runnable);
+            return nextStepBranch(instruction, runnable);
         }
-        return List.of(ConsoleLayout.row(hint));
+        return List.of(chatHint());
+    }
+
+    /** An instruction ending in a colon, then the exact command on its own line so it copies as is. */
+    private static List<String> nextStepBranch(String instruction, String command) {
+        String trimmed = instruction.strip();
+        String commandLine = CONSOLE_COMMAND_INDENT + C.IRIS + command;
+        if (trimmed.isEmpty()) {
+            return List.of(commandLine);
+        }
+        return List.of(trimmed.endsWith(":") ? trimmed : trimmed + ":", commandLine);
     }
 
     private List<Entry> shownEntries() {

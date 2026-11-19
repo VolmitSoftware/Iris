@@ -18,7 +18,7 @@ public class IrisSplashComposerTest {
                 new IrisSplashPackScanner.SplashPackMetadata("underworld", "1012"));
         assertEquals(List.of(
                         "  Pack overworld v4010 is available. You have v4009.",
-                        "  Update it:",
+                        "└ Update it:",
                         "    /iris download pack=overworld overwrite=true"),
                 IrisSplashComposer.composeUpdateLines(packs, Map.of(
                         "overworld", new BuiltInPackUpdates.Update("4010"),

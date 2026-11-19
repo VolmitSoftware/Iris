@@ -411,7 +411,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
     }
 
     static void success(String string) {
-        Iris.msg(ChatReport.Tone.SUCCESS.marked(string));
+        Iris.msg(ChatReport.Tone.SUCCESS.marked(C.IRIS + string));
     }
 
     static void info(String format, Object... args) {
@@ -868,19 +868,16 @@ public final class IrisRuntime implements IrisPluginRuntime {
 
         private void report() {
             String total = seconds(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
-            IrisLogging.notice(ChatReport.Tone.SUCCESS.marked(C.BOLD + "Enabled in " + total));
+            ChatReport.Builder report = ChatReport.of(ChatReport.Tone.SUCCESS, "Enabled in " + total).unlimited();
             slowestFirst(phaseMillis, REPORTED_PHASE_MIN_MS)
-                    .forEach(phase -> logRow(titleCase(phase.getKey()), seconds(phase.getValue())));
+                    .forEach(phase -> report.entry(titleCase(phase.getKey()), seconds(phase.getValue())));
             String slowServices = slowestFirst(serviceMillis, SLOW_SERVICE_MIN_MS).stream()
                     .map(service -> service.getKey() + " " + seconds(service.getValue()))
                     .collect(Collectors.joining(", "));
             if (!slowServices.isEmpty()) {
-                logRow("Slow Services", slowServices);
+                report.entry("Slow Services", slowServices);
             }
-        }
-
-        private static void logRow(String label, String value) {
-            ConsoleLayout.labelRows(label, value).forEach(IrisLogging::notice);
+            report.build().consoleLines().forEach(IrisLogging::notice);
         }
 
         private static List<Map.Entry<String, Long>> slowestFirst(Map<String, Long> millisByName, long minimumMillis) {

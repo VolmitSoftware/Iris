@@ -1,7 +1,7 @@
 package art.arcane.iris.diagnostics.splash;
 
 import art.arcane.iris.BuildConstants;
-import art.arcane.iris.localization.ConsoleLayout;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.pack.BuiltInPackUpdates;
 
 import java.time.LocalDate;
@@ -113,9 +113,11 @@ public final class IrisSplashComposer {
         for (IrisSplashPackScanner.SplashPackMetadata pack : packs) {
             BuiltInPackUpdates.Update update = updates.get(pack.name());
             if (update != null && update.newerThan(pack.version())) {
-                lines.add(ConsoleLayout.row("Pack " + pack.name() + " v" + update.version()
-                        + " is available. You have v" + pack.version() + "."));
-                lines.addAll(ConsoleLayout.nextStep("Update it", "/iris download pack=" + pack.name() + " overwrite=true"));
+                lines.addAll(ChatReport.of(ChatReport.Tone.INFO, "Pack " + pack.name() + " v" + update.version()
+                                + " is available. You have v" + pack.version() + ".")
+                        .nextStep("Update it", "/iris download pack=" + pack.name() + " overwrite=true")
+                        .build()
+                        .consoleLines());
             }
         }
         return lines;

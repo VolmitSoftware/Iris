@@ -117,7 +117,7 @@ public class ChatReportTest {
     }
 
     @Test
-    public void consoleLayoutPutsTheReportOnTheGutterWithNextStepsOnTheirOwnLines() {
+    public void consoleLayoutDrawsTheBodyAsATreeWithNextStepsOnTheirOwnLines() {
         List<String> console = plainConsoleLines(ChatReport.of(ChatReport.Tone.ERROR, "Pack 'uitest' failed validation")
                 .items(List.of(
                         "Biome 'dev'" + REMOVED_FIELD_TAIL,
@@ -128,18 +128,31 @@ public class ChatReportTest {
 
         assertEquals(List.of(
                 ConsoleGlyphs.CROSS + " Pack 'uitest' failed validation",
-                "  2 biomes: caveProfile.allowWater was removed; use caveProfile.allowFluid. Cave aquifers use the dimension fluidPalette.",
-                "    dev, vanilla/grove",
-                "  Missing dimensions/ folder.",
-                "  See every issue:",
+                ConsoleGlyphs.BRANCH + " 2 biomes: caveProfile.allowWater was removed; use caveProfile.allowFluid. Cave aquifers use the dimension fluidPalette.",
+                ConsoleGlyphs.BAR + "   dev, vanilla/grove",
+                ConsoleGlyphs.BRANCH + " Missing dimensions/ folder.",
+                ConsoleGlyphs.LAST_BRANCH + " See every issue:",
                 "    /iris pack validate uitest"), console);
     }
 
     @Test
-    public void consoleLayoutGivesInfoTitlesABlankGutter() {
+    public void consoleLayoutKeepsTheReportHighlights() {
+        List<String> console = ChatReport.of(ChatReport.Tone.WARNING, "Pack 'uitest' has 1 warning")
+                .item("Biome 'dev' uses create:limestone at wall.palette[0]. Install the mod.")
+                .build()
+                .consoleLines();
+
+        assertTrue(console.get(0), console.get(0).contains(C.WHITE + "'uitest'" + C.GOLD));
+        assertTrue(console.get(1), console.get(1).contains(C.WHITE + "'dev'" + C.GRAY));
+        assertTrue(console.get(1), console.get(1).contains(C.AQUA + "create:limestone" + C.GRAY));
+        assertTrue(console.get(1), console.get(1).endsWith(C.DARK_GRAY + "Install the mod."));
+    }
+
+    @Test
+    public void consoleLayoutKeepsInfoTitlesOnABlankGutter() {
         List<String> console = plainConsoleLines(ChatReport.of(ChatReport.Tone.INFO, "Worlds").item("world").build());
 
-        assertEquals(List.of("  Worlds", "  world"), console);
+        assertEquals(List.of("  Worlds", ConsoleGlyphs.LAST_BRANCH + " world"), console);
     }
 
     @Test
@@ -151,8 +164,8 @@ public class ChatReportTest {
 
         assertEquals(List.of(
                 ConsoleGlyphs.CHECK + " Exported pack 'uitest'",
-                "  Folder          exports/uitest",
-                "  Datapack Folder Path",
+                ConsoleGlyphs.BRANCH + " Folder          exports/uitest",
+                ConsoleGlyphs.LAST_BRANCH + " Datapack Folder Path",
                 "                  world/datapacks/iris"), console);
     }
 
@@ -164,7 +177,7 @@ public class ChatReportTest {
 
         assertEquals(List.of(
                 ConsoleGlyphs.CHECK + " Created Studio project 'uitest'",
-                "  Restart the server, then run:",
+                ConsoleGlyphs.LAST_BRANCH + " Restart the server, then run:",
                 "    /iris studio open uitest"), console);
     }
 
@@ -174,16 +187,17 @@ public class ChatReportTest {
                 .hint("Stop it with /iris std regen-stop", "/iris std regen-stop", "/iris std regen-stop world=w")
                 .build());
 
-        assertEquals(List.of("  Regen started", "  Stop it with:", "    /iris std regen-stop world=w"), console);
+        assertEquals(List.of("  Regen started", ConsoleGlyphs.LAST_BRANCH + " Stop it with:",
+                "    /iris std regen-stop world=w"), console);
     }
 
     @Test
-    public void consoleHintWithoutACommandStaysOneRow() {
+    public void consoleHintWithoutACommandStaysOneBranch() {
         List<String> console = plainConsoleLines(ChatReport.of(ChatReport.Tone.WARNING, "Regen is running")
                 .hint("The console has the full refusal notice", null)
                 .build());
 
-        assertEquals(List.of("! Regen is running", "  The console has the full refusal notice"), console);
+        assertEquals(List.of("! Regen is running", ConsoleGlyphs.LAST_BRANCH + " The console has the full refusal notice"), console);
     }
 
     @Test
@@ -198,9 +212,11 @@ public class ChatReportTest {
     public void logLinesAlreadyOnTheGutterStayAsTheyAre() {
         String marked = ChatReport.Tone.ERROR.marked("Pack failed");
         String row = ConsoleLayout.row("Fix the errors above.");
+        String branch = C.RED + ConsoleGlyphs.BRANCH + " " + C.GRAY + "Missing dimensions/ folder.";
 
         assertEquals(marked, ConsoleLayout.onGutter(ChatReport.Tone.ERROR, marked));
         assertEquals(row, ConsoleLayout.onGutter(ChatReport.Tone.ERROR, row));
+        assertEquals(branch, ConsoleLayout.onGutter(ChatReport.Tone.ERROR, branch));
     }
 
     private static List<String> plainLines(ChatReport report) {

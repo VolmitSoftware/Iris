@@ -43,7 +43,7 @@ public class UnknownFieldReportTest {
 
         assertEquals(List.of(
                 "! Pack 'cavetest' has 1 unknown field. Iris ignores it.",
-                "  Biome 'caves'  1 file   biomes/carving/volcanic.json:144"
+                "└ Biome 'caves'  1 file   biomes/carving/volcanic.json:144"
         ), lines);
     }
 
@@ -58,8 +58,8 @@ public class UnknownFieldReportTest {
 
         assertEquals(List.of(
                 "! Pack 'cavetest' has 2 unknown fields. Iris ignores them.",
-                "  Biome 'caves'      3 files  e.g. biomes/carving/deep-ravine.json:157",
-                "  Dimension 'caves'  1 file   dimensions/cavetest.json:856"
+                "├ Biome 'caves'      3 files  e.g. biomes/carving/deep-ravine.json:157",
+                "└ Dimension 'caves'  1 file   dimensions/cavetest.json:856"
         ), lines);
     }
 

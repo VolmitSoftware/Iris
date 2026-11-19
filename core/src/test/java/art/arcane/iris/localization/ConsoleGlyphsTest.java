@@ -20,11 +20,11 @@ public class ConsoleGlyphsTest {
     }
 
     @Test
-    public void asciiConsoleGetsAsciiStatusGlyphs() {
-        String gutter = ConsoleGlyphs.BAR + " " + ConsoleGlyphs.CHECK + " done\n" + ConsoleGlyphs.CROSS + " failed\n"
-                + ConsoleGlyphs.WARNING + " Loading" + ConsoleGlyphs.ELLIPSIS;
+    public void asciiConsoleGetsAsciiGlyphsThatKeepTheGutterWidth() {
+        String gutter = ConsoleGlyphs.CROSS + " failed\n" + ConsoleGlyphs.BRANCH + " item\n" + ConsoleGlyphs.BAR + "   more\n"
+                + ConsoleGlyphs.LAST_BRANCH + " Loading" + ConsoleGlyphs.ELLIPSIS + "\n" + ConsoleGlyphs.CHECK + " done";
 
-        assertEquals("| + done\nx failed\n! Loading...", ConsoleGlyphs.forCharset(StandardCharsets.US_ASCII).fit(gutter));
+        assertEquals("x failed\n| item\n|   more\n` Loading...\n+ done", ConsoleGlyphs.forCharset(StandardCharsets.US_ASCII).fit(gutter));
     }
 
     @Test

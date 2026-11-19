@@ -78,7 +78,7 @@ public enum Mode {
 
             @Override
             public String label(String text) {
-                return C.DARK_GRAY + text;
+                return C.GRAY + text;
             }
 
             @Override

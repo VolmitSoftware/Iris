@@ -60,7 +60,8 @@ public final class IrisSplashComposer {
             String label = styled.isEmpty()
                     ? " " + padRight(detail.label(), LABEL_WIDTH)
                     : FACT_GAP + detail.label() + " ";
-            styled.append(style.label(label)).append(style.value(detail.value()));
+            styled.append(style.label(label))
+                    .append(detail.headline() ? style.headlineValue(detail.value()) : style.value(detail.value()));
         }
         return styled.toString();
     }
@@ -80,10 +81,10 @@ public final class IrisSplashComposer {
         String java = javaVersion() < 0 ? "unknown" : String.valueOf(javaVersion());
         return new String[]{
                 prefix + style.title(" Iris, ") + style.subtitle("Dimension Engine ") + style.tag("[" + releaseTrain + "]"),
-                prefix + styledRow(List.of(new Detail("Version", version)), style),
+                prefix + styledRow(List.of(Detail.headline("Version", version)), style),
                 prefix + styledRow(List.of(new Detail("By", "Volmit Software (Arcane Arts)")), style),
                 prefix + styledRow(List.of(new Detail("Web", "volmitsoftware.com")), style),
-                prefix + styledRow(List.of(new Detail("Server", serverLine)), style),
+                prefix + styledRow(List.of(Detail.headline("Server", serverLine)), style),
                 prefix + styledRow(List.of(new Detail("Java", java), new Detail("Date", startupDate())), style),
                 prefix + styledRow(List.of(new Detail("Commit", shortCommit() + "/" + BuildConstants.ENVIRONMENT)), style),
                 "",
@@ -157,7 +158,15 @@ public final class IrisSplashComposer {
         return LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
     }
 
-    public record Detail(String label, String value) {
+    /** A headline fact is what support asks for first, so its value stands out from the rest. */
+    public record Detail(String label, String value, boolean headline) {
+        public Detail(String label, String value) {
+            this(label, value, false);
+        }
+
+        public static Detail headline(String label, String value) {
+            return new Detail(label, value, true);
+        }
     }
 
     public interface InfoStyle {
@@ -186,6 +195,10 @@ public final class IrisSplashComposer {
 
         default String value(String text) {
             return text;
+        }
+
+        default String headlineValue(String text) {
+            return value(text);
         }
     }
 }

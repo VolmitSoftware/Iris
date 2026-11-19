@@ -49,6 +49,22 @@ public class IrisSplashComposerTest {
     }
 
     @Test
+    public void onlyHeadlineFactsGetTheHeadlineValueStyle() {
+        IrisSplashComposer.InfoStyle marksHeadlines = new IrisSplashComposer.InfoStyle() {
+            @Override
+            public String headlineValue(String text) {
+                return "*" + text;
+            }
+        };
+
+        String[] info = IrisSplashComposer.composeInfo("4.0.0-26.2", "Paper 26.2", marksHeadlines);
+
+        assertEquals(" Version       *4.0.0-26.2", info[1]);
+        assertEquals(" Web           volmitsoftware.com", info[3]);
+        assertEquals(" Server        *Paper 26.2", info[4]);
+    }
+
+    @Test
     public void composeInfoShowsWebsiteAndKeepsSplashHeight() {
         String[] info = IrisSplashComposer.composeInfo("4.0.0-26.2", "Paper 26.2", IrisSplashComposer.InfoStyle.PLAIN);
 

@@ -85,6 +85,11 @@ public enum Mode {
             public String value(String text) {
                 return C.GRAY + text;
             }
+
+            @Override
+            public String headlineValue(String text) {
+                return C.WHITE + text;
+            }
         };
     }
 

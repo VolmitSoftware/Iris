@@ -197,12 +197,12 @@ public class ChatReportTest {
                 .hint("The console has the full refusal notice", null)
                 .build());
 
-        assertEquals(List.of("! Regen is running", ConsoleGlyphs.LAST_BRANCH + " The console has the full refusal notice"), console);
+        assertEquals(List.of(ConsoleGlyphs.WARNING + " Regen is running", ConsoleGlyphs.LAST_BRANCH + " The console has the full refusal notice"), console);
     }
 
     @Test
     public void logLinesWithoutAGutterGetTheirTonesMark() {
-        assertEquals("! Default pack is missing",
+        assertEquals(ConsoleGlyphs.WARNING + " Default pack is missing",
                 ConsoleLayout.onGutter(ChatReport.Tone.WARNING, "Default pack is missing").replaceAll("§.", ""));
         assertEquals("  Loading packs",
                 ConsoleLayout.onGutter(ChatReport.Tone.INFO, "Loading packs").replaceAll("§.", ""));

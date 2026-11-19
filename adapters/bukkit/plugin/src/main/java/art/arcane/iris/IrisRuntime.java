@@ -411,7 +411,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
     }
 
     static void success(String string) {
-        Iris.msg(ChatReport.Tone.SUCCESS.marked(C.IRIS + string));
+        Iris.msg(ChatReport.Tone.SUCCESS.marked(ChatReport.Tone.SUCCESS.consolePaint(string)));
     }
 
     static void info(String format, Object... args) {
@@ -1563,7 +1563,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
         boolean eagerInjection = IrisSettings.get().getGeneral().isEagerRuntimeInjection();
         boolean datapackFromBootstrap = DefaultPackBootstrapProvisioner.wasProvisionedThisStartup();
         return List.of(
-                List.of(IrisSplashComposer.Detail.key("Packs", IrisSplashComposer.packSummary(packs))),
+                List.of(new IrisSplashComposer.Detail("Packs",IrisSplashComposer.packSummary(packs))),
                 List.of(new IrisSplashComposer.Detail("Custom biomes", String.valueOf(INMS.get().countCustomBiomes()))),
                 List.of(new IrisSplashComposer.Detail("SIMD", SimdSupport.shortStatus()),
                         new IrisSplashComposer.Detail("Datapack", datapackFromBootstrap ? "bootstrap" : "startup install"),

@@ -31,7 +31,11 @@ final class ReportText {
     }
 
     static String title(ChatReport.Tone tone, String plain) {
-        String base = tone.color().toString();
+        return title(tone.color(), plain);
+    }
+
+    static String title(C color, String plain) {
+        String base = color.toString();
         return base + highlightQuoted(plain, C.WHITE.toString(), base);
     }
 

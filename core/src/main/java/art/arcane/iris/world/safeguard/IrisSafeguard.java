@@ -127,7 +127,7 @@ public final class IrisSafeguard {
 
     public static void printFooter() {
         switch (mode) {
-            case STABLE -> IrisLogging.info(ChatReport.Tone.SUCCESS.marked(ChatReport.Tone.SUCCESS.paint("Stable, no conflicts")));
+            case STABLE -> IrisLogging.info(ChatReport.Tone.SUCCESS.marked(ChatReport.Tone.SUCCESS.consolePaint("Stable, no conflicts")));
             case WARNING -> warning();
             case UNSTABLE -> unstable();
         }

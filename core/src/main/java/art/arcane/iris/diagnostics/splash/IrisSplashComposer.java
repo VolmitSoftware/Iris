@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 public final class IrisSplashComposer {
     private static final String SPLASH_PADDING = " ".repeat(4);
-    private static final int FIRST_SPARE_INFO_ROW = 8;
+    private static final int FIRST_SPARE_INFO_ROW = 7;
     private static final int SPARE_INFO_ROWS = 3;
     private static final int PACKS_SHOWN = 6;
     private static final int SHORT_COMMIT_LENGTH = 7;
@@ -60,8 +60,7 @@ public final class IrisSplashComposer {
             String label = styled.isEmpty()
                     ? " " + padRight(detail.label(), LABEL_WIDTH)
                     : FACT_GAP + detail.label() + " ";
-            styled.append(detail.key() ? style.label(label) : style.quietLabel(label))
-                    .append(detail.key() ? style.value(detail.value()) : style.quietValue(detail.value()));
+            styled.append(style.label(label)).append(style.value(detail.value()));
         }
         return styled.toString();
     }
@@ -80,14 +79,14 @@ public final class IrisSplashComposer {
         String prefix = style.linePrefix();
         String java = javaVersion() < 0 ? "unknown" : String.valueOf(javaVersion());
         return new String[]{
-                "",
                 prefix + style.title(" Iris, ") + style.subtitle("Dimension Engine ") + style.tag("[" + releaseTrain + "]"),
-                prefix + styledRow(List.of(Detail.key("Version", version)), style),
+                prefix + styledRow(List.of(new Detail("Version", version)), style),
                 prefix + styledRow(List.of(new Detail("By", "Volmit Software (Arcane Arts)")), style),
-                prefix + styledRow(List.of(new Detail("Web", "VolmitSoftware.com")), style),
-                prefix + styledRow(List.of(Detail.key("Server", serverLine)), style),
+                prefix + styledRow(List.of(new Detail("Web", "volmitsoftware.com")), style),
+                prefix + styledRow(List.of(new Detail("Server", serverLine)), style),
                 prefix + styledRow(List.of(new Detail("Java", java), new Detail("Date", startupDate())), style),
-                prefix + styledRow(List.of(Detail.key("Commit", shortCommit() + "/" + BuildConstants.ENVIRONMENT)), style),
+                prefix + styledRow(List.of(new Detail("Commit", shortCommit() + "/" + BuildConstants.ENVIRONMENT)), style),
+                "",
                 "",
                 "",
                 ""
@@ -158,15 +157,7 @@ public final class IrisSplashComposer {
         return LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
     }
 
-    /** One labelled fact; a key fact is what support reads first and keeps the accent color, the rest are dimmed. */
-    public record Detail(String label, String value, boolean key) {
-        public Detail(String label, String value) {
-            this(label, value, false);
-        }
-
-        public static Detail key(String label, String value) {
-            return new Detail(label, value, true);
-        }
+    public record Detail(String label, String value) {
     }
 
     public interface InfoStyle {
@@ -195,14 +186,6 @@ public final class IrisSplashComposer {
 
         default String value(String text) {
             return text;
-        }
-
-        default String quietLabel(String text) {
-            return label(text);
-        }
-
-        default String quietValue(String text) {
-            return value(text);
         }
     }
 }

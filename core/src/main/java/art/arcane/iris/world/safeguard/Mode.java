@@ -63,12 +63,12 @@ public enum Mode {
 
             @Override
             public String title(String text) {
-                return color + text;
+                return color.toString() + C.BOLD + text;
             }
 
             @Override
             public String subtitle(String text) {
-                return C.WHITE + text;
+                return C.WHITE.toString() + C.BOLD + text;
             }
 
             @Override
@@ -83,17 +83,7 @@ public enum Mode {
 
             @Override
             public String value(String text) {
-                return color + text;
-            }
-
-            @Override
-            public String quietLabel(String text) {
-                return C.DARK_GRAY + text;
-            }
-
-            @Override
-            public String quietValue(String text) {
-                return C.GRAY + text;
+                return C.WHITE + text;
             }
         };
     }

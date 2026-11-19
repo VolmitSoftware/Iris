@@ -10,9 +10,9 @@ public final class ConsoleGlyphs {
     public static final String BAR = "\u2502";
     public static final String BRANCH = "\u251c";
     public static final String LAST_BRANCH = "\u2514";
-    public static final String CHECK = "\u2713";
-    public static final String WARNING = "!";
-    public static final String CROSS = "\u2717";
+    public static final String CHECK = "\u2714";
+    public static final String WARNING = "\u25b2";
+    public static final String CROSS = "\u2716";
     public static final String ELLIPSIS = "\u2026";
 
     private static final Map<String, String> ASCII_FALLBACKS = asciiFallbacks();
@@ -57,6 +57,7 @@ public final class ConsoleGlyphs {
         fallbacks.put(BRANCH, "|");
         fallbacks.put(LAST_BRANCH, "`");
         fallbacks.put(CHECK, "+");
+        fallbacks.put(WARNING, "!");
         fallbacks.put(CROSS, "x");
         fallbacks.put(ELLIPSIS, "...");
         fallbacks.put("\u2039", "[");

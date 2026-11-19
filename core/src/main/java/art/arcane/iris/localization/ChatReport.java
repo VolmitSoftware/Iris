@@ -16,17 +16,23 @@ public final class ChatReport {
     private static final int CONSOLE_LABEL_WIDTH = 16;
     private static final Pattern LEGACY_COLOR = Pattern.compile("(?i)[§&][0-9A-FK-ORX]");
 
+    /**
+     * Chat wears the Iris color for success; the console keeps it for the Iris tag and splash, so it stays special there.
+     * Console success is DARK_GREEN because GREEN shares legacy code 'a' with IRIS and renders as Iris teal.
+     */
     public enum Tone {
-        SUCCESS(C.IRIS, ConsoleGlyphs.CHECK),
-        INFO(C.AQUA, ""),
-        WARNING(C.GOLD, ConsoleGlyphs.WARNING),
-        ERROR(C.RED, ConsoleGlyphs.CROSS);
+        SUCCESS(C.IRIS, C.DARK_GREEN, ConsoleGlyphs.CHECK),
+        INFO(C.AQUA, C.AQUA, ""),
+        WARNING(C.GOLD, C.GOLD, ConsoleGlyphs.WARNING),
+        ERROR(C.RED, C.RED, ConsoleGlyphs.CROSS);
 
         private final C color;
+        private final C consoleColor;
         private final String mark;
 
-        Tone(C color, String mark) {
+        Tone(C color, C consoleColor, String mark) {
             this.color = color;
+            this.consoleColor = consoleColor;
             this.mark = mark;
         }
 
@@ -35,7 +41,15 @@ public final class ChatReport {
             if (!hasMark()) {
                 return ConsoleLayout.row(styledText);
             }
-            return color + mark + " " + styledText;
+            return consoleColor + mark + " " + styledText;
+        }
+
+        public C consoleColor() {
+            return consoleColor;
+        }
+
+        public String consolePaint(String text) {
+            return consoleColor + clean(text);
         }
 
         public boolean hasMark() {
@@ -95,9 +109,9 @@ public final class ChatReport {
         private List<String> labelRow() {
             if (label.length() < CONSOLE_LABEL_WIDTH) {
                 String padding = " ".repeat(CONSOLE_LABEL_WIDTH - label.length());
-                return List.of(C.GRAY + label + padding + C.IRIS + value);
+                return List.of(C.GRAY + label + padding + C.WHITE + value);
             }
-            return List.of(C.GRAY + label, " ".repeat(CONSOLE_LABEL_WIDTH) + C.IRIS + value);
+            return List.of(C.GRAY + label, " ".repeat(CONSOLE_LABEL_WIDTH) + C.WHITE + value);
         }
     }
 
@@ -202,7 +216,7 @@ public final class ChatReport {
      */
     public List<String> consoleLines() {
         List<String> lines = new ArrayList<>();
-        lines.add(tone.marked(ReportText.title(tone, clean(title))));
+        lines.add(tone.marked(ReportText.title(tone.consoleColor(), clean(title))));
         List<List<String>> branches = consoleBranches();
         for (int index = 0; index < branches.size(); index++) {
             addBranchLines(lines, branches.get(index), index == branches.size() - 1);
@@ -231,9 +245,9 @@ public final class ChatReport {
     private void addBranchLines(List<String> lines, List<String> branch, boolean last) {
         String connector = last ? ConsoleGlyphs.LAST_BRANCH : ConsoleGlyphs.BRANCH;
         String trunk = last ? " " : ConsoleGlyphs.BAR;
-        lines.add(tone.color() + connector + " " + C.GRAY + branch.getFirst());
+        lines.add(tone.consoleColor() + connector + " " + C.GRAY + branch.getFirst());
         for (int index = 1; index < branch.size(); index++) {
-            lines.add(tone.color() + trunk + " " + C.GRAY + branch.get(index));
+            lines.add(tone.consoleColor() + trunk + " " + C.GRAY + branch.get(index));
         }
     }
 
@@ -253,7 +267,7 @@ public final class ChatReport {
     /** An instruction ending in a colon, then the exact command on its own line so it copies as is. */
     private static List<String> nextStepBranch(String instruction, String command) {
         String trimmed = instruction.strip();
-        String commandLine = CONSOLE_COMMAND_INDENT + C.IRIS + command;
+        String commandLine = CONSOLE_COMMAND_INDENT + C.AQUA + command;
         if (trimmed.isEmpty()) {
             return List.of(commandLine);
         }

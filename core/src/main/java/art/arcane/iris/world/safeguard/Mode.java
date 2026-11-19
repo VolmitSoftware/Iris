@@ -78,12 +78,12 @@ public enum Mode {
 
             @Override
             public String label(String text) {
-                return C.GRAY + text;
+                return C.DARK_GRAY + text;
             }
 
             @Override
             public String value(String text) {
-                return C.WHITE + text;
+                return C.GRAY + text;
             }
         };
     }

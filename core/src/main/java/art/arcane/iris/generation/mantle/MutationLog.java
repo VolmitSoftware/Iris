@@ -9,7 +9,6 @@ import java.util.Objects;
 
 final class MutationLog {
     private static final byte CUSTOM = 1;
-    private static final byte CANOPY = 2;
     private static final byte ENTERS_WATER = 4;
     private static final byte FORCED = 8;
 
@@ -32,16 +31,16 @@ final class MutationLog {
                         throw new IllegalArgumentException("Object mutation type " + key.type().getName()
                                 + " does not match its value " + value.getClass().getName());
                     }
-                    log.add(key.x(), key.y(), key.z(), value, false, set.canopy(), ObjectWaterRule.KEEP_OUT);
+                    log.add(key.x(), key.y(), key.z(), value, false, ObjectWaterRule.KEEP_OUT);
                 }
                 case ObjectDestinationTransaction.CustomBlockMutation block -> log.add(key.x(), key.y(), key.z(),
-                        Objects.requireNonNull(block.state(), "custom block state"), true, block.canopy(), ObjectWaterRule.KEEP_OUT);
+                        Objects.requireNonNull(block.state(), "custom block state"), true, ObjectWaterRule.KEEP_OUT);
             }
         }
         return log;
     }
 
-    void add(int blockX, int blockY, int blockZ, Object value, boolean custom, boolean canopy, ObjectWaterRule rule) {
+    void add(int blockX, int blockY, int blockZ, Object value, boolean custom, ObjectWaterRule rule) {
         if (size == values.length) {
             int capacity = size * 2;
             x = Arrays.copyOf(x, capacity);
@@ -54,7 +53,7 @@ final class MutationLog {
         y[size] = blockY;
         z[size] = blockZ;
         values[size] = value;
-        flags[size] = (byte) ((custom ? CUSTOM : 0) | (canopy ? CANOPY : 0) | (rule == ObjectWaterRule.ENTERS_WATER ? ENTERS_WATER : 0) | (rule == ObjectWaterRule.FORCED ? FORCED : 0));
+        flags[size] = (byte) ((custom ? CUSTOM : 0) | (rule == ObjectWaterRule.ENTERS_WATER ? ENTERS_WATER : 0) | (rule == ObjectWaterRule.FORCED ? FORCED : 0));
         size++;
     }
 
@@ -80,10 +79,6 @@ final class MutationLog {
 
     boolean custom(int index) {
         return (flags[index] & CUSTOM) != 0;
-    }
-
-    boolean canopy(int index) {
-        return (flags[index] & CANOPY) != 0;
     }
 
     ObjectWaterRule waterRule(int index) {

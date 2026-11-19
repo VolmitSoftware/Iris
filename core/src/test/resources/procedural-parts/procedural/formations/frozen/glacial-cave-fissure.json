@@ -1,0 +1,87 @@
+{
+    "variants": 12,
+    "seed": 5055102,
+    "materials": [
+        {
+            "role": "rock",
+            "block": "minecraft:packed_ice",
+            "palette": "snippet/palette/frozen/magical-ice",
+            "rules": [
+                {
+                    "block": "minecraft:blue_ice",
+                    "along": {
+                        "from": 0.8333,
+                        "to": 1
+                    }
+                }
+            ]
+        }
+    ],
+    "parts": [
+        {
+            "role": "rock",
+            "cluster": {
+                "count": 3,
+                "radius": 4.0,
+                "layout": "LINE",
+                "part": {
+                    "stem": {
+                        "length": [
+                            4.96,
+                            16.0
+                        ],
+                        "radius": 1.0,
+                        "taper": [
+                            [
+                                0.0,
+                                1.0
+                            ],
+                            [
+                                0.125,
+                                0.9083
+                            ],
+                            [
+                                0.25,
+                                0.8129
+                            ],
+                            [
+                                0.375,
+                                0.7129
+                            ],
+                            [
+                                0.5,
+                                0.6071
+                            ],
+                            [
+                                0.625,
+                                0.4935
+                            ],
+                            [
+                                0.75,
+                                0.3686
+                            ],
+                            [
+                                0.875,
+                                0.2238
+                            ],
+                            [
+                                1.0,
+                                0.0
+                            ]
+                        ],
+                        "lean": [
+                            0,
+                            23.254
+                        ],
+                        "leanCurve": {
+                            "shape": "power",
+                            "exponent": 2
+                        },
+                        "roughness": 0.2,
+                        "jitter": 0.04
+                    }
+                }
+            }
+        }
+    ]
+}

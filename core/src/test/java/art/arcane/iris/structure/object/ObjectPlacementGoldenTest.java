@@ -7,8 +7,6 @@ import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.cave.CarvingMode;
 import art.arcane.iris.generation.decoration.IrisStiltSettings;
 import art.arcane.iris.generation.decoration.IrisVacuumSettings;
-import art.arcane.iris.generation.decoration.tree.TreeBlockCanvas;
-import art.arcane.iris.generation.decoration.tree.TreeGrounding;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -41,12 +39,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
@@ -65,9 +61,9 @@ public class ObjectPlacementGoldenTest {
 
     private static final int OBJECTS = 200;
     private static final int SEEDS = 5;
-    private static final long GOLDEN = 0x930e130dc51b6f67L;
-    private static final long MARKER_GOLDEN = 0x67ae55d574c3894eL;
-    private static final long HIGH_VARIANT_GOLDEN = 0xdd61791b0f7e4d37L;
+    private static final long GOLDEN = 0x2cebafdbb128634dL;
+    private static final long MARKER_GOLDEN = 0x120e4648e9c88721L;
+    private static final long HIGH_VARIANT_GOLDEN = 0x503f4f34bb07f01aL;
 
     private static final List<String> PALETTE = List.of(
             "minecraft:stone",
@@ -383,18 +379,6 @@ public class ObjectPlacementGoldenTest {
             if (key.startsWith("minecraft:chest") && random.nextBoolean()) {
                 object.getStates().put(position, new TileData("minecraft:chest", new KMap<>()));
             }
-        }
-        if (index % 4 == 1 && !placed.isEmpty()) {
-            List<TreeGrounding.Root> roots = new ArrayList<>();
-            Set<TreeBlockCanvas.Vec> canopy = new HashSet<>();
-            for (IrisBlockVector position : placed) {
-                if (random.nextInt(3) == 0) {
-                    canopy.add(new TreeBlockCanvas.Vec(position.getBlockX(), position.getBlockY(), position.getBlockZ()));
-                }
-            }
-            IrisBlockVector root = placed.get(0);
-            roots.add(new TreeGrounding.Root(root.getBlockX(), -(height / 2), root.getBlockZ(), state("minecraft:oak_log[axis=y]")));
-            object.setTreeGrounding(TreeGrounding.create(roots, 4, canopy));
         }
         return object;
     }
@@ -778,13 +762,6 @@ public class ObjectPlacementGoldenTest {
             Map<Class<?>, Object> values = extra.get(key(xx, yy, zz));
             Object value = values == null ? null : values.get(type);
             return value == null ? null : type.cast(value);
-        }
-
-        @Override
-        public boolean beginTreeCanopy(BlockPosition position) {
-            boolean open = IObjectPlacer.super.beginTreeCanopy(position);
-            record("canopy", position.getX(), position.getY(), position.getZ(), Boolean.toString(open));
-            return open;
         }
 
         @Override

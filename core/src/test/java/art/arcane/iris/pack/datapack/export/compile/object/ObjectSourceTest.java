@@ -1,6 +1,5 @@
 package art.arcane.iris.pack.datapack.export.compile.object;
 
-import art.arcane.iris.generation.decoration.tree.TreeGrounding;
 import art.arcane.iris.pack.datapack.export.TemplateBlock;
 import art.arcane.iris.pack.datapack.export.ir.ExportDiagnostic;
 import art.arcane.iris.spi.IrisPlatform;
@@ -16,10 +15,8 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -100,43 +97,6 @@ public class ObjectSourceTest {
 
         assertEquals(-1, variant.baseY());
         assertEquals(3, variant.volume().blocks().size());
-    }
-
-    @Test
-    public void treeRootsFollowTheTemplateShift() {
-        IrisObject object = new IrisObject(3, 3, 3);
-        NativeBlockState root = blockState("minecraft:oak_wood[axis=y]");
-        object.setUnsigned(1, -1, 1, root);
-        object.setUnsigned(0, -2, 1, root);
-        object.setUnsigned(0, -1, 1, root);
-        object.setUnsigned(1, 0, 1, blockState("minecraft:oak_log[axis=y]"));
-        object.setTreeGrounding(TreeGrounding.create(List.of(
-                new TreeGrounding.Root(0, -2, 0, root),
-                new TreeGrounding.Root(-1, -3, 0, root),
-                new TreeGrounding.Root(-1, -2, 0, root)), 3, Set.of()));
-
-        ObjectSource source = ObjectSource.of(object, "procedural/tree", new ArrayList<>());
-
-        assertEquals(-2, source.baseY());
-        assertEquals(3, source.roots().reach());
-        assertEquals(List.of("0,0,1", "1,1,1"), cells(source.roots()));
-        assertEquals("minecraft:oak_wood", source.roots().cells().getFirst().state().name());
-    }
-
-    @Test
-    public void objectsWithoutGroundingHaveNoRoots() {
-        IrisObject object = new IrisObject(1, 1, 1);
-        object.setUnsigned(0, 0, 0, blockState("minecraft:stone"));
-
-        assertFalse(ObjectSource.of(object, "objects/rock", new ArrayList<>()).roots().present());
-    }
-
-    private static List<String> cells(TreeRoots roots) {
-        List<String> cells = new ArrayList<>();
-        for (TemplateBlock cell : roots.cells()) {
-            cells.add(cell.x() + "," + cell.y() + "," + cell.z());
-        }
-        return cells;
     }
 
     private static TemplateBlock blockAt(ObjectSource source, int x, int y, int z) {

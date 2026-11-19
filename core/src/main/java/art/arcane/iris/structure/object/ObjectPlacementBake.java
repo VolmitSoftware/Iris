@@ -2,7 +2,6 @@ package art.arcane.iris.structure.object;
 
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.block.VectorMap;
-import art.arcane.iris.generation.decoration.tree.TreeGrounding;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -23,7 +22,6 @@ final class ObjectPlacementBake {
     private final int[] offsetZ;
     private final int[] layerY;
     private final short[] paletteIndexes;
-    private final long[] canopy;
     private final int[] tileBlocks;
     private final TileData[] tileValues;
     private final int[] sources;
@@ -37,7 +35,6 @@ final class ObjectPlacementBake {
         this.offsetZ = cells.offsetZ();
         this.layerY = cells.layerY();
         this.paletteIndexes = cells.paletteIndexes();
-        this.canopy = cells.canopy();
         this.tileBlocks = cells.tileBlocks();
         this.tileValues = cells.tileValues();
         this.sources = cells.sources();
@@ -93,7 +90,7 @@ final class ObjectPlacementBake {
         if (index != count) {
             throw new IllegalStateException("Object " + object.getLoadKey() + " changed while its placement bake was built");
         }
-        return new Cells(x, y, z, layerDiffers ? layer : null, layout.paletteIndexes, layout.canopy, layout.tileBlocks,
+        return new Cells(x, y, z, layerDiffers ? layer : null, layout.paletteIndexes, layout.tileBlocks,
                 layout.tileValues, null);
     }
 
@@ -106,15 +103,11 @@ final class ObjectPlacementBake {
     private static Cells gather(Layout layout, int[] x, int[] y, int[] z, int[] sources) {
         int count = sources.length;
         short[] paletteIndexes = new short[count];
-        long[] canopy = layout.canopy == null ? null : new long[(count + 63) >>> 6];
         IntArrayList tileBlocks = layout.tileBlocks == null ? null : new IntArrayList();
         List<TileData> tileValues = layout.tileBlocks == null ? null : new ArrayList<>();
         for (int index = 0; index < count; index++) {
             int source = sources[index];
             paletteIndexes[index] = layout.paletteIndexes[source];
-            if (canopy != null && (layout.canopy[source >>> 6] & (1L << (source & 63))) != 0L) {
-                canopy[index >>> 6] |= 1L << (index & 63);
-            }
             if (tileBlocks != null) {
                 int slot = Arrays.binarySearch(layout.tileBlocks, source);
                 if (slot >= 0) {
@@ -124,7 +117,7 @@ final class ObjectPlacementBake {
             }
         }
         boolean tiled = tileBlocks != null && !tileBlocks.isEmpty();
-        return new Cells(x, y, z, null, paletteIndexes, canopy, tiled ? tileBlocks.toIntArray() : null,
+        return new Cells(x, y, z, null, paletteIndexes, tiled ? tileBlocks.toIntArray() : null,
                 tiled ? tileValues.toArray(new TileData[0]) : null, sources);
     }
 
@@ -166,10 +159,6 @@ final class ObjectPlacementBake {
 
     TileData[] tileValues() {
         return tileValues;
-    }
-
-    boolean canopy(int index) {
-        return canopy != null && (canopy[index >>> 6] & (1L << (index & 63))) != 0L;
     }
 
     String[] markers(String[] sourceMarkers) {
@@ -233,26 +222,22 @@ final class ObjectPlacementBake {
     static final class Layout {
         private final long blocksRevision;
         private final long statesRevision;
-        private final TreeGrounding grounding;
         private final int count;
         private final short[] paletteIndexes;
         private final NativeBlockState[] palette;
         private final int[] tileBlocks;
         private final TileData[] tileValues;
-        private final long[] canopy;
         private volatile RotationResampler resampler;
 
-        private Layout(long blocksRevision, long statesRevision, TreeGrounding grounding, int count, short[] paletteIndexes,
-                       NativeBlockState[] palette, int[] tileBlocks, TileData[] tileValues, long[] canopy) {
+        private Layout(long blocksRevision, long statesRevision, int count, short[] paletteIndexes,
+                       NativeBlockState[] palette, int[] tileBlocks, TileData[] tileValues) {
             this.blocksRevision = blocksRevision;
             this.statesRevision = statesRevision;
-            this.grounding = grounding;
             this.count = count;
             this.paletteIndexes = paletteIndexes;
             this.palette = palette;
             this.tileBlocks = tileBlocks;
             this.tileValues = tileValues;
-            this.canopy = canopy;
         }
 
         private static Layout of(IrisObject object) {
@@ -276,7 +261,6 @@ final class ObjectPlacementBake {
             VectorMap<TileData> states = object.states;
             long blocksRevision = blocks.modificationRevision();
             long statesRevision = states.modificationRevision();
-            TreeGrounding grounding = object.getTreeGrounding();
             boolean hasStates = !states.isEmpty();
             int size = blocks.size();
             short[] paletteIndexes = new short[size];
@@ -284,7 +268,6 @@ final class ObjectPlacementBake {
             List<TileData> tileValues = new ArrayList<>();
             List<NativeBlockState> palette = new ArrayList<>();
             IdentityHashMap<NativeBlockState, Integer> paletteSlots = new IdentityHashMap<>();
-            long[] canopy = null;
             VectorMap<NativeBlockState>.Cursor cursor = blocks.cursor();
             int index = 0;
             while (cursor.next()) {
@@ -314,26 +297,19 @@ final class ObjectPlacementBake {
                         tileValues.add(tile);
                     }
                 }
-                if (grounding != null && grounding.isCanopy(source.getBlockX(), source.getBlockY(), source.getBlockZ())) {
-                    if (canopy == null) {
-                        canopy = new long[(size + 63) >>> 6];
-                    }
-                    canopy[index >>> 6] |= 1L << (index & 63);
-                }
                 index++;
             }
             if (index != size) {
                 throw new IllegalStateException("Object " + object.getLoadKey() + " changed while its placement layout was built");
             }
-            return new Layout(blocksRevision, statesRevision, grounding, index, paletteIndexes,
+            return new Layout(blocksRevision, statesRevision, index, paletteIndexes,
                     palette.toArray(new NativeBlockState[0]), tileBlocks.isEmpty() ? null : tileBlocks.toIntArray(),
-                    tileValues.isEmpty() ? null : tileValues.toArray(new TileData[0]), canopy);
+                    tileValues.isEmpty() ? null : tileValues.toArray(new TileData[0]));
         }
 
         private boolean matches(IrisObject object) {
             return object.blocks.modificationRevision() == blocksRevision
-                    && object.states.modificationRevision() == statesRevision
-                    && object.getTreeGrounding() == grounding;
+                    && object.states.modificationRevision() == statesRevision;
         }
 
         private RotationResampler resampler(IrisObject object) {
@@ -366,7 +342,7 @@ final class ObjectPlacementBake {
         }
     }
 
-    private record Cells(int[] offsetX, int[] offsetY, int[] offsetZ, int[] layerY, short[] paletteIndexes, long[] canopy,
+    private record Cells(int[] offsetX, int[] offsetY, int[] offsetZ, int[] layerY, short[] paletteIndexes,
                          int[] tileBlocks, TileData[] tileValues, int[] sources) {
     }
 }

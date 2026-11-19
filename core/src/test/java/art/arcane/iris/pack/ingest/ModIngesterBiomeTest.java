@@ -72,7 +72,7 @@ public class ModIngesterBiomeTest {
     }
 
     @Test
-    public void forestModBiomeDropsOverridesChildrenAndTreesWhenItBringsItsOwn() throws Exception {
+    public void forestModBiomeDropsOverridesChildrenAndObjectsWhenItBringsItsOwn() throws Exception {
         JsonObject biome = ModIngestFixture.readJson(target.resolve("biomes/ingest/examplemod/maple_woods.json"));
 
         assertEquals("examplemod:maple_woods", biome.get("derivative").getAsString());
@@ -81,8 +81,6 @@ public class ModIngesterBiomeTest {
         assertFalse(biome.has("biomeScatter"));
         assertFalse(biome.has("children"));
         assertFalse(biome.has("objects"));
-        assertFalse(biome.getAsJsonObject("proceduralObjects").has("trees"));
-        assertTrue(biome.getAsJsonObject("proceduralObjects").has("ruins"));
         assertTrue(ModIngestFixture.strings(ModIngestFixture.readJson(target.resolve("regions/temperate.json")).get("landBiomes"))
                 .contains("ingest/examplemod/maple_woods"));
     }

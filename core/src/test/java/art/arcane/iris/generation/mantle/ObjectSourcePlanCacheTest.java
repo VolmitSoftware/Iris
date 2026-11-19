@@ -364,7 +364,7 @@ public class ObjectSourcePlanCacheTest {
         List<ObjectDestinationTransaction.Mutation> mutations = new ArrayList<>();
         for (int[] chunk : chunks) {
             mutations.add(new ObjectDestinationTransaction.SetMutation(
-                    new ObjectDestinationTransaction.DataKey(chunk[0] << 4, 4, chunk[1] << 4, String.class), "marker", false));
+                    new ObjectDestinationTransaction.DataKey(chunk[0] << 4, 4, chunk[1] << 4, String.class), "marker"));
         }
         return new ObjectSourcePlan(mutations);
     }

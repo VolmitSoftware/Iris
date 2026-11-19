@@ -21,22 +21,17 @@ package art.arcane.iris.studio.bridge;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.object.IrisObject;
-import art.arcane.iris.studio.map.BakeRun;
 import art.arcane.iris.studio.map.ObjectSource;
 import art.arcane.iris.studio.map.PackObjectSource;
-import art.arcane.iris.studio.map.ProceduralObjectSource;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.OptionalLong;
 
-/** The studio's views of the pack's object files and of the procedural objects its biomes and regions bake, as block scenes. */
+/** The studio's view of the pack's object files, as block scenes. */
 final class StudioObjects implements StudioProfiles.ProfileView {
     static final String OBJECTS = "iris:objects";
-    static final String PROCEDURAL = "iris:objects/procedural";
-    private static final String BAKE_STAGE = "Bake";
 
     private final String id;
     private final String label;
@@ -52,11 +47,6 @@ final class StudioObjects implements StudioProfiles.ProfileView {
 
     static StudioObjects packObjects() {
         return new StudioObjects(OBJECTS, "Objects", "Every object in the pack in 3D, with the blocks it is made of", new PackObjectSource());
-    }
-
-    static StudioObjects proceduralObjects() {
-        return new StudioObjects(PROCEDURAL, "Procedural",
-                "Trees, rock formations and more that Iris generates from settings, every variant in 3D", new ProceduralObjectSource());
     }
 
     /** One timed bake of a procedural entry, as the studio's bake meter reads it. */
@@ -91,11 +81,6 @@ final class StudioObjects implements StudioProfiles.ProfileView {
     }
 
     @Override
-    public boolean isBaked() {
-        return source.isBaked();
-    }
-
-    @Override
     public List<StudioProfiles.Entry> entries(Engine engine) {
         IrisData data = engine.getData();
         return source.keys(data).stream()
@@ -118,21 +103,6 @@ final class StudioObjects implements StudioProfiles.ProfileView {
             throw new NoSuchElementException("No object " + key);
         }
         return StudioProfiles.sceneOf(variants.get(Math.floorMod(variant, variants.size())));
-    }
-
-    @Override
-    public BakeTiming timeBake(Engine engine, String key) {
-        IrisData data = engine.getData();
-        source.keys(data);
-        OptionalLong seed = source.seed(key);
-        if (seed.isEmpty()) {
-            throw new NoSuchElementException("No baked entry " + key);
-        }
-        BakeRun run = source.timeBake(data, key, seed.getAsLong());
-        if (run == null) {
-            throw new NoSuchElementException("No baked entry " + key);
-        }
-        return new BakeTiming(run.variantCount(), List.of(new BakeTiming.Stage(BAKE_STAGE, run.totalNanos())));
     }
 
     private static String nameOf(String key) {

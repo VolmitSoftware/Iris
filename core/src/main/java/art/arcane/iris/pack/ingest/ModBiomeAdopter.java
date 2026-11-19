@@ -198,17 +198,9 @@ final class ModBiomeAdopter {
         for (String field : OVERRIDE_FIELDS) {
             json.remove(field);
         }
-        if (!ownsVegetation) {
-            return;
+        if (ownsVegetation) {
+            json.remove("objects");
         }
-        json.remove("objects");
-        JsonObject procedural = model.pack().snippet(json.get("proceduralObjects"), "procedural-objects");
-        if (procedural == null) {
-            return;
-        }
-        JsonObject withoutTrees = procedural.deepCopy();
-        withoutTrees.remove("trees");
-        json.add("proceduralObjects", withoutTrees);
     }
 
     private boolean ownsVegetation(CatalogBiome biome, String namespace) {

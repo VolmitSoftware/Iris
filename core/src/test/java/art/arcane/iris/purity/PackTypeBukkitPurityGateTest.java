@@ -101,7 +101,8 @@ public class PackTypeBukkitPurityGateTest {
             "art.arcane.iris.structure.object.matter.IrisMatterObject",
             "art.arcane.iris.structure.placement.IrisStructure",
             "art.arcane.iris.structure.jigsaw.IrisJigsawPool",
-            "art.arcane.iris.structure.jigsaw.IrisJigsawPiece");
+            "art.arcane.iris.structure.jigsaw.IrisJigsawPiece",
+            "art.arcane.iris.generation.procedural.part.ProceduralObject");
 
     /**
      * Types reachable from a pack that are not roots and carry no {@code @Snippet}, but are

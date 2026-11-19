@@ -18,85 +18,77 @@
 
 package art.arcane.iris.generation.mantle;
 
-import art.arcane.iris.generation.runtime.IrisComplex;
-import art.arcane.iris.generation.subterrain.SubterrainPlanner;
-import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
-import art.arcane.volmlib.util.matter.MatterCavern;
-import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.runtime.UpperDimensionContext;
 import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.generation.cave.IrisCaveProfile;
-import art.arcane.iris.generation.terrain.IrisDimensionCarvingEntry;
-import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
-import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.pack.value.IrisRange;
-import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
+import art.arcane.iris.generation.cave.field.CngNoiseFactory;
 import art.arcane.iris.generation.context.ChunkContext;
-import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.iris.generation.mantle.ListedCaveCarving.ChunkSurface;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.UpperDimensionContext;
 import art.arcane.iris.generation.stream.BakedDoubleStream;
 import art.arcane.iris.generation.stream.BakedStream;
 import art.arcane.iris.generation.stream.ChunkFillableDoubleStream2D;
-import art.arcane.iris.generation.simd.SimdSupport;
-import art.arcane.volmlib.util.documentation.ChunkCoordinates;
+import art.arcane.iris.generation.subterrain.SubterrainPlanner;
+import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
+import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.spi.IrisLogging;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
+import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
+import art.arcane.volmlib.util.stream.ProceduralStream;
 
-import java.util.TreeSet;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
 
 @ComponentFlag(ReservedFlag.CARVED)
 public class MantleCarvingComponent extends IrisMantleComponent {
     private static final int CHUNK_SIZE = 16;
     private static final int CHUNK_AREA = CHUNK_SIZE * CHUNK_SIZE;
-    private static final int BLEND_RADIUS = 3;
-    private static final int FIELD_SIZE = CHUNK_SIZE + (BLEND_RADIUS * 2);
-    private static final double MIN_WEIGHT = 0.08D;
-    private static final double THRESHOLD_PENALTY = 0.24D;
-    private static final int MAX_POOLED_WEIGHT_BUFFERS = 64;
-    /** Lattice columns kept for neighbouring chunks: about 3 KB each on land, roughly 50 MB when full. */
-    private static final int DENSITY_GRID_COLUMNS = 16_384;
-    private static final int KERNEL_WIDTH = (BLEND_RADIUS * 2) + 1;
-    private static final int KERNEL_SIZE = KERNEL_WIDTH * KERNEL_WIDTH;
-    private static final int[] KERNEL_DX = new int[KERNEL_SIZE];
-    private static final int[] KERNEL_DZ = new int[KERNEL_SIZE];
-    private static final double[] KERNEL_WEIGHT = new double[KERNEL_SIZE];
+    /** Columns read beyond the chunk to find where surface fluids reach, which no cave may open under. */
+    private static final int FLUID_BOUNDARY_PADDING = 3;
+    private static final int FIELD_SIZE = CHUNK_SIZE + (FLUID_BOUNDARY_PADDING * 2);
+    /** Loose rock is swept this far below the surface where a cave opens to it. */
+    private static final int LOOSE_ROCK_SWEEP_DEPTH_BLOCKS = 16;
+    /** An upper dimension's terrain needs this much room under the top of the world to be carved. */
+    private static final int MINIMUM_UPPER_TERRAIN_THICKNESS_BLOCKS = 2;
     private static final int NEIGHBOURS = 9;
     private static final int[] NEIGHBOUR_DX = new int[NEIGHBOURS];
     private static final int[] NEIGHBOUR_DZ = new int[NEIGHBOURS];
     private static final long[][] NEIGHBOUR_COLUMNS = new long[NEIGHBOURS][4];
     private static final int[] FIELD_NEIGHBOUR = new int[FIELD_SIZE * FIELD_SIZE];
     private static final int[] FIELD_COLUMN = new int[FIELD_SIZE * FIELD_SIZE];
-    private static final ThreadLocal<BlendScratch> BLEND_SCRATCH = ThreadLocal.withInitial(BlendScratch::new);
+    private static final ThreadLocal<ChunkScratch> CHUNK_SCRATCH = ThreadLocal.withInitial(ChunkScratch::new);
+    private static final ListedCaveCarving.Problems CAVE_PROBLEMS = new ListedCaveCarving.Problems() {
+        @Override
+        public void missingCave(String caveKey) {
+            IrisLogging.warnOnce("missing-cave:" + caveKey, "Cave '%s' is listed under caves but the pack has no readable caves/%s.json", caveKey, caveKey);
+        }
 
-    private final Object profileCarverLock = new Object();
-    private final CaveDensityGrid densityGrid = new CaveDensityGrid(DENSITY_GRID_COLUMNS);
-    private volatile Map<IrisCaveProfile, IrisCaveCarver3D> profileCarvers = new IdentityHashMap<>();
+        @Override
+        public void missingCaveBiome(String caveKey, String biomeKey) {
+            IrisLogging.warnOnce("missing-cave-biome:" + caveKey + ":" + biomeKey, "Cave '%s' names the biome '%s', which the pack does not have", caveKey, biomeKey);
+        }
+    };
+
+    private final Object caveCarvingLock = new Object();
+    private volatile ListedCaveCarving caveCarving;
 
     static {
-        int kernelIndex = 0;
-        for (int offsetX = -BLEND_RADIUS; offsetX <= BLEND_RADIUS; offsetX++) {
-            for (int offsetZ = -BLEND_RADIUS; offsetZ <= BLEND_RADIUS; offsetZ++) {
-                KERNEL_DX[kernelIndex] = offsetX;
-                KERNEL_DZ[kernelIndex] = offsetZ;
-                int edgeDistance = Math.max(Math.abs(offsetX), Math.abs(offsetZ));
-                KERNEL_WEIGHT[kernelIndex] = (BLEND_RADIUS + 1D) - edgeDistance;
-                kernelIndex++;
-            }
-        }
         for (int neighbour = 0; neighbour < NEIGHBOURS; neighbour++) {
             NEIGHBOUR_DX[neighbour] = (neighbour / 3) - 1;
             NEIGHBOUR_DZ[neighbour] = (neighbour % 3) - 1;
         }
         for (int fieldX = 0; fieldX < FIELD_SIZE; fieldX++) {
-            int offsetX = fieldX - BLEND_RADIUS;
+            int offsetX = fieldX - FLUID_BOUNDARY_PADDING;
             for (int fieldZ = 0; fieldZ < FIELD_SIZE; fieldZ++) {
-                int offsetZ = fieldZ - BLEND_RADIUS;
+                int offsetZ = fieldZ - FLUID_BOUNDARY_PADDING;
                 int neighbour = ((Math.floorDiv(offsetX, CHUNK_SIZE) + 1) * 3) + Math.floorDiv(offsetZ, CHUNK_SIZE) + 1;
                 int column = ((offsetZ & (CHUNK_SIZE - 1)) << 4) | (offsetX & (CHUNK_SIZE - 1));
                 int fieldIndex = (fieldX * FIELD_SIZE) + fieldZ;
@@ -119,12 +111,10 @@ public class MantleCarvingComponent extends IrisMantleComponent {
     @Override
     public void hotload() {
         super.hotload();
-        // Hotload swaps in fresh IrisCaveProfile instances (identity keys), so retained
-        // entries would strand a full carver set pinning the closed IrisData per reload.
-        // Carvers rebuild deterministically from the carve seed, so output is unchanged.
-        synchronized (profileCarverLock) {
-            profileCarvers = new IdentityHashMap<>();
-            densityGrid.clear();
+        // Carvers hold the pack's caves and the closed IrisData of the previous load. They rebuild
+        // deterministically from the carve seed, so output is unchanged.
+        synchronized (caveCarvingLock) {
+            caveCarving = null;
         }
     }
 
@@ -134,10 +124,10 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         if (!complex.allowsMantleChunkWrite(x, z)) {
             return;
         }
-        BlendScratch previous = BLEND_SCRATCH.get();
-        BlendScratch scratch = previous.inUse ? new BlendScratch() : previous;
+        ChunkScratch previous = CHUNK_SCRATCH.get();
+        ChunkScratch scratch = previous.inUse ? new ChunkScratch() : previous;
         if (scratch != previous) {
-            BLEND_SCRATCH.set(scratch);
+            CHUNK_SCRATCH.set(scratch);
         }
         scratch.inUse = true;
         try {
@@ -145,52 +135,59 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         } finally {
             scratch.release();
             if (scratch != previous) {
-                BLEND_SCRATCH.set(previous);
+                CHUNK_SCRATCH.set(previous);
             }
         }
     }
 
-    private void generateLayer(MantleWriter writer, int x, int z, ChunkContext context, BlendScratch blendScratch) {
+    private void generateLayer(MantleWriter writer, int x, int z, ChunkContext context, ChunkScratch scratch) {
         IrisComplex complex = context.getComplex();
-        IrisDimensionCarvingResolver.State resolverState = blendScratch.resolverState;
-        int[] chunkSurfaceHeights = prepareChunkSurfaceHeights(x, z, context, blendScratch.chunkSurfaceHeights);
+        Engine engine = getEngineMantle().getEngine();
+        int[] chunkSurfaceHeights = prepareChunkSurfaceHeights(x, z, context, scratch.chunkSurfaceHeights);
+        int[] caveCeilings = CaveCeilingMask.fill(x, z, complex.getHydrologyRuntime()::raster,
+                scratch.caveCeilingField, scratch.caveCeilings) ? scratch.caveCeilings : null;
+        ListedCaveCarving carving = caveCarving();
         PrecisionStopwatch resolveStopwatch = PrecisionStopwatch.start();
-        List<WeightedProfile> weightedProfiles = resolveWeightedProfiles(x, z, complex, resolverState);
-        getEngineMantle().getEngine().getMetrics().getCarveResolve().put(resolveStopwatch.getMilliseconds());
-        long[] surfaceFluidBoundaries = blendScratch.surfaceFluidBoundaries;
+        CaveListing listing = carving.list(new EngineCaveTerrain(engine, complex, scratch.resolverState), x, z);
+        engine.getMetrics().getCarveResolve().put(resolveStopwatch.getMilliseconds());
+        carveListing(carving, listing, writer, x, z, complex, chunkSurfaceHeights, caveCeilings, scratch);
+        rasterizeSubterrain(writer, x, z, complex, caveCeilings);
+    }
+
+    private void carveListing(ListedCaveCarving carving, CaveListing listing, MantleWriter writer, int x, int z, IrisComplex complex,
+                              int[] chunkSurfaceHeights, int[] caveCeilings, ChunkScratch scratch) {
+        MantleChunk<Matter> chunk = listing.isEmpty() ? null : writer.acquireChunk(x, z);
+        if (chunk == null) {
+            return;
+        }
+        PrecisionStopwatch applyStopwatch = PrecisionStopwatch.start();
+        long[] surfaceFluidBoundaries = fillSurfaceFluidBoundaries(complex, x, z, chunkSurfaceHeights, scratch);
+        CaveFluidSupportPlan fluidSupportPlan = new CaveFluidSupportPlan();
+        CaveCellSink sink = new MantleCaveCellSink(chunk, writer.getMantle().getWorldHeight());
+        carving.carve(listing, x, z, new ChunkSurface(chunkSurfaceHeights, surfaceFluidBoundaries, caveCeilings), sink, fluidSupportPlan);
+        UpperDimensionContext upperContext = getEngineMantle().getEngine().getUpperContext();
+        if (upperContext != null && getDimension().isUpperDimensionCarving()) {
+            carveUpperTerrain(upperContext, carving, listing, sink, x, z, fluidSupportPlan);
+        }
+        fluidSupportPlan.resolve(chunk);
+        int sweepDepth = listing.opensToSurface() ? LOOSE_ROCK_SWEEP_DEPTH_BLOCKS : 0;
+        CarveOrphanSweep.sweepChunk(chunk, chunkSurfaceHeights, sweepDepth, writer.getMantle().getWorldHeight() - 1,
+                surfaceFluidBoundaries, caveCeilings);
+        getEngineMantle().getEngine().getMetrics().getCarveApply().put(applyStopwatch.getMilliseconds());
+    }
+
+    private long[] fillSurfaceFluidBoundaries(IrisComplex complex, int x, int z, int[] chunkSurfaceHeights, ChunkScratch scratch) {
+        prefillFluidBoundaryField(complex, x, z, scratch);
         SurfaceFluidBoundaryPlan.fill(
                 chunkSurfaceHeights,
-                blendScratch.fieldSurfaceHeights,
-                blendScratch.fieldHasFluid,
-                blendScratch.fieldFluidHeights,
+                scratch.fieldSurfaceHeights,
+                scratch.fieldHasFluid,
+                scratch.fieldFluidHeights,
                 FIELD_SIZE,
-                BLEND_RADIUS,
-                surfaceFluidBoundaries
+                FLUID_BOUNDARY_PADDING,
+                scratch.surfaceFluidBoundaries
         );
-        int[] caveCeilings = CaveCeilingMask.fill(x, z, complex.getHydrologyRuntime()::raster,
-                blendScratch.caveCeilingField, blendScratch.caveCeilings) ? blendScratch.caveCeilings : null;
-        CaveFluidSupportPlan fluidSupportPlan = new CaveFluidSupportPlan();
-        for (WeightedProfile weightedProfile : weightedProfiles) {
-            carveProfile(weightedProfile, writer, x, z, chunkSurfaceHeights, surfaceFluidBoundaries, caveCeilings, fluidSupportPlan);
-        }
-
-        UpperDimensionContext upperCtx = getEngineMantle().getEngine().getUpperContext();
-        if (upperCtx != null && getDimension().isUpperDimensionCarving()) {
-            carveUpperTerrain(upperCtx, weightedProfiles, writer, x, z, fluidSupportPlan);
-        }
-        fluidSupportPlan.resolve(writer.acquireChunk(x, z));
-
-        if (!weightedProfiles.isEmpty()) {
-            CarveOrphanSweep.sweepChunk(
-                    writer.acquireChunk(x, z),
-                    chunkSurfaceHeights,
-                    maxSurfaceBreakDepth(weightedProfiles),
-                    writer.getMantle().getWorldHeight() - 1,
-                    surfaceFluidBoundaries,
-                    caveCeilings
-            );
-        }
-        rasterizeSubterrain(writer, x, z, complex, caveCeilings);
+        return scratch.surfaceFluidBoundaries;
     }
 
     private void rasterizeSubterrain(MantleWriter writer, int chunkX, int chunkZ, IrisComplex complex, int[] caveCeilings) {
@@ -223,366 +220,74 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         });
     }
 
-    private static int maxSurfaceBreakDepth(List<WeightedProfile> weightedProfiles) {
-        int maxDepth = 0;
-        for (WeightedProfile weightedProfile : weightedProfiles) {
-            maxDepth = Math.max(maxDepth, Math.max(0, weightedProfile.profile.getSurfaceBreakDepth()));
-        }
-        return maxDepth;
-    }
-
-    @ChunkCoordinates
-    private void carveProfile(WeightedProfile weightedProfile, MantleWriter writer, int cx, int cz,
-                              int[] chunkSurfaceHeights, long[] surfaceFluidBoundaries, int[] caveCeilings,
-                              CaveFluidSupportPlan fluidSupportPlan) {
-        IrisCaveCarver3D carver = getCarver(weightedProfile.profile);
-        carver.carve(writer, cx, cz, weightedProfile.columnWeights, MIN_WEIGHT, THRESHOLD_PENALTY,
-                weightedProfile.worldYRange, chunkSurfaceHeights, surfaceFluidBoundaries, caveCeilings, null, fluidSupportPlan);
-    }
-
-    private void carveUpperTerrain(UpperDimensionContext upperCtx, List<WeightedProfile> normalProfiles,
-                                   MantleWriter writer, int cx, int cz,
-                                   CaveFluidSupportPlan fluidSupportPlan) {
+    private void carveUpperTerrain(UpperDimensionContext upperContext, ListedCaveCarving carving, CaveListing listing, CaveCellSink sink,
+                                   int cx, int cz, CaveFluidSupportPlan fluidSupportPlan) {
         int chunkHeight = getEngineMantle().getEngine().getHeight();
-        int worldMinHeight = getEngineMantle().getEngine().getWorld().minHeight();
         int baseX = PowerOfTwoCoordinates.chunkToBlock(cx);
         int baseZ = PowerOfTwoCoordinates.chunkToBlock(cz);
-
-        int minUpperSurfaceY = chunkHeight;
+        int lowestUpperSurfaceY = chunkHeight;
         for (int localX = 0; localX < CHUNK_SIZE; localX++) {
-            int worldX = baseX + localX;
             for (int localZ = 0; localZ < CHUNK_SIZE; localZ++) {
-                int worldZ = baseZ + localZ;
-                int upperY = upperCtx.getEffectiveSurfaceY(worldX, worldZ);
-                if (upperY < minUpperSurfaceY) {
-                    minUpperSurfaceY = upperY;
-                }
+                lowestUpperSurfaceY = Math.min(lowestUpperSurfaceY, upperContext.getEffectiveSurfaceY(baseX + localX, baseZ + localZ));
             }
         }
-
-        if (minUpperSurfaceY >= chunkHeight - 2) {
+        if (lowestUpperSurfaceY >= chunkHeight - MINIMUM_UPPER_TERRAIN_THICKNESS_BLOCKS) {
             return;
         }
+        carving.carveBeneathUpperTerrain(listing, cx, cz, lowestUpperSurfaceY, sink, fluidSupportPlan);
+    }
 
-        IrisRange upperYRange = new IrisRange(
-                minUpperSurfaceY + worldMinHeight,
-                chunkHeight - 1 + worldMinHeight
-        );
-        IrisRange fullVerticalRange = new IrisRange(0, chunkHeight);
-
-        int[] ceilingSurfaceHeights = new int[CHUNK_AREA];
-        Arrays.fill(ceilingSurfaceHeights, chunkHeight - 1);
-
-        for (WeightedProfile weightedProfile : normalProfiles) {
-            IrisRange constrainedRange;
-            if (weightedProfile.worldYRange != null) {
-                double min = Math.max(weightedProfile.worldYRange.getMin(), upperYRange.getMin());
-                double max = Math.min(weightedProfile.worldYRange.getMax(), upperYRange.getMax());
-                if (min >= max) {
-                    continue;
-                }
-                constrainedRange = new IrisRange(min, max);
-            } else {
-                constrainedRange = upperYRange;
+    private ListedCaveCarving caveCarving() {
+        ListedCaveCarving carving = caveCarving;
+        if (carving != null) {
+            return carving;
+        }
+        synchronized (caveCarvingLock) {
+            if (caveCarving == null) {
+                caveCarving = createCaveCarving();
             }
-            IrisCaveCarver3D carver = getCarver(weightedProfile.profile);
-            carver.carve(writer, cx, cz, weightedProfile.columnWeights, MIN_WEIGHT, THRESHOLD_PENALTY,
-                    constrainedRange, ceilingSurfaceHeights, null, null, fullVerticalRange, fluidSupportPlan);
+            return caveCarving;
         }
     }
 
-    private List<WeightedProfile> resolveWeightedProfiles(int chunkX, int chunkZ, IrisComplex complex, IrisDimensionCarvingResolver.State resolverState) {
-        BlendScratch blendScratch = BLEND_SCRATCH.get();
-        IrisCaveProfile[] profileField = blendScratch.profileField;
-        Map<IrisCaveProfile, double[]> columnProfileWeights = blendScratch.columnProfileWeights;
-        List<IrisCaveProfile> profileOrder = blendScratch.profileOrder;
-        IrisCaveProfile[] kernelProfiles = blendScratch.kernelProfiles;
-        double[] kernelProfileWeights = blendScratch.kernelProfileWeights;
-        columnProfileWeights.clear();
-        profileOrder.clear();
-        blendScratch.nextWeightBuffer = 0;
-        fillProfileField(profileField, chunkX, chunkZ, complex, resolverState, blendScratch);
-
-        for (int localX = 0; localX < CHUNK_SIZE; localX++) {
-            for (int localZ = 0; localZ < CHUNK_SIZE; localZ++) {
-                int profileCount = 0;
-                int centerX = localX + BLEND_RADIUS;
-                int centerZ = localZ + BLEND_RADIUS;
-                double totalKernelWeight = 0D;
-
-                for (int kernelIndex = 0; kernelIndex < KERNEL_SIZE; kernelIndex++) {
-                    int sampleX = centerX + KERNEL_DX[kernelIndex];
-                    int sampleZ = centerZ + KERNEL_DZ[kernelIndex];
-                    IrisCaveProfile profile = profileField[(sampleX * FIELD_SIZE) + sampleZ];
-                    if (!isProfileEnabled(profile)) {
-                        continue;
-                    }
-
-                    double kernelWeight = KERNEL_WEIGHT[kernelIndex];
-                    int existingIndex = findProfileIndex(kernelProfiles, profileCount, profile);
-                    if (existingIndex >= 0) {
-                        kernelProfileWeights[existingIndex] += kernelWeight;
-                    } else {
-                        kernelProfiles[profileCount] = profile;
-                        kernelProfileWeights[profileCount] = kernelWeight;
-                        profileCount++;
-                    }
-                    totalKernelWeight += kernelWeight;
-                }
-
-                if (totalKernelWeight <= 0D || profileCount == 0) {
-                    continue;
-                }
-
-                int columnIndex = PowerOfTwoCoordinates.packLocal16(localX, localZ);
-                for (int profileIndex = 0; profileIndex < profileCount; profileIndex++) {
-                    IrisCaveProfile profile = kernelProfiles[profileIndex];
-                    double kernelWeight = kernelProfileWeights[profileIndex];
-                    kernelProfiles[profileIndex] = null;
-                    kernelProfileWeights[profileIndex] = 0D;
-
-                    double columnWeight = clampWeight(kernelWeight / totalKernelWeight);
-                    if (columnWeight < MIN_WEIGHT) {
-                        continue;
-                    }
-
-                    double[] weights = columnProfileWeights.get(profile);
-                    if (weights == null) {
-                        weights = blendScratch.acquireWeights();
-                        columnProfileWeights.put(profile, weights);
-                        profileOrder.add(profile);
-                    }
-                    weights[columnIndex] = columnWeight;
-                }
-            }
-        }
-
-        List<WeightedProfile> columnWeightedProfiles = new ArrayList<>();
-        for (IrisCaveProfile profile : profileOrder) {
-            double[] weights = columnProfileWeights.get(profile);
-            if (weights == null) {
-                continue;
-            }
-
-            // averageWeight ranks and orders carve passes, so it must be bit-identical across
-            // installations: kernels.sum reassociates FP addition under the vector kernel,
-            // making profile order depend on a JVM flag. max() is order-independent and safe.
-            double maxWeight = SimdSupport.kernels().max(weights, weights.length);
-
-            if (maxWeight < MIN_WEIGHT) {
-                continue;
-            }
-
-            double averageWeight = computeAverageWeight(weights);
-            columnWeightedProfiles.add(new WeightedProfile(profile, weights, averageWeight, null, columnWeightedProfiles.size()));
-        }
-
-        columnWeightedProfiles.sort(MantleCarvingComponent::compareByCarveOrder);
-        List<WeightedProfile> resolvedProfiles = resolveDimensionCarvingProfiles(chunkX, chunkZ, resolverState, blendScratch);
-        resolvedProfiles.addAll(columnWeightedProfiles);
-        return resolvedProfiles;
-    }
-
-    private List<WeightedProfile> resolveDimensionCarvingProfiles(int chunkX, int chunkZ, IrisDimensionCarvingResolver.State resolverState, BlendScratch blendScratch) {
-        List<WeightedProfile> weightedProfiles = new ArrayList<>();
-        List<IrisDimensionCarvingEntry> entries = getDimension().getCarving();
-        if (entries == null || entries.isEmpty()) {
-            return weightedProfiles;
-        }
-
+    private ListedCaveCarving createCaveCarving() {
         Engine engine = getEngineMantle().getEngine();
-        int baseX = PowerOfTwoCoordinates.chunkToBlock(chunkX);
-        int baseZ = PowerOfTwoCoordinates.chunkToBlock(chunkZ);
-
-        for (IrisDimensionCarvingEntry entry : entries) {
-            if (entry == null || !entry.isEnabled()) {
-                continue;
-            }
-
-            IrisBiome rootBiome = IrisDimensionCarvingResolver.resolveEntryBiome(engine, entry, resolverState);
-            if (rootBiome == null) {
-                continue;
-            }
-
-            TreeSet<Integer> boundaries = new TreeSet<>();
-            int minimumY = engine.getWorld().minHeight();
-            int maximumY = engine.getWorld().maxHeight();
-            boundaries.add(minimumY);
-            boundaries.add(maximumY);
-            for (IrisDimensionCarvingEntry candidate : entries) {
-                if (candidate != null && candidate.getWorldYRange() != null) {
-                    boundaries.add(Math.max(minimumY, Math.min(maximumY, (int) Math.ceil(candidate.getWorldYRange().getMin()))));
-                    boundaries.add(Math.max(minimumY, Math.min(maximumY, (int) Math.floor(candidate.getWorldYRange().getMax()) + 1)));
-                }
-            }
-            Integer previous = null;
-            for (int boundary : boundaries) {
-                if (previous != null && boundary > previous
-                        && (entry.getWorldYRange() == null || entry.getWorldYRange().contains(previous))) {
-                    Map<IrisCaveProfile, double[]> rootProfileColumnWeights = new IdentityHashMap<>();
-                    List<IrisCaveProfile> rootProfileOrder = new ArrayList<>();
-                    for (int columnIndex = 0; columnIndex < CHUNK_AREA; columnIndex++) {
-                        IrisDimensionCarvingEntry resolvedEntry = IrisDimensionCarvingResolver.resolveFromRoot(
-                                engine, entry, baseX + (columnIndex >> 4), previous, baseZ + (columnIndex & 15), resolverState);
-                        IrisBiome resolvedBiome = IrisDimensionCarvingResolver.resolveEntryBiome(engine, resolvedEntry, resolverState);
-                        IrisCaveProfile profile = resolvedBiome == null ? null : resolvedBiome.getCaveProfile();
-                        if (!isProfileEnabled(profile)) {
-                            continue;
-                        }
-                        double[] columnWeights = rootProfileColumnWeights.get(profile);
-                        if (columnWeights == null) {
-                            columnWeights = blendScratch.acquireWeights();
-                            rootProfileColumnWeights.put(profile, columnWeights);
-                            rootProfileOrder.add(profile);
-                        }
-                        columnWeights[columnIndex] = 1D;
-                    }
-                    IrisRange worldYRange = new IrisRange(previous, boundary - 1);
-                    for (IrisCaveProfile profile : rootProfileOrder) {
-                        weightedProfiles.add(new WeightedProfile(profile, rootProfileColumnWeights.get(profile), -1D, worldYRange, weightedProfiles.size()));
-                    }
-                }
-                previous = boundary;
-            }
-        }
-
-        return weightedProfiles;
+        IrisDimension dimension = getDimension();
+        IrisData data = engine.getData();
+        CaveWorld world = new CaveWorld(engine.getWorld().minHeight(), engine.getHeight(), engine.getSeedManager().getCarve(),
+                dimension.getFluidHeight(), dimension.getCaveLavaHeight());
+        return new ListedCaveCarving(dimension.getCaves(), onlyDimensionListsCaves(dimension, data), world, new CngNoiseFactory(data),
+                key -> data.getCaveLoader().load(key), key -> data.getBiomeLoader().load(key) != null, CAVE_PROBLEMS);
     }
 
-    private void fillProfileField(IrisCaveProfile[] profileField, int chunkX, int chunkZ, IrisComplex complex, IrisDimensionCarvingResolver.State resolverState, BlendScratch blendScratch) {
-        int startX = PowerOfTwoCoordinates.chunkToBlock(chunkX) - BLEND_RADIUS;
-        int startZ = PowerOfTwoCoordinates.chunkToBlock(chunkZ) - BLEND_RADIUS;
-        prefillProfileFieldSamples(chunkX, chunkZ, startX, startZ, complex, blendScratch);
-
-        for (int fieldX = 0; fieldX < FIELD_SIZE; fieldX++) {
-            int worldX = startX + fieldX;
-            for (int fieldZ = 0; fieldZ < FIELD_SIZE; fieldZ++) {
-                int worldZ = startZ + fieldZ;
-                int fieldIndex = (fieldX * FIELD_SIZE) + fieldZ;
-                profileField[fieldIndex] = resolveColumnProfile(
-                        worldX,
-                        worldZ,
-                        blendScratch.fieldSurfaceHeights[fieldIndex],
-                        blendScratch.fieldRegions[fieldIndex],
-                        blendScratch.fieldSurfaceBiomes[fieldIndex],
-                        blendScratch.fieldCaveBiomes[fieldIndex],
-                        resolverState
-                );
+    /** Whether no region and no biome the dimension reaches lists a cave, so every column lists what the dimension lists. */
+    private static boolean onlyDimensionListsCaves(IrisDimension dimension, IrisData data) {
+        for (IrisRegion region : dimension.getAllRegions(() -> data)) {
+            if (region != null && !region.getCaves().isEmpty()) {
+                return false;
             }
         }
+        for (IrisBiome biome : dimension.getReachableBiomes(() -> data)) {
+            if (biome != null && !biome.getCaves().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    private int findProfileIndex(IrisCaveProfile[] profiles, int size, IrisCaveProfile profile) {
-        for (int index = 0; index < size; index++) {
-            if (profiles[index] == profile) {
-                return index;
-            }
-        }
-
-        return -1;
-    }
-
-    private IrisCaveProfile resolveColumnProfile(
-            int worldX,
-            int worldZ,
-            double surfaceHeight,
-            IrisRegion region,
-            IrisBiome surfaceBiome,
-            IrisBiome caveBiome,
-            IrisDimensionCarvingResolver.State resolverState
-    ) {
-        IrisCaveProfile resolved = null;
-        IrisCaveProfile dimensionProfile = getDimension().getCaveProfile();
-        if (isProfileEnabled(dimensionProfile)) {
-            resolved = dimensionProfile;
-        }
-
-        if (region != null) {
-            IrisCaveProfile regionProfile = region.getCaveProfile();
-            if (isProfileEnabled(regionProfile)) {
-                resolved = regionProfile;
-            }
-        }
-
-        if (surfaceBiome != null) {
-            IrisCaveProfile surfaceProfile = surfaceBiome.getCaveProfile();
-            if (isProfileEnabled(surfaceProfile)) {
-                resolved = surfaceProfile;
-            }
-        }
-
-        int roundedSurfaceY = (int) Math.round(surfaceHeight);
-        int sampleY = Math.max(1, roundedSurfaceY - 56);
-        int worldY = sampleY + getEngineMantle().getEngine().getWorld().minHeight();
-        IrisDimensionCarvingEntry rootCarvingEntry = IrisDimensionCarvingResolver.resolveRootEntry(getEngineMantle().getEngine(), worldY, resolverState);
-        IrisBiome resolvedCarvingBiome = null;
-        if (rootCarvingEntry != null) {
-            IrisDimensionCarvingEntry resolvedCarvingEntry = IrisDimensionCarvingResolver.resolveFromRoot(getEngineMantle().getEngine(), rootCarvingEntry, worldX, worldY, worldZ, resolverState);
-            resolvedCarvingBiome = IrisDimensionCarvingResolver.resolveEntryBiome(getEngineMantle().getEngine(), resolvedCarvingEntry, resolverState);
-            if (resolvedCarvingBiome != null) {
-                caveBiome = resolvedCarvingBiome;
-            }
-        }
-        if (caveBiome != null) {
-            IrisBiome effectiveCaveBiome = caveBiome;
-            if (resolvedCarvingBiome == null && surfaceBiome != null) {
-                if (surfaceBiome != null) {
-                    int truncatedSurfaceY = (int) surfaceHeight;
-                    int depthBelowSurface = truncatedSurfaceY - sampleY;
-                    if (depthBelowSurface <= 0) {
-                        effectiveCaveBiome = surfaceBiome;
-                    } else {
-                        int minDepth = Math.max(0, caveBiome.getCaveMinDepthBelowSurface());
-                        if (depthBelowSurface < minDepth) {
-                            effectiveCaveBiome = surfaceBiome;
-                        }
-                    }
-                }
-            }
-
-            IrisCaveProfile caveProfile = effectiveCaveBiome.getCaveProfile();
-            if (isProfileEnabled(caveProfile)) {
-                resolved = caveProfile;
-            }
-        }
-
-        return resolved;
-    }
-
-    private void prefillProfileFieldSamples(int chunkX, int chunkZ, int startX, int startZ, IrisComplex complex, BlendScratch blendScratch) {
-        fillFieldHeights(complex.getNaturalHeightStream(), chunkX, chunkZ, startX, startZ, blendScratch);
+    private void prefillFluidBoundaryField(IrisComplex complex, int chunkX, int chunkZ, ChunkScratch scratch) {
+        int startX = PowerOfTwoCoordinates.chunkToBlock(chunkX) - FLUID_BOUNDARY_PADDING;
+        int startZ = PowerOfTwoCoordinates.chunkToBlock(chunkZ) - FLUID_BOUNDARY_PADDING;
+        fillFieldHeights(complex.getNaturalHeightStream(), chunkX, chunkZ, startX, startZ, scratch);
         double fluidHeight = complex.getFluidHeight();
-        Arrays.fill(blendScratch.fieldFluidHeights, fluidHeight);
-        fillFieldFluidPresence(complex.getFluidStream(), chunkX, chunkZ, startX, startZ, Math.round(fluidHeight), blendScratch);
-        fillFieldObjects(complex.getRegionStream(), chunkX, chunkZ, startX, startZ, blendScratch.fieldRegions, blendScratch.neighbourObjects);
-        fillFieldObjects(complex.getNaturalTrueBiomeStream(), chunkX, chunkZ, startX, startZ, blendScratch.fieldSurfaceBiomes, blendScratch.neighbourObjects);
-        fillFieldObjects(complex.getCaveBiomeStream(), chunkX, chunkZ, startX, startZ, blendScratch.fieldCaveBiomes, blendScratch.neighbourObjects);
+        Arrays.fill(scratch.fieldFluidHeights, fluidHeight);
+        fillFieldFluidPresence(complex.getFluidStream(), chunkX, chunkZ, startX, startZ, Math.round(fluidHeight), scratch);
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> void fillFieldObjects(ProceduralStream<T> stream, int chunkX, int chunkZ, int startX, int startZ, T[] target, Object[][] neighbourObjects) {
-        if (stream instanceof BakedStream<?> baked) {
-            for (int neighbour = 0; neighbour < NEIGHBOURS; neighbour++) {
-                baked.fillColumns(chunkX + NEIGHBOUR_DX[neighbour], chunkZ + NEIGHBOUR_DZ[neighbour],
-                        NEIGHBOUR_COLUMNS[neighbour], neighbourObjects[neighbour]);
-            }
-            for (int fieldIndex = 0; fieldIndex < target.length; fieldIndex++) {
-                target[fieldIndex] = (T) neighbourObjects[FIELD_NEIGHBOUR[fieldIndex]][FIELD_COLUMN[fieldIndex]];
-            }
-            return;
-        }
-        for (int fieldX = 0; fieldX < FIELD_SIZE; fieldX++) {
-            int worldX = startX + fieldX;
-            for (int fieldZ = 0; fieldZ < FIELD_SIZE; fieldZ++) {
-                target[(fieldX * FIELD_SIZE) + fieldZ] = stream.get(worldX, startZ + fieldZ);
-            }
-        }
-    }
-
-    private void fillFieldHeights(ProceduralStream<Double> stream, int chunkX, int chunkZ, int startX, int startZ, BlendScratch blendScratch) {
-        double[] target = blendScratch.fieldSurfaceHeights;
+    private void fillFieldHeights(ProceduralStream<Double> stream, int chunkX, int chunkZ, int startX, int startZ, ChunkScratch scratch) {
+        double[] target = scratch.fieldSurfaceHeights;
         if (stream instanceof BakedDoubleStream baked) {
-            double[][] neighbourHeights = blendScratch.neighbourHeights;
+            double[][] neighbourHeights = scratch.neighbourHeights;
             for (int neighbour = 0; neighbour < NEIGHBOURS; neighbour++) {
                 baked.fillColumns(chunkX + NEIGHBOUR_DX[neighbour], chunkZ + NEIGHBOUR_DZ[neighbour],
                         NEIGHBOUR_COLUMNS[neighbour], neighbourHeights[neighbour]);
@@ -601,11 +306,11 @@ public class MantleCarvingComponent extends IrisMantleComponent {
     }
 
     private void fillFieldFluidPresence(ProceduralStream<NativeBlockState> stream, int chunkX, int chunkZ, int startX, int startZ,
-                                        long roundedFluidHeight, BlendScratch blendScratch) {
-        double[] surfaceHeights = blendScratch.fieldSurfaceHeights;
-        boolean[] target = blendScratch.fieldHasFluid;
+                                        long roundedFluidHeight, ChunkScratch scratch) {
+        double[] surfaceHeights = scratch.fieldSurfaceHeights;
+        boolean[] target = scratch.fieldHasFluid;
         if (stream instanceof BakedStream<?> baked) {
-            long[][] submerged = blendScratch.neighbourSubmerged;
+            long[][] submerged = scratch.neighbourSubmerged;
             for (long[] columns : submerged) {
                 Arrays.fill(columns, 0L);
             }
@@ -615,7 +320,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
                     submerged[FIELD_NEIGHBOUR[fieldIndex]][column >>> 6] |= 1L << (column & 63);
                 }
             }
-            Object[][] neighbourObjects = blendScratch.neighbourObjects;
+            Object[][] neighbourObjects = scratch.neighbourObjects;
             for (int neighbour = 0; neighbour < NEIGHBOURS; neighbour++) {
                 long[] columns = submerged[neighbour];
                 if ((columns[0] | columns[1] | columns[2] | columns[3]) != 0L) {
@@ -639,30 +344,6 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         }
     }
 
-    private IrisCaveCarver3D getCarver(IrisCaveProfile profile) {
-        IrisCaveCarver3D carver = profileCarvers.get(profile);
-        if (carver != null) {
-            return carver;
-        }
-
-        IrisCaveCarver3D createdCarver = new IrisCaveCarver3D(getEngineMantle().getEngine(), profile, densityGrid);
-        synchronized (profileCarverLock) {
-            IrisCaveCarver3D published = profileCarvers.get(profile);
-            if (published != null) {
-                return published;
-            }
-
-            Map<IrisCaveProfile, IrisCaveCarver3D> updated = new IdentityHashMap<>(profileCarvers);
-            updated.put(profile, createdCarver);
-            profileCarvers = updated;
-            return createdCarver;
-        }
-    }
-
-    private boolean isProfileEnabled(IrisCaveProfile profile) {
-        return profile != null && profile.isEnabled();
-    }
-
     protected int computeRadius() {
         return 1;
     }
@@ -679,7 +360,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         ProceduralStream<Double> naturalHeight = context.getComplex().getNaturalHeightStream();
         double[] cachedChunkHeights = null;
         if (naturalHeight instanceof ChunkFillableDoubleStream2D cachedHeightStream) {
-            cachedChunkHeights = BLEND_SCRATCH.get().chunkSurfaceHeightSamples;
+            cachedChunkHeights = CHUNK_SCRATCH.get().chunkSurfaceHeightSamples;
             cachedHeightStream.fillChunkDoubles(baseX, baseZ, cachedChunkHeights);
         }
         for (int localX = 0; localX < CHUNK_SIZE; localX++) {
@@ -697,68 +378,11 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         return surfaceHeights;
     }
 
-    private static int compareByCarveOrder(WeightedProfile a, WeightedProfile b) {
-        int weightOrder = Double.compare(a.averageWeight, b.averageWeight);
-        if (weightOrder != 0) {
-            return weightOrder;
-        }
-        return Integer.compare(a.sequence, b.sequence);
-    }
-
-    private static double computeAverageWeight(double[] weights) {
-        if (weights == null || weights.length == 0) {
-            return 0D;
-        }
-        double sum = 0D;
-        for (double weight : weights) {
-            sum += weight;
-        }
-        return sum / CHUNK_AREA;
-    }
-
-    private static double clampWeight(double value) {
-        if (Double.isNaN(value) || Double.isInfinite(value)) {
-            return 0D;
-        }
-        if (value <= 0D) {
-            return 0D;
-        }
-        if (value >= 1D) {
-            return 1D;
-        }
-        return value;
-    }
-
-    private static final class WeightedProfile {
-        private final IrisCaveProfile profile;
-        private final double[] columnWeights;
-        private final double averageWeight;
-        private final IrisRange worldYRange;
-        private final int sequence;
-
-        private WeightedProfile(IrisCaveProfile profile, double[] columnWeights, double averageWeight, IrisRange worldYRange, int sequence) {
-            this.profile = profile;
-            this.columnWeights = columnWeights;
-            this.averageWeight = averageWeight;
-            this.worldYRange = worldYRange;
-            this.sequence = sequence;
-        }
-    }
-
-    private static final class BlendScratch {
-        private final IrisCaveProfile[] profileField = new IrisCaveProfile[FIELD_SIZE * FIELD_SIZE];
-        private final IrisCaveProfile[] kernelProfiles = new IrisCaveProfile[KERNEL_SIZE];
-        private final double[] kernelProfileWeights = new double[KERNEL_SIZE];
-        private final IdentityHashMap<IrisCaveProfile, double[]> columnProfileWeights = new IdentityHashMap<>();
-        private final List<double[]> weightBuffers = new ArrayList<>();
-        private final List<IrisCaveProfile> profileOrder = new ArrayList<>();
+    private static final class ChunkScratch {
         private final double[] fieldSurfaceHeights = new double[FIELD_SIZE * FIELD_SIZE];
         private final double[] fieldFluidHeights = new double[FIELD_SIZE * FIELD_SIZE];
         private final boolean[] fieldHasFluid = new boolean[FIELD_SIZE * FIELD_SIZE];
         private final long[] surfaceFluidBoundaries = new long[CHUNK_AREA];
-        private final IrisRegion[] fieldRegions = new IrisRegion[FIELD_SIZE * FIELD_SIZE];
-        private final IrisBiome[] fieldSurfaceBiomes = new IrisBiome[FIELD_SIZE * FIELD_SIZE];
-        private final IrisBiome[] fieldCaveBiomes = new IrisBiome[FIELD_SIZE * FIELD_SIZE];
         private final int[] chunkSurfaceHeights = new int[CHUNK_AREA];
         private final double[] chunkSurfaceHeightSamples = new double[CHUNK_AREA];
         private final int[] caveCeilingField = new int[CaveCeilingMask.FIELD * CaveCeilingMask.FIELD];
@@ -767,35 +391,12 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         private final Object[][] neighbourObjects = new Object[NEIGHBOURS][CHUNK_AREA];
         private final long[][] neighbourSubmerged = new long[NEIGHBOURS][4];
         private final IrisDimensionCarvingResolver.State resolverState = new IrisDimensionCarvingResolver.State();
-        private int nextWeightBuffer;
         private boolean inUse;
 
-        private double[] acquireWeights() {
-            if (nextWeightBuffer < weightBuffers.size()) {
-                double[] weights = weightBuffers.get(nextWeightBuffer++);
-                Arrays.fill(weights, 0D);
-                return weights;
-            }
-            double[] weights = new double[CHUNK_AREA];
-            if (weightBuffers.size() < MAX_POOLED_WEIGHT_BUFFERS) {
-                weightBuffers.add(weights);
-                nextWeightBuffer++;
-            }
-            return weights;
-        }
-
         private void release() {
-            Arrays.fill(profileField, null);
-            Arrays.fill(kernelProfiles, null);
-            Arrays.fill(fieldRegions, null);
-            Arrays.fill(fieldSurfaceBiomes, null);
-            Arrays.fill(fieldCaveBiomes, null);
             for (Object[] objects : neighbourObjects) {
                 Arrays.fill(objects, null);
             }
-            columnProfileWeights.clear();
-            profileOrder.clear();
-            nextWeightBuffer = 0;
             inUse = false;
         }
     }

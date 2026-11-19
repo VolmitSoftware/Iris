@@ -2,15 +2,15 @@ package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.block.B;
-import art.arcane.iris.generation.cave.IrisCaveProfile;
+import art.arcane.iris.generation.cave.IrisCave;
+import art.arcane.iris.generation.cave.TestSettings;
 import art.arcane.iris.generation.context.ChunkContext;
-import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
-import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineMetrics;
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.generation.runtime.UpperDimensionContext;
 import art.arcane.iris.generation.subterrain.IrisSubterrainFamily;
 import art.arcane.iris.generation.subterrain.IrisSubterrainFeature;
@@ -18,28 +18,28 @@ import art.arcane.iris.generation.subterrain.SubterrainPlan;
 import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.iris.world.IrisWorld;
+import art.arcane.iris.world.storage.matter.IrisMatterSupport;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
@@ -51,7 +51,15 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 public class MantleCarvingComponentWaterMaskTest {
-    private static final int ROOF_CLEARANCE = 6;
+    private static final int WORLD_HEIGHT = 128;
+    private static final int MINIMUM_HEIGHT = -64;
+    private static final int SURFACE_Y = 70;
+    private static final int UPPER_SURFACE_Y = 100;
+    private static final String HALLS = """
+            {"cavern": {"size": 40, "height": 24, "coverage": 0.4}, "depth": {"min": -50, "max": 20},
+             "surfaceClearance": 4, "allowFluid": false, "allowLava": false}
+            """;
+
     private Engine engine;
     private MantleCarvingComponent component;
     private IrisDimension dimension;
@@ -59,26 +67,36 @@ public class MantleCarvingComponentWaterMaskTest {
     private HydrologyRuntime hydrology;
     private ChunkContext context;
     private MantleWriter writer;
+    private Matter[] sections;
 
     @Before
     @SuppressWarnings("unchecked")
     public void prepare() {
+        IrisMatterSupport.ensureRegistered();
         engine = mock(Engine.class);
         EngineMantle mantle = mock(EngineMantle.class);
         when(mantle.getEngine()).thenReturn(engine);
         component = new MantleCarvingComponent(mantle);
-        dimension = new IrisDimension();
+        dimension = new IrisDimension().setCaves(new KList<>("halls"));
         when(engine.getDimension()).thenReturn(dimension);
-        when(engine.getWorld()).thenReturn(IrisWorld.builder().minHeight(-64).maxHeight(64).build());
+        when(engine.getWorld()).thenReturn(IrisWorld.builder().minHeight(MINIMUM_HEIGHT).maxHeight(MINIMUM_HEIGHT + WORLD_HEIGHT).build());
         when(engine.getMetrics()).thenReturn(new EngineMetrics(16));
-        when(engine.getHeight()).thenReturn(128);
+        when(engine.getHeight()).thenReturn(WORLD_HEIGHT);
+        SeedManager seeds = mock(SeedManager.class);
+        when(seeds.getCarve()).thenReturn(4_711L);
+        when(engine.getSeedManager()).thenReturn(seeds);
+        IrisData data = mock(IrisData.class);
+        ResourceLoader<IrisCave> caves = mock(ResourceLoader.class);
+        when(caves.load("halls")).thenReturn(TestSettings.of(IrisCave.class, HALLS));
+        when(data.getCaveLoader()).thenReturn(caves);
+        when(engine.getData()).thenReturn(data);
         hydrology = mock(HydrologyRuntime.class);
         when(hydrology.raster(anyInt(), anyInt())).thenReturn(ChunkWaterRaster.EMPTY);
         complex = mock(IrisComplex.class);
         when(complex.allowsMantleChunkWrite(anyInt(), anyInt())).thenReturn(true);
         when(complex.getHydrologyRuntime()).thenReturn(hydrology);
         ProceduralStream<Double> heights = mock(ProceduralStream.class);
-        when(heights.getDouble(anyDouble(), anyDouble())).thenReturn(70D);
+        when(heights.getDouble(anyDouble(), anyDouble())).thenReturn((double) SURFACE_Y);
         when(complex.getNaturalHeightStream()).thenReturn(heights);
         ProceduralStream<IrisRegion> regions = mock(ProceduralStream.class);
         ProceduralStream<IrisBiome> biomes = mock(ProceduralStream.class);
@@ -93,37 +111,64 @@ public class MantleCarvingComponentWaterMaskTest {
         when(context.getComplex()).thenReturn(complex);
         writer = mock(MantleWriter.class);
         Mantle<Matter> storage = mock(Mantle.class);
-        when(storage.getWorldHeight()).thenReturn(128);
+        when(storage.getWorldHeight()).thenReturn(WORLD_HEIGHT);
         when(writer.getMantle()).thenReturn(storage);
+        sections = new Matter[WORLD_HEIGHT >> 4];
+        MantleChunk<Matter> chunk = mock(MantleChunk.class);
+        when(chunk.sectionCount()).thenReturn(sections.length);
+        when(chunk.get(anyInt())).thenAnswer(call -> sections[call.<Integer>getArgument(0)]);
+        when(chunk.getOrCreate(anyInt())).thenAnswer(call -> {
+            int index = call.getArgument(0);
+            if (sections[index] == null) {
+                sections[index] = new IrisMatter(16, 16, 16);
+            }
+            return sections[index];
+        });
+        when(writer.acquireChunk(anyInt(), anyInt())).thenReturn(chunk);
     }
 
     @Test
-    public void mainTerrainWaterMasksTheProfilePassButNotTheUpperDimensionPass() throws Exception {
-        maskEverywhere(40);
-        IrisCaveCarver3D carver = installProfile();
-        UpperDimensionContext upper = mock(UpperDimensionContext.class);
-        when(upper.getEffectiveSurfaceY(anyInt(), anyInt())).thenReturn(100);
-        when(engine.getUpperContext()).thenReturn(upper);
-        dimension.setUpperDimensionCarving(true);
-        List<Object[]> calls = new ArrayList<>();
-        doAnswer(call -> {
-            calls.add(new Object[]{call.getArgument(9), call.getArgument(10)});
-            return 0;
-        }).when(carver).carve(any(), anyInt(), anyInt(), any(), anyDouble(), anyDouble(), any(), any(), any(), any(), any(), any());
-
+    public void theListedCavesCarveTheChunk() {
         component.generateLayer(writer, 2, 2, context);
 
-        assertEquals(2, calls.size());
-        int[] profileCeilings = (int[]) calls.get(0)[0];
-        assertNotNull(profileCeilings);
-        assertEquals(40 - CaveCeilingMask.ROOF, profileCeilings[0]);
-        assertNull(calls.get(0)[1]);
-        assertNull("the upper-dimension pass ignores main-terrain water", calls.get(1)[0]);
-        assertNotNull(calls.get(1)[1]);
+        List<Integer> carved = carvedHeights();
+        assertTrue("carved cells " + carved.size(), carved.size() > 500);
+        int lowest = carved.stream().mapToInt(Integer::intValue).min().orElseThrow();
+        int highest = carved.stream().mapToInt(Integer::intValue).max().orElseThrow();
+        assertTrue("lowest " + lowest, lowest >= -50 - MINIMUM_HEIGHT - 12);
+        assertTrue("highest " + highest, highest <= 20 - MINIMUM_HEIGHT + 12);
+    }
+
+    @Test
+    public void waterMasksTheCavePassOfTheMainTerrain() {
+        int ceilingY = 40;
+        List<Integer> unmasked = carvedHeightsOfNewChunk(2, 2);
+        maskEverywhere(ceilingY + CaveCeilingMask.ROOF);
+
+        List<Integer> masked = carvedHeightsOfNewChunk(2, 2);
+
+        assertTrue("an unmasked chunk carves above " + ceilingY, unmasked.stream().anyMatch(y -> y > ceilingY));
+        assertFalse(masked.isEmpty());
+        assertTrue("masked chunk carved above its ceiling", masked.stream().allMatch(y -> y <= ceilingY));
+    }
+
+    @Test
+    public void theUpperDimensionPassCarvesBeneathItsTerrainAndIgnoresMainTerrainWater() {
+        maskEverywhere(40 + CaveCeilingMask.ROOF);
+        UpperDimensionContext upper = mock(UpperDimensionContext.class);
+        when(upper.getEffectiveSurfaceY(anyInt(), anyInt())).thenReturn(UPPER_SURFACE_Y);
+        when(engine.getUpperContext()).thenReturn(upper);
+        dimension.setUpperDimensionCarving(true);
+
+        List<Integer> carved = carvedHeightsOfNewChunk(2, 2);
+
+        assertTrue("the upper pass carves where its terrain hangs", carved.stream().anyMatch(y -> y >= UPPER_SURFACE_Y));
+        assertTrue("the upper pass stays inside its terrain", carved.stream().noneMatch(y -> y >= UPPER_SURFACE_Y - 1 && y < UPPER_SURFACE_Y));
     }
 
     @Test
     public void subterrainFeaturesNeverOpenACellAboveTheCaveCeiling() {
+        dimension.setCaves(new KList<>());
         IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("room").setFamily(IrisSubterrainFamily.CENOTE)
                 .setProbability(1).setLength(64).setRadius(12).setHeight(24).setPillarSpacing(0).setFormationFraction(0)
                 .setWorldYRange(new IrisRange(-48, 60));
@@ -146,19 +191,28 @@ public class MantleCarvingComponentWaterMaskTest {
         }
     }
 
-    private List<int[]> openedCells(int chunkX, int chunkZ) {
-        List<int[]> opened = new ArrayList<>();
-        Mantle<Matter> storage = writer.getMantle();
-        MantleWriter capture = mock(MantleWriter.class);
-        when(capture.getMantle()).thenReturn(storage);
-        doAnswer(call -> {
-            if (call.getArgument(3) instanceof MatterCavern) {
-                opened.add(new int[]{call.getArgument(0), call.getArgument(1), call.getArgument(2)});
+    private List<Integer> carvedHeightsOfNewChunk(int chunkX, int chunkZ) {
+        java.util.Arrays.fill(sections, null);
+        component.generateLayer(writer, chunkX, chunkZ, context);
+        return carvedHeights();
+    }
+
+    private List<Integer> carvedHeights() {
+        List<Integer> carved = new ArrayList<>();
+        for (int y = 0; y < WORLD_HEIGHT; y++) {
+            Matter section = sections[y >> 4];
+            if (section == null) {
+                continue;
             }
-            return null;
-        }).when(capture).setData(anyInt(), anyInt(), anyInt(), any());
-        component.generateLayer(capture, chunkX, chunkZ, context);
-        return opened;
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    if (section.<MatterCavern>slice(MatterCavern.class).get(x, y & 15, z) != null) {
+                        carved.add(y);
+                    }
+                }
+            }
+        }
+        return carved;
     }
 
     private List<Integer> openedHeights(int chunkX, int chunkZ) {
@@ -180,17 +234,5 @@ public class MantleCarvingComponentWaterMaskTest {
         ChunkWaterRaster raster = mock(ChunkWaterRaster.class);
         when(raster.caveCeiling(anyInt(), anyInt())).thenReturn(ceiling);
         when(hydrology.raster(anyInt(), anyInt())).thenReturn(raster);
-    }
-
-    private IrisCaveCarver3D installProfile() throws Exception {
-        IrisCaveProfile profile = new IrisCaveProfile().setEnabled(true);
-        dimension.setCaveProfile(profile);
-        IrisCaveCarver3D carver = mock(IrisCaveCarver3D.class);
-        Map<IrisCaveProfile, IrisCaveCarver3D> carvers = new IdentityHashMap<>();
-        carvers.put(profile, carver);
-        Field cache = MantleCarvingComponent.class.getDeclaredField("profileCarvers");
-        cache.setAccessible(true);
-        cache.set(component, carvers);
-        return carver;
     }
 }

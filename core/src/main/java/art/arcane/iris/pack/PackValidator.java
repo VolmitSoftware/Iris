@@ -130,7 +130,9 @@ public final class PackValidator {
                 PackHydrologyValidator.validate(packFolder, dimensionFiles);
         addDistinct(blockingErrors, hydrologyValidation.errors());
         addDistinct(warnings, hydrologyValidation.warnings());
-        blockingErrors.addAll(PackCaveProfileValidator.validateLegacyFields(packFolder));
+        PackCaveValidator.Validation caveValidation = PackCaveValidator.validate(packFolder);
+        addDistinct(blockingErrors, caveValidation.errors());
+        addDistinct(warnings, caveValidation.warnings());
         addDistinct(blockingErrors, PackTerrain3DValidator.validate(packFolder));
         PackLootValidator.LootGraphIssues lootIssues = PackLootValidator.validateLootGraph(packFolder);
         addDistinct(blockingErrors, lootIssues.errors());

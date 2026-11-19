@@ -31,6 +31,7 @@ public final class PackResourceCleanup {
             "loot",
             "generators",
             "expressions",
+            "caves",
             "markers",
             "blocks",
             "mods"

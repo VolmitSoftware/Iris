@@ -95,6 +95,7 @@ public class PackTypeBukkitPurityGateTest {
             "art.arcane.iris.world.entity.IrisMarker",
             "art.arcane.iris.generation.block.IrisBlockData",
             "art.arcane.iris.generation.noise.IrisExpression",
+            "art.arcane.iris.generation.cave.IrisCave",
             "art.arcane.iris.structure.object.IrisObject",
             "art.arcane.iris.generation.image.IrisImage",
             "art.arcane.iris.generation.image.IrisImageMap",

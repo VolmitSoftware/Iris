@@ -935,6 +935,7 @@ public final class ModdedStudioCommands {
         LinkedHashSet<String> entityKeys = new LinkedHashSet<>();
         LinkedHashSet<String> spawnerKeys = new LinkedHashSet<>();
         LinkedHashSet<String> generatorKeys = new LinkedHashSet<>();
+        LinkedHashSet<String> caveKeys = new LinkedHashSet<>();
         LinkedHashSet<String> lootKeys = new LinkedHashSet<>();
         LinkedHashSet<String> objectKeys = new LinkedHashSet<>();
         LinkedHashSet<String> markerKeys = new LinkedHashSet<>();
@@ -958,6 +959,7 @@ public final class ModdedStudioCommands {
                     biomeKeys.add(biome.getLoadKey());
                 }
             });
+            caveKeys.addAll(exportedDimension.getCaves());
             lootKeys.addAll(exportedDimension.getLoot().getTables());
             spawnerKeys.addAll(exportedDimension.getEntitySpawners());
             collectStructureKeys(structureKeys, exportedDimension.getStructures());
@@ -969,6 +971,7 @@ public final class ModdedStudioCommands {
             if (region == null) {
                 continue;
             }
+            caveKeys.addAll(region.getCaves());
             lootKeys.addAll(region.getLoot().getTables());
             spawnerKeys.addAll(region.getEntitySpawners());
             collectStructureKeys(structureKeys, region.getStructures());
@@ -981,6 +984,7 @@ public final class ModdedStudioCommands {
                 continue;
             }
             biome.getGenerators().forEach((IrisBiomeGeneratorLink link) -> generatorKeys.add(link.getGenerator()));
+            caveKeys.addAll(biome.getCaves());
             lootKeys.addAll(biome.getLoot().getTables());
             spawnerKeys.addAll(biome.getEntitySpawners());
             collectStructureKeys(structureKeys, biome.getStructures());
@@ -1036,6 +1040,9 @@ public final class ModdedStudioCommands {
         }
         for (String key : Stream.of(dm.getExpressionLoader().getPossibleKeys()).sorted().toList()) {
             hashes.append(copyJson(folder, "expressions", key, dm.getExpressionLoader().findFile(key)));
+        }
+        for (String key : caveKeys) {
+            hashes.append(copyJson(folder, "caves", key, dm.getCaveLoader().findFile(key)));
         }
         hashes.append(PackExportClosure.copySnippets(packFolder, folder));
         for (String key : regionKeys) {

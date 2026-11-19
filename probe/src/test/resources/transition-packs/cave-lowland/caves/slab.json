@@ -1,0 +1,18 @@
+{
+  "tunnel": {
+    "width": 64,
+    "spacing": {
+      "horizontal": 16,
+      "vertical": 8
+    }
+  },
+  "depth": {
+    "min": 32,
+    "max": 47
+  },
+  "fade": 0,
+  "ceilingFade": 0,
+  "surfaceClearance": 4,
+  "allowFluid": false,
+  "allowLava": false
+}

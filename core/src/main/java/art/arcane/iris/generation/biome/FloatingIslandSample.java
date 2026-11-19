@@ -18,7 +18,6 @@
 
 package art.arcane.iris.generation.biome;
 
-import art.arcane.iris.generation.cave.IrisCaveProfileSampler;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
@@ -419,13 +418,11 @@ public final class FloatingIslandSample {
         CNG wallWarp = entry.getWallWarpCng(baseSeed, data);
         double warpAmp = Math.max(0, entry.getWallWarpAmplitude());
         double effectiveWarpAmp = effectiveWallWarpAmplitude(warpAmp, edgeFade);
-        IrisCaveProfileSampler carvingProfileSampler = entry.getCarvingProfileSampler(engine, data);
-        CNG carve = carvingProfileSampler == null && !entry.hasCarvingReference() ? entry.getCarveCng(baseSeed, data) : null;
+        CNG carve = entry.getCarveCng(baseSeed, data);
         double carveThreshold = entry.getCarveThreshold();
         boolean useWarp = wallWarp != null && effectiveWarpAmp > 0;
-        boolean useProfileCarve = carvingProfileSampler != null;
-        boolean useCarve = directCarveEnabled(entry, carvingProfileSampler, carve, carveThreshold);
-        boolean[] lateralCarveMask = useProfileCarve || useCarve ? new boolean[thickness] : null;
+        boolean useCarve = directCarveEnabled(carve, carveThreshold);
+        boolean[] lateralCarveMask = useCarve ? new boolean[thickness] : null;
         boolean baseCarveInterior = lateralCarveMask != null && canCarveLaterally(edgeFade, footprintSupport);
 
         if (useWarp) {
@@ -452,9 +449,7 @@ public final class FloatingIslandSample {
         }
 
         int solidCount = solidifyUncarvedInterior(solidMask);
-        if (useProfileCarve) {
-            solidCount = carveSolidInterior(solidMask, lateralCarveMask, botY, wx, wz, carvingProfileSampler, carveThreshold);
-        } else if (useCarve) {
+        if (useCarve) {
             solidCount = carveSolidInterior(solidMask, lateralCarveMask, botY, wx, wz, carve, carveThreshold);
         }
         int highestSolidIdx = highestSolidIndex(solidMask);
@@ -488,8 +483,8 @@ public final class FloatingIslandSample {
         return amplitude * fade;
     }
 
-    static boolean directCarveEnabled(IrisFloatingChildBiomes entry, IrisCaveProfileSampler carvingProfileSampler, CNG carve, double carveThreshold) {
-        return carvingProfileSampler == null && (entry == null || !entry.hasCarvingReference()) && carve != null && carveThreshold < 1.0;
+    static boolean directCarveEnabled(CNG carve, double carveThreshold) {
+        return carve != null && carveThreshold < 1.0;
     }
 
     static boolean canCarveLaterally(double edgeFade, NeighborSupport support) {
@@ -502,10 +497,6 @@ public final class FloatingIslandSample {
             double carveClamped = Math.max(0, Math.min(1, carveNoise));
             return carveClamped > carveThreshold;
         });
-    }
-
-    static int carveSolidInterior(boolean[] solidMask, boolean[] lateralCarveMask, int botY, int wx, int wz, IrisCaveProfileSampler carve, double carveThreshold) {
-        return carveSolidInterior(solidMask, lateralCarveMask, botY, wx, wz, (x, y, z) -> carve.shouldCarve(x, y, z, carveThreshold));
     }
 
     private static int carveSolidInterior(boolean[] solidMask, boolean[] lateralCarveMask, int botY, int wx, int wz, CarveSampler carve) {

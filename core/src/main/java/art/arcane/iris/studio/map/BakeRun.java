@@ -21,5 +21,5 @@ package art.arcane.iris.studio.map;
 /**
  * How long one bake of a procedural object's variants took.
  */
-record BakeRun(long totalNanos, int variantCount) {
+public record BakeRun(long totalNanos, int variantCount) {
 }

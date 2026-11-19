@@ -32,6 +32,7 @@ import art.arcane.iris.generation.stream.GenerationStreams;
 import art.arcane.iris.generation.stream.RarityStream;
 import art.arcane.iris.generation.stream.CachedStream2D;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
+import art.arcane.iris.generation.stream.WeightedStream;
 import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 
@@ -63,6 +64,7 @@ import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.pack.value.IrisRaritySelection;
+import art.arcane.iris.pack.value.Weighted;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.terrain.ContinentGenerator;
@@ -368,7 +370,7 @@ public class IrisComplex implements DataProvider {
             prepareInferredBiomes(focusRegion, preparedRegions);
             focusRegion.getNaturalBiomes(this).forEach(this::registerGenerators);
         } else {
-            engine.getDimension().getRegions().forEach(regionKey -> {
+            engine.getDimension().getRegionKeys().forEach(regionKey -> {
                 IrisRegion region = data.getRegionLoader().load(regionKey);
                 if (region == null || region.isCompatExcluded()) {
                     return;
@@ -1166,8 +1168,10 @@ public class IrisComplex implements DataProvider {
             InferredType inferredType,
             IrisBiome emptyBiome
     ) {
-        ProceduralStream<IrisBiome> picked = new RarityStream<>(biomePickNoiseStream(engine.getDimension(), region, inferredType),
-                loadInferredBiomes(biomeKeys(region, inferredType), inferredType));
+        ProceduralStream<Double> pickNoise = biomePickNoiseStream(engine.getDimension(), region, inferredType);
+        ProceduralStream<IrisBiome> picked = region.hasWeightedBiomes(inferredType)
+                ? new WeightedStream<>(pickNoise, region.getWeightedBiomes(data, inferredType))
+                : new RarityStream<>(pickNoise, loadInferredBiomes(biomeKeys(region, inferredType), inferredType));
         return inferredType == InferredType.CAVE ? picked.onNull(emptyBiome) : picked;
     }
 
@@ -1195,12 +1199,7 @@ public class IrisComplex implements DataProvider {
     }
 
     private static KList<String> biomeKeys(IrisRegion region, InferredType inferredType) {
-        return switch (inferredType) {
-            case CAVE -> region.getCaveBiomes();
-            case LAND -> region.getLandBiomes();
-            case SEA -> region.getSeaBiomes();
-            case SHORE -> region.getShoreBiomes();
-        };
+        return region.getBiomeKeys(inferredType);
     }
 
     /**
@@ -1234,7 +1233,7 @@ public class IrisComplex implements DataProvider {
      */
     public KList<IrisRegion> noisePickedRegions() {
         KList<IrisRegion> regions = new KList<>();
-        for (IrisRegion region : data.getRegionLoader().loadAll(terrainEngine.getDimension().getRegions())) {
+        for (IrisRegion region : data.getRegionLoader().loadAll(terrainEngine.getDimension().getRegionKeys())) {
             if (!region.isCompatExcluded()) {
                 regions.add(region);
             }
@@ -2256,10 +2255,10 @@ public class IrisComplex implements DataProvider {
     }
 
     private void prepareInferredBiomes(IrisRegion region, KList<IrisRegion> preparedRegions) {
-        loadInferredBiomes(region.getLandBiomes(), InferredType.LAND);
-        loadInferredBiomes(region.getCaveBiomes(), InferredType.CAVE);
-        loadInferredBiomes(region.getSeaBiomes(), InferredType.SEA);
-        loadInferredBiomes(region.getShoreBiomes(), InferredType.SHORE);
+        loadInferredBiomes(region.getLandBiomeKeys(), InferredType.LAND);
+        loadInferredBiomes(region.getCaveBiomeKeys(), InferredType.CAVE);
+        loadInferredBiomes(region.getSeaBiomeKeys(), InferredType.SEA);
+        loadInferredBiomes(region.getShoreBiomeKeys(), InferredType.SHORE);
         preparedRegions.add(region);
     }
 
@@ -2383,8 +2382,8 @@ public class IrisComplex implements DataProvider {
         Set<IrisBiome> reached = Collections.newSetFromMap(new IdentityHashMap<>());
         ArrayDeque<IrisBiome> pending = new ArrayDeque<>();
         for (IrisRegion region : regions) {
-            pending.addAll(loadInferredBiomes(region.getLandBiomes(), InferredType.LAND));
-            pending.addAll(loadInferredBiomes(region.getSeaBiomes(), InferredType.SEA));
+            pending.addAll(loadInferredBiomes(region.getLandBiomeKeys(), InferredType.LAND));
+            pending.addAll(loadInferredBiomes(region.getSeaBiomeKeys(), InferredType.SEA));
         }
         pending.addAll(imageMapRuntime.getMappedBiomes());
         while (!pending.isEmpty()) {
@@ -2589,16 +2588,7 @@ public class IrisComplex implements DataProvider {
                 return synchronizedPlan;
             }
 
-            KList<IrisBiome> children = biome.getRealChildren(this);
-            KList<IrisBiome> options = new KList<>();
-            for (IrisBiome child : children) {
-                if (child != null) {
-                    options.add(child);
-                }
-            }
-            options.add(biome);
-
-            ChildSelectionPlan createdPlan = ChildSelectionPlan.create(options);
+            ChildSelectionPlan createdPlan = ChildSelectionPlan.of(biome, this);
             IdentityHashMap<IrisBiome, ChildSelectionPlan> next = new IdentityHashMap<>(childSelectionPlans);
             next.put(biome, createdPlan);
             childSelectionPlans = next;
@@ -2960,16 +2950,43 @@ public class IrisComplex implements DataProvider {
 
     static final class ChildSelectionPlan {
         private final IrisRaritySelection<IrisBiome> selection;
+        private final List<Weighted<IrisBiome>> weightedOptions;
 
-        private ChildSelectionPlan(IrisRaritySelection<IrisBiome> selection) {
+        private ChildSelectionPlan(IrisRaritySelection<IrisBiome> selection, List<Weighted<IrisBiome>> weightedOptions) {
             this.selection = selection;
+            this.weightedOptions = weightedOptions;
         }
 
         static ChildSelectionPlan create(KList<IrisBiome> options) {
-            return new ChildSelectionPlan(IrisRaritySelection.create(options));
+            return new ChildSelectionPlan(IrisRaritySelection.create(options), null);
+        }
+
+        static ChildSelectionPlan createWeighted(List<Weighted<IrisBiome>> options) {
+            return new ChildSelectionPlan(null, List.copyOf(options));
+        }
+
+        static ChildSelectionPlan of(IrisBiome biome, DataProvider provider) {
+            if (biome.hasWeightedChildren()) {
+                KList<Weighted<IrisBiome>> weightedChildren = biome.getWeightedChildren(provider);
+                if (!weightedChildren.isEmpty()) {
+                    return createWeighted(weightedChildren);
+                }
+            }
+
+            KList<IrisBiome> options = new KList<>();
+            for (IrisBiome child : biome.getRealChildren(provider)) {
+                if (child != null) {
+                    options.add(child);
+                }
+            }
+            options.add(biome);
+            return create(options);
         }
 
         IrisBiome select(CNG childCell, double x, double z) {
+            if (weightedOptions != null) {
+                return Weighted.pick(weightedOptions, childCell.noiseFast2D(x, z), Weighted.Edge.LATER);
+            }
             long maximumIndex = selection.size() - 1L;
             if (maximumIndex <= 0L) {
                 return selection.get(0L);

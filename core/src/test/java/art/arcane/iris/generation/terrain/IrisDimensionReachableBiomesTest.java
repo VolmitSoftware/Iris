@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.terrain;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
 import art.arcane.iris.generation.cave.IrisCave;
 import art.arcane.iris.generation.cave.TestSettings;
@@ -60,11 +61,11 @@ public class IrisDimensionReachableBiomesTest {
     @SuppressWarnings("unchecked")
     public void includesOutOfPoolFocusBiomeAndRegion() {
         IrisDimension dimension = new IrisDimension()
-                .setRegions(new KList<>("declared"))
+                .setRegions(IrisRegionEntry.plainList("declared"))
                 .setFocus("focused-biome")
                 .setFocusRegion("focused-region");
-        IrisRegion declared = new IrisRegion().setLandBiomes(new KList<>("declared-biome"));
-        IrisRegion focused = new IrisRegion().setLandBiomes(new KList<>("focused-region-biome"));
+        IrisRegion declared = new IrisRegion().setLandBiomes(IrisBiomeEntry.plainList("declared-biome"));
+        IrisRegion focused = new IrisRegion().setLandBiomes(IrisBiomeEntry.plainList("focused-region-biome"));
         declared.setLoadKey("declared");
         focused.setLoadKey("focused-region");
         IrisBiome declaredBiome = biome("declared-biome");
@@ -103,31 +104,31 @@ public class IrisDimensionReachableBiomesTest {
                 .setId("disabled-band")
                 .setEnabled(false)
                 .setBiome("disabled-deep");
-        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("reachable", "missing"));
+        IrisDimension dimension = new IrisDimension().setRegions(IrisRegionEntry.plainList("reachable", "missing"));
         dimension.setCarving(new KList<>(deepBand, disabledBand));
         IrisRegion reachable = new IrisRegion()
-                .setLandBiomes(new KList<>("parent", "shared"))
-                .setSeaBiomes(new KList<>("shared"));
+                .setLandBiomes(IrisBiomeEntry.plainList("parent", "shared"))
+                .setSeaBiomes(IrisBiomeEntry.plainList("shared"));
         IrisBiome parent = biome("parent")
-                .setChildren(new KList<>("child", "shared"))
+                .setChildren(IrisBiomeEntry.plainList("child", "shared"))
                 .setCarvingBiome("carve")
                 .setFloatingChildBiomes(new KList<>(floating("floating-target")));
-        IrisBiome child = biome("child").setChildren(new KList<>("parent"));
+        IrisBiome child = biome("child").setChildren(IrisBiomeEntry.plainList("parent"));
         IrisBiome shared = biome("shared");
         IrisBiome carve = biome("carve");
         IrisBiome floatingTarget = biome("floating-target")
-                .setChildren(new KList<>("floating-child"))
+                .setChildren(IrisBiomeEntry.plainList("floating-child"))
                 .setCarvingBiome("floating-carve");
         IrisBiome floatingChild = biome("floating-child")
                 .setFloatingChildBiomes(new KList<>(floating("nested-floating")));
         IrisBiome floatingCarve = biome("floating-carve");
         IrisBiome nestedFloating = biome("nested-floating")
                 .setFloatingChildBiomes(new KList<>(floating("parent")));
-        IrisBiome deepRoot = biome("deep-root").setChildren(new KList<>("deep-child"));
+        IrisBiome deepRoot = biome("deep-root").setChildren(IrisBiomeEntry.plainList("deep-child"));
         IrisBiome deepChild = biome("deep-child").setCarvingBiome("deep-carve");
         IrisBiome deepCarve = biome("deep-carve")
                 .setFloatingChildBiomes(new KList<>(floating("deep-floating")));
-        IrisBiome deepFloating = biome("deep-floating").setChildren(new KList<>("deep-root"));
+        IrisBiome deepFloating = biome("deep-floating").setChildren(IrisBiomeEntry.plainList("deep-root"));
         IrisBiome disabledDeep = biome("disabled-deep");
         IrisBiome unused = biome("unused");
 
@@ -166,13 +167,13 @@ public class IrisDimensionReachableBiomesTest {
     @Test(timeout = 1000L)
     @SuppressWarnings("unchecked")
     public void terminatesMixedDependencyCyclesWithoutReloadingBiomes() {
-        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("reachable"));
-        IrisRegion reachable = new IrisRegion().setLandBiomes(new KList<>("a"));
-        IrisBiome a = biome("a").setChildren(new KList<>("b"));
+        IrisDimension dimension = new IrisDimension().setRegions(IrisRegionEntry.plainList("reachable"));
+        IrisRegion reachable = new IrisRegion().setLandBiomes(IrisBiomeEntry.plainList("a"));
+        IrisBiome a = biome("a").setChildren(IrisBiomeEntry.plainList("b"));
         IrisBiome b = biome("b").setCarvingBiome("c");
         IrisBiome c = biome("c").setFloatingChildBiomes(new KList<>(floating("d")));
         IrisBiome d = biome("d")
-                .setChildren(new KList<>("a"))
+                .setChildren(IrisBiomeEntry.plainList("a"))
                 .setFloatingChildBiomes(new KList<>(floating("b")));
 
         IrisData data = mock(IrisData.class);
@@ -200,13 +201,13 @@ public class IrisDimensionReachableBiomesTest {
     @Test
     @SuppressWarnings("unchecked")
     public void excludesUnavailableCavePoolFromReachableClosure() {
-        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("reachable"));
+        IrisDimension dimension = new IrisDimension().setRegions(IrisRegionEntry.plainList("reachable"));
         IrisRegion reachable = new IrisRegion()
-                .setLandBiomes(new KList<>("plains"))
-                .setCaveBiomes(new KList<>("carving/sulfur"));
+                .setLandBiomes(IrisBiomeEntry.plainList("plains"))
+                .setCaveBiomes(IrisBiomeEntry.plainList("carving/sulfur"));
         IrisBiome plains = biome("plains");
         IrisBiome sulfur = PackCompatFixtures.excludeBlock(biome("carving/sulfur"))
-                .setChildren(new KList<>("carving/sulfur-hollows"));
+                .setChildren(IrisBiomeEntry.plainList("carving/sulfur-hollows"));
 
         IrisData data = mock(IrisData.class);
         ResourceLoader<IrisRegion> regionLoader = mock(ResourceLoader.class);
@@ -229,13 +230,13 @@ public class IrisDimensionReachableBiomesTest {
     @SuppressWarnings("unchecked")
     public void includesHydrologyShoreBiomesOnlyWhereAWidthPlacesThem() {
         IrisDimension dimension = new IrisDimension()
-                .setRegions(new KList<>("reachable"))
+                .setRegions(IrisRegionEntry.plainList("reachable"))
                 .setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("dimension-shore")));
         IrisRegion reachable = new IrisRegion()
-                .setLandBiomes(new KList<>("root", "plain"))
+                .setLandBiomes(IrisBiomeEntry.plainList("root", "plain"))
                 .setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("region-shore")));
         IrisBiome root = biome("root").setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("biome-shore")));
-        IrisBiome regionShore = biome("region-shore").setChildren(new KList<>("shore-child"));
+        IrisBiome regionShore = biome("region-shore").setChildren(IrisBiomeEntry.plainList("shore-child"));
 
         IrisData data = mock(IrisData.class);
         ResourceLoader<IrisRegion> regionLoader = mock(ResourceLoader.class);
@@ -268,10 +269,10 @@ public class IrisDimensionReachableBiomesTest {
     @SuppressWarnings("unchecked")
     public void aParentWidthReachesTheShoreListOfItsChildren() {
         IrisDimension dimension = new IrisDimension()
-                .setRegions(new KList<>("reachable"))
+                .setRegions(IrisRegionEntry.plainList("reachable"))
                 .setHydrology(new IrisHydrology().setEnabled(true));
-        IrisRegion reachable = new IrisRegion().setLandBiomes(new KList<>("parent"));
-        IrisBiome parent = biome("parent").setChildren(new KList<>("child"));
+        IrisRegion reachable = new IrisRegion().setLandBiomes(IrisBiomeEntry.plainList("parent"));
+        IrisBiome parent = biome("parent").setChildren(IrisBiomeEntry.plainList("child"));
         IrisBiome child = biome("child").setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("child-shore")));
 
         IrisData data = mock(IrisData.class);
@@ -292,16 +293,16 @@ public class IrisDimensionReachableBiomesTest {
     @Test
     @SuppressWarnings("unchecked")
     public void caveBiomesAreTheRegionCaveBiomesAndTheEnabledCarvingBands() {
-        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("tropical"));
+        IrisDimension dimension = new IrisDimension().setRegions(IrisRegionEntry.plainList("tropical"));
         dimension.setCarving(new KList<>(
                 new IrisDimensionCarvingEntry().setId("deep").setBiome("deep-dark"),
                 new IrisDimensionCarvingEntry().setId("off").setEnabled(false).setBiome("disabled-band")));
         IrisRegion tropical = new IrisRegion()
-                .setLandBiomes(new KList<>("volcanoes"))
-                .setShoreBiomes(new KList<>("beach"))
-                .setCaveBiomes(new KList<>("hollow", "magma", "missing"));
+                .setLandBiomes(IrisBiomeEntry.plainList("volcanoes"))
+                .setShoreBiomes(IrisBiomeEntry.plainList("beach"))
+                .setCaveBiomes(IrisBiomeEntry.plainList("hollow", "magma", "missing"));
         tropical.setLoadKey("tropical");
-        IrisBiome volcanoes = biome("volcanoes").setCarvingBiome("magma").setChildren(new KList<>("ash"));
+        IrisBiome volcanoes = biome("volcanoes").setCarvingBiome("magma").setChildren(IrisBiomeEntry.plainList("ash"));
 
         IrisData data = mock(IrisData.class);
         ResourceLoader<IrisRegion> regionLoader = mock(ResourceLoader.class);

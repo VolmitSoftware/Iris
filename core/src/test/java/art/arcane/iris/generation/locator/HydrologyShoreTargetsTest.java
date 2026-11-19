@@ -1,11 +1,13 @@
 package art.arcane.iris.generation.locator;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.terrain.IrisRegionEntry;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.volmlib.util.collection.KList;
@@ -23,11 +25,11 @@ public class HydrologyShoreTargetsTest {
     @SuppressWarnings("unchecked")
     public void listsWithoutWidthPlaceNothing() {
         IrisDimension dimension = new IrisDimension()
-                .setRegions(new KList<>("coast"))
+                .setRegions(IrisRegionEntry.plainList("coast"))
                 .setHydrology(new IrisHydrology().setEnabled(true))
                 .setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("beach")));
         IrisRegion coast = new IrisRegion()
-                .setLandBiomes(new KList<>("plains"))
+                .setLandBiomes(IrisBiomeEntry.plainList("plains"))
                 .setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("dune")));
         coast.setLoadKey("coast");
         IrisData data = mock(IrisData.class);

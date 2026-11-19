@@ -1,6 +1,7 @@
 package art.arcane.iris.probe.fidelity;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
@@ -37,10 +38,14 @@ public class BiomeTypesTest {
     }
 
     private static IrisRegion region(List<String> land, List<String> sea, List<String> shore) {
-        return new IrisRegion().setLandBiomes(new KList<>(land)).setSeaBiomes(new KList<>(sea)).setShoreBiomes(new KList<>(shore));
+        return new IrisRegion().setLandBiomes(entries(land)).setSeaBiomes(entries(sea)).setShoreBiomes(entries(shore));
     }
 
     private static IrisBiome biome(String... children) {
-        return new IrisBiome().setChildren(new KList<>(List.of(children)));
+        return new IrisBiome().setChildren(entries(List.of(children)));
+    }
+
+    private static KList<IrisBiomeEntry> entries(List<String> keys) {
+        return IrisBiomeEntry.plainList(keys.toArray(String[]::new));
     }
 }

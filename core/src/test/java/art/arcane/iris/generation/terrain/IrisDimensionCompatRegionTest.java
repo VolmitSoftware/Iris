@@ -47,7 +47,7 @@ public class IrisDimensionCompatRegionTest {
         IrisRegion plains = region("overworld");
         IrisRegion sulfur = excludeBlock(region("sulfur-lands"));
         IrisData data = dataWith(report, plains, sulfur);
-        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("overworld", "sulfur-lands"));
+        IrisDimension dimension = new IrisDimension().setRegions(IrisRegionEntry.plainList("overworld", "sulfur-lands"));
         dimension.setLoadKey("overworld");
         dimension.setLoader(data);
 
@@ -66,7 +66,7 @@ public class IrisDimensionCompatRegionTest {
         PackCompatReport report = new PackCompatReport();
         IrisRegion sulfur = excludeBlock(region("sulfur-lands"));
         IrisData data = dataWith(report, sulfur);
-        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("sulfur-lands"));
+        IrisDimension dimension = new IrisDimension().setRegions(IrisRegionEntry.plainList("sulfur-lands"));
         dimension.setLoadKey("sulfurworld");
         dimension.setLoader(data);
 
@@ -85,7 +85,7 @@ public class IrisDimensionCompatRegionTest {
         IrisRegion plains = region("overworld");
         IrisRegion sulfur = excludeBlock(region("sulfur-lands"));
         IrisData data = dataWith(report, plains, sulfur);
-        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("overworld", "sulfur-lands"));
+        IrisDimension dimension = new IrisDimension().setRegions(IrisRegionEntry.plainList("overworld", "sulfur-lands"));
         dimension.setLoadKey("overworld");
         dimension.setLoader(data);
 

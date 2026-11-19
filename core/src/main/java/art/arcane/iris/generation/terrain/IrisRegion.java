@@ -19,6 +19,7 @@
 package art.arcane.iris.generation.terrain;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.cave.IrisCave;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositVariant;
@@ -27,6 +28,8 @@ import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.decoration.IrisProceduralObjects;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.pack.validation.CompatPools;
+import art.arcane.iris.pack.value.Weighted;
+import art.arcane.iris.pack.value.WeightedReference;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.world.entity.IrisEffect;
@@ -149,23 +152,19 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
     private KList<String> caves = new KList<>();
     @Description("Water settings for this region: rainfall, pond density, where streams and ponds may form, and the fluid that fills them. A value left unset comes from the dimension.")
     private IrisHydrologyPolicy hydrologyPolicy = null;
-    @RegistryListResource(IrisBiome.class)
     @Required
-    @ArrayType(min = 1, type = String.class)
-    @Description("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
-    private KList<String> landBiomes = new KList<>();
-    @RegistryListResource(IrisBiome.class)
-    @ArrayType(type = String.class)
-    @Description("A list of root-level sea biomes in this region. Optional: leave empty for land-only dimensions (flat, island, or fully-land worlds where no ocean is generated). Don't specify child biomes of other biomes here. Just the root parents.")
-    private KList<String> seaBiomes = new KList<>();
-    @RegistryListResource(IrisBiome.class)
-    @ArrayType(type = String.class)
-    @Description("A list of root-level shore biomes in this region. Optional: leave empty for land-only dimensions (flat, island, or fully-land worlds where no shoreline is generated). Don't specify child biomes of other biomes here. Just the root parents.")
-    private KList<String> shoreBiomes = new KList<>();
-    @RegistryListResource(IrisBiome.class)
-    @ArrayType(min = 1, type = String.class)
-    @Description("A list of root-level cave biomes in this region, used for carved cave interiors. Don't specify child biomes of other biomes here. Just the root parents.")
-    private KList<String> caveBiomes = new KList<>();
+    @ArrayType(min = 1, type = IrisBiomeEntry.class)
+    @Description("A list of root-level biomes in this region. Each entry is a biome name or an object with a biome and a weight. Don't specify child biomes of other biomes here. Just the root parents.")
+    private KList<IrisBiomeEntry> landBiomes = new KList<>();
+    @ArrayType(type = IrisBiomeEntry.class)
+    @Description("A list of root-level sea biomes in this region. Each entry is a biome name or an object with a biome and a weight. Optional: leave empty for land-only dimensions (flat, island, or fully-land worlds where no ocean is generated). Don't specify child biomes of other biomes here. Just the root parents.")
+    private KList<IrisBiomeEntry> seaBiomes = new KList<>();
+    @ArrayType(type = IrisBiomeEntry.class)
+    @Description("A list of root-level shore biomes in this region. Each entry is a biome name or an object with a biome and a weight. Optional: leave empty for land-only dimensions (flat, island, or fully-land worlds where no shoreline is generated). Don't specify child biomes of other biomes here. Just the root parents.")
+    private KList<IrisBiomeEntry> shoreBiomes = new KList<>();
+    @ArrayType(min = 1, type = IrisBiomeEntry.class)
+    @Description("A list of root-level cave biomes in this region, used for carved cave interiors. Each entry is a biome name or an object with a biome and a weight. Don't specify child biomes of other biomes here. Just the root parents.")
+    private KList<IrisBiomeEntry> caveBiomes = new KList<>();
     @ArrayType(min = 1, type = IrisDepositGenerator.class)
     @Description("Define regional deposit generators that add onto the global deposit generators")
     private KList<IrisDepositGenerator> deposits = new KList<>();
@@ -307,11 +306,53 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
 
     public KSet<String> getNaturalBiomeIds() {
         KSet<String> names = new KSet<>();
-        names.addAll(landBiomes);
-        names.addAll(caveBiomes);
-        names.addAll(seaBiomes);
-        names.addAll(shoreBiomes);
+        names.addAll(getLandBiomeKeys());
+        names.addAll(getCaveBiomeKeys());
+        names.addAll(getSeaBiomeKeys());
+        names.addAll(getShoreBiomeKeys());
         return names;
+    }
+
+    public KList<String> getLandBiomeKeys() {
+        return WeightedReference.keys(landBiomes);
+    }
+
+    public KList<String> getSeaBiomeKeys() {
+        return WeightedReference.keys(seaBiomes);
+    }
+
+    public KList<String> getShoreBiomeKeys() {
+        return WeightedReference.keys(shoreBiomes);
+    }
+
+    public KList<String> getCaveBiomeKeys() {
+        return WeightedReference.keys(caveBiomes);
+    }
+
+    public KList<String> getBiomeKeys(InferredType type) {
+        return WeightedReference.keys(getBiomeEntries(type));
+    }
+
+    public KList<IrisBiomeEntry> getBiomeEntries(InferredType type) {
+        return switch (type) {
+            case CAVE -> caveBiomes;
+            case LAND -> landBiomes;
+            case SEA -> seaBiomes;
+            case SHORE -> shoreBiomes;
+        };
+    }
+
+    public boolean hasWeightedBiomes(InferredType type) {
+        return WeightedReference.anyWrittenAsObject(getBiomeEntries(type));
+    }
+
+    public KList<Weighted<IrisBiome>> getWeightedBiomes(IrisData data, InferredType type) {
+        KList<Weighted<IrisBiome>> inferred = new KList<>();
+        for (Weighted<IrisBiome> entry : CompatPools.loadWeighted(data.getBiomeLoader(), getBiomeEntries(type), data,
+                "region", getLoadKey(), type.name().toLowerCase() + "Biomes", null)) {
+            inferred.add(new Weighted<>(entry.value().withInferredType(type), entry.weight()));
+        }
+        return inferred;
     }
 
     public KList<IrisBiome> getAllBiomes(IrisDimension dimension, DataProvider g) {
@@ -347,7 +388,7 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
 
                 names.add(biome.getCarvingBiome());
                 b.put(biome.getLoadKey(), biome);
-                names.addAll(biome.getChildren());
+                names.addAll(biome.getChildKeys());
             }
         }
 
@@ -369,19 +410,19 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
     }
 
     public KList<IrisBiome> getRealCaveBiomes(DataProvider g) {
-        return realCaveBiomes.aquire(() -> resolvePool(g, getCaveBiomes(), "caveBiomes", null));
+        return realCaveBiomes.aquire(() -> resolvePool(g, getCaveBiomeKeys(), "caveBiomes", null));
     }
 
     public KList<IrisBiome> getRealShoreBiomes(DataProvider g) {
-        return realShoreBiomes.aquire(() -> resolvePool(g, getShoreBiomes(), "shoreBiomes", null));
+        return realShoreBiomes.aquire(() -> resolvePool(g, getShoreBiomeKeys(), "shoreBiomes", null));
     }
 
     public KList<IrisBiome> getRealSeaBiomes(DataProvider g) {
-        return realSeaBiomes.aquire(() -> resolvePool(g, getSeaBiomes(), "seaBiomes", null));
+        return realSeaBiomes.aquire(() -> resolvePool(g, getSeaBiomeKeys(), "seaBiomes", null));
     }
 
     public KList<IrisBiome> getRealLandBiomes(DataProvider g) {
-        return realLandBiomes.aquire(() -> resolvePool(g, getLandBiomes(), "landBiomes", null));
+        return realLandBiomes.aquire(() -> resolvePool(g, getLandBiomeKeys(), "landBiomes", null));
     }
 
     /** A biome reference pool with unloadable and gate-excluded biomes removed; drops are reported once. */
@@ -394,10 +435,7 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
     public KList<IrisBiome> getAllAnyBiomes() {
         KMap<String, IrisBiome> b = new KMap<>();
         KSet<String> names = new KSet<>();
-        names.addAll(landBiomes);
-        names.addAll(caveBiomes);
-        names.addAll(seaBiomes);
-        names.addAll(shoreBiomes);
+        names.addAll(getNaturalBiomeIds());
 
         while (!names.isEmpty()) {
             for (String i : new KList<>(names)) {
@@ -415,7 +453,7 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
 
                 names.add(biome.getCarvingBiome());
                 b.put(biome.getLoadKey(), biome);
-                names.addAll(biome.getChildren());
+                names.addAll(biome.getChildKeys());
             }
         }
 
@@ -486,9 +524,9 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
                     "structures[" + index + "].caveBiomes");
         }
 
-        base = evaluateSurfacePoolCompat(data, base, getLandBiomes(), "land");
-        base = evaluateSurfacePoolCompat(data, base, getSeaBiomes(), "sea");
-        return evaluateSurfacePoolCompat(data, base, getShoreBiomes(), "shore");
+        base = evaluateSurfacePoolCompat(data, base, getLandBiomeKeys(), "land");
+        base = evaluateSurfacePoolCompat(data, base, getSeaBiomeKeys(), "sea");
+        return evaluateSurfacePoolCompat(data, base, getShoreBiomeKeys(), "shore");
     }
 
     @Override

@@ -21,6 +21,7 @@ package art.arcane.iris.generation.terrain;
 import art.arcane.iris.world.entity.IrisSpawnGroup;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.biome.IrisCustomBiomeAliasResolver;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
 import art.arcane.iris.generation.biome.IrisSurfaceLayerFallback;
@@ -42,6 +43,8 @@ import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.transform.IrisTerrainTransform;
 import art.arcane.iris.pack.validation.CompatPools;
 import art.arcane.iris.pack.value.IrisRange;
+import art.arcane.iris.pack.value.Weighted;
+import art.arcane.iris.pack.value.WeightedReference;
 import art.arcane.iris.structure.nativegen.IrisImportedFeatureControl;
 import art.arcane.iris.structure.nativegen.IrisImportedStructureControl;
 import art.arcane.iris.structure.object.IrisObjectScale;
@@ -251,11 +254,10 @@ public class IrisDimension extends IrisRegistrant {
     private double allObjectScaleFactor = 1D;
     @Description("The world environment")
     private IrisEnvironment environment = IrisEnvironment.NORMAL;
-    @RegistryListResource(IrisRegion.class)
     @Required
-    @ArrayType(min = 1, type = String.class)
-    @Description("Define all of the regions to include in this dimension. Dimensions -> Regions -> Biomes -> Objects etc")
-    private KList<String> regions = new KList<>();
+    @ArrayType(min = 1, type = IrisRegionEntry.class)
+    @Description("Define all of the regions to include in this dimension, each as a region name or an object with a region and a weight. Dimensions -> Regions -> Biomes -> Objects etc")
+    private KList<IrisRegionEntry> regions = new KList<>();
     @Required
     @MinNumber(0)
     @MaxNumber(1024)
@@ -595,9 +597,9 @@ public class IrisDimension extends IrisRegistrant {
                 .getBytes(StandardCharsets.UTF_8));
         IrisData data = provider.getData();
         IrisRegion region = new IrisRegion();
-        region.getLandBiomes().add(biomeKey);
-        region.getSeaBiomes().add(biomeKey);
-        region.getShoreBiomes().add(biomeKey);
+        region.getLandBiomes().add(IrisBiomeEntry.plain(biomeKey));
+        region.getSeaBiomes().add(IrisBiomeEntry.plain(biomeKey));
+        region.getShoreBiomes().add(IrisBiomeEntry.plain(biomeKey));
         region.setLoadKey(key);
         region.setLoader(data);
         region.setLoadFile(new File(data.getDataFolder(), data.getRegionLoader().getFolderName() + "/" + key + ".json"));
@@ -623,8 +625,9 @@ public class IrisDimension extends IrisRegistrant {
             return regions.v();
         }
 
-        for (int index = 0; index < getRegions().size(); index++) {
-            String key = getRegions().get(index);
+        KList<String> regionKeys = getRegionKeys();
+        for (int index = 0; index < regionKeys.size(); index++) {
+            String key = regionKeys.get(index);
             IrisRegion region = data.getRegionLoader().load(key);
             if (region == null) {
                 continue;
@@ -664,7 +667,7 @@ public class IrisDimension extends IrisRegistrant {
     public KList<IrisRegion> getAllAnyRegions() {
         KList<IrisRegion> r = new KList<>();
 
-        for (String i : getRegions()) {
+        for (String i : getRegionKeys()) {
             r.add(IrisData.loadAnyRegion(i, getLoader()));
         }
 
@@ -746,7 +749,7 @@ public class IrisDimension extends IrisRegistrant {
 
             visited.add(loadKey);
             biomes.put(loadKey, biome);
-            addReachableBiomeKeys(pending, biome.getChildren());
+            addReachableBiomeKeys(pending, biome.getChildKeys());
             addReachableBiomeKey(pending, biome.getCarvingBiome());
             addListedCaveBiomeKeys(pending, data, biome.getCaves());
 
@@ -1318,8 +1321,20 @@ public class IrisDimension extends IrisRegistrant {
 
     /** The declared region pool with unloadable and gate-excluded regions removed; drops are reported once. */
     private KList<IrisRegion> resolveRegionPool(IrisData data, List<CompatFinding> sink) {
-        return CompatPools.load(data == null ? null : data.getRegionLoader(), getRegions(), data,
+        return CompatPools.load(data == null ? null : data.getRegionLoader(), getRegionKeys(), data,
                 "dimension", getLoadKey(), "regions", sink);
+    }
+
+    public KList<String> getRegionKeys() {
+        return WeightedReference.keys(regions);
+    }
+
+    public boolean hasWeightedRegions() {
+        return WeightedReference.anyWrittenAsObject(regions);
+    }
+
+    public KList<Weighted<IrisRegion>> getWeightedRegions(IrisData data) {
+        return CompatPools.loadWeighted(data.getRegionLoader(), regions, data, "dimension", getLoadKey(), "regions", null);
     }
 
     /**

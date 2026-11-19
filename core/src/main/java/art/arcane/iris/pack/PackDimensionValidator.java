@@ -78,7 +78,7 @@ final class PackDimensionValidator {
 
             int resolvedRegions = 0;
             for (int i = 0; i < regionsArray.length(); i++) {
-                String regionKey = regionsArray.optString(i, null);
+                String regionKey = PackValidationIo.referenceKey(regionsArray, i, "region");
                 if (regionKey == null || regionKey.isBlank()) {
                     warnings.add("Dimension '" + dimensionKey + "' has a blank region entry at index " + i + ".");
                     continue;
@@ -410,7 +410,7 @@ final class PackDimensionValidator {
         }
         int resolved = 0;
         for (int i = 0; i < arr.length(); i++) {
-            String biomeKey = arr.optString(i, null);
+            String biomeKey = PackValidationIo.referenceKey(arr, i, "biome");
             if (biomeKey == null || biomeKey.isBlank()) {
                 continue;
             }

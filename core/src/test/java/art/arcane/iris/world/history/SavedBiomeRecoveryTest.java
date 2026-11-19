@@ -2,11 +2,13 @@ package art.arcane.iris.world.history;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingEntry;
 import art.arcane.iris.generation.terrain.IrisDimensionStack;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.terrain.IrisRegionEntry;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Before;
@@ -41,12 +43,12 @@ public class SavedBiomeRecoveryTest {
     @Before
     public void prepareSingletonPack() {
         dimension.setLoadKey("overworld");
-        dimension.setRegions(new KList<String>().qadd(REGION));
+        dimension.setRegions(IrisRegionEntry.plainList(REGION));
         region.setLoadKey(REGION);
-        region.setLandBiomes(new KList<String>().qadd(BIOME));
-        region.setSeaBiomes(new KList<String>().qadd(BIOME));
-        region.setShoreBiomes(new KList<String>().qadd(BIOME));
-        region.setCaveBiomes(new KList<String>().qadd(BIOME));
+        region.setLandBiomes(IrisBiomeEntry.plainList(BIOME));
+        region.setSeaBiomes(IrisBiomeEntry.plainList(BIOME));
+        region.setShoreBiomes(IrisBiomeEntry.plainList(BIOME));
+        region.setCaveBiomes(IrisBiomeEntry.plainList(BIOME));
         biome.setLoadKey(BIOME);
         when(data.getRegionLoader().load(REGION)).thenReturn(region);
         when(data.getBiomeLoader().load(BIOME)).thenReturn(biome);
@@ -120,18 +122,18 @@ public class SavedBiomeRecoveryTest {
 
     @Test
     public void rejectsPoolsWithUnrecordedChoicesOrNoVerticalChoice() throws IOException {
-        region.getCaveBiomes().add("other");
+        region.getCaveBiomes().add(IrisBiomeEntry.plain("other"));
         assertTrue(SavedBiomeRecovery.recover(input).isEmpty());
         region.getCaveBiomes().clear();
         assertTrue(SavedBiomeRecovery.recover(input).isEmpty());
-        region.getCaveBiomes().add(BIOME);
-        region.getSeaBiomes().add("other");
+        region.getCaveBiomes().add(IrisBiomeEntry.plain(BIOME));
+        region.getSeaBiomes().add(IrisBiomeEntry.plain("other"));
         assertTrue(SavedBiomeRecovery.recover(input).isEmpty());
     }
 
     @Test
     public void rejectsChildrenAndFloatingBiomes() throws IOException {
-        biome.getChildren().add("other");
+        biome.getChildren().add(IrisBiomeEntry.plain("other"));
         assertTrue(SavedBiomeRecovery.recover(input).isEmpty());
         biome.getChildren().clear();
         biome.getFloatingChildBiomes().add(new IrisFloatingChildBiomes());
@@ -179,7 +181,7 @@ public class SavedBiomeRecoveryTest {
         dimension.setFocus("other");
         assertTrue(SavedBiomeRecovery.recover(input).isEmpty());
         dimension.setFocus("");
-        dimension.getRegions().add("other");
+        dimension.getRegions().add(IrisRegionEntry.plain("other"));
         assertTrue(SavedBiomeRecovery.recover(input).isEmpty());
     }
 

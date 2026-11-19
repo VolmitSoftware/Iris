@@ -41,6 +41,8 @@ final class IngestPackModel {
     private static final int DEFAULT_MIN_Y = -64;
     private static final int DEFAULT_MAX_Y = 320;
     private static final String DEFAULT_DERIVATIVE = "minecraft:the_void";
+    private static final String REGION_KEY_FIELD = "region";
+    private static final String BIOME_KEY_FIELD = "biome";
     private static final Set<String> PLANTABLE_BLOCKS = Set.of("minecraft:grass_block", "minecraft:dirt", "minecraft:coarse_dirt",
             "minecraft:podzol", "minecraft:rooted_dirt", "minecraft:mycelium", "minecraft:moss_block", "minecraft:pale_moss_block",
             "minecraft:mud", "minecraft:muddy_mangrove_roots", "minecraft:farmland");
@@ -73,7 +75,7 @@ final class IngestPackModel {
         String dimensionPath = IngestPack.dimensionPath(dimensionKey);
         JsonObject dimension = pack.require(dimensionPath);
         Map<String, String> reachable = new LinkedHashMap<>();
-        List<String> regionKeys = IngestJson.strings(dimension.get("regions"));
+        List<String> regionKeys = IngestJson.referenceKeys(dimension.get("regions"), REGION_KEY_FIELD);
         List<JsonObject> regionJson = new ArrayList<>(regionKeys.size());
         List<String> loadedRegionKeys = new ArrayList<>(regionKeys.size());
         for (String regionKey : regionKeys) {
@@ -184,7 +186,7 @@ final class IngestPackModel {
         Map<BiomeRole, List<String>> pools = new EnumMap<>(BiomeRole.class);
         for (BiomeRole role : BiomeRole.values()) {
             List<String> pool = new ArrayList<>();
-            for (String biome : IngestJson.strings(region.get(role.poolField()))) {
+            for (String biome : IngestJson.referenceKeys(region.get(role.poolField()), BIOME_KEY_FIELD)) {
                 if (reachable.containsKey(biome) && !pool.contains(biome)) {
                     pool.add(biome);
                 }
@@ -203,7 +205,7 @@ final class IngestPackModel {
         ArrayDeque<String> queue = new ArrayDeque<>();
         for (JsonObject region : regions) {
             for (BiomeRole role : BiomeRole.values()) {
-                queue.addAll(IngestJson.strings(region.get(role.poolField())));
+                queue.addAll(IngestJson.referenceKeys(region.get(role.poolField()), BIOME_KEY_FIELD));
             }
         }
         while (!queue.isEmpty()) {
@@ -220,7 +222,7 @@ final class IngestPackModel {
                     ? VanillaJson.namespaced(derivative.getAsString())
                     : DEFAULT_DERIVATIVE;
             reachable.put(biomeKey, derivativeKey);
-            queue.addAll(IngestJson.strings(biome.get().get("children")));
+            queue.addAll(IngestJson.referenceKeys(biome.get().get("children"), BIOME_KEY_FIELD));
         }
     }
 

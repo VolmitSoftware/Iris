@@ -435,7 +435,7 @@ public class IrisHydrologyTerrainSourceTest {
                 for (int link = 0; link < lineage.size(); link++) {
                     keys.add(lineage.get(link).getLoadKey());
                     if (link > 0) {
-                        assertTrue(at, lineage.get(link).getChildren().contains(lineage.get(link - 1).getLoadKey()));
+                        assertTrue(at, lineage.get(link).getChildKeys().contains(lineage.get(link - 1).getLoadKey()));
                         assertTrue(at, lineage.get(link) != lineage.get(link - 1));
                     }
                 }

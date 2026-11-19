@@ -22,7 +22,6 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.IrisRegistrant;
 import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.generation.cave.IrisCave;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.subterrain.IrisSubterrainFeature;
@@ -85,7 +84,7 @@ public class SchemaBuilderIdentityTest {
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
 
-    private static final String EXPECTED_SCHEMA_DIGEST = "78822fbd49a856180b56bfa8d9883e8e9f9865ae37f370f061c024e7a9b93a8d";
+    private static final String EXPECTED_SCHEMA_DIGEST = "47f81b4efc4e3f3784aca3fdc2e5960ecdcdd459778653d44e04125280fd29e2";
 
     private static final List<Class<?>> SCHEMA_ROOTS = List.of(
             IrisDimension.class,
@@ -102,8 +101,7 @@ public class SchemaBuilderIdentityTest {
             IrisLootTable.class,
             IrisBlockData.class,
             IrisImageMap.class,
-            IrisExpression.class,
-            IrisCave.class);
+            IrisExpression.class);
 
     private IrisPlatform previous;
 
@@ -193,6 +191,32 @@ public class SchemaBuilderIdentityTest {
         assertEquals(1D, properties.getJSONObject("shapeWarp").getDouble("maximum"), 0D);
     }
 
+    @Test
+    public void weightedReferenceListsAcceptNamesAndWeightedObjects() {
+        assertAcceptsNamesAndWeightedObjects(IrisRegion.class, "landBiomes", "biome");
+        assertAcceptsNamesAndWeightedObjects(IrisRegion.class, "caveBiomes", "biome");
+        assertAcceptsNamesAndWeightedObjects(IrisBiome.class, "children", "biome");
+        assertAcceptsNamesAndWeightedObjects(IrisDimension.class, "regions", "region");
+    }
+
+    private static void assertAcceptsNamesAndWeightedObjects(Class<?> root, String list, String keyField) {
+        JSONObject schema = new SchemaBuilder(root, schemaData()).construct();
+        JSONObject property = schema.getJSONObject("properties").getJSONObject(list);
+        assertEquals("array", property.getString("type"));
+        JSONArray alternatives = property.getJSONObject("items").getJSONArray("anyOf");
+        assertEquals(2, alternatives.length());
+        assertEquals("string", alternatives.getJSONObject(0).getString("type"));
+        String reference = alternatives.getJSONObject(1).getString("$ref");
+        JSONObject entry = schema.getJSONObject("definitions").getJSONObject(reference.substring("#/definitions/".length()));
+        assertEquals("object", entry.getString("type"));
+        assertEquals(keyField, entry.getJSONArray("required").getString(0));
+        JSONObject properties = entry.getJSONObject("properties");
+        assertEquals("string", properties.getJSONObject(keyField).getString("type"));
+        assertEquals(1, properties.getJSONObject("weight").getInt("minimum"));
+        assertEquals(1000, properties.getJSONObject("weight").getInt("maximum"));
+        assertEquals(2, properties.length());
+    }
+
     private static String digest(String value) {
         MessageDigest sha256;
         try {
@@ -251,13 +275,8 @@ public class SchemaBuilderIdentityTest {
         ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisExpression> expressionLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisBlockData> blockLoader = mock(ResourceLoader.class);
-        ResourceLoader<IrisCave> caveLoader = mock(ResourceLoader.class);
         KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
         loaders.put(IrisExpression.class, expressionLoader);
-        loaders.put(IrisCave.class, caveLoader);
-        when(caveLoader.getPossibleKeys()).thenReturn(new String[]{"pack/tunnels", "pack/caverns"});
-        when(caveLoader.getFolderName()).thenReturn("caves");
-        when(caveLoader.getResourceTypeName()).thenReturn("Cave");
         when(data.getStructureLoader()).thenReturn(structureLoader);
         when(data.getJigsawPieceLoader()).thenReturn(pieceLoader);
         when(data.getBlockLoader()).thenReturn(blockLoader);

@@ -115,7 +115,7 @@ public final class BiomeSearchFilter {
             if (region == null) {
                 continue;
             }
-            for (String key : region.getCaveBiomes()) {
+            for (String key : region.getCaveBiomeKeys()) {
                 if (target(key)) {
                     return true;
                 }

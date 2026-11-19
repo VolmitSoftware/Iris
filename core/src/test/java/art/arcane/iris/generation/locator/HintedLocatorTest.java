@@ -13,6 +13,7 @@ import art.arcane.iris.world.history.ChunkGenerationSemantics;
 import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.generation.terrain.IrisRegion;
@@ -161,7 +162,7 @@ public class HintedLocatorTest {
             regionKeys.add(region.getLoadKey());
         }
         when(dimension.getAllRegions(engine)).thenReturn(list);
-        when(dimension.getRegions()).thenReturn(regionKeys);
+        when(dimension.getRegionKeys()).thenReturn(regionKeys);
     }
 
     private void stubBiome(IrisBiome biome) {
@@ -208,9 +209,9 @@ public class HintedLocatorTest {
     @Test
     public void biomePlanFindsChildBiomeUnderLandRoot() {
         IrisRegion regionA = region("reg_a");
-        regionA.setLandBiomes(keys("root_land"));
+        regionA.setLandBiomes(IrisBiomeEntry.plainList("root_land"));
         IrisBiome root = biome("root_land");
-        root.setChildren(keys("target"));
+        root.setChildren(IrisBiomeEntry.plainList("target"));
         IrisBiome target = biome("target");
         stubBiome(root);
         stubBiome(target);
@@ -234,7 +235,7 @@ public class HintedLocatorTest {
     @Test
     public void biomePlanIsImpossibleWhenBiomeIsUnreferenced() {
         IrisRegion regionA = region("reg_a");
-        regionA.setLandBiomes(keys("root_land"));
+        regionA.setLandBiomes(IrisBiomeEntry.plainList("root_land"));
         stubBiome(biome("root_land"));
         stubRegions(regionA);
 
@@ -246,7 +247,7 @@ public class HintedLocatorTest {
     @Test
     public void biomePlanFindsPolicyOnlyReachableBiome() throws Exception {
         IrisRegion regionA = region("reg_a");
-        regionA.setLandBiomes(keys("plains"));
+        regionA.setLandBiomes(IrisBiomeEntry.plainList("plains"));
 
         IrisBiome plains = biome("plains");
         IrisBiome riverChild = biome("river_child");
@@ -285,7 +286,7 @@ public class HintedLocatorTest {
             HydrologyShoreTargets placed = new HydrologyShoreTargets(Set.of(riverShore.getLoadKey()));
             HydrologyShoreTargets unplaced = new HydrologyShoreTargets(Set.of(riverShore.getLoadKey()));
             IrisRegion host = region("host");
-            host.setLandBiomes(keys(plains.getLoadKey()));
+            host.setLandBiomes(IrisBiomeEntry.plainList(plains.getLoadKey()));
             when(dimension.getHydrology()).thenReturn(new IrisHydrology().setEnabled(true));
             when(dimension.getHydrologyPolicy()).thenReturn(new IrisHydrologyPolicy()
                     .setShoreBiomes(keys(riverShore.getLoadKey())).setShoreBiomeWidth(4));
@@ -303,7 +304,7 @@ public class HintedLocatorTest {
     @Test
     public void biomePlanFallsBackToCaveStreamForCaveOnlyBiome() {
         IrisRegion regionA = region("reg_a");
-        regionA.setCaveBiomes(keys("cavey"));
+        regionA.setCaveBiomes(IrisBiomeEntry.plainList("cavey"));
         IrisBiome cavey = biome("cavey");
         stubBiome(cavey);
         stubRegions(regionA);
@@ -397,7 +398,7 @@ public class HintedLocatorTest {
     @Test
     public void objectPlanPrunesToHostBiomes() {
         IrisRegion regionA = region("reg_a");
-        regionA.setLandBiomes(keys("host_biome"));
+        regionA.setLandBiomes(IrisBiomeEntry.plainList("host_biome"));
         IrisBiome host = biome("host_biome");
         IrisObjectPlacement placement = new IrisObjectPlacement();
         placement.setPlace(keys("trees/oak"));
@@ -444,7 +445,7 @@ public class HintedLocatorTest {
     @Test
     public void objectPlanIsImpossibleForUnplacedObject() {
         IrisRegion regionA = region("reg_a");
-        regionA.setLandBiomes(keys("plains"));
+        regionA.setLandBiomes(IrisBiomeEntry.plainList("plains"));
         stubBiome(biome("plains"));
         stubRegions(regionA);
 
@@ -456,7 +457,7 @@ public class HintedLocatorTest {
     @Test
     public void findLocatesDistantBiomeBandWithoutChunkScan() throws Exception {
         IrisRegion regionA = region("reg_a");
-        regionA.setLandBiomes(keys("target"));
+        regionA.setLandBiomes(IrisBiomeEntry.plainList("target"));
         IrisBiome target = biome("target");
         IrisBiome plains = biome("plains");
         stubBiome(target);
@@ -482,7 +483,7 @@ public class HintedLocatorTest {
     @Test
     public void findReturnsNullFastForImpossibleTarget() throws Exception {
         IrisRegion regionA = region("reg_a");
-        regionA.setLandBiomes(keys("plains"));
+        regionA.setLandBiomes(IrisBiomeEntry.plainList("plains"));
         stubBiome(biome("plains"));
         stubRegions(regionA);
 
@@ -796,7 +797,7 @@ public class HintedLocatorTest {
     @Test
     public void findLocatesObjectThroughCoarseCascade() throws Exception {
         IrisRegion regionA = region("reg_a");
-        regionA.setLandBiomes(keys("host_biome"));
+        regionA.setLandBiomes(IrisBiomeEntry.plainList("host_biome"));
         IrisBiome host = biome("host_biome");
         IrisObjectPlacement placement = new IrisObjectPlacement();
         placement.setPlace(keys("trees/oak"));

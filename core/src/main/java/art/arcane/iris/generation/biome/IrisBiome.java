@@ -33,6 +33,8 @@ import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisTerrain3D;
 import art.arcane.iris.pack.validation.CompatPools;
+import art.arcane.iris.pack.value.Weighted;
+import art.arcane.iris.pack.value.WeightedReference;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.world.entity.IrisEffect;
@@ -120,6 +122,7 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     private final transient AtomicCache<Integer> maxWithObjectHeight = new AtomicCache<>();
     private final transient AtomicCache<IrisBiome> realCarveBiome = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
+    private final transient AtomicCache<KList<Weighted<IrisBiome>>> weightedChildren = new AtomicCache<>();
     private final transient IrisBiomeLayerHeightCache layerHeightGenerators = new IrisBiomeLayerHeightCache();
     private final transient IrisBiomeLayerHeightCache layerCeilingHeightGenerators = new IrisBiomeLayerHeightCache();
     private final transient IrisBiomeLayerHeightCache layerSeaHeightGenerators = new IrisBiomeLayerHeightCache();
@@ -194,10 +197,9 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     @DependsOn({"children"})
     @Description("If this biome has children biomes, and the gen layer chooses one of this biomes children, How will it be shaped?")
     private IrisGeneratorStyle childStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-    @RegistryListResource(IrisBiome.class)
-    @ArrayType(min = 1, type = String.class)
-    @Description("List any biome names (file names without.json) here as children. Portions of this biome can sometimes morph into their children. Iris supports cyclic relationships such as A > B > A > B. Iris will stop checking 4 biomes down the tree.")
-    private KList<String> children = new KList<>();
+    @ArrayType(min = 1, type = IrisBiomeEntry.class)
+    @Description("List any biome names (file names without.json) here as children, or objects with a biome and a weight. Portions of this biome can sometimes morph into their children. Iris supports cyclic relationships such as A > B > A > B. Iris will stop checking 4 biomes down the tree. When any child is written as an object, the list is weighted: the parent itself only stays in the mix if it is listed too.")
+    private KList<IrisBiomeEntry> children = new KList<>();
     @RegistryListResource(IrisBiome.class)
     @Description("Registers the referenced biome with this pack's reachable biome set. It is NOT applied as a substitute under carvings; cave biomes come from the region's caveBiomes list.")
     private String carvingBiome = "";
@@ -634,22 +636,39 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         return IrisBiomeDerivatives.getCustomBiome(this, rng, engine, x, y, z);
     }
 
+    public KList<String> getChildKeys() {
+        return WeightedReference.keys(children);
+    }
+
+    public boolean hasWeightedChildren() {
+        return WeightedReference.anyWrittenAsObject(children);
+    }
+
     public KList<IrisBiome> getRealChildren(DataProvider g) {
         return realChildren.aquire(() ->
         {
             IrisData data = g == null ? null : g.getData();
-            return CompatPools.load(data == null ? null : data.getBiomeLoader(), getChildren(), data,
+            return CompatPools.load(data == null ? null : data.getBiomeLoader(), getChildKeys(), data,
+                    "biome", getLoadKey(), "children", null);
+        });
+    }
+
+    public KList<Weighted<IrisBiome>> getWeightedChildren(DataProvider g) {
+        return weightedChildren.aquire(() ->
+        {
+            IrisData data = g == null ? null : g.getData();
+            return CompatPools.loadWeighted(data == null ? null : data.getBiomeLoader(), children, data,
                     "biome", getLoadKey(), "children", null);
         });
     }
 
     public KList<String> getAllChildren(DataProvider g, int limit) {
         KSet<String> m = new KSet<>();
-        m.addAll(getChildren());
+        m.addAll(getChildKeys());
         limit--;
 
         if (limit > 0) {
-            for (String i : getChildren()) {
+            for (String i : getChildKeys()) {
                 IrisBiome b = g.getData().getBiomeLoader().load(i);
                 m.addAll(b.getAllChildren(g, limit));
             }

@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.hydrology.engine;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.runtime.HydrologyPlanException;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
@@ -30,6 +31,7 @@ import art.arcane.iris.generation.runtime.PreparedHydrologyCacheIdentity;
 import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.terrain.IrisRegionEntry;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.spi.LogLevel;
@@ -895,10 +897,10 @@ public class HydrologyRuntimeTest {
     @Test
     @SuppressWarnings("unchecked")
     public void createChecksEveryPolicyFluidWhetherCavePoolsAreOnOrOff() throws Exception {
-        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("tropical"));
+        IrisDimension dimension = new IrisDimension().setRegions(IrisRegionEntry.plainList("tropical"));
         dimension.setLoadKey("main");
         dimension.setHydrology(new IrisHydrology().setEnabled(true).setDensity(0D));
-        IrisRegion tropical = new IrisRegion().setLandBiomes(new KList<>("volcanoes"));
+        IrisRegion tropical = new IrisRegion().setLandBiomes(IrisBiomeEntry.plainList("volcanoes"));
         tropical.setLoadKey("tropical");
         IrisBiome volcanoes = new IrisBiome().setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("magma"));
         volcanoes.setLoadKey("volcanoes");

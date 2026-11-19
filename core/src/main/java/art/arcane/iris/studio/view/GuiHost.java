@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Servers
- * Copyright (c) 2026 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,29 +19,17 @@
 package art.arcane.iris.studio.view;
 
 import art.arcane.iris.configuration.IrisSettings;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.studio.bridge.StudioBridges;
 
-import javax.swing.JFrame;
-import java.awt.Desktop;
-import java.awt.EventQueue;
-import java.awt.GraphicsEnvironment;
-import java.awt.desktop.QuitResponse;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
+/** What the studio app needs from the platform that hosts the engines, and the shutdown of what the studio opened. */
 public final class GuiHost {
-    private static final AtomicBoolean DESKTOP_QUIT_GUARD_INSTALLED = new AtomicBoolean(false);
-    private static final long WINDOW_CLOSE_WAIT_SECONDS = 5L;
     private static final Set<Runnable> SHUTDOWN_TASKS = ConcurrentHashMap.newKeySet();
-    private static final Set<JFrame> MANAGED_FRAMES = ConcurrentHashMap.newKeySet();
     private static volatile Provider provider = new Provider() {
     };
     private static volatile boolean desktopSuppressed = false;
@@ -49,6 +37,7 @@ public final class GuiHost {
     private GuiHost() {
     }
 
+    /** Suppressed where the studio app must not open, such as inside a game client. */
     public static void suppressDesktop(boolean suppress) {
         desktopSuppressed = suppress;
     }
@@ -88,57 +77,17 @@ public final class GuiHost {
     }
 
     public static boolean isAvailable() {
-        return !desktopSuppressed && !GraphicsEnvironment.isHeadless();
+        return !desktopSuppressed;
     }
 
-    public static void prepareFrame(JFrame frame) {
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        MANAGED_FRAMES.add(frame);
-        frame.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosed(WindowEvent event) {
-                MANAGED_FRAMES.remove(frame);
-            }
-        });
-        prepareServerDesktop();
-    }
-
-    private static void prepareServerDesktop() {
-        if (!isAvailable()
-                || !System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac")
-                || !DESKTOP_QUIT_GUARD_INSTALLED.compareAndSet(false, true)) {
-            return;
-        }
-
-        try {
-            if (!Desktop.isDesktopSupported()) {
-                return;
-            }
-            Desktop desktop = Desktop.getDesktop();
-            if (!desktop.isSupported(Desktop.Action.APP_QUIT_HANDLER)) {
-                return;
-            }
-            desktop.setQuitHandler((event, response) -> closeDesktopWindowsAndCancelQuit(response));
-        } catch (Throwable error) {
-            IrisLogging.reportError(error);
-            IrisLogging.info("Unable to install the Iris desktop quit guard; use the server stop command instead of macOS Quit");
-        }
-    }
-
-    /**
-     * Runs {@code task} once the windows are closed at shutdown, for resources the windows share, such as the
-     * graphics card.
-     */
+    /** Runs {@code task} once the studio is closed at shutdown, for resources it shares. */
     public static void runAtShutdown(Runnable task) {
         SHUTDOWN_TASKS.add(task);
     }
 
-    /**
-     * Closes every Iris window before the plugin stops, since windows would otherwise keep drawing with
-     * threads and engines the shutdown takes away, then runs the shutdown tasks.
-     */
+    /** Closes the studio's bridges and the app windows the server started before the plugin stops, then runs the shutdown tasks. */
     public static void shutdown() {
-        closeWindows();
+        StudioBridges.closeAll();
         for (Runnable task : SHUTDOWN_TASKS) {
             try {
                 task.run();
@@ -149,58 +98,26 @@ public final class GuiHost {
         SHUTDOWN_TASKS.clear();
     }
 
-    // Waits only so long, in case the AWT event thread is itself waiting on the server.
-    private static void closeWindows() {
-        if (MANAGED_FRAMES.isEmpty()) {
-            return;
-        }
-        CountDownLatch closed = new CountDownLatch(1);
-        EventQueue.invokeLater(() -> {
-            try {
-                for (JFrame frame : MANAGED_FRAMES) {
-                    frame.dispose();
-                }
-            } finally {
-                closed.countDown();
-            }
-        });
-        try {
-            closed.await(WINDOW_CLOSE_WAIT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    static void closeDesktopWindowsAndCancelQuit(QuitResponse response) {
-        response.cancelQuit();
-        EventQueue.invokeLater(() -> {
-            for (JFrame frame : MANAGED_FRAMES) {
-                frame.dispose();
-            }
-        });
-    }
-
     /**
-     * Outcome of a server triggered desktop gui launch request.
+     * Outcome of a server triggered studio launch request.
      */
     public enum ServerGuiLaunch {
         /**
-         * The gui was asked for and a display environment exists.
+         * The studio was asked for and may open.
          */
         OPEN,
         /**
-         * The gui was not asked for, or server launched guis are turned off in settings.
+         * The studio was not asked for, or server launched guis are turned off in settings.
          */
         DISABLED,
         /**
-         * The gui was asked for but the jvm is headless or the desktop is suppressed.
+         * The studio was asked for but the desktop is suppressed.
          */
         UNAVAILABLE
     }
 
     /**
-     * Decides whether a server triggered job may open a desktop gui. Callers must not attempt an
-     * awt launch on anything other than {@link ServerGuiLaunch#OPEN}, since awt throws on a headless jvm.
+     * Decides whether a server triggered job may open the studio app.
      */
     public static ServerGuiLaunch serverGuiLaunch(boolean requested) {
         if (!requested || !IrisSettings.get().getGui().isUseServerLaunchedGuis()) {

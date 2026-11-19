@@ -42,6 +42,7 @@ import art.arcane.iris.pack.PackValidationRegistry;
 import art.arcane.iris.pack.PackValidationCache;
 import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
+import art.arcane.iris.studio.bridge.StudioBridges;
 import art.arcane.iris.studio.workspace.IrisProject;
 import art.arcane.iris.studio.workspace.IrisPackageCompiler;
 import art.arcane.iris.studio.workspace.IrisCodeWorkspace;
@@ -161,6 +162,7 @@ public class StudioSVC implements IrisService {
     @Override
     public void onDisable() {
         quiesceDownloadsForShutdown();
+        StudioBridges.closeAll();
         IrisLogging.debug("Studio Mode Active: Closing Projects");
         boolean stopping = IrisToolbelt.isServerStopping();
         LinkedHashSet<String> worldNamesToDelete = new LinkedHashSet<>(TransientWorldCleanupSupport.collectTransientStudioWorldNames(IrisWorldStorage.levelRoot()));

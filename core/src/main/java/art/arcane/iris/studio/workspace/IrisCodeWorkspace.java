@@ -36,8 +36,6 @@ import art.arcane.volmlib.util.json.JSONObject;
 import org.dom4j.Document;
 import org.dom4j.Element;
 
-import java.awt.Desktop;
-import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -69,7 +67,7 @@ public class IrisCodeWorkspace {
             IrisLogging.warn("Could not refresh every schema for " + workspace.getAbsolutePath() + "; the editor will not be opened with stale autocomplete data.");
             return;
         }
-        if (!IrisSettings.get().getStudio().isOpenVSCode() || GraphicsEnvironment.isHeadless()) {
+        if (!IrisSettings.get().getStudio().isOpenVSCode() || !FileOpener.isDesktopAvailable()) {
             return;
         }
 
@@ -77,7 +75,7 @@ public class IrisCodeWorkspace {
         IrisLogging.msg("VSCode output always starts with: '(node:#####) electron'");
         Thread launcherThread = new Thread(() -> {
             try {
-                Desktop.getDesktop().open(workspace);
+                FileOpener.open(workspace);
             } catch (Throwable e) {
                 IrisLogging.reportError(e);
             }

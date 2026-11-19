@@ -32,23 +32,12 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Samples the map in view to measure how regions and biomes are picked; shared by the region and biome views.
+ * Describes how regions and biomes are picked; shared by the region and biome views.
  */
 final class PickMeasuring {
     static final List<InferredType> PLACED_TYPES = List.of(InferredType.LAND, InferredType.SHORE, InferredType.SEA);
-    private static final int SAMPLES_PER_SIDE = 96;
 
     private PickMeasuring() {
-    }
-
-    static void forEachSample(MapCensus.ViewArea area, SampleVisitor visitor) {
-        double stepX = (area.maximumX() - area.minimumX()) / SAMPLES_PER_SIDE;
-        double stepZ = (area.maximumZ() - area.minimumZ()) / SAMPLES_PER_SIDE;
-        for (int row = 0; row < SAMPLES_PER_SIDE; row++) {
-            for (int column = 0; column < SAMPLES_PER_SIDE; column++) {
-                visitor.visit(area.minimumX() + (column + 0.5D) * stepX, area.minimumZ() + (row + 0.5D) * stepZ);
-            }
-        }
     }
 
     static Option regionOption(Engine engine, IrisRegion region) {
@@ -84,11 +73,6 @@ final class PickMeasuring {
     static String typeName(InferredType type) {
         String name = type.name().toLowerCase(Locale.ROOT);
         return Character.toUpperCase(name.charAt(0)) + name.substring(1);
-    }
-
-    @FunctionalInterface
-    interface SampleVisitor {
-        void visit(double x, double z);
     }
 
     /**

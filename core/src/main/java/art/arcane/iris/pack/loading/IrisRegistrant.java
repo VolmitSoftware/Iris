@@ -25,7 +25,8 @@ import art.arcane.iris.spi.IrisLogging;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.awt.Desktop;
+import art.arcane.iris.studio.workspace.FileOpener;
+
 import java.io.File;
 
 @Data
@@ -64,7 +65,7 @@ public abstract class IrisRegistrant {
 
     public File openInVSCode() {
         try {
-            Desktop.getDesktop().open(getLoadFile());
+            FileOpener.open(getLoadFile());
         } catch (Throwable e) {
             IrisLogging.reportError(e);
         }

@@ -23,15 +23,9 @@ import art.arcane.iris.structure.object.IrisObject;
 import java.util.List;
 
 /**
- * Where an object explorer gets what it shows: the pack's object files. Called on the explorer's loader thread only.
+ * Where the studio gets the objects it shows: the pack's object files.
  */
-interface ObjectSource {
-    /** What one entry is called, such as "object", for the browser's texts. */
-    String noun();
-
-    /** What the view shows when the pack has no entries. */
-    EmptyState emptyState();
-
+public interface ObjectSource {
     /** The key of every entry, where a slash separates folders. */
     List<String> keys(IrisData data);
 

@@ -1,13 +1,16 @@
 package art.arcane.iris.studio.view;
 
+import javax.imageio.ImageIO;
 import java.awt.Color;
-import java.util.ArrayList;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
-import java.util.BitSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 
+/** The pregeneration's chunks as one pixel each, scaled down when there are more than the raster holds. */
 public final class PregenMapState {
     private static final int MAX_RASTER_SIZE = 1024;
     static final Color WAITING = new Color(57, 59, 64);
@@ -16,7 +19,6 @@ public final class PregenMapState {
     private final int width;
     private final int height;
     private final int[] pixels;
-    private final List<View> views = new ArrayList<>(1);
     private final ReentrantLock lock = new ReentrantLock();
 
     PregenMapState(PregenRenderSnapshot.Bounds bounds) {
@@ -45,79 +47,29 @@ public final class PregenMapState {
         }
         int x = (int) (((long) chunkX - bounds.minX()) * width / bounds.width());
         int z = (int) (((long) chunkZ - bounds.minZ()) * height / bounds.height());
-        int index = z * width + x;
-        int rgb = color.getRGB();
         lock.lock();
         try {
-            if (pixels[index] == rgb) {
-                return;
-            }
-            pixels[index] = rgb;
-            for (int viewIndex = 0; viewIndex < views.size(); viewIndex++) {
-                View view = views.get(viewIndex);
-                view.dirty.set(index);
-                view.pending = true;
-            }
+            pixels[z * width + x] = color.getRGB();
         } finally {
             lock.unlock();
         }
     }
 
-    View attach(int[] target) {
-        if (target.length != pixels.length) {
-            throw new IllegalArgumentException("Map image must match the retained raster dimensions");
-        }
-        View view = new View(target);
+    /** The map as a PNG, one pixel per raster cell. */
+    public byte[] png() {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         lock.lock();
         try {
-            System.arraycopy(pixels, 0, target, 0, pixels.length);
-            views.add(view);
+            image.setRGB(0, 0, width, height, pixels, 0, width);
         } finally {
             lock.unlock();
         }
-        return view;
-    }
-
-    final class View {
-        private final int[] target;
-        private final BitSet dirty = new BitSet(pixels.length);
-        private volatile boolean pending;
-        private boolean disposed;
-
-        private View(int[] target) {
-            this.target = target;
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try {
+            ImageIO.write(image, "png", bytes);
+        } catch (IOException impossible) {
+            throw new UncheckedIOException(impossible);
         }
-
-        boolean flush() {
-            if (!pending) {
-                return false;
-            }
-            lock.lock();
-            try {
-                if (disposed || !pending) {
-                    return false;
-                }
-                for (int index = dirty.nextSetBit(0); index >= 0; index = dirty.nextSetBit(index + 1)) {
-                    target[index] = pixels[index];
-                }
-                dirty.clear();
-                pending = false;
-                return true;
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        void close() {
-            lock.lock();
-            try {
-                disposed = true;
-                pending = false;
-                dirty.clear();
-                views.remove(this);
-            } finally {
-                lock.unlock();
-            }
-        }
+        return bytes.toByteArray();
     }
 }

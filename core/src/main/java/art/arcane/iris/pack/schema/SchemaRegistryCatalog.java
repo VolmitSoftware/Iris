@@ -24,7 +24,6 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
-import java.awt.GraphicsEnvironment;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -35,6 +34,7 @@ final class SchemaRegistryCatalog {
     /** Namespaced key or family/namespace prefix: "minecraft:village_plains", "minecraft:village", "nova_structures:". */
     static final String VANILLA_STRUCTURE_PREFIX_PATTERN = "^[a-z0-9_.-]+:[a-z0-9_./-]*$";
     private static final String MINECRAFT_NAMESPACE = "minecraft:";
+    private static final String[] LOGICAL_FONT_FAMILIES = {"Dialog", "DialogInput", "Monospaced", "SansSerif", "Serif"};
     private static volatile JSONArray fontTypes;
     private final SchemaBuilder builder;
     private JSONArray potionTypes;
@@ -44,18 +44,13 @@ final class SchemaRegistryCatalog {
         this.builder = builder;
     }
 
-    /**
-     * Font families are only used for schema completion. Enumerating them touches AWT, which can fail outright on a
-     * headless or mod-loader JVM - a failure degrades to no completion, never to a broken schema.
-     */
+    /** The logical font families every Java runtime has; listing the installed ones would need AWT, which headless and mod-loader JVMs may lack. */
     static JSONArray fontTypes() {
         JSONArray cached = fontTypes;
         if (cached != null) {
             return cached;
         }
-        JSONArray built = CapabilityProbe.attempt("java.awt font families",
-                () -> new JSONArray(GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()),
-                new JSONArray());
+        JSONArray built = new JSONArray(LOGICAL_FONT_FAMILIES);
         fontTypes = built;
         return built;
     }

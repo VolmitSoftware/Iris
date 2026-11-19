@@ -6,6 +6,9 @@ import art.arcane.iris.spi.IrisLogging;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
+import javax.imageio.ImageIO;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
@@ -33,7 +36,7 @@ public class PregeneratorJobSavedBiomeTest {
         fixture.job.onChunkGenerated(2, -3, false);
         assertEquals(1, fixture.tasks.size());
         fixture.tasks.removeFirst().run();
-        assertEquals(PregenRenderer.GENERATED.getRGB(), fixture.mapPixels[0]);
+        assertEquals(PregenChunkColors.GENERATED.getRGB() & 0xFFFFFF, fixture.mapPixel() & 0xFFFFFF);
     }
 
     @Test
@@ -51,7 +54,7 @@ public class PregeneratorJobSavedBiomeTest {
     @Test
     public void existingChunksDoNotResolveBiomesWhileThePreviewIsHidden() throws Exception {
         Fixture fixture = new Fixture();
-        when(fixture.renderer.isVisibleFrame()).thenReturn(false);
+        fixture.setField("studioWatching", false);
 
         fixture.job.onChunkExistsInRegionGen(2, -3);
 
@@ -63,7 +66,7 @@ public class PregeneratorJobSavedBiomeTest {
     public void queuedPreviewSkipsReadsWhenTheFrameBecomesHidden() throws Exception {
         Fixture fixture = new Fixture();
         fixture.job.onChunkGenerated(2, -3, false);
-        when(fixture.renderer.isVisibleFrame()).thenReturn(false);
+        fixture.setField("studioWatching", false);
 
         fixture.tasks.removeFirst().run();
 
@@ -90,24 +93,23 @@ public class PregeneratorJobSavedBiomeTest {
     private static final class Fixture {
         private final PregeneratorJob job = mock(PregeneratorJob.class, CALLS_REAL_METHODS);
         private final Engine engine = mock(Engine.class, CALLS_REAL_METHODS);
-        private final PregenRenderer renderer = mock(PregenRenderer.class);
         private final ArrayList<Runnable> tasks = new ArrayList<>();
-        private final int[] mapPixels = new int[1];
+        private final PregenMapState state = new PregenMapState(new PregenRenderSnapshot.Bounds(2, -3, 2, -3));
 
         private Fixture() throws Exception {
-            PregenMapState state = new PregenMapState(new PregenRenderSnapshot.Bounds(2, -3, 2, -3));
-            PregenMapState.View view = state.attach(mapPixels);
             setField("mapState", state);
             ExecutorService service = mock(ExecutorService.class);
             doAnswer(invocation -> {
                 tasks.add(invocation.getArgument(0));
-                view.flush();
                 return null;
             }).when(service).execute(any(Runnable.class));
-            when(renderer.isVisibleFrame()).thenReturn(true);
             setField("engine", engine);
-            setField("renderer", renderer);
+            setField("studioWatching", true);
             setField("service", service);
+        }
+
+        private int mapPixel() throws IOException {
+            return ImageIO.read(new ByteArrayInputStream(state.png())).getRGB(0, 0);
         }
 
         private void setField(String name, Object value) throws Exception {

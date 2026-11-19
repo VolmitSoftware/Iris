@@ -78,8 +78,7 @@ public class MapTileProgressTest {
                 assertEquals(expected.heightAt(x, z), settled.heightAt(x, z), 0D);
             }
         }
-        assertArrayEquals(pixels(expected.image(MapStyle.PLAIN.withShading(true))),
-                pixels(settled.image(MapStyle.PLAIN.withShading(true))));
+        assertArrayEquals(pixels(expected), pixels(settled));
     }
 
     @Test
@@ -104,16 +103,16 @@ public class MapTileProgressTest {
 
         MapTile first = progress.render(() -> false);
         assertFalse(progress.complete());
-        assertNotEquals(0xFF738249, first.image(MapStyle.PLAIN).getRGB(0, 0));
+        assertNotEquals(0xFF738249, 0xFF000000 | first.colorAt(0, 0));
         MapTile second = progress.render(() -> false);
-        assertArrayEquals(pixels(first.image(MapStyle.PLAIN)), pixels(second.image(MapStyle.PLAIN)));
+        assertArrayEquals(pixels(first), pixels(second));
 
         pending.set(false);
         MapTile complete = progress.render(() -> false);
         assertTrue(progress.complete());
         assertTrue(progress.retainsWater());
         assertTrue(progress.bytes() > 0L);
-        assertArrayEquals(pixels(first.image(MapStyle.PLAIN)), pixels(complete.image(MapStyle.PLAIN)));
+        assertArrayEquals(pixels(first), pixels(complete));
     }
 
     @Test
@@ -150,29 +149,27 @@ public class MapTileProgressTest {
         MapTileRenderer.TileRender progress = renderer.prepareTile(-16D, -16D, 2D, 16, layer, true);
 
         MapTile first = progress.render(() -> false);
-        int[] firstPixels = pixels(first.image(MapStyle.PLAIN.withShading(true)));
+        int[] firstPixels = pixels(first);
         assertFalse(progress.complete());
-        assertEquals(0xFF738249, first.image(MapStyle.PLAIN).getRGB(8, 8));
+        assertEquals(0xFF738249, 0xFF000000 | first.colorAt(8, 8));
         MapTile waiting = progress.render(() -> false);
         assertFalse(progress.complete());
-        assertArrayEquals(firstPixels, pixels(waiting.image(MapStyle.PLAIN.withShading(true))));
+        assertArrayEquals(firstPixels, pixels(waiting));
 
         pending.set(false);
         MapTile actual = progress.render(() -> false);
         assertTrue(progress.complete());
         assertTrue(progress.retainsWater());
         assertTrue(progress.bytes() > 0L);
-        BufferedImage colors = actual.image(MapStyle.PLAIN);
-        assertEquals(0xFF738249, colors.getRGB(14, 14));
-        assertNotEquals(0xFF738249, colors.getRGB(8, 8));
-        assertNotEquals(colors.getRGB(8, 8), colors.getRGB(11, 8));
-        assertNotEquals(colors.getRGB(8, 8), colors.getRGB(8, 12));
-        assertNotEquals(colors.getRGB(11, 8), colors.getRGB(8, 12));
-        assertArrayEquals(firstPixels, pixels(first.image(MapStyle.PLAIN.withShading(true))));
+        assertEquals(0x738249, actual.colorAt(14, 14));
+        assertNotEquals(0x738249, actual.colorAt(8, 8));
+        assertNotEquals(actual.colorAt(8, 8), actual.colorAt(11, 8));
+        assertNotEquals(actual.colorAt(8, 8), actual.colorAt(8, 12));
+        assertNotEquals(actual.colorAt(11, 8), actual.colorAt(8, 12));
+        assertArrayEquals(firstPixels, pixels(first));
 
         MapTile expected = renderer.renderTile(-16D, -16D, 2D, 16, layer, true, () -> false);
-        assertArrayEquals(pixels(expected.image(MapStyle.PLAIN.withShading(true))),
-                pixels(actual.image(MapStyle.PLAIN.withShading(true))));
+        assertArrayEquals(pixels(expected), pixels(actual));
         for (int z = 0; z < 16; z++) {
             for (int x = 0; x < 16; x++) {
                 assertEquals(expected.heightAt(x, z), actual.heightAt(x, z), 0D);
@@ -199,8 +196,7 @@ public class MapTileProgressTest {
         assertTrue(progress.complete());
         assertEquals(81, samples.get());
         MapTile expected = renderer.renderTile(-16D, -16D, 1D, 16, layer, true, () -> false);
-        assertArrayEquals(pixels(expected.image(MapStyle.PLAIN.withShading(true))),
-                pixels(actual.image(MapStyle.PLAIN.withShading(true))));
+        assertArrayEquals(pixels(expected), pixels(actual));
     }
 
     private static Engine engine(AtomicInteger biomeSamples) {
@@ -220,7 +216,13 @@ public class MapTileProgressTest {
         return engine;
     }
 
-    private static int[] pixels(BufferedImage image) {
-        return image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
+    private static int[] pixels(MapTile tile) {
+        int[] colors = new int[tile.size() * tile.size()];
+        for (int z = 0; z < tile.size(); z++) {
+            for (int x = 0; x < tile.size(); x++) {
+                colors[z * tile.size() + x] = tile.colorAt(x, z);
+            }
+        }
+        return colors;
     }
 }

@@ -31,7 +31,7 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditPlayer;
 
-import java.awt.Desktop;
+import art.arcane.iris.studio.workspace.FileOpener;
 import java.io.File;
 
 final class ModdedEditCommands {
@@ -110,7 +110,7 @@ final class ModdedEditCommands {
     }
 
     private static int openJson(NativeCommandSource source, IrisRegistrant registrant) {
-        if (!GuiHost.isAvailable() || !Desktop.isDesktopSupported()) {
+        if (!GuiHost.isAvailable() || !FileOpener.isDesktopAvailable()) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_CANNOT_OPEN_FILES_HERE, MessageArgument.untrusted("value", ModdedGuiHost.guiUnavailableReason())));
             return 0;
         }
@@ -120,7 +120,7 @@ final class ModdedEditCommands {
         }
         File file = registrant.getLoadFile();
         try {
-            Desktop.getDesktop().open(file);
+            FileOpener.open(file);
         } catch (Throwable e) {
             ModdedIrisLog.error("Iris edit failed to open {}", file, e);
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_COULD_NOT_OPEN, MessageArgument.untrusted("value", file.getName()), MessageArgument.untrusted("value2", e.getClass().getSimpleName())));

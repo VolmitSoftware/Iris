@@ -105,33 +105,109 @@ public class ChatReportTest {
     }
 
     @Test
-    public void consoleLayoutMarksTheTitleAndDrawsTheBodyAsATree() {
-        List<String> console = ChatReport.of(ChatReport.Tone.ERROR, "Pack 'uitest' failed validation")
+    public void chatShowsANextStepAsOneClickableLine() {
+        ChatReport.Line step = ChatReport.of(ChatReport.Tone.ERROR, "t")
+                .nextStep("See every issue", "/iris pack validate p")
+                .build()
+                .lines()
+                .getLast();
+
+        assertEquals("See every issue: /iris pack validate p", step.text().replaceAll("§.", ""));
+        assertEquals("/iris pack validate p", step.command());
+    }
+
+    @Test
+    public void consoleLayoutPutsTheReportOnTheGutterWithNextStepsOnTheirOwnLines() {
+        List<String> console = plainConsoleLines(ChatReport.of(ChatReport.Tone.ERROR, "Pack 'uitest' failed validation")
                 .items(List.of(
                         "Biome 'dev'" + REMOVED_FIELD_TAIL,
                         "Biome 'vanilla/grove'" + REMOVED_FIELD_TAIL,
                         "Missing dimensions/ folder."))
-                .hint("Details: /iris pack validate uitest", null)
-                .build()
-                .consoleLines().stream().map(line -> line.replaceAll("§.", "")).toList();
+                .nextStep("See every issue", "/iris pack validate uitest")
+                .build());
 
         assertEquals(List.of(
-                "\u2716 Pack 'uitest' failed validation",
-                "\u251c 2 biomes: caveProfile.allowWater was removed; use caveProfile.allowFluid. Cave aquifers use the dimension fluidPalette.",
-                "\u2502   dev, vanilla/grove",
-                "\u251c Missing dimensions/ folder.",
-                "\u2514 Details: /iris pack validate uitest"), console);
+                ConsoleGlyphs.CROSS + " Pack 'uitest' failed validation",
+                "  2 biomes: caveProfile.allowWater was removed; use caveProfile.allowFluid. Cave aquifers use the dimension fluidPalette.",
+                "    dev, vanilla/grove",
+                "  Missing dimensions/ folder.",
+                "  See every issue:",
+                "    /iris pack validate uitest"), console);
     }
 
     @Test
-    public void consoleLayoutLeavesInfoTitlesUnmarked() {
-        List<String> console = ChatReport.of(ChatReport.Tone.INFO, "Worlds").item("world").build().consoleLines();
+    public void consoleLayoutGivesInfoTitlesABlankGutter() {
+        List<String> console = plainConsoleLines(ChatReport.of(ChatReport.Tone.INFO, "Worlds").item("world").build());
 
-        assertEquals("Worlds", console.get(0).replaceAll("§.", ""));
-        assertEquals("\u2514 world", console.get(1).replaceAll("§.", ""));
+        assertEquals(List.of("  Worlds", "  world"), console);
+    }
+
+    @Test
+    public void consoleLayoutAlignsLabelledEntries() {
+        List<String> console = plainConsoleLines(ChatReport.of(ChatReport.Tone.SUCCESS, "Exported pack 'uitest'")
+                .entry("Folder", "exports/uitest")
+                .entry("Datapack Folder Path", "world/datapacks/iris")
+                .build());
+
+        assertEquals(List.of(
+                ConsoleGlyphs.CHECK + " Exported pack 'uitest'",
+                "  Folder          exports/uitest",
+                "  Datapack Folder Path",
+                "                  world/datapacks/iris"), console);
+    }
+
+    @Test
+    public void consoleHintEndingInItsCommandBecomesANextStep() {
+        List<String> console = plainConsoleLines(ChatReport.of(ChatReport.Tone.SUCCESS, "Created Studio project 'uitest'")
+                .hint("Restart the server, then run /iris studio open uitest", "/iris studio open uitest")
+                .build());
+
+        assertEquals(List.of(
+                ConsoleGlyphs.CHECK + " Created Studio project 'uitest'",
+                "  Restart the server, then run:",
+                "    /iris studio open uitest"), console);
+    }
+
+    @Test
+    public void consoleNextStepShowsTheCommandAClickWouldRun() {
+        List<String> console = plainConsoleLines(ChatReport.of(ChatReport.Tone.INFO, "Regen started")
+                .hint("Stop it with /iris std regen-stop", "/iris std regen-stop", "/iris std regen-stop world=w")
+                .build());
+
+        assertEquals(List.of("  Regen started", "  Stop it with:", "    /iris std regen-stop world=w"), console);
+    }
+
+    @Test
+    public void consoleHintWithoutACommandStaysOneRow() {
+        List<String> console = plainConsoleLines(ChatReport.of(ChatReport.Tone.WARNING, "Regen is running")
+                .hint("The console has the full refusal notice", null)
+                .build());
+
+        assertEquals(List.of("! Regen is running", "  The console has the full refusal notice"), console);
+    }
+
+    @Test
+    public void logLinesWithoutAGutterGetTheirTonesMark() {
+        assertEquals("! Default pack is missing",
+                ConsoleLayout.onGutter(ChatReport.Tone.WARNING, "Default pack is missing").replaceAll("§.", ""));
+        assertEquals("  Loading packs",
+                ConsoleLayout.onGutter(ChatReport.Tone.INFO, "Loading packs").replaceAll("§.", ""));
+    }
+
+    @Test
+    public void logLinesAlreadyOnTheGutterStayAsTheyAre() {
+        String marked = ChatReport.Tone.ERROR.marked("Pack failed");
+        String row = ConsoleLayout.row("Fix the errors above.");
+
+        assertEquals(marked, ConsoleLayout.onGutter(ChatReport.Tone.ERROR, marked));
+        assertEquals(row, ConsoleLayout.onGutter(ChatReport.Tone.ERROR, row));
     }
 
     private static List<String> plainLines(ChatReport report) {
         return report.lines().stream().map(line -> line.text().replaceAll("§.", "")).toList();
+    }
+
+    private static List<String> plainConsoleLines(ChatReport report) {
+        return report.consoleLines().stream().map(line -> line.replaceAll("§.", "")).toList();
     }
 }

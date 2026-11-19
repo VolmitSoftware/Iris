@@ -98,7 +98,8 @@ final class UnknownFieldReport {
     }
 
     private static ChatReport packReport(String pack, Map<String, List<UnknownField>> fields) {
-        String title = "Pack '" + pack + "': " + fields.size() + (fields.size() == 1 ? " unknown field" : " unknown fields") + ", ignored";
+        String title = "Pack '" + pack + "' has " + fields.size() + (fields.size() == 1 ? " unknown field" : " unknown fields")
+                + ". Iris ignores " + (fields.size() == 1 ? "it." : "them.");
         ChatReport.Builder report = ChatReport.of(ChatReport.Tone.WARNING, title);
         int labelWidth = fields.keySet().stream().mapToInt(String::length).max().orElse(0);
         fields.forEach((typeAndField, occurrences) -> report.styledItem(describeField(typeAndField, occurrences, labelWidth)));
@@ -114,7 +115,7 @@ final class UnknownFieldReport {
                 .append("  ").append(C.GRAY).append(count == 1 ? "" : "e.g. ")
                 .append(C.AQUA).append(first.location());
         if (first.suggestion() != null) {
-            out.append(C.GRAY).append(" did you mean ").append(C.WHITE).append('\'').append(first.suggestion()).append('\'').append(C.GRAY).append('?');
+            out.append(C.GRAY).append("  Did you mean ").append(C.WHITE).append('\'').append(first.suggestion()).append('\'').append(C.GRAY).append('?');
         }
         return out.toString();
     }

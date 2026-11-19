@@ -51,6 +51,7 @@ import art.arcane.iris.integration.MultiverseSVC;
 import art.arcane.iris.localization.C;
 import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.localization.ConsoleGlyphs;
+import art.arcane.iris.localization.ConsoleLayout;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.pack.datapack.DatapackIngestService;
 import art.arcane.iris.pack.datapack.DatapackIngestService.StartupValidationOutcome;
@@ -145,6 +146,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -311,7 +313,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
     static void msg(String string) {
         try {
             Iris plugin = Iris.instance;
-            String markup = ConsoleGlyphs.console().fit(string);
+            String markup = ConsoleGlyphs.console().fit(ConsoleLayout.onGutter(ChatReport.Tone.INFO, string));
             if (shadesConsole()) {
                 logShaded(Level.INFO, logPrefix() + markup);
                 return;
@@ -409,11 +411,11 @@ public final class IrisRuntime implements IrisPluginRuntime {
     }
 
     static void success(String string) {
-        Iris.msg(C.IRIS + string);
+        Iris.msg(ChatReport.Tone.SUCCESS.marked(string));
     }
 
     static void info(String format, Object... args) {
-        Iris.msg(C.WHITE + safeFormat(format, args));
+        Iris.msg(safeFormat(format, args));
     }
 
     private static String safeFormat(String format, Object... args) {
@@ -608,7 +610,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
     }
 
     private static void diagnostic(Level level, String rawMessage) {
-        String message = ConsoleGlyphs.console().fit(rawMessage);
+        String message = ConsoleGlyphs.console().fit(ConsoleLayout.onGutter(diagnosticTone(level), rawMessage));
         if (shadesConsole()) {
             logShaded(level, logPrefix() + C.escapeTags(message));
             return;
@@ -621,6 +623,13 @@ public final class IrisRuntime implements IrisPluginRuntime {
                 level,
                 message,
                 null);
+    }
+
+    private static ChatReport.Tone diagnosticTone(Level level) {
+        if (level == Level.SEVERE) {
+            return ChatReport.Tone.ERROR;
+        }
+        return level == Level.WARNING ? ChatReport.Tone.WARNING : ChatReport.Tone.INFO;
     }
 
     private static boolean shadesConsole() {
@@ -859,21 +868,33 @@ public final class IrisRuntime implements IrisPluginRuntime {
 
         private void report() {
             String total = seconds(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
-            String phases = slowestFirst(phaseMillis, REPORTED_PHASE_MIN_MS);
-            String enabled = phases.isEmpty() ? "Enabled in " + total : "Enabled in " + total + " (" + phases + ")";
-            IrisLogging.notice(ChatReport.Tone.SUCCESS.marked(C.RESET + enabled));
-            String slowServices = slowestFirst(serviceMillis, SLOW_SERVICE_MIN_MS);
+            IrisLogging.notice(ChatReport.Tone.SUCCESS.marked(C.BOLD + "Enabled in " + total));
+            slowestFirst(phaseMillis, REPORTED_PHASE_MIN_MS)
+                    .forEach(phase -> logRow(titleCase(phase.getKey()), seconds(phase.getValue())));
+            String slowServices = slowestFirst(serviceMillis, SLOW_SERVICE_MIN_MS).stream()
+                    .map(service -> service.getKey() + " " + seconds(service.getValue()))
+                    .collect(Collectors.joining(", "));
             if (!slowServices.isEmpty()) {
-                IrisLogging.notice("Slow services: " + slowServices);
+                logRow("Slow Services", slowServices);
             }
         }
 
-        private static String slowestFirst(Map<String, Long> millisByName, long minimumMillis) {
+        private static void logRow(String label, String value) {
+            ConsoleLayout.labelRows(label, value).forEach(IrisLogging::notice);
+        }
+
+        private static List<Map.Entry<String, Long>> slowestFirst(Map<String, Long> millisByName, long minimumMillis) {
             return millisByName.entrySet().stream()
                     .filter(entry -> entry.getValue() >= minimumMillis)
                     .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                    .map(entry -> entry.getKey() + " " + seconds(entry.getValue()))
-                    .collect(Collectors.joining(", "));
+                    .toList();
+        }
+
+        private static String titleCase(String camelCaseName) {
+            String spaced = camelCaseName.replaceAll("(?<=[a-z])(?=[A-Z])", " ");
+            return Arrays.stream(spaced.split(" "))
+                    .map(word -> word.isEmpty() ? word : Character.toUpperCase(word.charAt(0)) + word.substring(1))
+                    .collect(Collectors.joining(" "));
         }
 
         private static String seconds(long millis) {

@@ -1,6 +1,7 @@
 package art.arcane.iris.diagnostics.splash;
 
 import art.arcane.iris.BuildConstants;
+import art.arcane.iris.localization.ConsoleLayout;
 import art.arcane.iris.pack.BuiltInPackUpdates;
 
 import java.time.LocalDate;
@@ -17,6 +18,8 @@ public final class IrisSplashComposer {
     private static final int SPARE_INFO_ROWS = 3;
     private static final int PACKS_SHOWN = 6;
     private static final int SHORT_COMMIT_LENGTH = 7;
+    private static final int LABEL_WIDTH = 14;
+    private static final String FACT_GAP = "   ";
 
     private IrisSplashComposer() {
     }
@@ -50,15 +53,21 @@ public final class IrisSplashComposer {
         return hidden > 0 ? shown + " +" + hidden + " more" : shown;
     }
 
+    /** The first fact's value starts in the shared value column; further facts on the row follow after a gap. */
     private static String styledRow(List<Detail> row, InfoStyle style) {
         StringBuilder styled = new StringBuilder();
         for (Detail detail : row) {
-            String separator = styled.isEmpty() ? " " : " | ";
-            String label = separator + detail.label() + ": ";
+            String label = styled.isEmpty()
+                    ? " " + padRight(detail.label(), LABEL_WIDTH)
+                    : FACT_GAP + detail.label() + " ";
             styled.append(detail.key() ? style.label(label) : style.quietLabel(label))
                     .append(detail.key() ? style.value(detail.value()) : style.quietValue(detail.value()));
         }
         return styled.toString();
+    }
+
+    private static String padRight(String text, int width) {
+        return text + " ".repeat(Math.max(1, width - text.length()));
     }
 
     private static String shortCommit() {
@@ -69,15 +78,16 @@ public final class IrisSplashComposer {
     private static String[] composeHeader(String version, String serverLine, InfoStyle style) {
         String releaseTrain = releaseTrain(version);
         String prefix = style.linePrefix();
+        String java = javaVersion() < 0 ? "unknown" : String.valueOf(javaVersion());
         return new String[]{
                 "",
                 prefix + style.title(" Iris, ") + style.subtitle("Dimension Engine ") + style.tag("[" + releaseTrain + "]"),
-                prefix + style.label(" Version: ") + style.value(version),
-                prefix + style.quietLabel(" By: ") + style.quietValue("Volmit Software (Arcane Arts)"),
-                prefix + style.quietLabel(" Web: ") + style.quietValue("VolmitSoftware.com"),
-                prefix + style.label(" Server: ") + style.value(serverLine),
-                prefix + style.quietLabel(" Java: ") + style.quietValue(javaVersion() < 0 ? "unknown" : String.valueOf(javaVersion())) + style.quietLabel(" | Date: ") + style.quietValue(startupDate()),
-                prefix + style.label(" Commit: ") + style.value(shortCommit()) + style.label("/") + style.value(BuildConstants.ENVIRONMENT),
+                prefix + styledRow(List.of(Detail.key("Version", version)), style),
+                prefix + styledRow(List.of(new Detail("By", "Volmit Software (Arcane Arts)")), style),
+                prefix + styledRow(List.of(new Detail("Web", "VolmitSoftware.com")), style),
+                prefix + styledRow(List.of(Detail.key("Server", serverLine)), style),
+                prefix + styledRow(List.of(new Detail("Java", java), new Detail("Date", startupDate())), style),
+                prefix + styledRow(List.of(Detail.key("Commit", shortCommit() + "/" + BuildConstants.ENVIRONMENT)), style),
                 "",
                 "",
                 ""
@@ -103,7 +113,9 @@ public final class IrisSplashComposer {
         for (IrisSplashPackScanner.SplashPackMetadata pack : packs) {
             BuiltInPackUpdates.Update update = updates.get(pack.name());
             if (update != null && update.newerThan(pack.version())) {
-                lines.add("Update " + pack.name() + ": /iris download pack=" + pack.name() + " overwrite=true");
+                lines.add(ConsoleLayout.row("Pack " + pack.name() + " v" + update.version()
+                        + " is available. You have v" + pack.version() + "."));
+                lines.addAll(ConsoleLayout.nextStep("Update it", "/iris download pack=" + pack.name() + " overwrite=true"));
             }
         }
         return lines;

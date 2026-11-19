@@ -135,7 +135,7 @@ public final class BukkitRuntimeMessages {
     );
     public static final TextKey COMMAND_PACK_PACK_IS_BROKEN = TextKey.of(
             "iris.bukkit.runtime.commandpack.pack_is_broken",
-            C.RED + "Pack '" + "{packName}" + "' is BROKEN:"
+            C.RED + "Pack '" + "{packName}" + "' is broken"
     );
     public static final TextKey COMMAND_PACK_MESSAGE = TextKey.of(
             "iris.bukkit.runtime.commandpack.message",

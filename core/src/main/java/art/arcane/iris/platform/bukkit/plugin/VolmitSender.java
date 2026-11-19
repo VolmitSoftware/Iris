@@ -309,28 +309,33 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendSuccess(String message) {
-        sendMessage(ChatReport.Tone.SUCCESS.paint(message));
+        sendToned(ChatReport.Tone.SUCCESS, message);
     }
 
     public void sendInfo(String message) {
-        sendMessage(ChatReport.Tone.INFO.paint(message));
+        sendToned(ChatReport.Tone.INFO, message);
     }
 
     public void sendWarning(String message) {
-        sendMessage(ChatReport.Tone.WARNING.paint(message));
+        sendToned(ChatReport.Tone.WARNING, message);
     }
 
     public void sendError(String message) {
-        sendMessage(ChatReport.Tone.ERROR.paint(message));
+        sendToned(ChatReport.Tone.ERROR, message);
+    }
+
+    private void sendToned(ChatReport.Tone tone, String message) {
+        sendMessage(isPlayer() ? tone.paint(message) : tone.marked(ChatReport.clean(message)));
     }
 
     public void sendReport(ChatReport report) {
-        boolean spaced = isPlayer();
-        if (spaced) {
-            sendUntagged(ChatReport.SPACER);
+        if (!isPlayer()) {
+            report.consoleLines().forEach(this::sendMessage);
+            return;
         }
+        sendUntagged(ChatReport.SPACER);
         sendMessage(report.titleLine().text());
-        for (ChatReport.Line line : report.bodyLines(spaced)) {
+        for (ChatReport.Line line : report.bodyLines(true)) {
             sendUntagged(line);
         }
     }

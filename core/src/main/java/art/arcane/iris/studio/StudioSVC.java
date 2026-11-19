@@ -153,8 +153,10 @@ public class StudioSVC implements IrisService {
         MultiBurst.ioBurst.completeValueAsync(() -> {
             String configuredPack = IrisSettings.get().getGenerator().getDefaultWorldType();
             if (!PackDownloader.isPackPresent(getWorkspaceFolder(), configuredPack)) {
-                IrisLogging.warn("Default pack '" + configuredPack
-                        + "' is not installed: /iris download pack=overworld");
+                ChatReport.of(ChatReport.Tone.WARNING, "Default pack '" + configuredPack + "' isn't installed")
+                        .nextStep("Download it", PackDownloader.downloadCommandFor(configuredPack))
+                        .build()
+                        .log();
             }
             return null;
         });
@@ -1590,7 +1592,7 @@ public class StudioSVC implements IrisService {
         if (restartRequired) {
             report.hint("Restart the server, then run " + openCommand, openCommand);
         } else {
-            report.hint("Run " + openCommand, openCommand);
+            report.hint("Open it: " + openCommand, openCommand);
         }
         sender.sendReport(report.build());
     }

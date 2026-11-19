@@ -51,20 +51,21 @@ final class IrisEngineStatus {
     private static ChatReport section(TextKey header, String... statLines) {
         ChatReport.Builder report = ChatReport.of(ChatReport.Tone.INFO, stripTrailingColon(IrisLanguage.text(header))).unlimited();
         for (String statLine : statLines) {
-            report.styledItem(themedStat(statLine));
+            addStat(report, statLine);
         }
         return report.build();
     }
 
-    /** Status keys render as {@code - Label: value}; the label and value are recoloured to the Iris theme. */
-    private static String themedStat(String statLine) {
+    /** Status keys render as {@code - Label: value}; a labelled stat becomes a report entry, anything else a plain item. */
+    private static void addStat(ChatReport.Builder report, String statLine) {
         String cleaned = ChatReport.clean(statLine);
         String withoutDash = cleaned.startsWith("-") ? cleaned.substring(1).strip() : cleaned;
         int separator = withoutDash.indexOf(": ");
         if (separator < 0) {
-            return withoutDash;
+            report.styledItem(withoutDash);
+            return;
         }
-        return ChatReport.label(withoutDash.substring(0, separator), withoutDash.substring(separator + 2));
+        report.entry(withoutDash.substring(0, separator), withoutDash.substring(separator + 2));
     }
 
     private static String stripTrailingColon(String header) {

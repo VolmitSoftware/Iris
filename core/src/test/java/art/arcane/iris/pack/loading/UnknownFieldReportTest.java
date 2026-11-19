@@ -42,8 +42,8 @@ public class UnknownFieldReportTest {
         List<String> lines = plain(UnknownFieldReport.drainReports());
 
         assertEquals(List.of(
-                "Pack 'cavetest': 1 unknown field, ignored",
-                "  » Biome 'caves'  1 file   biomes/carving/volcanic.json:144"
+                "! Pack 'cavetest' has 1 unknown field. Iris ignores it.",
+                "  Biome 'caves'  1 file   biomes/carving/volcanic.json:144"
         ), lines);
     }
 
@@ -57,9 +57,9 @@ public class UnknownFieldReportTest {
         List<String> lines = plain(UnknownFieldReport.drainReports());
 
         assertEquals(List.of(
-                "Pack 'cavetest': 2 unknown fields, ignored",
-                "  » Biome 'caves'      3 files  e.g. biomes/carving/deep-ravine.json:157",
-                "  » Dimension 'caves'  1 file   dimensions/cavetest.json:856"
+                "! Pack 'cavetest' has 2 unknown fields. Iris ignores them.",
+                "  Biome 'caves'      3 files  e.g. biomes/carving/deep-ravine.json:157",
+                "  Dimension 'caves'  1 file   dimensions/cavetest.json:856"
         ), lines);
     }
 
@@ -69,7 +69,7 @@ public class UnknownFieldReportTest {
 
         List<String> lines = plain(UnknownFieldReport.drainReports());
 
-        assertTrue(lines.get(1).endsWith("biomes/x.json:12 did you mean 'carving'?"));
+        assertTrue(lines.get(1).endsWith("biomes/x.json:12  Did you mean 'carving'?"));
     }
 
     @Test
@@ -102,8 +102,8 @@ public class UnknownFieldReportTest {
 
     private static List<String> plain(List<ChatReport> reports) {
         return reports.stream()
-                .flatMap(report -> report.lines().stream())
-                .map(line -> line.text().replaceAll("(?i)\u00a7[0-9a-fk-orx]|<[^>]+>", ""))
+                .flatMap(report -> report.consoleLines().stream())
+                .map(line -> line.replaceAll("(?i)\u00a7[0-9a-fk-orx]|<[^>]+>", ""))
                 .toList();
     }
 }

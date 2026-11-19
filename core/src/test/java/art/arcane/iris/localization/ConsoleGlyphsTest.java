@@ -20,10 +20,11 @@ public class ConsoleGlyphsTest {
     }
 
     @Test
-    public void asciiConsoleGetsAnAsciiTree() {
-        String tree = ConsoleGlyphs.BAR + " " + ConsoleGlyphs.CROSS + " title\n" + ConsoleGlyphs.BRANCH + " item\n" + ConsoleGlyphs.LAST_BRANCH + " hint";
+    public void asciiConsoleGetsAsciiStatusGlyphs() {
+        String gutter = ConsoleGlyphs.BAR + " " + ConsoleGlyphs.CHECK + " done\n" + ConsoleGlyphs.CROSS + " failed\n"
+                + ConsoleGlyphs.WARNING + " Loading" + ConsoleGlyphs.ELLIPSIS;
 
-        assertEquals("| x title\n|- item\n`- hint", ConsoleGlyphs.forCharset(StandardCharsets.US_ASCII).fit(tree));
+        assertEquals("| + done\nx failed\n! Loading...", ConsoleGlyphs.forCharset(StandardCharsets.US_ASCII).fit(gutter));
     }
 
     @Test

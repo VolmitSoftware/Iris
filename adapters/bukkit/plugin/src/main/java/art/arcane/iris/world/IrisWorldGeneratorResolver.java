@@ -240,7 +240,7 @@ public final class IrisWorldGeneratorResolver {
                 if (hasPendingExternalContent(result, IrisServices.getOrNull(ExternalDataSVC.class))
                         && packDirectory != null
                         && PackValidator.validateForDatapackBootstrap(packDirectory).isLoadable()) {
-                    Iris.info("Pack '" + result.getPackName() + "' is waiting for external block providers to initialize.");
+                    Iris.info("Waiting for external block providers before loading pack '" + result.getPackName() + "'…");
                     continue;
                 }
                 PackBootReporter.logBroken(result, minecraftVersion);

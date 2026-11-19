@@ -147,10 +147,14 @@ Plugin:
 ```
 /iris studio create name=<name> [template=<pack>]
 /iris studio open <pack> [seed=1337]
-/iris studio vscode [dimension=<pack>]
+/iris studio editor [dimension=<pack>]
 /iris studio update [dimension=<pack>]
 /iris studio close
 ```
+
+`studio.editor` in `iris.json` picks the editor the studio opens: `vscode` (default), `zed` or `none`.
+Zed is started through its CLI (`zed`, `zeditor` or `zedit` on the `PATH`) with the pack folder as
+the project. `/iris studio vscode` still works as an alias.
 
 Mod:
 

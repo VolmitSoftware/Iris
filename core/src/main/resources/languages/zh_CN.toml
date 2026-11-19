@@ -95,6 +95,7 @@
 #   {dumpPath}  已保存的清理或恢复数据的位置。
 #   {duration}  已格式化的操作耗时。
 #   {e}  扫描结构模板失败时的异常文本。
+#   {editor}  Iris 打开的工作室编辑器名称，例如 VSCode 或 Zed。
 #   {elapsed}  已格式化的操作开始后经过时间。
 #   {engines}  正在运行的 Iris 生成引擎或维度数。
 #   {entity}  正在检查的刷怪笼所选的实体类型。
@@ -659,7 +660,7 @@ regions_scan_failed = "§c区域扫描失败: {value}"
 opening_studio_pack_seed = "§a正在为 \"{value}\" 包打开 Studio（种子：{seed}）"
 provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§c提供一个维度包: /iris std importvanilla pack=<dimension>"
 could_not_resolve_pack_dimension = "§c无法解析维度 {value} 对应的包"
-opening_vscode_pack = "§a正在 VSCode 中打开包 \"{value}\""
+opening_editor_pack = "§a正在 {editor} 中打开包 \"{value}\""
 pack_has_version = "§a\"{value}\" 包的版本为：{value2}"
 opening_noise_explorer = "§a正在打开 Noise Explorer！"
 cannot_add_items_virtual_inventory_because = "§c无法将物品添加到虚拟物品栏，原因：{value}"
@@ -723,13 +724,13 @@ you_must_be_studio_world = "§c你必须位于 Studio 世界中！"
 cannot_open_files_headless_environments = "§c无法在无图形界面的环境中打开文件！"
 desktop_is_not_supported_by_this_environment = "§c此环境不支持桌面功能！"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6找不到文件；它可能不是直接从文件加载的。"
-opening_vscode = "§a正在 VSCode 中打开 {value} {value2}！"
+opening_in_editor = "§a正在 {editor} 中打开 {value} {value2}！"
+could_not_open_editor = "§c无法打开 {editor}，请查看控制台。"
+no_editor_configured = "§c未配置编辑器。请在 iris.json 中将 studio.editor 设为 vscode 或 zed。"
 cant_find_file_registrant_does_not_exist = "§c找不到文件，或注册项不存在。"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6找不到文件；它可能不是直接从文件加载的。"
-opening_vscode_2 = "§a正在 VSCode 中打开 {value} {value2}！"
 cant_find_file_registrant_does_not_exist_2 = "§c找不到文件，或注册项不存在。"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6找不到文件；它可能不是直接从文件加载的。"
-opening_vscode_3 = "§a正在 VSCode 中打开 {value} {value2}！"
 cant_find_file_registrant_does_not_exist_3 = "§c找不到文件，或注册项不存在。"
 
 [iris.bukkit.commandpregen]
@@ -1280,8 +1281,8 @@ replace_installed_types = "已安装的包：{value}"
 "param.dimension_pack_import_vanilla_content_into" = "要导入原版内容的维度包"
 "param.how_many_variants_capture_per_tree_object_feature" = "每个树木或对象特征要捕获的变体数量"
 "param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "是否同时将原版和数据包的 structures/jigsaw 导入包中"
-"director.open_vscode_dimension" = "在 VSCode 中打开维度"
-"param.dimension_open_vscode" = "要在 VSCode 中打开的维度"
+"director.open_editor_dimension" = "在已配置的编辑器中打开维度"
+"param.dimension_open_editor" = "要在编辑器中打开的维度"
 "director.close_open_studio_project" = "关闭已打开的 Studio 项目"
 "director.toggle_your_studio_debug_scoreboard" = "切换 Studio 调试计分板"
 "director.create_new_studio_project" = "创建新的 Studio 项目"

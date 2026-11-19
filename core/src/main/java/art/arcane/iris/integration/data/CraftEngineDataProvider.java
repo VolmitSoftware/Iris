@@ -30,6 +30,7 @@ import net.momirealms.craftengine.core.util.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
@@ -57,6 +58,7 @@ public class CraftEngineDataProvider extends ExternalDataProvider implements Lis
             BlockProperty.ofBoolean("randomPitch", false),
             BlockProperty.ofDouble("pitch", 0, 0, 360f, false, true)
     );
+    private static final String PERSISTENT_PROPERTY = "persistent";
     private static final ContentRegistry EMPTY_CONTENT = new ContentRegistry(Set.of(), Set.of(), false);
 
     private volatile ContentRegistry content = EMPTY_CONTENT;
@@ -129,6 +131,32 @@ public class CraftEngineDataProvider extends ExternalDataProvider implements Lis
         BlockData nativeData = blockData instanceof IrisCustomData custom ? custom.getBase() : blockData;
         ImmutableBlockState state = CraftEngineBlocks.getCustomBlockState(nativeData);
         return state == null || state.isEmpty() ? Optional.empty() : Optional.of(Identifier.fromString(state.toString()));
+    }
+
+    @Override
+    public @NotNull BlockData withoutDecay(@NotNull BlockData data) {
+        ImmutableBlockState state = customStateOf(data);
+        if (state == null) {
+            return data;
+        }
+        Property<Boolean> persistent = state.getProperty(PERSISTENT_PROPERTY);
+        if (persistent == null || persistent.valueClass() != Boolean.class || state.get(persistent)) {
+            return data;
+        }
+        ImmutableBlockState kept = state.with(persistent, true);
+        return IrisCustomData.of(CraftEngineBlocks.getBukkitBlockData(kept), Identifier.fromString(kept.toString()));
+    }
+
+    @Override
+    public boolean hasBlockTag(@NotNull BlockData data, @NotNull NamespacedKey tag) {
+        ImmutableBlockState state = customStateOf(data);
+        return state != null && state.settings().tags().contains(Key.of(tag.getNamespace(), tag.getKey()));
+    }
+
+    private static ImmutableBlockState customStateOf(BlockData data) {
+        BlockData nativeData = data instanceof IrisCustomData custom ? custom.getBase() : data;
+        ImmutableBlockState state = CraftEngineBlocks.getCustomBlockState(nativeData);
+        return state == null || state.isEmpty() ? null : state;
     }
 
     @Override

@@ -312,12 +312,12 @@ public final class PackCompileContext {
     }
 
     private String firstLandBiome() {
-        for (String regionKey : dimension.getRegions()) {
+        for (String regionKey : dimension.getRegionKeys()) {
             IrisRegion region = data.getRegionLoader().load(regionKey, false);
             if (region == null || region.isCompatExcluded()) {
                 continue;
             }
-            for (String biomeKey : region.getLandBiomes()) {
+            for (String biomeKey : region.getLandBiomeKeys()) {
                 IrisBiome biome = biomeKey == null ? null : data.getBiomeLoader().load(biomeKey, false);
                 if (biome != null && !biome.isCompatExcluded()) {
                     return biome.getLoadKey();

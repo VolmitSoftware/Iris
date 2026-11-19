@@ -36,7 +36,7 @@ public final class RiverStage implements CompileStage {
         IrisData data = context.data();
         Set<String> exported = new HashSet<>(context.baseBiomeCodes().loadKeyByBiomeId().values());
         List<IrisRegion> regions = new ArrayList<>();
-        for (IrisRegion region : data.getRegionLoader().loadAll(context.dimension().getRegions())) {
+        for (IrisRegion region : data.getRegionLoader().loadAll(context.dimension().getRegionKeys())) {
             if (!region.isCompatExcluded()) {
                 regions.add(region);
             }
@@ -53,9 +53,9 @@ public final class RiverStage implements CompileStage {
 
     private static Collection<List<IrisBiome>> lineages(IrisRegion region, IrisData data, Set<String> exported) {
         List<String> roots = new ArrayList<>();
-        roots.addAll(region.getLandBiomes());
-        roots.addAll(region.getSeaBiomes());
-        roots.addAll(region.getShoreBiomes());
+        roots.addAll(region.getLandBiomeKeys());
+        roots.addAll(region.getSeaBiomeKeys());
+        roots.addAll(region.getShoreBiomeKeys());
         SortedMap<String, List<IrisBiome>> lineages = new TreeMap<>();
         for (String key : roots) {
             IrisBiome root = exportedBiome(key, data, exported);
@@ -75,7 +75,7 @@ public final class RiverStage implements CompileStage {
             return;
         }
         IrisBiome leaf = leafFirst.getFirst();
-        for (String childKey : leaf.getChildren()) {
+        for (String childKey : leaf.getChildKeys()) {
             IrisBiome child = exportedBiome(childKey, data, exported);
             if (child == null || child.getLoadKey().equals(leaf.getLoadKey())) {
                 continue;

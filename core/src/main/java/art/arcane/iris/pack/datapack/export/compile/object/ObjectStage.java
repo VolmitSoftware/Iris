@@ -355,17 +355,17 @@ public final class ObjectStage implements CompileStage {
 
         private Map<String, IrisRegion> regions(IrisDimension dimension) {
             Map<String, IrisRegion> regions = new HashMap<>();
-            for (String regionKey : dimension.getRegions()) {
+            for (String regionKey : dimension.getRegionKeys()) {
                 IrisRegion region = data.getRegionLoader().load(regionKey, false);
                 if (region == null) {
                     continue;
                 }
                 reportSpawners(region.getEntitySpawners(), "regions/" + region.getLoadKey());
                 List<String> roots = new ArrayList<>();
-                roots.addAll(region.getLandBiomes());
-                roots.addAll(region.getSeaBiomes());
-                roots.addAll(region.getShoreBiomes());
-                roots.addAll(region.getCaveBiomes());
+                roots.addAll(region.getLandBiomeKeys());
+                roots.addAll(region.getSeaBiomeKeys());
+                roots.addAll(region.getShoreBiomeKeys());
+                roots.addAll(region.getCaveBiomeKeys());
                 for (String biome : members(roots)) {
                     regions.putIfAbsent(biome, region);
                 }
@@ -383,7 +383,7 @@ public final class ObjectStage implements CompileStage {
                 }
                 IrisBiome biome = data.getBiomeLoader().load(key, false);
                 if (biome != null) {
-                    pending.addAll(biome.getChildren());
+                    pending.addAll(biome.getChildKeys());
                 }
             }
             return members;

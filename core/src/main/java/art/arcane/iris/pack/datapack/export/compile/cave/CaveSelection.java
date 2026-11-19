@@ -114,10 +114,10 @@ public record CaveSelection(Field index, List<CaveSource> profiles, boolean unco
 
     private static Set<String> regionCaveBiomes(IrisDimension dimension, IrisData data) {
         Set<String> caveBiomes = new HashSet<>();
-        for (String regionKey : dimension.getRegions()) {
+        for (String regionKey : dimension.getRegionKeys()) {
             IrisRegion region = regionKey == null ? null : data.getRegionLoader().load(regionKey, false);
             if (region != null && !region.isCompatExcluded()) {
-                caveBiomes.addAll(region.getCaveBiomes());
+                caveBiomes.addAll(region.getCaveBiomeKeys());
             }
         }
         return caveBiomes;
@@ -131,9 +131,9 @@ public record CaveSelection(Field index, List<CaveSource> profiles, boolean unco
         if (enabled(biome.getCaveProfile())) {
             return Optional.of(source(inputs, "biomes/" + biome.getLoadKey(), biome.getCaveProfile()));
         }
-        for (String regionKey : dimension.getRegions()) {
+        for (String regionKey : dimension.getRegionKeys()) {
             IrisRegion region = regionKey == null ? null : data.getRegionLoader().load(regionKey, false);
-            if (region == null || region.isCompatExcluded() || !region.getCaveBiomes().contains(loadKey) || !enabled(region.getCaveProfile())) {
+            if (region == null || region.isCompatExcluded() || !region.getCaveBiomeKeys().contains(loadKey) || !enabled(region.getCaveProfile())) {
                 continue;
             }
             return Optional.of(source(inputs, "regions/" + region.getLoadKey(), region.getCaveProfile()));

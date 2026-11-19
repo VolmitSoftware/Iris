@@ -68,10 +68,10 @@ public final class ShoreBiomeLineages {
 
     private static void visitRegion(IrisRegion region, IrisData data, BiConsumer<List<IrisBiome>, IrisRegion> visitor) {
         List<IrisBiome> roots = new ArrayList<>();
-        for (String key : region.getLandBiomes()) {
+        for (String key : region.getLandBiomeKeys()) {
             addLoaded(roots, data, key);
         }
-        for (String key : region.getSeaBiomes()) {
+        for (String key : region.getSeaBiomeKeys()) {
             addLoaded(roots, data, key);
         }
         ArrayDeque<IrisBiome> chain = new ArrayDeque<>();
@@ -86,7 +86,7 @@ public final class ShoreBiomeLineages {
         visitor.accept(List.copyOf(chain), region);
         if (chain.size() <= IrisBiome.CHILD_HOPS) {
             List<IrisBiome> children = new ArrayList<>();
-            for (String key : biome.getChildren()) {
+            for (String key : biome.getChildKeys()) {
                 addLoaded(children, data, key);
             }
             for (IrisBiome child : children) {

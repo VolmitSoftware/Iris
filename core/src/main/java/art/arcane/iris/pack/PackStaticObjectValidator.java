@@ -1,12 +1,12 @@
 package art.arcane.iris.pack;
 
+import art.arcane.iris.pack.loading.PackSnippets;
 import art.arcane.iris.pack.loading.SnippetFolders;
 import art.arcane.iris.structure.object.IrisObjectPlacementScaleInterpolator;
 import art.arcane.iris.structure.object.IrisStaticObject;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -19,7 +19,7 @@ final class PackStaticObjectValidator {
     private PackStaticObjectValidator() {
     }
 
-    static void validate(File packFolder, String dimensionKey, JSONObject dimension,
+    static void validate(PackSnippets snippets, String dimensionKey, JSONObject dimension,
                          int minY, int maxY, List<String> errors) {
         if (!dimension.has("staticObjects")) {
             return;
@@ -30,7 +30,7 @@ final class PackStaticObjectValidator {
             errors.add(path + " must be an array.");
             return;
         }
-        Path objectsRoot = packFolder.toPath().toAbsolutePath().normalize().resolve("objects");
+        Path objectsRoot = snippets.packFolder().toPath().toAbsolutePath().normalize().resolve("objects");
         for (int index = 0; index < entries.length(); index++) {
             String entryPath = path + "[" + index + "]";
             JSONObject entry = entries.optJSONObject(index);
@@ -39,7 +39,7 @@ final class PackStaticObjectValidator {
                 continue;
             }
             validateObjectKey(entryPath, entry, objectsRoot, errors);
-            validatePosition(packFolder, entryPath, entry, minY, maxY, errors);
+            validatePosition(snippets, entryPath, entry, minY, maxY, errors);
             validateRotation(entryPath, entry, errors);
             validateNumber(entryPath, entry, "scale", IrisStaticObject.MINIMUM_SCALE,
                     IrisStaticObject.MAXIMUM_SCALE, errors);
@@ -47,7 +47,7 @@ final class PackStaticObjectValidator {
             validateBoolean(entryPath, entry, "bore", errors);
             validateBoolean(entryPath, entry, "smartBore", errors);
             validateSeed(entryPath, entry, errors);
-            validateEdits(packFolder, entryPath, entry, errors);
+            validateEdits(snippets, entryPath, entry, errors);
         }
     }
 
@@ -64,9 +64,9 @@ final class PackStaticObjectValidator {
         }
     }
 
-    private static void validatePosition(File packFolder, String path, JSONObject entry,
+    private static void validatePosition(PackSnippets snippets, String path, JSONObject entry,
                                          int minY, int maxY, List<String> errors) {
-        JSONObject position = resolveObject(packFolder, entry.opt("position"), "position-3d",
+        JSONObject position = resolveObject(snippets, entry.opt("position"), "position-3d",
                 path + ".position", errors);
         if (position == null) {
             return;
@@ -121,7 +121,7 @@ final class PackStaticObjectValidator {
         errors.add(path + ".seed must be an integer between " + Long.MIN_VALUE + " and " + Long.MAX_VALUE + ".");
     }
 
-    private static void validateEdits(File packFolder, String path, JSONObject entry, List<String> errors) {
+    private static void validateEdits(PackSnippets snippets, String path, JSONObject entry, List<String> errors) {
         if (!entry.has("edit")) {
             return;
         }
@@ -132,12 +132,12 @@ final class PackStaticObjectValidator {
         }
         for (int index = 0; index < edits.length(); index++) {
             String editPath = path + ".edit[" + index + "]";
-            JSONObject edit = resolveObject(packFolder, edits.opt(index), "object-block-replacer", editPath, errors);
+            JSONObject edit = resolveObject(snippets, edits.opt(index), "object-block-replacer", editPath, errors);
             if (edit == null) {
                 continue;
             }
             validateBlockList(editPath + ".find", edit.optJSONArray("find"), errors);
-            JSONObject replacement = resolveObject(packFolder, edit.opt("replace"), "palette",
+            JSONObject replacement = resolveObject(snippets, edit.opt("replace"), "palette",
                     editPath + ".replace", errors);
             if (replacement != null) {
                 validateBlockList(editPath + ".replace.palette", replacement.optJSONArray("palette"), errors);
@@ -160,13 +160,13 @@ final class PackStaticObjectValidator {
         }
     }
 
-    private static JSONObject resolveObject(File packFolder, Object value, String snippetType,
+    private static JSONObject resolveObject(PackSnippets snippets, Object value, String snippetType,
                                              String path, List<String> errors) {
         if (value instanceof JSONObject object) {
             return object;
         }
         if (value instanceof String reference && reference.startsWith("snippet/")) {
-            SnippetFolders.Lookup snippet = SnippetFolders.discover(packFolder, snippetType).find(packFolder, reference);
+            SnippetFolders.Lookup snippet = snippets.find(snippetType, reference);
             if (!snippet.found()) {
                 errors.add(path + " references missing " + snippetType + " snippet '" + reference + "'.");
                 return null;

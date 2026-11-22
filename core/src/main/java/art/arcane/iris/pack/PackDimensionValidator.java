@@ -19,6 +19,7 @@
 package art.arcane.iris.pack;
 
 import art.arcane.iris.generation.terrain.IrisDimensionType;
+import art.arcane.iris.pack.loading.PackSnippets;
 import art.arcane.iris.pack.loading.SnippetFolders;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.structure.object.IrisObjectScale;
@@ -47,6 +48,7 @@ final class PackDimensionValidator {
         File regionsFolder = new File(packFolder, "regions");
         File biomesFolder = new File(packFolder, "biomes");
         File dimensionsFolder = new File(packFolder, PackValidator.DIMENSIONS_FOLDER);
+        PackSnippets snippets = new PackSnippets(packFolder);
         Set<String> dimensionKeys = new LinkedHashSet<>();
         for (File dimensionFile : dimensionFiles) {
             dimensionKeys.add(PackValidationIo.deriveKey(dimensionsFolder, dimensionFile));
@@ -63,15 +65,15 @@ final class PackDimensionValidator {
             }
 
             validateImportedStructurePolicy(dimensionKey, dimJson, blockingErrors, warnings);
-            validateDimensionHeights(packFolder, dimensionKey, dimJson, blockingErrors);
+            validateDimensionHeights(snippets, dimensionKey, dimJson, blockingErrors);
             validateBorrowedDimensionType(dimensionKey, dimJson, borrowedDimensionTypesSupported(), blockingErrors);
             validateSamplingStep(dimensionKey, dimJson, "terrainSamplingStep", 1, blockingErrors);
             validateSamplingStep(dimensionKey, dimJson, "caveDensitySamplingStep", 1, blockingErrors);
             validateSamplingStep(dimensionKey, dimJson, "biomeBoundsSamplingStep", 4, blockingErrors);
             validateWorldBoundary(dimensionKey, dimJson, blockingErrors);
-            validateStaticObjects(packFolder, dimensionKey, dimJson, blockingErrors);
+            validateStaticObjects(snippets, dimensionKey, dimJson, blockingErrors);
             validateObjectScaleFactor(dimensionKey, dimJson, blockingErrors);
-            validateDimensionStack(packFolder, dimensionKey, dimJson, dimensionKeys, blockingErrors);
+            validateDimensionStack(snippets, dimensionKey, dimJson, dimensionKeys, blockingErrors);
             validateUpperDimension(dimensionKey, dimJson, dimensionKeys, blockingErrors);
 
             JSONArray regionsArray = dimJson.optJSONArray("regions");
@@ -177,7 +179,7 @@ final class PackDimensionValidator {
                 + minimum * 2 + ", " + minimum * 4 + ", or " + minimum * 8 + ".");
     }
 
-    static void validateDimensionStack(File packFolder, String dimensionKey, JSONObject dimension, Set<String> dimensionKeys,
+    static void validateDimensionStack(PackSnippets snippets, String dimensionKey, JSONObject dimension, Set<String> dimensionKeys,
                                        List<String> blockingErrors) {
         if (!dimension.has("dimensionStack")) {
             return;
@@ -231,10 +233,10 @@ final class PackDimensionValidator {
         }
 
         validateInteger(stack, "spacer", 0, 256, context, blockingErrors);
-        validateDimensionStackBlend(packFolder, context, stack, blockingErrors);
+        validateDimensionStackBlend(snippets, context, stack, blockingErrors);
     }
 
-    private static void validateDimensionStackBlend(File packFolder, String context, JSONObject stack,
+    private static void validateDimensionStackBlend(PackSnippets snippets, String context, JSONObject stack,
                                                     List<String> blockingErrors) {
         if (!stack.has("blend")) {
             return;
@@ -251,7 +253,7 @@ final class PackDimensionValidator {
             Object rawStyle = blend.opt("style");
             boolean styleObject = rawStyle instanceof JSONObject;
             boolean styleSnippet = rawStyle instanceof String reference
-                    && SnippetFolders.discover(packFolder, STYLE_SNIPPET_TYPE).folders().stream()
+                    && snippets.folders(STYLE_SNIPPET_TYPE).folders().stream()
                     .anyMatch(folder -> reference.startsWith(folder + "/"));
             if (!styleObject && !styleSnippet) {
                 blockingErrors.add(context + ".blend.style must be an object or style snippet reference.");
@@ -259,15 +261,15 @@ final class PackDimensionValidator {
             }
             if (styleSnippet) {
                 validateDimensionStackStyleSnippet(
-                        packFolder, context + ".blend.style", (String) rawStyle, blockingErrors);
+                        snippets, context + ".blend.style", (String) rawStyle, blockingErrors);
             }
         }
     }
 
-    private static void validateDimensionStackStyleSnippet(File packFolder, String context, String reference,
+    private static void validateDimensionStackStyleSnippet(PackSnippets snippets, String context, String reference,
                                                            List<String> blockingErrors) {
         try {
-            SnippetFolders.Lookup snippet = SnippetFolders.discover(packFolder, STYLE_SNIPPET_TYPE).find(packFolder, reference);
+            SnippetFolders.Lookup snippet = snippets.find(STYLE_SNIPPET_TYPE, reference);
             if (!snippet.found()) {
                 blockingErrors.add(context + " references missing style snippet '" + reference + "'.");
                 return;
@@ -281,13 +283,18 @@ final class PackDimensionValidator {
 
     static void validateStaticObjects(File packFolder, String dimensionKey, JSONObject dimension,
                                       List<String> blockingErrors) {
+        validateStaticObjects(new PackSnippets(packFolder), dimensionKey, dimension, blockingErrors);
+    }
+
+    private static void validateStaticObjects(PackSnippets snippets, String dimensionKey, JSONObject dimension,
+                                              List<String> blockingErrors) {
         if (!dimension.has("staticObjects")) {
             return;
         }
-        JSONObject height = resolveDimensionHeight(packFolder, dimension);
+        JSONObject height = resolveDimensionHeight(snippets, dimension);
         int minY = height == null ? -64 : (int) height.optDouble("min", 16D);
         int maxY = height == null ? 320 : (int) height.optDouble("max", 32D);
-        PackStaticObjectValidator.validate(packFolder, dimensionKey, dimension, minY, maxY, blockingErrors);
+        PackStaticObjectValidator.validate(snippets, dimensionKey, dimension, minY, maxY, blockingErrors);
     }
 
     static void validateImportedStructurePolicy(String dimensionKey, JSONObject dimension,
@@ -434,12 +441,12 @@ final class PackDimensionValidator {
      * the IrisDimension field initializer (-64..320); present-but-partial means the IrisRange field
      * initializers (min 16, max 32); logicalHeight absent means 256.
      */
-    static void validateDimensionHeights(File packFolder, String dimensionKey, JSONObject dimJson, List<String> blockingErrors) {
+    static void validateDimensionHeights(PackSnippets snippets, String dimensionKey, JSONObject dimJson, List<String> blockingErrors) {
         if (dimJson.has("dimensionHeight") && dimJson.isNull("dimensionHeight")) {
             blockingErrors.add("Dimension '" + dimensionKey + "' dimensionHeight must be an object or a range snippet reference.");
             return;
         }
-        JSONObject range = resolveDimensionHeight(packFolder, dimJson);
+        JSONObject range = resolveDimensionHeight(snippets, dimJson);
         if (range == null && dimJson.has("dimensionHeight")) {
             blockingErrors.add("Dimension '" + dimensionKey + "' dimensionHeight must be an object or a resolvable range snippet reference.");
             return;
@@ -598,7 +605,7 @@ final class PackDimensionValidator {
         return true;
     }
 
-    private static JSONObject resolveDimensionHeight(File packFolder, JSONObject dimJson) {
+    private static JSONObject resolveDimensionHeight(PackSnippets snippets, JSONObject dimJson) {
         if (!dimJson.has("dimensionHeight") || dimJson.isNull("dimensionHeight")) {
             return null;
         }
@@ -612,7 +619,7 @@ final class PackDimensionValidator {
         if (reference == null || !reference.startsWith("snippet/")) {
             return null;
         }
-        SnippetFolders.Lookup snippet = SnippetFolders.discover(packFolder, RANGE_SNIPPET_TYPE).find(packFolder, reference);
+        SnippetFolders.Lookup snippet = snippets.find(RANGE_SNIPPET_TYPE, reference);
         if (!snippet.found()) {
             return null;
         }

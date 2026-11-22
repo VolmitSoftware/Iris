@@ -126,6 +126,22 @@ public class IrisDataSnippetTest {
     }
 
     @Test
+    public void symlinkLeadingOutOfItsSnippetFolderIsNotFound() throws IOException {
+        write("snippet/duration/fast.json", "{\"amount\":7}");
+        link("snippet/rate/fast.json", "snippet/duration/fast.json");
+
+        assertNull(rateOf("\"snippet/fast\""));
+    }
+
+    @Test
+    public void symlinkStayingInsideItsSnippetFolderResolves() throws IOException {
+        write("snippet/rate/real.json", "{\"amount\":4}");
+        link("snippet/rate/alias.json", "snippet/rate/real.json");
+
+        assertEquals(4, rateOf("\"snippet/alias\"").getAmount());
+    }
+
+    @Test
     public void missingSnippetYieldsNull() throws IOException {
         write("snippet/rate/other.json", "{\"amount\":1}");
 
@@ -238,6 +254,12 @@ public class IrisDataSnippetTest {
         Path file = pack.resolve(relative);
         Files.createDirectories(file.getParent());
         Files.writeString(file, content);
+    }
+
+    private void link(String relative, String target) throws IOException {
+        Path link = pack.resolve(relative);
+        Files.createDirectories(link.getParent());
+        Files.createSymbolicLink(link, pack.resolve(target));
     }
 
     private static List<Integer> amountsOf(List<IrisRate> rates) {

@@ -3,6 +3,7 @@ package art.arcane.iris.pack.loading;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -60,8 +61,8 @@ public record SnippetFolders(String legacy, List<String> namespaced) {
         List<String> candidates = candidateKeys(reference);
         Path root = packFolder.toPath().toAbsolutePath().normalize();
         for (String key : candidates) {
-            Path file = fileInsideFolder(root, key);
-            if (file != null && Files.isRegularFile(file)) {
+            Path file = existingFileInsideFolder(root, key);
+            if (file != null) {
                 return new Lookup(file.toFile(), key, candidates);
             }
         }
@@ -79,7 +80,7 @@ public record SnippetFolders(String legacy, List<String> namespaced) {
         return matches;
     }
 
-    private @Nullable Path fileInsideFolder(Path root, String key) {
+    private @Nullable Path existingFileInsideFolder(Path root, String key) {
         String folder = folders().stream().filter(candidate -> key.startsWith(candidate + "/")).findFirst().orElse(null);
         if (folder == null) {
             return null;
@@ -87,8 +88,12 @@ public record SnippetFolders(String legacy, List<String> namespaced) {
 
         try {
             Path file = root.resolve(key + FILE_SUFFIX).normalize();
-            return file.startsWith(root.resolve(folder).normalize()) ? file : null;
-        } catch (InvalidPathException ignored) {
+            Path folderPath = root.resolve(folder).normalize();
+            if (!file.startsWith(folderPath) || !Files.isRegularFile(file)) {
+                return null;
+            }
+            return file.toRealPath().startsWith(folderPath.toRealPath()) ? file : null;
+        } catch (InvalidPathException | IOException ignored) {
             return null;
         }
     }

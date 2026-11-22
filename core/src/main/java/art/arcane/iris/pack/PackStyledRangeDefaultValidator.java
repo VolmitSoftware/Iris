@@ -18,6 +18,7 @@
 
 package art.arcane.iris.pack;
 
+import art.arcane.iris.pack.loading.PackSnippets;
 import art.arcane.iris.pack.loading.SnippetFolders;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -56,6 +57,7 @@ final class PackStyledRangeDefaultValidator {
             return new Validation(errors, warnings);
         }
 
+        PackSnippets snippets = new PackSnippets(packFolder);
         for (String folderName : PackValidator.STRUCTURE_HOST_FOLDERS) {
             File resourceFolder = new File(packFolder, folderName);
             if (!resourceFolder.isDirectory()) {
@@ -73,14 +75,14 @@ final class PackStyledRangeDefaultValidator {
                     continue;
                 }
 
-                validateObjectPlacements(packFolder, type, key, json, errors, warnings);
-                validateCaveProfileThreshold(packFolder, type, key, json.optJSONObject("caveProfile"), errors, warnings);
+                validateObjectPlacements(snippets, type, key, json, errors, warnings);
+                validateCaveProfileThreshold(snippets, type, key, json.optJSONObject("caveProfile"), errors, warnings);
             }
         }
         return new Validation(errors, warnings);
     }
 
-    private static void validateObjectPlacements(File packFolder, String type, String key, JSONObject json,
+    private static void validateObjectPlacements(PackSnippets snippets, String type, String key, JSONObject json,
                                                  List<String> errors, List<String> warnings) {
         JSONArray objects = json.optJSONArray("objects");
         if (objects == null) {
@@ -91,33 +93,33 @@ final class PackStyledRangeDefaultValidator {
             if (placement == null || !placement.has("densityStyle") || placement.isNull("densityStyle")) {
                 continue;
             }
-            checkRange(packFolder, placement.opt("densityStyle"),
+            checkRange(snippets, placement.opt("densityStyle"),
                     type + " '" + key + "' objects[" + i + "].densityStyle",
                     "16-32 objects per chunk", "remove densityStyle to use the scalar density field",
                     errors, warnings);
         }
     }
 
-    private static void validateCaveProfileThreshold(File packFolder, String type, String key, JSONObject caveProfile,
+    private static void validateCaveProfileThreshold(PackSnippets snippets, String type, String key, JSONObject caveProfile,
                                                      List<String> errors, List<String> warnings) {
         if (caveProfile == null || !caveProfile.has("densityThreshold") || caveProfile.isNull("densityThreshold")) {
             return;
         }
-        checkRange(packFolder, caveProfile.opt("densityThreshold"),
+        checkRange(snippets, caveProfile.opt("densityThreshold"),
                 type + " '" + key + "' caveProfile.densityThreshold",
                 "a carve threshold of 16-32, hollowing the entire vertical range",
                 "remove densityThreshold to keep the cave profile default",
                 errors, warnings);
     }
 
-    private static void checkRange(File packFolder, Object raw, String path, String consequence, String removal,
+    private static void checkRange(PackSnippets snippets, Object raw, String path, String consequence, String removal,
                                    List<String> errors, List<String> warnings) {
         JSONObject range = null;
         String via = "";
         if (raw instanceof JSONObject inline) {
             range = inline;
         } else if (raw instanceof String reference && reference.startsWith("snippet/")) {
-            SnippetFolders.Lookup snippet = SnippetFolders.discover(packFolder, STYLE_RANGE_SNIPPET_TYPE).find(packFolder, reference);
+            SnippetFolders.Lookup snippet = snippets.find(STYLE_RANGE_SNIPPET_TYPE, reference);
             if (!snippet.found()) {
                 return; // Missing snippets are reported by the content-key machinery.
             }

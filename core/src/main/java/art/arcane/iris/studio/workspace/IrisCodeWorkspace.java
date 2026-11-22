@@ -23,6 +23,7 @@ import art.arcane.iris.pack.schema.SchemaBuilder;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
+import art.arcane.iris.pack.loading.SnippetFolder;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
@@ -181,7 +182,7 @@ public class IrisCodeWorkspace {
             try {
                 String snipType = snippetClass.getDeclaredAnnotation(Snippet.class).value();
                 JSONObject schemaEntry = new JSONObject();
-                List<String> fileMatches = dm.getSnippetFolders(snipType).workspaceFileMatches();
+                List<String> fileMatches = new SnippetFolder(snipType).workspaceFileMatches();
 
                 schemaEntry.put("fileMatch", new JSONArray(fileMatches.toArray()));
                 schemaEntry.put("url", "./.iris/schema/snippet/" + snipType + "-schema.json");

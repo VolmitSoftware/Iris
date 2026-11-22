@@ -63,29 +63,15 @@ public class IrisDataSnippetTest {
     }
 
     @Test
-    public void shortReferenceResolvesInTheNamespacedFolder() throws IOException {
-        write("snippet/iris/spawn/rate/fast.json", "{\"amount\":7}");
-
-        assertEquals(7, rateOf("\"snippet/fast\"").getAmount());
-    }
-
-    @Test
-    public void fullReferenceResolvesInTheNamespacedFolder() throws IOException {
-        write("snippet/iris/spawn/rate/fast.json", "{\"amount\":7}");
-
-        assertEquals(7, rateOf("\"snippet/iris/spawn/rate/fast\"").getAmount());
-    }
-
-    @Test
-    public void nestedNamespacedPathResolves() throws IOException {
-        write("snippet/iris/spawn/rate/groups/fast.json", "{\"amount\":8}");
+    public void nestedPathResolves() throws IOException {
+        write("snippet/rate/groups/fast.json", "{\"amount\":8}");
 
         assertEquals(8, rateOf("\"snippet/groups/fast\"").getAmount());
-        assertEquals(8, rateOf("\"snippet/iris/spawn/rate/groups/fast\"").getAmount());
+        assertEquals(8, rateOf("\"snippet/rate/groups/fast\"").getAmount());
     }
 
     @Test
-    public void legacyLayoutStillResolves() throws IOException {
+    public void shortAndFullReferencesResolve() throws IOException {
         write("snippet/rate/slow.json", "{\"amount\":3}");
 
         assertEquals(3, rateOf("\"snippet/slow\"").getAmount());
@@ -93,26 +79,8 @@ public class IrisDataSnippetTest {
     }
 
     @Test
-    public void legacyFolderWinsAShortReferenceWhenBothLayoutsHoldTheFile() throws IOException {
-        write("snippet/rate/both.json", "{\"amount\":1}");
-        write("snippet/iris/spawn/rate/both.json", "{\"amount\":2}");
-
-        assertEquals(1, rateOf("\"snippet/both\"").getAmount());
-        assertEquals(1, rateOf("\"snippet/rate/both\"").getAmount());
-        assertEquals(2, rateOf("\"snippet/iris/spawn/rate/both\"").getAmount());
-    }
-
-    @Test
-    public void namespacedFolderIsTriedWhenTheLegacyFileIsMissing() throws IOException {
-        write("snippet/rate/other.json", "{\"amount\":1}");
-        write("snippet/iris/spawn/rate/only-here.json", "{\"amount\":2}");
-
-        assertEquals(2, rateOf("\"snippet/only-here\"").getAmount());
-    }
-
-    @Test
     public void snippetsOfAnotherTypeAreNotUsed() throws IOException {
-        write("snippet/iris/spawn/duration/fast.json", "{\"amount\":7}");
+        write("snippet/duration/fast.json", "{\"amount\":7}");
 
         assertNull(rateOf("\"snippet/fast\""));
     }
@@ -149,16 +117,9 @@ public class IrisDataSnippetTest {
     }
 
     @Test
-    public void namespaceDeeperThanTwoSegmentsIsNotAFolderOfTheType() throws IOException {
-        write("snippet/one/two/three/rate/deep.json", "{\"amount\":7}");
-
-        assertNull(rateOf("\"snippet/deep\""));
-    }
-
-    @Test
     public void arraySnippetInAListStandsForAllItsEntries() throws IOException {
-        write("snippet/iris/spawn/rate/many.json", "[{\"amount\":1},{\"amount\":2},]");
-        write("snippet/iris/spawn/rate/one.json", "{\"amount\":5}");
+        write("snippet/rate/many.json", "[{\"amount\":1},{\"amount\":2},]");
+        write("snippet/rate/one.json", "{\"amount\":5}");
 
         RateListHolder holder = data().getGson().fromJson(
                 "{\"rates\":[\"snippet/many\",\"snippet/one\",{\"amount\":9}],"
@@ -197,46 +158,13 @@ public class IrisDataSnippetTest {
     }
 
     @Test
-    public void possibleSnippetsCoverBothFoldersWithoutDuplicates() throws IOException {
+    public void possibleSnippetsListTheTypeFolderAsShortReferences() throws IOException {
         write("snippet/rate/a.json", "{}");
-        write("snippet/rate/shared.json", "{}");
-        write("snippet/iris/spawn/rate/b.json", "{}");
-        write("snippet/iris/spawn/rate/shared.json", "{}");
-        write("snippet/iris/spawn/rate/nested/c.json", "{}");
+        write("snippet/rate/nested/c.json", "{}");
+        write("snippet/duration/other.json", "{}");
 
-        assertEquals(List.of("snippet/a", "snippet/shared", "snippet/b", "snippet/nested/c"),
-                new ArrayList<>(data().getPossibleSnippets("rate")));
-    }
-
-    @Test
-    public void onlyTheIrisNamespaceHoldsNamespacedFoldersListedInSortedOrder() throws IOException {
-        write("snippet/zeta/spawn/rate/x.json", "{}");
-        write("snippet/iris/spawn/rate/x.json", "{}");
-        write("snippet/iris/creatures/rate/x.json", "{}");
-        write("snippet/iris/spawn/duration/x.json", "{}");
-
-        assertEquals(List.of("snippet/iris/creatures/rate", "snippet/iris/spawn/rate"),
-                data().getNamespacedSnippetFolders("rate"));
-    }
-
-    @Test
-    public void nestedLegacyFolderNamedLikeATypeStaysLegacy() throws IOException {
-        write("snippet/procedural/objects/rate/nested.json", "{\"amount\":7}");
-
-        assertNull(rateOf("\"snippet/nested\""));
-        assertEquals(List.of(), data().getNamespacedSnippetFolders("rate"));
-    }
-
-    @Test
-    public void folderListingRefreshesAfterTheListsAreCleared() throws IOException {
-        IrisData loaded = data();
-        assertEquals(List.of(), loaded.getNamespacedSnippetFolders("rate"));
-
-        write("snippet/iris/spawn/rate/x.json", "{\"amount\":2}");
-        loaded.clearLists();
-
-        assertEquals(List.of("snippet/iris/spawn/rate"), loaded.getNamespacedSnippetFolders("rate"));
-        assertEquals(2, rateOf("\"snippet/x\"").getAmount());
+        assertEquals(List.of("snippet/a", "snippet/nested/c"),
+                data().getPossibleSnippets("rate").stream().sorted().toList());
     }
 
     private IrisRate rateOf(String jsonValue) {

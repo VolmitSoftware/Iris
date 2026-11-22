@@ -3,7 +3,6 @@ package art.arcane.iris.structure.object;
 import art.arcane.iris.generation.terrain.IrisDimension;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.pack.loading.SnippetFolders;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
@@ -25,9 +24,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -131,8 +128,6 @@ public class IrisObjectGlobalScaleTest {
         Files.writeString(snippets.resolve("half.json"), "{\"size\":0.5}");
         IrisData data = mock(IrisData.class, CALLS_REAL_METHODS);
         when(data.getDataFolder()).thenReturn(root.toFile());
-        doAnswer(lookup -> SnippetFolders.discover(root.toFile(), lookup.getArgument(0)))
-                .when(data).getSnippetFolders(anyString());
         Gson loaderGson = new GsonBuilder().registerTypeAdapterFactory(data).create();
         IrisDimension dimension = new IrisDimension().setAllObjectScaleFactor(2D);
         IrisObject origin = new IrisObject(4, 4, 4);

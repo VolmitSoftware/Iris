@@ -20,6 +20,7 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
+import art.arcane.iris.pack.loading.SnippetFolder;
 import art.arcane.iris.pack.schema.SchemaBuilder;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.spi.IrisLogging;
@@ -99,7 +100,7 @@ public final class ModdedWorkspaceGenerator {
             try {
                 String snipType = snippetClass.getDeclaredAnnotation(Snippet.class).value();
                 JSONObject entry = new JSONObject();
-                List<String> fileMatch = data.getSnippetFolders(snipType).workspaceFileMatches();
+                List<String> fileMatch = new SnippetFolder(snipType).workspaceFileMatches();
 
                 entry.put("fileMatch", new JSONArray(fileMatch.toArray()));
                 entry.put("url", "./.iris/schema/snippet/" + snipType + "-schema.json");

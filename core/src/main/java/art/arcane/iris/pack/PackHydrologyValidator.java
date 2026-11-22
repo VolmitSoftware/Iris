@@ -17,8 +17,7 @@ import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.ShoreBiomeLineages;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.IrisRegistrant;
-import art.arcane.iris.pack.loading.PackSnippets;
-import art.arcane.iris.pack.loading.SnippetFolders;
+import art.arcane.iris.pack.loading.SnippetFolder;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -86,11 +85,10 @@ final class PackHydrologyValidator {
         sortedDimensions.sort(Comparator.comparing(File::getPath));
         File dimensionsFolder = new File(packFolder, PackValidator.DIMENSIONS_FOLDER);
         Findings findings = new Findings(errors, warnings);
-        PackSnippets snippets = new PackSnippets(packFolder);
         IrisData data = null;
         try {
             for (File dimensionFile : sortedDimensions) {
-                data = validateDimension(snippets, dimensionsFolder, dimensionFile, data, findings);
+                data = validateDimension(packFolder, dimensionsFolder, dimensionFile, data, findings);
             }
         } finally {
             close(packFolder, data, errors);
@@ -98,7 +96,7 @@ final class PackHydrologyValidator {
         return new Validation(errors, warnings);
     }
 
-    private static IrisData validateDimension(PackSnippets snippets, File dimensionsFolder, File dimensionFile, IrisData data,
+    private static IrisData validateDimension(File packFolder, File dimensionsFolder, File dimensionFile, IrisData data,
                                               Findings findings) {
         List<String> errors = findings.errors();
         JSONObject dimension = PackValidationIo.readJson(dimensionFile);
@@ -111,7 +109,7 @@ final class PackHydrologyValidator {
             errors.add(path + " must be an object.");
             return data;
         }
-        warnUnknownKeys(path, hydrology, IrisHydrology.class, snippets, findings.warnings());
+        warnUnknownKeys(path, hydrology, IrisHydrology.class, packFolder, findings.warnings());
         if (!hydrology.optBoolean("enabled", false)) {
             return data;
         }
@@ -121,13 +119,13 @@ final class PackHydrologyValidator {
         Set<String> fluids = fluidNames(hydrology);
         Set<String> seams = seamNames(hydrology);
         validateFluidReferences(path, hydrology, fluids, errors);
-        IrisData loaded = data == null ? IrisData.openDatapackCompiler(snippets.packFolder()) : data;
+        IrisData loaded = data == null ? IrisData.openDatapackCompiler(packFolder) : data;
         IrisDimension loadedDimension = loaded.getDimensionLoader().load(dimensionKey, false);
         if (loadedDimension == null) {
             return loaded;
         }
         warnMantleOff("Dimension '" + dimensionKey + "'", loadedDimension, findings.warnings());
-        validatePolicies(path, dimensionKey, loaded, loadedDimension, new PolicyFluids(fluids, seams), snippets, findings);
+        validatePolicies(path, dimensionKey, loaded, loadedDimension, new PolicyFluids(fluids, seams), errors, findings.warnings());
         warnShoreBiomesWithoutWidth(dimensionKey, loaded, loadedDimension, findings.warnings());
         if (errors.size() == reported && validateCompile(path, loadedDimension, errors)) {
             validateDecoratorBlocks(path, loaded, loadedDimension.getHydrology(), errors);
@@ -136,8 +134,8 @@ final class PackHydrologyValidator {
         return loaded;
     }
 
-    static void warnUnknownKeys(String field, Object value, Type type, PackSnippets snippets, List<String> warnings) {
-        warnUnknownKeys(field, value, type, new KeyScan(snippets, warnings, new HashSet<>()));
+    static void warnUnknownKeys(String field, Object value, Type type, File packFolder, List<String> warnings) {
+        warnUnknownKeys(field, value, type, new KeyScan(packFolder, warnings, new HashSet<>()));
     }
 
     private static void warnUnknownKeys(String field, Object value, Type type, KeyScan scan) {
@@ -175,8 +173,9 @@ final class PackHydrologyValidator {
     }
 
     private static void warnUnknownSnippetKeys(String field, String reference, Class<?> type, KeyScan scan) {
-        SnippetFolders.Lookup lookup = scan.snippets().find(type.getDeclaredAnnotation(Snippet.class).value(), reference);
-        String snippet = lookup.found() ? lookup.key() : lookup.triedKeys().get(0);
+        SnippetFolder.Lookup lookup = new SnippetFolder(type.getDeclaredAnnotation(Snippet.class).value())
+                .find(scan.packFolder(), reference);
+        String snippet = lookup.key();
         if (!scan.activeSnippets().add(snippet)) {
             return;
         }
@@ -392,16 +391,14 @@ final class PackHydrologyValidator {
     }
 
     private static void validatePolicies(String path, String dimensionKey, IrisData data, IrisDimension dimension, PolicyFluids fluids,
-                                         PackSnippets snippets, Findings findings) {
-        List<String> errors = findings.errors();
-        List<String> warnings = findings.warnings();
-        warnUnknownPolicyKeys("Dimension '" + dimensionKey + "'." + POLICY, dimension, snippets, warnings);
+                                         List<String> errors, List<String> warnings) {
+        warnUnknownPolicyKeys("Dimension '" + dimensionKey + "'." + POLICY, dimension, data, warnings);
         validatePolicy("Dimension '" + dimensionKey + "'." + POLICY, dimension.getHydrologyPolicy(), data, fluids, path, errors);
         List<IrisRegion> regions = new ArrayList<>(dimension.getAllRegions(() -> data));
         regions.sort(Comparator.comparing(IrisRegion::getLoadKey, Comparator.nullsFirst(Comparator.naturalOrder())));
         for (IrisRegion region : regions) {
             if (region != null) {
-                warnUnknownPolicyKeys("Region '" + region.getLoadKey() + "'." + POLICY, region, snippets, warnings);
+                warnUnknownPolicyKeys("Region '" + region.getLoadKey() + "'." + POLICY, region, data, warnings);
                 validatePolicy("Region '" + region.getLoadKey() + "'." + POLICY, region.getHydrologyPolicy(), data, fluids, path, errors);
             }
         }
@@ -409,17 +406,17 @@ final class PackHydrologyValidator {
         biomes.sort(Comparator.comparing(IrisBiome::getLoadKey, Comparator.nullsFirst(Comparator.naturalOrder())));
         for (IrisBiome biome : biomes) {
             if (biome != null) {
-                warnUnknownPolicyKeys("Biome '" + biome.getLoadKey() + "'." + POLICY, biome, snippets, warnings);
+                warnUnknownPolicyKeys("Biome '" + biome.getLoadKey() + "'." + POLICY, biome, data, warnings);
                 validatePolicy("Biome '" + biome.getLoadKey() + "'." + POLICY, biome.getHydrologyPolicy(), data, fluids, path, errors);
             }
         }
     }
 
-    private static void warnUnknownPolicyKeys(String field, IrisRegistrant owner, PackSnippets snippets, List<String> warnings) {
+    private static void warnUnknownPolicyKeys(String field, IrisRegistrant owner, IrisData data, List<String> warnings) {
         File file = owner.getLoadFile();
         JSONObject json = file == null ? null : PackValidationIo.readJson(file);
         if (json != null) {
-            warnUnknownKeys(field, json.opt(POLICY), IrisHydrologyPolicy.class, snippets, warnings);
+            warnUnknownKeys(field, json.opt(POLICY), IrisHydrologyPolicy.class, data.getDataFolder(), warnings);
         }
     }
 
@@ -626,6 +623,6 @@ final class PackHydrologyValidator {
     private record Findings(List<String> errors, List<String> warnings) {
     }
 
-    private record KeyScan(PackSnippets snippets, List<String> warnings, Set<String> activeSnippets) {
+    private record KeyScan(File packFolder, List<String> warnings, Set<String> activeSnippets) {
     }
 }

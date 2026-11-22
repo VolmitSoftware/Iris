@@ -32,14 +32,11 @@ import art.arcane.volmlib.util.json.JSONObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 public class SchemaBuilder {
     static final String SYMBOL_LIMIT__N = "*";
     static final String SYMBOL_TYPE__N = "";
-    private static final String REGEX_SYNTAX_CHARACTERS = "\\^$.*+?()[]{}|";
     final KMap<String, JSONObject> definitions;
     final KList<String> warnings;
     final IrisData data;
@@ -140,29 +137,6 @@ public class SchemaBuilder {
         }
     }
 
-    static String snippetPattern(String snippetType, List<String> namespacedFolders) {
-        String legacyFolder = escapeRegex("snippet/" + snippetType);
-        if (namespacedFolders.isEmpty()) {
-            return "^" + legacyFolder + "/";
-        }
-
-        List<String> folders = new ArrayList<>();
-        folders.add(legacyFolder);
-        namespacedFolders.stream().map(SchemaBuilder::escapeRegex).forEach(folders::add);
-        return "^(?:" + String.join("|", folders) + ")/";
-    }
-
-    private static String escapeRegex(String literal) {
-        StringBuilder escaped = new StringBuilder(literal.length());
-        for (char character : literal.toCharArray()) {
-            if (REGEX_SYNTAX_CHARACTERS.indexOf(character) >= 0) {
-                escaped.append('\\');
-            }
-            escaped.append(character);
-        }
-        return escaped.toString();
-    }
-
     JSONObject buildSnippet(JSONObject prop, Class<?> type) {
         Snippet snippet = type.getDeclaredAnnotation(Snippet.class);
         if (snippet == null) return prop;
@@ -181,7 +155,7 @@ public class SchemaBuilder {
             enumObj.put("enum", snl);
             JSONObject patternObj = new JSONObject();
             patternObj.put("type", "string");
-            patternObj.put("pattern", snippetPattern(snippet.value(), data.getNamespacedSnippetFolders(snippet.value())));
+            patternObj.put("pattern", "^snippet/" + snippet.value() + "/");
             JSONArray snippetAlt = new JSONArray();
             snippetAlt.put(enumObj);
             snippetAlt.put(patternObj);

@@ -11,7 +11,6 @@ import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.pack.loading.PackSnippets;
 import art.arcane.iris.testsupport.CompatTestPlatform;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
@@ -363,7 +362,7 @@ public class PackHydrologyValidatorTest {
                 {"zones": {"swamp": {"min": 0.7, "max": 1}, "desert": {"minimum": 0.1}}}
                 """);
 
-        PackHydrologyValidator.warnUnknownKeys("root", written, NamedZones.class, new PackSnippets(temporaryFolder.getRoot()), warnings);
+        PackHydrologyValidator.warnUnknownKeys("root", written, NamedZones.class, temporaryFolder.getRoot(), warnings);
 
         assertContains(warnings, "root.zones.desert.minimum is not a known key");
         assertEquals(warnings.toString(), 1, warnings.size());
@@ -468,7 +467,7 @@ public class PackHydrologyValidatorTest {
                 """);
         List<String> warnings = new ArrayList<>();
 
-        PackHydrologyValidator.warnUnknownKeys("style", "snippet/style/loop", IrisGeneratorStyle.class, new PackSnippets(pack), warnings);
+        PackHydrologyValidator.warnUnknownKeys("style", "snippet/style/loop", IrisGeneratorStyle.class, pack, warnings);
 
         assertContains(warnings, "style (snippet/style/loop).fractures is not a known key");
         assertEquals(warnings.toString(), 1, warnings.size());
@@ -499,7 +498,7 @@ public class PackHydrologyValidatorTest {
         List<String> warnings = new ArrayList<>();
         JSONObject written = new JSONObject("{\"tiers\": {\"name\": \"stream\"}, \"fluids\": {\"elementData\": 1}}");
 
-        PackHydrologyValidator.warnUnknownKeys("root", written, IrisHydrology.class, new PackSnippets(temporaryFolder.getRoot()), warnings);
+        PackHydrologyValidator.warnUnknownKeys("root", written, IrisHydrology.class, temporaryFolder.getRoot(), warnings);
 
         assertEquals(List.of(), warnings);
     }

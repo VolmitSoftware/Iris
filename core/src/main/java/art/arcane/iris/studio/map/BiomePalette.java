@@ -27,7 +27,6 @@ import art.arcane.volmlib.util.collection.KList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 /**
  * One of the block palettes a biome places: a surface, sea or cave ceiling layer, its wall or slab blocks, or a
@@ -129,10 +128,7 @@ record BiomePalette(String biomeKey, Kind kind, int index) {
          */
         String pathOf(String reference) {
             String path = reference.startsWith(SNIPPET_PREFIX) ? reference.substring(SNIPPET_PREFIX.length()) : reference;
-            if (path.startsWith(folder + "/")) {
-                return path.substring(folder.length() + 1);
-            }
-            return path.replaceFirst("^iris/[^/]+/" + Pattern.quote(folder) + "/", "");
+            return path.startsWith(folder + "/") ? path.substring(folder.length() + 1) : path;
         }
     }
 

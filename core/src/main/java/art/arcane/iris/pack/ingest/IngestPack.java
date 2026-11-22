@@ -18,7 +18,7 @@
 
 package art.arcane.iris.pack.ingest;
 
-import art.arcane.iris.pack.loading.PackSnippets;
+import art.arcane.iris.pack.loading.SnippetFolder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -40,14 +40,12 @@ final class IngestPack {
     private static final String SNIPPET_PREFIX = "snippet/";
 
     private final Path root;
-    private final PackSnippets snippets;
     private final Map<String, JsonObject> loaded = new HashMap<>();
     private final Map<String, JsonObject> pending = new TreeMap<>();
     private final Set<String> generated = new TreeSet<>();
 
     IngestPack(Path root) {
         this.root = root;
-        this.snippets = new PackSnippets(root.toFile());
     }
 
     Path root() {
@@ -117,13 +115,8 @@ final class IngestPack {
         if (!reference.startsWith(SNIPPET_PREFIX)) {
             return null;
         }
-        for (String key : snippets.folders(snippetType).candidateKeys(reference)) {
-            Optional<JsonObject> snippet = find(key + ".json");
-            if (snippet.isPresent()) {
-                return snippet.get().deepCopy();
-            }
-        }
-        return null;
+        String key = new SnippetFolder(snippetType).keyOf(reference);
+        return find(key + ".json").map(JsonObject::deepCopy).orElse(null);
     }
 
     List<String> generatedFiles() {

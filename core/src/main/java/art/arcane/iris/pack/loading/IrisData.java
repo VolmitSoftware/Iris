@@ -151,7 +151,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisJigsawPool> jigsawPoolLoader;
     private ResourceLoader<IrisJigsawPiece> jigsawPieceLoader;
     private KMap<String, KList<String>> possibleSnippets;
-    private KMap<String, SnippetFolders> snippetFolders;
     private Gson gson;
     private Gson snippetLoader;
     private GsonBuilder builder;
@@ -713,7 +712,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         compatReport.clear();
         closed = false;
         possibleSnippets = new KMap<>();
-        snippetFolders = new KMap<>();
         builder = new GsonBuilder()
                 .addDeserializationExclusionStrategy(this)
                 .addSerializationExclusionStrategy(this)
@@ -756,7 +754,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private void hotloadedDatapackCompiler() {
         closed = false;
         possibleSnippets = new KMap<>();
-        snippetFolders = new KMap<>();
         builder = new GsonBuilder()
                 .addDeserializationExclusionStrategy(this)
                 .addSerializationExclusionStrategy(this)
@@ -831,7 +828,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             i.clearList();
         }
         possibleSnippets.clear();
-        snippetFolders.clear();
     }
 
     public boolean hasBlockDropRules(String material) {
@@ -1028,16 +1024,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         return snippetTypeOf(elementType);
     }
 
-    /** The folders the named snippet type keeps its files in, including the namespaced ones this pack has. */
-    public SnippetFolders getSnippetFolders(String snippetType) {
-        return snippetFolders.computeIfAbsent(snippetType, type -> SnippetFolders.discover(getDataFolder(), type));
-    }
-
-    /** The "snippet/&lt;namespace&gt;/&lt;group&gt;/&lt;type&gt;" folders of the named snippet type, empty in a legacy-only pack. */
-    public List<String> getNamespacedSnippetFolders(String snippetType) {
-        return getSnippetFolders(snippetType).namespaced();
-    }
-
     /** A snippet file holding a JSON array stands for all of its entries, so inside a list it becomes that many items. */
     private <T> TypeAdapter<T> snippetListAdapter(Gson gson, TypeToken<T> listType, String snippetType) {
         TypeAdapter<T> listAdapter = gson.getDelegateAdapter(this, listType);
@@ -1092,18 +1078,18 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private static boolean isSnippetReference(JsonElement entry) {
         return entry.isJsonPrimitive()
                 && entry.getAsJsonPrimitive().isString()
-                && entry.getAsString().startsWith(SnippetFolders.PREFIX);
+                && entry.getAsString().startsWith(SnippetFolder.PREFIX);
     }
 
     /** The parsed snippet file, or null when the reference isn't a snippet or the file can't be read. */
     private @Nullable JsonElement readSnippetFile(String snippetType, String reference, String path) {
-        if (!reference.startsWith(SnippetFolders.PREFIX)) {
+        if (!reference.startsWith(SnippetFolder.PREFIX)) {
             return null;
         }
 
-        SnippetFolders.Lookup lookup = getSnippetFolders(snippetType).find(getDataFolder(), reference);
+        SnippetFolder.Lookup lookup = new SnippetFolder(snippetType).find(getDataFolder(), reference);
         if (!lookup.found()) {
-            IrisLogging.error("Couldn't find snippet " + reference + " in " + path + " (tried " + lookup.triedDescription() + ")");
+            IrisLogging.error("Couldn't find snippet " + lookup.key() + " in " + path);
             return null;
         }
 
@@ -1116,16 +1102,11 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         }
     }
 
-    /** Every snippet of the type, as "snippet/&lt;path inside its folder&gt;", from the legacy and the namespaced folder. */
+    /** Every snippet of the type, as "snippet/&lt;path inside its folder&gt;". */
     public KList<String> getPossibleSnippets(String snippetType) {
         return possibleSnippets.computeIfAbsent(snippetType, (k) -> {
-            KList<String> references = new KList<>();
-            for (String folder : getSnippetFolders(snippetType).folders()) {
-                listSnippetReferences(new File(getDataFolder(), folder)).stream()
-                        .filter(reference -> !references.contains(reference))
-                        .forEach(references::add);
-            }
-            return references;
+            File snippetFolder = new File(getDataFolder(), new SnippetFolder(snippetType).path());
+            return new KList<>(listSnippetReferences(snippetFolder));
         });
     }
 
@@ -1143,7 +1124,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                     .map(s -> s.substring(absPath.length() + 1))
                     .map(s -> s.replace("\\", "/"))
                     .map(s -> s.substring(0, s.length() - ".json".length()))
-                    .map(s -> SnippetFolders.PREFIX + s)
+                    .map(s -> SnippetFolder.PREFIX + s)
                     .toList();
         } catch (Throwable e) {
             IrisLogging.reportError("Failed to scan Iris snippets in " + snippetFolder + ".", e);

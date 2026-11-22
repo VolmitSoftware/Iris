@@ -1,7 +1,6 @@
 package art.arcane.iris.pack;
 
-import art.arcane.iris.pack.loading.PackSnippets;
-import art.arcane.iris.pack.loading.SnippetFolders;
+import art.arcane.iris.pack.loading.SnippetFolder;
 import art.arcane.iris.generation.terrain.IrisTerrain3D;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import com.google.gson.Gson;
@@ -36,13 +35,12 @@ final class PackTerrain3DValidator {
         if (packFolder == null || !packFolder.isDirectory()) {
             return errors;
         }
-        PackSnippets snippets = new PackSnippets(packFolder);
         File biomeFolder = new File(packFolder, "biomes");
         for (File biomeFile : files(biomeFolder)) {
             JsonObject biome = readObject(biomeFile, "Biome '" + PackValidationIo.deriveKey(biomeFolder, biomeFile)
                     + "'", errors);
             if (biome != null && biome.has("terrain3D") && !biome.get("terrain3D").isJsonNull()) {
-                validateProfile(snippets, biome.get("terrain3D"),
+                validateProfile(packFolder, biome.get("terrain3D"),
                         "Biome '" + PackValidationIo.deriveKey(biomeFolder, biomeFile) + "' terrain3D", errors);
             }
         }
@@ -51,7 +49,7 @@ final class PackTerrain3DValidator {
             String location = "Terrain3D snippet '" + PackValidationIo.deriveKey(snippetFolder, snippetFile) + "'";
             JsonObject profile = readObject(snippetFile, location, errors);
             if (profile != null) {
-                validateProfile(snippets, profile, location, errors);
+                validateProfile(packFolder, profile, location, errors);
             }
         }
         return errors;
@@ -66,8 +64,8 @@ final class PackTerrain3DValidator {
         return files;
     }
 
-    private static void validateProfile(PackSnippets snippets, JsonElement raw, String location, List<String> errors) {
-        JsonObject object = resolveObject(snippets, raw, "terrain-3d", location, errors);
+    private static void validateProfile(File packFolder, JsonElement raw, String location, List<String> errors) {
+        JsonObject object = resolveObject(packFolder, raw, "terrain-3d", location, errors);
         if (object == null) {
             return;
         }
@@ -90,7 +88,7 @@ final class PackTerrain3DValidator {
                 }
                 case "seed" -> requireInteger(value, path, errors);
                 case "densityStyle", "crackStyle" -> {
-                    JsonObject style = validateStyle(snippets, value, path, 0, errors);
+                    JsonObject style = validateStyle(packFolder, value, path, 0, errors);
                     if (style != null) {
                         normalized.add(field, style);
                     }
@@ -108,13 +106,13 @@ final class PackTerrain3DValidator {
         }
     }
 
-    private static JsonObject validateStyle(PackSnippets snippets, JsonElement raw, String location,
+    private static JsonObject validateStyle(File packFolder, JsonElement raw, String location,
                                             int depth, List<String> errors) {
         if (depth > 32) {
             errors.add(location + " exceeds the maximum style nesting depth of 32.");
             return null;
         }
-        JsonObject object = resolveObject(snippets, raw, "style", location, errors);
+        JsonObject object = resolveObject(packFolder, raw, "style", location, errors);
         if (object == null) {
             return null;
         }
@@ -141,7 +139,7 @@ final class PackTerrain3DValidator {
                 }
                 case "fracture" -> {
                     if (!value.isJsonNull()) {
-                        JsonObject fracture = validateStyle(snippets, value, path, depth + 1, errors);
+                        JsonObject fracture = validateStyle(packFolder, value, path, depth + 1, errors);
                         if (fracture != null) {
                             normalized.add(field, fracture);
                         }
@@ -160,7 +158,7 @@ final class PackTerrain3DValidator {
         return normalized;
     }
 
-    private static JsonObject resolveObject(PackSnippets snippets, JsonElement raw, String snippetType,
+    private static JsonObject resolveObject(File packFolder, JsonElement raw, String snippetType,
                                             String location, List<String> errors) {
         if (raw.isJsonObject()) {
             return raw.getAsJsonObject();
@@ -171,7 +169,7 @@ final class PackTerrain3DValidator {
             return null;
         }
         String reference = raw.getAsString();
-        SnippetFolders.Lookup snippet = snippets.find(snippetType, reference);
+        SnippetFolder.Lookup snippet = new SnippetFolder(snippetType).find(packFolder, reference);
         if (!snippet.found()) {
             errors.add(location + " references an unavailable " + snippetType + " snippet '" + reference + "'.");
             return null;

@@ -53,7 +53,6 @@ public class IrisDataSnippetPackWalkTest {
 
     private File pack;
     private final Map<String, Class<?>> snippetTypesByFolder = new HashMap<>();
-    private final Map<Class<?>, SnippetFolders> foldersByType = new HashMap<>();
     private final List<String> unresolved = new ArrayList<>();
     private int resolved;
     private int outsideSnippetFields;
@@ -108,11 +107,7 @@ public class IrisDataSnippetPackWalkTest {
 
     private Class<?> typeOfSnippetFile(File file) {
         String[] segments = relative(file).split("/");
-        Class<?> legacyType = snippetTypesByFolder.get(segments[1]);
-        if (legacyType != null) {
-            return legacyType;
-        }
-        return segments.length > 4 ? snippetTypesByFolder.get(segments[3]) : null;
+        return snippetTypesByFolder.get(segments[1]);
     }
 
     private void walk(JsonElement value, Type type, String path) {
@@ -156,28 +151,25 @@ public class IrisDataSnippetPackWalkTest {
     }
 
     private void checkReference(JsonElement value, Class<?> raw, String path) {
-        if (!value.getAsJsonPrimitive().isString() || !value.getAsString().startsWith(SnippetFolders.PREFIX)) {
+        if (!value.getAsJsonPrimitive().isString() || !value.getAsString().startsWith(SnippetFolder.PREFIX)) {
             return;
         }
         String reference = value.getAsString();
-        SnippetFolders folders = raw == null ? null : foldersOf(raw);
-        if (folders == null) {
+        SnippetFolder folder = raw == null ? null : folderOf(raw);
+        if (folder == null) {
             outsideSnippetFields++;
             return;
         }
-        if (folders.find(pack, reference).found()) {
+        if (folder.find(pack, reference).found()) {
             resolved++;
             return;
         }
-        unresolved.add(path + " -> " + reference + " (tried " + folders.candidateKeys(reference) + ")");
+        unresolved.add(path + " -> " + reference + " (tried " + folder.keyOf(reference) + ")");
     }
 
-    private SnippetFolders foldersOf(Class<?> type) {
+    private SnippetFolder folderOf(Class<?> type) {
         Snippet snippet = type.getDeclaredAnnotation(Snippet.class);
-        if (snippet == null) {
-            return null;
-        }
-        return foldersByType.computeIfAbsent(type, ignored -> SnippetFolders.discover(pack, snippet.value()));
+        return snippet == null ? null : new SnippetFolder(snippet.value());
     }
 
     private void collectSnippetTypes(Type type, Set<Class<?>> visited) {

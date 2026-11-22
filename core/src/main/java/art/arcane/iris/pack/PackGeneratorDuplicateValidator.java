@@ -18,8 +18,7 @@
 
 package art.arcane.iris.pack;
 
-import art.arcane.iris.pack.loading.PackSnippets;
-import art.arcane.iris.pack.loading.SnippetFolders;
+import art.arcane.iris.pack.loading.SnippetFolder;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
@@ -97,7 +96,6 @@ final class PackGeneratorDuplicateValidator {
         if (!biomesFolder.isDirectory()) {
             return referenced;
         }
-        PackSnippets snippets = new PackSnippets(packFolder);
         for (File biomeFile : PackValidationIo.listJsonRecursive(biomesFolder)) {
             JSONObject biome;
             try {
@@ -113,7 +111,7 @@ final class PackGeneratorDuplicateValidator {
                 JSONObject link = links.optJSONObject(i);
                 if (link == null) {
                     String reference = links.optString(i, null);
-                    link = resolveGeneratorLayerSnippet(snippets, reference);
+                    link = resolveGeneratorLayerSnippet(packFolder, reference);
                     if (link == null) {
                         continue;
                     }
@@ -124,11 +122,11 @@ final class PackGeneratorDuplicateValidator {
         return referenced;
     }
 
-    private static JSONObject resolveGeneratorLayerSnippet(PackSnippets snippets, String reference) {
+    private static JSONObject resolveGeneratorLayerSnippet(File packFolder, String reference) {
         if (reference == null || !reference.startsWith("snippet/")) {
             return null;
         }
-        SnippetFolders.Lookup snippet = snippets.find(GENERATOR_SNIPPET_TYPE, reference);
+        SnippetFolder.Lookup snippet = new SnippetFolder(GENERATOR_SNIPPET_TYPE).find(packFolder, reference);
         if (!snippet.found()) {
             return null;
         }

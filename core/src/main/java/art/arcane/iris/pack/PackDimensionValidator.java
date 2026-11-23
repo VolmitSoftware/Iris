@@ -294,8 +294,7 @@ final class PackDimensionValidator {
             return;
         }
         warnings.add("Dimension '" + dimensionKey + "' runs importedFeatures in a " + minY + ".." + maxY
-                + " world. Vanilla features anchored to the world bottom or top move with it, so ores such as"
-                + " diamond spread into extra bands. Narrow them with importedFeatures.steps or disabled.");
+                + " world. Vanilla ores shift with the height; limit them with importedFeatures.steps or disabled.");
     }
 
     static void validateStaticObjects(File packFolder, String dimensionKey, JSONObject dimension,

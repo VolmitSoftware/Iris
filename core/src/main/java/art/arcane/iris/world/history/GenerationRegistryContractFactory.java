@@ -146,6 +146,50 @@ public final class GenerationRegistryContractFactory {
             PlatformGenerationRegistry generationRegistry,
             CustomBiomeAliasPolicy aliasPolicy
     ) throws IOException {
+        return capture(data, dimension, packFingerprint, fixer, registries, generationRegistry, aliasPolicy,
+                CustomBiomeSelection.CURRENT);
+    }
+
+    /**
+     * Captures a Studio update's registry contract, keeping the server's loaded definition for every custom
+     * biome whose edited definition only a restart can load. Biomes the server never loaded block the update.
+     */
+    public static StudioRegistryCapture createRetainingLoadedBiomes(
+            IrisData data,
+            IrisDimension dimension,
+            String packFingerprint,
+            GenerationRegistryContract loadedContract
+    ) throws IOException {
+        PlatformRegistries registries = IrisPlatforms.get().registries();
+        return createRetainingLoadedBiomes(data, dimension, packFingerprint, loadedContract,
+                DataVersion.getRuntime().get(), registries, registries.generationRegistry());
+    }
+
+    public static StudioRegistryCapture createRetainingLoadedBiomes(
+            IrisData data,
+            IrisDimension dimension,
+            String packFingerprint,
+            GenerationRegistryContract loadedContract,
+            IDataFixer fixer,
+            PlatformRegistries registries,
+            PlatformGenerationRegistry generationRegistry
+    ) throws IOException {
+        LoadedCustomBiomeRetention retention = new LoadedCustomBiomeRetention(loadedContract, fixer, generationRegistry);
+        GenerationRegistryContract contract = capture(data, dimension, packFingerprint, fixer, registries,
+                generationRegistry, CustomBiomeAliasPolicy.CONTENT_ADDRESSED_ONLY, retention);
+        return retention.finish(contract);
+    }
+
+    private static GenerationRegistryContract capture(
+            IrisData data,
+            IrisDimension dimension,
+            String packFingerprint,
+            IDataFixer fixer,
+            PlatformRegistries registries,
+            PlatformGenerationRegistry generationRegistry,
+            CustomBiomeAliasPolicy aliasPolicy,
+            CustomBiomeSelection biomeSelection
+    ) throws IOException {
         IrisData requiredData = Objects.requireNonNull(data, "data");
         IrisDimension requiredDimension = Objects.requireNonNull(dimension, "dimension");
         String requiredPackFingerprint = requireSha256(packFingerprint, "Pack fingerprint");
@@ -201,6 +245,7 @@ public final class GenerationRegistryContractFactory {
                     requiredFixer,
                     requiredGenerationRegistry,
                     requiredAliasPolicy,
+                    biomeSelection,
                     biomeTags
             );
         }
@@ -379,36 +424,54 @@ public final class GenerationRegistryContractFactory {
                 generationRegistry,
                 "generationRegistry"
         );
-        String selectedKey = null;
-        for (Map.Entry<GenerationRegistryContract.PhysicalResourceKey, GenerationRegistryContract.GeneratedSource>
-                entry : requiredContract.generatedSources().entrySet()) {
-            GenerationRegistryContract.GeneratedSource source = entry.getValue();
-            if (!entry.getKey().registryKey().equals(BIOME_REGISTRY)
-                    || !source.sourceSchema().equals(CUSTOM_BIOME_EFFECTIVE_SOURCE_SCHEMA)) {
-                continue;
-            }
-            String identity = fingerprintCustomBiomeIdentity(
-                    source.semanticSha256(),
-                    dimensionKey,
-                    customBiomeId
+        List<GenerationRegistryContract.PhysicalResourceKey> recordedKeys = recordedCustomBiomeKeys(
+                requiredContract,
+                dimensionKey,
+                customBiomeId,
+                registry::customBiomeResourceKey
+        );
+        for (GenerationRegistryContract.PhysicalResourceKey recordedKey : recordedKeys) {
+            requireGeneratedSemanticFingerprint(
+                    recordedKey,
+                    requiredContract.generatedSources().get(recordedKey),
+                    requiredContract.definitions().get(recordedKey)
             );
-            String expectedResourceKey = registry.customBiomeResourceKey(identity);
-            if (!entry.getKey().resourceKey().equals(expectedResourceKey)) {
-                continue;
-            }
-            String expectedDefinition = requiredContract.definitions().get(entry.getKey());
-            requireGeneratedSemanticFingerprint(entry.getKey(), source, expectedDefinition);
-            if (selectedKey == null || expectedResourceKey.compareTo(selectedKey) < 0) {
-                selectedKey = expectedResourceKey;
-            }
         }
-        if (selectedKey != null) {
+        if (!recordedKeys.isEmpty()) {
+            String selectedKey = recordedKeys.getFirst().resourceKey();
             registerCustomBiomeName(dimensionKey, customBiomeId, selectedKey);
             return selectedKey;
         }
         throw new IOException("Historical generation registry contract has no custom biome mapping for "
                 + requireText(dimensionKey, "Dimension load key") + ":"
                 + requireText(customBiomeId, "Custom biome ID") + ".");
+    }
+
+    /**
+     * Every custom biome definition the contract records for one dimension's biome id, in key order. Several
+     * exist when a pack gives two custom biomes the same id.
+     */
+    static List<GenerationRegistryContract.PhysicalResourceKey> recordedCustomBiomeKeys(
+            GenerationRegistryContract contract,
+            String dimensionKey,
+            String customBiomeId,
+            UnaryOperator<String> resourceKeyFactory
+    ) {
+        List<GenerationRegistryContract.PhysicalResourceKey> keys = new ArrayList<>();
+        for (Map.Entry<GenerationRegistryContract.PhysicalResourceKey, GenerationRegistryContract.GeneratedSource>
+                entry : contract.generatedSources().entrySet()) {
+            GenerationRegistryContract.GeneratedSource source = entry.getValue();
+            if (!entry.getKey().registryKey().equals(BIOME_REGISTRY)
+                    || !source.sourceSchema().equals(CUSTOM_BIOME_EFFECTIVE_SOURCE_SCHEMA)) {
+                continue;
+            }
+            String identity = fingerprintCustomBiomeIdentity(source.semanticSha256(), dimensionKey, customBiomeId);
+            if (entry.getKey().resourceKey().equals(resourceKeyFactory.apply(identity))) {
+                keys.add(entry.getKey());
+            }
+        }
+        keys.sort(null);
+        return keys;
     }
 
     public static String fingerprintCustomBiomeAuthoredDefinition(IrisBiomeCustom customBiome) {
@@ -746,6 +809,7 @@ public final class GenerationRegistryContractFactory {
             IDataFixer fixer,
             PlatformGenerationRegistry registry,
             CustomBiomeAliasPolicy aliasPolicy,
+            CustomBiomeSelection biomeSelection,
             Map<String, Set<String>> biomeTags
     ) throws IOException {
         TreeSet<String> platformBiomeKeys = new TreeSet<>();
@@ -764,13 +828,12 @@ public final class GenerationRegistryContractFactory {
                     continue;
                 }
                 String customBiomeId = requireText(customBiome.getId(), "Custom biome ID");
-                CustomBiomeDefinition generated = customBiomeDefinition(
-                        data,
-                        dimension,
-                        customBiome,
-                        fixer,
-                        registry
+                SelectedCustomBiome selected = biomeSelection.select(
+                        dimensionKey,
+                        customBiomeId,
+                        customBiomeDefinition(data, dimension, customBiome, fixer, registry)
                 );
+                CustomBiomeDefinition generated = selected.definition();
                 putGeneratedDefinition(
                         definitions,
                         generatedSources,
@@ -782,17 +845,10 @@ public final class GenerationRegistryContractFactory {
                         generated.definition()
                 );
                 Set<String> tags = biomeTags.computeIfAbsent(generated.physicalKey().resourceKey(), ignored -> new TreeSet<>());
-                for (String rawTag : customBiome.getEffectiveTags(biome.getVanillaDerivativeKey())) {
-                    if (rawTag == null || rawTag.isBlank()) {
-                        continue;
-                    }
-                    String tag = rawTag.trim().toLowerCase(Locale.ROOT);
-                    if (tag.indexOf(':') < 0) {
-                        tag = "minecraft:" + tag;
-                    }
-                    if (tag.matches("[a-z0-9_.-]+:[a-z0-9/._-]+")) {
-                        tags.add(tag);
-                    }
+                if (selected.retainsLoadedDefinition()) {
+                    tags.addAll(selected.loadedTags());
+                } else {
+                    addEffectiveTags(tags, customBiome, biome);
                 }
                 String logicalKey = dimensionKey.toLowerCase(Locale.ROOT)
                         + ":" + customBiomeId.toLowerCase(Locale.ROOT);
@@ -842,6 +898,21 @@ public final class GenerationRegistryContractFactory {
             addMappedBiomeResourceKeys(platformBiomeKeys, customResourceKeys, biome.getBiomeSkyScatter());
         }
         addPlatformDefinitions(definitions, BIOME_REGISTRY, platformBiomeKeys, registry);
+    }
+
+    private static void addEffectiveTags(Set<String> tags, IrisBiomeCustom customBiome, IrisBiome biome) {
+        for (String rawTag : customBiome.getEffectiveTags(biome.getVanillaDerivativeKey())) {
+            if (rawTag == null || rawTag.isBlank()) {
+                continue;
+            }
+            String tag = rawTag.trim().toLowerCase(Locale.ROOT);
+            if (tag.indexOf(':') < 0) {
+                tag = "minecraft:" + tag;
+            }
+            if (tag.matches("[a-z0-9_.-]+:[a-z0-9/._-]+")) {
+                tags.add(tag);
+            }
+        }
     }
 
     private static void addNativeStructures(
@@ -1046,7 +1117,7 @@ public final class GenerationRegistryContractFactory {
                 && parseJson(left.semanticJson()).equals(parseJson(right.semanticJson()));
     }
 
-    private static PlatformGenerationRegistry.Definition canonicalGeneratedDefinition(
+    static PlatformGenerationRegistry.Definition canonicalGeneratedDefinition(
             GenerationRegistryContract.PhysicalResourceKey key,
             GenerationRegistryContract.GeneratedSource source,
             IDataFixer fixer,
@@ -1629,13 +1700,26 @@ public final class GenerationRegistryContractFactory {
             GenerationRegistryContract.PhysicalResourceKey physicalKey = key(BIOME_REGISTRY, resourceKey);
             GenerationRegistryContract.GeneratedSource source = contract.generatedSources().get(physicalKey);
             if (source == null || !semanticFingerprint.equals(source.semanticSha256())) {
-                throw new IOException("Historical generation registry contract has no exact custom biome definition for "
-                        + dimension + ":" + requiredBiome.getId() + ".");
+                physicalKey = requireSoleRecordedKey(dimension, requiredBiome.getId());
+                source = contract.generatedSources().get(physicalKey);
             }
             requireGeneratedSemanticFingerprint(physicalKey, source, contract.definitions().get(physicalKey));
-            registerCustomBiomeName(dimension, requiredBiome.getId(), resourceKey);
-            dimensionKeys.put(requiredBiome, resourceKey);
-            return resourceKey;
+            registerCustomBiomeName(dimension, requiredBiome.getId(), physicalKey.resourceKey());
+            dimensionKeys.put(requiredBiome, physicalKey.resourceKey());
+            return physicalKey.resourceKey();
+        }
+
+        // A Studio update keeps the server's loaded definition for an edited biome until restart, so its epoch
+        // records that definition instead of the pack's. The biome id then names exactly one recorded definition.
+        private GenerationRegistryContract.PhysicalResourceKey requireSoleRecordedKey(String dimension, String biomeId)
+                throws IOException {
+            List<GenerationRegistryContract.PhysicalResourceKey> recorded = recordedCustomBiomeKeys(
+                    contract, dimension, biomeId, resourceKeyFactory);
+            if (recorded.size() != 1) {
+                throw new IOException("Historical generation registry contract has no exact custom biome definition for "
+                        + dimension + ":" + biomeId + ".");
+            }
+            return recorded.getFirst();
         }
     }
 
@@ -1669,5 +1753,26 @@ public final class GenerationRegistryContractFactory {
     }
 
     private record ReferencedPlatformKeys(Set<String> blockKeys, Set<String> entityKeys) {
+    }
+
+    interface CustomBiomeSelection {
+        CustomBiomeSelection CURRENT = (dimensionKey, customBiomeId, current) -> SelectedCustomBiome.current(current);
+
+        SelectedCustomBiome select(String dimensionKey, String customBiomeId, CustomBiomeDefinition current)
+                throws IOException;
+    }
+
+    record SelectedCustomBiome(CustomBiomeDefinition definition, Collection<String> loadedTags) {
+        static SelectedCustomBiome current(CustomBiomeDefinition definition) {
+            return new SelectedCustomBiome(definition, null);
+        }
+
+        static SelectedCustomBiome loaded(CustomBiomeDefinition definition, Collection<String> tags) {
+            return new SelectedCustomBiome(definition, List.copyOf(tags));
+        }
+
+        boolean retainsLoadedDefinition() {
+            return loadedTags != null;
+        }
     }
 }

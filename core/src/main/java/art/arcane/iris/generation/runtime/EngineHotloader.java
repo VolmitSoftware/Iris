@@ -31,6 +31,10 @@ import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.IrisBoundarySignatureSampler;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.world.history.GenerationManifest;
+import art.arcane.iris.world.history.RegistryRestartRequiredException;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.generation.context.IrisContext;
@@ -282,7 +286,16 @@ final class EngineHotloader {
                         elapsedMillis(startedAt, preparedAt), elapsedMillis(preparedAt, drainedAt),
                         elapsedMillis(drainedAt, checkpointedAt), elapsedMillis(checkpointedAt, stagedAt),
                         elapsedMillis(stagedAt, promotedAt), elapsedMillis(promotedAt, completedAt));
-                broadcastStudioHotload(false, "");
+                StudioRestartRequirement requirement = StudioRestartRequirement.deferring(update.deferredBiomes());
+                publishRestartRequirement(requirement);
+                broadcastStudioHotload(false, restartNote(requirement));
+            } catch (RegistryRestartRequiredException restart) {
+                StudioRestartRequirement requirement = StudioRestartRequirement.blockedBy(restart);
+                publishRestartRequirement(requirement);
+                IrisLogging.warn("Studio update for '%s' needs a restart: %s",
+                        engine.getWorld().name(), restart.getMessage());
+                broadcastStudioHotload(true, restartNote(requirement));
+                throw EngineShutdownSequence.propagate(restart);
             } catch (Throwable failure) {
                 if (previous != null) {
                     synchronized (engine.lifecycleLock) {
@@ -328,6 +341,21 @@ final class EngineHotloader {
                 }
             }
         }
+    }
+
+    private void publishRestartRequirement(StudioRestartRequirement requirement) {
+        engine.studioRestartRequirement = requirement;
+        if (requirement.isPending()) {
+            engine.getPlatformHooks().announceStudioRestartRequirement(engine, requirement);
+        }
+    }
+
+    private static String restartNote(StudioRestartRequirement requirement) {
+        if (!requirement.isPending()) {
+            return "";
+        }
+        return IrisLanguage.plain(RuntimeUiMessages.STUDIO_RESTART_NEEDED,
+                MessageArgument.untrusted("biomes", requirement.biomeSummary()));
     }
 
     private static long elapsedMillis(long startedAt, long completedAt) {

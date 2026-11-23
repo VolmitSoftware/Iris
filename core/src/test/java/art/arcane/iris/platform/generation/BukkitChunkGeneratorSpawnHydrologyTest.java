@@ -3,6 +3,7 @@ package art.arcane.iris.platform.generation;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.StudioRestartRequirement;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.studio.StudioMode;
@@ -339,6 +340,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
             generator.setEngine(engine);
             doReturn(false).when(generator).usesFlatStudioTerrain();
             when(engine.getComplex()).thenReturn(complex);
+            when(engine.getStudioRestartRequirement()).thenReturn(StudioRestartRequirement.none());
             when(complex.getHydrologyRuntime()).thenReturn(hydrology);
             IrisDimension dimension = mock(IrisDimension.class);
             when(engine.getDimension()).thenReturn(dimension);

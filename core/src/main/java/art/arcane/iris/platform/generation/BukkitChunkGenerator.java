@@ -46,6 +46,11 @@ import art.arcane.iris.generation.runtime.IrisWorldManager;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.chunk.TerrainChunk;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.StudioRestartRequirement;
+import art.arcane.iris.world.history.RegistryRestartRequiredException;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.iris.generation.runtime.EngineTarget;
 import art.arcane.iris.generation.runtime.GenerationSessionException;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
@@ -1095,7 +1100,16 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         Engine activeEngine = getEngine();
         long started = M.ms();
         activeEngine.hotload();
-        IrisLogging.info("Hotloaded " + packKeyOf(activeEngine) + " in " + (M.ms() - started) + "ms");
+        IrisLogging.info("Hotloaded " + packKeyOf(activeEngine) + " in " + (M.ms() - started) + "ms"
+                + restartSuffix(activeEngine.getStudioRestartRequirement()));
+    }
+
+    private static String restartSuffix(StudioRestartRequirement requirement) {
+        if (!requirement.isPending()) {
+            return "";
+        }
+        return " · " + IrisLanguage.plain(RuntimeUiMessages.STUDIO_RESTART_NEEDED,
+                MessageArgument.untrusted("biomes", requirement.biomeSummary()));
     }
 
     private static String packKeyOf(Engine activeEngine) {
@@ -1147,6 +1161,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             Thread.currentThread().interrupt();
             throw new CancellationException("Studio hotload watcher interrupted.");
         } catch (ExecutionException failure) {
+            if (RegistryRestartRequiredException.inCauseChain(failure)) {
+                return;
+            }
             throw new CompletionException(failure.getCause());
         } finally {
             watcherHotload.compareAndSet(pending, null);

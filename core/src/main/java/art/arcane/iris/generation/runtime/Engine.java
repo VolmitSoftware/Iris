@@ -747,6 +747,10 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     boolean isStudio();
 
+    default StudioRestartRequirement getStudioRestartRequirement() {
+        return StudioRestartRequirement.none();
+    }
+
     default IrisBiome getBiome(int x, int y, int z) {
         IrisBiome featureBiome = getSubterrainBiome(x, y, z);
         if (featureBiome != null) {

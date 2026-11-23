@@ -39,6 +39,8 @@ final class PackDimensionValidator {
     private static final String STYLE_SNIPPET_TYPE = "style";
     private static final String RANGE_SNIPPET_TYPE = "range";
     private static final Pattern RESOURCE_KEY = Pattern.compile("[a-z0-9_.-]+:[a-z0-9/._-]+");
+    private static final int VANILLA_OVERWORLD_MIN_Y = -64;
+    private static final int VANILLA_OVERWORLD_MAX_Y = 320;
 
     private PackDimensionValidator() {
     }
@@ -63,6 +65,7 @@ final class PackDimensionValidator {
             }
 
             validateImportedStructurePolicy(dimensionKey, dimJson, blockingErrors, warnings);
+            validateImportedFeatureHeight(packFolder, dimensionKey, dimJson, warnings);
             validateDimensionHeights(packFolder, dimensionKey, dimJson, blockingErrors);
             validateBorrowedDimensionType(dimensionKey, dimJson, borrowedDimensionTypesSupported(), blockingErrors);
             validateSamplingStep(dimensionKey, dimJson, "terrainSamplingStep", 1, blockingErrors);
@@ -276,6 +279,23 @@ final class PackDimensionValidator {
             blockingErrors.add(context + " references invalid style snippet '" + reference + "': "
                     + error.getMessage());
         }
+    }
+
+    static void validateImportedFeatureHeight(File packFolder, String dimensionKey, JSONObject dimension,
+                                              List<String> warnings) {
+        JSONObject importedFeatures = dimension.optJSONObject("importedFeatures");
+        if (importedFeatures == null || !importedFeatures.optBoolean("enabled", false)) {
+            return;
+        }
+        JSONObject height = resolveDimensionHeight(packFolder, dimension);
+        int minY = height == null ? VANILLA_OVERWORLD_MIN_Y : (int) height.optDouble("min", 16D);
+        int maxY = height == null ? VANILLA_OVERWORLD_MAX_Y : (int) height.optDouble("max", 32D);
+        if (minY >= VANILLA_OVERWORLD_MIN_Y && maxY <= VANILLA_OVERWORLD_MAX_Y) {
+            return;
+        }
+        warnings.add("Dimension '" + dimensionKey + "' runs importedFeatures in a " + minY + ".." + maxY
+                + " world. Vanilla features anchored to the world bottom or top move with it, so ores such as"
+                + " diamond spread into extra bands. Narrow them with importedFeatures.steps or disabled.");
     }
 
     static void validateStaticObjects(File packFolder, String dimensionKey, JSONObject dimension,

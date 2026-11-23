@@ -225,6 +225,11 @@ public final class IrisNoiseGeneratorFractureTest {
 
     private static double reference(IrisNoiseGenerator node, long superSeed, double xv, double zv,
                                     IrisData data, Engine engine) {
+        return reference(node, superSeed, xv, zv, data, engine, IrisNoiseGenerator.X_AXIS);
+    }
+
+    private static double reference(IrisNoiseGenerator node, long superSeed, double xv, double zv,
+                                    IrisData data, Engine engine, int axis) {
         if (!node.isEnabled()) {
             return node.getOffsetY();
         }
@@ -234,14 +239,16 @@ public final class IrisNoiseGeneratorFractureTest {
         for (IrisNoiseGenerator child : node.getFracture()) {
             if (child.isEnabled()) {
                 double offset = child.getOpacity() / 2D;
-                x += reference(child, superSeed + node.getSeed() + salt, xv, zv, data, engine) - offset;
-                z += reference(child, superSeed + node.getSeed() + salt, zv, xv, data, engine) - offset;
+                long childSeed = superSeed + node.getSeed() + salt;
+                x += reference(child, childSeed, xv, zv, data, engine, IrisNoiseGenerator.X_AXIS) - offset;
+                z += reference(child, childSeed, xv, zv, data, engine, IrisNoiseGenerator.Z_AXIS) - offset;
             }
             salt += 819;
         }
         double sampleX = (x / node.getZoom()) + node.getOffsetX();
         double sampleZ = (z / node.getZoom()) + node.getOffsetZ();
-        double result = node.getGenerator(superSeed, data, engine).noiseFast2D(sampleX, sampleZ) * node.getOpacity();
+        CNG generator = node.getGenerator(superSeed, data, engine).reseededForAxis(axis);
+        double result = generator.noiseFast2D(sampleX, sampleZ) * node.getOpacity();
         result = node.isNegative() ? -result + node.getOpacity() : result;
         result = (node.getExponent() != 1D ? result < 0D ? -Math.pow(-result, node.getExponent())
                 : Math.pow(result, node.getExponent()) : result) + node.getOffsetY();

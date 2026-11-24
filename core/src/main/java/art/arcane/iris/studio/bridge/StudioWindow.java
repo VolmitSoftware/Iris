@@ -43,25 +43,24 @@ public final class StudioWindow {
     private StudioWindow() {
     }
 
-    /** False when no app is set or it could not start, so the caller's printed link is the only way in. */
-    public static synchronized boolean show(StudioBridge bridge) {
+    public static synchronized StudioLaunch show(StudioBridge bridge) {
         IrisSettings.IrisSettingsStudio settings = IrisSettings.get().getStudio();
         String appFolder = settings.getStudioApp();
         if (appFolder == null || appFolder.isBlank()) {
-            return false;
+            return StudioLaunch.NOT_CONFIGURED;
         }
         Path app = Path.of(appFolder);
         if (!Files.isRegularFile(app.resolve(BUILT_MAIN))) {
             IrisLogging.warn("Iris Studio is not built in %s; run npm run build there.", app);
-            return false;
+            return StudioLaunch.NOT_BUILT;
         }
         try {
             STARTED.removeIf(process -> !process.isAlive());
             STARTED.add(start(electronBinary(settings), app, bridge.link()));
-            return true;
+            return StudioLaunch.OPENED;
         } catch (IOException error) {
             IrisLogging.warn("Could not open Iris Studio: %s", error.getMessage());
-            return false;
+            return StudioLaunch.FAILED_TO_START;
         }
     }
 

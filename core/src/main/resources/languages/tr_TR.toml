@@ -1585,6 +1585,11 @@ failed_fragment = "  başarısız {failed}"
 "commandpack.update_world_unchanged" = "§a'{world}' dünyası aynı üretim ayarlarıyla zaten {pack} v{version} kullanıyor. Yeniden başlatma gerekmiyor."
 
 [iris.runtime.studio]
+app_not_configured = "Studio uygulaması ayarlanmamış: iris.json içindeki studio.studioApp değerini bir Studio derlemesine yönlendir."
+app_not_built = "Studio uygulaması derlenmemiş: klasöründe npm run build çalıştır."
+app_failed_to_start = "Studio uygulaması başlatılamadı; konsola bak."
+link_copy_button = "[Studio bağlantısını kopyala]"
+link_copy_hover = "Studio uygulamasının bağlantı ekranına yapıştır"
 opening = "§6Studio §bAÇILIYOR"
 opening_progress = "§6Studio §bAÇILIYOR§7 {percent}%"
 failed_progress = "§6Studio §cBAŞARISIZ§7 {percent}%"

@@ -1585,6 +1585,11 @@ failed_fragment = "  נכשל {failed}"
 "commandpack.update_world_unchanged" = "§aהעולם '{world}' כבר משתמש בחבילה {pack} v{version} עם אותן הגדרות יצירה. אין צורך בהפעלה מחדש."
 
 [iris.runtime.studio]
+app_not_configured = "אפליקציית Studio לא הוגדרה: הפנה את studio.studioApp בקובץ iris.json לבנייה של Studio."
+app_not_built = "אפליקציית Studio לא נבנתה: הרץ npm run build בתיקייה שלה."
+app_failed_to_start = "אפליקציית Studio לא הצליחה לעלות; ראה את הקונסולה."
+link_copy_button = "[העתק קישור Studio]"
+link_copy_hover = "הדבק אותו במסך החיבור של אפליקציית Studio"
 opening = "§6Studio §bנפתח"
 opening_progress = "§6Studio §bנפתח§7 {percent}%"
 failed_progress = "§6Studio §cנכשל§7 {percent}%"

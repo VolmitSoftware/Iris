@@ -1585,6 +1585,11 @@ failed_fragment = "  nepavyko {failed}"
 "commandpack.update_world_unchanged" = "§aPasaulis '{world}' jau naudoja {pack} v{version} su tais pačiais generavimo nustatymais. Paleisti iš naujo nereikia."
 
 [iris.runtime.studio]
+app_not_configured = "Studio programa nenustatyta: iris.json faile nurodykite studio.studioApp į Studio versiją."
+app_not_built = "Studio programa nesukompiliuota: jos aplanke paleiskite npm run build."
+app_failed_to_start = "Nepavyko paleisti Studio programos; žr. konsolę."
+link_copy_button = "[Kopijuoti Studio nuorodą]"
+link_copy_hover = "Įklijuokite ją Studio programos prisijungimo ekrane"
 opening = "§6Studio §bATIDAROMA"
 opening_progress = "§6Studio §bATIDAROMA§7 {percent}%"
 failed_progress = "§6Studio §cNEPAVYKO§7 {percent}%"

@@ -1583,6 +1583,11 @@ failed_fragment = "  失敗 {failed}"
 "commandpack.update_world_unchanged" = "§aワールド '{world}' は同じ生成設定の {pack} v{version} を使用しています。再起動は不要です。"
 
 [iris.runtime.studio]
+app_not_configured = "Studio アプリが未設定です: iris.json の studio.studioApp に Studio のビルドを指定してください。"
+app_not_built = "Studio アプリがビルドされていません: そのフォルダで npm run build を実行してください。"
+app_failed_to_start = "Studio アプリを起動できませんでした。コンソールを確認してください。"
+link_copy_button = "[Studio リンクをコピー]"
+link_copy_hover = "Studio アプリの接続画面に貼り付けてください"
 opening = "§6Studio §bオープン中"
 opening_progress = "§6Studio §bオープン中§7 {percent}%"
 failed_progress = "§6Studio §c失敗§7 {percent}%"

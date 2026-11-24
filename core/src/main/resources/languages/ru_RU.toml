@@ -1585,6 +1585,11 @@ failed_fragment = "  ошибок {failed}"
 "commandpack.update_world_unchanged" = "§aМир '{world}' уже использует {pack} v{version} с теми же настройками генерации. Перезапуск не требуется."
 
 [iris.runtime.studio]
+app_not_configured = "Приложение Studio не настроено: укажите в studio.studioApp в iris.json сборку Studio."
+app_not_built = "Приложение Studio не собрано: выполните npm run build в его папке."
+app_failed_to_start = "Не удалось запустить приложение Studio; см. консоль."
+link_copy_button = "[Копировать ссылку Studio]"
+link_copy_hover = "Вставьте её на экране подключения приложения Studio"
 opening = "§6Studio §bОТКРЫТИЕ"
 opening_progress = "§6Studio §bОТКРЫТИЕ§7 {percent}%"
 failed_progress = "§6Studio §cОШИБКА§7 {percent}%"

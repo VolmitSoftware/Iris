@@ -26,6 +26,7 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.studio.bridge.StudioBridge;
 import art.arcane.iris.studio.bridge.StudioBridges;
+import art.arcane.iris.studio.bridge.StudioLaunch;
 import art.arcane.iris.studio.bridge.StudioWindow;
 import art.arcane.iris.studio.view.GuiHost;
 import art.arcane.iris.pack.loading.IrisData;
@@ -95,6 +96,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText.Format;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
 import art.arcane.volmlib.util.localization.LanguageAudience;
 import art.arcane.volmlib.util.localization.MessageArgument;
@@ -273,7 +277,7 @@ public final class ModdedStudioCommands {
         ));
     }
 
-    /** Opens the studio app on the source's world, or logs its link when no app is set up. */
+    /** Opens the studio app on the source's world; when it can't, tells the source why and hands over the link to connect by hand. */
     private static int openStudioApp(NativeCommandSource source, Engine engine, String openedMessage) {
         if (GuiHost.isDesktopSuppressed()) {
             IrisModdedCommands.fail(source, guiUnavailableMessage());
@@ -283,17 +287,33 @@ public final class ModdedStudioCommands {
         NativeProtocolPlayer player = source.player();
         UUID openerId = player == null ? null : player.id();
         ModdedGuiHost.bindContext(worldView(source.server(), level), engine, openerId);
+        StudioBridge bridge;
         try {
-            StudioBridge bridge = StudioBridges.open(level.name(), () -> engine, openerId);
-            if (!StudioWindow.show(bridge)) {
-                IrisLogging.info("Iris Studio link for %s: %s", level.name(), bridge.link());
-            }
+            bridge = StudioBridges.open(level.name(), () -> engine, openerId);
         } catch (IOException error) {
             IrisModdedCommands.fail(source, "Could not open the studio bridge: " + error.getMessage());
             return 0;
         }
+        StudioLaunch launch = StudioWindow.show(bridge);
+        if (!launch.opened()) {
+            IrisLogging.info("Iris Studio link for %s: %s", level.name(), bridge.link());
+            sendStudioLink(source, launch, bridge.link());
+            return 0;
+        }
         IrisModdedCommands.ok(source, openedMessage);
         return 1;
+    }
+
+    private static void sendStudioLink(NativeCommandSource source, StudioLaunch launch, String link) {
+        IrisModdedCommands.fail(source, IrisLanguage.plain(launch.failureMessage()));
+        if (source.player() == null) {
+            return;
+        }
+        NativeCommandText hover = NativeCommandText.literal(IrisLanguage.plain(RuntimeUiMessages.STUDIO_LINK_COPY_HOVER));
+        NativeCommandText button = NativeCommandText.literal(IrisLanguage.plain(RuntimeUiMessages.STUDIO_LINK_COPY_BUTTON))
+                .withStyle(Format.GREEN)
+                .withStyle(style -> style.copyToClipboard(link).hover(hover));
+        IrisModdedCommands.ok(source, button);
     }
 
     private static LiteralArgumentBuilder<NativeCommandSource> workspaceTree(String name, boolean open) {

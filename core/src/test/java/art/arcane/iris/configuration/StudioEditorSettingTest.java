@@ -10,8 +10,8 @@ import static org.junit.Assert.assertFalse;
 
 public class StudioEditorSettingTest {
     @Test
-    public void editorDefaultsToVSCode() {
-        assertEquals(StudioEditor.VSCODE, IrisSettings.parseHotloadSnapshot("{}").getStudio().getEditor());
+    public void editorDefaultsToAuto() {
+        assertEquals(StudioEditor.AUTO, IrisSettings.parseHotloadSnapshot("{}").getStudio().getEditor());
     }
 
     @Test
@@ -30,7 +30,7 @@ public class StudioEditorSettingTest {
     }
 
     @Test
-    public void legacyOpenVSCodeTrueKeepsVSCode() {
-        assertEquals(StudioEditor.VSCODE, IrisSettings.parseHotloadSnapshot("{\"studio\":{\"openVSCode\":true}}").getStudio().getEditor());
+    public void legacyOpenVSCodeTrueKeepsTheDefaultEditor() {
+        assertEquals(StudioEditor.AUTO, IrisSettings.parseHotloadSnapshot("{\"studio\":{\"openVSCode\":true}}").getStudio().getEditor());
     }
 }

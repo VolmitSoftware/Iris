@@ -21,6 +21,8 @@ package art.arcane.iris.studio.workspace;
 import com.google.gson.annotations.SerializedName;
 
 public enum StudioEditor {
+    @SerializedName("auto")
+    AUTO("auto"),
     @SerializedName("vscode")
     VSCODE("VSCode"),
     @SerializedName("zed")

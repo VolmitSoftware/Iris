@@ -152,7 +152,8 @@ Plugin:
 /iris studio close
 ```
 
-`studio.editor` in `iris.json` picks the editor the studio opens: `vscode` (default), `zed` or `none`.
+`studio.editor` in `iris.json` picks the editor the studio opens: `auto` (default), `vscode`, `zed` or `none`.
+`auto` uses Zed when it is on the `PATH` and VSCode (`code` or `codium`) is not, otherwise VSCode.
 Zed is started through its CLI (`zed`, `zeditor` or `zedit` on the `PATH`) with the pack folder as
 the project. `/iris studio vscode` still works as an alias.
 

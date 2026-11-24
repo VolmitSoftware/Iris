@@ -181,7 +181,7 @@ public class CommandStudio implements DirectorExecutor {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_COULD_NOT_RESOLVE_PACK_DIMENSION, MessageArgument.untrusted("value", pack)));
             return;
         }
-        StudioEditor editor = StudioEditorLauncher.configuredEditor();
+        StudioEditor editor = StudioEditorLauncher.resolvedEditor();
         if (editor == StudioEditor.NONE) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_NO_EDITOR_CONFIGURED));
             return;

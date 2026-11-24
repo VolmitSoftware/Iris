@@ -53,7 +53,7 @@ public class CommandEdit implements DirectorExecutor {
     }
 
     private boolean editorUnavailable() {
-        StudioEditor editor = StudioEditorLauncher.configuredEditor();
+        StudioEditor editor = StudioEditorLauncher.resolvedEditor();
         if (editor == StudioEditor.NONE) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_NO_EDITOR_CONFIGURED));
             return true;
@@ -67,7 +67,7 @@ public class CommandEdit implements DirectorExecutor {
     }
 
     private void openInEditor(IrisRegistrant registrant) {
-        MessageArgument editorName = MessageArgument.untrusted("editor", StudioEditorLauncher.configuredEditor().getDisplayName());
+        MessageArgument editorName = MessageArgument.untrusted("editor", StudioEditorLauncher.resolvedEditor().getDisplayName());
         if (!StudioEditorLauncher.openFile(registrant.getLoader().getDataFolder(), registrant.getLoadFile())) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_COULD_NOT_OPEN_EDITOR, editorName));
             return;

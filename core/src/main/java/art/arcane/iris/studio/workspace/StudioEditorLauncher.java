@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 /**
  * Opens pack files in the editor chosen by {@code studio.editor}. Zed is always started on the pack folder,
@@ -38,27 +37,37 @@ import java.util.stream.Stream;
  */
 public final class StudioEditorLauncher {
     private static final List<String> ZED_COMMANDS = List.of("zed", "zeditor", "zedit");
+    private static final List<String> VSCODE_COMMANDS = List.of("code", "codium");
+    private static final List<String> EXECUTABLE_SUFFIXES = List.of("", ".exe", ".cmd");
 
     private StudioEditorLauncher() {
     }
 
-    public static StudioEditor configuredEditor() {
-        return IrisSettings.get().getStudio().getEditor();
+    /** The editor to open, with {@link StudioEditor#AUTO} replaced by the one detected on this machine. */
+    public static StudioEditor resolvedEditor() {
+        StudioEditor configured = IrisSettings.get().getStudio().getEditor();
+        return configured == StudioEditor.AUTO ? detectInstalledEditor(System.getenv("PATH")) : configured;
+    }
+
+    // Zed has no workspace file the OS could route to it, so it only wins when it is the sole editor found.
+    static StudioEditor detectInstalledEditor(String path) {
+        boolean onlyZedInstalled = findCommand(ZED_COMMANDS, path).isPresent() && findCommand(VSCODE_COMMANDS, path).isEmpty();
+        return onlyZedInstalled ? StudioEditor.ZED : StudioEditor.VSCODE;
     }
 
     public static boolean openProject(File projectRoot, File codeWorkspace) {
-        return switch (configuredEditor()) {
+        return switch (resolvedEditor()) {
             case VSCODE -> openWithDesktop(codeWorkspace);
             case ZED -> startZed(projectRoot, null);
-            case NONE -> false;
+            case NONE, AUTO -> false;
         };
     }
 
     public static boolean openFile(File projectRoot, File file) {
-        return switch (configuredEditor()) {
+        return switch (resolvedEditor()) {
             case VSCODE -> openWithDesktop(file);
             case ZED -> startZed(projectRoot, file);
-            case NONE -> false;
+            case NONE, AUTO -> false;
         };
     }
 
@@ -68,6 +77,7 @@ public final class StudioEditorLauncher {
             case VSCODE -> !GraphicsEnvironment.isHeadless() && Desktop.isDesktopSupported();
             case ZED -> true;
             case NONE -> false;
+            case AUTO -> canLaunch(detectInstalledEditor(System.getenv("PATH")));
         };
     }
 
@@ -90,7 +100,7 @@ public final class StudioEditorLauncher {
     }
 
     private static boolean startZed(File projectRoot, File file) {
-        Optional<Path> zed = findZedCommand();
+        Optional<Path> zed = findCommand(ZED_COMMANDS, System.getenv("PATH"));
         if (zed.isEmpty()) {
             IrisLogging.warn("Could not open Zed: none of " + String.join(", ", ZED_COMMANDS) + " is on the PATH.");
             return false;
@@ -112,17 +122,16 @@ public final class StudioEditorLauncher {
         }
     }
 
-    private static Optional<Path> findZedCommand() {
-        String path = System.getenv("PATH");
+    private static Optional<Path> findCommand(List<String> commands, String path) {
         if (path == null) {
             return Optional.empty();
         }
         List<String> directories = Arrays.stream(path.split(File.pathSeparator))
                 .filter(directory -> !directory.isBlank())
                 .toList();
-        return ZED_COMMANDS.stream()
+        return commands.stream()
                 .flatMap(command -> directories.stream()
-                        .flatMap(directory -> Stream.of(Path.of(directory, command), Path.of(directory, command + ".exe"))))
+                        .flatMap(directory -> EXECUTABLE_SUFFIXES.stream().map(suffix -> Path.of(directory, command + suffix))))
                 .filter(candidate -> Files.isRegularFile(candidate) && Files.isExecutable(candidate))
                 .findFirst();
     }

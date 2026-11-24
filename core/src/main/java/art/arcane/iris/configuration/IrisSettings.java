@@ -409,7 +409,7 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsStudio {
-        public StudioEditor editor = StudioEditor.VSCODE;
+        public StudioEditor editor = StudioEditor.AUTO;
         // Read-only bridge for iris.json files written before `editor` existed; Gson omits it again on save.
         @SerializedName("openVSCode")
         public Boolean legacyOpenVSCode = null;
@@ -421,7 +421,7 @@ public class IrisSettings {
         public String electron = "electron";
 
         public StudioEditor getEditor() {
-            return editor == null ? StudioEditor.VSCODE : editor;
+            return editor == null ? StudioEditor.AUTO : editor;
         }
 
         private void migrateLegacyOpenVSCode() {

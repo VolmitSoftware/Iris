@@ -24,6 +24,7 @@ import art.arcane.iris.generation.bake.ChunkPlanes;
 import art.arcane.iris.generation.bake.GeneratorEvaluations;
 import art.arcane.iris.generation.bake.PlaneSource;
 import art.arcane.iris.generation.bake.TerrainProgram;
+import art.arcane.iris.generation.cache.ReleasableThreadLocal;
 import art.arcane.iris.generation.noise.TerrainBatchScratch;
 import art.arcane.iris.generation.stream.BakedDoubleStream;
 import art.arcane.iris.generation.stream.BakedHeightStream;
@@ -155,9 +156,9 @@ public class IrisComplex implements DataProvider {
             InferredType.SHORE
     };
     @Getter(AccessLevel.NONE)
-    private final transient ThreadLocal<GridBoundsCache> gridBoundsCache = ThreadLocal.withInitial(GridBoundsCache::new);
+    private final transient ReleasableThreadLocal<GridBoundsCache> gridBoundsCache = new ReleasableThreadLocal<>(GridBoundsCache::new);
     @Getter(AccessLevel.NONE)
-    private final transient ThreadLocal<EffectiveWater.Chunks> effectiveChunks = ThreadLocal.withInitial(EffectiveWater.Chunks::new);
+    private final transient ReleasableThreadLocal<EffectiveWater.Chunks> effectiveChunks = new ReleasableThreadLocal<>(EffectiveWater.Chunks::new);
     @Getter(AccessLevel.NONE)
     private final int biomeBoundsSamplingStep;
     private transient volatile SharedCornerBounds sharedCornerBounds;
@@ -2993,6 +2994,8 @@ public class IrisComplex implements DataProvider {
             terrain3D.clear();
         }
         bakeCache.clear();
+        gridBoundsCache.releaseAll();
+        effectiveChunks.releaseAll();
         if (transitionDisplacement != null) {
             transitionDisplacement.clear();
         }

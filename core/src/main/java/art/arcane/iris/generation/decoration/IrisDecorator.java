@@ -24,6 +24,7 @@ import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
+import art.arcane.iris.generation.runtime.EngineRef;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
 
 import art.arcane.iris.pack.loading.IrisData;
@@ -152,10 +153,10 @@ public class IrisDecorator {
         long seed = rng.getSeed();
         Engine engine = data == null ? null : data.getEngine();
         Generators recent = recentGenerators;
-        if (recent != null && recent.key.seed == seed && recent.key.data == data && recent.key.engine == engine) {
+        if (recent != null && recent.key.seed == seed && recent.key.data == data && recent.key.engine.refersTo(engine)) {
             return recent;
         }
-        Generators selected = generators.computeIfAbsent(new GeneratorKey(seed, data, engine), Generators::new);
+        Generators selected = generators.computeIfAbsent(new GeneratorKey(seed, data, EngineRef.of(engine)), Generators::new);
         recentGenerators = selected;
         return selected;
     }
@@ -374,17 +375,17 @@ public class IrisDecorator {
         }
     }
 
-    private record GeneratorKey(long seed, IrisData data, Engine engine) {
+    private record GeneratorKey(long seed, IrisData data, EngineRef engine) {
         @Override
         public boolean equals(Object other) {
             return other instanceof GeneratorKey key
-                    && seed == key.seed && data == key.data && engine == key.engine;
+                    && seed == key.seed && data == key.data && engine.equals(key.engine);
         }
 
         @Override
         public int hashCode() {
             return 31 * (31 * Long.hashCode(seed) + System.identityHashCode(data))
-                    + System.identityHashCode(engine);
+                    + engine.hashCode();
         }
     }
 }

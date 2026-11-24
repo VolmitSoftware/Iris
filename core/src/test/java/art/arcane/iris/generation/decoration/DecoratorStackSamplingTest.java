@@ -64,7 +64,7 @@ public class DecoratorStackSamplingTest {
         int z = coordinate * 3 - 7;
         switch (direction) {
             case 0 -> DecoratorCore.placeStackUp(decorator, 0, 0, coordinate, z, 0, height,
-                    output, rng, data, opts);
+                    output, rng, data, opts, null);
             case 1 -> DecoratorCore.placeStackDown(decorator, 0, 0, coordinate, z, height, 0,
                     output, rng, data, height, opts, null);
             case 2 -> assertEquals(height, DecoratorCore.placeFloatingStacked(decorator, 0, 0,

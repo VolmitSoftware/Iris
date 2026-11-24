@@ -21,6 +21,7 @@ package art.arcane.iris.generation.biome;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
+import art.arcane.iris.generation.runtime.EngineRef;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
 
 import art.arcane.iris.pack.loading.IrisData;
@@ -198,17 +199,17 @@ public class IrisBiomePaletteLayer {
 
     private static final class LayerGeneratorKey {
         private final IrisData data;
-        private final Engine engine;
+        private final EngineRef engine;
         private final long seed;
 
         private LayerGeneratorKey(IrisData data, Engine engine, long seed) {
             this.data = data;
-            this.engine = engine;
+            this.engine = EngineRef.of(engine);
             this.seed = seed;
         }
 
         private boolean matches(IrisData data, Engine engine, long seed) {
-            return this.data == data && this.engine == engine && this.seed == seed;
+            return this.data == data && this.engine.refersTo(engine) && this.seed == seed;
         }
 
         @Override
@@ -219,13 +220,13 @@ public class IrisBiomePaletteLayer {
             if (!(object instanceof LayerGeneratorKey other)) {
                 return false;
             }
-            return data == other.data && engine == other.engine && seed == other.seed;
+            return data == other.data && engine.equals(other.engine) && seed == other.seed;
         }
 
         @Override
         public int hashCode() {
             int result = System.identityHashCode(data);
-            result = 31 * result + System.identityHashCode(engine);
+            result = 31 * result + engine.hashCode();
             result = 31 * result + Long.hashCode(seed);
             return result;
         }

@@ -20,6 +20,7 @@ package art.arcane.iris.generation.noise;
 
 import art.arcane.iris.generation.image.IrisImageMap;
 
+import art.arcane.iris.generation.runtime.EngineRef;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.runtime.Engine;
@@ -307,17 +308,17 @@ public class IrisGeneratorStyle {
 
     private static final class GeneratorCacheKey {
         private final IrisData data;
-        private final Engine engine;
+        private final EngineRef engine;
         private final long seed;
 
         private GeneratorCacheKey(IrisData data, Engine engine, long seed) {
             this.data = data;
-            this.engine = engine;
+            this.engine = EngineRef.of(engine);
             this.seed = seed;
         }
 
         private boolean matches(IrisData data, Engine engine, long seed) {
-            return this.data == data && this.engine == engine && this.seed == seed;
+            return this.data == data && this.engine.refersTo(engine) && this.seed == seed;
         }
 
         @Override
@@ -328,13 +329,13 @@ public class IrisGeneratorStyle {
             if (!(other instanceof GeneratorCacheKey key)) {
                 return false;
             }
-            return data == key.data && engine == key.engine && seed == key.seed;
+            return data == key.data && engine.equals(key.engine) && seed == key.seed;
         }
 
         @Override
         public int hashCode() {
             int result = System.identityHashCode(data);
-            result = 31 * result + System.identityHashCode(engine);
+            result = 31 * result + engine.hashCode();
             return 31 * result + Long.hashCode(seed);
         }
     }

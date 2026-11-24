@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.EngineRef;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.runtime.Engine;
@@ -313,17 +314,17 @@ public class IrisNoiseGenerator {
 
     private static final class GeneratorKey {
         private final IrisData data;
-        private final Engine engine;
+        private final EngineRef engine;
         private final long seed;
 
         private GeneratorKey(IrisData data, Engine engine, long seed) {
             this.data = data;
-            this.engine = engine;
+            this.engine = EngineRef.of(engine);
             this.seed = seed;
         }
 
         private boolean matches(IrisData data, Engine engine, long seed) {
-            return this.data == data && this.engine == engine && this.seed == seed;
+            return this.data == data && this.engine.refersTo(engine) && this.seed == seed;
         }
 
         @Override
@@ -334,13 +335,13 @@ public class IrisNoiseGenerator {
             if (!(object instanceof GeneratorKey other)) {
                 return false;
             }
-            return data == other.data && engine == other.engine && seed == other.seed;
+            return data == other.data && engine.equals(other.engine) && seed == other.seed;
         }
 
         @Override
         public int hashCode() {
             int result = System.identityHashCode(data);
-            result = 31 * result + System.identityHashCode(engine);
+            result = 31 * result + engine.hashCode();
             result = 31 * result + Long.hashCode(seed);
             return result;
         }

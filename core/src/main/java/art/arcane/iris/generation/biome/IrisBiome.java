@@ -29,6 +29,7 @@ import art.arcane.iris.generation.decoration.IrisProceduralObjects;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
+import art.arcane.iris.generation.runtime.EngineRef;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisTerrain3D;
@@ -526,7 +527,7 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         if (recent != null && recent.key.matches(seed, scale, data, engine)) {
             return recent.generator;
         }
-        ChildGeneratorKey key = new ChildGeneratorKey(seed, scale, data, engine);
+        ChildGeneratorKey key = new ChildGeneratorKey(seed, scale, data, EngineRef.of(engine));
         CNG generator = childrenGenerators.computeIfAbsent(key,
                 ignored -> getChildStyle().createScaledGenerator(new RNG(seed), data, scale));
         recentChildGenerator = new CachedChildGenerator(key, generator);
@@ -725,15 +726,19 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         }
     }
 
-    private record ChildGeneratorKey(long seed, double scale, IrisData data, Engine engine) {
+    private record ChildGeneratorKey(long seed, double scale, IrisData data, EngineRef engine) {
         private boolean matches(long seed, double scale, IrisData data, Engine engine) {
             return this.seed == seed && Double.doubleToLongBits(this.scale) == Double.doubleToLongBits(scale)
-                    && this.data == data && this.engine == engine;
+                    && this.data == data && this.engine.refersTo(engine);
         }
 
         @Override
         public boolean equals(Object object) {
-            return object instanceof ChildGeneratorKey other && matches(other.seed, other.scale, other.data, other.engine);
+            return object instanceof ChildGeneratorKey other
+                    && seed == other.seed
+                    && Double.doubleToLongBits(scale) == Double.doubleToLongBits(other.scale)
+                    && data == other.data
+                    && engine.equals(other.engine);
         }
 
         @Override
@@ -741,7 +746,7 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
             int hash = Long.hashCode(seed);
             hash = 31 * hash + Double.hashCode(scale);
             hash = 31 * hash + System.identityHashCode(data);
-            return 31 * hash + System.identityHashCode(engine);
+            return 31 * hash + engine.hashCode();
         }
     }
 

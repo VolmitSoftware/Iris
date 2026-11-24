@@ -73,13 +73,11 @@ final class DecoratorCore {
         boolean caveSkipFluid;
         boolean underwater;
         int fluidHeight;
-        EngineMantle mantle;
 
         void reset() {
             caveSkipFluid = false;
             underwater = false;
             fluidHeight = 0;
-            mantle = null;
         }
     }
 
@@ -225,7 +223,7 @@ final class DecoratorCore {
 
     static void placeStackUp(IrisDecorator decorator, int x, int z, int realX, int realZ,
                              int height, int max, Hunk<NativeBlockState> data,
-                             RNG rng, IrisData irisData, PlaceOpts opts) {
+                             RNG rng, IrisData irisData, PlaceOpts opts, EngineMantle mantle) {
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
@@ -263,7 +261,7 @@ final class DecoratorCore {
                 break;
             }
             if (!IrisSugarCane.canPlace(block, data, x, y, z, realX, realZ,
-                    opts.mantle == null ? null : opts.mantle.getEngine())) {
+                    mantle == null ? null : mantle.getEngine())) {
                 break;
             }
             if (IrisSpeleothems.isSpike(block)) {

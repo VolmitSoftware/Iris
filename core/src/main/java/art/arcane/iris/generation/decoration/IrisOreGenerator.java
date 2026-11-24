@@ -20,6 +20,7 @@ package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
+import art.arcane.iris.generation.runtime.EngineRef;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.pack.value.IrisRange;
 
@@ -91,26 +92,26 @@ public class IrisOreGenerator {
     private OreChance chance(RNG rng, IrisData data, Engine engine) {
         long seed = rng.getSeed();
         CachedChance recent = recentChance;
-        if (recent != null && recent.key.seed == seed && recent.key.data == data && recent.key.engine == engine) {
+        if (recent != null && recent.key.seed == seed && recent.key.data == data && recent.key.engine.refersTo(engine)) {
             return recent.chance;
         }
-        ChanceKey key = new ChanceKey(seed, data, engine);
+        ChanceKey key = new ChanceKey(seed, data, EngineRef.of(engine));
         OreChance selected = chanceCache.computeIfAbsent(key, ignored -> OreChance.of(chanceStyle.create(rng, data)));
         recentChance = new CachedChance(key, selected);
         return selected;
     }
 
-    private record ChanceKey(long seed, IrisData data, Engine engine) {
+    private record ChanceKey(long seed, IrisData data, EngineRef engine) {
         @Override
         public boolean equals(Object other) {
             return other instanceof ChanceKey key
-                    && seed == key.seed && data == key.data && engine == key.engine;
+                    && seed == key.seed && data == key.data && engine.equals(key.engine);
         }
 
         @Override
         public int hashCode() {
             return 31 * (31 * Long.hashCode(seed) + System.identityHashCode(data))
-                    + System.identityHashCode(engine);
+                    + engine.hashCode();
         }
     }
 

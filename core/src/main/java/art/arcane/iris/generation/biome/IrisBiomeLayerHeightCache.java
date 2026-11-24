@@ -2,6 +2,7 @@ package art.arcane.iris.generation.biome;
 
 import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.EngineRef;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
@@ -39,29 +40,29 @@ final class IrisBiomeLayerHeightCache {
 
     private static final class GeneratorKey {
         private final IrisData data;
-        private final Engine engine;
+        private final EngineRef engine;
         private final long seed;
 
         private GeneratorKey(IrisData data, Engine engine, long seed) {
             this.data = data;
-            this.engine = engine;
+            this.engine = EngineRef.of(engine);
             this.seed = seed;
         }
 
         private boolean matches(IrisData data, Engine engine, long seed) {
-            return this.data == data && this.engine == engine && this.seed == seed;
+            return this.data == data && this.engine.refersTo(engine) && this.seed == seed;
         }
 
         @Override
         public boolean equals(Object object) {
             return this == object || object instanceof GeneratorKey other
-                    && matches(other.data, other.engine, other.seed);
+                    && data == other.data && engine.equals(other.engine) && seed == other.seed;
         }
 
         @Override
         public int hashCode() {
             int result = System.identityHashCode(data);
-            result = 31 * result + System.identityHashCode(engine);
+            result = 31 * result + engine.hashCode();
             return 31 * result + Long.hashCode(seed);
         }
     }

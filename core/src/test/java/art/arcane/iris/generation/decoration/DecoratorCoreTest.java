@@ -179,7 +179,7 @@ public class DecoratorCoreTest {
         output.set(0, 2, 0, air);
         DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
 
-        DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 1, 3, output, new RNG(1L), data, opts);
+        DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 1, 3, output, new RNG(1L), data, opts, null);
 
         assertSame(support, output.get(0, 1, 0));
         assertSame(decorant, output.get(0, 2, 0));
@@ -202,7 +202,7 @@ public class DecoratorCoreTest {
         output.set(0, 2, 0, occupied);
         DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
 
-        DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 1, 3, output, new RNG(1L), data, opts);
+        DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 1, 3, output, new RNG(1L), data, opts, null);
 
         assertSame(support, output.get(0, 1, 0));
         assertSame(occupied, output.get(0, 2, 0));
@@ -233,7 +233,7 @@ public class DecoratorCoreTest {
         output.set(0, 4, 0, air);
         DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
 
-        DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 1, 4, output, new RNG(1L), data, opts);
+        DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 1, 4, output, new RNG(1L), data, opts, null);
 
         assertSame(decorant, output.get(0, 2, 0));
         assertSame(occupied, output.get(0, 3, 0));
@@ -941,7 +941,7 @@ public class DecoratorCoreTest {
         opts.underwater = submerged;
         opts.fluidHeight = height;
         if (upward) {
-            DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 0, height, output, new RNG(1L), data, opts);
+            DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 0, height, output, new RNG(1L), data, opts, null);
         } else {
             DecoratorCore.placeStackDown(decorator, 0, 0, 0, 0, height, 1, output, new RNG(1L), data, height, opts, null);
         }
@@ -1057,7 +1057,7 @@ public class DecoratorCoreTest {
 
         private void place() {
             if (upward) {
-                DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 0, height, output, new RNG(1L), data, opts);
+                DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 0, height, output, new RNG(1L), data, opts, null);
             } else {
                 DecoratorCore.placeStackDown(decorator, 0, 0, 0, 0, height, 1, output, new RNG(1L), data, height, opts, null);
             }

@@ -291,7 +291,7 @@ final class EngineHotloader {
                 StudioRestartRequirement requirement = StudioRestartRequirement.deferring(update.deferredBiomes());
                 publishRestartRequirement(requirement);
                 broadcastStudioHotload(false, restartNote(requirement));
-                followUpActivation(history, update, activated);
+                activatedStudioSource = update.activatedAs(activated.epochId());
             } catch (RegistryRestartRequiredException restart) {
                 StudioRestartRequirement requirement = StudioRestartRequirement.blockedBy(restart);
                 publishRestartRequirement(requirement);
@@ -343,20 +343,6 @@ final class EngineHotloader {
                     }
                 }
             }
-        }
-    }
-
-    /**
-     * Never throws: it runs after the activation is durable, where any failure would mark the engine failed.
-     */
-    private void followUpActivation(GenerationHistory history, StudioGenerationUpdate update,
-                                    GenerationActivation activated) {
-        try {
-            activatedStudioSource = update.activatedAs(activated.epochId());
-            new StudioPackAudit(engine, history, activated.epochId(), message -> broadcastStudioHotload(true, message))
-                    .runInBackground();
-        } catch (Throwable followUpFailure) {
-            IrisLogging.reportError("Failed to follow up the Studio pack activation.", followUpFailure);
         }
     }
 

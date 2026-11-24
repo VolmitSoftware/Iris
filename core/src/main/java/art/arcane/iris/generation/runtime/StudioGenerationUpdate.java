@@ -1,6 +1,8 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.pack.PackValidationResult;
+import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.pack.AtomicDirectoryPublisher;
 import art.arcane.iris.world.history.GenerationEpoch;
 import art.arcane.iris.world.history.GenerationEpochContractFactory;
@@ -90,6 +92,7 @@ record StudioGenerationUpdate(
                                                            Path stagingRoot, VerifiedPackTree pack,
                                                            PackTreeState sourceState) throws IOException {
         GenerationEpoch active = history.activeEpoch();
+        requireLoadable(pack);
         IrisData data = IrisData.openRuntime(pack.root().toFile());
         try {
             data.useVerifiedGenerationPackFingerprint(pack.fingerprint());
@@ -117,6 +120,13 @@ record StudioGenerationUpdate(
             if (!data.isClosed()) {
                 data.close();
             }
+        }
+    }
+
+    private static void requireLoadable(VerifiedPackTree pack) throws IOException {
+        PackValidationResult validation = PackValidator.validate(pack.root().toFile());
+        if (!validation.isLoadable()) {
+            throw new IOException("Studio pack update is invalid: " + String.join("; ", validation.getBlockingErrors()));
         }
     }
 

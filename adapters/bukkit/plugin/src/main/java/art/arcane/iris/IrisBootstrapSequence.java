@@ -40,10 +40,18 @@ final class IrisBootstrapSequence {
             requireUsableWorldStorage(startupPaths);
             ProvisionResult provisioned = provision(context, startupPaths);
             Path datapackRoot = provisioned.datapackRoot();
-            context.getLogger().info("Iris startup datapack is {} at {}", provisioned.status(), datapackRoot);
+            context.getLogger().info("{} {}", provisionOutcome(provisioned.status()), datapackRoot);
         } catch (Throwable failure) {
             armStartupFailure(context, failure);
         }
+    }
+
+    private static String provisionOutcome(DefaultPackBootstrapProvisioner.ProvisionStatus status) {
+        return switch (status) {
+            case INSTALLED -> "Installed the startup datapack at";
+            case UPDATED -> "Updated the startup datapack at";
+            case UNCHANGED -> "The startup datapack is already up to date at";
+        };
     }
 
     private static void loadRuntimeLibraries(BootstrapContext context) {

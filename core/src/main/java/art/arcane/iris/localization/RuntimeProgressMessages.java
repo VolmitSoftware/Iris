@@ -78,6 +78,14 @@ public final class RuntimeProgressMessages {
     public static final TextKey CHUNK_ACTION_FAILED = TextKey.of("iris.runtime.chunk_job.action.failed", "{bar}" + C.GRAY + " " + C.RED + "Failed" + C.GRAY + " | " + C.WHITE + "{summary}");
     public static final TextKey CHUNK_COMPLETE = TextKey.of("iris.runtime.chunk_job.complete", C.GREEN + "{title} complete: {summary}");
     public static final TextKey CHUNK_FAILED = TextKey.of("iris.runtime.chunk_job.failed", C.RED + "{title} finished with errors: {summary}");
+    public static final TextKey CHUNK_STAGE_STOPPING = TextKey.of("iris.runtime.chunk_job.stage.stopping", "Stopping");
+    public static final TextKey CHUNK_BOSSBAR_STOPPED = TextKey.of("iris.runtime.chunk_job.bossbar.stopped", C.GOLD + "{title} " + C.YELLOW + "STOPPED" + C.GRAY + " " + C.YELLOW + "{summary}");
+    public static final TextKey CHUNK_ACTION_STOPPED = TextKey.of("iris.runtime.chunk_job.action.stopped", "{bar}" + C.GRAY + " " + C.YELLOW + "Stopped" + C.GRAY + " | " + C.WHITE + "{summary}");
+    public static final TextKey CHUNK_STOPPED = TextKey.of("iris.runtime.chunk_job.stopped", C.GOLD + "{title} stopped: {summary}");
+    public static final TextKey CHUNK_ALREADY_RUNNING = TextKey.of("iris.runtime.chunk_job.already_running", "{title} is already running in {world}: {applied}/{total} chunks");
+    public static final TextKey CHUNK_STOP_HINT = TextKey.of("iris.runtime.chunk_job.stop_hint", "Stop it with {command}");
+    public static final TextKey CHUNK_STOPPING = TextKey.of("iris.runtime.chunk_job.stopping", "Stopping {title} in {world}; chunks in progress finish first");
+    public static final TextKey CHUNK_NONE_RUNNING = TextKey.of("iris.runtime.chunk_job.none_running", "No {title} is running in {world}");
     public static final TextKey GOLDEN_NO_CAPTURE = TextKey.of("iris.runtime.golden.no_capture", "No golden capture at {path}; run a capture first.");
     public static final PluralKey GOLDEN_ABORTED = PluralKey.of(
             "iris.runtime.golden.aborted",
@@ -180,6 +188,14 @@ public final class RuntimeProgressMessages {
             CHUNK_ACTION_FAILED,
             CHUNK_COMPLETE,
             CHUNK_FAILED,
+            CHUNK_STAGE_STOPPING,
+            CHUNK_BOSSBAR_STOPPED,
+            CHUNK_ACTION_STOPPED,
+            CHUNK_STOPPED,
+            CHUNK_ALREADY_RUNNING,
+            CHUNK_STOP_HINT,
+            CHUNK_STOPPING,
+            CHUNK_NONE_RUNNING,
             GOLDEN_NO_CAPTURE,
             GOLDEN_ABORTED,
             GOLDEN_FAILED,

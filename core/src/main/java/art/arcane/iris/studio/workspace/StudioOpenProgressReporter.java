@@ -22,7 +22,7 @@ import art.arcane.iris.localization.BukkitRuntimeMessages;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.RuntimeProgressMessages;
-import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ProgressBar;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.format.Form;
@@ -36,13 +36,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("ALL")
 final class StudioOpenProgressReporter {
-    private static final int STUDIO_PROGRESS_BAR_WIDTH = 44;
+    private static final long CONSOLE_HEARTBEAT_MILLIS = 10_000L;
 
     private StudioOpenProgressReporter() {
     }
 
     static void startStudioOpenReporter(VolmitSender sender, AtomicReference<String> stage, AtomicReference<Double> progress, AtomicBoolean complete, AtomicBoolean failed) {
         AtomicLong nextConsoleUpdate = new AtomicLong(0L);
+        AtomicReference<String> lastConsoleStage = new AtomicReference<>("");
         AtomicLong startMs = new AtomicLong(System.currentTimeMillis());
         AtomicInteger taskId = new AtomicInteger(-1);
         org.bukkit.boss.BossBar bossBar;
@@ -133,17 +134,17 @@ final class StudioOpenProgressReporter {
                 ));
             } else {
                 long now = System.currentTimeMillis();
-                long nextUpdate = nextConsoleUpdate.get();
-                if (now >= nextUpdate) {
-                    String bar = buildStudioConsoleBar(currentProgress);
+                boolean stageChanged = !currentStage.equals(lastConsoleStage.get());
+                if (stageChanged || now >= nextConsoleUpdate.get()) {
                     sender.sendMessage(IrisLanguage.text(
                             RuntimeProgressMessages.STUDIO_CONSOLE_PROGRESS,
-                            MessageArgument.trusted("bar", bar),
+                            MessageArgument.trusted("bar", ProgressBar.console(currentProgress)),
                             MessageArgument.trusted("percent", percent),
                             MessageArgument.trusted("stage", currentStage),
                             MessageArgument.trusted("elapsed", Form.duration(elapsed, 0))
                     ));
-                    nextConsoleUpdate.set(now + 1500L);
+                    lastConsoleStage.set(currentStage);
+                    nextConsoleUpdate.set(now + CONSOLE_HEARTBEAT_MILLIS);
                 }
             }
         }, 3);
@@ -155,26 +156,7 @@ final class StudioOpenProgressReporter {
     }
 
     private static String buildStudioProgressBar(double progress) {
-        int filled = (int) Math.round(Math.max(0.0D, Math.min(1.0D, progress)) * STUDIO_PROGRESS_BAR_WIDTH);
-        StringBuilder bar = new StringBuilder(STUDIO_PROGRESS_BAR_WIDTH * 3 + 4);
-        bar.append(C.DARK_GRAY).append("[");
-        for (int i = 0; i < STUDIO_PROGRESS_BAR_WIDTH; i++) {
-            bar.append(i < filled ? C.GREEN : C.DARK_GRAY).append("|");
-        }
-        bar.append(C.DARK_GRAY).append("]");
-        return bar.toString();
-    }
-
-    private static String buildStudioConsoleBar(double progress) {
-        int width = 20;
-        int filled = (int) Math.round(Math.max(0.0D, Math.min(1.0D, progress)) * width);
-        StringBuilder bar = new StringBuilder();
-        bar.append("[");
-        for (int i = 0; i < width; i++) {
-            bar.append(i < filled ? "#" : "-");
-        }
-        bar.append("]");
-        return bar.toString();
+        return ProgressBar.player(progress);
     }
 
     private static String describeStage(String stage) {

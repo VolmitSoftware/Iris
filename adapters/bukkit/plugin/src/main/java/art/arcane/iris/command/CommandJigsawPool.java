@@ -10,8 +10,8 @@ public class CommandJigsawPool implements DirectorExecutor {
     @Director(description = "Create an empty owned jigsaw pool", sync = true,
             origin = DirectorOrigin.PLAYER)
     public void create(
-            @Param(description = "New owned pool resource key") String poolKey,
-            @Param(description = "Owned fallback pool key, or none", defaultValue = "none")
+            @Param(name = "pool-key", description = "New owned pool resource key") String poolKey,
+            @Param(name = "fallback-pool-key", description = "Owned fallback pool key, or none", defaultValue = "none")
             String fallbackPoolKey
     ) {
         CommandJigsaw.ActiveContext context = CommandJigsaw.active(player());

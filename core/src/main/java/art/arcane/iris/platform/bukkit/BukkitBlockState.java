@@ -27,9 +27,11 @@ import art.arcane.volmlib.nativelib.terrain.BlockStateKey;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.IrisCustomData;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
+import art.arcane.iris.spi.IrisServices;
 import art.arcane.volmlib.util.collection.KMap;
 import org.bukkit.Axis;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
@@ -75,6 +77,8 @@ public final class BukkitBlockState implements NativeBlockState {
     private byte updatable;
     private byte foliage;
     private byte treeBlock;
+    private byte log;
+    private byte leaves;
     private byte foliagePlantable;
     private byte decorant;
     private byte storage;
@@ -318,10 +322,39 @@ public final class BukkitBlockState implements NativeBlockState {
     public boolean isTreeBlock() {
         byte cached = treeBlock;
         if (cached == UNKNOWN) {
-            cached = flag(Tag.LOGS.isTagged(data.getMaterial()) || Tag.LEAVES.isTagged(data.getMaterial()));
+            cached = flag(isLog() || isLeaves());
             treeBlock = cached;
         }
         return cached == TRUE;
+    }
+
+    @Override
+    public boolean isLog() {
+        byte cached = log;
+        if (cached == UNKNOWN) {
+            cached = flag(hasTag(Tag.LOGS));
+            log = cached;
+        }
+        return cached == TRUE;
+    }
+
+    @Override
+    public boolean isLeaves() {
+        byte cached = leaves;
+        if (cached == UNKNOWN) {
+            cached = flag(hasTag(Tag.LEAVES));
+            leaves = cached;
+        }
+        return cached == TRUE;
+    }
+
+    // A plugin's custom block shows up as some other material, so the plugin is asked for its own tags too.
+    private boolean hasTag(Tag<Material> tag) {
+        if (tag.isTagged(data.getMaterial())) {
+            return true;
+        }
+        ExternalDataSVC external = IrisServices.getOrNull(ExternalDataSVC.class);
+        return external != null && external.hasBlockTag(data, tag.getKey());
     }
 
     @Override

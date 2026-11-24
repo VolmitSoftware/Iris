@@ -583,7 +583,17 @@ public class ObjectPlacementGoldenTest {
 
         @Override
         public boolean isTreeBlock() {
-            return material.endsWith("_log") || material.endsWith("_leaves");
+            return isLog() || isLeaves();
+        }
+
+        @Override
+        public boolean isLog() {
+            return material.endsWith("_log");
+        }
+
+        @Override
+        public boolean isLeaves() {
+            return material.endsWith("_leaves");
         }
 
         @Override

@@ -1119,6 +1119,8 @@ replace_installed_types = "Pacotes instalados: {value}"
 "export.invalid" = "Argumentos de exportação do datapack inválidos: {reason}"
 
 [iris.director.commanddeveloper]
+"director.stop_regen_running_world" = "Parar a regeneração em execução num mundo"
+"param.world_regen_stop" = "O mundo cuja regeneração deve parar"
 "director.iris_world_manager" = "Gestor de mundos Iris"
 "director.get_loaded_tectonicplates_count" = "Obter a contagem de TectonicPlates carregadas"
 "director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "Calcular o hash da saída de blocos gerada numa área fixa para testes de determinismo/identidade"
@@ -1635,6 +1637,14 @@ progress = "§eSubstituição de {world}: {stage} ({elapsed}s decorridos)"
 "stage.cleanup" = "A limpar a substituição falhada"
 
 [iris.runtime.chunk_job]
+"stage.stopping" = "A parar"
+"bossbar.stopped" = "§6{title} §ePARADO§7 §e{summary}"
+"action.stopped" = "{bar}§7 §eParado§7 | §f{summary}"
+stopped = "§6{title} parado: {summary}"
+already_running = "{title} já está em execução em {world}: {applied}/{total} chunks"
+stop_hint = "Pare-o com {command}"
+stopping = "A parar {title} em {world}; os chunks em curso terminam primeiro"
+none_running = "Nenhum {title} em execução em {world}"
 "title.regen" = "Regen"
 "title.delete" = "Apagar"
 "title.golden_hash" = "GoldenHash"
@@ -2126,3 +2136,7 @@ open = "Abrir: {url}"
 open-description = "Abrir o relatório de diagnóstico enviado."
 copy-path = "Copiar caminho local"
 copy-path-description = "Copiar o caminho do relatório local."
+
+[iris.runtime.report]
+more = "+{count} mais"
+click_to_insert = "Clica para inserir {command}"

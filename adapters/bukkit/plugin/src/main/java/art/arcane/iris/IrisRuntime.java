@@ -24,6 +24,8 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.configuration.SettingsHotloadWatch;
 import art.arcane.iris.diagnostics.LogFilterSVC;
 import art.arcane.iris.diagnostics.splash.IrisSplashComposer;
+import art.arcane.iris.diagnostics.splash.IrisSplashPackScanner;
+import art.arcane.iris.pack.DefaultPackBootstrapProvisioner;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.runtime.BlockEditAccess;
@@ -47,6 +49,9 @@ import art.arcane.iris.integration.IrisPapiState;
 import art.arcane.iris.integration.MultiverseCoreLink;
 import art.arcane.iris.integration.MultiverseSVC;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ChatReport;
+import art.arcane.iris.localization.ConsoleGlyphs;
+import art.arcane.iris.localization.ConsoleLayout;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.pack.datapack.DatapackIngestService;
 import art.arcane.iris.pack.datapack.DatapackIngestService.StartupValidationOutcome;
@@ -141,9 +146,11 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -259,7 +266,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
         if (current == null) {
             Iris plugin = Iris.instance;
             current = new VolmitSender(Bukkit.getConsoleSender());
-            current.setTag(plugin == null ? IrisSafeguard.mode().tag("") : plugin.getTag());
+            current.setTag(logPrefix());
             sender = current;
         }
         return current;
@@ -306,17 +313,22 @@ public final class IrisRuntime implements IrisPluginRuntime {
     static void msg(String string) {
         try {
             Iris plugin = Iris.instance;
+            String markup = ConsoleGlyphs.console().fit(ConsoleLayout.onGutter(ChatReport.Tone.INFO, string));
+            if (shadesConsole()) {
+                logShaded(Level.INFO, logPrefix() + markup);
+                return;
+            }
             ComponentLog.logMarkup(
                     plugin,
                     Logger.getLogger("Iris"),
-                    logPrefix(plugin),
+                    logPrefix(),
                     Level.INFO,
-                    string,
+                    markup,
                     null);
         } catch (Throwable e) {
             try {
                 Iris plugin = Iris.instance;
-                String plainPrefix = ComponentText.legacy(logPrefix(plugin)).plain();
+                String plainPrefix = ComponentText.legacy(logPrefix()).plain();
                 Logger.getLogger("Iris").log(Level.INFO, plainPrefix + IrisLogging.clean(string));
             } catch (Throwable inner) {
                 System.err.println("[Iris] Failed to emit log message: " + inner.getMessage());
@@ -399,11 +411,11 @@ public final class IrisRuntime implements IrisPluginRuntime {
     }
 
     static void success(String string) {
-        Iris.msg(C.IRIS + string);
+        Iris.msg(ChatReport.Tone.SUCCESS.marked(ChatReport.Tone.SUCCESS.consolePaint(string)));
     }
 
     static void info(String format, Object... args) {
-        Iris.msg(C.WHITE + safeFormat(format, args));
+        Iris.msg(safeFormat(format, args));
     }
 
     private static String safeFormat(String format, Object... args) {
@@ -597,20 +609,41 @@ public final class IrisRuntime implements IrisPluginRuntime {
         };
     }
 
-    private static void diagnostic(Level level, String message) {
-        String line = IrisLogging.clean(message);
+    private static void diagnostic(Level level, String rawMessage) {
+        String message = ConsoleGlyphs.console().fit(ConsoleLayout.onGutter(diagnosticTone(level), rawMessage));
+        if (shadesConsole()) {
+            logShaded(level, logPrefix() + C.escapeTags(message));
+            return;
+        }
         Iris plugin = Iris.instance;
-        ComponentLog.log(
+        ComponentLog.logLegacy(
                 plugin,
                 Logger.getLogger("Iris"),
-                logPrefix(plugin),
+                logPrefix(),
                 level,
-                ComponentText.literal(line),
+                message,
                 null);
     }
 
-    private static String logPrefix(Iris plugin) {
-        return plugin == null ? ComponentLog.discriminator("Iris", "&a") : plugin.getTag();
+    private static ChatReport.Tone diagnosticTone(Level level) {
+        if (level == Level.SEVERE) {
+            return ChatReport.Tone.ERROR;
+        }
+        return level == Level.WARNING ? ChatReport.Tone.WARNING : ChatReport.Tone.INFO;
+    }
+
+    private static boolean shadesConsole() {
+        return IrisSettings.get().getGeneral().isUseConsoleCustomColors();
+    }
+
+    private static void logShaded(Level level, String prefixedLine) {
+        IrisSettings.IrisSettingsGeneral general = IrisSettings.get().getGeneral();
+        String shaded = C.aura(prefixedLine, general.getSpinh(), general.getSpins(), general.getSpinb());
+        ComponentLog.logMarkup(Iris.instance, Logger.getLogger("Iris"), "", level, shaded, null);
+    }
+
+    private static String logPrefix() {
+        return ConsoleGlyphs.console().fit(IrisSafeguard.mode().logTag());
     }
 
     static int irisVersion(String input) {
@@ -716,7 +749,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
         timings.mark("datapacks");
         IrisSafeguard.execute();
         timings.mark("safeguard");
-        getSender().setTag(plugin.getTag());
+        getSender().setTag(logPrefix());
         // A cosmetic banner must never abort the bootstrap.
         J.attempt(this::splash);
         IrisSafeguard.printReports();
@@ -815,19 +848,17 @@ public final class IrisRuntime implements IrisPluginRuntime {
     }
 
     private static final class EnableTimings {
-        private static final int REPORTED_SERVICES = 3;
+        private static final long REPORTED_PHASE_MIN_MS = 100;
+        private static final long SLOW_SERVICE_MIN_MS = 1000;
 
         private final long startedAt = System.nanoTime();
-        private final StringBuilder phases = new StringBuilder();
+        private final Map<String, Long> phaseMillis = new LinkedHashMap<>();
         private final Map<String, Long> serviceMillis = new LinkedHashMap<>();
         private long lastMark = startedAt;
 
         private void mark(String phase) {
             long now = System.nanoTime();
-            if (!phases.isEmpty()) {
-                phases.append(' ');
-            }
-            phases.append(phase).append('=').append(TimeUnit.NANOSECONDS.toMillis(now - lastMark)).append("ms");
+            phaseMillis.put(phase, TimeUnit.NANOSECONDS.toMillis(now - lastMark));
             lastMark = now;
         }
 
@@ -836,16 +867,35 @@ public final class IrisRuntime implements IrisPluginRuntime {
         }
 
         private void report() {
-            IrisLogging.notice("Enabled in %dms (%s)",
-                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt), phases);
-            String slowest = serviceMillis.entrySet().stream()
-                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                    .limit(REPORTED_SERVICES)
-                    .map(entry -> entry.getKey() + "=" + entry.getValue() + "ms")
-                    .collect(Collectors.joining(" "));
-            if (!slowest.isBlank()) {
-                IrisLogging.notice("Slowest services: %s", slowest);
+            String total = seconds(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
+            ChatReport.Builder report = ChatReport.of(ChatReport.Tone.SUCCESS, "Enabled in " + total).unlimited();
+            slowestFirst(phaseMillis, REPORTED_PHASE_MIN_MS)
+                    .forEach(phase -> report.entry(titleCase(phase.getKey()), seconds(phase.getValue())));
+            String slowServices = slowestFirst(serviceMillis, SLOW_SERVICE_MIN_MS).stream()
+                    .map(service -> service.getKey() + " " + seconds(service.getValue()))
+                    .collect(Collectors.joining(", "));
+            if (!slowServices.isEmpty()) {
+                report.entry("Slow Services", slowServices);
             }
+            report.build().consoleLines().forEach(IrisLogging::notice);
+        }
+
+        private static List<Map.Entry<String, Long>> slowestFirst(Map<String, Long> millisByName, long minimumMillis) {
+            return millisByName.entrySet().stream()
+                    .filter(entry -> entry.getValue() >= minimumMillis)
+                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                    .toList();
+        }
+
+        private static String titleCase(String camelCaseName) {
+            String spaced = camelCaseName.replaceAll("(?<=[a-z])(?=[A-Z])", " ");
+            return Arrays.stream(spaced.split(" "))
+                    .map(word -> word.isEmpty() ? word : Character.toUpperCase(word.charAt(0)) + word.substring(1))
+                    .collect(Collectors.joining(" "));
+        }
+
+        private static String seconds(long millis) {
+            return String.format(Locale.ROOT, "%.1fs", millis / 1000.0);
         }
     }
 
@@ -930,7 +980,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
             Iris.debug("Starting up auto Studio!");
             try {
                 Player r = new KList<>(plugin.getServer().getOnlinePlayers()).getRandom();
-                Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r) : getSender(), 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
+                Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r, plugin.getTag()) : getSender(), 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
                     J.s(() -> {
                         final Location spawn = w.getSpawnLocation();
                         for (Player i : plugin.getServer().getOnlinePlayers()) {
@@ -1490,15 +1540,38 @@ public final class IrisRuntime implements IrisPluginRuntime {
     }
 
     private void splash() {
-        Iris.info("Custom Biomes: " + INMS.get().countCustomBiomes());
-        printPacks();
-
-        IrisSafeguard.mode().trySplash();
+        File packFolder = Iris.service(StudioSVC.class).getWorkspaceFolder();
+        List<IrisSplashPackScanner.SplashPackMetadata> packs = IrisSplashPackScanner.collect(packFolder, Iris::reportError);
+        List<List<IrisSplashComposer.Detail>> startupFacts = startupFacts(packs);
+        if (IrisSettings.get().getGeneral().isSplashLogoStartup()) {
+            printWithoutLogPrefix(IrisSafeguard.mode().composeSplash(startupFacts));
+        } else {
+            startupFacts.forEach(row -> Iris.info(IrisSplashComposer.plainRow(row)));
+        }
+        announcePackUpdates(packs);
     }
 
-    private void printPacks() {
-        File packFolder = Iris.service(StudioSVC.class).getWorkspaceFolder();
-        IrisSplashComposer.composePackLines(packFolder, Iris::reportError).thenAccept(lines -> {
+    private void printWithoutLogPrefix(String text) {
+        if (shadesConsole()) {
+            ComponentLog.logMarkup(plugin, Logger.getLogger("Iris"), "", Level.INFO, C.mini(C.escapeTags(text)), null);
+            return;
+        }
+        ComponentLog.logLegacy(plugin, Logger.getLogger("Iris"), "", Level.INFO, text, null);
+    }
+
+    private static List<List<IrisSplashComposer.Detail>> startupFacts(List<IrisSplashPackScanner.SplashPackMetadata> packs) {
+        boolean eagerInjection = IrisSettings.get().getGeneral().isEagerRuntimeInjection();
+        boolean datapackFromBootstrap = DefaultPackBootstrapProvisioner.wasProvisionedThisStartup();
+        return List.of(
+                List.of(IrisSplashComposer.Detail.headline("Packs", IrisSplashComposer.packSummary(packs))),
+                List.of(new IrisSplashComposer.Detail("Custom biomes", String.valueOf(INMS.get().countCustomBiomes()))),
+                List.of(new IrisSplashComposer.Detail("SIMD", SimdSupport.shortStatus()),
+                        new IrisSplashComposer.Detail("Datapack", datapackFromBootstrap ? "bootstrap" : "startup install"),
+                        new IrisSplashComposer.Detail("Injection", eagerInjection ? "eager" : "deferred")));
+    }
+
+    private void announcePackUpdates(List<IrisSplashPackScanner.SplashPackMetadata> packs) {
+        IrisSplashComposer.composeUpdateLines(packs).thenAccept(lines -> {
             if (plugin.isEnabled()) {
                 lines.forEach(Iris::info);
             }

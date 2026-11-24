@@ -46,6 +46,11 @@ import art.arcane.iris.generation.runtime.IrisWorldManager;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.chunk.TerrainChunk;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.StudioRestartRequirement;
+import art.arcane.iris.world.history.RegistryRestartRequiredException;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.iris.generation.runtime.EngineTarget;
 import art.arcane.iris.generation.runtime.GenerationSessionException;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
@@ -1080,9 +1085,30 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
         withExclusiveControl(() -> {
             if (!studioUpdatesPaused && !closing) {
-                getEngine().hotload();
+                hotloadEngine();
             }
         });
+    }
+
+    private void hotloadEngine() {
+        Engine activeEngine = getEngine();
+        long started = M.ms();
+        activeEngine.hotload();
+        IrisLogging.info("Hotloaded " + packKeyOf(activeEngine) + " in " + (M.ms() - started) + "ms"
+                + restartSuffix(activeEngine.getStudioRestartRequirement()));
+    }
+
+    private static String restartSuffix(StudioRestartRequirement requirement) {
+        if (!requirement.isPending()) {
+            return "";
+        }
+        return " · " + IrisLanguage.plain(RuntimeUiMessages.STUDIO_RESTART_NEEDED,
+                MessageArgument.untrusted("biomes", requirement.biomeSummary()));
+    }
+
+    private static String packKeyOf(Engine activeEngine) {
+        IrisDimension dimension = activeEngine.getDimension();
+        return dimension == null ? "unknown pack" : dimension.getLoadKey();
     }
 
     @Override
@@ -1094,7 +1120,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             if (!canHotloadStudio()) {
                 throw new IllegalStateException("Studio is not ready for hotload.");
             }
-            getEngine().hotload();
+            hotloadEngine();
         });
     }
 
@@ -1119,7 +1145,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                     if (!initialEntryPending && !studioUpdatesPaused && shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
                         IrisLogging.debug("Studio update admission: world=%s wait=%dms",
                                 getTarget().getWorld().name(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - queuedAt));
-                        getEngine().hotload();
+                        hotloadEngine();
                     }
                 }, pending));
             }
@@ -1129,6 +1155,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             Thread.currentThread().interrupt();
             throw new CancellationException("Studio hotload watcher interrupted.");
         } catch (ExecutionException failure) {
+            if (RegistryRestartRequiredException.inCauseChain(failure)) {
+                return;
+            }
             throw new CompletionException(failure.getCause());
         } finally {
             watcherHotload.compareAndSet(pending, null);

@@ -27,7 +27,9 @@ import art.arcane.iris.world.lifecycle.WorldLifecycleStaging;
 import art.arcane.iris.pack.validation.CompatRegistry;
 import art.arcane.iris.world.lifecycle.WorldReplacementSeed;
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.pack.BrokenPackException;
+import art.arcane.iris.pack.PackBootReporter;
 import art.arcane.iris.pack.PackDownloader;
 import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.iris.pack.PackValidationCache;
@@ -82,7 +84,6 @@ import java.util.stream.Stream;
  */
 public final class IrisWorldGeneratorResolver {
     private static final int VALIDATION_STABILITY_ATTEMPTS = 2;
-    private static final int COMPAT_BOOT_KEY_CAP = 3;
     private static final Object SNAPSHOT_VALIDATION_LOCK = new Object();
     private static final String IRIS_DIMENSION_NAMESPACE = "iris";
     private static final String PLOT_SQUARED_DISCOVERY_WORLD = "CheckingPlotSquaredGenerator";
@@ -235,38 +236,16 @@ public final class IrisWorldGeneratorResolver {
                 PackValidationRegistry.publish(packDirectory.toPath(), result, packFingerprint, contextFingerprint);
             }
             String minecraftVersion = IrisPlatforms.isBound() ? IrisPlatforms.get().minecraftVersion() : null;
-            String compatSummary = PackValidator.compatSummary(result, minecraftVersion);
-            String compatSuffix = compatSummary.isEmpty() ? "" : " " + compatSummary;
             if (!result.isLoadable()) {
                 if (hasPendingExternalContent(result, IrisServices.getOrNull(ExternalDataSVC.class))
                         && packDirectory != null
                         && PackValidator.validateForDatapackBootstrap(packDirectory).isLoadable()) {
-                    Iris.info("Pack '" + result.getPackName() + "' is waiting for external block providers to initialize.");
+                    Iris.info("Waiting for external block providers before loading pack '" + result.getPackName() + "'…");
                     continue;
                 }
-                Iris.error("Pack '" + result.getPackName()
-                        + "' FAILED validation - world and Studio creation with this pack will be refused. Reasons:");
-                for (String reason : result.getBlockingErrors()) {
-                    Iris.error("  - " + reason);
-                }
-            } else if (!result.getWarnings().isEmpty()) {
-                Iris.info("Pack '" + result.getPackName() + "' validated ("
-                        + result.getWarnings().size() + " warning(s))." + compatSuffix);
-                for (String warning : result.getWarnings()) {
-                    Iris.warn("  [" + result.getPackName() + "] " + warning);
-                }
-            } else if (cached.isEmpty()) {
-                if (compatSummary.isEmpty()) {
-                    Iris.success("Pack '" + result.getPackName() + "' validated.");
-                } else {
-                    Iris.info("Pack '" + result.getPackName() + "' validated." + compatSuffix);
-                }
-            } else if (!compatSummary.isEmpty()) {
-                Iris.info("Pack '" + result.getPackName() + "' validated." + compatSuffix);
-            }
-            // Cache hits carry the persisted findings, so the listing prints on every boot, not only after a miss.
-            for (String line : PackValidator.compatBootLines(result, minecraftVersion, COMPAT_BOOT_KEY_CAP)) {
-                Iris.warn(line);
+                PackBootReporter.logBroken(result, minecraftVersion);
+            } else {
+                PackBootReporter.logValidated(result, minecraftVersion, false);
             }
         }
         IrisStartupValidation.markPacksReady();
@@ -705,11 +684,11 @@ public final class IrisWorldGeneratorResolver {
         try {
             requireSnapshotLoadable(snapshotRoot);
         } catch (BrokenPackException exception) {
-            Iris.error("Refusing to create world '" + worldName + "' using broken snapshot at '"
-                    + snapshotRoot + "':");
-            for (String reason : exception.getReasons()) {
-                Iris.error("  - " + reason);
-            }
+            ChatReport.of(ChatReport.Tone.ERROR, "Refusing to create world '" + worldName
+                            + "' using broken snapshot at '" + snapshotRoot + "'")
+                    .items(exception.getReasons())
+                    .build()
+                    .log();
             throw exception;
         }
 

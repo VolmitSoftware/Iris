@@ -28,6 +28,7 @@ import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.localization.MessageArgument;
+import art.arcane.volmlib.util.localization.TextKey;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.boss.BarColor;
@@ -54,8 +55,10 @@ public final class ChunkJobReporter {
     private final AtomicReference<Double> progress = new AtomicReference<>(0.0D);
     private final AtomicBoolean complete = new AtomicBoolean(false);
     private final AtomicBoolean failed = new AtomicBoolean(false);
+    private final AtomicBoolean stopped = new AtomicBoolean(false);
     private final AtomicInteger applied = new AtomicInteger(0);
     private final AtomicInteger failures = new AtomicInteger(0);
+    private final AtomicInteger skipped = new AtomicInteger(0);
     private volatile int total = 0;
     private volatile long startMs = 0L;
 
@@ -89,16 +92,43 @@ public final class ChunkJobReporter {
             failures.incrementAndGet();
         }
 
-        int finished = applied.get() + failures.get();
+        updateProgress();
+    }
+
+    /** A chunk the job had nothing to do for. It leaves the total, so the summary only counts chunks the job worked on. */
+    public void countSkipped() {
+        skipped.incrementAndGet();
+        updateProgress();
+    }
+
+    private void updateProgress() {
+        int finished = applied.get() + failures.get() + skipped.get();
         if (total > 0) {
             progress.set(Math.min(0.999D, (double) finished / total));
         }
     }
 
     public void finish(boolean error) {
+        finish(error, false);
+    }
+
+    public void finish(boolean error, boolean stoppedEarly) {
         progress.set(1.0D);
-        failed.set(error || (applied.get() == 0 && total > 0));
+        stopped.set(stoppedEarly && !error);
+        failed.set(error || (!stoppedEarly && applied.get() == 0 && workedTotal() > 0));
         complete.set(true);
+    }
+
+    public int total() {
+        return total;
+    }
+
+    public int skipped() {
+        return skipped.get();
+    }
+
+    private int workedTotal() {
+        return total - skipped.get();
     }
 
     public int applied() {
@@ -151,7 +181,7 @@ public final class ChunkJobReporter {
                         MessageArgument.trusted("percent", percent),
                         MessageArgument.trusted("stage", stage.get()),
                         MessageArgument.trusted("applied", applied.get()),
-                        MessageArgument.trusted("total", total <= 0 ? "?" : total)
+                        MessageArgument.trusted("total", total <= 0 ? "?" : workedTotal())
                 ));
             }
         }, REPORT_INTERVAL_TICKS));
@@ -161,27 +191,27 @@ public final class ChunkJobReporter {
     }
 
     private void finishReporter(BossBar bossBar, long elapsed) {
-        boolean ok = !failed.get();
+        Outcome outcome = stopped.get() ? Outcome.STOPPED : failed.get() ? Outcome.FAILED : Outcome.DONE;
         String summary = failures.get() > 0
                 ? IrisLanguage.text(
                         RuntimeProgressMessages.CHUNK_SUMMARY_FAILED,
                         MessageArgument.trusted("applied", applied.get()),
-                        MessageArgument.trusted("total", total),
+                        MessageArgument.trusted("total", workedTotal()),
                         MessageArgument.trusted("elapsed", Form.duration(elapsed, 1)),
                         MessageArgument.trusted("failures", failures.get())
                 )
                 : IrisLanguage.text(
                         RuntimeProgressMessages.CHUNK_SUMMARY,
                         MessageArgument.trusted("applied", applied.get()),
-                        MessageArgument.trusted("total", total),
+                        MessageArgument.trusted("total", workedTotal()),
                         MessageArgument.trusted("elapsed", Form.duration(elapsed, 1))
                 );
 
         if (bossBar != null) {
             bossBar.setProgress(1.0D);
-            bossBar.setColor(ok ? BarColor.GREEN : BarColor.RED);
+            bossBar.setColor(outcome.barColor);
             bossBar.setTitle(IrisLanguage.text(
-                    ok ? RuntimeProgressMessages.CHUNK_BOSSBAR_DONE : RuntimeProgressMessages.CHUNK_BOSSBAR_FAILED,
+                    outcome.bossBarKey,
                     MessageArgument.trusted("title", title),
                     MessageArgument.trusted("summary", summary)
             ));
@@ -193,13 +223,13 @@ public final class ChunkJobReporter {
 
         if (sender.isPlayer()) {
             sender.sendAction(IrisLanguage.text(
-                    ok ? RuntimeProgressMessages.CHUNK_ACTION_DONE : RuntimeProgressMessages.CHUNK_ACTION_FAILED,
+                    outcome.actionKey,
                     MessageArgument.trusted("bar", progressBar(1.0D)),
                     MessageArgument.trusted("summary", summary)
             ));
         }
         sender.sendMessage(IrisLanguage.text(
-                ok ? RuntimeProgressMessages.CHUNK_COMPLETE : RuntimeProgressMessages.CHUNK_FAILED,
+                outcome.chatKey,
                 MessageArgument.trusted("title", title),
                 MessageArgument.trusted("summary", summary)
         ));
@@ -214,5 +244,23 @@ public final class ChunkJobReporter {
         }
         bar.append(C.DARK_GRAY).append("]");
         return bar.toString();
+    }
+
+    private enum Outcome {
+        DONE(BarColor.GREEN, RuntimeProgressMessages.CHUNK_BOSSBAR_DONE, RuntimeProgressMessages.CHUNK_ACTION_DONE, RuntimeProgressMessages.CHUNK_COMPLETE),
+        STOPPED(BarColor.YELLOW, RuntimeProgressMessages.CHUNK_BOSSBAR_STOPPED, RuntimeProgressMessages.CHUNK_ACTION_STOPPED, RuntimeProgressMessages.CHUNK_STOPPED),
+        FAILED(BarColor.RED, RuntimeProgressMessages.CHUNK_BOSSBAR_FAILED, RuntimeProgressMessages.CHUNK_ACTION_FAILED, RuntimeProgressMessages.CHUNK_FAILED);
+
+        private final BarColor barColor;
+        private final TextKey bossBarKey;
+        private final TextKey actionKey;
+        private final TextKey chatKey;
+
+        Outcome(BarColor barColor, TextKey bossBarKey, TextKey actionKey, TextKey chatKey) {
+            this.barColor = barColor;
+            this.bossBarKey = bossBarKey;
+            this.actionKey = actionKey;
+            this.chatKey = chatKey;
+        }
     }
 }

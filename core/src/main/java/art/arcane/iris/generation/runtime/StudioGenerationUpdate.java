@@ -9,6 +9,7 @@ import art.arcane.iris.world.history.GenerationPackRepository;
 import art.arcane.iris.world.history.GenerationRegistryContract;
 import art.arcane.iris.world.history.GenerationRegistryContractFactory;
 import art.arcane.iris.world.history.PackTreeState;
+import art.arcane.iris.world.history.StudioRegistryCapture;
 import art.arcane.iris.world.history.VerifiedPackTree;
 import art.arcane.iris.generation.terrain.IrisDimension;
 
@@ -26,7 +27,8 @@ record StudioGenerationUpdate(
         VerifiedPackTree pack,
         PackTreeState sourceState,
         GenerationEpoch.DimensionContract dimensionContract,
-        GenerationRegistryContract registryContract
+        GenerationRegistryContract registryContract,
+        List<String> deferredBiomes
 ) implements AutoCloseable {
     private static final String TRIAL_MANTLE_DIRECTORY = ".trial-mantle";
 
@@ -102,10 +104,15 @@ record StudioGenerationUpdate(
             if (!active.dimensionContract().hasSameLayout(contract)) {
                 throw new IOException("Studio pack update changes the world's immutable dimension layout.");
             }
-            GenerationRegistryContract registry = GenerationRegistryContractFactory.create(data, replacement, pack.fingerprint());
-            registry.requireDefinitionsAvailableIn(GenerationRegistryContractFactory.captureRequiredDefinitions(List.of(registry)));
-            requireBuildableRuntime(engine, data, replacement, registry, stagingRoot.resolve(TRIAL_MANTLE_DIRECTORY));
-            return new StudioGenerationUpdate(stagingRoot, pack, sourceState, contract, registry);
+            StudioRegistryCapture registry = GenerationRegistryContractFactory.createRetainingLoadedBiomes(
+                    data, replacement, pack.fingerprint(), active.registryContract());
+            GenerationRegistryContract registryContract = registry.contract();
+            registryContract.requireDefinitionsAvailableIn(
+                    GenerationRegistryContractFactory.captureRequiredDefinitions(List.of(registryContract)));
+            requireBuildableRuntime(engine, data, replacement, registryContract,
+                    stagingRoot.resolve(TRIAL_MANTLE_DIRECTORY));
+            return new StudioGenerationUpdate(stagingRoot, pack, sourceState, contract, registryContract,
+                    registry.deferredBiomes());
         } finally {
             if (!data.isClosed()) {
                 data.close();

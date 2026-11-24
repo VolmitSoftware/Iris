@@ -17,6 +17,7 @@
  */
 package art.arcane.iris.pack.validation;
 
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -157,13 +158,32 @@ public final class PackCompatReport {
         if (findings.isEmpty()) {
             return lines;
         }
-        lines.add("Pack '" + packName + "': content unavailable on Minecraft " + versionOrUnknown(minecraftVersion));
+        lines.add(bootHeader(packName, minecraftVersion));
         for (String line : keyLines(perKeyCap)) {
             lines.add("  " + line);
         }
-        lines.add("  Update the server to a newer Minecraft to restore this content, or declare fallbacks"
-                + " (dimension blockFallbacks, block backup). /iris pack compat " + packName + " lists everything.");
+        lines.add("  " + bootRemedy(packName));
         return lines;
+    }
+
+    /** {@code 4 content keys unavailable on Minecraft 26.3: create:limestone, create:scoria +2 more} */
+    public synchronized String bootItem(String minecraftVersion, int maxKeys) {
+        List<String> keys = byKey().values().stream().map(group -> group.getFirst().key()).toList();
+        int shown = Math.min(maxKeys, keys.size());
+        int hidden = keys.size() - shown;
+        return keys.size() + (keys.size() == 1 ? " content key" : " content keys")
+                + " unavailable on Minecraft " + versionOrUnknown(minecraftVersion) + ": "
+                + String.join(", ", keys.subList(0, shown))
+                + (hidden > 0 ? " +" + hidden + " more" : "");
+    }
+
+    private static String bootHeader(String packName, String minecraftVersion) {
+        return "Pack '" + packName + "': content unavailable on Minecraft " + versionOrUnknown(minecraftVersion);
+    }
+
+    private static String bootRemedy(String packName) {
+        return "Update the server to a newer Minecraft to restore this content, or declare fallbacks"
+                + " (dimension blockFallbacks, block backup). /iris pack compat " + packName + " lists everything.";
     }
 
     /**

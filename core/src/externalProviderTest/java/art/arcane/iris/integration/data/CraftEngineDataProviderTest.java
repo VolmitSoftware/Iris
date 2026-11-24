@@ -28,6 +28,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
@@ -35,6 +36,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.junit.Test;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.util.List;
 import java.util.Map;
@@ -193,6 +195,68 @@ public class CraftEngineDataProviderTest {
             assertSame(data, result.getBase());
             assertEquals(new Identifier("test", "lamp[lit=true]"), result.getCustom());
             verify(initial).with(property, true);
+        }
+    }
+
+    @Test
+    public void decayingCustomLeavesAreMadePersistentAndKeepTheirCustomIdentity() {
+        BooleanProperty persistent = BooleanProperty.create("persistent", false);
+        BlockDefinition definition = mock(BlockDefinition.class);
+        ImmutableBlockState decaying = blockState(definition, "test:leaves[persistent=false]");
+        ImmutableBlockState kept = blockState(definition, "test:leaves[persistent=true]");
+        BlockData base = mock(BlockData.class);
+        BlockData keptBase = mock(BlockData.class);
+        doReturn(persistent).when(decaying).getProperty("persistent");
+        doReturn(false).when(decaying).get(persistent);
+        when(decaying.with(persistent, true)).thenReturn(kept);
+        try (MockedStatic<CraftEngineBlocks> blocks = mockStatic(CraftEngineBlocks.class)) {
+            blocks.when(() -> CraftEngineBlocks.getCustomBlockState(base)).thenReturn(decaying);
+            blocks.when(() -> CraftEngineBlocks.getBukkitBlockData(kept)).thenReturn(keptBase);
+
+            IrisCustomData result = (IrisCustomData) new CraftEngineDataProvider()
+                    .withoutDecay(IrisCustomData.of(base, new Identifier("craftengine", "test/leaves[persistent=false]")));
+
+            assertSame(keptBase, result.getBase());
+            assertEquals(new Identifier("test", "leaves[persistent=true]"), result.getCustom());
+        }
+    }
+
+    @Test
+    public void persistentOrDecaylessCustomBlocksAreKeptAsTheyAre() {
+        BooleanProperty persistent = BooleanProperty.create("persistent", false);
+        BlockDefinition definition = mock(BlockDefinition.class);
+        ImmutableBlockState alreadyPersistent = blockState(definition, "test:leaves[persistent=true]");
+        ImmutableBlockState withoutProperty = blockState(definition, "test:log");
+        BlockData persistentData = mock(BlockData.class);
+        BlockData logData = mock(BlockData.class);
+        BlockData vanilla = mock(BlockData.class);
+        doReturn(persistent).when(alreadyPersistent).getProperty("persistent");
+        doReturn(true).when(alreadyPersistent).get(persistent);
+        try (MockedStatic<CraftEngineBlocks> blocks = mockStatic(CraftEngineBlocks.class)) {
+            blocks.when(() -> CraftEngineBlocks.getCustomBlockState(persistentData)).thenReturn(alreadyPersistent);
+            blocks.when(() -> CraftEngineBlocks.getCustomBlockState(logData)).thenReturn(withoutProperty);
+            CraftEngineDataProvider provider = new CraftEngineDataProvider();
+
+            assertSame(persistentData, provider.withoutDecay(persistentData));
+            assertSame(logData, provider.withoutDecay(logData));
+            assertSame(vanilla, provider.withoutDecay(vanilla));
+        }
+    }
+
+    @Test
+    public void customBlocksCarryTheTagsTheirSettingsListEvenWhenWrapped() {
+        ImmutableBlockState state = mock(ImmutableBlockState.class, Mockito.RETURNS_DEEP_STUBS);
+        BlockData base = mock(BlockData.class);
+        BlockData vanilla = mock(BlockData.class);
+        when(state.settings().tags()).thenReturn(Set.of(Key.of("minecraft:logs")));
+        try (MockedStatic<CraftEngineBlocks> blocks = mockStatic(CraftEngineBlocks.class)) {
+            blocks.when(() -> CraftEngineBlocks.getCustomBlockState(base)).thenReturn(state);
+            CraftEngineDataProvider provider = new CraftEngineDataProvider();
+            BlockData wrapped = IrisCustomData.of(base, new Identifier("craftengine", "test/log"));
+
+            assertTrue(provider.hasBlockTag(wrapped, NamespacedKey.minecraft("logs")));
+            assertFalse(provider.hasBlockTag(wrapped, NamespacedKey.minecraft("leaves")));
+            assertFalse(provider.hasBlockTag(vanilla, NamespacedKey.minecraft("logs")));
         }
     }
 

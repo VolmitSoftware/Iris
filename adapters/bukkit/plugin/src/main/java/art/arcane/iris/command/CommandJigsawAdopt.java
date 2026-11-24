@@ -1,5 +1,6 @@
 package art.arcane.iris.command;
 
+import art.arcane.iris.command.specialhandlers.IrisStructureHandler;
 import art.arcane.iris.Iris;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.authoring.StructureKey;
@@ -45,7 +46,7 @@ public class CommandJigsawAdopt implements DirectorExecutor {
             origin = DirectorOrigin.PLAYER)
     public void inspect(
             @Param(description = "Pack dimension") IrisDimension dimension,
-            @Param(description = "Existing Iris structure key") String source,
+            @Param(description = "Existing Iris structure key", customHandler = IrisStructureHandler.class) String source,
             @Param(description = "New owned Iris key, or auto", defaultValue = "auto") String target,
             @Param(description = "auto, in-place, or clone", defaultValue = "auto",
                     customHandler = JigsawAdoptionStrategyHandler.class) String strategy
@@ -94,7 +95,7 @@ public class CommandJigsawAdopt implements DirectorExecutor {
     @Director(description = "Apply one inspected adoption plan without overwriting", sync = true,
             origin = DirectorOrigin.PLAYER)
     public void apply(
-            @Param(description = "Plan UUID returned by adopt inspect",
+            @Param(name = "plan-id", description = "Plan UUID returned by adopt inspect",
                     customHandler = JigsawAdoptionPlanHandler.class) String planId
     ) {
         VolmitSender commandSender = sender();

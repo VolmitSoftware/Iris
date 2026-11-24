@@ -208,12 +208,21 @@ public final class StubPlatform implements IrisPlatform {
 
         @Override
         public boolean isTreeBlock() {
+            return isLog() || isLeaves();
+        }
+
+        @Override
+        public boolean isLog() {
             String blockKey = blockKey();
             return blockKey.endsWith("_log")
                     || blockKey.endsWith("_wood")
                     || blockKey.endsWith("_stem")
-                    || blockKey.endsWith("_hyphae")
-                    || blockKey.endsWith("_leaves");
+                    || blockKey.endsWith("_hyphae");
+        }
+
+        @Override
+        public boolean isLeaves() {
+            return blockKey().endsWith("_leaves");
         }
 
         @Override

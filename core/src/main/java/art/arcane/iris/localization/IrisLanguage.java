@@ -615,11 +615,11 @@ public final class IrisLanguage {
             IrisLogging.info("Updated Iris language " + locale + " from " + source + ": " + result.summary() + ".");
         }
         if (report.coolingDown()) {
-            IrisLogging.info("Iris language source " + sourceDescription() + " was checked recently; the next check is allowed in "
+            IrisLogging.debug("Iris language source " + sourceDescription() + " was checked recently; the next check is allowed in "
                     + report.cooldownRemaining() + ".");
         } else if (report.failure().isEmpty() && report.changedLocales().isEmpty() && report.failures().isEmpty()
                 && report.revision().isPresent()) {
-            IrisLogging.info("Iris languages match " + sourceDescription() + " (" + revision + ").");
+            IrisLogging.debug("Iris languages match " + sourceDescription() + " (" + revision + ").");
         }
         return report;
     }

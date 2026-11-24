@@ -10,8 +10,10 @@ import art.arcane.volmlib.util.format.Form;
 
 import java.util.List;
 
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.BukkitCommandMessages;
+import art.arcane.volmlib.util.localization.TextKey;
 import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 final class IrisEngineStatus {
@@ -22,36 +24,53 @@ final class IrisEngineStatus {
         CacheSummary caches = summarizeCaches();
         MaintenanceMetrics metrics = snapshot.metrics();
 
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_MESSAGE));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_STATUS));
-        sender.sendMessage(IrisLanguage.text(
-                BukkitCommandMessages.IRIS_ENGINE_STATUS_SERVICE,
-                MessageArgument.trusted("value", status(snapshot.serviceRunning()))
-        ));
-        sender.sendMessage(IrisLanguage.text(
-                BukkitCommandMessages.IRIS_ENGINE_STATUS_METRICS,
-                MessageArgument.trusted("value", status(snapshot.metricsRunning()))
-        ));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_MAINTENANCE_PERIOD, MessageArgument.untrusted("value", Form.duration(snapshot.maintenancePeriodMillis()))));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_WORKER_PARALLELISM, MessageArgument.untrusted("value", snapshot.workerParallelism())));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_ACTIVE_WORLD_TASKS, MessageArgument.untrusted("value", metrics.activeTasks())));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_TECTONIC_PLATES));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_CONFIGURED_RETENTION, MessageArgument.untrusted("value", Form.duration(snapshot.retentionMillis()))));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_HEAP_USAGE, MessageArgument.untrusted("value", Form.pc(snapshot.heapUsage()))));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_RESIDENT, MessageArgument.untrusted("value", metrics.residentTectonicPlates())));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_QUEUED, MessageArgument.untrusted("value", metrics.queuedTectonicPlates())));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_AVERAGE_IDLE_DURATION, MessageArgument.untrusted("value", Form.duration(metrics.averageIdleDuration(), 2))));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_MAX_IDLE_DURATION, MessageArgument.untrusted("value", Form.duration(metrics.maxIdleDuration(), 2))));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_MIN_IDLE_DURATION, MessageArgument.untrusted("value", Form.duration(metrics.minIdleDuration(), 2))));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_CACHES));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_RESOURCE, MessageArgument.untrusted("value", caches.sizes()[0]), MessageArgument.untrusted("value2", caches.counts()[0])));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_2D_STREAM, MessageArgument.untrusted("value", caches.sizes()[1]), MessageArgument.untrusted("value2", caches.counts()[1])));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_3D_STREAM, MessageArgument.untrusted("value", caches.sizes()[2]), MessageArgument.untrusted("value2", caches.counts()[2])));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_OTHER, MessageArgument.untrusted("value", caches.sizes()[3]), MessageArgument.untrusted("value2", caches.counts()[3])));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_OTHER_2));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_IRIS_WORLDS, MessageArgument.untrusted("value", metrics.worlds())));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_LOADED_CHUNKS, MessageArgument.untrusted("value", metrics.loadedChunks())));
-        sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_MESSAGE_2));
+        sender.sendReport(section(BukkitCommandMessages.IRIS_ENGINE_STATUS_STATUS,
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_SERVICE, MessageArgument.trusted("value", status(snapshot.serviceRunning()))),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_METRICS, MessageArgument.trusted("value", status(snapshot.metricsRunning()))),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_MAINTENANCE_PERIOD, MessageArgument.untrusted("value", Form.duration(snapshot.maintenancePeriodMillis()))),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_WORKER_PARALLELISM, MessageArgument.untrusted("value", snapshot.workerParallelism())),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_ACTIVE_WORLD_TASKS, MessageArgument.untrusted("value", metrics.activeTasks()))));
+        sender.sendReport(section(BukkitCommandMessages.IRIS_ENGINE_STATUS_TECTONIC_PLATES,
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_CONFIGURED_RETENTION, MessageArgument.untrusted("value", Form.duration(snapshot.retentionMillis()))),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_HEAP_USAGE, MessageArgument.untrusted("value", Form.pc(snapshot.heapUsage()))),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_RESIDENT, MessageArgument.untrusted("value", metrics.residentTectonicPlates())),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_QUEUED, MessageArgument.untrusted("value", metrics.queuedTectonicPlates())),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_AVERAGE_IDLE_DURATION, MessageArgument.untrusted("value", Form.duration(metrics.averageIdleDuration(), 2))),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_MAX_IDLE_DURATION, MessageArgument.untrusted("value", Form.duration(metrics.maxIdleDuration(), 2))),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_MIN_IDLE_DURATION, MessageArgument.untrusted("value", Form.duration(metrics.minIdleDuration(), 2)))));
+        sender.sendReport(section(BukkitCommandMessages.IRIS_ENGINE_STATUS_CACHES,
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_RESOURCE, MessageArgument.untrusted("value", caches.sizes()[0]), MessageArgument.untrusted("value2", caches.counts()[0])),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_2D_STREAM, MessageArgument.untrusted("value", caches.sizes()[1]), MessageArgument.untrusted("value2", caches.counts()[1])),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_3D_STREAM, MessageArgument.untrusted("value", caches.sizes()[2]), MessageArgument.untrusted("value2", caches.counts()[2])),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_OTHER, MessageArgument.untrusted("value", caches.sizes()[3]), MessageArgument.untrusted("value2", caches.counts()[3]))));
+        sender.sendReport(section(BukkitCommandMessages.IRIS_ENGINE_STATUS_OTHER_2,
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_IRIS_WORLDS, MessageArgument.untrusted("value", metrics.worlds())),
+                IrisLanguage.text(BukkitCommandMessages.IRIS_ENGINE_STATUS_LOADED_CHUNKS, MessageArgument.untrusted("value", metrics.loadedChunks()))));
+    }
+
+    private static ChatReport section(TextKey header, String... statLines) {
+        ChatReport.Builder report = ChatReport.of(ChatReport.Tone.INFO, stripTrailingColon(IrisLanguage.text(header))).unlimited();
+        for (String statLine : statLines) {
+            addStat(report, statLine);
+        }
+        return report.build();
+    }
+
+    /** Status keys render as {@code - Label: value}; a labelled stat becomes a report entry, anything else a plain item. */
+    private static void addStat(ChatReport.Builder report, String statLine) {
+        String cleaned = ChatReport.clean(statLine);
+        String withoutDash = cleaned.startsWith("-") ? cleaned.substring(1).strip() : cleaned;
+        int separator = withoutDash.indexOf(": ");
+        if (separator < 0) {
+            report.styledItem(withoutDash);
+            return;
+        }
+        report.entry(withoutDash.substring(0, separator), withoutDash.substring(separator + 2));
+    }
+
+    private static String stripTrailingColon(String header) {
+        String cleaned = ChatReport.clean(header);
+        return cleaned.endsWith(":") ? cleaned.substring(0, cleaned.length() - 1) : cleaned;
     }
 
     private static String status(boolean running) {

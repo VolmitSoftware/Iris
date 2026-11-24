@@ -64,6 +64,9 @@ public interface EnginePlatformHooks {
     default void fireHotloadEvent(Engine engine) {
     }
 
+    default void announceStudioRestartRequirement(Engine engine, StudioRestartRequirement requirement) {
+    }
+
     default void validateDimensionHotload(Engine engine, IrisDimension replacement) {
     }
 

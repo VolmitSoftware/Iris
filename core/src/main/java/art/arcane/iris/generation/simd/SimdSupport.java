@@ -4,9 +4,11 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.configuration.IrisSettings;
 
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 public final class SimdSupport {
     private static final String VECTOR_MODULE = "jdk.incubator.vector";
+    private static final Pattern VECTOR_SHAPE_BITS = Pattern.compile("^.*S_(\\d+)_BIT.*$");
     private static final boolean MODULE_PRESENT = ModuleLayer.boot().findModule(VECTOR_MODULE).isPresent();
     private static final AtomicReference<Throwable> KERNEL_FAILURE = new AtomicReference<>();
     private static final SimdKernels KERNELS = selectKernels();
@@ -54,8 +56,19 @@ public final class SimdSupport {
         return "scalar kernels active; the Vector API reported no usable vector shape on this CPU";
     }
 
+    public static String shortStatus() {
+        if (!isVectorized()) {
+            return "scalar";
+        }
+        return VECTOR_SHAPE_BITS.matcher(KERNELS.describe()).replaceFirst("$1-bit");
+    }
+
     public static void install() {
-        IrisLogging.info("SIMD: " + kernelStatus());
+        if (isVectorized()) {
+            IrisLogging.debug("SIMD: " + kernelStatus());
+        } else {
+            IrisLogging.info("SIMD: " + kernelStatus());
+        }
 
         Throwable failure = KERNEL_FAILURE.get();
         if (failure != null) {

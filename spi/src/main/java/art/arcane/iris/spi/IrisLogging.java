@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
  * Internal to Iris; not a published integration surface.
  */
 public final class IrisLogging {
-    private static final int MAX_ONCE_KEYS = 512;
+    static final int MAX_ONCE_KEYS = 512;
     private static final Set<String> ONCE_KEYS = ConcurrentHashMap.newKeySet();
     private static final Pattern LEGACY_COLOR = Pattern.compile("(?i)\\u00a7[0-9A-FK-ORX]");
     private static final Pattern MINI_MESSAGE_TAG = Pattern.compile("(?i)</?(?:reset|bold|b|italic|i|underlined?|u|strikethrough|st|obfuscated?|obf|black|dark_blue|dark_green|dark_aqua|dark_red|dark_purple|gold|gray|dark_gray|blue|green|aqua|red|light_purple|yellow|white|gradient|font|hover|click|rainbow)(?::[^>\\n]{0,96})?>|<#[0-9a-f]{6}>");
@@ -88,7 +88,8 @@ public final class IrisLogging {
      * Logs at {@link LogLevel#WARN} the first time {@code key} is seen and at {@link LogLevel#DEBUG} every
      * time after, for a condition that is worth stating once but is reached per block, per sample or per
      * chunk. Returns true when the warning was the one that got stated, so a caller can attach a stack trace
-     * or other one-off detail to it.
+     * or other one-off detail to it. Once {@link #MAX_ONCE_KEYS} keys are claimed, a key not among them is
+     * stated at {@link LogLevel#WARN} every time: repeating is the lesser harm than hiding a new condition.
      *
      * @see #resetOnceKeys()
      */
@@ -214,7 +215,7 @@ public final class IrisLogging {
 
     private static boolean once(LogLevel level, String key, String format, Object... args) {
         String message = format(format, args);
-        if (!claim(key)) {
+        if (isRepeat(key)) {
             emit(LogLevel.DEBUG, message);
             return false;
         }
@@ -225,14 +226,16 @@ public final class IrisLogging {
 
     /**
      * The cap is what keeps a key space nobody bounded - a block name, a biome name, a mod id - from becoming
-     * a leak. Past it nothing new is claimed, which drops later conditions to debug rather than growing.
+     * a leak. Past it nothing new is claimed, so a key that could not be claimed never counts as a repeat:
+     * it is stated at its own level every time rather than hidden at debug.
      */
-    private static boolean claim(String key) {
+    private static boolean isRepeat(String key) {
+        String claimable = key == null ? "null" : key;
         if (ONCE_KEYS.size() >= MAX_ONCE_KEYS) {
-            return false;
+            return ONCE_KEYS.contains(claimable);
         }
 
-        return ONCE_KEYS.add(key == null ? "null" : key);
+        return !ONCE_KEYS.add(claimable);
     }
 
     private static void emit(LogLevel level, String message) {

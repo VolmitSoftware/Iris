@@ -166,6 +166,23 @@ public class IrisLoggingTest {
         assertFalse(IrisLogging.warnOnce(key, "claimed"));
     }
 
+    @Test
+    public void aKeyPastTheCapIsStillStatedWhileClaimedKeysStayQuiet() {
+        String claimed = uniqueKey();
+        assertTrue(IrisLogging.warnOnce(claimed, "claimed"));
+        for (int filler = 1; filler < IrisLogging.MAX_ONCE_KEYS; filler++) {
+            IrisLogging.warnOnce(uniqueKey(), "filler");
+        }
+        String unclaimable = uniqueKey();
+        levels.clear();
+
+        assertTrue(IrisLogging.warnOnce(unclaimable, "new condition"));
+        assertTrue(IrisLogging.warnOnce(unclaimable, "new condition"));
+        assertFalse(IrisLogging.warnOnce(claimed, "claimed"));
+
+        assertEquals(List.of(LogLevel.WARN, LogLevel.WARN, LogLevel.DEBUG), levels);
+    }
+
     private void bindCapturingPlatform() {
         IrisPlatform platform = mock(IrisPlatform.class);
         capturingPlatform = platform;

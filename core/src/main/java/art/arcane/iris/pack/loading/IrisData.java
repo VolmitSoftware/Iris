@@ -201,6 +201,23 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         return Optional.ofNullable(dataLoaders.get(dataFolder));
     }
 
+    /**
+     * Closes every cached loader for a pack inside the given folder. A world's generation packs
+     * live in its own folder and get cached by metadata reads; without this, each closed studio
+     * world would leave its loader in the cache for the rest of the server's life.
+     */
+    public static void closeLoadedUnder(File root) {
+        if (root == null) {
+            return;
+        }
+        Path normalizedRoot = root.toPath().toAbsolutePath().normalize();
+        for (IrisData data : dataLoaders.values()) {
+            if (data.getDataFolder().toPath().toAbsolutePath().normalize().startsWith(normalizedRoot)) {
+                data.close();
+            }
+        }
+    }
+
     public static void invalidateLoadedAuthoringResources(File source) {
         Path requested = dataFolderIdentity(Objects.requireNonNull(source, "authoring pack source"));
         for (Map.Entry<File, IrisData> entry : dataLoaders.entrySet()) {

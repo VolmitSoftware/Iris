@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import type { BridgeConnection, GraphicsInfo, StoredShortcuts, ThemeChoice } from '../shared/bridge'
+import { DEFAULT_UI_SCALE, isUiScale, type AboutInfo, type BridgeConnection, type GraphicsInfo, type StoredShortcuts, type ThemeChoice, type UiScale } from '../shared/bridge'
 import {
   dedicatedGpuDriver,
   runsOnDedicatedGpu,
@@ -17,6 +17,7 @@ const CONNECTION_FOLDER = join(homedir(), '.iris', 'studio', 'bridges')
 const SETTINGS_FILE = 'studio.json'
 const SHORTCUTS_KEY = 'shortcuts'
 const DEDICATED_GPU_KEY = 'dedicatedGpu'
+const UI_SCALE_KEY = 'uiScale'
 const SETTINGS_INDENT = 2
 const LINK_PREFIX = 'iris-studio://'
 const DARK_BACKGROUND = '#1e1f22'
@@ -91,14 +92,36 @@ async function saveSetting(key: string, value: unknown): Promise<void> {
   }
 }
 
-/** Read before the app is ready, as the GPU the studio draws on is chosen by how it was started. */
-function choosesDedicatedGpu(): boolean {
+/** For settings needed before the app is ready or the window opens, when nothing can wait for a read. */
+function readSettingsNow(): Record<string, unknown> {
   try {
     const settings: unknown = JSON.parse(readFileSync(settingsPath(), 'utf8'))
-    return typeof settings === 'object' && settings !== null && (settings as Record<string, unknown>)[DEDICATED_GPU_KEY] === true
+    return typeof settings === 'object' && settings !== null && !Array.isArray(settings) ? (settings as Record<string, unknown>) : {}
   } catch {
-    return false
+    return {}
   }
+}
+
+/** Read before the app is ready, as the GPU the studio draws on is chosen by how it was started. */
+function choosesDedicatedGpu(): boolean {
+  return readSettingsNow()[DEDICATED_GPU_KEY] === true
+}
+
+function savedUiScale(settings: Record<string, unknown>): UiScale {
+  const scale = settings[UI_SCALE_KEY]
+  return isUiScale(scale) ? scale : DEFAULT_UI_SCALE
+}
+
+function setUiScale(scale: unknown): void {
+  if (!isUiScale(scale)) {
+    return
+  }
+  window?.webContents.setZoomFactor(scale)
+  void saveSetting(UI_SCALE_KEY, scale)
+}
+
+function aboutInfo(): AboutInfo {
+  return { version: app.getVersion(), electron: process.versions.electron, chromium: process.versions.chrome }
 }
 
 function restartOnGpu(dedicated: boolean): void {
@@ -132,7 +155,8 @@ function createWindow(): void {
     webPreferences: {
       preload: join(import.meta.dirname, '../preload/index.cjs'),
       sandbox: true,
-      contextIsolation: true
+      contextIsolation: true,
+      zoomFactor: savedUiScale(readSettingsNow())
     }
   })
   window.once('ready-to-show', () => window?.show())
@@ -191,6 +215,9 @@ if (dedicatedGpu !== null && choosesDedicatedGpu() && !runsOnDedicatedGpu(proces
   ipcMain.on('studio:save-shortcuts', (_event, shortcuts: StoredShortcuts) => void saveSetting(SHORTCUTS_KEY, shortcuts))
   ipcMain.handle('studio:graphics', graphicsInfo)
   ipcMain.on('studio:use-dedicated-gpu', (_event, dedicated: boolean) => void useDedicatedGpu(dedicated))
+  ipcMain.handle('studio:ui-scale', async () => savedUiScale(await readSettings()))
+  ipcMain.on('studio:set-ui-scale', (_event, scale: unknown) => setUiScale(scale))
+  ipcMain.handle('studio:about', aboutInfo)
   ipcMain.on('studio:copy-text', (_event, text: string) => clipboard.writeText(text))
 
   void app.whenReady().then(createWindow)

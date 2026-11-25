@@ -3,7 +3,6 @@ import type { ThemeChoice } from '../../../shared/bridge'
 
 const STORAGE_KEY = 'iris-studio.theme'
 const DARK_QUERY = '(prefers-color-scheme: dark)'
-const ORDER: ThemeChoice[] = ['system', 'light', 'dark']
 
 function storedChoice(): ThemeChoice {
   const stored = localStorage.getItem(STORAGE_KEY)
@@ -15,8 +14,13 @@ function apply(choice: ThemeChoice): void {
   document.documentElement.classList.toggle('dark', dark)
 }
 
+export interface Theme {
+  choice: ThemeChoice
+  choose(choice: ThemeChoice): void
+}
+
 /** The light or dark look, following the system unless chosen; the choice outlives the window. */
-export function useTheme(): { choice: ThemeChoice; next: () => void } {
+export function useTheme(): Theme {
   const [choice, setChoice] = useState<ThemeChoice>(storedChoice)
 
   useEffect(() => {
@@ -29,5 +33,5 @@ export function useTheme(): { choice: ThemeChoice; next: () => void } {
     return () => media.removeEventListener('change', follow)
   }, [choice])
 
-  return { choice, next: () => setChoice(ORDER[(ORDER.indexOf(choice) + 1) % ORDER.length]) }
+  return { choice, choose: setChoice }
 }

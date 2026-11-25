@@ -1,11 +1,10 @@
 import type { ReactNode } from 'react'
-import { Blocks, Mountain, PawPrint, SquareDashed, SunMoon } from 'lucide-react'
+import { Blocks, Mountain, PawPrint, SquareDashed } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Separator } from '@/components/ui/separator'
 import { Toggle } from '@/components/ui/toggle'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import type { ThemeChoice } from '../../../shared/bridge'
 import type { WorldInfo } from '../bridge/types'
 import { Glyph } from './Glyph'
 import type { StudioToggles } from './MapStudio'
@@ -14,16 +13,13 @@ import { useKeyText } from './useBindings'
 
 interface StudioToolbarProps {
   world: WorldInfo
-  theme: { choice: ThemeChoice; next: () => void }
   onHelp(): void
   onSettings(): void
   onDisconnect(): void
 }
 
-const THEME_NAMES: Record<ThemeChoice, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
-
 /** The window's bar: the world the studio is connected to, which leads back to the world list, and the studio's own buttons. */
-export function StudioToolbar({ world, theme, onHelp, onSettings, onDisconnect }: StudioToolbarProps): React.JSX.Element {
+export function StudioToolbar({ world, onHelp, onSettings, onDisconnect }: StudioToolbarProps): React.JSX.Element {
   return (
     <header className="flex h-10 shrink-0 items-center gap-1 px-1.5">
       <IconHint hint="Back to the world list">
@@ -37,9 +33,6 @@ export function StudioToolbar({ world, theme, onHelp, onSettings, onDisconnect }
         </Button>
       </IconHint>
       <div className="flex-1" />
-      <MainToolbarButton hint={THEME_NAMES[theme.choice]} onClick={theme.next}>
-        <SunMoon className="size-5" />
-      </MainToolbarButton>
       <MainToolbarButton action="help" hint="Show every mouse and key shortcut" onClick={onHelp}>
         <Glyph glyph="help" large />
       </MainToolbarButton>

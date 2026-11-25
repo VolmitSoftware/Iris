@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ThemeChoice } from '../../../shared/bridge'
 import type { BridgeClient, MapLayerQuery, WorldRect } from '../bridge/BridgeClient'
 import type { MapHover, MapLabel, Marker, ModuleViewInfo, PickDisplay, ServerUsage, ViewInfo, WorldInfo } from '../bridge/types'
 import type { Share } from '../map/census'
@@ -20,10 +19,11 @@ import { SavedWorldStudio } from './SavedWorldStudio'
 import { SceneStudio } from './SceneStudio'
 import { WorldStudio3D } from './WorldStudio3D'
 import { isTypingInto, shortcutRows, viewOfShortcutId, windowShortcutFor, type ShortcutAction } from './shortcuts'
-import { ShortcutSettings } from './ShortcutSettings'
+import { SettingsDialog } from './SettingsDialog'
 import { Panel, SidebarPanel, SidebarSlot, ViewIsland } from './Sidebar'
 import { StatusBar } from './StatusBar'
 import { MapTools, StudioToolbar } from './StudioToolbar'
+import type { Theme } from './theme'
 import { useBindings } from './useBindings'
 import { usePickInspection } from './usePickInspection'
 import { ViewList } from './ViewList'
@@ -37,7 +37,7 @@ const PICK_VIEWS = new Set(['biomes', 'regions'])
 interface MapStudioProps {
   client: BridgeClient
   world: WorldInfo
-  theme: { choice: ThemeChoice; next: () => void }
+  theme: Theme
   onDisconnect(): void
 }
 
@@ -219,7 +219,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
 
   return (
     <div className="flex h-full flex-col">
-      <StudioToolbar world={world} theme={theme} onHelp={() => setHelpOpen(true)} onSettings={() => setSettingsOpen(true)} onDisconnect={onDisconnect} />
+      <StudioToolbar world={world} onHelp={() => setHelpOpen(true)} onSettings={() => setSettingsOpen(true)} onDisconnect={onDisconnect} />
       <SidebarSlot.Provider value={sidebarSlot}>
       <div className="flex min-h-0 flex-1 gap-1.5 pr-1.5">
         <ViewList views={views} current={viewId} onSelect={selectView} slotRef={setSidebarSlot} />
@@ -324,7 +324,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
       </SidebarSlot.Provider>
       <StatusBar viewLabel={statusLabel(view.label, previewName, showsMap ? null : sceneSummary)} status={showsMap ? status : null} notice={notice} usage={usage} progress={showsMap ? null : sceneProgress} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} views={views} />
-      <ShortcutSettings open={settingsOpen} onOpenChange={setSettingsOpen} views={views} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} views={views} theme={theme} />
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import type { StoredShortcuts, StudioHost, ThemeChoice } from '../shared/bridge'
+import type { StoredShortcuts, StudioHost, ThemeChoice, UiScale } from '../shared/bridge'
 
 const host: StudioHost = {
   listBridges: () => ipcRenderer.invoke('studio:list-bridges'),
@@ -14,7 +14,10 @@ const host: StudioHost = {
   loadShortcuts: () => ipcRenderer.invoke('studio:load-shortcuts'),
   saveShortcuts: (shortcuts: StoredShortcuts) => ipcRenderer.send('studio:save-shortcuts', shortcuts),
   graphics: () => ipcRenderer.invoke('studio:graphics'),
-  useDedicatedGpu: (dedicated: boolean) => ipcRenderer.send('studio:use-dedicated-gpu', dedicated)
+  useDedicatedGpu: (dedicated: boolean) => ipcRenderer.send('studio:use-dedicated-gpu', dedicated),
+  uiScale: () => ipcRenderer.invoke('studio:ui-scale'),
+  setUiScale: (scale: UiScale) => ipcRenderer.send('studio:set-ui-scale', scale),
+  about: () => ipcRenderer.invoke('studio:about')
 }
 
 contextBridge.exposeInMainWorld('studio', host)

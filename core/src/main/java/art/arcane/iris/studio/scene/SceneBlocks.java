@@ -16,8 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.studio.bridge;
+package art.arcane.iris.studio.scene;
 
+import art.arcane.iris.structure.object.IrisObject;
 import com.google.gson.Gson;
 
 import java.nio.ByteBuffer;
@@ -27,6 +28,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 /**
@@ -38,9 +40,12 @@ import java.util.Set;
  * The header holds the block states used once each and the scene's bounds. Air is left out: the studio draws nothing
  * there either. Positions are from the scene's lowest corner.
  */
-final class SceneBlocks {
+public final class SceneBlocks {
+    /** The part of a block no part is known for. */
+    public static final int NO_PART = -1;
     private static final int ALIGNMENT_BYTES = 4;
     private static final int INTS_PER_BLOCK = 4;
+    private static final int PART_FIELD = 4;
     private static final Set<String> AIR = Set.of("minecraft:air", "minecraft:cave_air", "minecraft:void_air");
 
     private final Map<String, Integer> palette = new LinkedHashMap<>();
@@ -48,12 +53,35 @@ final class SceneBlocks {
     private final int[] min = {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE};
     private final int[] max = {Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE};
 
-    void add(int x, int y, int z, String state) {
+    public static SceneBlocks of(IrisObject object) {
+        SceneBlocks scene = new SceneBlocks();
+        object.getBlocks().forEach((position, state) -> scene.add(position.getBlockX(), position.getBlockY(), position.getBlockZ(), state.key()));
+        return scene;
+    }
+
+    /**
+     * The scene of one of an entry's baked objects, wrapping {@code variant} around how many there are.
+     *
+     * @param what what the entry is, such as "tree", for the message when it bakes nothing
+     */
+    public static SceneBlocks ofVariant(List<IrisObject> variants, int variant, String what) {
+        if (variants.isEmpty()) {
+            throw new NoSuchElementException("This " + what + " bakes nothing");
+        }
+        return of(variants.get(Math.floorMod(variant, variants.size())));
+    }
+
+    public void add(int x, int y, int z, String state) {
+        add(x, y, z, state, NO_PART);
+    }
+
+    /** @param part which part of the entry placed the block, numbered by the view from 0, or {@link #NO_PART} */
+    public void add(int x, int y, int z, String state, int part) {
         if (AIR.contains(state)) {
             return;
         }
         int paletteIndex = palette.computeIfAbsent(state, ignored -> palette.size());
-        blocks.add(new int[]{x, y, z, paletteIndex});
+        blocks.add(new int[]{x, y, z, paletteIndex, part});
         int[] at = {x, y, z};
         for (int axis = 0; axis < 3; axis++) {
             min[axis] = Math.min(min[axis], at[axis]);
@@ -61,12 +89,17 @@ final class SceneBlocks {
         }
     }
 
-    int count() {
+    public int count() {
         return blocks.size();
     }
 
+    /** The part of each block, in the order {@link #encode} writes them. */
+    public int[] parts() {
+        return blocks.stream().mapToInt(block -> block[PART_FIELD]).toArray();
+    }
+
     /** The scene with its lowest corner at the origin; an empty scene is one block across. */
-    byte[] encode(Gson gson) {
+    public byte[] encode(Gson gson) {
         boolean empty = blocks.isEmpty();
         int[] origin = empty ? new int[]{0, 0, 0} : min;
         int[] top = empty ? new int[]{1, 1, 1} : max;

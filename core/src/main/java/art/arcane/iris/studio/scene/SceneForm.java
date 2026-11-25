@@ -16,13 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.studio.bridge;
+package art.arcane.iris.studio.scene;
 
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
 import art.arcane.volmlib.util.documentation.Description;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,46 +30,41 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The settings of a profile object as a form: each plain number, switch and choice it has, with the value it holds, what
- * the pack says about it and its limits. A value typed into the form is carried by a request and applied to a copy, so
- * the pack's files stay as they are.
+ * The settings of a scene entry as a form, with short lines about it. {@link #of} reads the plain numbers, switches and
+ * choices of a settings object; a value typed into the form is carried by a request and applied to a copy with
+ * {@link #withOverrides}, so the pack's files stay as they are. Settings nested in lists or other objects are not shown.
  */
-final class ProfileForm {
-    private ProfileForm() {
-    }
-
+public record SceneForm(String title, List<Field> fields, List<String> notes) {
     /** @param kind boolean, integer, decimal or enum; {@code choices} lists an enum's names */
-    record Field(String name, String description, String kind, Object value, Object defaultValue, Double minimum, Double maximum,
-                 List<String> choices, boolean changed) {
+    public record Field(String name, String description, String kind, Object value, Object defaultValue, Double minimum, Double maximum,
+                        List<String> choices, boolean changed) {
     }
 
-    record Form(String title, List<Field> fields, List<String> notes) {
-    }
-
-    static Form of(String title, Object bean, Set<String> hidden, Map<String, String> overrides, List<String> notes) {
-        Object fresh = newInstance(bean.getClass());
+    /** @param hidden names of fields left out of the form */
+    public static SceneForm of(String title, Object settings, Set<String> hidden, Map<String, String> overrides, List<String> notes) {
+        Object fresh = newInstance(settings.getClass());
         List<Field> fields = new ArrayList<>();
-        for (java.lang.reflect.Field field : bean.getClass().getDeclaredFields()) {
+        for (java.lang.reflect.Field field : settings.getClass().getDeclaredFields()) {
             String kind = kindOf(field);
             if (kind == null || hidden.contains(field.getName())) {
                 continue;
             }
-            fields.add(fieldOf(field, kind, bean, fresh, overrides.containsKey(field.getName())));
+            fields.add(fieldOf(field, kind, settings, fresh, overrides.containsKey(field.getName())));
         }
-        return new Form(title, fields, notes);
+        return new SceneForm(title, fields, notes);
     }
 
-    /** A copy of the bean with the typed values set; a value that does not read as its field's type is ignored. */
+    /** A copy of the settings with the typed values set; a value that does not read as its field's type is ignored. */
     @SuppressWarnings("unchecked")
-    static <T> T withOverrides(T bean, Map<String, String> overrides) {
-        T copy = (T) newInstance(bean.getClass());
-        for (java.lang.reflect.Field field : bean.getClass().getDeclaredFields()) {
+    public static <T> T withOverrides(T settings, Map<String, String> overrides) {
+        T copy = (T) newInstance(settings.getClass());
+        for (java.lang.reflect.Field field : settings.getClass().getDeclaredFields()) {
             if (Modifier.isStatic(field.getModifiers()) || Modifier.isFinal(field.getModifiers())) {
                 continue;
             }
             field.setAccessible(true);
             try {
-                field.set(copy, field.get(bean));
+                field.set(copy, field.get(settings));
                 String typed = overrides.get(field.getName());
                 if (typed != null && kindOf(field) != null) {
                     field.set(copy, parse(field.getType(), typed));
@@ -82,7 +76,17 @@ final class ProfileForm {
         return copy;
     }
 
-    private static Field fieldOf(java.lang.reflect.Field field, String kind, Object bean, Object fresh, boolean changed) {
+    /** What the pack says about an enum constant, or its readable name when it says nothing. */
+    public static String describe(Enum<?> constant) {
+        try {
+            Description description = constant.getDeclaringClass().getField(constant.name()).getAnnotation(Description.class);
+            return description == null ? SceneEntry.readable(constant.name()) : description.value();
+        } catch (NoSuchFieldException undocumented) {
+            return SceneEntry.readable(constant.name());
+        }
+    }
+
+    private static Field fieldOf(java.lang.reflect.Field field, String kind, Object settings, Object fresh, boolean changed) {
         field.setAccessible(true);
         try {
             Description description = field.getAnnotation(Description.class);
@@ -91,7 +95,7 @@ final class ProfileForm {
             List<String> choices = field.getType().isEnum()
                     ? Arrays.stream(field.getType().getEnumConstants()).map(constant -> ((Enum<?>) constant).name()).toList()
                     : List.of();
-            return new Field(field.getName(), description == null ? "" : description.value(), kind, plain(field.get(bean)),
+            return new Field(field.getName(), description == null ? "" : description.value(), kind, plain(field.get(settings)),
                     plain(field.get(fresh)), minimum == null ? null : minimum.value(), maximum == null ? null : maximum.value(), choices, changed);
         } catch (IllegalAccessException unreadable) {
             throw new IllegalStateException(unreadable);

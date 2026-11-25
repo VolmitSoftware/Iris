@@ -3,10 +3,11 @@ import {
   ancestorAt,
   childrenOf,
   columnsUnder,
-  isInside,
+  liesInsideAny,
   MOST_LEVELS_FINER,
   TILE_COLUMNS,
   tileKey,
+  tilesInsideEach,
   type ColumnArea,
   type TerrainTile
 } from './terrainTiles'
@@ -60,7 +61,8 @@ type StateOf = (tile: TerrainTile) => TileState
  * @param knownInside   the tiles finer than a tile, inside it, whose ground is known, however much finer; where not
  *                      given, the ones up to a couple of levels finer that {@code stateOf} knows
  */
-export function planCover(sight: CameraSight, stateOf: StateOf, coarsestLevel: number, knownInside?: (tile: TerrainTile) => TerrainTile[]): Cover {
+export function planCover(sight: CameraSight, askState: StateOf, coarsestLevel: number, knownInside?: (tile: TerrainTile) => TerrainTile[]): Cover {
+  const stateOf = rememberedStates(askState)
   const backdropLevel = backdropLevelFor(sight, coarsestLevel)
   const finestLevel = Math.max(0, backdropLevel - MOST_LEVELS_FINER)
   const backdrop = sight.tilesAt(backdropLevel, BACKDROP_MARGIN).sort(nearestFirst(sight)).slice(0, MOST_BACKDROP_TILES)
@@ -69,11 +71,27 @@ export function planCover(sight: CameraSight, stateOf: StateOf, coarsestLevel: n
   const leftOverInside = knownInside ?? ((tile: TerrainTile) => finerLeftOver(tile, finestLevel, stateOf, MOST_LEVELS_FINER_LEFT_OVER))
   const candidates = candidatesOf(backdrop, detail, backdropLevel, isTrue, (tile) => leftOverInside(tile).filter((finer) => finer.level >= finestLevel && isTrue(finer)))
   const ready = candidates.filter(isTrue)
-  const quickFill = candidates.filter((tile) => stateOf(tile) === 'quick' && !ready.some((truer) => isInside(tile, truer)))
+  const readyKeys = new Set(ready.map(tileKey))
+  const quickFill = candidates.filter((tile) => stateOf(tile) === 'quick' && !liesInsideAny(tile, readyKeys, backdropLevel))
   const drawn = [...ready, ...quickFill]
+  const finerInside = tilesInsideEach(drawn, backdropLevel)
   return {
-    draws: drawn.map((tile) => ({ tile, holes: drawn.filter((finer) => isInside(finer, tile)).map((finer) => columnsUnder(tile, finer)) })),
+    draws: drawn.map((tile) => ({ tile, holes: (finerInside.get(tileKey(tile)) ?? []).map((finer) => columnsUnder(tile, finer)) })),
     wanted: wantedInOrder(sight, backdrop, detail, backdropLevel, stateOf)
+  }
+}
+
+// A plan asks after the same tile many times over, and asking the store builds a key each time.
+function rememberedStates(stateOf: StateOf): StateOf {
+  const known = new Map<string, TileState>()
+  return (tile) => {
+    const key = tileKey(tile)
+    let state = known.get(key)
+    if (state === undefined) {
+      state = stateOf(tile)
+      known.set(key, state)
+    }
+    return state
   }
 }
 

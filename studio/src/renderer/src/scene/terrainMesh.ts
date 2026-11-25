@@ -122,7 +122,7 @@ function present<T>(parts: (T | null)[]): T[] {
 /** The geometry drawn in its materials; textured and cut-out parts need {@code pictures}. */
 export function meshOfGeometry({ field, parts }: TerrainGeometry, pictures: TerrainPictures | null): TerrainMesh {
   const group = new Group()
-  const materials = parts.map(({ kind }) => materialOf(kind, pictures))
+  const materials = parts.map(({ kind }) => sharedMaterialOf(kind, pictures))
   parts.forEach(({ geometry, placement }, index) => {
     const mesh = new Mesh(geometry, materials[index])
     if (placement !== undefined) {
@@ -134,11 +134,28 @@ export function meshOfGeometry({ field, parts }: TerrainGeometry, pictures: Terr
   return {
     object: group,
     field,
-    dispose: () => {
-      parts.forEach(({ geometry }) => geometry.dispose())
-      materials.forEach((material) => material.dispose())
-    }
+    dispose: () => parts.forEach(({ geometry }) => geometry.dispose())
   }
+}
+
+const UNPICTURED = {}
+const sharedMaterials = new WeakMap<object, Map<GeometryKind, MeshBasicMaterial>>()
+
+// Tiles of a kind are drawn alike, so they share their materials: a material of its own made every new tile set its
+// shader up anew, which took a frame's worth of time while the ground streamed in.
+function sharedMaterialOf(kind: GeometryKind, pictures: TerrainPictures | null): MeshBasicMaterial {
+  const owner = pictures ?? UNPICTURED
+  let byKind = sharedMaterials.get(owner)
+  if (byKind === undefined) {
+    byKind = new Map()
+    sharedMaterials.set(owner, byKind)
+  }
+  let material = byKind.get(kind)
+  if (material === undefined) {
+    material = materialOf(kind, pictures)
+    byKind.set(kind, material)
+  }
+  return material
 }
 
 // Cut-out parts are drawn where their pictures are not open, so the grass between its blades and the leaves between their
@@ -154,7 +171,9 @@ function materialOf(kind: GeometryKind, pictures: TerrainPictures | null): MeshB
         new MeshBasicMaterial({ vertexColors: true, map: pictures?.texture ?? null, alphaMap: pictures?.cutouts ?? null, alphaTest: CUTOUT_ALPHA, side: FrontSide })
       )
     case 'water':
-      return new MeshBasicMaterial({ color: WATER_SURFACE_COLOR, transparent: true, opacity: WATER_SURFACE_OPACITY, depthWrite: false, side: DoubleSide })
+      // One pass for both faces: a flat sheet gains nothing from three drawing its back and then its front, and each of
+      // those passes set the shader up anew, on every tile of water every frame.
+      return new MeshBasicMaterial({ color: WATER_SURFACE_COLOR, transparent: true, opacity: WATER_SURFACE_OPACITY, depthWrite: false, side: DoubleSide, forceSinglePass: true })
   }
 }
 

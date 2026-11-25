@@ -40,6 +40,8 @@ export class TileStore<Tile, Layer, Style> {
   private storedBytes = 0
   private useClock = 0
   private changes = 0
+  // Planning asks after tiles by the hundred thousand, and building a layer's key each time took most of a frame.
+  private readonly layerKeys = new WeakMap<object, string>()
 
   constructor(
     private readonly source: TileSource<Tile, Layer, Style>,
@@ -48,7 +50,20 @@ export class TileStore<Tile, Layer, Style> {
   ) {}
 
   key(address: TileAddress, layer: Layer): string {
-    return `${this.source.layerKey(layer)}/${address.blocksPerPixel}/${address.tileX}/${address.tileZ}`
+    return `${this.keyOfLayer(layer)}/${address.blocksPerPixel}/${address.tileX}/${address.tileZ}`
+  }
+
+  // Layers are replaced, never changed in place, so a layer's key holds for as long as the layer does.
+  private keyOfLayer(layer: Layer): string {
+    if (typeof layer !== 'object' || layer === null) {
+      return this.source.layerKey(layer)
+    }
+    let key = this.layerKeys.get(layer)
+    if (key === undefined) {
+      key = this.source.layerKey(layer)
+      this.layerKeys.set(layer, key)
+    }
+    return key
   }
 
   /** The tile if it has arrived, marked as just used. */

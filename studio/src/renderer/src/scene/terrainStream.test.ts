@@ -70,6 +70,10 @@ function setUp(
     quickLayerOf,
     focus: focusAround(0, 0, 0, 128),
     onPending: (pending) => pendingCounts.push(pending),
+    nextFrame: (callback) => {
+      const timer = setTimeout(callback, 0)
+      return () => clearTimeout(timer)
+    },
     onError: (message) => {
       throw new Error(message)
     }

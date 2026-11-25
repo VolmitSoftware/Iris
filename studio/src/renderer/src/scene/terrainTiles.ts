@@ -88,6 +88,36 @@ export function isInside(tile: TerrainTile, coarser: TerrainTile): boolean {
   return tile.level < coarser.level && sameTile(ancestorAt(tile, coarser.level), coarser)
 }
 
+/**
+ * The tiles inside each coarser tile, up to {@code coarsestLevel}, keyed by that tile, in the order given. Looking them up
+ * here keeps planning linear in the tiles instead of comparing every pair.
+ */
+export function tilesInsideEach(tiles: Iterable<TerrainTile>, coarsestLevel: number): Map<string, TerrainTile[]> {
+  const inside = new Map<string, TerrainTile[]>()
+  for (const tile of tiles) {
+    for (let level = tile.level + 1; level <= coarsestLevel; level++) {
+      const key = tileKey(ancestorAt(tile, level))
+      const finer = inside.get(key)
+      if (finer === undefined) {
+        inside.set(key, [tile])
+      } else {
+        finer.push(tile)
+      }
+    }
+  }
+  return inside
+}
+
+/** Whether a tile of {@code keys}, no coarser than {@code coarsestLevel}, holds the tile. */
+export function liesInsideAny(tile: TerrainTile, keys: Set<string>, coarsestLevel: number): boolean {
+  for (let level = tile.level + 1; level <= coarsestLevel; level++) {
+    if (keys.has(tileKey(ancestorAt(tile, level)))) {
+      return true
+    }
+  }
+  return false
+}
+
 /** The columns of {@code coarser} that the finer tile inside it covers. */
 export function columnsUnder(coarser: TerrainTile, finer: TerrainTile): ColumnArea {
   const levelsDown = coarser.level - finer.level

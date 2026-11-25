@@ -1,4 +1,4 @@
-import { BufferAttribute, BufferGeometry, type Vector3Tuple } from 'three'
+import { Box3, BufferAttribute, BufferGeometry, Sphere, Vector3, type Vector3Tuple } from 'three'
 
 // Positions are kept in sixteenths of a block, the finest step a block model uses, from the geometry's lowest corner.
 const STEPS_PER_BLOCK = 16
@@ -17,6 +17,8 @@ export interface CompactArrays {
   uv: Uint16Array | null
   index: Uint32Array
   placement: CompactPlacement
+  /** The most steps any corner lies from the lowest one, along each axis. */
+  extent: Vector3Tuple
 }
 
 /**
@@ -49,8 +51,14 @@ export function compacted(geometry: BufferGeometry, blocksPerColumn: number): Co
     color: color === undefined ? null : Uint8Array.from(color, (channel) => Math.round(Math.min(1, Math.max(0, channel)) * 255)),
     uv: uv === undefined ? null : Uint16Array.from(uv, (place) => Math.round(Math.min(1, Math.max(0, place)) * 65_535)),
     index: geometry.getIndex()!.array as Uint32Array,
-    placement: { origin: min, scale }
+    placement: { origin: min, scale },
+    extent: [0, 1, 2].map((axis) => stepsAcross(min[axis], max[axis], scale[axis])) as Vector3Tuple
   }
+}
+
+function stepsAcross(low: number, high: number, step: number): number {
+  const steps = Math.round((high - low) / step)
+  return Number.isFinite(steps) ? steps : 0
 }
 
 /** The geometry the compact arrays hold, in the steps they were packed in; draw it placed by their placement. */
@@ -64,5 +72,8 @@ export function geometryOfCompact(arrays: CompactArrays): BufferGeometry {
     geometry.setAttribute('uv', new BufferAttribute(arrays.uv, 2, true))
   }
   geometry.setIndex(new BufferAttribute(arrays.index, 1))
+  // Known from the packing, so the first frame that draws the tile does not go over every corner to find them.
+  geometry.boundingBox = new Box3(new Vector3(0, 0, 0), new Vector3(...arrays.extent))
+  geometry.boundingSphere = geometry.boundingBox.getBoundingSphere(new Sphere())
   return geometry
 }

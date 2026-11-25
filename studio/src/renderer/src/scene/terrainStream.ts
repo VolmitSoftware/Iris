@@ -8,7 +8,7 @@ import { groundInView, type GroundInView } from './groundInView'
 import { marchOntoSurface } from './surfaceMarch'
 import { planCover, type Cover, type DrawnTile, type TileState } from './terrainCover'
 import { buildTerrainMesh, type TerrainMesh, type TerrainSurface } from './terrainMesh'
-import { addressOf, ancestorAt, childrenOf, isInside, tileAt, tileContaining, tileKey, type ColumnArea, type TerrainTile } from './terrainTiles'
+import { addressOf, ancestorAt, childrenOf, isInside, tileAt, tileContaining, tileKey, tilesInsideEach, type ColumnArea, type TerrainTile } from './terrainTiles'
 
 /** How the tiles of a source look as ground, and how low and high that ground can reach. */
 export interface TerrainStyle<Tile> {
@@ -35,6 +35,8 @@ export interface TerrainStreamOptions<Tile, Layer> {
   quickLayerOf?(layer: Layer): Layer | null
   /** Told how many tiles are still on their way, whenever that changes. */
   onPending(pending: number): void
+  /** Runs the callback before the next frame is drawn; returns how to call it off. Animation frames where not given. */
+  nextFrame?(callback: () => void): () => void
   onError(message: string): void
 }
 
@@ -80,6 +82,11 @@ function bytesOf(mesh: TerrainMesh): number {
   })
   return bytes
 }
+function nextAnimationFrame(callback: () => void): () => void {
+  const handle = requestAnimationFrame(callback)
+  return () => cancelAnimationFrame(handle)
+}
+
 const ABOVE_TOP_BLOCKS = 1
 const FOCUS_HALF_SIDE_BLOCKS = 256
 
@@ -107,13 +114,12 @@ export class TerrainStream<Tile, Layer> {
   private readonly building = new Map<string, BuildingMesh<Tile>>()
   private storedIndex: StoredIndex | null = null
   private uploadBytesLeft = UPLOAD_BYTES_PER_FRAME
-  private nextFrame: number | null = null
+  private cancelPlannedFrame: (() => void) | null = null
   private layer: Layer | null = null
   private style: TerrainStyle<Tile> | null = null
   private styleVersion = 0
   private camera: CameraLink | null = null
   private reportedPending = -1
-  private continuation: ReturnType<typeof setTimeout> | null = null
   private disposed = false
   // Tiles are looked for where ground stands, not across the world's whole height: under a tall sky most of a tile's
   // box is air, which lands in the view where its ground does not.
@@ -124,7 +130,7 @@ export class TerrainStream<Tile, Layer> {
   constructor(private readonly options: TerrainStreamOptions<Tile, Layer>) {
     this.lowestGround = options.focus.min.y
     this.highestGround = options.focus.max.y
-    this.store = new TileStore(options.source, () => this.replan(), options.onError)
+    this.store = new TileStore(options.source, () => this.replanNextFrame(), options.onError)
     this.content = {
       object: this.group,
       bounds: options.focus,
@@ -172,12 +178,7 @@ export class TerrainStream<Tile, Layer> {
   dispose(): void {
     this.disposed = true
     this.sightListeners.clear()
-    if (this.continuation !== null) {
-      clearTimeout(this.continuation)
-    }
-    if (this.nextFrame !== null) {
-      cancelAnimationFrame(this.nextFrame)
-    }
+    this.cancelPlannedFrame?.()
     this.drawn.forEach((drawn) => drawn.mesh.dispose())
     this.drawn.clear()
     this.building.forEach((building) => building.mesh?.dispose())
@@ -188,12 +189,24 @@ export class TerrainStream<Tile, Layer> {
 
   private follow(camera: CameraLink): () => void {
     this.camera = camera
-    const stop = camera.onMoved(() => this.replan())
+    const stop = camera.onMoved(() => this.replanNextFrame())
     this.replan()
     return () => {
       stop()
       this.camera = null
     }
+  }
+
+  // Tiles arrive, meshes finish and the camera moves many times a frame; planning once a frame covers them all.
+  private replanNextFrame(): void {
+    if (this.cancelPlannedFrame !== null || this.disposed) {
+      return
+    }
+    this.cancelPlannedFrame = (this.options.nextFrame ?? nextAnimationFrame)(() => {
+      this.cancelPlannedFrame = null
+      this.uploadBytesLeft = UPLOAD_BYTES_PER_FRAME
+      this.replan()
+    })
   }
 
   private replan(): void {
@@ -204,7 +217,9 @@ export class TerrainStream<Tile, Layer> {
     const layer = this.layer
     const quick = this.options.quickLayerOf?.(layer) ?? null
     const stateOf = (tile: TerrainTile): TileState => this.stateOf(tile, layer, quick)
-    const knownInside = (tile: TerrainTile): TerrainTile[] => [...this.coarsestStoredInside(tile, layer), ...this.drawnInside(tile)]
+    // Ground drawn now, such as a stand-in left from the layer before, stays until a tile as true replaces it.
+    const drawnInside = tilesInsideEach([...this.drawn.values()].map((drawn) => drawn.tile), this.options.coarsestLevel)
+    const knownInside = (tile: TerrainTile): TerrainTile[] => [...this.coarsestStoredInside(tile, layer), ...(drawnInside.get(tileKey(tile)) ?? [])]
     const cover = planCover(sight, stateOf, this.options.coarsestLevel, knownInside)
     this.store.wantEach(this.wantedOf(cover.wanted, layer, quick))
     this.draw(cover, layer, quick, this.style)
@@ -242,11 +257,6 @@ export class TerrainStream<Tile, Layer> {
     }
     const quickTile = quick === null ? null : this.store.get(addressOf(tile), quick)
     return this.standIns.get(key) ?? quickTile ?? null
-  }
-
-  // Ground drawn now, such as a stand-in left from the layer before, stays until a tile as true replaces it.
-  private drawnInside(tile: TerrainTile): TerrainTile[] {
-    return [...this.drawn.values()].map((drawn) => drawn.tile).filter((finer) => isInside(finer, tile))
   }
 
   // The layer's tiles that have arrived inside the tile, however much finer, but only the coarsest over each spot: they
@@ -291,6 +301,7 @@ export class TerrainStream<Tile, Layer> {
     const deadline = performance.now() + MESH_BUILD_BUDGET_MILLISECONDS
     const stillDrawn = new Set<string>()
     let behind = false
+    const drawsInside = tilesInsideEach(cover.draws.map((draw) => draw.tile), this.options.coarsestLevel)
     // Finer tiles are built before the coarser ones get their holes, so running out of time leaves ground drawn twice, never a gap.
     for (const draw of [...cover.draws].sort((first, second) => first.tile.level - second.tile.level)) {
       const key = tileKey(draw.tile)
@@ -307,7 +318,7 @@ export class TerrainStream<Tile, Layer> {
         this.show(key, draw, this.builtNow(draw, data, style), data)
         continue
       }
-      this.showOnceBuilt(key, draw, data, cover, style.buildMesh, style.floorY)
+      this.showOnceBuilt(key, draw, data, drawsInside.get(key) ?? [], style.buildMesh, style.floorY)
     }
     for (const [key, building] of [...this.building]) {
       if (!stillDrawn.has(key)) {
@@ -318,10 +329,10 @@ export class TerrainStream<Tile, Layer> {
     this.camera?.redraw()
     if (this.groundRangeGrew) {
       this.groundRangeGrew = false
-      this.continueLater()
+      this.replanNextFrame()
     }
     if (behind) {
-      this.continueLater()
+      this.replanNextFrame()
       return
     }
     for (const [key, drawn] of [...this.drawn]) {
@@ -356,17 +367,17 @@ export class TerrainStream<Tile, Layer> {
 
   // A tile is built away from the frames, and shown once built. One with holes is shown only once the finer tiles that
   // fill them are, so what it drew before stays meanwhile and the ground never shows a gap.
-  private showOnceBuilt(key: string, draw: DrawnTile, data: Tile, cover: Cover, buildMesh: NonNullable<TerrainStyle<Tile>['buildMesh']>, base: number): void {
+  private showOnceBuilt(key: string, draw: DrawnTile, data: Tile, drawnInside: TerrainTile[], buildMesh: NonNullable<TerrainStyle<Tile>['buildMesh']>, base: number): void {
     const signature = this.signatureOf(draw)
     const building = this.building.get(key)
     if (building !== undefined && building.data === data && building.signature === signature) {
-      const finer = cover.draws.filter((other) => isInside(other.tile, draw.tile)).map((other) => tileKey(other.tile))
-      if (building.mesh === null || !finer.every((finerKey) => this.drawn.has(finerKey))) {
+      if (building.mesh === null || !drawnInside.every((finer) => this.drawn.has(tileKey(finer)))) {
         return
       }
       const bytes = bytesOf(building.mesh)
       if (bytes > this.uploadBytesLeft && this.uploadBytesLeft < UPLOAD_BYTES_PER_FRAME) {
-        this.continueNextFrame()
+        // A frame hands the GPU only so many bytes of new meshes; the rest wait for the next, so a burst never stalls one.
+        this.replanNextFrame()
         return
       }
       this.uploadBytesLeft -= bytes
@@ -384,7 +395,7 @@ export class TerrainStream<Tile, Layer> {
           return
         }
         started.mesh = mesh
-        this.continueLater()
+        this.replanNextFrame()
       },
       (error: Error) => {
         if (!this.disposed && this.building.get(key) === started) {
@@ -419,28 +430,6 @@ export class TerrainStream<Tile, Layer> {
     this.group.remove(drawn.mesh.object)
     drawn.mesh.dispose()
     this.drawn.delete(key)
-  }
-
-  // A frame hands the GPU only so many bytes of new meshes; the rest wait for the next, so a burst of tiles never stalls one.
-  private continueNextFrame(): void {
-    if (this.nextFrame !== null) {
-      return
-    }
-    this.nextFrame = requestAnimationFrame(() => {
-      this.nextFrame = null
-      this.uploadBytesLeft = UPLOAD_BYTES_PER_FRAME
-      this.replan()
-    })
-  }
-
-  private continueLater(): void {
-    if (this.continuation !== null) {
-      return
-    }
-    this.continuation = setTimeout(() => {
-      this.continuation = null
-      this.replan()
-    }, 0)
   }
 
   private reportPending(): void {

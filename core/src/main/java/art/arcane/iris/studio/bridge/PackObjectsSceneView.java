@@ -18,6 +18,7 @@
 
 package art.arcane.iris.studio.bridge;
 
+import art.arcane.iris.generation.procedural.ProceduralObjectCatalog;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.studio.scene.SceneBlocks;
@@ -29,7 +30,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-/** The pack's object files in 3D, filed by their folders. */
+/**
+ * The pack's object files in 3D, filed by their folders. The object loader also lists the procedural objects it bakes,
+ * which the procedural parts view shows instead.
+ */
 final class PackObjectsSceneView implements SceneView {
     static final String ID = "iris:objects";
     private static final char FOLDER_SEPARATOR = '/';
@@ -53,6 +57,7 @@ final class PackObjectsSceneView implements SceneView {
     @Override
     public List<SceneEntry> entries(Engine engine) {
         return Arrays.stream(engine.getData().getObjectLoader().getPossibleKeys())
+                .filter(key -> !ProceduralObjectCatalog.isProceduralKey(key))
                 .sorted()
                 .map(PackObjectsSceneView::entryOf)
                 .toList();
@@ -61,6 +66,9 @@ final class PackObjectsSceneView implements SceneView {
     @Override
     public SceneBlocks scene(Engine engine, SceneRequest request) {
         String key = request.key();
+        if (ProceduralObjectCatalog.isProceduralKey(key)) {
+            throw new NoSuchElementException("No object file " + key);
+        }
         IrisObject object = engine.getData().getObjectLoader().load(key);
         if (object == null) {
             throw new NoSuchElementException("No object file " + key);

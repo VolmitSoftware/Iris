@@ -17,6 +17,8 @@ import java.util.NoSuchElementException;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class PackObjectsSceneViewTest {
@@ -25,8 +27,8 @@ public class PackObjectsSceneViewTest {
     private final PackObjectsSceneView view = new PackObjectsSceneView();
 
     @Test
-    public void objectFilesAreListedByFolder() {
-        when(objects.getPossibleKeys()).thenReturn(new String[]{"trees/oak", "well"});
+    public void objectFilesAreListedByFolderWithoutTheBakedProceduralObjects() {
+        when(objects.getPossibleKeys()).thenReturn(new String[]{"trees/oak", "procedural/rocks/boulder", "well"});
 
         List<SceneEntry> entries = view.entries(engine);
 
@@ -46,6 +48,12 @@ public class PackObjectsSceneViewTest {
     @Test
     public void anObjectThatDoesNotLoadIsReportedAsMissing() {
         assertThrows(NoSuchElementException.class, () -> view.scene(engine, request("gone")));
+    }
+
+    @Test
+    public void aProceduralObjectIsNotBakedAsAnObjectFile() {
+        assertThrows(NoSuchElementException.class, () -> view.scene(engine, request("procedural/rocks/boulder")));
+        verify(objects, never()).load("procedural/rocks/boulder");
     }
 
     private static SceneRequest request(String key) {

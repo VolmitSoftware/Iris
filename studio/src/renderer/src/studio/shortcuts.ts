@@ -74,7 +74,7 @@ const VIEW_KEYS: Record<string, Chord> = {
   world3d: '4',
   'iris:terrain/palettes': 'p',
   'iris:objects': 'o',
-  'iris:objects/procedural': 't',
+  proceduralParts: 't',
   noise: 'n',
   savedWorld: 'w'
 }

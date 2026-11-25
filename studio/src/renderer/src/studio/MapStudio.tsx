@@ -5,6 +5,7 @@ import type { Share } from '../map/census'
 import type { MapController, MapStatus, MapToggles } from '../map/MapController'
 import type { Highlight } from '../map/tileStyle'
 import { Waves } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { HelpDialog } from './HelpDialog'
 import { HoverCard } from './HoverCard'
 import { Glyph } from './Glyph'
@@ -30,6 +31,8 @@ import { usePickInspection } from './usePickInspection'
 import { ViewList } from './ViewList'
 
 const KEYBOARD_ZOOM_FACTOR = 2 ** 0.25
+/** The island beside the stripe meets it flush with square corners, as IntelliJ's tool windows meet theirs; the row's gap is 1.5. */
+const ISLAND_FLUSH_WITH_STRIPE = '[&>nav]:-mr-1.5 [&>nav+div:not(:empty)]:rounded-l-none [&>nav+div:empty+*]:rounded-l-none'
 const ENTITY_POLL_MILLIS = 2000
 const NOTICE_MILLIS = 4000
 /** The views whose spots a noise picks, which the pick inspector explains. */
@@ -235,7 +238,7 @@ export function MapStudio({ client, world, theme, onOpenPack, onDisconnect }: Ma
     <div className="flex h-full flex-col">
       <StudioToolbar world={world} openingPack={openingPack} loadPacks={loadPacks} onOpenPack={openPack} onHelp={() => setHelpOpen(true)} onSettings={() => setSettingsOpen(true)} />
       <SidebarSlot.Provider value={sidebarSlot}>
-      <div className="relative flex min-h-0 flex-1 gap-1.5 pr-1.5">
+      <div className={cn('relative flex min-h-0 flex-1 gap-1.5 pr-1.5', ISLAND_FLUSH_WITH_STRIPE)}>
         {openingPack !== null && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 backdrop-motion">
             <div className="popup flex items-center gap-2 px-4 py-3 dialog-motion">

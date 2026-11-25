@@ -91,7 +91,7 @@ export function ViewList({ views, current, onSelect, slotRef }: ViewListProps): 
   const groups = groupsOf(views)
   return (
     <>
-      <nav className="flex w-10 shrink-0 flex-col items-center gap-2 overflow-y-auto pb-1.5">
+      <nav className="flex w-10 shrink-0 flex-col items-center gap-2.5 overflow-y-auto pt-1 pb-1.5">
         {groups.map((group, index) => (
           <Fragment key={group.label}>
             {index > 0 && <StripeLine />}
@@ -119,7 +119,7 @@ function groupsOf(views: ViewInfo[]): ViewGroup[] {
 }
 
 function StripeLine(): React.JSX.Element {
-  return <span className="h-px w-5 shrink-0 bg-input" />
+  return <span className="my-0.5 h-px w-5 shrink-0 bg-input" />
 }
 
 function ViewButton({ view, selected, onSelect }: { view: ViewInfo; selected: boolean; onSelect(): void }): React.JSX.Element {

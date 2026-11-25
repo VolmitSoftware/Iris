@@ -1,17 +1,13 @@
 import { useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import type { PickDisplay, PickInspection, PickSection } from '../bridge/types'
+import type { PickInspection, PickSection } from '../bridge/types'
 import { Glyph } from './Glyph'
 import { hexColor } from './colors'
 import { NoiseChart, percent } from './NoiseChart'
 
-/** How the map draws the picks, for a view that recolours its tiles. */
-export interface PickDisplayChoice {
-  /** What the map shows when it draws the picks: "Regions" or "Biomes". */
-  picksLabel: string
-  value: PickDisplay
-  onChange(display: PickDisplay): void
+/** Whether a measurement has anything to chart; a server that does not measure picks answers with no sections. */
+export function hasPickSections(inspection: PickInspection | null): inspection is PickInspection {
+  return inspection !== null && inspection.sections.length > 0
 }
 
 interface PickInspectorProps {
@@ -19,40 +15,15 @@ interface PickInspectorProps {
   title: string
   /** The latest measurement of the view; null until the first one arrives. */
   inspection: PickInspection | null
-  /** Absent in a view that draws no map tiles, such as the 3D world. */
-  display?: PickDisplayChoice
 }
 
-/**
- * How noise picks the regions or biomes in view, measured against what is in view, with a switch for how the map
- * draws the picks.
- */
-export function PickInspector({ title, inspection, display }: PickInspectorProps): React.JSX.Element {
+/** How noise picks the regions or biomes in view, measured against what is in view. */
+export function PickInspector({ title, inspection }: PickInspectorProps): React.JSX.Element {
   return (
     <section className="flex min-h-0 flex-1 flex-col">
       <header className="px-4 pt-2.5 pb-2.5">
         <h2 className="truncate text-[13px] font-semibold">{title}</h2>
         <p className="truncate text-[11.5px] text-secondary-text">{inspection?.detail ?? 'Measuring what is in view…'}</p>
-        {display !== undefined && (
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            size="sm"
-            className="mt-2 w-full"
-            value={display.value}
-            onValueChange={(value) => value !== '' && display.onChange(value as PickDisplay)}
-          >
-            <ToggleGroupItem value="picks">
-              {display.picksLabel}
-            </ToggleGroupItem>
-            <ToggleGroupItem value="noise">
-              Noise
-            </ToggleGroupItem>
-            <ToggleGroupItem value="both">
-              Both
-            </ToggleGroupItem>
-          </ToggleGroup>
-        )}
       </header>
       <ScrollArea className="min-h-0 flex-1 border-t">
         <div className="px-4 pb-2">{inspection !== null && <Sections sections={inspection.sections} />}</div>

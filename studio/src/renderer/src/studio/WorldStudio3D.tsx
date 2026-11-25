@@ -13,7 +13,7 @@ import { TerrainMeshWorkers } from '../scene/terrainMeshWorkers'
 import { focusAround, type TerrainStyle } from '../scene/terrainStream'
 import { TILE_COLUMNS } from '../scene/terrainTiles'
 import { Legend } from './Legend'
-import { PickInspector } from './PickInspector'
+import { PickInspector, hasPickSections } from './PickInspector'
 import { SceneViewport } from './SceneViewport'
 import { usePickInspection } from './usePickInspection'
 import { useSpotActions } from './useSpotActions'
@@ -162,7 +162,7 @@ export function WorldStudio3D({ title, client, world, mapArea, packRevision, onS
       <Panel className="w-[250px]">
         {showsCaves ? (
           <Legend title="Caves by height" shares={caveShares} emptyText={caves.status === null ? 'No caves here' : 'Generating the caves…'} className="flex-1" />
-        ) : inspectsPicks ? (
+        ) : inspectsPicks && hasPickSections(inspection) ? (
           <PickInspector title={coloring === 'regions' ? 'Regions' : 'Biomes'} inspection={inspection} />
         ) : (
           <Legend title="Heights in view" shares={heightShares} emptyText="Looking at the ground…" className="flex-1" />

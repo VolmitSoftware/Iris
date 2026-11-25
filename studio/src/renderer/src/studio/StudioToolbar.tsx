@@ -18,17 +18,17 @@ interface StudioToolbarProps {
   onDisconnect(): void
 }
 
-/** The window's bar: the world the studio is connected to, which leads back to the world list, and the studio's own buttons. */
+/** The window's bar: the pack the studio is connected to, which leads back to the world list, and the studio's own buttons. */
 export function StudioToolbar({ world, onHelp, onSettings, onDisconnect }: StudioToolbarProps): React.JSX.Element {
   return (
     <header className="flex h-10 shrink-0 items-center gap-1 px-1.5">
       <IconHint hint="Back to the world list">
         <Button variant="ghost" size="sm" className="h-[30px] max-w-[50%] gap-2 px-2 font-semibold" onClick={onDisconnect}>
           <span className="flex size-5 shrink-0 items-center justify-center rounded-[5px] bg-primary text-[11px] font-semibold text-primary-foreground uppercase">
-            {world.world.charAt(0)}
+            {world.dimensionName.charAt(0)}
           </span>
-          <span className="truncate">{world.world}</span>
-          <span className="truncate font-normal text-secondary-text">{world.dimensionName}</span>
+          <span className="truncate">{world.dimensionName}</span>
+          {world.packVersion !== undefined && <span className="shrink-0 font-normal text-secondary-text tabular-nums">v{world.packVersion}</span>}
           <Glyph glyph="chevronDown" />
         </Button>
       </IconHint>

@@ -305,6 +305,8 @@ export interface WorldInfo {
   world: string
   dimension: string
   dimensionName: string
+  /** The dimension's `version`; absent from a server that does not send it. */
+  packVersion?: number
   seed: string
   minY: number
   height: number

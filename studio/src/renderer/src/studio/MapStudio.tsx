@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BridgeClient, MapLayerQuery, WorldRect } from '../bridge/BridgeClient'
-import type { MapHover, MapLabel, Marker, ModuleViewInfo, PickDisplay, ServerUsage, ViewInfo, WorldInfo } from '../bridge/types'
+import type { MapHover, MapLabel, Marker, ModuleViewInfo, ServerUsage, ViewInfo, WorldInfo } from '../bridge/types'
 import type { Share } from '../map/census'
 import type { MapController, MapStatus, MapToggles } from '../map/MapController'
 import type { Highlight } from '../map/tileStyle'
@@ -9,7 +9,7 @@ import { HelpDialog } from './HelpDialog'
 import { HoverCard } from './HoverCard'
 import { Legend } from './Legend'
 import { MapCanvas, type CanvasPoint } from './MapCanvas'
-import { PickInspector } from './PickInspector'
+import { PickInspector, hasPickSections } from './PickInspector'
 import { RegionPreviewList } from './RegionPreviewList'
 import { ImageMapStudio } from './ImageMapStudio'
 import { NoiseStudio } from './NoiseStudio'
@@ -65,7 +65,6 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   const [notice, setNotice] = useState<string | null>(null)
   const [connected, setConnected] = useState(true)
   const [preview, setPreview] = useState<string | null>(null)
-  const [pickDisplay, setPickDisplay] = useState<PickDisplay>('picks')
   const [area, setArea] = useState<WorldRect | null>(null)
   const [packRevision, setPackRevision] = useState(0)
   const [sceneSummary, setSceneSummary] = useState<string | null>(null)
@@ -100,7 +99,6 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   }, [notice])
 
   useEffect(() => controller.current?.setView(layer.view, layer.preview), [layer])
-  useEffect(() => controller.current?.setPickDisplay(pickDisplay), [pickDisplay])
   useEffect(() => controller.current?.setToggles(toggles), [toggles])
   useEffect(() => controller.current?.setHighlight(highlight), [highlight])
   useEffect(() => controller.current?.setMarkers(players, toggles.entities ? entities : []), [players, entities, toggles.entities])
@@ -300,13 +298,9 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
           )}
         </ViewIsland>
         <div className="flex w-[250px] shrink-0 flex-col gap-1.5">
-          {inspectsPicks && (
+          {inspectsPicks && hasPickSections(inspection) && (
             <Panel className="min-h-0 flex-[7]">
-              <PickInspector
-                title={previewName ?? view.label}
-                inspection={inspection}
-                display={{ picksLabel: viewId === 'regions' && layer.preview === null ? 'Regions' : 'Biomes', value: pickDisplay, onChange: setPickDisplay }}
-              />
+              <PickInspector title={previewName ?? view.label} inspection={inspection} />
             </Panel>
           )}
           <Panel className="min-h-0 flex-[3]">

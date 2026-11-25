@@ -312,6 +312,7 @@ public final class StudioBridge implements AutoCloseable {
                 world.name(),
                 engine.getDimension().getLoadKey(),
                 engine.getDimension().getName(),
+                engine.getDimension().getVersion(),
                 Long.toString(engine.getWorld().getRawWorldSeed()),
                 engine.getMinHeight(),
                 engine.getHeight(),
@@ -819,7 +820,7 @@ public final class StudioBridge implements AutoCloseable {
     }
 
     /** @param seed as text, as JavaScript numbers cannot hold every long */
-    private record WorldInfo(String world, String dimension, String dimensionName, String seed, int minY, int height,
+    private record WorldInfo(String world, String dimension, String dimensionName, int packVersion, String seed, int minY, int height,
                              int fluidHeight, int tileSize, boolean hasPlayers, boolean hydrology, List<ViewInfo> views) {
     }
 

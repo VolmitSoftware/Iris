@@ -1,6 +1,7 @@
 package art.arcane.iris.localization;
 
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.configuration.IrisSettingsFile;
 import art.arcane.iris.spi.CapabilityProbe;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -41,7 +42,6 @@ import art.arcane.volmlib.util.localization.TomlLanguageEditor;
 import art.arcane.volmlib.util.localization.TomlLanguageParser;
 import art.arcane.volmlib.util.localization.TomlLanguageWriter;
 import art.arcane.volmlib.util.localization.VolmitLocales;
-import com.google.gson.JsonObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,7 +49,6 @@ import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.LinkOption;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.HashSet;
@@ -831,16 +830,9 @@ public final class IrisLanguage {
 
     private static void selectDefault(String locale, LocalizationSnapshot prepared) throws Exception {
         IrisSettings current = IrisSettings.get();
-        JsonObject serialized = new Gson().toJsonTree(current).getAsJsonObject();
-        serialized.getAsJsonObject("general").addProperty("language", locale);
-        Path target = dataFolder.toPath().resolve("iris.json");
-        Path temporary = Files.createTempFile(target.getParent(), "iris-", ".json.tmp");
-        try {
-            Files.writeString(temporary, serialized.toString());
-            Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-        } finally {
-            Files.deleteIfExists(temporary);
-        }
+        IrisSettings saved = new Gson().fromJson(new Gson().toJsonTree(current), IrisSettings.class);
+        saved.getGeneral().setLanguage(locale);
+        IrisSettingsFile.write(saved, new File(dataFolder, IrisSettingsFile.FILE_NAME));
         current.getGeneral().setLanguage(locale);
         synchronized (SNAPSHOT_LOCK) {
             MANAGER.install(prepared);

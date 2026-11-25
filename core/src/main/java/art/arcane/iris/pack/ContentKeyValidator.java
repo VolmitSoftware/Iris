@@ -251,7 +251,7 @@ public final class ContentKeyValidator {
 
     /**
      * Whether unresolved pack content keys are blocking errors instead of warnings. Enabled by
-     * {@code -Diris.strictContent} or {@code general.strictContentKeys} in iris.json; the system property wins.
+     * {@code -Diris.strictContent} or {@code general.strictContentKeys} in iris.toml; the system property wins.
      */
     public static boolean strictContent() {
         String property = System.getProperty(STRICT_PROPERTY);

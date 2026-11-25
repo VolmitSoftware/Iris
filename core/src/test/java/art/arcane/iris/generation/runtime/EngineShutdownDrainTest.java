@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.configuration.IrisSettingsFile;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.EngineRuntimeBuilder.RuntimeAssembly;
 import art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore;
@@ -87,7 +88,7 @@ public class EngineShutdownDrainTest {
         previousPlatform = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
         IrisPlatforms.unbind();
         IrisPlatform platform = mock(IrisPlatform.class);
-        when(platform.dataFile("iris.json")).thenReturn(PLATFORM_FILES.getRoot().toPath().resolve("iris.json").toFile());
+        when(platform.dataFile(IrisSettingsFile.FILE_NAME)).thenReturn(PLATFORM_FILES.getRoot().toPath().resolve(IrisSettingsFile.FILE_NAME).toFile());
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(platform.registries()).thenReturn(registries);
         when(registries.block(anyString())).thenReturn(mock(NativeBlockState.class));

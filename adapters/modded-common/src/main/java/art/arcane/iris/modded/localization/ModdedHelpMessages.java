@@ -36,11 +36,11 @@ public final class ModdedHelpMessages {
     );
     public static final TextKey COMMAND_DEBUG_TOGGLE_IRIS_DEBUG_LOGGING_AND_SAVE_SETTINGS_JSON = TextKey.of(
             "iris.modded.help.entry.command.debug",
-            "Toggle Iris debug logging and save iris.json"
+            "Toggle Iris debug logging and save iris.toml"
     );
     public static final TextKey COMMAND_RELOAD_RELOAD_SETTINGS_JSON_ALSO_HOTLOADED_AUTOMATICALLY_EVERY_3S = TextKey.of(
             "iris.modded.help.entry.command.reload",
-            "Reload iris.json (also hotloaded automatically every 3s)"
+            "Reload iris.toml (also hotloaded automatically every 3s)"
     );
     public static final TextKey COMMAND_DOWNLOAD_DOWNLOAD_A_PACK_PROJECT = TextKey.of(
             "iris.modded.help.entry.command.download",

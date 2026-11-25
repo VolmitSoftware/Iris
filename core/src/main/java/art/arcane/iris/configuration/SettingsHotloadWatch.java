@@ -112,7 +112,7 @@ public final class SettingsHotloadWatch implements AutoCloseable {
         boolean missing = "missing".equals(snapshot.signature());
         if (isSettingsFile(file)) {
             if (missing) {
-                IrisLogging.warn("iris.json was removed; retaining the last valid runtime settings.");
+                IrisLogging.warn(settingsFile.getName() + " was removed; retaining the last valid runtime settings.");
                 return true;
             }
             if (snapshot.normalizedContent() == null) {
@@ -258,7 +258,7 @@ public final class SettingsHotloadWatch implements AutoCloseable {
         File file = delta.file();
         if (isSettingsFile(file)) {
             if (delta.after() != null) {
-                IrisLogging.debug("Hotloaded iris.json");
+                IrisLogging.debug("Hotloaded " + settingsFile.getName());
             }
             return;
         }

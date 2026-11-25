@@ -1,6 +1,5 @@
 package art.arcane.iris.configuration;
 
-import com.google.gson.Gson;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -13,12 +12,11 @@ import static org.junit.Assert.assertThrows;
 
 public class IrisSettingsDefaultsTest {
     @Test
-    public void updateChecksDefaultOnAndPersistAnExplicitOptOut() {
-        assertTrue(IrisSettings.parseHotloadSnapshot("{}").getGeneral().isUpdateNotifications());
-        IrisSettings optedOut = IrisSettings.parseHotloadSnapshot(
-                "{\"general\":{\"updateNotifications\":false}}");
+    public void updateChecksDefaultOnAndPersistAnExplicitOptOut() throws Exception {
+        assertTrue(IrisSettings.parseHotloadSnapshot("[general]").getGeneral().isUpdateNotifications());
+        IrisSettings optedOut = IrisSettings.parseHotloadSnapshot("[general]\nupdateNotifications = false");
         assertFalse(optedOut.getGeneral().isUpdateNotifications());
-        assertFalse(new Gson().fromJson(new Gson().toJson(optedOut), IrisSettings.class)
+        assertFalse(IrisSettingsFile.parse(IrisSettingsFile.render(optedOut))
                 .getGeneral().isUpdateNotifications());
     }
 
@@ -33,20 +31,20 @@ public class IrisSettingsDefaultsTest {
     }
 
     @Test
-    public void concurrencyIsNotSerializedIntoIrisJson() {
-        String json = new Gson().toJson(new IrisSettings());
+    public void concurrencyIsNotWrittenToTheSettingsFile() {
+        String toml = IrisSettingsFile.render(new IrisSettings());
 
-        assertFalse("iris.json must not advertise an unconfigurable concurrency block",
-                json.contains("\"concurrency\""));
+        assertFalse("iris.toml must not advertise an unconfigurable concurrency block",
+                toml.contains("concurrency"));
     }
 
     @Test
     public void languageAndMetricsAreTheFirstGeneralControls() {
-        String json = new Gson().toJson(new IrisSettings());
+        String toml = IrisSettingsFile.render(new IrisSettings());
 
-        int language = json.indexOf("\"language\"");
-        int metrics = json.indexOf("\"metrics\"");
-        int commandSounds = json.indexOf("\"commandSounds\"");
+        int language = toml.indexOf("\nlanguage = ");
+        int metrics = toml.indexOf("\nmetrics = ");
+        int commandSounds = toml.indexOf("\ncommandSounds = ");
         assertTrue(language >= 0);
         assertTrue(language < metrics);
         assertTrue(metrics < commandSounds);
@@ -75,10 +73,10 @@ public class IrisSettingsDefaultsTest {
     public void studioBlendingDefaultsOnAndAcceptsDisabledHotload() {
         IrisSettings defaults = new IrisSettings();
         assertTrue(defaults.getStudio().isBlendChanges());
-        assertTrue(new Gson().fromJson("{\"studio\":{}}", IrisSettings.class).getStudio().isBlendChanges());
-        assertTrue(new Gson().toJson(defaults).contains("\"blendChanges\":true"));
+        assertTrue(IrisSettings.parseHotloadSnapshot("[studio]").getStudio().isBlendChanges());
+        assertTrue(IrisSettingsFile.render(defaults).contains("\nblendChanges = true"));
 
-        IrisSettings changed = IrisSettings.parseHotloadSnapshot("{\"studio\":{\"blendChanges\":false}}");
+        IrisSettings changed = IrisSettings.parseHotloadSnapshot("[studio]\nblendChanges = false");
 
         assertFalse(changed.getStudio().isBlendChanges());
         assertEquals(256, changed.getGenerator().getGenerationTransitionWidthBlocks());
@@ -91,11 +89,10 @@ public class IrisSettingsDefaultsTest {
         IrisSettings.settings = live;
         try {
             assertThrows(IllegalArgumentException.class,
-                    () -> IrisSettings.installHotloadSnapshot("{\"general\":"));
+                    () -> IrisSettings.installHotloadSnapshot("[general"));
             assertSame(live, IrisSettings.settings);
 
-            IrisSettings installed = IrisSettings.installHotloadSnapshot(
-                    "{\"general\":{\"language\":\"fr_FR\"},\"world\":null}");
+            IrisSettings installed = IrisSettings.installHotloadSnapshot("[general]\nlanguage = \"fr_FR\"");
             assertSame(installed, IrisSettings.settings);
             assertEquals("fr_FR", installed.getGeneral().getLanguage());
             assertNotNull(installed.getWorld());
@@ -112,7 +109,7 @@ public class IrisSettingsDefaultsTest {
         IrisSettings.settings = live;
         try {
             boolean applied = IrisSettings.applyHotloadSnapshot(
-                    "{\"general\":{\"language\":\"de_DE\"}}",
+                    "[general]\nlanguage = \"de_DE\"",
                     candidate -> false
             );
 
@@ -131,7 +128,7 @@ public class IrisSettingsDefaultsTest {
         IrisSettings.settings = live;
         try {
             boolean applied = IrisSettings.applyHotloadSnapshot(
-                    "{\"general\":{\"language\":\"de_DE\"},\"world\":null}",
+                    "[general]\nlanguage = \"de_DE\"",
                     candidate -> "de_DE".equals(candidate.getGeneral().getLanguage())
             );
 

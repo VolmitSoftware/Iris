@@ -265,7 +265,7 @@ public class ServerConfigurator {
         timeouts.raise(file, configuration, "settings.timeout-time", minimum);
         IrisLogging.warn("Updated " + file + " settings.timeout-time: " + previous + " -> " + minimum
                 + " seconds. Takes effect after a server restart.");
-        IrisLogging.warn("Disable autoConfiguration.configureSpigotTimeoutTime in iris.json to manage this setting yourself.");
+        IrisLogging.warn("Disable autoConfiguration.configureSpigotTimeoutTime in iris.toml to manage this setting yourself.");
     }
 
     private static void increasePaperWatchdog() throws IOException, InvalidConfigurationException, ReflectiveOperationException {
@@ -283,7 +283,7 @@ public class ServerConfigurator {
         timeouts.raise(file, configuration, "watchdog.early-warning-delay", minimum);
         IrisLogging.warn("Updated " + file + " watchdog.early-warning-delay: " + previous + " -> " + minimum
                 + " milliseconds. Takes effect after a server restart.");
-        IrisLogging.warn("Disable autoConfiguration.configurePaperWatchdogDelay in iris.json to manage this setting yourself.");
+        IrisLogging.warn("Disable autoConfiguration.configurePaperWatchdogDelay in iris.toml to manage this setting yourself.");
     }
 
     private static ServerTimeoutConfiguration timeoutConfiguration() {

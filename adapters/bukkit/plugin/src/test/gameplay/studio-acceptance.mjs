@@ -4,12 +4,22 @@ import path from 'node:path'
 import { packKey, worldKey, seed, parsePhase, setup, exists, writeJson, readJson,
   openStudio, closeStudio, sampleTerrain, logPosition, logSince } from './studio-support.mjs'
 
+async function disableStudioSideEffects(settingsFile) {
+  let inStudio = false
+  const lines = (await readFile(settingsFile, 'utf8')).split('\n').map(line => {
+    const header = line.match(/^\[(.+)\]\s*$/)
+    if (header) {
+      inStudio = header[1] === 'studio'
+      return line
+    }
+    return inStudio ? line.replace(/^(openVSCode|entitySpawning)\s*=.*$/, '$1 = false') : line
+  })
+  await writeFile(settingsFile, lines.join('\n'))
+}
+
 async function prepare(context, fixture) {
   context.expect(!(await exists(fixture.marker)) && !(await exists(fixture.pack)), 'Prepare requires a new disposable instance and an unused fixture pack')
-  const settingsFile = path.join(fixture.irisRoot, 'iris.json')
-  const settings = await readJson(settingsFile)
-  settings.studio = { ...settings.studio, openVSCode: false, entitySpawning: false }
-  await writeJson(settingsFile, settings)
+  await disableStudioSideEffects(path.join(fixture.irisRoot, 'iris.toml'))
   await context.command(`/iris studio create name=${packKey}`, new RegExp(`Created studio project '${packKey}'`), 180000)
   for (const relative of [`dimensions/${packKey}.json`, 'regions/starter.json', 'biomes/starter.json', `${packKey}.code-workspace`]) {
     context.expect(await exists(path.join(fixture.pack, relative)), `Studio create omitted ${relative}`)

@@ -21,6 +21,7 @@ package art.arcane.iris;
 import art.arcane.iris.api.terrain.IrisTerrainService;
 import art.arcane.iris.command.CommandSVC;
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.configuration.IrisSettingsFile;
 import art.arcane.iris.configuration.SettingsHotloadWatch;
 import art.arcane.iris.diagnostics.LogFilterSVC;
 import art.arcane.iris.diagnostics.splash.IrisSplashComposer;
@@ -735,7 +736,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
                 (EngineWorldManagerProvider) IrisWorldManager::new);
         IrisServices.register(WorldDeletionQueue.class, pendingWorldDeletes);
         IrisServices.register(ManagedWorldLoader.class, (ManagedWorldLoader) this::loadManagedWorld);
-        SettingsHotloadWatch watch = new SettingsHotloadWatch(plugin.getDataFile("iris.json"));
+        SettingsHotloadWatch watch = new SettingsHotloadWatch(plugin.getDataFile(IrisSettingsFile.FILE_NAME));
         settingsHotloadWatch = watch;
         StudioSVC.gateDownloadsOnStaleTempCleanup(MultiBurst.ioBurst.completeValueAsync(() -> {
             IO.delete(getTemp());

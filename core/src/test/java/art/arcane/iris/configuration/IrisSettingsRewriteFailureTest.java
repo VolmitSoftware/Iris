@@ -21,7 +21,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 /**
- * Iris rewrites iris.json on every read so a file written by an older build gains the keys it is missing.
+ * Iris rewrites iris.toml on every read that finds it out of date so a file written by an older build gains the keys it is missing.
  * That write used to fail into an empty catch, which is how a read-only or full data folder turned every
  * settings change an operator made in game into something that silently vanished on the next boot.
  */
@@ -53,10 +53,10 @@ public class IrisSettingsRewriteFailureTest {
 
     @Test
     public void anUnwritableSettingsFileIsReported() throws Exception {
-        File settingsFile = temporaryFolder.newFile("iris.json");
-        Files.writeString(settingsFile.toPath(), "{}");
+        File settingsFile = temporaryFolder.newFile(IrisSettingsFile.FILE_NAME);
+        Files.writeString(settingsFile.toPath(), "[general]");
         assertTrue("this test needs a file the JVM can mark read-only", settingsFile.setWritable(false));
-        doReturn(settingsFile).when(capturingPlatform).dataFile("iris.json");
+        doReturn(settingsFile).when(capturingPlatform).dataFile(IrisSettingsFile.FILE_NAME);
 
         IrisSettings.invalidate();
         IrisSettings.get();
@@ -66,14 +66,14 @@ public class IrisSettingsRewriteFailureTest {
 
     @Test
     public void aWritableSettingsFileIsRewrittenQuietly() throws Exception {
-        File settingsFile = temporaryFolder.newFile("iris.json");
-        Files.writeString(settingsFile.toPath(), "{}");
-        doReturn(settingsFile).when(capturingPlatform).dataFile("iris.json");
+        File settingsFile = temporaryFolder.newFile(IrisSettingsFile.FILE_NAME);
+        Files.writeString(settingsFile.toPath(), "[general]");
+        doReturn(settingsFile).when(capturingPlatform).dataFile(IrisSettingsFile.FILE_NAME);
 
         IrisSettings.invalidate();
         IrisSettings.get();
 
         verify(capturingPlatform, never()).reportError(anyString(), any(Throwable.class));
-        assertTrue(Files.readString(settingsFile.toPath()).contains("general"));
+        assertTrue(Files.readString(settingsFile.toPath()).contains("[general]"));
     }
 }

@@ -58,6 +58,7 @@ import art.arcane.iris.platform.agent.AttachSignal;
 import art.arcane.iris.platform.bootstrap.Bindings;
 import art.arcane.iris.platform.bootstrap.ServerProperties;
 import art.arcane.iris.platform.bootstrap.SlimJar;
+import art.arcane.iris.platform.bukkit.BlockRulesSVC;
 import art.arcane.iris.platform.bukkit.BoardSVC;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.platform.bukkit.api.IrisApiEventSVC;
@@ -681,6 +682,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
                 new GlobalCacheSVC(),
                 new LogFilterSVC(),
                 new ExternalDataSVC(),
+                new BlockRulesSVC(),
                 new EditSVC(),
                 new ObjectSVC(),
                 new ObjectStudioSaveService(),

@@ -812,7 +812,7 @@ project(':adapters:bukkit:nms:v26_3_R1') {
             'com.github.VolmitSoftware.VolmLib:native-minecraft26_2-sources:master-SNAPSHOT')
     List<String> headlessNativeTypes = ['ModdedBlockState', 'ModdedBiome', 'NativeBlockProperties', 'NativeBlockResolver',
             'NativeBlockFaces', 'NativeStateRotator', 'NativeStateMerger',
-            'NativeRegistryAccess', 'ModdedItem', 'ModdedEntityType', 'NativeTileReader', 'NativeTileData']
+            'NativeRegistryAccess', 'ModdedItem', 'ModdedEntityType', 'NativeTileReader', 'NativeTileData', 'GroundSurvival']
     TaskProvider<Sync> unpackHeadlessNativeSources = tasks.register('unpackHeadlessNativeSources', Sync) {
         dependsOn(headlessNativeSources)
         inputs.property('nativeTypes', headlessNativeTypes)

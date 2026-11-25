@@ -812,7 +812,7 @@ project(':adapters:bukkit:nms:v26_3_R1') {
             'com.github.VolmitSoftware.VolmLib:native-minecraft26_2-sources:master-SNAPSHOT')
     List<String> headlessNativeTypes = ['ModdedBlockState', 'ModdedBiome', 'NativeBlockProperties', 'NativeBlockResolver',
             'NativeBlockFaces', 'NativeStateRotator', 'NativeStateMerger',
-            'NativeRegistryAccess', 'ModdedItem', 'ModdedEntityType', 'NativeTileReader', 'NativeTileData', 'GroundSurvival']
+            'NativeRegistryAccess', 'ModdedItem', 'ModdedEntityType', 'NativeTileReader', 'NativeTileData']
     TaskProvider<Sync> unpackHeadlessNativeSources = tasks.register('unpackHeadlessNativeSources', Sync) {
         dependsOn(headlessNativeSources)
         inputs.property('nativeTypes', headlessNativeTypes)
@@ -821,7 +821,8 @@ project(':adapters:bukkit:nms:v26_3_R1') {
         }
         from(rootProject.file('adapters/modded-common/src/main/java')) {
             include('art/arcane/iris/modded/ModdedDecoratorHooks.java',
-                    'art/arcane/iris/modded/ModdedStateRotator.java', 'art/arcane/iris/modded/ModdedTileData.java')
+                    'art/arcane/iris/modded/ModdedStateRotator.java', 'art/arcane/iris/modded/ModdedTileData.java',
+                    'art/arcane/iris/modded/ModdedGroundSurvival.java')
         }
         into(layout.buildDirectory.dir('generated/sources/headless-native'))
     }

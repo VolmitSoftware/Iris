@@ -25,7 +25,6 @@ import art.arcane.volmlib.nativelib.terrain.NativeSectionVolume;
 import art.arcane.volmlib.nativelib.terrain.BukkitTerrainBuffer;
 
 import org.bukkit.block.data.BlockData;
-import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 
 import art.arcane.volmlib.util.nbt.mca.NBTWorldSupport;
 
@@ -322,15 +321,6 @@ public interface INMSBinding extends NativeTerrainAccess {
     }
 
     KMap<Material, List<BlockProperty>> getBlockProperties();
-
-    /** Whether the server lets {@code plant} stand on {@code ground}; without a native binding, Iris's own table of plants and grounds answers. */
-    default boolean canSurviveOn(BlockData plant, BlockData ground) {
-        return BukkitBlockResolution.canPlaceOnto(plant.getMaterial(), ground.getMaterial());
-    }
-
-    /** Drops answers remembered from the server's block rules, which a resource reload may have changed. */
-    default void forgetBlockRules() {
-    }
 
     private void validateDimensionTypes(WorldCreator c) {
         if (!(c.generator() instanceof PlatformChunkGenerator generator)) {

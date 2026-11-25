@@ -77,15 +77,23 @@ public final class PackValidator {
     }
 
     public static PackValidationResult validate(File packFolder) {
-        return validate(packFolder, true);
+        return validate(packFolder, true, null);
+    }
+
+    /**
+     * Gates content through {@code loadedPack} instead of a detached loader, so a caller that goes on to build a
+     * runtime from the same data does not load the pack a second time. The data stays open.
+     */
+    public static PackValidationResult validate(File packFolder, IrisData loadedPack) {
+        return validate(packFolder, true, Objects.requireNonNull(loadedPack, "loadedPack"));
     }
 
     public static PackValidationResult validateForDatapackBootstrap(File packFolder) {
-        return validate(packFolder, false);
+        return validate(packFolder, false, null);
     }
 
     public static PackValidationResult validateForPackaging(File packFolder) {
-        return validate(packFolder, false);
+        return validate(packFolder, false, null);
     }
 
     public static void requireValidObjectSettings(File packFolder, String dimensionKey, JSONObject dimension) {
@@ -97,11 +105,13 @@ public final class PackValidator {
         }
     }
 
-    private static PackValidationResult validate(File packFolder, boolean validateLiveRegistries) {
-        return PackValidationIo.withinValidationRun(() -> validateWithinRun(packFolder, validateLiveRegistries));
+    private static PackValidationResult validate(File packFolder, boolean validateLiveRegistries,
+                                                 IrisData loadedPack) {
+        return PackValidationIo.withinValidationRun(() -> validateWithinRun(packFolder, validateLiveRegistries, loadedPack));
     }
 
-    private static PackValidationResult validateWithinRun(File packFolder, boolean validateLiveRegistries) {
+    private static PackValidationResult validateWithinRun(File packFolder, boolean validateLiveRegistries,
+                                                          IrisData loadedPack) {
         String packName = packFolder == null ? "<unknown>" : packFolder.getName();
         List<String> blockingErrors = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
@@ -174,7 +184,7 @@ public final class PackValidator {
                 ? IrisPlatforms.get().minecraftVersion()
                 : null;
         List<CompatFinding> compatFindings = validateLiveRegistries
-                ? gateContent(packFolder, dimensionFiles, minecraftVersion, blockingErrors, warnings)
+                ? gateContent(packFolder, dimensionFiles, minecraftVersion, blockingErrors, warnings, loadedPack)
                 : List.of();
 
         // Keys the version gate already names in its own line are not repeated as unknown-key findings.
@@ -197,14 +207,15 @@ public final class PackValidator {
             File[] dimensionFiles,
             String minecraftVersion,
             List<String> blockingErrors,
-            List<String> warnings
+            List<String> warnings,
+            IrisData loadedPack
     ) {
         if (!IrisPlatforms.isBound()) {
             return List.of();
         }
         IrisData data = null;
         try {
-            data = IrisData.openRuntime(packFolder);
+            data = loadedPack == null ? IrisData.openRuntime(packFolder) : loadedPack;
             if (!data.getContentGate().ready()) {
                 return List.of();
             }
@@ -218,7 +229,7 @@ public final class PackValidator {
                     + ": " + Objects.requireNonNullElse(e.getMessage(), "No failure detail."));
             return List.of();
         } finally {
-            if (data != null) {
+            if (data != null && data != loadedPack) {
                 try {
                     data.close();
                 } catch (Throwable closeFailure) {

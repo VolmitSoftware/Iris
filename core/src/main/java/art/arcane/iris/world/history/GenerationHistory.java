@@ -69,7 +69,7 @@ public final class GenerationHistory {
         this.store = Objects.requireNonNull(store, "store");
         this.ownership = Objects.requireNonNull(ownership, "ownership");
         this.kernels = Objects.requireNonNull(kernels, "kernels");
-        this.boundaries = new GenerationBoundaryStore(paths.dimensionRoot());
+        this.boundaries = new GenerationBoundaryStore(paths.dimensionRoot(), this.packs.policy());
         this.terrainSignatures = new TerrainBoundarySignatureStore(paths.dimensionRoot());
         this.semantics = GenerationSemanticIndex.loadRequired(paths.dimensionRoot(), unpublished);
         this.savedBiomes = SavedBiomeStore.open(paths.dimensionRoot(), unpublished);

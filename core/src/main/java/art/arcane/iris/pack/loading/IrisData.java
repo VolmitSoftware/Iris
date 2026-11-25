@@ -156,6 +156,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     @EqualsAndHashCode.Exclude
+    private transient volatile boolean generationPackFingerprintVerifiedByCaller;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    @EqualsAndHashCode.Exclude
     private transient volatile GenerationRegistryContract generationRegistryContract;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
@@ -232,6 +236,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         dump();
         clearLists();
         generationPackFingerprint = null;
+        generationPackFingerprintVerifiedByCaller = false;
         contentGate = null;
         dimensionCustomBiomeResourceKeys.clear();
     }
@@ -341,6 +346,11 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             throw new IllegalStateException("Iris data already has a different generation pack fingerprint.");
         }
         generationPackFingerprint = required;
+        generationPackFingerprintVerifiedByCaller = true;
+    }
+
+    public boolean hasCallerVerifiedGenerationPackFingerprint() {
+        return generationPackFingerprintVerifiedByCaller;
     }
 
     public boolean hasGenerationRegistryContract() {
@@ -710,6 +720,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         IrisObjectScale.invalidate(this);
         contentGate = null;
         generationPackFingerprint = null;
+        generationPackFingerprintVerifiedByCaller = false;
         synchronized (dimensionCustomBiomeResourceKeys) {
             dimensionCustomBiomeResourceKeys.clear();
         }

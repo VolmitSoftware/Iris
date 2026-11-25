@@ -92,10 +92,10 @@ record StudioGenerationUpdate(
                                                            Path stagingRoot, VerifiedPackTree pack,
                                                            PackTreeState sourceState) throws IOException {
         GenerationEpoch active = history.activeEpoch();
-        requireLoadable(pack);
         IrisData data = IrisData.openRuntime(pack.root().toFile());
         try {
             data.useVerifiedGenerationPackFingerprint(pack.fingerprint());
+            requireLoadable(pack, data);
             IrisDimension replacement = data.getDimensionLoader().load(active.dimensionContract().dimensionKey());
             if (replacement == null) {
                 throw new IOException("Studio pack update is missing dimension '"
@@ -123,8 +123,8 @@ record StudioGenerationUpdate(
         }
     }
 
-    private static void requireLoadable(VerifiedPackTree pack) throws IOException {
-        PackValidationResult validation = PackValidator.validate(pack.root().toFile());
+    private static void requireLoadable(VerifiedPackTree pack, IrisData data) throws IOException {
+        PackValidationResult validation = PackValidator.validate(pack.root().toFile(), data);
         if (!validation.isLoadable()) {
             throw new IOException("Studio pack update is invalid: " + String.join("; ", validation.getBlockingErrors()));
         }

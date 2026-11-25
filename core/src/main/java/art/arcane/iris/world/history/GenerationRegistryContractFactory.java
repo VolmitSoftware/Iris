@@ -260,14 +260,21 @@ public final class GenerationRegistryContractFactory {
         addPlatformDefinitions(definitions, BLOCK_REGISTRY, referenced.blockKeys(), requiredGenerationRegistry);
         addPlatformDefinitions(definitions, ENTITY_TYPE_REGISTRY, referenced.entityKeys(), requiredGenerationRegistry);
         GenerationRegistryContract captured = contract(definitions, generatedSources, requiredGenerationRegistry).withBiomeTags(biomeTags);
-        String actualPackFingerprint = GenerationPackFingerprint.compute(
-                packRoot,
-                GenerationPackFingerprint.CURRENT_VERSION
-        );
-        if (!requiredPackFingerprint.equals(actualPackFingerprint)) {
+        if (!requiredPackFingerprint.equals(packFingerprintAfterCapture(requiredData, packRoot))) {
             throw new IOException("Iris generation registry capture rejected a changed pack.");
         }
         return captured;
+    }
+
+    /**
+     * A pack whose fingerprint the caller verified is immutable for the lifetime of its data, so it is not hashed
+     * again to detect edits made during the capture.
+     */
+    private static String packFingerprintAfterCapture(IrisData data, Path packRoot) throws IOException {
+        if (data.hasCallerVerifiedGenerationPackFingerprint()) {
+            return data.generationPackFingerprint();
+        }
+        return GenerationPackFingerprint.compute(packRoot, GenerationPackFingerprint.CURRENT_VERSION);
     }
 
     public static CustomBiomeDefinition customBiomeDefinition(

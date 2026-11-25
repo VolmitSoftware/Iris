@@ -15,26 +15,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package art.arcane.iris.studio.map;
 
-import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.structure.object.IrisObject;
+package art.arcane.iris.studio.scene;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Map;
 
 /**
- * The pack's object files, by their load keys.
+ * Which scene of a view is wanted.
+ *
+ * @param variant   which of the entry's variants; a view wraps it around the variants it has
+ * @param size      blocks across, one of the view's {@link SceneSizes}; 0 for a view without sizes
+ * @param overrides values typed into the view's form, by field name, which change the scene only
  */
-public final class PackObjectSource implements ObjectSource {
-    @Override
-    public List<String> keys(IrisData data) {
-        return Arrays.asList(data.getObjectLoader().getPossibleKeys());
-    }
-
-    @Override
-    public List<IrisObject> variants(IrisData data, String key) {
-        IrisObject object = data.getObjectLoader().load(key);
-        return object == null ? List.of() : List.of(object);
+public record SceneRequest(String key, int variant, int size, Map<String, String> overrides) {
+    public SceneRequest {
+        overrides = Map.copyOf(overrides);
     }
 }

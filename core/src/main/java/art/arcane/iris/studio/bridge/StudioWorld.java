@@ -51,6 +51,10 @@ final class StudioWorld {
         return name;
     }
 
+    UUID openerId() {
+        return openerId;
+    }
+
     /** The world's engine and what the bridge draws it with; null while the world has no running engine. */
     synchronized Session session() {
         if (session != null && isRunning(session.engine())) {

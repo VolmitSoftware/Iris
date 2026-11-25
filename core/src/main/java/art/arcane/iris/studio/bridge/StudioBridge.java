@@ -98,6 +98,9 @@ public final class StudioBridge implements AutoCloseable {
     private static final long ASSET_CACHE_SECONDS = 86_400L;
     private static final String OVERRIDE_PREFIX = "set.";
     private static final int LARGEST_BODY_BYTES = 4 * 1024 * 1024;
+    private static final long PACK_OPEN_TIMEOUT_MINUTES = 5;
+    /** How long a bridge the studio switched away from stays up, so its answer naming the new bridge gets out first. */
+    private static final long REPLACED_BRIDGE_GRACE_SECONDS = 5;
     private static final String VIEW_BIOMES = "biomes";
     private static final String VIEW_REGIONS = "regions";
     private static final String VIEW_RIVERS = "rivers";
@@ -277,6 +280,8 @@ public final class StudioBridge implements AutoCloseable {
             case "saved-worlds" -> sendJson(exchange, STATUS_OK, List.of());
             case "events" -> streamEvents(exchange);
             case "teleport" -> teleport(exchange, query);
+            case "packs" -> sendJson(exchange, STATUS_OK, packs(exchange));
+            case "open-pack" -> openPack(exchange, query);
             case "open" -> throw new RequestError(STATUS_NOT_FOUND, "Opening a pack file from the studio is not available in Iris v4");
             default -> throw new RequestError(STATUS_NOT_FOUND, "No such endpoint: " + endpoint);
         }
@@ -645,6 +650,41 @@ public final class StudioBridge implements AutoCloseable {
         sendJson(exchange, STATUS_OK, new MessageBody(null));
     }
 
+    private List<StudioPack> packs(HttpExchange exchange) {
+        requireMethod(exchange, "GET");
+        StudioPackSwitch packSwitch = StudioBridges.packSwitch();
+        return packSwitch == null ? List.of() : packSwitch.packs();
+    }
+
+    /** Replaces the studio world with one of another pack and answers with the new world's bridge, then closes this one. */
+    private void openPack(HttpExchange exchange, Query query) throws IOException {
+        requireMethod(exchange, "POST");
+        StudioPackSwitch packSwitch = StudioBridges.packSwitch();
+        if (packSwitch == null) {
+            throw new RequestError(STATUS_NOT_FOUND, "This server cannot switch packs from the studio");
+        }
+        StudioBridge opened = awaitPackOpen(packSwitch.open(query.text("pack"), world.openerId()));
+        sendJson(exchange, STATUS_OK, new OpenedBridge(opened.worldName(), opened.port(), opened.token()));
+        if (opened != this) {
+            CompletableFuture.runAsync(() -> StudioBridges.close(worldName()),
+                    CompletableFuture.delayedExecutor(REPLACED_BRIDGE_GRACE_SECONDS, TimeUnit.SECONDS));
+        }
+    }
+
+    private static StudioBridge awaitPackOpen(CompletableFuture<StudioBridge> opening) {
+        try {
+            return opening.get(PACK_OPEN_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+        } catch (ExecutionException failure) {
+            Throwable cause = failure.getCause() == null ? failure : failure.getCause();
+            throw new RequestError(STATUS_CONFLICT, "Could not open the pack: " + cause.getMessage());
+        } catch (TimeoutException slow) {
+            throw new RequestError(STATUS_UNAVAILABLE, "The pack is still opening; the server will show it when it is ready");
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new RequestError(STATUS_UNAVAILABLE, "The bridge stopped while the pack opened");
+        }
+    }
+
     private void streamEvents(HttpExchange exchange) throws IOException {
         requireMethod(exchange, "GET");
         Headers headers = exchange.getResponseHeaders();
@@ -795,6 +835,9 @@ public final class StudioBridge implements AutoCloseable {
     }
 
     private record ErrorBody(String error) {
+    }
+
+    private record OpenedBridge(String world, int port, String token) {
     }
 
     private record MessageBody(String message) {

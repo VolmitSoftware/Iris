@@ -40,6 +40,7 @@ public final class StudioBridges {
     private static final Path CONNECTION_FOLDER = Path.of(System.getProperty("user.home"), ".iris", "studio", "bridges");
     private static final String OWNER_ONLY = "rw-------";
     private static final Map<String, StudioBridge> OPEN = new ConcurrentHashMap<>();
+    private static volatile StudioPackSwitch packSwitch;
 
     private StudioBridges() {
     }
@@ -59,6 +60,24 @@ public final class StudioBridges {
         OPEN.put(worldName, bridge);
         announce(bridge);
         return bridge;
+    }
+
+    /** Lets the studio switch packs through {@code packSwitch}; without one the studio offers no other pack. */
+    public static void usePackSwitch(StudioPackSwitch packSwitch) {
+        StudioBridges.packSwitch = packSwitch;
+    }
+
+    static StudioPackSwitch packSwitch() {
+        return packSwitch;
+    }
+
+    public static synchronized void close(String worldName) {
+        StudioBridge bridge = OPEN.remove(worldName);
+        if (bridge == null) {
+            return;
+        }
+        bridge.close();
+        withdraw(bridge);
     }
 
     public static synchronized void closeAll() {

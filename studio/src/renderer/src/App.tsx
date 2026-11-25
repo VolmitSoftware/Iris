@@ -32,6 +32,11 @@ export function App(): React.JSX.Element {
     }
   }, [])
 
+  const openPack = useCallback(async (client: BridgeClient, packKey: string) => {
+    const opened = new BridgeClient(await client.openPack(packKey))
+    setSession({ client: opened, world: await opened.world() })
+  }, [])
+
   const connectLink = useCallback(
     (link: string) => {
       const connection = parseStudioLink(link)
@@ -62,6 +67,7 @@ export function App(): React.JSX.Element {
       client={session.client}
       world={session.world}
       theme={theme}
+      onOpenPack={(packKey) => openPack(session.client, packKey)}
       onDisconnect={() => setSession(null)}
     />
   )

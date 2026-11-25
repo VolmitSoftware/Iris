@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BridgeClient, MapLayerQuery, WorldRect } from '../bridge/BridgeClient'
-import type { MapHover, MapLabel, Marker, ModuleViewInfo, ServerUsage, ViewInfo, WorldInfo } from '../bridge/types'
+import type { MapHover, MapLabel, Marker, ModuleViewInfo, ServerUsage, StudioPack, ViewInfo, WorldInfo } from '../bridge/types'
 import type { Share } from '../map/census'
 import type { MapController, MapStatus, MapToggles } from '../map/MapController'
 import type { Highlight } from '../map/tileStyle'
 import { Waves } from 'lucide-react'
 import { HelpDialog } from './HelpDialog'
 import { HoverCard } from './HoverCard'
+import { Glyph } from './Glyph'
 import { Legend } from './Legend'
 import { MapCanvas, type CanvasPoint } from './MapCanvas'
 import { PickInspector, hasPickSections } from './PickInspector'
@@ -38,6 +39,8 @@ interface MapStudioProps {
   client: BridgeClient
   world: WorldInfo
   theme: Theme
+  /** Switches the studio to another pack; settles once the studio is on it or the server refused. */
+  onOpenPack(packKey: string): Promise<void>
   onDisconnect(): void
 }
 
@@ -47,7 +50,7 @@ export interface StudioToggles extends MapToggles {
 }
 
 /** The map of one world: views on the left, the map in the middle, what is on screen on the right. */
-export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps): React.JSX.Element {
+export function MapStudio({ client, world, theme, onOpenPack, onDisconnect }: MapStudioProps): React.JSX.Element {
   const controller = useRef<MapController | null>(null)
   const [viewId, setViewId] = useState(world.views[0]?.id ?? 'biomes')
   const [toggles, setToggles] = useState<StudioToggles>({ shading: true, regionBorders: false, grid: false, blocks: false, follow: false, entities: false })
@@ -70,6 +73,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   const [sceneSummary, setSceneSummary] = useState<string | null>(null)
   const [sceneProgress, setSceneProgress] = useState<number | null>(null)
   const [sidebarSlot, setSidebarSlot] = useState<HTMLElement | null>(null)
+  const [openingPack, setOpeningPack] = useState<StudioPack | null>(null)
   const loadSceneViews = useCallback(() => client.sceneViews(), [client])
   const loadPatternViews = useCallback(() => client.patternViews(), [client])
   const sceneViews = useModuleViews(loadSceneViews, packRevision)
@@ -89,6 +93,18 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   const previewName = layer.preview === null ? null : (regions.find((region) => region.key === layer.preview)?.name ?? layer.preview)
 
   const tell = useCallback((message: string) => setNotice(message), [])
+
+  const loadPacks = useCallback(() => client.packs(), [client])
+  const openPack = useCallback(
+    (pack: StudioPack) => {
+      setOpeningPack(pack)
+      onOpenPack(pack.key).catch((failure: Error) => {
+        setOpeningPack(null)
+        tell(failure.message)
+      })
+    },
+    [onOpenPack, tell]
+  )
 
   useEffect(() => {
     if (notice === null) {
@@ -217,9 +233,17 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
 
   return (
     <div className="flex h-full flex-col">
-      <StudioToolbar world={world} onHelp={() => setHelpOpen(true)} onSettings={() => setSettingsOpen(true)} onDisconnect={onDisconnect} />
+      <StudioToolbar world={world} openingPack={openingPack} loadPacks={loadPacks} onOpenPack={openPack} onHelp={() => setHelpOpen(true)} onSettings={() => setSettingsOpen(true)} onDisconnect={onDisconnect} />
       <SidebarSlot.Provider value={sidebarSlot}>
-      <div className="flex min-h-0 flex-1 gap-1.5 pr-1.5">
+      <div className="relative flex min-h-0 flex-1 gap-1.5 pr-1.5">
+        {openingPack !== null && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 backdrop-motion">
+            <div className="popup flex items-center gap-2 px-4 py-3 dialog-motion">
+              <Glyph glyph="refresh" className="animate-spin" />
+              Opening {openingPack.name}…
+            </div>
+          </div>
+        )}
         <ViewList views={views} current={viewId} onSelect={selectView} slotRef={setSidebarSlot} />
         {viewId === 'regions' && regions.length > 1 && (
           <SidebarPanel className="flex-1 overflow-y-auto p-1.5">

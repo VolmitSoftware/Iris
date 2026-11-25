@@ -301,6 +301,14 @@ export interface SavedTile {
   noWater: number
 }
 
+/** A pack the server can open the studio on. */
+export interface StudioPack {
+  /** The pack's folder, which names its dimension too. */
+  key: string
+  name: string
+  version: number
+}
+
 export interface WorldInfo {
   world: string
   dimension: string

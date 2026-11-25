@@ -27,6 +27,7 @@ import type {
   SceneEntry,
   SceneViewInfo,
   ServerUsage,
+  StudioPack,
   WorldInfo
 } from './types'
 
@@ -135,6 +136,16 @@ export class BridgeClient {
 
   entities(): Promise<Marker[]> {
     return this.json('entities')
+  }
+
+  /** The packs the server can switch the studio to; none on a server that cannot. */
+  packs(): Promise<StudioPack[]> {
+    return this.json('packs')
+  }
+
+  /** Replaces the studio world with one of the pack; the new world's bridge, once the world is ready. */
+  openPack(packKey: string): Promise<BridgeConnection> {
+    return this.json(`open-pack?${new URLSearchParams({ pack: packKey })}`, { method: 'POST' })
   }
 
   async teleport(worldX: number, worldZ: number): Promise<void> {

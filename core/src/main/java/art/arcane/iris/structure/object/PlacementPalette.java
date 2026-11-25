@@ -70,8 +70,7 @@ final class PlacementPalette {
         NativeBlockState resolved = decayed[entry];
         if (resolved == null) {
             NativeBlockState data = source(entry);
-            resolved = preventingDecay && IrisProceduralBlocks.hasProperty(data, "distance")
-                    && "false".equals(IrisProceduralBlocks.propertyValue(data, "persistent"))
+            resolved = preventingDecay && "false".equals(IrisProceduralBlocks.propertyValue(data, "persistent"))
                     ? data.withProperty("persistent", "true") : data;
             decayed[entry] = resolved;
         }

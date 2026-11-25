@@ -143,7 +143,7 @@ public final class NoiseStyleCompiler implements StyleCompiler {
             Field center = new Field.Const(-child.getOpacity() / 2.0);
             String childPath = path + "/f" + index + "_" + child.getSeed();
             warpX = sum(warpX, binary(Field.BinaryOp.ADD, layer(child, domain, emit, childPath + "x"), center));
-            warpZ = sum(warpZ, binary(Field.BinaryOp.ADD, layer(child, domain.swapped(), emit, childPath + "z"), center));
+            warpZ = sum(warpZ, binary(Field.BinaryOp.ADD, layer(child, domain, emit, childPath + "z"), center));
         }
         Domain sampled = domain.layer(positive(layer.getZoom(), "layer zoom"), layer.getOffsetX(), layer.getOffsetZ(), warpX, warpZ);
         Field value = style(layer.getStyle(), layer.getOctaves(), sampled, emit, path);
@@ -208,7 +208,7 @@ public final class NoiseStyleCompiler implements StyleCompiler {
             Displacement leafDisplacement = displacement;
             if (warped(cng)) {
                 Field warpX = displacement(node(cng.getFracture(), displacement, emit, path + "/x"), cng.getFscale());
-                Field warpZ = displacement(node(cng.getFracture(), displacement.swapped(), emit, path + "/z"), cng.getFscale());
+                Field warpZ = displacement(node(cng.getFracture(), displacement, emit, path + "/z"), cng.getFscale());
                 leafDisplacement = displacement.warped(warpX, warpZ);
             }
             value = leaf(type, cng.getOct(), cng.getEffectiveScale() * multiplier, leafDisplacement, emit, path);
@@ -483,18 +483,10 @@ public final class NoiseStyleCompiler implements StyleCompiler {
                     sum(warpX, layerWarpX == null ? null : scaled(layerWarpX, zoom)),
                     sum(warpZ, layerWarpZ == null ? null : scaled(layerWarpZ, zoom)));
         }
-
-        private Domain swapped() {
-            return new Domain(zoom, offsetZ, offsetX, warpZ, warpX);
-        }
     }
 
     private record Displacement(double offsetX, double offsetZ, Field warpX, Field warpZ) {
         private static final Displacement NONE = new Displacement(0.0, 0.0, null, null);
-
-        private Displacement swapped() {
-            return new Displacement(offsetZ, offsetX, warpZ, warpX);
-        }
 
         private Displacement warped(Field addedX, Field addedZ) {
             return new Displacement(offsetX, offsetZ, sum(warpX, addedX), sum(warpZ, addedZ));

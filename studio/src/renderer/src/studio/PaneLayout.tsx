@@ -1,4 +1,4 @@
-import { Activity, createContext, useContext, useRef, useState } from 'react'
+import { Activity, createContext, useContext, useEffect, useRef, useState } from 'react'
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuShortcut, ContextMenuTrigger } from '@/components/ui/context-menu'
 import { cn } from '@/lib/utils'
 import { Glyph } from './Glyph'
@@ -235,6 +235,10 @@ interface TabStripProps {
 function TabStrip({ pane, focused, single, change, viewLabel }: TabStripProps): React.JSX.Element {
   const dragging = useContext(DraggingContext)
   const [insertAt, setInsertAt] = useState<number | null>(null)
+  const strip = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    strip.current?.querySelector('[aria-selected=true]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [pane.activeId])
   const indexAt = (event: React.DragEvent): number => {
     const tabs = [...event.currentTarget.querySelectorAll<HTMLElement>('[role=tab]')]
     const after = tabs.findIndex((tab) => {
@@ -245,9 +249,14 @@ function TabStrip({ pane, focused, single, change, viewLabel }: TabStripProps): 
   }
   return (
     <div
+      ref={strip}
       role="tablist"
       aria-label="Tabs"
       className="relative flex min-w-0 flex-1 items-stretch overflow-x-auto [scrollbar-width:none]"
+      onWheel={(event) => {
+        // Tabs past the edge come into view as the wheel turns, as IntelliJ's tab row scrolls.
+        event.currentTarget.scrollLeft += event.deltaY + event.deltaX
+      }}
       onDragOver={(event) => {
         if (dragging.tabId === null) {
           return

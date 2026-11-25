@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Blocks, ChevronDown, CircleQuestionMark, Grid3x3, LocateFixed, Mountain, PawPrint, RefreshCw, ScanSearch, Settings, SquareDashed, SunMoon } from 'lucide-react'
+import { Blocks, Mountain, PawPrint, SquareDashed, SunMoon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Separator } from '@/components/ui/separator'
@@ -7,6 +7,7 @@ import { Toggle } from '@/components/ui/toggle'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ThemeChoice } from '../../../shared/bridge'
 import type { WorldInfo } from '../bridge/types'
+import { Glyph } from './Glyph'
 import type { StudioToggles } from './MapStudio'
 import type { ShortcutAction } from './shortcuts'
 import { useKeyText } from './useBindings'
@@ -24,31 +25,27 @@ const THEME_NAMES: Record<ThemeChoice, string> = { system: 'Theme: system', ligh
 /** The window's bar: the world the studio is connected to, which leads back to the world list, and the studio's own buttons. */
 export function StudioToolbar({ world, theme, onHelp, onSettings, onDisconnect }: StudioToolbarProps): React.JSX.Element {
   return (
-    <header className="flex h-10 shrink-0 items-center gap-1 px-2">
+    <header className="flex h-10 shrink-0 items-center gap-1 px-1.5">
       <IconHint hint="Back to the world list">
-        <Button variant="ghost" size="sm" className="h-7 max-w-[50%] gap-2 px-1.5 text-[13px] font-medium" onClick={onDisconnect}>
+        <Button variant="ghost" size="sm" className="h-[30px] max-w-[50%] gap-2 px-2 font-semibold" onClick={onDisconnect}>
           <span className="flex size-5 shrink-0 items-center justify-center rounded-[5px] bg-primary text-[11px] font-semibold text-primary-foreground uppercase">
             {world.world.charAt(0)}
           </span>
           <span className="truncate">{world.world}</span>
           <span className="truncate font-normal text-secondary-text">{world.dimensionName}</span>
-          <ChevronDown className="size-3.5" />
+          <Glyph glyph="chevronDown" />
         </Button>
       </IconHint>
       <div className="flex-1" />
-      <IconHint hint={THEME_NAMES[theme.choice]}>
-        <Button variant="ghost" size="icon-sm" onClick={theme.next}>
-          <SunMoon />
-        </Button>
-      </IconHint>
-      <ToolButton action="help" hint="Show every mouse and key shortcut" onClick={onHelp}>
-        <CircleQuestionMark />
-      </ToolButton>
-      <IconHint hint="Settings">
-        <Button variant="ghost" size="icon-sm" onClick={onSettings}>
-          <Settings />
-        </Button>
-      </IconHint>
+      <MainToolbarButton hint={THEME_NAMES[theme.choice]} onClick={theme.next}>
+        <SunMoon className="size-5" />
+      </MainToolbarButton>
+      <MainToolbarButton action="help" hint="Show every mouse and key shortcut" onClick={onHelp}>
+        <Glyph glyph="help" large />
+      </MainToolbarButton>
+      <MainToolbarButton hint="Settings" onClick={onSettings}>
+        <Glyph glyph="settings" large />
+      </MainToolbarButton>
     </header>
   )
 }
@@ -66,7 +63,7 @@ export function MapTools({ toggles, hasPlayers, onToggle, onRefresh, onResetZoom
   return (
     <>
       <ToolToggle action="grid" hint="Show chunk and region borders" pressed={toggles.grid} onPressed={() => onToggle('grid')}>
-        <Grid3x3 />
+        <Glyph glyph="grid" />
       </ToolToggle>
       <ToolToggle action="borders" hint="Outline the regions on every view" pressed={toggles.regionBorders} onPressed={() => onToggle('regionBorders')}>
         <SquareDashed />
@@ -82,14 +79,14 @@ export function MapTools({ toggles, hasPlayers, onToggle, onRefresh, onResetZoom
         <PawPrint />
       </ToolToggle>
       <ToolToggle action="follow" hint="Keep your player in the middle" pressed={toggles.follow} disabled={!hasPlayers} onPressed={() => onToggle('follow')}>
-        <LocateFixed />
+        <Glyph glyph="locate" />
       </ToolToggle>
       <Separator orientation="vertical" className="mx-1 h-4!" />
       <ToolButton action="resetZoom" hint="Go back to the default zoom" onClick={onResetZoom}>
-        <ScanSearch />
+        <Glyph glyph="actualZoom" />
       </ToolButton>
       <ToolButton action="refresh" hint="Redraw the map with the latest pack files" onClick={onRefresh}>
-        <RefreshCw />
+        <Glyph glyph="refresh" />
       </ToolButton>
     </>
   )
@@ -107,11 +104,24 @@ function IconHint({ hint, keyText, children }: { hint: string; keyText?: string;
   )
 }
 
+/** A button in the window's main toolbar, at IntelliJ's 30 px for its 20 px icons. */
+function MainToolbarButton({ action, hint, onClick, children }: { action?: ShortcutAction; hint: string; onClick(): void; children: ReactNode }): React.JSX.Element {
+  const keyText = useKeyText()
+  return (
+    <IconHint hint={hint} keyText={action === undefined ? undefined : keyText(action)}>
+      <Button variant="ghost" size="icon-sm" className="size-[30px]" onClick={onClick}>
+        {children}
+      </Button>
+    </IconHint>
+  )
+}
+
+/** A button in an island's header, at the size of IntelliJ's tool window header actions. */
 function ToolButton({ action, hint, onClick, children }: { action: ShortcutAction; hint: string; onClick(): void; children: ReactNode }): React.JSX.Element {
   const keyText = useKeyText()
   return (
     <IconHint hint={hint} keyText={keyText(action)}>
-      <Button variant="ghost" size="icon-sm" className="size-7" onClick={onClick}>
+      <Button variant="ghost" size="icon-sm" className="size-6" onClick={onClick}>
         {children}
       </Button>
     </IconHint>
@@ -137,7 +147,7 @@ function ToolToggle({ action, hint, pressed, disabled, onPressed, children }: To
           pressed={pressed}
           disabled={disabled}
           onPressedChange={onPressed}
-          className="size-7 min-w-7 p-0 hover:bg-accent hover:text-foreground data-[state=on]:bg-selection data-[state=on]:text-foreground"
+          className="size-6 min-w-6 p-0 hover:bg-accent hover:text-foreground data-[state=on]:bg-selection data-[state=on]:text-foreground"
         >
           {children}
         </Toggle>

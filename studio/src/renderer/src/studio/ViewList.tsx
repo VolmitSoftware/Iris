@@ -5,7 +5,6 @@ import {
   Box,
   Boxes,
   Droplets,
-  Ellipsis,
   Fish,
   Flower2,
   Gem,
@@ -32,6 +31,7 @@ import { Kbd } from '@/components/ui/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import type { ViewInfo } from '../bridge/types'
+import { Glyph } from './Glyph'
 import { viewShortcutId } from './shortcuts'
 import { useKeyText } from './useBindings'
 
@@ -62,10 +62,10 @@ const VIEW_ICONS: Record<string, LucideIcon> = {
 }
 const FALLBACK_ICON: LucideIcon = Shapes
 /** Inset, because the stripe scrolls and so clips anything drawn outside its buttons. */
-const STRIPE_BUTTON = 'flex size-8 shrink-0 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset'
+const STRIPE_BUTTON = 'flex size-[30px] shrink-0 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
 
-/** The icon a view has in the stripe, which its island's header repeats beside its name. */
-export function viewIcon(viewId: string): LucideIcon {
+/** The icon a view has in the stripe and in the list of every view. */
+function viewIcon(viewId: string): LucideIcon {
   return VIEW_ICONS[viewId] ?? FALLBACK_ICON
 }
 
@@ -91,7 +91,7 @@ export function ViewList({ views, current, onSelect, slotRef }: ViewListProps): 
   const groups = groupsOf(views)
   return (
     <>
-      <nav className="flex w-8 shrink-0 flex-col items-center gap-1.5 overflow-y-auto">
+      <nav className="flex w-10 shrink-0 flex-col items-center gap-2 overflow-y-auto pb-1.5">
         {groups.map((group, index) => (
           <Fragment key={group.label}>
             {index > 0 && <StripeLine />}
@@ -103,7 +103,7 @@ export function ViewList({ views, current, onSelect, slotRef }: ViewListProps): 
         <StripeLine />
         <NamedViews groups={groups} current={current} onSelect={onSelect} />
       </nav>
-      <div ref={slotRef} className="flex w-60 shrink-0 flex-col overflow-hidden rounded-lg bg-card empty:hidden" />
+      <div ref={slotRef} className="flex w-60 shrink-0 flex-col overflow-hidden rounded-[10px] bg-card empty:hidden" />
     </>
   )
 }
@@ -119,7 +119,7 @@ function groupsOf(views: ViewInfo[]): ViewGroup[] {
 }
 
 function StripeLine(): React.JSX.Element {
-  return <span className="my-0.5 h-px w-5 shrink-0 bg-input" />
+  return <span className="h-px w-5 shrink-0 bg-input" />
 }
 
 function ViewButton({ view, selected, onSelect }: { view: ViewInfo; selected: boolean; onSelect(): void }): React.JSX.Element {
@@ -131,9 +131,9 @@ function ViewButton({ view, selected, onSelect }: { view: ViewInfo; selected: bo
           onClick={onSelect}
           aria-label={view.label}
           aria-pressed={selected}
-          className={cn(STRIPE_BUTTON, selected ? 'bg-primary text-primary-foreground' : 'hover:bg-selection')}
+          className={cn(STRIPE_BUTTON, selected ? 'icon-tint bg-primary text-primary-foreground' : 'hover:bg-accent')}
         >
-          <ViewIcon viewId={view.id} className="size-[18px]" />
+          <ViewIcon viewId={view.id} className="size-5" />
         </button>
       </TooltipTrigger>
       <TooltipContent side="right" className="flex max-w-64 flex-col items-start gap-0.5">
@@ -153,12 +153,12 @@ function NamedViews({ groups, current, onSelect }: { groups: ViewGroup[]; curren
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button aria-label="All views" title="All views" className={cn(STRIPE_BUTTON, 'text-secondary-text hover:bg-selection data-[state=open]:bg-selection')}>
-          <Ellipsis />
+        <button aria-label="All views" title="All views" className={cn(STRIPE_BUTTON, 'hover:bg-accent data-[state=open]:bg-accent')}>
+          <Glyph glyph="more" />
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content side="right" align="end" sideOffset={8} className="z-50 w-56 rounded-lg border border-overlay-border bg-popover p-1 text-popover-foreground shadow-lg">
+        <DropdownMenu.Content side="right" align="end" sideOffset={8} className="popup z-50 w-56 p-1">
           {groups.map((group) => (
             <DropdownMenu.Group key={group.label}>
               <DropdownMenu.Label className="px-2 pt-1.5 pb-1 text-[11px] font-semibold text-muted-foreground">{group.label}</DropdownMenu.Label>

@@ -1,4 +1,3 @@
-import { RefreshCw, RotateCcw, Search } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +11,7 @@ import { NOISE_PALETTES, noiseScale, type NoisePaletteId, type NoiseScale } from
 import { NoiseTerrain } from '../noise/noiseTerrain'
 import { createNoiseView, noiseTileSource, type NoiseLayer, type NoiseStatus, type NoiseView } from '../noise/noiseTiles'
 import { focusAround, type TerrainStyle } from '../scene/terrainStream'
+import { Glyph } from './Glyph'
 import { hexColor } from './colors'
 import { SceneViewport } from './SceneViewport'
 import { TiledCanvas } from './TiledCanvas'
@@ -86,13 +86,14 @@ export function NoiseStudio({ title, client, packRevision, onSummary, tell }: No
   return (
     <>
       <ViewIsland
-        title={source === null ? title : `${title} · ${source.name}`}
+        title={title}
+        subtitle={source?.name}
         tools={
           <>
             {display === 'terrain' && source?.blockRange === null && <ReliefControl blocks={reliefBlocks} onChange={setReliefBlocks} />}
             {display === 'flat' && (
-              <Button variant="ghost" size="icon-sm" className="size-7" title="Back to 0, 0" onClick={() => controllerRef.current?.resetView()}>
-                <RotateCcw />
+              <Button variant="ghost" size="icon-sm" className="size-6" title="Back to 0, 0" onClick={() => controllerRef.current?.resetView()}>
+                <Glyph glyph="reset" />
               </Button>
             )}
             <Separator orientation="vertical" className="mx-1 h-4!" />
@@ -166,7 +167,7 @@ function SeedField({ seed, usesSeed, onChange }: { seed: string; usesSeed: boole
           onKeyDown={(event) => event.key === 'Enter' && commit()}
         />
         <Button variant="outline" size="icon-sm" title="Random seed" disabled={!usesSeed} onClick={() => onChange(randomSeed())}>
-          <RefreshCw />
+          <Glyph glyph="refresh" />
         </Button>
       </div>
       {!usesSeed && <p className="pt-1.5 text-[11.5px] text-secondary-text">Keeps the world&apos;s seed</p>}
@@ -232,7 +233,7 @@ function SourceList({ sources, current, onSelect }: { sources: NoiseSource[]; cu
     <section className="flex min-h-0 flex-1 flex-col border-t">
       <div className="relative px-3 pt-2.5 pb-1.5">
         <span className="pointer-events-none absolute top-[15px] left-5">
-          <Search className="size-3.5" />
+          <Glyph glyph="search" className="size-3.5" />
         </span>
         <Input value={filter} placeholder="Search" className="h-7 pl-7 text-[12px] md:text-[12px]" onChange={(event) => setFilter(event.target.value)} />
       </div>

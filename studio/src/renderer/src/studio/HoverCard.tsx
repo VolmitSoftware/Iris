@@ -52,7 +52,7 @@ export function HoverCard({ hover, point, viewId, previewing, detailed, minY }: 
   return (
     <div
       ref={card}
-      className="pointer-events-none absolute z-10 w-80 overflow-hidden rounded-lg border border-overlay-border bg-popover text-popover-foreground shadow-lg"
+      className="pointer-events-none absolute z-10 w-80 overflow-hidden popup"
       style={position}
     >
       <div className="px-3.5 pt-3 pb-2.5">

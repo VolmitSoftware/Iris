@@ -2,62 +2,72 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* The studio's colours, taken from the Swing studio (StudioTheme) so both look alike. */
+/*
+ * IntelliJ's Islands Light and Islands Dark themes (ManyIslandsLight and ManyIslandsDark.theme.json): the frame, toolbar,
+ * stripe and status bar share the main window colour, and the views and tool windows are islands on it.
+ */
 :root {
-  --background: #dfe2e8;
+  --background: #e9eaee;
   --foreground: #000000;
-  --card: #f7f8fa;
+  --card: #ffffff;
   --card-foreground: #000000;
   --popover: #ffffff;
   --popover-foreground: #000000;
-  --primary: #3574f0;
+  --primary: #3871e1;
   --primary-foreground: #ffffff;
-  --secondary: #dfe1e5;
+  --secondary: #dddfe4;
   --secondary-foreground: #000000;
-  --muted: #f7f8fa;
-  --muted-foreground: #818594;
-  --secondary-text: #6c707e;
-  --accent: #dfe1e5;
+  --muted: #f7f8f9;
+  --muted-foreground: #73767c;
+  --secondary-text: #5f6269;
+  --accent: rgb(0 0 0 / 0.07);
   --accent-foreground: #000000;
-  --selection: #d3d5db;
-  --destructive: #db3b4b;
-  --warning: #c27d04;
-  --success: #208a3c;
-  --link: #315fbd;
-  --border: #ebecf0;
+  --selection: #d0dffe;
+  --destructive: #c54e58;
+  --warning: #a56906;
+  --success: #338555;
+  --link: #2f5eb9;
+  --border: #dddfe4;
   --input: #c9ccd6;
-  --ring: #3574f0;
-  --overlay-border: #dfe1e5;
-  --map-background: #eceef2;
-  --radius: 10px;
+  --ring: #3871e1;
+  --overlay-border: #dddfe4;
+  --map-background: #ffffff;
+  --icon: #6c707e;
+  /* MemoryIndicator.usedBackground in expUI_light.theme.json */
+  --meter-used: #b7cefa75;
+  --popup-shadow: 0 6px 20px rgb(0 0 0 / 0.15);
 }
 
 .dark {
-  --background: #1e1f22;
-  --foreground: #dfe1e5;
-  --card: #2b2d30;
-  --card-foreground: #dfe1e5;
-  --popover: #2b2d30;
-  --popover-foreground: #dfe1e5;
-  --primary: #3574f0;
+  --background: #26282c;
+  --foreground: #d1d3d9;
+  --card: #191a1c;
+  --card-foreground: #d1d3d9;
+  --popover: #26282c;
+  --popover-foreground: #d1d3d9;
+  --primary: #3871e1;
   --primary-foreground: #ffffff;
-  --secondary: #393b40;
-  --secondary-foreground: #dfe1e5;
-  --muted: #2b2d30;
-  --muted-foreground: #868a91;
-  --secondary-text: #9da0a8;
-  --accent: #393b40;
-  --accent-foreground: #dfe1e5;
-  --selection: #43454a;
-  --destructive: #f75464;
-  --warning: #f2c55c;
-  --success: #5fb865;
-  --link: #548af7;
-  --border: #393b40;
-  --input: #4e5157;
-  --ring: #3574f0;
-  --overlay-border: #43454a;
-  --map-background: #25272a;
+  --secondary: rgb(255 255 255 / 0.16);
+  --secondary-foreground: #d1d3d9;
+  --muted: #212326;
+  --muted-foreground: #8b8e94;
+  --secondary-text: #9fa2a8;
+  --accent: rgb(255 255 255 / 0.09);
+  --accent-foreground: #d1d3d9;
+  --selection: #2a4371;
+  --destructive: #f57e84;
+  --warning: #d59637;
+  --success: #6db083;
+  --link: #71a1fe;
+  --border: #33353b;
+  --input: #40434a;
+  --ring: #3871e1;
+  --overlay-border: #33353b;
+  --map-background: #191a1c;
+  --icon: #ced0d6;
+  /* MemoryIndicator.usedBackground in expUI_dark.theme.json */
+  --meter-used: #35538f80;
+  --popup-shadow: 0 6px 20px rgb(0 0 0 / 0.45);
 }
 
 @theme inline {
@@ -86,10 +96,12 @@
   --color-ring: var(--ring);
   --color-overlay-border: var(--overlay-border);
   --color-map-background: var(--map-background);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --color-icon: var(--icon);
+  --color-meter-used: var(--meter-used);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
   --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
@@ -110,9 +122,29 @@
   }
 }
 
-/* The window around the islands: its colour, tinted with the accent from the top left corner as IntelliJ's islands theme does. */
-.window-frame {
-  background:
-    radial-gradient(ellipse 55% 45% at 0% 0%, color-mix(in srgb, var(--primary) 16%, transparent), transparent),
-    var(--background);
+/* Floats above everything else: menus, popovers, tooltips and cards that follow the cursor. */
+@utility popup {
+  border-radius: 8px;
+  border: 1px solid var(--overlay-border);
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--popup-shadow);
+}
+
+/* Keyboard focus and a field being typed in: a crisp accent edge, as IntelliJ draws it, instead of a soft glow. */
+@utility focused {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 1px var(--ring);
+}
+
+/* IntelliJ draws its icons a shade off the text colour; a context that colours its icons sets this to currentColor. */
+@utility icon-tint {
+  --icon-tint: currentColor;
+}
+
+@layer base {
+  .lucide,
+  .glyph {
+    color: var(--icon-tint, var(--icon));
+  }
 }

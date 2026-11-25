@@ -1,0 +1,1 @@
+Dark new-UI icons copied unchanged from JetBrains intellij-community, `platform/icons/src/expui`, under the Apache License 2.0 (LICENSE.txt). NOTICE.txt is that repository's notice. The folder layout matches the source. `Glyph` draws them in the current colour, so one copy serves both themes.

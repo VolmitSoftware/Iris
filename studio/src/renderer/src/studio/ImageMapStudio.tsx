@@ -28,7 +28,7 @@ export function ImageMapStudio({ title, client, packRevision, onSummary, tell }:
 
   return (
     <>
-      <ViewIsland title={entry === null ? title : `${title} · ${entry.name}`}>
+      <ViewIsland title={title} subtitle={entry?.name}>
         <div className="absolute inset-0 flex items-center justify-center overflow-auto bg-map-background p-4">
           {picture !== null && <img src={picture} alt={entry?.name ?? title} className="max-h-full max-w-full object-contain [image-rendering:pixelated]" />}
           {entry === null && <p className="text-[12px] text-secondary-text">This pack has no image maps. Put them in the pack's imageMaps folder.</p>}

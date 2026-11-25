@@ -1,10 +1,10 @@
-import { Timer } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import type { BridgeClient } from '../bridge/BridgeClient'
 import type { BakeRun } from '../bridge/types'
 import { BAKE_RUN_COUNT, bakeWeightOf, formatMillis, measureBake, meterFill, runMillis, slowestStageIndex, weightScale } from '../scene/bakeTiming'
+import { Glyph } from './Glyph'
 
 const MINIMUM_FILL = '4px'
 const MEASURING_LABEL = 'Timing'
@@ -49,7 +49,7 @@ export function BakeMeter({ timing }: BakeMeterProps): React.JSX.Element {
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="flex h-8 shrink-0 items-center gap-2 border-b px-4 text-[11.5px]">
-          <Timer className={cn(timing === null && 'opacity-50')} />
+          <Glyph glyph="stopWatch" className={cn(timing === null && 'opacity-50')} />
           <span className={cn('w-[62px] shrink-0 font-semibold', timing === null ? 'text-muted-foreground' : weight.textClass)}>
             {timing === null ? MEASURING_LABEL : weight.label}
           </span>

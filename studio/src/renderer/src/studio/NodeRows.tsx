@@ -1,10 +1,10 @@
-import { ChevronRight } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import type { SettingOption } from '../bridge/types'
 import { NODE_HEADING, NODE_ROW, type NodeRow } from '../editor/nodeRows'
 import { idOfFold, type SettingsFold } from '../editor/settingFolds'
 import { defaultLiteral, defaultText } from '../editor/settingText'
+import { Glyph } from './Glyph'
 import { useNodeEditing } from './nodeEditing'
 import { keepFocusOnCanvas, NodeSettingRow, ROW_INDENT, RowButton } from './NodeSettingRow'
 
@@ -51,7 +51,7 @@ function FoldRow({ fold, open, editable }: { fold: SettingsFold; open: boolean; 
         style={{ paddingLeft: (fold.depth - 1) * ROW_INDENT }}
         onClick={() => onToggleFold(idOfFold(fold))}
       >
-        <ChevronRight className={cn('size-3 text-secondary-text group-hover:text-foreground', open && 'rotate-90')} />
+        <Glyph glyph="chevronRight" className={cn('size-3 text-secondary-text group-hover:text-foreground', open && 'rotate-90')} />
         <span className="shrink-0">{fold.kind === 'item' ? `#${fold.title}` : fold.title}</span>
         {showsSummary && <span className="ml-1 min-w-0 truncate text-muted-foreground">{fold.summary}</span>}
       </button>

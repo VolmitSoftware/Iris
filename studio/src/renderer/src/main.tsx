@@ -6,7 +6,7 @@ import { App } from './App'
 import './styles.css'
 
 const ICON_SIZE_PX = 16
-const ICON_STROKE_PX = 1.5
+const ICON_STROKE_PX = 1.25
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

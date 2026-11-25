@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import type { ProfileField, ProfileFormState } from '../bridge/types'
+import { Glyph } from './Glyph'
 
 interface ProfileFormPanelProps {
   state: ProfileFormState | null
@@ -56,7 +56,7 @@ function FieldEditor({ field, onChange }: { field: ProfileField; onChange(name: 
         <div className="flex min-w-0 flex-[6] items-center gap-1">
           {field.kind === 'boolean' || field.kind === 'enum' ? <ChoiceInput field={field} onChange={onChange} /> : <NumberInput field={field} onChange={onChange} />}
           <Button variant="ghost" size="icon-sm" title="Back to the pack's value" className={cn('size-6 shrink-0', !field.changed && 'invisible')} onClick={() => onChange(field.name, null)}>
-            <RotateCcw className="size-3.5" />
+            <Glyph glyph="reset" className="size-3.5" />
           </Button>
         </div>
       </div>

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Globe, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { BridgeConnection } from '../../../shared/bridge'
+import { Glyph } from './Glyph'
 
 const BRIDGE_POLL_MILLIS = 2000
 
@@ -45,8 +45,8 @@ export function ConnectScreen({ connecting, error, onConnect, onLink }: ConnectS
   }, [onConnect])
 
   return (
-    <div className="window-frame flex h-full items-center justify-center">
-      <div className="w-[440px] rounded-xl border border-overlay-border bg-card p-6 shadow-lg">
+    <div className="flex h-full items-center justify-center">
+      <div className="w-[440px] rounded-lg bg-card p-6">
         <h1 className="text-[15px] font-semibold">Open a world</h1>
         <p className="mt-1 text-secondary-text">
           Run <code className="rounded bg-secondary px-1 font-mono text-[12px]">/iris studio map</code> in game or in the
@@ -56,7 +56,7 @@ export function ConnectScreen({ connecting, error, onConnect, onLink }: ConnectS
         <div className="mt-4 flex flex-col gap-1">
           {bridges.length === 0 ? (
             <div className="flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground">
-              <RefreshCw className="animate-spin" /> Waiting for a server on this machine
+              <Glyph glyph="refresh" className="animate-spin" /> Waiting for a server on this machine
             </div>
           ) : (
             bridges.map((bridge) => (
@@ -66,7 +66,7 @@ export function ConnectScreen({ connecting, error, onConnect, onLink }: ConnectS
                 onClick={() => onConnect(bridge)}
                 className="flex items-center gap-3 rounded-md px-3 py-2 text-left hover:bg-accent disabled:opacity-60"
               >
-                <Globe />
+                <Glyph glyph="web" />
                 <span className="flex-1 truncate font-medium">{bridge.world}</span>
                 <span className="text-[11px] text-muted-foreground">port {bridge.port}</span>
               </button>
@@ -83,7 +83,7 @@ export function ConnectScreen({ connecting, error, onConnect, onLink }: ConnectS
         >
           <Input value={link} onChange={(event) => setLink(event.target.value)} placeholder="iris-studio://…" className="h-8" />
           <Button type="submit" size="sm" disabled={connecting || link.trim() === ''}>
-            {connecting ? <RefreshCw className="animate-spin" /> : 'Connect'}
+            {connecting ? <Glyph glyph="refresh" className="animate-spin" /> : 'Connect'}
           </Button>
         </form>
         {error !== null && <p className="mt-2 text-[12px] text-destructive">{error}</p>}

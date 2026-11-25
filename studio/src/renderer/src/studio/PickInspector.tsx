@@ -1,13 +1,10 @@
-import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { PickDisplay, PickInspection, PickSection } from '../bridge/types'
+import { Glyph } from './Glyph'
 import { hexColor } from './colors'
 import { NoiseChart, percent } from './NoiseChart'
-
-// The chosen display reads like the toolbar's switched-on toggles.
-const DISPLAY_ITEM = 'h-7 text-[12px] data-[state=on]:bg-selection data-[state=on]:text-foreground'
 
 /** How the map draws the picks, for a view that recolours its tiles. */
 export interface PickDisplayChoice {
@@ -45,13 +42,13 @@ export function PickInspector({ title, inspection, display }: PickInspectorProps
             value={display.value}
             onValueChange={(value) => value !== '' && display.onChange(value as PickDisplay)}
           >
-            <ToggleGroupItem value="picks" className={DISPLAY_ITEM}>
+            <ToggleGroupItem value="picks">
               {display.picksLabel}
             </ToggleGroupItem>
-            <ToggleGroupItem value="noise" className={DISPLAY_ITEM}>
+            <ToggleGroupItem value="noise">
               Noise
             </ToggleGroupItem>
-            <ToggleGroupItem value="both" className={DISPLAY_ITEM}>
+            <ToggleGroupItem value="both">
               Both
             </ToggleGroupItem>
           </ToggleGroup>
@@ -92,7 +89,7 @@ function RegionSection({ section, open, onToggle }: { section: PickSection; open
   return (
     <div className="border-b last:border-b-0">
       <button className="-mx-1.5 flex w-[calc(100%+12px)] items-center gap-2 rounded-md px-1.5 py-2 text-left hover:bg-accent" onClick={onToggle}>
-        <ChevronRight className={`size-3.5 transition-transform ${open ? 'rotate-90' : ''}`} />
+        <Glyph glyph="chevronRight" className={`size-3.5 transition-transform ${open ? 'rotate-90' : ''}`} />
         {region !== null && <span className="size-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: hexColor(region.color) }} />}
         <span className="min-w-0 flex-1 truncate font-medium">{region?.name ?? 'Regions'}</span>
         <span className="shrink-0 text-[11.5px] text-secondary-text tabular-nums">

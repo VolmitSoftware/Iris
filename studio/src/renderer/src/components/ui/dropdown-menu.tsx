@@ -1,12 +1,12 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { ChevronRight } from "lucide-react"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
+import { Glyph } from "@/studio/Glyph"
 
 const MENU_SURFACE =
-  "z-50 min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md backdrop-blur-sm data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
+  "z-50 min-w-[8rem] overflow-x-hidden overflow-y-auto popup p-1 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
 const MENU_ROW =
-  "relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+  "relative flex cursor-default items-center gap-2 rounded-md px-2 py-1 text-[13px] outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
 
 function DropdownMenu(props: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
   return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
@@ -45,7 +45,7 @@ function DropdownMenuSubTrigger({ className, children, ...props }: React.Compone
       {...props}
     >
       {children}
-      <ChevronRight className="ml-auto size-3.5" />
+      <Glyph glyph="chevronRight" className="ml-auto size-3.5" />
     </DropdownMenuPrimitive.SubTrigger>
   )
 }
@@ -53,7 +53,7 @@ function DropdownMenuSubTrigger({ className, children, ...props }: React.Compone
 function DropdownMenuSubContent({ className, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
   return (
     <DropdownMenuPrimitive.Portal>
-      <DropdownMenuPrimitive.SubContent data-slot="dropdown-menu-sub-content" className={cn(MENU_SURFACE, "shadow-lg", className)} {...props} />
+      <DropdownMenuPrimitive.SubContent data-slot="dropdown-menu-sub-content" className={cn(MENU_SURFACE, className)} {...props} />
     </DropdownMenuPrimitive.Portal>
   )
 }

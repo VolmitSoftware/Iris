@@ -35,7 +35,7 @@ export const NodeBox = memo(function NodeBox({ placed, rows, selected, dropTarge
     <div
       data-node-id={placed.id}
       className={cn(
-        'absolute cursor-move rounded-md bg-popover text-[11.5px] outline -outline-offset-1 dark:bg-secondary',
+        'absolute cursor-move rounded-md bg-popover text-[11.5px] outline -outline-offset-1',
         dropTarget ? 'outline-2 outline-success' : selected ? 'outline-2 outline-primary' : 'outline-1 outline-overlay-border',
         selected && 'z-[5]',
         offset !== null && 'z-10 shadow-lg'
@@ -83,7 +83,7 @@ function InputSocket({ handle }: { handle: boolean }): React.JSX.Element {
       title={handle ? 'Drag onto another node to grow from it' : undefined}
       className={cn(
         'absolute rounded-full border-[1.5px] border-secondary-text transition-transform',
-        handle ? 'cursor-pointer bg-popover hover:scale-[1.35] hover:border-primary dark:bg-secondary' : 'bg-secondary-text'
+        handle ? 'cursor-pointer bg-popover hover:scale-[1.35] hover:border-primary' : 'bg-secondary-text'
       )}
       style={socketStyle('left')}
     />

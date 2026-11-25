@@ -189,7 +189,8 @@ function SceneArea({ title, entry, variant, sizes, size, shown, status, onVarian
   return (
     <ViewIsland
       className="flex-[11]"
-      title={entry === null ? title : `${title} · ${entry.name}`}
+      title={title}
+      subtitle={entry?.name}
       tools={
         <>
           {sizes !== null && size !== null && <SizeChoice sizes={sizes} size={size} onSize={onSize} />}

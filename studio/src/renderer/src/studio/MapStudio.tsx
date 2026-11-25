@@ -21,12 +21,12 @@ import { SceneStudio } from './SceneStudio'
 import { WorldStudio3D } from './WorldStudio3D'
 import { isTypingInto, shortcutRows, viewOfShortcutId, windowShortcutFor, type ShortcutAction } from './shortcuts'
 import { ShortcutSettings } from './ShortcutSettings'
-import { Panel, ShownViewIcon, SidebarPanel, SidebarSlot, ViewIsland } from './Sidebar'
+import { Panel, SidebarPanel, SidebarSlot, ViewIsland } from './Sidebar'
 import { StatusBar } from './StatusBar'
 import { MapTools, StudioToolbar } from './StudioToolbar'
 import { useBindings } from './useBindings'
 import { usePickInspection } from './usePickInspection'
-import { ViewList, viewIcon } from './ViewList'
+import { ViewList } from './ViewList'
 
 const KEYBOARD_ZOOM_FACTOR = 2 ** 0.25
 const ENTITY_POLL_MILLIS = 2000
@@ -218,11 +218,10 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   )
 
   return (
-    <div className="window-frame flex h-full flex-col">
+    <div className="flex h-full flex-col">
       <StudioToolbar world={world} theme={theme} onHelp={() => setHelpOpen(true)} onSettings={() => setSettingsOpen(true)} onDisconnect={onDisconnect} />
-      <ShownViewIcon.Provider value={viewIcon(viewId)}>
       <SidebarSlot.Provider value={sidebarSlot}>
-      <div className="flex min-h-0 flex-1 gap-1.5 px-1.5">
+      <div className="flex min-h-0 flex-1 gap-1.5 pr-1.5">
         <ViewList views={views} current={viewId} onSelect={selectView} slotRef={setSidebarSlot} />
         {viewId === 'regions' && regions.length > 1 && (
           <SidebarPanel className="flex-1 overflow-y-auto p-1.5">
@@ -246,7 +245,8 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         ) : (
           <>
         <ViewIsland
-          title={previewName === null ? view.label : `${view.label} · ${previewName}`}
+          title={view.label}
+          subtitle={previewName ?? undefined}
           tools={
             <MapTools
               toggles={toggles}
@@ -290,7 +290,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
           )}
           {!connected && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/70">
-              <div className="rounded-xl border border-overlay-border bg-card p-5 text-center shadow-lg">
+              <div className="popup p-5 text-center">
                 <p className="font-medium">Lost the connection to the server</p>
                 <button className="mt-3 text-link hover:underline" onClick={onDisconnect}>
                   Back to the world list
@@ -322,7 +322,6 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         )}
       </div>
       </SidebarSlot.Provider>
-      </ShownViewIcon.Provider>
       <StatusBar viewLabel={statusLabel(view.label, previewName, showsMap ? null : sceneSummary)} status={showsMap ? status : null} notice={notice} usage={usage} progress={showsMap ? null : sceneProgress} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} views={views} />
       <ShortcutSettings open={settingsOpen} onOpenChange={setSettingsOpen} views={views} />

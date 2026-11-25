@@ -68,7 +68,7 @@ export function SuggestionInput({ value, onValue, isList, load, onKeyDown, onFoc
         }}
       />
       {offered.length > 0 && (
-        <ul className="absolute top-full right-0 left-0 z-30 mt-0.5 overflow-hidden rounded-md border bg-popover py-0.5 text-popover-foreground shadow-md">
+        <ul className="absolute top-full right-0 left-0 z-30 mt-0.5 overflow-hidden popup py-0.5">
           {offered.map((choice, index) => (
             <li key={choice}>
               <button

@@ -12,6 +12,11 @@ export function formatHeap(usage: ServerUsage): string {
   return `${gigabytes(usage.heapUsedBytes)} / ${gigabytes(usage.heapMaxBytes)} GB`
 }
 
+/** How much of its heap the server uses, 0 to 1. */
+export function heapShare(usage: ServerUsage): number {
+  return usage.heapMaxBytes <= 0 ? 0 : Math.min(1, usage.heapUsedBytes / usage.heapMaxBytes)
+}
+
 /** Whether four fifths of the CPU's threads are busy. */
 export function cpuIsHigh(usage: ServerUsage): boolean {
   return usage.cpuPercent !== null && usage.cpuPercent >= usage.threads * PERCENT_PER_THREAD * HIGH_USAGE

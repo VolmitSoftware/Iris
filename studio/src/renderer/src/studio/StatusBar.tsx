@@ -1,9 +1,8 @@
-import { MemoryStick, Zap } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import type { ServerUsage } from '../bridge/types'
 import type { MapStatus } from '../map/MapController'
-import { cpuIsHigh, formatCpu, formatHeap, heapIsHigh } from './serverUsage'
+import { cpuIsHigh, formatCpu, formatHeap, heapIsHigh, heapShare } from './serverUsage'
 
 interface StatusBarProps {
   viewLabel: string
@@ -20,7 +19,7 @@ const NUMBER = new Intl.NumberFormat('en-US')
 export function StatusBar({ viewLabel, status, notice, usage, progress }: StatusBarProps): React.JSX.Element {
   const drawing = status !== null && status.tilesReady < status.tilesTotal
   return (
-    <footer className="flex h-6 shrink-0 items-center gap-6 px-3 text-[11.5px] text-secondary-text tabular-nums">
+    <footer className="flex h-7 shrink-0 items-center gap-6 px-3 text-[12px] text-secondary-text tabular-nums">
       <span className="truncate">
         {viewLabel}
         {status !== null && (
@@ -59,36 +58,43 @@ function ProgressBar({ fraction }: { fraction: number }): React.JSX.Element {
 /** The server's CPU, 100% per busy thread, and Java heap; each turns warning-coloured at 80%. */
 function UsageReadout({ usage }: { usage: ServerUsage }): React.JSX.Element {
   return (
-    <span className="flex items-center gap-4">
-      <Reading
-        icon={<Zap className="size-3.5" />}
-        value={formatCpu(usage)}
-        high={cpuIsHigh(usage)}
-        hint={`Server CPU, 100% per busy thread, ${usage.threads} threads in all`}
-      />
-      <Reading icon={<MemoryStick className="size-3.5" />} value={formatHeap(usage)} high={heapIsHigh(usage)} hint="Java memory the server uses, of its maximum" />
+    <span className="flex items-center gap-3">
+      <Reading high={cpuIsHigh(usage)} hint={`Server CPU, 100% per busy thread, ${usage.threads} threads in all`}>
+        CPU {formatCpu(usage)}
+      </Reading>
+      <Reading high={heapIsHigh(usage)} hint="Java memory the server uses, of its maximum">
+        <MemoryIndicator share={heapShare(usage)} high={heapIsHigh(usage)}>
+          {formatHeap(usage)}
+        </MemoryIndicator>
+      </Reading>
     </span>
   )
 }
 
 interface ReadingProps {
-  icon: React.ReactNode
-  value: string
   high: boolean
   hint: string
+  children: React.ReactNode
 }
 
-function Reading({ icon, value, high, hint }: ReadingProps): React.JSX.Element {
+function Reading({ high, hint, children }: ReadingProps): React.JSX.Element {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className={cn('flex items-center gap-1', high && 'text-warning')}>
-          {icon}
-          {value}
-        </span>
+        <span className={cn('flex items-center', high && 'text-warning')}>{children}</span>
       </TooltipTrigger>
       <TooltipContent>{hint}</TooltipContent>
     </Tooltip>
+  )
+}
+
+/** IntelliJ's memory indicator: the reading over a bar filled as far as the heap is used. */
+function MemoryIndicator({ share, high, children }: { share: number; high: boolean; children: React.ReactNode }): React.JSX.Element {
+  return (
+    <span className="relative flex h-5 items-center overflow-hidden rounded-sm px-2">
+      <span className={cn('absolute inset-y-0 left-0', high ? 'bg-warning/30' : 'bg-meter-used')} style={{ width: `${share * 100}%` }} />
+      <span className="relative">{children}</span>
+    </span>
   )
 }
 

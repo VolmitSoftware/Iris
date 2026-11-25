@@ -1,4 +1,3 @@
-import { Check, ChevronDown } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
@@ -8,6 +7,7 @@ import { NODE_ROW } from '../editor/nodeRows'
 import { defaultText, isNumber, isStringList, literalOf, NOT_SET, problemWith, textOf } from '../editor/settingText'
 import { suggestionSourceOf } from '../editor/suggestions'
 import { CurveEditor, CurvePreview } from './CurveEditor'
+import { Glyph } from './Glyph'
 import { useNodeEditing, type SettingRow } from './nodeEditing'
 import { SuggestionInput } from './SuggestionInput'
 
@@ -114,7 +114,7 @@ function CheckValue({ row, editable }: SettingRowProps): React.JSX.Element {
       className={cn('flex size-3.5 items-center justify-center rounded-[4px] border', checked ? 'border-primary bg-primary' : 'border-input bg-muted', editable && 'hover:border-primary', row.value === undefined && 'opacity-60')}
       onClick={() => onEdit({ op: 'set', object: row.fold.path, key: row.option.name, literal: String(!checked) })}
     >
-      {checked && <Check className="size-3 text-primary-foreground" />}
+      {checked && <Glyph glyph="check" className="size-3 text-primary-foreground" />}
     </button>
   )
 }
@@ -128,7 +128,7 @@ function ChoiceValue({ row, editable }: SettingRowProps): React.JSX.Element {
       <DropdownMenuTrigger asChild disabled={!editable}>
         <button type="button" data-node-control className={cn(FIELD, editable && EDITABLE_FIELD)}>
           <ShownText row={row} />
-          <ChevronDown className="size-3 text-secondary-text" />
+          <Glyph glyph="chevronDown" className="size-3 text-secondary-text" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" onCloseAutoFocus={keepFocusOnCanvas}>
@@ -258,7 +258,7 @@ function ValueInput({ row, onDone }: { row: SettingRow; onDone(): void }): React
         }}
       />
       {shownProblem !== null && (
-        <p className="absolute top-full left-0 z-30 mt-1 w-max max-w-[260px] rounded-sm border border-destructive bg-popover px-1.5 py-1 text-[11px] whitespace-normal text-foreground shadow-md">
+        <p className="absolute top-full left-0 z-30 mt-1 w-max max-w-[260px] popup border-destructive px-1.5 py-1 text-[11px] whitespace-normal">
           {shownProblem}
         </p>
       )}

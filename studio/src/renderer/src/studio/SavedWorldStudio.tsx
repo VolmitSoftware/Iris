@@ -1,4 +1,3 @@
-import { RefreshCw } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -15,6 +14,7 @@ import { SavedTerrain, type ReadSavedTile, type SavedTerrainColoring } from '../
 import { savedTileSource, type SavedLayer } from '../scene/savedTileSource'
 import { TerrainAtlas } from '../scene/terrainAtlas'
 import { focusAround, type TerrainStyle } from '../scene/terrainStream'
+import { Glyph } from './Glyph'
 import { SceneViewport } from './SceneViewport'
 import { Separator } from '@/components/ui/separator'
 import { HEADER_CHOICE, SidebarPanel, ViewIsland } from './Sidebar'
@@ -91,7 +91,8 @@ export function SavedWorldStudio({ title, client, world, onSummary, onProgress, 
   return (
     <>
       <ViewIsland
-        title={chosen === null ? title : `${title} · ${chosen.name}`}
+        title={title}
+        subtitle={chosen?.name}
         tools={
           <>
             <ToggleGroup type="single" size="sm" className="gap-0.5" value={coloring} onValueChange={(value) => value !== '' && setColoring(value as SavedTerrainColoring)}>
@@ -106,8 +107,8 @@ export function SavedWorldStudio({ title, client, world, onSummary, onProgress, 
               </ToggleGroupItem>
             </ToggleGroup>
             <Separator orientation="vertical" className="mx-1 h-4!" />
-            <Button variant="ghost" size="icon-sm" className="size-7" title="Read again" disabled={reading} onClick={() => setReadings((count) => count + 1)}>
-              <RefreshCw />
+            <Button variant="ghost" size="icon-sm" className="size-6" title="Read again" disabled={reading} onClick={() => setReadings((count) => count + 1)}>
+              <Glyph glyph="refresh" />
             </Button>
           </>
         }

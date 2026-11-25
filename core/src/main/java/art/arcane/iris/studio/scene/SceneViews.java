@@ -19,8 +19,6 @@
 package art.arcane.iris.studio.scene;
 
 import art.arcane.iris.generation.cave.CaveSceneView;
-import art.arcane.iris.generation.decoration.formation.FormationProfileSceneView;
-import art.arcane.iris.generation.decoration.tree.TreeProfileSceneView;
 import art.arcane.iris.generation.hydrology.config.FluidProfileSceneView;
 import art.arcane.iris.generation.procedural.ProceduralPartsSceneView;
 
@@ -34,8 +32,6 @@ import java.util.Set;
 public final class SceneViews {
     private static final List<SceneView> VIEWS = distinct(List.of(
             new CaveSceneView(),
-            new TreeProfileSceneView(),
-            new FormationProfileSceneView(),
             new FluidProfileSceneView(),
             new ProceduralPartsSceneView()));
 

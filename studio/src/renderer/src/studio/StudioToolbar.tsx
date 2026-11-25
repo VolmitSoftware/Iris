@@ -12,6 +12,10 @@ import type { ShortcutAction } from './shortcuts'
 import { useKeyText } from './useBindings'
 import { IrisLogo } from './IrisLogo'
 import { PackSwitcher } from './PackSwitcher'
+import { badgeColour } from './packBadges'
+
+/** How strongly the open pack's colour tints the bar behind its name, as IntelliJ tints its toolbar with the project colour. */
+const PACK_TINT_PERCENT = 28
 
 interface StudioToolbarProps {
   world: WorldInfo
@@ -26,7 +30,8 @@ interface StudioToolbarProps {
 /** The window's bar: the pack the studio is on, which switches to another, and the studio's own buttons. */
 export function StudioToolbar({ world, openingPack, loadPacks, onOpenPack, onHelp, onSettings }: StudioToolbarProps): React.JSX.Element {
   return (
-    <header className="flex h-10 shrink-0 items-center gap-1 px-1.5">
+    <header className="relative isolate flex h-10 shrink-0 items-center gap-1 px-1.5">
+      <PackTint colour={badgeColour(openingPack?.key ?? world.dimension)} />
       <IrisLogo className="mx-[5px] size-5" />
       <PackSwitcher world={world} opening={openingPack} loadPacks={loadPacks} onOpenPack={onOpenPack} />
       <div className="flex-1" />
@@ -37,6 +42,16 @@ export function StudioToolbar({ world, openingPack, loadPacks, onOpenPack, onHel
         <Glyph glyph="settings" large />
       </MainToolbarButton>
     </header>
+  )
+}
+
+function PackTint({ colour }: { colour: string }): React.JSX.Element {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-0 -z-10"
+      style={{ background: `radial-gradient(560px 110px at 150px 0%, color-mix(in srgb, ${colour} ${PACK_TINT_PERCENT}%, transparent), transparent 75%)` }}
+    />
   )
 }
 

@@ -431,7 +431,8 @@ class Stage {
     this.camera.aspect = width / height
     this.camera.updateProjectionMatrix()
     this.notifyMoved()
-    this.requestFrame()
+    // Sizing the canvas wipes it, so waiting for the next frame would show it blank while a pane is resized.
+    this.renderer.render(this.scene, this.camera)
   }
 
   private requestFrame(): void {

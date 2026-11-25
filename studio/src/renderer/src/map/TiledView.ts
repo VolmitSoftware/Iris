@@ -86,7 +86,14 @@ export class TiledView<Tile, Layer, Style> {
     this.canvas.height = Math.round(height * ratio)
     this.view.width = width
     this.view.height = height
-    this.redraw()
+    this.drawNowAfterResize()
+  }
+
+  // Sizing a canvas wipes its pixels, so waiting for the next frame would show it blank while a pane is resized.
+  private drawNowAfterResize(): void {
+    if (!this.closed) {
+      this.draw()
+    }
   }
 
   show(layer: Layer | null, style: Style): void {

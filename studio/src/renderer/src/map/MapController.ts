@@ -122,7 +122,14 @@ export class MapController {
     this.canvas.height = Math.round(height * ratio)
     this.view.width = width
     this.view.height = height
-    this.redraw()
+    this.drawNowAfterResize()
+  }
+
+  // Sizing a canvas wipes its pixels, so waiting for the next frame would show it blank while a pane is resized.
+  private drawNowAfterResize(): void {
+    if (!this.closed) {
+      this.draw()
+    }
   }
 
   /** Shows a view; the region view previews {@code preview} everywhere when it is not null. */

@@ -19,7 +19,6 @@ import { BakeMeter, useBakeTiming } from './BakeMeter'
 import { BlockIcon } from './BlockIcon'
 import { EntryBrowser } from './EntryBrowser'
 import { useEntryFiles } from './EntryFileDialogs'
-import { NodeInspector } from './NodeInspector'
 import { NodePane } from './NodePane'
 import { ProfileFormPanel } from './ProfileFormPanel'
 import { Panel, SidebarPanel, SizeChoice, Stepper, ViewIsland } from './Sidebar'
@@ -41,7 +40,7 @@ interface SceneStudioProps {
 
 /**
  * A scene view: its entries on the right, the chosen one in 3D in the middle, with the blocks it is made of. An
- * editable view shows the entry's file as nodes under the scene, and the chosen node's settings on the right.
+ * editable view shows the entry's file as nodes under the scene, each with its settings edited in place.
  */
 export function SceneStudio({ client, view, packRevision, onSummary, tell }: SceneStudioProps): React.JSX.Element {
   const [waiting, setWaiting] = useState<string | null>(null)
@@ -150,6 +149,8 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
           <NodePane
             editor={editor}
             entryKey={entry.key}
+            values={values}
+            suggestions={suggestions}
             selected={selected}
             onSelect={(node) => {
               setSelectedPath(node?.path ?? null)
@@ -158,14 +159,10 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
           />
         )}
       </div>
-      <Panel className={view.editable || view.form ? 'w-[300px]' : 'w-[250px]'}>
+      <Panel className={view.form ? 'w-[300px]' : 'w-[250px]'}>
         {view.form === true && <ProfileFormPanel className="flex-[5]" state={profileForm} onChange={changeSetting} onResetAll={() => setTyped({ owner: typedOwner, values: NO_OVERRIDES })} />}
         {view.baked && entry !== null && <BakeMeter timing={bakeTiming} />}
-        {selected !== null && editor.state !== null ? (
-          <NodeInspector key={JSON.stringify(selected.path)} node={selected} state={editor.state} values={values} suggestions={suggestions} onEdit={editor.edit} />
-        ) : (
-          <BlockList scene={scene} blocks={blockLooks} farLeavesOnly={farLeavesOnly} onFarLeavesOnly={setFarLeavesOnly} />
-        )}
+        <BlockList scene={scene} blocks={blockLooks} farLeavesOnly={farLeavesOnly} onFarLeavesOnly={setFarLeavesOnly} />
       </Panel>
     </>
   )

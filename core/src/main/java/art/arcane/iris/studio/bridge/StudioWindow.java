@@ -20,6 +20,8 @@ package art.arcane.iris.studio.bridge;
 
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.studio.app.StudioAppInstall;
+import art.arcane.iris.studio.app.StudioAppInstaller;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,7 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Opens the Iris Studio window on a bridge, from the app folder the studio settings name. The app keeps one window:
+ * Opens the Iris Studio window on a bridge, from the studio checkout the settings name or else from the app the
+ * server downloaded at startup. The app keeps one window:
  * a second start hands its link to the open window and exits. Windows the server started close when it stops, as
  * their bridges go with it.
  */
@@ -43,25 +46,47 @@ public final class StudioWindow {
     private StudioWindow() {
     }
 
-    /** False when no app is set or it could not start, so the caller's printed link is the only way in. */
-    public static synchronized boolean show(StudioBridge bridge) {
+    public static synchronized StudioLaunch show(StudioBridge bridge) {
         IrisSettings.IrisSettingsStudio settings = IrisSettings.get().getStudio();
-        String appFolder = settings.getStudioApp();
-        if (appFolder == null || appFolder.isBlank()) {
-            return false;
+        String checkout = settings.getStudioApp();
+        if (checkout != null && !checkout.isBlank()) {
+            return showCheckout(Path.of(checkout), electronBinary(settings), bridge.link());
         }
-        Path app = Path.of(appFolder);
+        return showDownloaded(bridge.link());
+    }
+
+    private static StudioLaunch showCheckout(Path app, String electron, String link) {
         if (!Files.isRegularFile(app.resolve(BUILT_MAIN))) {
             IrisLogging.warn("Iris Studio is not built in %s; run npm run build there.", app);
-            return false;
+            return StudioLaunch.NOT_BUILT;
         }
+        return launch(electron, app, link);
+    }
+
+    private static StudioLaunch showDownloaded(String link) {
+        return switch (StudioAppInstaller.installInBackground()) {
+            case READY -> {
+                StudioAppInstall install = StudioAppInstaller.installed();
+                yield launch(install.electron().toString(), install.app(), link);
+            }
+            case NOT_STARTED, DOWNLOADING -> StudioLaunch.DOWNLOADING;
+            case DOWNLOAD_OFF -> StudioLaunch.DOWNLOAD_OFF;
+            case NO_DISPLAY -> StudioLaunch.NO_DISPLAY;
+            case UNAVAILABLE -> {
+                IrisLogging.warn("Studio app unavailable: %s", StudioAppInstaller.unavailableReason());
+                yield StudioLaunch.UNAVAILABLE;
+            }
+        };
+    }
+
+    private static StudioLaunch launch(String electron, Path app, String link) {
         try {
             STARTED.removeIf(process -> !process.isAlive());
-            STARTED.add(start(electronBinary(settings), app, bridge.link()));
-            return true;
+            STARTED.add(start(electron, app, link));
+            return StudioLaunch.OPENED;
         } catch (IOException error) {
             IrisLogging.warn("Could not open Iris Studio: %s", error.getMessage());
-            return false;
+            return StudioLaunch.FAILED_TO_START;
         }
     }
 

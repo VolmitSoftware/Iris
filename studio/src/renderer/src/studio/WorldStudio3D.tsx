@@ -16,6 +16,7 @@ import { Legend } from './Legend'
 import { PickInspector, hasPickSections } from './PickInspector'
 import { SceneViewport } from './SceneViewport'
 import { usePickInspection } from './usePickInspection'
+import { useDisposable } from './useDisposable'
 import { useSpotActions } from './useSpotActions'
 import { DetailPanel, HEADER_CHOICE, SizeChoice, ViewIsland } from './Sidebar'
 import { useGroundInView, useLongPending, useTerrainStream } from './useTerrainStream'
@@ -57,8 +58,7 @@ interface WorldStudio3DProps {
 export function WorldStudio3D({ title, client, world, mapArea, packRevision, onSummary, tell }: WorldStudio3DProps): React.JSX.Element {
   const [coloring, setColoring] = useState<MapTerrainColoring>('biomes')
   const centre = useMemo(() => centreOf(mapArea), [mapArea])
-  const art = useMemo(() => blockArt(client, true), [client])
-  useEffect(() => () => art.dispose(), [art])
+  const art = useDisposable(() => blockArt(client, true), (made) => made.dispose(), [client])
   const source = useMemo(() => mapTileSource(client, TILE_COLUMNS, art, MOST_BLOCKS_PER_COLUMN), [client, art])
   const focus = useMemo(
     () => focusAround(centre.x, centre.z, world.fluidHeight - BLOCKS_BELOW_FLUID_IN_FOCUS, world.fluidHeight + BLOCKS_ABOVE_FLUID_IN_FOCUS),
@@ -69,8 +69,7 @@ export function WorldStudio3D({ title, client, world, mapArea, packRevision, onS
     () => ({ view: 'biomes', preview: null, heights: true, pickNoise: false, blocks: showsBlocks ? 'generated' : null, shape: showsBlocks, revision: packRevision }),
     [packRevision, showsBlocks]
   )
-  const meshWorkers = useMemo(() => new TerrainMeshWorkers(), [])
-  useEffect(() => () => meshWorkers.dispose(), [meshWorkers])
+  const meshWorkers = useDisposable(() => new TerrainMeshWorkers(), (workers) => workers.dispose(), [])
   const style = useMemo<TerrainStyle<MapTile>>(
     () => ({
       surfaceOf: (tile, place) => new MapTerrain(tile, place, coloring, world.fluidHeight, art.atlas ?? undefined),

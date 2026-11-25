@@ -19,6 +19,7 @@ import { SceneViewport } from './SceneViewport'
 import { Separator } from '@/components/ui/separator'
 import { HEADER_CHOICE, SidebarPanel, ViewIsland } from './Sidebar'
 import { useSettledEntry, useTab } from './tabContext'
+import { useDisposable } from './useDisposable'
 import { useSpotActions } from './useSpotActions'
 import { useTerrainStream } from './useTerrainStream'
 
@@ -47,13 +48,16 @@ export function SavedWorldStudio({ title, client, world, onSummary, onProgress, 
   const [coloring, setColoring] = useState<SavedTerrainColoring>('biomes')
   const [readings, setReadings] = useState(0)
   const { start, looking } = useSavedStart(client, chosen?.id ?? null, readings, tell)
-  const { tileSource, atlas } = useMemo(() => {
-    const images = new BridgeAssets(client, () => {})
-    const models = new BlockModels(images)
-    const pictures = new TerrainAtlas(images)
-    return { tileSource: savedTileSource(client, new BlockColors(models, images), new BlockLooks(models, pictures)), atlas: pictures }
-  }, [client])
-  useEffect(() => () => atlas.dispose(), [atlas])
+  const { tileSource, atlas } = useDisposable(
+    () => {
+      const images = new BridgeAssets(client, () => {})
+      const models = new BlockModels(images)
+      const pictures = new TerrainAtlas(images)
+      return { tileSource: savedTileSource(client, new BlockColors(models, images), new BlockLooks(models, pictures)), atlas: pictures }
+    },
+    (made) => made.atlas.dispose(),
+    [client]
+  )
   const centerX = start?.centerX ?? 0
   const centerZ = start?.centerZ ?? 0
   const lowestGround = start?.lowestGround ?? 0

@@ -10,6 +10,7 @@ import { Glyph } from './Glyph'
 import type { StudioToggles } from './MapStudio'
 import type { ShortcutAction } from './shortcuts'
 import { useKeyText } from './useBindings'
+import { IrisLogo } from './IrisLogo'
 
 interface StudioToolbarProps {
   world: WorldInfo
@@ -22,6 +23,7 @@ interface StudioToolbarProps {
 export function StudioToolbar({ world, onHelp, onSettings, onDisconnect }: StudioToolbarProps): React.JSX.Element {
   return (
     <header className="flex h-10 shrink-0 items-center gap-1 px-1.5">
+      <IrisLogo className="mx-[5px] size-5" />
       <IconHint hint="Back to the world list">
         <Button variant="ghost" size="sm" className="h-[30px] max-w-[50%] gap-2 px-2 font-semibold" onClick={onDisconnect}>
           <span className="flex size-5 shrink-0 items-center justify-center rounded-[5px] bg-primary text-[11px] font-semibold text-primary-foreground uppercase">

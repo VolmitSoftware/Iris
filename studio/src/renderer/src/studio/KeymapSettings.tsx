@@ -62,7 +62,7 @@ export function KeymapPage({ views }: { views: ViewInfo[] }): React.JSX.Element 
       description="Click a shortcut's keys, then press the new key. Esc can be chosen too; click the keys again to cancel."
       toolbar={
         <div className="relative flex-1">
-          <Glyph glyph="search" className="pointer-events-none absolute top-1.5 left-2" />
+          <Glyph glyph="search" className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2" />
           <Input className="pl-7" placeholder="Filter by name or key" value={filter} onChange={(event) => setFilter(event.target.value)} />
         </div>
       }

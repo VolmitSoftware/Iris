@@ -19,7 +19,7 @@ export function SettingsPage({ title, description, toolbar, footer, children }: 
         <h2 className="text-[15px] font-semibold">{title}</h2>
         {description !== undefined && <p className="mt-1 text-muted-foreground">{description}</p>}
       </header>
-      {toolbar !== undefined && <div className="flex items-center gap-2 px-6 pt-4">{toolbar}</div>}
+      {toolbar !== undefined && <div className="flex items-center gap-2 border-b px-6 py-3">{toolbar}</div>}
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-5 px-6 py-4">{children}</div>
       </ScrollArea>

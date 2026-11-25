@@ -1,0 +1,77 @@
+{
+    "variants": 24,
+    "seed": 5055031,
+    "materials": [
+        {
+            "role": "shard",
+            "block": "minecraft:packed_ice",
+            "palette": "snippet/palette/frozen/magical-ice",
+            "rules": [
+                {
+                    "block": "minecraft:blue_ice",
+                    "along": {
+                        "from": 0.95,
+                        "to": 1
+                    },
+                    "chance": 0.65
+                }
+            ]
+        },
+        {
+            "role": "base",
+            "block": "minecraft:blue_ice"
+        }
+    ],
+    "parts": [
+        {
+            "role": "base",
+            "blob": {
+                "radius": 1.8,
+                "roughness": 0.6667
+            }
+        },
+        {
+            "role": "shard",
+            "cluster": {
+                "count": [
+                    3.0,
+                    6.0
+                ],
+                "radius": 1.08,
+                "layout": "GOLDEN",
+                "tilt": [
+                    [
+                        0,
+                        10.2
+                    ],
+                    [
+                        1,
+                        79.9
+                    ]
+                ],
+                "part": {
+                    "stem": {
+                        "length": [
+                            3.0,
+                            6.0
+                        ],
+                        "radius": 1.1,
+                        "taper": [
+                            [
+                                0,
+                                1
+                            ],
+                            [
+                                1,
+                                0.0
+                            ]
+                        ]
+                    },
+                    "offset": {
+                        "y": 0.756
+                    }
+                }
+            }
+        }
+    ]
+}

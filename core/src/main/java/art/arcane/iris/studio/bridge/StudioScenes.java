@@ -31,7 +31,7 @@ import java.util.NoSuchElementException;
 
 /** The scene views the studio lists: every feature's, then the studio's own. */
 final class StudioScenes {
-    private static final List<SceneView> STUDIO_VIEWS = List.of(new PackObjectsSceneView(), new ProceduralObjectsSceneView());
+    private static final List<SceneView> STUDIO_VIEWS = List.of(new PackObjectsSceneView());
 
     private final List<SceneView> views = SceneViews.withStudioViews(STUDIO_VIEWS);
 

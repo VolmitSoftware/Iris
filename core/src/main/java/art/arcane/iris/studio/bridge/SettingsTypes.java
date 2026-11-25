@@ -18,6 +18,7 @@
 
 package art.arcane.iris.studio.bridge;
 
+import art.arcane.iris.generation.procedural.part.ProceduralValue;
 import art.arcane.iris.pack.loading.IrisRegistrant;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
@@ -75,7 +76,7 @@ final class SettingsTypes {
 
     /** Whether a setting of {@code type} is an object of settings of its own, such as a palette, rather than a plain value. */
     private static boolean isSettingsObject(Class<?> type) {
-        return type.getName().startsWith(IRIS_PACKAGE) && !type.isEnum() && !type.isArray()
+        return type.getName().startsWith(IRIS_PACKAGE) && !type.isEnum() && !type.isArray() && type != ProceduralValue.class
                 && !KeyedType.isKeyed(type) && !Collection.class.isAssignableFrom(type) && !Map.class.isAssignableFrom(type);
     }
 
@@ -130,6 +131,9 @@ final class SettingsTypes {
         }
         if (type == String.class) {
             return textKindOf(field);
+        }
+        if (type == ProceduralValue.class) {
+            return wire("any");
         }
         if (type.isEnum()) {
             return wire("enum", "constants", Arrays.stream(type.getEnumConstants()).map(constant -> constantOf((Enum<?>) constant)).toList());
@@ -207,6 +211,7 @@ final class SettingsTypes {
             case Number plain -> plain;
             case String plain -> plain;
             case Enum<?> constant -> constant.name();
+            case ProceduralValue procedural -> GSON.toJsonTree(procedural);
             default -> null;
         };
     }

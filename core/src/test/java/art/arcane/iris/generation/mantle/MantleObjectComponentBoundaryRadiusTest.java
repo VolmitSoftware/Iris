@@ -13,8 +13,6 @@ import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.structure.object.IrisObjectScale;
 import art.arcane.iris.structure.object.IrisObjectTranslate;
-import art.arcane.iris.generation.decoration.IrisProceduralObjects;
-import art.arcane.iris.generation.decoration.IrisProceduralPlacement;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.decoration.IrisVacuumSettings;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -193,34 +191,6 @@ public class MantleObjectComponentBoundaryRadiusTest {
         }
         assertEquals(Integer.MAX_VALUE,
                 MantleObjectComponent.calculateEagerInputRadius(Integer.MAX_VALUE, true));
-    }
-
-    @Test
-    public void proceduralTreeTransformsContributeToRadius() {
-        IrisObjectPlacement placement = new IrisObjectPlacement()
-                .setRotation(IrisObjectRotation.of(90, 0, 0))
-                .setTranslate(new IrisObjectTranslate().setX(3).setY(4));
-        IrisData data = mock(IrisData.class);
-        IrisProceduralPlacement proceduralPlacement = mock(IrisProceduralPlacement.class);
-        when(proceduralPlacement.getVariantObjects(data)).thenReturn(new KList<>(new IrisObject(5, 48, 7)));
-        when(proceduralPlacement.asPlacement()).thenReturn(placement);
-        IrisProceduralObjects proceduralObjects = mock(IrisProceduralObjects.class);
-        when(proceduralObjects.isEmpty()).thenReturn(false);
-        when(proceduralObjects.getAllPlacements()).thenReturn(new KList<>(proceduralPlacement));
-        IrisRegion region = mock(IrisRegion.class);
-        when(region.getObjects()).thenReturn(new KList<>());
-        when(region.getProceduralObjects()).thenReturn(proceduralObjects);
-        IrisDimension dimension = mock(IrisDimension.class);
-        when(dimension.getAllObjectScaleFactor()).thenReturn(1D);
-        when(dimension.getAllRegions(any())).thenReturn(new KList<>(region));
-        when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
-        Engine engine = mock(Engine.class);
-        when(engine.getDimension()).thenReturn(dimension);
-        EngineMantle engineMantle = mock(EngineMantle.class);
-        when(engineMantle.getEngine()).thenReturn(engine);
-        when(engineMantle.getData()).thenReturn(data);
-
-        assertEquals(27, new MantleObjectComponent(engineMantle).getRadius());
     }
 
     @Test

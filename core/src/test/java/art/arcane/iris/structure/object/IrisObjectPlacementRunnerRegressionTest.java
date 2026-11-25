@@ -3,10 +3,6 @@ package art.arcane.iris.structure.object;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.iris.generation.decoration.IrisStiltSettings;
-import art.arcane.iris.generation.block.IrisBlockData;
-import art.arcane.iris.generation.decoration.formation.FormationGenerator;
-import art.arcane.iris.generation.decoration.formation.IrisFormation;
-import art.arcane.iris.generation.decoration.formation.IrisFormationForm;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
@@ -573,49 +569,6 @@ public class IrisObjectPlacementRunnerRegressionTest {
         assertSame(solid, placer.get(-1, ANCHOR_Y + 9, 0));
         assertEquals(1, placer.writesOf(cluster).size());
         assertNull(placer.get(1, ANCHOR_Y + 9, 0));
-    }
-
-    @Test
-    public void generatedGlacialOverhangGrowsPackedIceRootsToTerrain() {
-        NativeBlockState ice = state("minecraft:ice", true);
-        when(ice.isOccluding()).thenReturn(false);
-        NativeBlockState packedIce = state("minecraft:packed_ice", true);
-        IrisMaterialPalette body = mock(IrisMaterialPalette.class);
-        when(body.getPalette()).thenReturn(new KList<>(new IrisBlockData("minecraft:ice")));
-        when(body.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
-                .thenReturn(ice);
-        IrisMaterialPalette roots = mock(IrisMaterialPalette.class);
-        when(roots.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
-                .thenReturn(packedIce);
-        IrisFormation formation = new IrisFormation().setForm(IrisFormationForm.OVERHANG)
-                .setHeightMin(16).setHeightMax(25).setBaseWidthMin(5).setBaseWidthMax(8)
-                .setOverhangReach(13).setOverhangDrop(6).setRoughness(0.3).setJitter(0.08)
-                .setBlockPalette(body);
-        IrisObject object = FormationGenerator.generate(formation, 16, new RNG(5055004L + 16L), data);
-        RecordingPlacer placer = new RecordingPlacer(null);
-        for (int x = -32; x <= 32; x++) {
-            for (int z = -32; z <= 32; z++) {
-                placer.set(x, ANCHOR_Y, z, solid);
-            }
-        }
-        placer.writes().clear();
-        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.ORGANIC_STILT)
-                .setRotation(IrisObjectRotation.of(0, 0, 0))
-                .setStiltSettings(new IrisStiltSettings().setOrganicMaxScan(96).setOrganicJitter(0)
-                        .setOrganicScratch(0).setPalette(roots));
-
-        object.place(0, ANCHOR_Y + object.getCenter().getBlockY() + 12, 0, placer, placement,
-                new RNG(2L), data);
-
-        List<BlockWrite> rootWrites = placer.writesOf(packedIce);
-        assertFalse(rootWrites.isEmpty());
-        assertTrue(rootWrites.stream().anyMatch(write -> write.y() == ANCHOR_Y + 1));
-        for (BlockWrite root : rootWrites) {
-            for (int y = ANCHOR_Y + 1; y < root.y(); y++) {
-                assertSame(packedIce, placer.get(root.x(), y, root.z()));
-            }
-        }
-        assertFalse(placer.writesOf(ice).isEmpty());
     }
 
     @Test

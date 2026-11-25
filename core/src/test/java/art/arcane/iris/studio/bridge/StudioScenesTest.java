@@ -36,7 +36,6 @@ public class StudioScenesTest {
         List<String> listed = new StudioScenes().infos().stream().map(StudioScenes.SceneViewInfo::id).toList();
         List<String> expected = new ArrayList<>(SceneViews.all().stream().map(SceneView::id).toList());
         expected.add(PackObjectsSceneView.ID);
-        expected.add(ProceduralObjectsSceneView.ID);
 
         assertEquals(expected, listed);
     }

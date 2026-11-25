@@ -1,0 +1,90 @@
+{
+    "variants": 5,
+    "seed": 9202,
+    "materials": [
+        {
+            "role": "shard",
+            "block": "minecraft:quartz_block",
+            "palette": {
+                "style": {
+                    "style": "CELLULAR",
+                    "zoom": 0.3
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:quartz_block",
+                        "weight": 4
+                    },
+                    {
+                        "block": "minecraft:tinted_glass",
+                        "weight": 2
+                    },
+                    {
+                        "block": "minecraft:packed_ice",
+                        "weight": 1
+                    }
+                ]
+            },
+            "rules": [
+                {
+                    "block": "minecraft:glowstone",
+                    "along": {
+                        "from": 0.95,
+                        "to": 1
+                    },
+                    "chance": 0.6
+                }
+            ]
+        },
+        {
+            "role": "base",
+            "block": "minecraft:calcite"
+        }
+    ],
+    "parts": [
+        {
+            "role": "base",
+            "blob": {
+                "radius": 2.0,
+                "roughness": 0.5
+            }
+        },
+        {
+            "role": "shard",
+            "cluster": {
+                "count": [
+                    4.0,
+                    7.0
+                ],
+                "radius": 1.2,
+                "layout": "RANDOM",
+                "tilt": [
+                    0,
+                    40.0
+                ],
+                "part": {
+                    "stem": {
+                        "length": [
+                            5.0,
+                            9.0
+                        ],
+                        "radius": 1.5,
+                        "taper": [
+                            [
+                                0,
+                                1
+                            ],
+                            [
+                                1,
+                                0.15
+                            ]
+                        ]
+                    },
+                    "offset": {
+                        "y": 0.84
+                    }
+                }
+            }
+        }
+    ]
+}

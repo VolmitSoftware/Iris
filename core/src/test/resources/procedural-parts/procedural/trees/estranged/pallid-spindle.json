@@ -1,0 +1,361 @@
+{
+    "variants": 8,
+    "seed": 9402,
+    "materials": [
+        {
+            "role": "wood",
+            "block": "minecraft:pale_oak_wood",
+            "palette": {
+                "style": {
+                    "style": "STATIC"
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:pale_oak_wood",
+                        "weight": 5
+                    },
+                    {
+                        "block": "minecraft:bone_block",
+                        "weight": 1
+                    }
+                ]
+            }
+        },
+        {
+            "role": "leaves",
+            "block": "minecraft:pale_oak_leaves"
+        }
+    ],
+    "parts": [
+        {
+            "role": "wood",
+            "stem": {
+                "length": [
+                    9.0,
+                    15.0
+                ],
+                "radius": 1.0,
+                "section": "SQUARE",
+                "taper": [
+                    [
+                        0.0,
+                        1.0
+                    ],
+                    [
+                        0.125,
+                        0.7122
+                    ],
+                    [
+                        0.25,
+                        1.1622
+                    ],
+                    [
+                        0.375,
+                        1.1965
+                    ],
+                    [
+                        0.5,
+                        0.7271
+                    ],
+                    [
+                        0.625,
+                        0.9573
+                    ],
+                    [
+                        0.75,
+                        1.2969
+                    ],
+                    [
+                        0.875,
+                        0.8754
+                    ],
+                    [
+                        1.0,
+                        0.7733
+                    ]
+                ],
+                "lean": 12,
+                "leanCurve": {
+                    "shape": "sigmoid",
+                    "steepness": 8
+                },
+                "sway": 2.0193
+            },
+            "children": [
+                {
+                    "role": "wood",
+                    "at": 0,
+                    "stem": {
+                        "pitch": -90,
+                        "length": [
+                            4.0,
+                            5.0
+                        ],
+                        "radius": 1.0,
+                        "section": "SQUARE",
+                        "taper": [
+                            [
+                                0,
+                                1
+                            ],
+                            [
+                                1,
+                                0.4
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "role": "wood",
+                    "at": 0,
+                    "branches": {
+                        "count": 6,
+                        "along": {
+                            "from": 0,
+                            "to": 0
+                        },
+                        "azimuth": "EVEN",
+                        "azimuthOffset": [
+                            -14,
+                            14
+                        ],
+                        "pitch": -45.7705,
+                        "part": {
+                            "stem": {
+                                "length": 5.8845,
+                                "radius": 0.5
+                            }
+                        }
+                    }
+                },
+                {
+                    "branches": {
+                        "count": 2,
+                        "along": {
+                            "from": 1,
+                            "to": 1
+                        },
+                        "azimuth": "EVEN",
+                        "pitch": 62.0,
+                        "part": {
+                            "role": "wood",
+                            "stem": {
+                                "length": [
+                                    6.9311,
+                                    11.4533
+                                ],
+                                "radius": 0.5,
+                                "section": "SQUARE"
+                            },
+                            "children": [
+                                {
+                                    "role": "leaves",
+                                    "mode": "FILL",
+                                    "density": 0.72,
+                                    "pattern": "PATCHES",
+                                    "scale": 2,
+                                    "blob": {
+                                        "radius": [
+                                            1.5,
+                                            1.6
+                                        ],
+                                        "stretchX": 0.65,
+                                        "stretchZ": 0.65,
+                                        "height": 2.0,
+                                        "depth": 0.0
+                                    },
+                                    "at": 1.0
+                                },
+                                {
+                                    "role": "leaves",
+                                    "mode": "FILL",
+                                    "density": 0.72,
+                                    "pattern": "PATCHES",
+                                    "scale": 2,
+                                    "blob": {
+                                        "radius": 2,
+                                        "stretchX": 0.65,
+                                        "stretchZ": 0.65
+                                    },
+                                    "at": 1
+                                },
+                                {
+                                    "branches": {
+                                        "chance": [
+                                            [
+                                                0.0,
+                                                0.0
+                                            ],
+                                            [
+                                                0.0312,
+                                                0.0
+                                            ],
+                                            [
+                                                0.0625,
+                                                0.0
+                                            ],
+                                            [
+                                                0.0938,
+                                                0.0
+                                            ],
+                                            [
+                                                0.125,
+                                                0.0
+                                            ],
+                                            [
+                                                0.1562,
+                                                0.0
+                                            ],
+                                            [
+                                                0.1875,
+                                                0.0001
+                                            ],
+                                            [
+                                                0.2188,
+                                                0.005
+                                            ],
+                                            [
+                                                0.25,
+                                                0.0513
+                                            ],
+                                            [
+                                                0.2812,
+                                                0.2218
+                                            ],
+                                            [
+                                                0.3125,
+                                                0.5301
+                                            ],
+                                            [
+                                                0.3438,
+                                                0.7889
+                                            ],
+                                            [
+                                                0.375,
+                                                0.7655
+                                            ],
+                                            [
+                                                0.4062,
+                                                0.4827
+                                            ],
+                                            [
+                                                0.4375,
+                                                0.1873
+                                            ],
+                                            [
+                                                0.4688,
+                                                0.0391
+                                            ],
+                                            [
+                                                0.5,
+                                                0.0032
+                                            ],
+                                            [
+                                                0.5312,
+                                                0.0
+                                            ],
+                                            [
+                                                0.5625,
+                                                0.0
+                                            ],
+                                            [
+                                                0.5938,
+                                                0.0
+                                            ],
+                                            [
+                                                0.625,
+                                                0.0
+                                            ],
+                                            [
+                                                0.6562,
+                                                0.0
+                                            ],
+                                            [
+                                                0.6875,
+                                                0.0
+                                            ],
+                                            [
+                                                0.7188,
+                                                0.0
+                                            ],
+                                            [
+                                                0.75,
+                                                0.0
+                                            ],
+                                            [
+                                                0.7812,
+                                                0.0
+                                            ],
+                                            [
+                                                0.8125,
+                                                0.0
+                                            ],
+                                            [
+                                                0.8438,
+                                                0.0
+                                            ],
+                                            [
+                                                0.875,
+                                                0.0
+                                            ],
+                                            [
+                                                0.9062,
+                                                0.0
+                                            ],
+                                            [
+                                                0.9375,
+                                                0.0
+                                            ],
+                                            [
+                                                0.9688,
+                                                0.0
+                                            ],
+                                            [
+                                                1.0,
+                                                0.0
+                                            ]
+                                        ],
+                                        "azimuth": "WHORL",
+                                        "pitch": 12.0,
+                                        "part": {
+                                            "role": "wood",
+                                            "stem": {
+                                                "length": [
+                                                    [
+                                                        0.0,
+                                                        4.2222
+                                                    ],
+                                                    [
+                                                        1.0,
+                                                        5.0
+                                                    ]
+                                                ],
+                                                "radius": 0.5,
+                                                "droop": 0.12
+                                            },
+                                            "children": [
+                                                {
+                                                    "role": "leaves",
+                                                    "mode": "FILL",
+                                                    "density": 0.82,
+                                                    "pattern": "PATCHES",
+                                                    "scale": 2,
+                                                    "blob": {
+                                                        "radius": 2,
+                                                        "stretchX": 0.65,
+                                                        "stretchZ": 0.65
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "whorl": 5
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

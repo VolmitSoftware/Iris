@@ -121,7 +121,6 @@ public class IrisDecoratorSeedCohesionTest {
             when(biome.getLoadKey()).thenReturn("fixture");
             when(biome.getObjects()).thenReturn(new KList<>());
             when(biome.getOres()).thenReturn(new KList<>());
-            when(biome.getProceduralObjects()).thenReturn(null);
             when(biome.getDecorators()).thenReturn(new KList<>(decorator));
             when(biome.getDecoratorBucket(IrisDecorationPart.SEA_FLOOR)).thenReturn(new IrisDecorator[]{decorator});
             placement = new IrisSeaFloorDecorator(engine);

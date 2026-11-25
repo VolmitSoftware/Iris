@@ -99,33 +99,22 @@ final class ObjectBlockPass {
                 continue;
             }
 
-            boolean canopy = bake.canopy(index);
-            if (canopy && !state.placer.beginTreeCanopy(new BlockPosition(xx, yy, zz))) {
-                continue;
+            data = rotated;
+            if (facts.waterloggable()) {
+                data = waterlogCandidate || facts.authoredWaterlogged()
+                        ? IrisProceduralBlocks.normalizeWaterlogging(data, state.placer.get(xx, yy, zz), waterlogCandidate)
+                        : facts.dry();
             }
 
-            try {
-                data = rotated;
-                if (facts.waterloggable()) {
-                    data = waterlogCandidate || facts.authoredWaterlogged()
-                            ? IrisProceduralBlocks.normalizeWaterlogging(data, state.placer.get(xx, yy, zz), waterlogCandidate)
-                            : facts.dry();
-                }
+            if (!is(ObjectPlaceMode.STRUCTURE_PIECE) && B.isVineBlock(data)) {
+                data = attachVineFaces(state.placer, data, xx, yy, zz);
+            }
 
-                if (!is(ObjectPlaceMode.STRUCTURE_PIECE) && B.isVineBlock(data)) {
-                    data = attachVineFaces(state.placer, data, xx, yy, zz);
-                }
-
-                String marker = markers == null ? null : markers[index];
-                if (handleCustomData(data, facts.air(), tile, marker, xx, yy, zz)) {
-                    lifecycle.run(PlacementStage.BLOCK_WRITTEN, context, state, new PlacementBlockWrite(xx, yy, zz, data));
-                    if (state.isRejected()) {
-                        return;
-                    }
-                }
-            } finally {
-                if (canopy) {
-                    state.placer.endTreeCanopy();
+            String marker = markers == null ? null : markers[index];
+            if (handleCustomData(data, facts.air(), tile, marker, xx, yy, zz)) {
+                lifecycle.run(PlacementStage.BLOCK_WRITTEN, context, state, new PlacementBlockWrite(xx, yy, zz, data));
+                if (state.isRejected()) {
+                    return;
                 }
             }
         }

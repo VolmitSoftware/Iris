@@ -25,7 +25,6 @@ import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositVariant;
 import art.arcane.iris.generation.decoration.IrisOreGenerator;
 import art.arcane.iris.generation.decoration.IrisOreBands;
-import art.arcane.iris.generation.decoration.IrisProceduralObjects;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -225,8 +224,6 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     @ArrayType(min = 1, type = IrisObjectPlacement.class)
     @Description("Objects define what schematics (iob files) iris will place in this biome")
     private KList<IrisObjectPlacement> objects = new KList<>();
-    @Description("Procedural objects (such as trees) iris generates from scratch and places in this biome, instead of loading them from iob files")
-    private IrisProceduralObjects proceduralObjects = new IrisProceduralObjects();
     @ArrayType(min = 1, type = IrisStructurePlacement.class)
     @Description("Structures define jigsaw or vanilla/datapack structures iris will place in this biome")
     private KList<IrisStructurePlacement> structures = new KList<>();

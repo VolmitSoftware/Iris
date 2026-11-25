@@ -98,7 +98,7 @@ public class PlacementCompilerTest {
         placement.setSurfaceSupportDepth(2);
         TemplateBlock trunk = new TemplateBlock(4, 0, 4, VanillaBlockState.parse("minecraft:oak_log[axis=y]"), null);
         TemplateBlock crown = new TemplateBlock(0, 5, 0, VanillaBlockState.parse("minecraft:oak_leaves"), null);
-        BakedVariant tree = new BakedVariant(NAMESPACE + ":object/tree/v", new TemplateVolume(9, 6, 9, List.of(trunk, crown)), 0, TreeRoots.NONE);
+        BakedVariant tree = new BakedVariant(NAMESPACE + ":object/tree/v", new TemplateVolume(9, 6, 9, List.of(trunk, crown)), 0);
         List<ObjectTemplates> objects = List.of(new ObjectTemplates("tree", List.of(new TemplateChoice(tree, List.of(0, 1, 2, 3), 1))));
 
         JsonObject support = filters(placed(compiler(DataVersion.V26_3).compile(input(placement, objects, List.of()), new ArrayList<>()))).get(1);
@@ -121,7 +121,7 @@ public class PlacementCompilerTest {
         placement.setSurfaceSupportBuffer(2);
         placement.setSurfaceSupportDepth(2);
         TemplateBlock trunk = new TemplateBlock(0, 0, 4, VanillaBlockState.parse("minecraft:spruce_log[axis=y]"), null);
-        BakedVariant tree = new BakedVariant(NAMESPACE + ":object/tree/v", new TemplateVolume(9, 20, 9, List.of(trunk)), 0, TreeRoots.NONE);
+        BakedVariant tree = new BakedVariant(NAMESPACE + ":object/tree/v", new TemplateVolume(9, 20, 9, List.of(trunk)), 0);
         List<ObjectTemplates> objects = List.of(new ObjectTemplates("tree", List.of(new TemplateChoice(tree, List.of(0, 1, 2, 3), 1))));
 
         JsonObject support = filters(placed(compiler(DataVersion.V26_3).compile(input(placement, objects, List.of()), new ArrayList<>()))).get(1);
@@ -495,7 +495,7 @@ public class PlacementCompilerTest {
     @Test
     public void heightScanCoversEveryAllowedQuarter() {
         TemplateBlock block = new TemplateBlock(0, 0, 0, VanillaBlockState.parse("minecraft:stone"), null);
-        BakedVariant wall = new BakedVariant(NAMESPACE + ":object/wall/v", new TemplateVolume(5, 4, 9, List.of(block)), 0, TreeRoots.NONE);
+        BakedVariant wall = new BakedVariant(NAMESPACE + ":object/wall/v", new TemplateVolume(5, 4, 9, List.of(block)), 0);
         IrisObjectPlacement placement = placement(ObjectPlaceMode.MIN_HEIGHT, 1, 1);
 
         JsonObject turning = feature(compiler(DataVersion.V26_3).compile(input(placement, List.of(new ObjectTemplates("wall",
@@ -539,112 +539,23 @@ public class PlacementCompilerTest {
     }
 
     @Test
-    public void groundedTreesExtendRootsToTheTerrain() {
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.CENTER_HEIGHT, 1, 1);
-
-        CompiledPlacement compiled = compiler(DataVersion.V26_3).compile(tree(placement, rootedTree()), new ArrayList<>());
-
-        JsonObject feature = feature(compiled, "worldgen/feature/");
-        assertEquals("minecraft:weighted_random_selector", feature.get("type").getAsString());
-        JsonArray branches = feature.getAsJsonArray("features");
-        assertEquals(4, branches.size());
-        List<String> rotations = new ArrayList<>();
-        List<String> roots = new ArrayList<>();
-        List<String> gaps = new ArrayList<>();
-        String pillar = null;
-        for (JsonElement element : branches) {
-            assertEquals(branches.get(0).getAsJsonObject().get("weight"), element.getAsJsonObject().get("weight"));
-            JsonObject branch = element.getAsJsonObject().getAsJsonObject("data");
-            assertEquals(List.of("minecraft:offset", "minecraft:block_predicate_filter"), types(branch));
-            gaps.addAll(boxes(branch.getAsJsonArray("placement").get(1)));
-            JsonObject overlay = branch.getAsJsonObject("feature");
-            assertEquals("minecraft:overlay", overlay.get("type").getAsString());
-            JsonArray parts = overlay.getAsJsonArray("features");
-            assertEquals(2, parts.size());
-            JsonObject template = parts.get(0).getAsJsonObject().getAsJsonObject("feature");
-            rotations.add(template.getAsJsonArray("templates").get(0).getAsJsonObject().getAsJsonObject("data")
-                    .getAsJsonArray("rotations").get(0).getAsString());
-            JsonObject root = parts.get(1).getAsJsonObject();
-            pillar = root.get("feature").getAsString();
-            JsonObject offset = root.getAsJsonArray("placement").get(0).getAsJsonObject();
-            roots.add(offset.get("x").getAsInt() + "," + offset.get("y").getAsInt() + "," + offset.get("z").getAsInt());
-        }
-        assertEquals(List.of("none", "counterclockwise_90", "180", "clockwise_90"), rotations);
-        assertEquals(List.of("1,-1,0", "0,-1,-1", "-1,-1,0", "0,-1,1"), roots);
-        assertEquals(List.of("1,-4,0..1,-1,0", "0,-4,-1..0,-1,-1", "-1,-4,0..-1,-1,0", "0,-4,1..0,-1,1"), gaps);
-        JsonObject shared = resourceAt(compiled, pillar);
-        JsonObject gated = shared.getAsJsonArray("features").get(0).getAsJsonObject();
-        assertEquals("minecraft:block_predicate_filter", gated.getAsJsonArray("placement").get(0).getAsJsonObject().get("type").getAsString());
-        JsonObject column = gated.getAsJsonObject("feature");
-        assertEquals("minecraft:single_block_pillar", column.get("type").getAsString());
-        assertEquals("down", column.get("direction").getAsString());
-        assertEquals("minecraft:spruce_wood", column.getAsJsonObject("block").get("id").getAsString());
-        JsonObject cap = column.getAsJsonObject("cap_feature");
-        assertEquals("minecraft:simple_block", cap.getAsJsonObject("feature").get("type").getAsString());
-        assertEquals(-1, cap.getAsJsonArray("placement").get(0).getAsJsonObject().get("y").getAsInt());
-    }
-
-    @Test
-    public void groundedRotationBranchesKeepTheTemplateOdds() {
-        BakedVariant turning = rootedTree().getFirst().choices().getFirst().variant();
-        BakedVariant fixed = new BakedVariant(NAMESPACE + ":object/tree/fixed", turning.volume(), 0, turning.roots());
-        List<ObjectTemplates> objects = List.of(new ObjectTemplates("tree", List.of(
-                new TemplateChoice(turning, List.of(0, 1, 2, 3), 1),
-                new TemplateChoice(fixed, List.of(2), 1))));
-
-        JsonObject feature = feature(compiler(DataVersion.V26_3).compile(tree(placement(ObjectPlaceMode.CENTER_HEIGHT, 1, 1), objects),
-                new ArrayList<>()), "worldgen/feature/");
-
-        List<Integer> weights = new ArrayList<>();
-        for (JsonElement branch : feature.getAsJsonArray("features")) {
-            weights.add(branch.getAsJsonObject().get("weight").getAsInt());
-        }
-        assertEquals(List.of(1, 1, 1, 1, 4), weights);
-    }
-
-    @Test
-    public void groundedTreesReplaceStiltsWithRoots() {
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.CENTER_STILT, 1, 1);
-
-        JsonObject feature = feature(compiler(DataVersion.V26_3).compile(tree(placement, rootedTree()), new ArrayList<>()), "worldgen/feature/");
-
-        for (JsonElement element : feature.getAsJsonArray("features")) {
-            JsonObject overlay = element.getAsJsonObject().getAsJsonObject("data").getAsJsonObject("feature");
-            assertTrue(StageTestPacks.ofType(overlay, "minecraft:cuboid").isEmpty());
-            assertEquals(2, overlay.getAsJsonArray("features").size());
-        }
-    }
-
-    @Test
-    public void forcedTreesKeepTheirBuiltRoots() {
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.CENTER_HEIGHT, 1, 1);
-        placement.setForcePlace(true);
-
-        JsonObject feature = feature(compiler(DataVersion.V26_3).compile(tree(placement, rootedTree()), new ArrayList<>()), "worldgen/feature/");
-
-        assertEquals("minecraft:template", feature.get("type").getAsString());
-    }
-
-    @Test
-    public void rootedHeightScansStayInsideTheFeatureWindow() {
+    public void heightScansStayInsideTheFeatureWindow() {
         IrisObjectPlacement placement = placement(ObjectPlaceMode.FAST_MAX_HEIGHT, 1, 1);
         placement.setTranslate(new IrisObjectTranslate().setX(3).setZ(-3));
-        List<ObjectTemplates> objects = rootedTree();
+        List<ObjectTemplates> objects = offsetTree();
 
         CompiledPlacement compiled = compiler(DataVersion.V26_3).compile(tree(placement, objects), new ArrayList<>());
 
-        assertWithinWindow(compiled, objects, "rooted fast max");
+        assertWithinWindow(compiled, objects, "fast max");
     }
 
-    private static List<ObjectTemplates> rootedTree() {
+    private static List<ObjectTemplates> offsetTree() {
         List<TemplateBlock> blocks = new ArrayList<>();
         for (int y = 1; y < 4; y++) {
             blocks.add(new TemplateBlock(2, y, 2, VanillaBlockState.parse("minecraft:oak_log[axis=y]"), null));
         }
-        TemplateBlock root = new TemplateBlock(3, 0, 2, VanillaBlockState.parse("minecraft:spruce_wood[axis=y]"), null);
-        blocks.add(root);
-        BakedVariant variant = new BakedVariant(NAMESPACE + ":object/tree/rooted", new TemplateVolume(5, 4, 5, blocks), 0,
-                new TreeRoots(List.of(root), 3));
+        blocks.add(new TemplateBlock(3, 0, 2, VanillaBlockState.parse("minecraft:spruce_wood[axis=y]"), null));
+        BakedVariant variant = new BakedVariant(NAMESPACE + ":object/tree/offset", new TemplateVolume(5, 4, 5, blocks), 0);
         return List.of(new ObjectTemplates("tree", List.of(new TemplateChoice(variant, List.of(0, 1, 2, 3), 1))));
     }
 
@@ -667,16 +578,6 @@ public class PlacementCompilerTest {
                     + max.get(0).getAsInt() + "," + max.get(1).getAsInt() + "," + max.get(2).getAsInt());
         }
         return boxes;
-    }
-
-    private static JsonObject resourceAt(CompiledPlacement compiled, String id) {
-        String path = "/worldgen/feature/" + id.substring(NAMESPACE.length() + 1) + ".json";
-        for (JsonResource resource : compiled.resources()) {
-            if (resource.path().endsWith(path)) {
-                return resource.json().getAsJsonObject();
-            }
-        }
-        throw new AssertionError("No resource for " + id);
     }
 
     private static List<JsonObject> filters(JsonObject placed) {
@@ -892,7 +793,7 @@ public class PlacementCompilerTest {
             int footprint = footprints[index];
             TemplateBlock block = new TemplateBlock(0, 0, 0, VanillaBlockState.parse("minecraft:stone"), null);
             BakedVariant variant = new BakedVariant(NAMESPACE + ":object/o" + index + "/v" + footprint,
-                    new TemplateVolume(footprint, 4, footprint, List.of(block)), 0, TreeRoots.NONE);
+                    new TemplateVolume(footprint, 4, footprint, List.of(block)), 0);
             objects.add(new ObjectTemplates("o" + index, List.of(new TemplateChoice(variant, List.of(0, 1, 2, 3), 1))));
         }
         return objects;
@@ -906,7 +807,7 @@ public class PlacementCompilerTest {
                 blocks.add(new TemplateBlock(1, y, 1, VanillaBlockState.parse("minecraft:tube_coral_block"), null));
             }
             BakedVariant variant = new BakedVariant(NAMESPACE + ":object/c" + index + "/h" + heights[index],
-                    new TemplateVolume(3, heights[index] + 1, 3, blocks), 0, TreeRoots.NONE);
+                    new TemplateVolume(3, heights[index] + 1, 3, blocks), 0);
             objects.add(new ObjectTemplates("c" + index, List.of(new TemplateChoice(variant, List.of(0, 1, 2, 3), 1))));
         }
         return objects;

@@ -19,22 +19,11 @@
 package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
-import art.arcane.iris.structure.object.IrisObject;
-
-import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
-import art.arcane.iris.generation.block.B;
-import art.arcane.iris.generation.geometry.IrisBlockVector;
-import art.arcane.volmlib.util.math.Vector3i;
-import art.arcane.volmlib.util.math.RNG;
-
-import java.util.Map;
 
 /**
- * Shared low-level helpers for building procedural objects in memory: resolving a
- * single block id or a noise palette into a platform block state, and assembling a
- * raw block map into a centered IrisObject anchored so its y=0 layer sits one block
- * above the terrain surface (same convention the tree generator uses).
+ * Block state helpers shared by object placement, decorators, terrain and the procedural objects: reading a state's
+ * properties and material, normalizing waterlogging and spotting blocks that fall.
  */
 public final class IrisProceduralBlocks {
     public static final String[] FACE_PROPERTIES = {"north", "east", "south", "west", "up", "down"};
@@ -55,16 +44,6 @@ public final class IrisProceduralBlocks {
 
     public static boolean paletteSet(IrisMaterialPalette palette) {
         return palette != null && palette.getPalette() != null && !palette.getPalette().isEmpty();
-    }
-
-    public static NativeBlockState resolve(String block, IrisMaterialPalette palette, IrisData data, int x, int y, int z, RNG paletteRng) {
-        if (paletteSet(palette)) {
-            return palette.get(paletteRng, x, y, z, data);
-        }
-        if (block != null && !block.isEmpty()) {
-            return B.getStateOrNull(block, false);
-        }
-        return null;
     }
 
     public static boolean hasProperty(NativeBlockState state, String property) {
@@ -157,44 +136,5 @@ public final class IrisProceduralBlocks {
         boolean submerged = existing != null && (existing.isWater() || "true".equals(propertyValue(existing, "waterlogged")));
         String value = submerged && (enabled || authored) ? "true" : "false";
         return value.equals(current) ? state : state.withProperty("waterlogged", value);
-    }
-
-    public static IrisObject assemble(Map<Vector3i, NativeBlockState> blocks) {
-        if (blocks == null || blocks.isEmpty()) {
-            return null;
-        }
-
-        int minX = Integer.MAX_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int maxY = Integer.MIN_VALUE;
-        int maxZ = Integer.MIN_VALUE;
-        for (Vector3i v : blocks.keySet()) {
-            minX = Math.min(minX, v.getBlockX());
-            minY = Math.min(minY, v.getBlockY());
-            minZ = Math.min(minZ, v.getBlockZ());
-            maxX = Math.max(maxX, v.getBlockX());
-            maxY = Math.max(maxY, v.getBlockY());
-            maxZ = Math.max(maxZ, v.getBlockZ());
-        }
-
-        int w = maxX - minX + 1;
-        int h = maxY - minY + 1;
-        int d = maxZ - minZ + 1;
-        int cx = w / 2;
-        int cy = h / 2;
-        int cz = d / 2;
-
-        IrisObject object = new IrisObject(w, h, d);
-        for (Map.Entry<Vector3i, NativeBlockState> entry : blocks.entrySet()) {
-            Vector3i v = entry.getKey();
-            int nx = v.getBlockX() - minX - cx;
-            int ny = v.getBlockY() - cy + 1;
-            int nz = v.getBlockZ() - minZ - cz;
-            object.getBlocks().put(new IrisBlockVector(nx, ny, nz), entry.getValue());
-        }
-
-        return object;
     }
 }

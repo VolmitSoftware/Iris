@@ -1,0 +1,87 @@
+{
+    "variants": 16,
+    "seed": 5055023,
+    "materials": [
+        {
+            "role": "rock",
+            "block": "minecraft:light_blue_stained_glass",
+            "palette": "snippet/palette/magnetics/magical-glass",
+            "rules": [
+                {
+                    "block": "minecraft:tinted_glass",
+                    "along": {
+                        "from": 0.931,
+                        "to": 1
+                    }
+                }
+            ]
+        }
+    ],
+    "parts": [
+        {
+            "role": "rock",
+            "cluster": {
+                "count": 4,
+                "radius": 7.5,
+                "layout": "LINE",
+                "part": {
+                    "stem": {
+                        "length": [
+                            12.4,
+                            38.0
+                        ],
+                        "radius": 1.0,
+                        "taper": [
+                            [
+                                0.0,
+                                1.0
+                            ],
+                            [
+                                0.125,
+                                0.9083
+                            ],
+                            [
+                                0.25,
+                                0.8129
+                            ],
+                            [
+                                0.375,
+                                0.7129
+                            ],
+                            [
+                                0.5,
+                                0.6071
+                            ],
+                            [
+                                0.625,
+                                0.4935
+                            ],
+                            [
+                                0.75,
+                                0.3686
+                            ],
+                            [
+                                0.875,
+                                0.2238
+                            ],
+                            [
+                                1.0,
+                                0.0
+                            ]
+                        ],
+                        "lean": [
+                            0,
+                            15.0359
+                        ],
+                        "leanCurve": {
+                            "shape": "power",
+                            "exponent": 2
+                        },
+                        "roughness": 0.18,
+                        "jitter": 0.04
+                    }
+                }
+            }
+        }
+    ]
+}

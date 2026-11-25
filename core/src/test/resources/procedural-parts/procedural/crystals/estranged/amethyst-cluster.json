@@ -1,0 +1,92 @@
+{
+    "variants": 6,
+    "seed": 9201,
+    "materials": [
+        {
+            "role": "shard",
+            "block": "minecraft:amethyst_block",
+            "palette": {
+                "style": {
+                    "style": "CELLULAR",
+                    "zoom": 0.3
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:amethyst_block",
+                        "weight": 5
+                    },
+                    {
+                        "block": "minecraft:calcite",
+                        "weight": 2
+                    }
+                ]
+            },
+            "rules": [
+                {
+                    "block": "minecraft:amethyst_cluster",
+                    "along": {
+                        "from": 0.95,
+                        "to": 1
+                    },
+                    "chance": 0.6
+                }
+            ]
+        },
+        {
+            "role": "base",
+            "block": "minecraft:budding_amethyst"
+        }
+    ],
+    "parts": [
+        {
+            "role": "base",
+            "blob": {
+                "radius": 2.5,
+                "roughness": 0.6667
+            }
+        },
+        {
+            "role": "shard",
+            "cluster": {
+                "count": [
+                    5.0,
+                    9.0
+                ],
+                "radius": 1.5,
+                "layout": "GOLDEN",
+                "tilt": [
+                    [
+                        0,
+                        8.25
+                    ],
+                    [
+                        1,
+                        63.25
+                    ]
+                ],
+                "part": {
+                    "stem": {
+                        "length": [
+                            4.0,
+                            7.0
+                        ],
+                        "radius": 1.5,
+                        "taper": [
+                            [
+                                0,
+                                1
+                            ],
+                            [
+                                1,
+                                0.2
+                            ]
+                        ]
+                    },
+                    "offset": {
+                        "y": 1.05
+                    }
+                }
+            }
+        }
+    ]
+}

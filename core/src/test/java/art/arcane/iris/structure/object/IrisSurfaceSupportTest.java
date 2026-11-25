@@ -1,10 +1,8 @@
 package art.arcane.iris.structure.object;
 
 import art.arcane.iris.generation.block.TileData;
-import art.arcane.iris.generation.decoration.formation.IrisFormation;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.structure.object.IrisObject;
-import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.structure.object.IrisObjectTranslate;
 
@@ -160,17 +158,6 @@ public class IrisSurfaceSupportTest {
         assertEquals(1, updated.size());
         assertEquals(-2, updated.getFirst().getBlockX());
         assertEquals(-4, updated.getFirst().getBlockY());
-    }
-
-    @Test
-    public void formationDefaultsToWiderBufferThanObjectDefault() {
-        IrisFormation formation = new IrisFormation();
-
-        assertEquals(2, new IrisObjectPlacement().getSurfaceSupportBuffer());
-        assertEquals(3, formation.asPlacement().getSurfaceSupportBuffer());
-
-        formation.setSurfaceSupportBuffer(0);
-        assertEquals(0, formation.asPlacement().getSurfaceSupportBuffer());
     }
 
     private static boolean isUnsupported(IObjectPlacer placer, List<IrisBlockVector> footprint,

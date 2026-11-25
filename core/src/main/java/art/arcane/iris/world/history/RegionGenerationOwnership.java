@@ -203,6 +203,20 @@ final class RegionGenerationOwnership {
         return true;
     }
 
+    /** Moves an owned chunk to a newer activation; regen uses it when it rebuilds the chunk with that activation's pack. */
+    synchronized boolean reclaim(int chunkX, int chunkZ, long activation) {
+        requireActivation(activation);
+        int index = chunkIndex(chunkX, chunkZ);
+        long existing = activations[index];
+        if (existing == 0L || existing >= activation) {
+            throw new IllegalStateException("Chunk " + chunkX + "," + chunkZ + " belongs to activation " + existing
+                    + " and cannot be reclaimed by activation " + activation);
+        }
+        activations[index] = activation;
+        dirty = true;
+        return true;
+    }
+
     synchronized int discardUnstoredClaims(WorldChunkInventory stored, Set<Long> activationIds) {
         int removed = 0;
         for (int localZ = 0; localZ < CHUNKS_PER_SIDE; localZ++) {

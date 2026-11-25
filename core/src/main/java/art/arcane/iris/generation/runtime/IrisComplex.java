@@ -1664,7 +1664,7 @@ public class IrisComplex implements DataProvider {
 
     public boolean isHistoricalChunk(int chunkX, int chunkZ) {
         return transitionGenerationPlan != null
-                && transitionGenerationPlan.boundary().isHistoricalChunk(chunkX, chunkZ);
+                && transitionGenerationPlan.isHistoricalChunk(chunkX, chunkZ);
     }
 
     public boolean allowsMantleWrite(int blockX, int blockZ) {
@@ -1674,7 +1674,7 @@ public class IrisComplex implements DataProvider {
 
     public boolean allowsMantleChunkWrite(int chunkX, int chunkZ) {
         return transitionGenerationPlan == null
-                || !transitionGenerationPlan.boundary().isHistoricalChunk(chunkX, chunkZ);
+                || !transitionGenerationPlan.isHistoricalChunk(chunkX, chunkZ);
     }
 
     public boolean allowsNewDiscreteContentAt(int blockX, int blockZ) {

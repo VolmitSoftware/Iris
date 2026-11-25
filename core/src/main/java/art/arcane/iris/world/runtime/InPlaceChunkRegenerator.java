@@ -30,6 +30,9 @@ import art.arcane.iris.platform.generation.BukkitChunkGenerator;
 import art.arcane.iris.platform.generation.BukkitChunkGenerator.GenerationStagePermit;
 import art.arcane.iris.platform.generation.EngineBukkitOps;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.world.history.GenerationBoundary;
+import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.generation.runtime.WrongEngineBroException;
 import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.generation.mantle.EngineMantle;
@@ -51,6 +54,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -92,10 +96,11 @@ public final class InPlaceChunkRegenerator {
     private void run() {
         boolean error = false;
         try {
+            List<int[]> targets = ChunkJobReporter.orderedTargets(centerChunkX, centerChunkZ, radius);
+            reclaimForActivePack(targets);
             reporter.setStage(IrisLanguage.text(RuntimeProgressMessages.CHUNK_STAGE_RESETTING_MANTLE));
             resetMantleMargin();
 
-            List<int[]> targets = ChunkJobReporter.orderedTargets(centerChunkX, centerChunkZ, radius);
             reporter.setTotal(targets.size());
             reporter.setStage(IrisLanguage.text(RuntimeProgressMessages.CHUNK_STAGE_REGENERATING));
             regenerate(targets);
@@ -114,6 +119,25 @@ public final class InPlaceChunkRegenerator {
         }
         IrisLogging.info("Regen skipped " + reporter.skipped() + " chunks in " + world.getName()
                 + " that were never generated; they generate fresh when visited.");
+    }
+
+    /**
+     * Chunks generated before the last hotload stay frozen to the old pack, which bars objects, caves and structures there.
+     * Regen always rebuilds with the current pack, so it hands its targets over first.
+     */
+    private void reclaimForActivePack(List<int[]> targets) throws IOException {
+        if (!(engine instanceof IrisEngine irisEngine)) {
+            return;
+        }
+        GenerationHistoryRuntimeRouter router = irisEngine.getGenerationHistoryRuntimeRouter().orElse(null);
+        if (router == null) {
+            return;
+        }
+        List<GenerationBoundary.ChunkCoordinate> chunks = new ArrayList<>(targets.size());
+        for (int[] target : targets) {
+            chunks.add(new GenerationBoundary.ChunkCoordinate(target[0], target[1]));
+        }
+        router.reclaimForActivePack(chunks);
     }
 
     private void resetMantleMargin() {

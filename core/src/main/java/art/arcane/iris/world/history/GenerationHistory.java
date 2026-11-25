@@ -51,6 +51,7 @@ public final class GenerationHistory {
     private final Map<Long, GenerationBoundary> boundaryCache;
     private final Map<Long, TerrainBoundarySignatureStore.Snapshot> terrainSignatureCache;
     private final Map<Long, TransitionGenerationPlan> transitionPlanCache;
+    private final Long2ObjectOpenHashMap<ReclaimedChunks> reclaimedChunksByActivation = new Long2ObjectOpenHashMap<>();
     private final ArrayBlockingQueue<PendingSemanticClaim> pendingSemanticClaims =
             new ArrayBlockingQueue<>(MAXIMUM_PENDING_SEMANTIC_CLAIMS);
     private final AtomicBoolean semanticWriter = new AtomicBoolean();
@@ -992,10 +993,57 @@ public final class GenerationHistory {
                         transition.terrainSignatureIdentity()
                 ),
                 boundary,
-                terrainSnapshot
+                terrainSnapshot,
+                reclaimedChunks(activationId, boundary)
         );
         transitionPlanCache.put(activationId, plan);
         return plan;
+    }
+
+    /**
+     * Moves the given chunks that the active boundary froze to the active activation, so they generate with the current
+     * pack. Ownership keeps the claim; chunks outside the boundary already belong to the active pack and are skipped.
+     *
+     * @return how many chunks changed hands
+     */
+    public synchronized int reclaimForActivePack(List<GenerationBoundary.ChunkCoordinate> chunks) throws IOException {
+        GenerationActivation active = store.activeActivation();
+        if (active.isInitial()) {
+            return 0;
+        }
+        long activationId = active.activationId();
+        GenerationBoundary boundary = boundary(activationId);
+        ReclaimedChunks reclaimed = reclaimedChunks(activationId, boundary);
+        int moved = 0;
+        for (GenerationBoundary.ChunkCoordinate chunk : chunks) {
+            if (!boundary.isHistoricalChunk(chunk.chunkX(), chunk.chunkZ())
+                    || reclaimed.contains(chunk.chunkX(), chunk.chunkZ())) {
+                continue;
+            }
+            ownership.reclaim(chunk.chunkX(), chunk.chunkZ(), activationId);
+            reclaimed.add(chunk.chunkX(), chunk.chunkZ());
+            moved++;
+        }
+        if (moved > 0) {
+            ownership.persist();
+        }
+        return moved;
+    }
+
+    /** Every plan of one activation shares this set, so a plan rebuilt after cache eviction still sees later reclaims. */
+    private ReclaimedChunks reclaimedChunks(long activationId, GenerationBoundary boundary) throws IOException {
+        ReclaimedChunks existing = reclaimedChunksByActivation.get(activationId);
+        if (existing != null) {
+            return existing;
+        }
+        ReclaimedChunks loaded = new ReclaimedChunks();
+        ownership.forEachAssignment((chunkX, chunkZ, owner) -> {
+            if (owner == activationId && boundary.isHistoricalChunk(chunkX, chunkZ)) {
+                loaded.add(chunkX, chunkZ);
+            }
+        });
+        reclaimedChunksByActivation.put(activationId, loaded);
+        return loaded;
     }
 
     public synchronized int explicitChunkCount() {

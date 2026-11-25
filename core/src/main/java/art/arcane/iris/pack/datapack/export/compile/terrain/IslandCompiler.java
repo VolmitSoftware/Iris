@@ -183,7 +183,7 @@ final class IslandCompiler {
         if (child.getWallWarpStyle() != null && child.getWallWarpAmplitude() > 0.0) {
             features.add("wall warp");
         }
-        if (child.hasCarvingReference() || (child.getCarveStyle() != null && child.getCarveThreshold() < 1.0)) {
+        if (child.getCarveStyle() != null && child.getCarveThreshold() < 1.0) {
             features.add("interior carving");
         }
         if (child.getLocalFluidHeight() != null && child.getLocalFluidHeight() > 0) {

@@ -6,6 +6,5 @@
   "environment": "NORMAL",
   "dimensionHeight": {"min": 0, "max": 64},
   "logicalHeight": 64,
-  "fluidHeight": 10,
-  "caveProfile": {"enabled": false}
+  "fluidHeight": 10
 }

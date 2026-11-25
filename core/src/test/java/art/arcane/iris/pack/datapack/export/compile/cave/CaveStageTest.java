@@ -8,13 +8,14 @@ import art.arcane.iris.pack.datapack.export.compile.CompileStage;
 import art.arcane.iris.pack.datapack.export.compile.DimensionStage;
 import art.arcane.iris.pack.datapack.export.compile.PackCompileContext;
 import art.arcane.iris.pack.datapack.export.compile.PackCompiler;
-import art.arcane.iris.pack.datapack.export.compile.biome.BiomeStage;
-import art.arcane.iris.pack.datapack.export.ir.AquiferDef;
 import art.arcane.iris.pack.datapack.export.ir.BiomeDef;
+import art.arcane.iris.pack.datapack.export.ir.ExportDiagnostic;
 import art.arcane.iris.pack.datapack.export.ir.ExportIr;
+import art.arcane.iris.pack.datapack.export.ir.ExportLimit;
 import art.arcane.iris.pack.datapack.export.ir.Field;
 import art.arcane.iris.pack.datapack.export.ir.JsonResource;
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.testsupport.CompatTestPlatform;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -32,11 +33,11 @@ import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 public class CaveStageTest {
     private static final Field SURFACE = new Field.Const(120.0);
+    private static final Field NO_CAVES = new Field.Const(1.0e6);
 
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
@@ -50,14 +51,13 @@ public class CaveStageTest {
     @Test
     public void noVanillaCarversEmitted() throws Exception {
         File pack = CaveTestPacks.pack(temporaryFolder.newFolder("pack"), CaveTestPacks.dimension(8),
-                CaveTestPacks.region(List.of("cave-open"), null), Map.of("cave-open", CaveTestPacks.constantProfile(0.1)));
+                CaveTestPacks.region(), Map.of());
         IrisData data = IrisData.openRuntime(pack);
         try {
             CompileStage vanillaBiomes = new FixedStage("biomes", context -> {
                 JsonObject body = JsonParser.parseString("{\"carvers\":[\"minecraft:cave\",\"minecraft:canyon\"],\"features\":[]}").getAsJsonObject();
                 context.setBiomes(List.of(new BiomeDef(CaveTestPacks.SURFACE_BIOME, body), new BiomeDef("cave-open", body)));
                 context.setHeight(SURFACE);
-                context.setBiomeCodes(CaveTestPacks.codes(CaveTestPacks.xGradient(), List.of(new CaveTestPacks.CodeRange("cave-open", -1.0, 1.0))));
             });
             PackCompileContext context = ExportTestPacks.contextBuilder(data, DataVersion.V26_3).styles(FakeCaveStyles.volumetric()).build();
 
@@ -101,50 +101,72 @@ public class CaveStageTest {
     }
 
     @Test
-    public void biomeStageCaveCodesSelectCaveProfiles() throws Exception {
-        File pack = CaveTestPacks.pack(temporaryFolder.newFolder("pack"), CaveTestPacks.dimension(8),
-                CaveTestPacks.region(List.of("cave-open"), null), Map.of("cave-open", CaveTestPacks.constantProfile(0.1)));
+    public void aDimensionThatListsCavesExportsNoCavesAndSaysSoOnce() throws Exception {
+        JsonObject dimension = CaveTestPacks.listing(CaveTestPacks.dimension(8), List.of("tunnels"));
+        File pack = CaveTestPacks.pack(temporaryFolder.newFolder("pack"), dimension, CaveTestPacks.region(), Map.of("tunnels", CaveTestPacks.LISTED_CAVE));
         IrisData data = IrisData.openRuntime(pack);
         try {
-            PackCompileContext context = CaveTestPacks.context(data, FakeCaveStyles.planar());
-            context.setHeight(SURFACE);
-            new BiomeStage().apply(context);
+            PackCompileContext context = compile(data);
 
-            new CaveStage().apply(context);
-
-            assertNotEquals(new Field.Const(1.0e6), context.caves());
+            assertEquals(NO_CAVES, context.caves());
+            assertTrue(context.caveField().isEmpty());
+            assertTrue(context.deepCaves().isEmpty());
+            List<ExportDiagnostic> notExported = notExported(context);
+            assertEquals(1, notExported.size());
+            assertEquals(ExportDiagnostic.Severity.WARNING, notExported.getFirst().severity());
+            assertEquals(CaveStage.LISTED_CAVES_NOT_EXPORTED, notExported.getFirst().message());
         } finally {
             data.close();
         }
     }
 
     @Test
-    public void disabledCarvingKeepsDefaultSlots() throws Exception {
-        JsonObject dimension = CaveTestPacks.dimension(20);
-        dimension.addProperty("carvingEnabled", false);
-        File pack = CaveTestPacks.pack(temporaryFolder.newFolder("pack"), dimension,
-                CaveTestPacks.region(List.of("cave-open"), null), Map.of("cave-open", CaveTestPacks.constantProfile(5.0).setAllowLava(true)));
+    public void aRegionThatListsCavesIsReportedToo() throws Exception {
+        JsonObject region = CaveTestPacks.listing(CaveTestPacks.region(), List.of("tunnels"));
+        File pack = CaveTestPacks.pack(temporaryFolder.newFolder("pack"), CaveTestPacks.dimension(8), region, Map.of("tunnels", CaveTestPacks.LISTED_CAVE));
         IrisData data = IrisData.openRuntime(pack);
         try {
-            PackCompileContext context = CaveTestPacks.context(data, FakeCaveStyles.volumetric());
-            context.setHeight(SURFACE);
-            context.setBiomeCodes(CaveTestPacks.codes(CaveTestPacks.xGradient(), List.of(new CaveTestPacks.CodeRange("cave-open", -1.0, 1.0))));
+            assertEquals(1, notExported(compile(data)).size());
+        } finally {
+            data.close();
+        }
+    }
 
-            new CaveStage().apply(context);
+    @Test
+    public void aBiomeThatListsCavesIsReportedToo() throws Exception {
+        File pack = CaveTestPacks.pack(temporaryFolder.newFolder("pack"), CaveTestPacks.dimension(8), CaveTestPacks.region(), Map.of("tunnels", CaveTestPacks.LISTED_CAVE));
+        CompatTestPlatform.write(pack, "biomes/" + CaveTestPacks.SURFACE_BIOME + ".json", "{\"name\":\"Surface\",\"caves\":[\"tunnels\"]}");
+        IrisData data = IrisData.openRuntime(pack);
+        try {
+            assertEquals(1, notExported(compile(data)).size());
+        } finally {
+            data.close();
+        }
+    }
 
-            assertEquals(new Field.Const(1.0e6), context.caves());
-            AquiferDef aquifer = context.aquifer();
-            AquiferDef vanilla = AquiferDef.dry(SURFACE);
-            assertEquals(vanilla.barrier(), aquifer.barrier());
-            assertEquals(vanilla.spread(), aquifer.spread());
-            assertEquals(vanilla.lava(), aquifer.lava());
-            assertEquals(vanilla.exclusion(), aquifer.exclusion());
-            assertEquals(vanilla.surfaceLevel(), aquifer.surfaceLevel());
-            assertEquals(-1.0, CaveTestPacks.sample(aquifer.floodedness(), context.noises(), 4, 40, 4), 0.0);
+    @Test
+    public void aPackWithoutListedCavesReportsNothing() throws Exception {
+        File pack = CaveTestPacks.pack(temporaryFolder.newFolder("pack"), CaveTestPacks.dimension(8), CaveTestPacks.region(), Map.of());
+        IrisData data = IrisData.openRuntime(pack);
+        try {
+            PackCompileContext context = compile(data);
+
+            assertEquals(NO_CAVES, context.caves());
             assertTrue(context.diagnostics().isEmpty());
         } finally {
             data.close();
         }
+    }
+
+    private PackCompileContext compile(IrisData data) {
+        PackCompileContext context = CaveTestPacks.context(data, FakeCaveStyles.volumetric());
+        context.setHeight(SURFACE);
+        new CaveStage().apply(context);
+        return context;
+    }
+
+    private static List<ExportDiagnostic> notExported(PackCompileContext context) {
+        return context.diagnostics().stream().filter(diagnostic -> diagnostic.limit() == ExportLimit.LISTED_CAVES).toList();
     }
 
     private record FixedStage(String name, Consumer<PackCompileContext> action) implements CompileStage {

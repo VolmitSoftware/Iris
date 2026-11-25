@@ -18,7 +18,7 @@
 
 package art.arcane.iris.studio.scene;
 
-import art.arcane.iris.generation.cave.CaveProfileSceneView;
+import art.arcane.iris.generation.cave.CaveSceneView;
 import art.arcane.iris.generation.decoration.formation.FormationProfileSceneView;
 import art.arcane.iris.generation.decoration.tree.TreeProfileSceneView;
 import art.arcane.iris.generation.hydrology.config.FluidProfileSceneView;
@@ -32,7 +32,7 @@ import java.util.Set;
 /** The scene views Iris's features have, in the order the studio lists them. A feature with a view adds it here. */
 public final class SceneViews {
     private static final List<SceneView> VIEWS = distinct(List.of(
-            new CaveProfileSceneView(),
+            new CaveSceneView(),
             new TreeProfileSceneView(),
             new FormationProfileSceneView(),
             new FluidProfileSceneView()));

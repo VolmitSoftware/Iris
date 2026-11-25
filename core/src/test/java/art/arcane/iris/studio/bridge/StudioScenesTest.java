@@ -55,9 +55,9 @@ public class StudioScenesTest {
 
     @Test
     public void aViewIsListedWithWhatItCanDo() {
-        StudioScenes.SceneViewInfo caves = new StudioScenes().infos().stream().filter(info -> info.id().equals("caveProfiles")).findFirst().orElseThrow();
+        StudioScenes.SceneViewInfo caves = new StudioScenes().infos().stream().filter(info -> info.id().equals("caves")).findFirst().orElseThrow();
 
-        assertFalse(caves.parts());
+        assertTrue(caves.parts());
         assertFalse(caves.editable());
         assertFalse(caves.creatable());
         assertFalse(caves.form());

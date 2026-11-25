@@ -29,7 +29,7 @@ public class IrisBiomeBoundsSamplingSchemaTest {
     @Test
     public void schemaListsOnlySupportedIntegerSteps() throws Exception {
         SchemaBuilder builder = new SchemaBuilder(IrisDimension.class, null);
-        for (String name : new String[]{"biomeBoundsSamplingStep", "terrainSamplingStep", "caveDensitySamplingStep"}) {
+        for (String name : new String[]{"biomeBoundsSamplingStep", "terrainSamplingStep"}) {
             int minimum = name.equals("biomeBoundsSamplingStep") ? 4 : 1;
             Field field = IrisDimension.class.getDeclaredField(name);
             JSONObject property = new SchemaPropertyBuilder(builder).buildProperty(field, IrisDimension.class);

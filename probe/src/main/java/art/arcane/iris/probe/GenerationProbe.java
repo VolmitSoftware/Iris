@@ -20,7 +20,6 @@ package art.arcane.iris.probe;
 
 import art.arcane.iris.generation.bake.BakePlane;
 import art.arcane.iris.generation.bake.GeneratorEvaluations;
-import art.arcane.iris.generation.mantle.IrisCaveCarver3D;
 import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.PackValidationResult;
@@ -321,7 +320,6 @@ public final class GenerationProbe {
         try {
             ProbeResult result = run(configuration, options);
             System.out.println(result.machineLine());
-            System.out.println(IrisCaveCarver3D.cellCounters().machineLine());
             exitCode = result.failedChunks() == 0 ? 0 : 1;
         } catch (Throwable e) {
             System.out.println("[genprobe] FAIL: probe execution failed");

@@ -365,11 +365,12 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         if (featureBiome != null) {
             return featureBiome;
         }
-        IrisBiome mantleBiome = customCaveBiome(getMantle().getMantle().get(x, y, z, MatterCavern.class));
+        IrisBiome mantleBiome = carvedCaveBiome(getMantle().getMantle().get(x, y, z, MatterCavern.class));
         return mantleBiome != null ? mantleBiome : getCaveBiome(x, y, z);
     }
 
-    private IrisBiome customCaveBiome(MatterCavern cavern) {
+    /** The cave biome a carved cell was painted with by the cave that carved it; null for a cell that names none. */
+    default IrisBiome carvedCaveBiome(MatterCavern cavern) {
         if (cavern != null && cavern.getCustomBiome() != null && !cavern.getCustomBiome().isEmpty()) {
             return getData().getBiomeLoader().load(cavern.getCustomBiome());
         }
@@ -428,7 +429,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
                     cavernChunkResolved = true;
                 }
                 IrisBiome biome = cavernChunk == null || y < 0 || y >= getMantle().getMantle().getWorldHeight()
-                        ? null : customCaveBiome(cavernChunk.get(x & 15, y, z & 15, MatterCavern.class));
+                        ? null : carvedCaveBiome(cavernChunk.get(x & 15, y, z & 15, MatterCavern.class));
                 if (biome == null) {
                     biome = resolveConfiguredCaveBiome(x, y, z, null);
                 }

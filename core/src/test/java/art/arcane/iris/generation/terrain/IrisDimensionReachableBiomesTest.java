@@ -3,6 +3,8 @@ package art.arcane.iris.generation.terrain;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
+import art.arcane.iris.generation.cave.IrisCave;
+import art.arcane.iris.generation.cave.TestSettings;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.testsupport.PackCompatFixtures;
@@ -12,6 +14,7 @@ import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -23,6 +26,37 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class IrisDimensionReachableBiomesTest {
+    @Test
+    @SuppressWarnings("unchecked")
+    public void includesTheBiomesOfCavesTheDimensionTheRegionsAndTheReachableBiomesList() {
+        IrisDimension dimension = new IrisDimension().setRegions(IrisRegionEntry.plainList("reachable")).setCaves(new KList<>("dimension-cave"));
+        IrisRegion reachable = new IrisRegion().setLandBiomes(IrisBiomeEntry.plainList("land")).setCaves(new KList<>("region-cave"));
+        IrisBiome land = biome("land").setCaves(new KList<>("biome-cave", "plain-cave", "ghost"));
+        IrisBiome unlisted = biome("unlisted-cave-biome");
+
+        IrisData data = mock(IrisData.class);
+        ResourceLoader<IrisRegion> regionLoader = mock(ResourceLoader.class);
+        ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
+        ResourceLoader<IrisCave> caveLoader = mock(ResourceLoader.class);
+        when(data.getRegionLoader()).thenReturn(regionLoader);
+        when(data.getBiomeLoader()).thenReturn(biomeLoader);
+        when(data.getCaveLoader()).thenReturn(caveLoader);
+        when(regionLoader.load("reachable")).thenReturn(reachable);
+        when(biomeLoader.load("land")).thenReturn(land);
+        for (String key : List.of("dimension-biome", "region-biome", "biome-biome")) {
+            when(biomeLoader.load(key)).thenReturn(biome(key));
+        }
+        when(biomeLoader.load("unlisted-cave-biome")).thenReturn(unlisted);
+        when(caveLoader.load("dimension-cave", false)).thenReturn(TestSettings.of(IrisCave.class, "{\"biome\": \"dimension-biome\"}"));
+        when(caveLoader.load("region-cave", false)).thenReturn(TestSettings.of(IrisCave.class, "{\"biome\": \"region-biome\"}"));
+        when(caveLoader.load("biome-cave", false)).thenReturn(TestSettings.of(IrisCave.class, "{\"biome\": \"biome-biome\"}"));
+        when(caveLoader.load("plain-cave", false)).thenReturn(TestSettings.of(IrisCave.class, "{}"));
+
+        Set<String> keys = dimension.getReachableBiomes(() -> data).stream().map(IrisBiome::getLoadKey).collect(Collectors.toSet());
+
+        assertEquals(Set.of("land", "dimension-biome", "region-biome", "biome-biome"), keys);
+    }
+
     @Test
     @SuppressWarnings("unchecked")
     public void includesOutOfPoolFocusBiomeAndRegion() {
@@ -70,19 +104,15 @@ public class IrisDimensionReachableBiomesTest {
                 .setId("disabled-band")
                 .setEnabled(false)
                 .setBiome("disabled-deep");
-        IrisDimensionCarvingEntry floatingCarvingEntry = new IrisDimensionCarvingEntry()
-                .setId("floating-carving-entry")
-                .setEnabled(false)
-                .setBiome("entry-floating-carve");
         IrisDimension dimension = new IrisDimension().setRegions(IrisRegionEntry.plainList("reachable", "missing"));
-        dimension.setCarving(new KList<>(deepBand, disabledBand, floatingCarvingEntry));
+        dimension.setCarving(new KList<>(deepBand, disabledBand));
         IrisRegion reachable = new IrisRegion()
                 .setLandBiomes(IrisBiomeEntry.plainList("parent", "shared"))
                 .setSeaBiomes(IrisBiomeEntry.plainList("shared"));
         IrisBiome parent = biome("parent")
                 .setChildren(IrisBiomeEntry.plainList("child", "shared"))
                 .setCarvingBiome("carve")
-                .setFloatingChildBiomes(new KList<>(floating("floating-target", "direct-floating-carve")));
+                .setFloatingChildBiomes(new KList<>(floating("floating-target")));
         IrisBiome child = biome("child").setChildren(IrisBiomeEntry.plainList("parent"));
         IrisBiome shared = biome("shared");
         IrisBiome carve = biome("carve");
@@ -90,11 +120,8 @@ public class IrisDimensionReachableBiomesTest {
                 .setChildren(IrisBiomeEntry.plainList("floating-child"))
                 .setCarvingBiome("floating-carve");
         IrisBiome floatingChild = biome("floating-child")
-                .setFloatingChildBiomes(new KList<>(floating("nested-floating", "floating-carving-entry")));
+                .setFloatingChildBiomes(new KList<>(floating("nested-floating")));
         IrisBiome floatingCarve = biome("floating-carve");
-        IrisBiome directFloatingCarve = biome("direct-floating-carve");
-        IrisBiome entryFloatingCarve = biome("entry-floating-carve");
-        IrisBiome shadowedFloatingCarve = biome("floating-carving-entry");
         IrisBiome nestedFloating = biome("nested-floating")
                 .setFloatingChildBiomes(new KList<>(floating("parent")));
         IrisBiome deepRoot = biome("deep-root").setChildren(IrisBiomeEntry.plainList("deep-child"));
@@ -118,9 +145,6 @@ public class IrisDimensionReachableBiomesTest {
         when(biomeLoader.load("floating-target")).thenReturn(floatingTarget);
         when(biomeLoader.load("floating-child")).thenReturn(floatingChild);
         when(biomeLoader.load("floating-carve")).thenReturn(floatingCarve);
-        when(biomeLoader.load("direct-floating-carve")).thenReturn(directFloatingCarve);
-        when(biomeLoader.load("entry-floating-carve")).thenReturn(entryFloatingCarve);
-        when(biomeLoader.load("floating-carving-entry")).thenReturn(shadowedFloatingCarve);
         when(biomeLoader.load("nested-floating")).thenReturn(nestedFloating);
         when(biomeLoader.load("deep-root")).thenReturn(deepRoot);
         when(biomeLoader.load("deep-child")).thenReturn(deepChild);
@@ -134,8 +158,7 @@ public class IrisDimensionReachableBiomesTest {
 
         assertEquals(Set.of(
                 "parent", "child", "shared", "carve",
-                "floating-target", "floating-child", "floating-carve", "direct-floating-carve",
-                "entry-floating-carve", "nested-floating",
+                "floating-target", "floating-child", "floating-carve", "nested-floating",
                 "deep-root", "deep-child", "deep-carve", "deep-floating"
         ), keys);
         assertEquals(keys.size(), biomes.size());
@@ -148,7 +171,7 @@ public class IrisDimensionReachableBiomesTest {
         IrisRegion reachable = new IrisRegion().setLandBiomes(IrisBiomeEntry.plainList("a"));
         IrisBiome a = biome("a").setChildren(IrisBiomeEntry.plainList("b"));
         IrisBiome b = biome("b").setCarvingBiome("c");
-        IrisBiome c = biome("c").setFloatingChildBiomes(new KList<>(floating("d", "a")));
+        IrisBiome c = biome("c").setFloatingChildBiomes(new KList<>(floating("d")));
         IrisBiome d = biome("d")
                 .setChildren(IrisBiomeEntry.plainList("a"))
                 .setFloatingChildBiomes(new KList<>(floating("b")));
@@ -317,7 +340,4 @@ public class IrisDimensionReachableBiomesTest {
         return new IrisFloatingChildBiomes().setBiome(biomeKey);
     }
 
-    private IrisFloatingChildBiomes floating(String biomeKey, String carvingKey) {
-        return floating(biomeKey).setCarving(carvingKey);
-    }
 }

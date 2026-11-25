@@ -118,10 +118,20 @@ final class MantleCarvedTerrain implements CarvedTerrain {
             return null;
         }
         long revision = ProvisionalSampling.revision();
-        IrisBiome biome = engine.getCaveBiomeBelowSurface(x, y, z);
+        IrisBiome carvedBiome = carvedBiome(x, y, z);
+        IrisBiome biome = carvedBiome != null ? carvedBiome : engine.getCaveBiomeBelowSurface(x, y, z);
         IrisRegion region = complex.getRegionStream().get(x, z);
         requireFinal(revision, x, z);
         return IrisHydrologyPolicy.inherited(biome == null ? List.of() : List.of(biome), region, dimension, IrisHydrologyPolicy::getFluid);
+    }
+
+    /** The biome the cave that carved the cell paints it with, where that cave names one. */
+    private IrisBiome carvedBiome(int x, int y, int z) {
+        if (existing(x, z)) {
+            return null;
+        }
+        MatterCavern cavern = TerrainMatterView.get(chunk(x, z), x, y, z, MatterCavern.class);
+        return cavern == null ? null : engine.carvedCaveBiome(cavern);
     }
 
     @Override

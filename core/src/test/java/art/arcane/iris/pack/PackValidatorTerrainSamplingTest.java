@@ -17,7 +17,7 @@ public class PackValidatorTerrainSamplingTest {
     @Test
     public void acceptsOmittedAndSupportedSamplingSteps() throws Exception {
         assertTrue(validate("terrainSamplingStep", null).isLoadable());
-        for (String field : new String[]{"terrainSamplingStep", "caveDensitySamplingStep"}) {
+        for (String field : new String[]{"terrainSamplingStep"}) {
             for (String value : new String[]{"1", "2", "4", "8"}) {
                 PackValidationResult result = validate(field, value);
                 assertTrue(result.getBlockingErrors().toString(), result.isLoadable());
@@ -27,7 +27,7 @@ public class PackValidatorTerrainSamplingTest {
 
     @Test
     public void rejectsInvalidSamplingStepsBeforeWorldCreation() throws Exception {
-        for (String field : new String[]{"terrainSamplingStep", "caveDensitySamplingStep"}) {
+        for (String field : new String[]{"terrainSamplingStep"}) {
             for (String value : new String[]{"0", "-1", "3", "16", "4.5", "\"4\"", "null", "true"}) {
                 PackValidationResult result = validate(field, value);
                 assertFalse("Accepted " + field + "=" + value, result.isLoadable());

@@ -13,8 +13,5 @@
     "max": 256
   },
   "logicalHeight": 256,
-  "fluidHeight": 0,
-  "caveProfile": {
-    "enabled": false
-  }
+  "fluidHeight": 0
 }

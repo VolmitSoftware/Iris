@@ -51,7 +51,7 @@ final class CaveFluidSupportPlan {
                 int localX = PowerOfTwoCoordinates.unpackLocal16X(columnIndex);
                 int localZ = columnIndex & 15;
                 MatterCavern current = getCavern(chunk, localX, y, localZ);
-                if (current != group.fluid || hasCupSupport(chunk, localX, y, localZ)) {
+                if (!group.fluid.equals(current) || hasCupSupport(chunk, localX, y, localZ)) {
                     continue;
                 }
 

@@ -10,6 +10,5 @@
   "dimensionHeight": {"min": 0, "max": 128},
   "logicalHeight": 128,
   "fluidHeight": 0,
-  "bedrock": false,
-  "caveProfile": {"enabled": false}
+  "bedrock": false
 }

@@ -36,7 +36,17 @@ public class SceneContractTest {
     public void theViewsTheStudioAlreadyShowsKeepTheirIds() {
         List<String> ids = SceneViews.all().stream().map(SceneView::id).toList();
 
-        assertEquals(List.of("caveProfiles", "treeProfiles", "formationProfiles", "fluidProfiles"), ids);
+        assertEquals(List.of("caves", "treeProfiles", "formationProfiles", "fluidProfiles"), ids);
+    }
+
+    @Test
+    public void cavesAreShownWithTheirPartsButNotEdited() {
+        SceneView caves = SceneViews.byId("caves");
+
+        assertFalse(caves.hasForm());
+        assertFalse(caves.isBaked());
+        assertFalse(caves instanceof EditableSceneView);
+        assertTrue(caves.tracesParts());
     }
 
     @Test

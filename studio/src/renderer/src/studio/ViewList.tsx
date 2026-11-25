@@ -46,7 +46,7 @@ const VIEW_ICONS: Record<string, LucideIcon> = {
   'object-load': Boxes,
   'decorator-load': Sprout,
   'layer-load': Layers,
-  caveProfiles: Pickaxe,
+  caves: Pickaxe,
   treeProfiles: TreePine,
   formationProfiles: Pyramid,
   fluidProfiles: Droplets,

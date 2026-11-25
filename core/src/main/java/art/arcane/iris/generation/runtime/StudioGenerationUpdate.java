@@ -40,7 +40,8 @@ record StudioGenerationUpdate(
      * @return null when the source still matches the active epoch
      */
     static StudioGenerationUpdate prepare(IrisEngine engine, GenerationHistory history,
-                                          ActivatedStudioSource previous) throws IOException {
+                                          ActivatedStudioSource previous, StudioPackValidation validation)
+            throws IOException {
         Path source = engine.getStudioGenerationSource().toRealPath();
         IrisData.invalidateLoadedAuthoringResources(source.toFile());
         PackTreeState sourceState = PackTreeState.capture(source);
@@ -52,7 +53,7 @@ record StudioGenerationUpdate(
         Path stagingRoot = Files.createTempDirectory(history.paths().generationRoot(), ".studio-");
         try {
             StudioGenerationUpdate update = prepareStaged(
-                    engine, history, source, sourceState, activeSourceState, stagingRoot);
+                    engine, history, source, sourceState, activeSourceState, stagingRoot, validation);
             if (update == null) {
                 AtomicDirectoryPublisher.deleteTree(stagingRoot);
             }
@@ -69,7 +70,8 @@ record StudioGenerationUpdate(
 
     private static StudioGenerationUpdate prepareStaged(IrisEngine engine, GenerationHistory history, Path source,
                                                         PackTreeState sourceState, PackTreeState activeSourceState,
-                                                        Path stagingRoot) throws IOException {
+                                                        Path stagingRoot, StudioPackValidation validation)
+            throws IOException {
         Path snapshot = stagingRoot.resolve(source.getFileName());
         GenerationPackRepository.snapshotPackTree(
                 source, snapshot, history.activePackLinkBasis().orElse(null), activeSourceState);
@@ -80,7 +82,7 @@ record StudioGenerationUpdate(
         if (!sourceState.equals(PackTreeState.capture(source))) {
             throw new IOException("Studio pack changed while its update snapshot was being captured.");
         }
-        return prepareSnapshot(engine, history, stagingRoot, pack, sourceState);
+        return prepareSnapshot(engine, history, stagingRoot, pack, sourceState, validation);
     }
 
     private static boolean isActive(GenerationEpoch active, VerifiedPackTree pack) {
@@ -90,12 +92,15 @@ record StudioGenerationUpdate(
 
     private static StudioGenerationUpdate prepareSnapshot(IrisEngine engine, GenerationHistory history,
                                                            Path stagingRoot, VerifiedPackTree pack,
-                                                           PackTreeState sourceState) throws IOException {
+                                                           PackTreeState sourceState,
+                                                           StudioPackValidation validation) throws IOException {
         GenerationEpoch active = history.activeEpoch();
         IrisData data = IrisData.openRuntime(pack.root().toFile());
         try {
             data.useVerifiedGenerationPackFingerprint(pack.fingerprint());
-            requireLoadable(pack, data);
+            if (validation == StudioPackValidation.BEFORE_ACTIVATION) {
+                requireLoadable(pack, data);
+            }
             IrisDimension replacement = data.getDimensionLoader().load(active.dimensionContract().dimensionKey());
             if (replacement == null) {
                 throw new IOException("Studio pack update is missing dimension '"

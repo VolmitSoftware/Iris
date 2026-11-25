@@ -138,7 +138,7 @@ public class EngineHotloaderRecoveryTest {
             try (MockedStatic<StudioGenerationUpdate> updates = mockStatic(StudioGenerationUpdate.class);
                  MockedStatic<IrisBoundarySignatureSampler> signatures = mockStatic(IrisBoundarySignatureSampler.class);
                  MockedStatic<IrisSettings> configuration = mockStatic(IrisSettings.class)) {
-                updates.when(() -> StudioGenerationUpdate.prepare(engine, history, null)).thenReturn(update);
+                updates.when(() -> StudioGenerationUpdate.prepare(engine, history, null, StudioPackValidation.AFTER_ACTIVATION)).thenReturn(update);
                 configuration.when(IrisSettings::get).thenReturn(settings);
 
                 IllegalStateException thrown = assertThrows(IllegalStateException.class,

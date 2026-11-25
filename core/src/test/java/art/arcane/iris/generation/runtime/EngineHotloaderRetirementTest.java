@@ -77,7 +77,7 @@ public class EngineHotloaderRetirementTest {
              MockedStatic<IrisStructureLocator> structures = mockStatic(IrisStructureLocator.class);
              MockedStatic<StructureReachability> reachability = mockStatic(StructureReachability.class);
              MockedStatic<IrisSettings> configuration = mockStatic(IrisSettings.class)) {
-            updates.when(() -> StudioGenerationUpdate.prepare(engine, history, null)).thenReturn(update);
+            updates.when(() -> StudioGenerationUpdate.prepare(engine, history, null, StudioPackValidation.AFTER_ACTIVATION)).thenReturn(update);
             configuration.when(IrisSettings::get).thenReturn(settings);
 
             new EngineHotloader(engine).hotloadSilently();

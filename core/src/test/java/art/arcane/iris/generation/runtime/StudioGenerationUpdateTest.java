@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -64,7 +65,7 @@ public final class StudioGenerationUpdateTest {
         when(active.epochId()).thenReturn("a".repeat(64));
         ActivatedStudioSource recorded = new ActivatedStudioSource("a".repeat(64), PackTreeState.capture(source));
 
-        assertNull(StudioGenerationUpdate.prepare(engine, history, recorded));
+        assertNull(StudioGenerationUpdate.prepare(engine, history, recorded, StudioPackValidation.BEFORE_ACTIVATION));
 
         verify(history).activeEpoch();
         verifyNoMoreInteractions(history);
@@ -96,7 +97,7 @@ public final class StudioGenerationUpdateTest {
         when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
         when(active.packFingerprint()).thenReturn(fingerprint);
 
-        assertNull(StudioGenerationUpdate.prepare(engine, history, null));
+        assertNull(StudioGenerationUpdate.prepare(engine, history, null, StudioPackValidation.BEFORE_ACTIVATION));
 
         assertEquals("unchanged manifest", Files.readString(paths.manifest()));
         try (Stream<Path> entries = Files.list(paths.generationRoot())) {
@@ -127,7 +128,7 @@ public final class StudioGenerationUpdateTest {
         when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
         when(active.packFingerprint()).thenReturn("0".repeat(64));
 
-        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null));
+        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null, StudioPackValidation.BEFORE_ACTIVATION));
 
         assertTrue(failure.getMessage(), failure.getMessage().contains(
                 "Studio pack update is invalid: Dimension 'test' declares no regions."));
@@ -154,11 +155,34 @@ public final class StudioGenerationUpdateTest {
             when(engine.getStudioGenerationSource()).thenReturn(alias);
             GenerationHistory history = mock(GenerationHistory.class);
 
-            IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null));
+            IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null, StudioPackValidation.BEFORE_ACTIVATION));
 
             assertTrue(failure.getMessage(), failure.getMessage().contains("Pack contains a symbolic link"));
             verifyNoInteractions(history);
         }
+    }
+
+    @Test
+    public void validationAfterActivationDoesNotRejectAnInvalidPackInPrepare() throws Exception {
+        Path source = temporary.newFolder("unvalidated-pack").toPath();
+        Files.createDirectories(source.resolve("dimensions"));
+        Files.writeString(source.resolve("dimensions/test.json"), "{}");
+        GenerationHistoryPaths paths = GenerationHistoryPaths.forDimension(temporary.newFolder("unvalidated-world").toPath());
+        Files.createDirectories(paths.generationRoot());
+        IrisEngine engine = mock(IrisEngine.class);
+        GenerationHistory history = mock(GenerationHistory.class);
+        GenerationEpoch active = mock(GenerationEpoch.class);
+        when(engine.getStudioGenerationSource()).thenReturn(source);
+        when(history.activeEpoch()).thenReturn(active);
+        when(history.paths()).thenReturn(paths);
+        when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
+        when(active.packFingerprint()).thenReturn("0".repeat(64));
+
+        Throwable failure = assertThrows(Throwable.class, () -> StudioGenerationUpdate.prepare(
+                engine, history, null, StudioPackValidation.AFTER_ACTIVATION));
+
+        assertFalse(String.valueOf(failure.getMessage()),
+                String.valueOf(failure.getMessage()).contains("Studio pack update is invalid"));
     }
 
     @Test
@@ -178,7 +202,7 @@ public final class StudioGenerationUpdateTest {
         when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
         when(active.packFingerprint()).thenReturn("0".repeat(64));
 
-        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null));
+        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null, StudioPackValidation.BEFORE_ACTIVATION));
 
         assertTrue(failure.getMessage(), failure.getMessage().contains("Missing dimensions/ folder"));
         assertEquals("unchanged manifest", Files.readString(paths.manifest()));
@@ -212,7 +236,7 @@ public final class StudioGenerationUpdateTest {
         when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
         when(active.packFingerprint()).thenReturn("0".repeat(64));
 
-        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null));
+        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null, StudioPackValidation.BEFORE_ACTIVATION));
 
         assertTrue(failure.getMessage(), failure.getMessage().contains(
                 "Dimension 'test' structures[0].anchor must be omitted, null, or LEGACY for nativeStructures."));

@@ -401,6 +401,7 @@ public class IrisSettings {
     public static class IrisSettingsStudio {
         public boolean openVSCode = true;
         public boolean blendChanges = true;
+        public boolean validateBeforeHotload = false;
         public boolean disableTimeAndWeather = true;
         public boolean entitySpawning = true;
         public boolean autoStartDefaultStudio = false;

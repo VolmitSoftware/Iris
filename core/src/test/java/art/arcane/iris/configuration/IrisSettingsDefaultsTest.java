@@ -85,6 +85,16 @@ public class IrisSettingsDefaultsTest {
     }
 
     @Test
+    public void studioValidatesAfterHotloadUnlessConfigured() {
+        assertFalse(new IrisSettings().getStudio().isValidateBeforeHotload());
+        assertFalse(new Gson().fromJson("{\"studio\":{}}", IrisSettings.class).getStudio().isValidateBeforeHotload());
+
+        IrisSettings changed = IrisSettings.parseHotloadSnapshot("{\"studio\":{\"validateBeforeHotload\":true}}");
+
+        assertTrue(changed.getStudio().isValidateBeforeHotload());
+    }
+
+    @Test
     public void hotloadSnapshotIsValidatedBeforeReplacingLiveSettings() {
         IrisSettings previous = IrisSettings.settings;
         IrisSettings live = new IrisSettings();

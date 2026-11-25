@@ -236,7 +236,8 @@ final class EngineHotloader {
                 long startedAt = System.nanoTime();
                 engine.requireRunning("hotload the Studio pack");
                 GenerationHistory history = router.history();
-                update = StudioGenerationUpdate.prepare(engine, history, activatedStudioSource);
+                StudioPackValidation validation = StudioPackValidation.configured();
+                update = StudioGenerationUpdate.prepare(engine, history, activatedStudioSource, validation);
                 if (update == null) {
                     return;
                 }
@@ -292,6 +293,9 @@ final class EngineHotloader {
                 publishRestartRequirement(requirement);
                 broadcastStudioHotload(false, restartNote(requirement));
                 activatedStudioSource = update.activatedAs(activated.epochId());
+                if (validation == StudioPackValidation.AFTER_ACTIVATION) {
+                    auditActivatedPack(history, activated);
+                }
             } catch (RegistryRestartRequiredException restart) {
                 StudioRestartRequirement requirement = StudioRestartRequirement.blockedBy(restart);
                 publishRestartRequirement(requirement);
@@ -343,6 +347,18 @@ final class EngineHotloader {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Never throws: it runs after the activation is durable, where any failure would mark the engine failed.
+     */
+    private void auditActivatedPack(GenerationHistory history, GenerationActivation activated) {
+        try {
+            new StudioPackAudit(engine, history, activated.epochId(), message -> broadcastStudioHotload(true, message))
+                    .runInBackground();
+        } catch (Throwable auditFailure) {
+            IrisLogging.reportError("Failed to start the Studio pack validation.", auditFailure);
         }
     }
 

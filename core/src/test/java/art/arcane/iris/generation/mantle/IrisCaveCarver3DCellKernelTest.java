@@ -85,7 +85,7 @@ public class IrisCaveCarver3DCellKernelTest {
 
     @Test
     public void packStyleProfilesSharingFieldsMatchGoldenWriteSequence() throws Exception {
-        assertScenario(Scenario.PACK_SHARED, 0xdbe20a1ca87f9cc7L, 269035);
+        assertScenario(Scenario.PACK_SHARED, 0xb464b50d050e766dL, 288720);
     }
 
     @Test

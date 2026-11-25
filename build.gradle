@@ -190,6 +190,63 @@ def generateNoiseNatives = tasks.register('generateNoiseNatives') {
         }
     }
 }
+// The studio app ships inside the Bukkit jar. The Electron build it runs on is 100+ MB per platform, so it stays out
+// and is pinned instead: StudioAppInstaller downloads the host's archive from Electron's release at startup and
+// checks it against these checksums.
+File studioAppDirectory = file('studio')
+List<String> electronPlatforms = ['linux-x64', 'linux-arm64', 'win32-x64', 'win32-arm64', 'darwin-x64', 'darwin-arm64']
+Provider<String> electronVersion = providers.fileContents(layout.projectDirectory.file('studio/package-lock.json')).asText.map { String lock ->
+    (String) ((Map) ((Map) new groovy.json.JsonSlurper().parseText(lock)).packages).get('node_modules/electron').version
+}
+List<String> npmCommand = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('win') ? ['cmd', '/c', 'npm'] : ['npm']
+def installStudioDependencies = tasks.register('installStudioDependencies', Exec) {
+    inputs.files('studio/package.json', 'studio/package-lock.json')
+    outputs.file('studio/node_modules/.package-lock.json')
+    workingDir(studioAppDirectory)
+    commandLine(npmCommand + ['ci', '--no-audit', '--no-fund'])
+}
+def buildStudioApp = tasks.register('buildStudioApp', Exec) {
+    dependsOn(installStudioDependencies)
+    inputs.dir('studio/src')
+    inputs.files('studio/package.json', 'studio/package-lock.json', 'studio/electron.vite.config.ts', 'studio/tsconfig.json', 'studio/components.json')
+    outputs.dir('studio/out')
+    workingDir(studioAppDirectory)
+    commandLine(npmCommand + ['run', 'build'])
+}
+def bundleStudioApp = tasks.register('bundleStudioApp', Zip) {
+    from(buildStudioApp) {
+        into('out')
+    }
+    from('studio/package.json')
+    archiveFileName.set('studio-app.zip')
+    destinationDirectory.set(layout.buildDirectory.dir('generated/studio-app'))
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+def pinElectronRuntime = tasks.register('pinElectronRuntime') {
+    inputs.property('electronVersion', electronVersion)
+    inputs.property('platforms', electronPlatforms)
+    def pins = layout.buildDirectory.file('generated/studio-app-pins/studio-app.properties')
+    outputs.file(pins)
+    doLast {
+        String version = electronVersion.get()
+        String checksums = URI.create("https://github.com/electron/electron/releases/download/v${version}/SHASUMS256.txt")
+            .toURL().getText('UTF-8')
+        Map<String, String> checksumByArchive = checksums.readLines().collectEntries { String line ->
+            def match = line.trim() =~ /^([0-9a-f]{64}) \*?(\S+)$/
+            match.matches() ? [(match.group(2)): match.group(1)] : [:]
+        }
+        List<String> lines = ["electron.version=${version}".toString()]
+        electronPlatforms.each { String platform ->
+            String checksum = checksumByArchive.get("electron-v${version}-${platform}.zip".toString())
+            if (checksum == null) {
+                throw new GradleException("Electron ${version} publishes no ${platform} archive")
+            }
+            lines.add("${platform}.sha256=${checksum}".toString())
+        }
+        pins.get().asFile.setText(lines.join('\n') + '\n', 'UTF-8')
+    }
+}
 def jarJar = configurations.create('jarJar')
 dependencies {
     add('included', project(path: ':core', configuration: 'shadow'))
@@ -208,6 +265,12 @@ tasks.named('jar', Jar).configure {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     includeEmptyDirs = false
     from(jarJar)
+    from(bundleStudioApp) {
+        into('META-INF/iris')
+    }
+    from(pinElectronRuntime) {
+        into('META-INF/iris')
+    }
     from(provider { included.resolve().collect { zipTree(it) } }) {
         exclude('META-INF/INDEX.LIST')
         exclude('languages/**')
@@ -529,6 +592,8 @@ List<String> requiredBukkitArtifactEntries = [
     'slimjar-resolutions.dat',
     'META-INF/iris/native-runtime.properties',
     NoiseNativeArtifacts.MANIFEST,
+    'META-INF/iris/studio-app.zip',
+    'META-INF/iris/studio-app.properties',
     'META-INF/volmit/volmlib.properties',
     'iris-language-source.properties',
     'agent.jar',

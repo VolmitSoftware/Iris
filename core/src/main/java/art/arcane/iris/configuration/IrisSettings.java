@@ -417,6 +417,7 @@ public class IrisSettings {
         public boolean disableTimeAndWeather = true;
         public boolean entitySpawning = true;
         public boolean autoStartDefaultStudio = false;
+        public boolean downloadApp = true;
         public String studioApp = "";
         public String electron = "electron";
 

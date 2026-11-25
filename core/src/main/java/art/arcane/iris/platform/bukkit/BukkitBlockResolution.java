@@ -100,8 +100,12 @@ public final class BukkitBlockResolution {
             }
 
             Identifier key = Identifier.fromString(ix);
-            Optional<BlockData> bd = IrisServices.get(ExternalDataSVC.class).getBlockData(key);
+            ExternalDataSVC external = IrisServices.get(ExternalDataSVC.class);
+            Optional<BlockData> bd = external.getBlockData(key);
             debug("Loading block data " + key);
+            if (bd.isPresent() && shouldPreventLeafDecay()) {
+                return external.withoutDecay(bd.get());
+            }
             return bd.orElse(null);
         }
 

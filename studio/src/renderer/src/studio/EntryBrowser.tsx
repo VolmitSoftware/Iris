@@ -1,4 +1,4 @@
-import { IdeIcon } from '@/components/IdeIcon'
+import { ChevronRight, Plus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu'
@@ -73,7 +73,7 @@ export function EntryBrowser({ title, entries, current, onSelect, fileActions, c
           <h2 className="min-w-0 flex-1 truncate text-[13px] font-semibold">{title}</h2>
           {fileActions !== undefined && (
             <Button variant="ghost" size="icon-xs" title="New entry in the chosen one's folder" onClick={() => fileActions.onCreate(folderPrefixOf(current ?? ''))}>
-              <IdeIcon name="add" />
+              <Plus />
             </Button>
           )}
         </div>
@@ -172,7 +172,7 @@ function FolderBranch({ folder, depth, context }: { folder: FolderNode; depth: n
         className="flex h-[26px] w-full items-center gap-1 rounded-md px-2 text-left hover:bg-accent"
         style={{ paddingLeft: indentOf(depth) }}
       >
-        <IdeIcon name="chevronRight" className={cn('size-3.5 text-muted-foreground transition-transform', open && 'rotate-90')} />
+        <ChevronRight className={cn('size-3.5 text-muted-foreground transition-transform', open && 'rotate-90')} />
         <span className="min-w-0 truncate">{folder.name}</span>
         <span className="ml-auto shrink-0 pl-2 text-[11px] text-secondary-text">{NUMBER.format(folder.size)}</span>
       </button>

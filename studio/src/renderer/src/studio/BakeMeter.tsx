@@ -1,4 +1,4 @@
-import { IdeIcon } from '@/components/IdeIcon'
+import { Timer } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -49,7 +49,7 @@ export function BakeMeter({ timing }: BakeMeterProps): React.JSX.Element {
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="flex h-8 shrink-0 items-center gap-2 border-b px-4 text-[11.5px]">
-          <IdeIcon name="stopWatch" className={cn(timing === null && 'opacity-50')} />
+          <Timer className={cn(timing === null && 'opacity-50')} />
           <span className={cn('w-[62px] shrink-0 font-semibold', timing === null ? 'text-muted-foreground' : weight.textClass)}>
             {timing === null ? MEASURING_LABEL : weight.label}
           </span>

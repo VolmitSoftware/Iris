@@ -25,6 +25,7 @@ import art.arcane.iris.pack.PackDownloader;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.studio.bridge.StudioBridge;
 import art.arcane.iris.studio.bridge.StudioBridges;
+import art.arcane.iris.studio.bridge.StudioLaunch;
 import art.arcane.iris.studio.bridge.StudioWindow;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.workspace.IrisProject;
@@ -108,6 +109,7 @@ import java.util.function.Consumer;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.BukkitCommandMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
+import art.arcane.volmlib.util.localization.TextKey;
 import art.arcane.volmlib.util.localization.LanguageAudience;
 import art.arcane.iris.localization.BukkitCommandMessagesExtended;
 @Director(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", descriptionKey = "iris.director.commandstudio.director.studio_commands")
@@ -297,9 +299,7 @@ public class CommandStudio implements DirectorExecutor {
             @Param(name = "world", description = "The Iris world whose pack the noise explorer reads", descriptionKey = "iris.director.commandstudio.param.world_open_generator", contextual = true, contextualOverride = true)
             World world
     ) {
-        if (openStudioApp(world)) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_NOISE_EXPLORER));
-        }
+        openStudioApp(world, BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_NOISE_EXPLORER);
     }
 
     @Director(description = "Open the image-map studio (External GUI)", descriptionKey = "iris.director.commandstudio.director.open_image_map_studio_external_gui", aliases = {"imap"})
@@ -307,9 +307,7 @@ public class CommandStudio implements DirectorExecutor {
             @Param(name = "world", description = "The Iris world whose active pack receives image-map exports", descriptionKey = "iris.director.commandstudio.param.world_open_image_map_studio", contextual = true, contextualOverride = true)
             World world
     ) {
-        if (openStudioApp(world)) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_IMAGE_MAP_STUDIO));
-        }
+        openStudioApp(world, BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_IMAGE_MAP_STUDIO);
     }
 
     @Director(description = "Show loot if a chest were right here", descriptionKey = "iris.director.commandstudio.director.show_loot_if_chest_were_right_here", origin = DirectorOrigin.PLAYER, sync = true)
@@ -441,9 +439,7 @@ public class CommandStudio implements DirectorExecutor {
             @Param(name = "world", description = "The world to open the generator for", descriptionKey = "iris.director.commandstudio.param.world_open_generator", contextual = true, contextualOverride = true)
             World world
     ) {
-        if (openStudioApp(world)) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_MAP));
-        }
+        openStudioApp(world, BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_MAP);
     }
 
     @Director(description = "Open the Iris Studio app on a world", descriptionKey = "iris.director.commandstudio.director.render_world_map_external_gui", aliases = "app")
@@ -451,29 +447,37 @@ public class CommandStudio implements DirectorExecutor {
             @Param(name = "world", description = "The world to open the generator for", descriptionKey = "iris.director.commandstudio.param.world_open_generator", contextual = true, contextualOverride = true)
             World world
     ) {
-        if (openStudioApp(world)) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_MAP));
-        }
+        openStudioApp(world, BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_MAP);
     }
 
-    /** Opens the app on the world, or logs its link when no app is set up; false, after telling the sender why, when it could not. */
-    private boolean openStudioApp(World world) {
+    /** Opens the app on the world; when it can't, tells the sender why and hands over the link to connect by hand. */
+    private void openStudioApp(World world, TextKey openedMessage) {
         if (!IrisToolbelt.isIrisWorld(world)) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_NEED_BE_SPECIFY_IRIS_GENERATED_WORLD));
-            return false;
+            return;
         }
         UUID openerId = sender().isPlayer() ? player().getUniqueId() : null;
         PlatformChunkGenerator generator = IrisToolbelt.access(world);
+        StudioBridge bridge;
         try {
-            StudioBridge bridge = StudioBridges.open(world.getName(), generator::getEngine, openerId);
-            if (!StudioWindow.show(bridge)) {
-                IrisLogging.info("Iris Studio link for %s: %s", world.getName(), bridge.link());
-            }
-            return true;
+            bridge = StudioBridges.open(world.getName(), generator::getEngine, openerId);
         } catch (IOException error) {
             IrisLogging.warn("Could not open the studio bridge: %s", error.getMessage());
-            return false;
+            return;
         }
+        StudioLaunch launch = StudioWindow.show(bridge);
+        if (launch.opened()) {
+            sender().sendMessage(IrisLanguage.text(openedMessage));
+            return;
+        }
+        IrisLogging.info("Iris Studio link for %s: %s", world.getName(), bridge.link());
+        sendStudioLink(launch, bridge.link());
+    }
+
+    private void sendStudioLink(StudioLaunch launch, String link) {
+        sender().sendMessage(C.RED + IrisLanguage.text(launch.failureMessage()));
+        sender().sendCopyButton(IrisLanguage.text(RuntimeUiMessages.STUDIO_LINK_COPY_BUTTON),
+                IrisLanguage.text(RuntimeUiMessages.STUDIO_LINK_COPY_HOVER), link);
     }
 
     @Director(description = "Profiles the performance of a dimension", descriptionKey = "iris.director.commandstudio.director.profiles_performance_dimension", origin = DirectorOrigin.PLAYER)

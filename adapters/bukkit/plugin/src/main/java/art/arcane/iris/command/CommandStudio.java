@@ -76,10 +76,6 @@ import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.scheduling.O;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.FluidCollisionMode;
@@ -453,16 +449,9 @@ public class CommandStudio implements DirectorExecutor {
     }
 
     private void sendStudioLink(StudioLaunch launch, String link) {
-        VolmitSender sender = sender();
-        sender.sendMessage(C.RED + IrisLanguage.text(launch.failureMessage()));
-        if (!sender.isPlayer()) {
-            return;
-        }
-        Component button = Component.text(IrisLanguage.text(RuntimeUiMessages.STUDIO_LINK_COPY_BUTTON))
-                .color(NamedTextColor.GREEN)
-                .clickEvent(ClickEvent.copyToClipboard(link))
-                .hoverEvent(HoverEvent.showText(Component.text(IrisLanguage.text(RuntimeUiMessages.STUDIO_LINK_COPY_HOVER))));
-        sender.sendComponent(button);
+        sender().sendMessage(C.RED + IrisLanguage.text(launch.failureMessage()));
+        sender().sendCopyButton(IrisLanguage.text(RuntimeUiMessages.STUDIO_LINK_COPY_BUTTON),
+                IrisLanguage.text(RuntimeUiMessages.STUDIO_LINK_COPY_HOVER), link);
     }
 
     @Director(description = "Profiles the performance of a dimension", descriptionKey = "iris.director.commandstudio.director.profiles_performance_dimension", origin = DirectorOrigin.PLAYER)

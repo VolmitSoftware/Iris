@@ -21,15 +21,14 @@ interface StudioToolbarProps {
   onOpenPack(pack: StudioPack): void
   onHelp(): void
   onSettings(): void
-  onDisconnect(): void
 }
 
 /** The window's bar: the pack the studio is on, which switches to another, and the studio's own buttons. */
-export function StudioToolbar({ world, openingPack, loadPacks, onOpenPack, onHelp, onSettings, onDisconnect }: StudioToolbarProps): React.JSX.Element {
+export function StudioToolbar({ world, openingPack, loadPacks, onOpenPack, onHelp, onSettings }: StudioToolbarProps): React.JSX.Element {
   return (
     <header className="flex h-10 shrink-0 items-center gap-1 px-1.5">
       <IrisLogo className="mx-[5px] size-5" />
-      <PackSwitcher world={world} opening={openingPack} loadPacks={loadPacks} onOpenPack={onOpenPack} onDisconnect={onDisconnect} />
+      <PackSwitcher world={world} opening={openingPack} loadPacks={loadPacks} onOpenPack={onOpenPack} />
       <div className="flex-1" />
       <MainToolbarButton action="help" hint="Show every mouse and key shortcut" onClick={onHelp}>
         <Glyph glyph="help" large />

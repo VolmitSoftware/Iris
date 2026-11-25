@@ -233,7 +233,7 @@ export function MapStudio({ client, world, theme, onOpenPack, onDisconnect }: Ma
 
   return (
     <div className="flex h-full flex-col">
-      <StudioToolbar world={world} openingPack={openingPack} loadPacks={loadPacks} onOpenPack={openPack} onHelp={() => setHelpOpen(true)} onSettings={() => setSettingsOpen(true)} onDisconnect={onDisconnect} />
+      <StudioToolbar world={world} openingPack={openingPack} loadPacks={loadPacks} onOpenPack={openPack} onHelp={() => setHelpOpen(true)} onSettings={() => setSettingsOpen(true)} />
       <SidebarSlot.Provider value={sidebarSlot}>
       <div className="relative flex min-h-0 flex-1 gap-1.5 pr-1.5">
         {openingPack !== null && (

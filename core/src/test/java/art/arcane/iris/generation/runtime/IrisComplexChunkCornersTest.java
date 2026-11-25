@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.generation.cache.ReleasableThreadLocal;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisInterpolator;
 import art.arcane.volmlib.util.interpolation.NoiseBounds;
@@ -171,7 +172,7 @@ public class IrisComplexChunkCornersTest {
         Class<?> cacheClass = Class.forName("art.arcane.iris.generation.runtime.IrisComplex$GridBoundsCache");
         Constructor<?> cacheConstructor = cacheClass.getDeclaredConstructor();
         cacheConstructor.setAccessible(true);
-        setField(complex, "gridBoundsCache", ThreadLocal.withInitial(() -> newCache(cacheConstructor)));
+        setField(complex, "gridBoundsCache", new ReleasableThreadLocal<>(() -> newCache(cacheConstructor)));
         return complex;
     }
 

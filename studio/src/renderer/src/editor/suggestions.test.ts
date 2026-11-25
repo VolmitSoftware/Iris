@@ -32,8 +32,8 @@ describe('suggestionSourceOf', () => {
   it('takes the roles for the settings that name one', () => {
     const on = option('on', { kind: 'list', element: { kind: 'text', format: 'PLAIN' }, unique: false })
 
-    expect(suggestionSourceOf('art.arcane.iris.engine.procedural.part.ProceduralDecoration', on)).toEqual({ from: 'roles' })
-    expect(suggestionSourceOf('art.arcane.iris.engine.procedural.part.ProceduralDecoration', option('at', { kind: 'text', format: 'PLAIN' }))).toBeNull()
+    expect(suggestionSourceOf('art.arcane.iris.generation.procedural.part.ProceduralDecoration', on)).toEqual({ from: 'roles' })
+    expect(suggestionSourceOf('art.arcane.iris.generation.procedural.part.ProceduralDecoration', option('at', { kind: 'text', format: 'PLAIN' }))).toBeNull()
   })
 
   it('takes the elements of a list of references, and nothing for free text', () => {

@@ -6,9 +6,9 @@ export type SuggestionSource = { from: 'reference'; reference: string } | { from
 
 /** Settings that name a role of the object being edited, by the schema type and option (ProceduralPart, ProceduralMaterial and ProceduralDecoration). */
 const ROLE_OPTIONS: ReadonlySet<string> = new Set([
-  'art.arcane.iris.engine.procedural.part.ProceduralPart.role',
-  'art.arcane.iris.engine.procedural.part.ProceduralMaterial.role',
-  'art.arcane.iris.engine.procedural.part.ProceduralDecoration.on'
+  'art.arcane.iris.generation.procedural.part.ProceduralPart.role',
+  'art.arcane.iris.generation.procedural.part.ProceduralMaterial.role',
+  'art.arcane.iris.generation.procedural.part.ProceduralDecoration.on'
 ])
 
 /** A source the server lists, as opposed to the roles, which the studio reads from the nodes. */

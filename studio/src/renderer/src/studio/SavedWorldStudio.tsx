@@ -1,4 +1,4 @@
-import { IdeIcon } from '@/components/IdeIcon'
+import { RefreshCw } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -107,7 +107,7 @@ export function SavedWorldStudio({ title, client, world, onSummary, onProgress, 
             </ToggleGroup>
             <Separator orientation="vertical" className="mx-1 h-4!" />
             <Button variant="ghost" size="icon-sm" className="size-7" title="Read again" disabled={reading} onClick={() => setReadings((count) => count + 1)}>
-              <IdeIcon name="refresh" />
+              <RefreshCw />
             </Button>
           </>
         }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { GraphNode, JsonPath } from '../bridge/types'
 import { NO_PART } from '../bridge/types'
-import { isWithin, layoutNodes, nodeDrawingPart, NODE_WIDTH } from './nodeLayout'
+import { canRegrow, GRID, isWithin, layoutNodes, nodeAt, nodeDrawingPart, NODE_WIDTH, type PlacedNode } from './nodeLayout'
 
 function node(path: JsonPath, children: GraphNode[] = []): GraphNode {
   return {
@@ -20,21 +20,65 @@ function node(path: JsonPath, children: GraphNode[] = []): GraphNode {
 }
 
 describe('layoutNodes', () => {
-  it('sets a parent level with the middle of its children, a column to their left', () => {
-    const layout = layoutNodes([node([], [node(['parts', 0]), node(['parts', 1]), node(['parts', 2])])])
-    const [first, , last, parent] = layout.nodes
+  const height = (): number => 50
+  const placedAt = (layout: ReturnType<typeof layoutNodes>, path: JsonPath): PlacedNode => layout.nodes.find((placed) => placed.id === JSON.stringify(path))!
 
-    expect(parent.y).toBe((first.y + last.y) / 2)
-    expect(first.x - parent.x).toBeGreaterThan(NODE_WIDTH)
-    expect(layout.wires).toHaveLength(3)
+  it('sets a node level with its first child, a column to its left, and each next child on the rows below', () => {
+    const layout = layoutNodes([node([], [node(['parts', 0]), node(['parts', 1])])], height)
+    const [parent, first, second] = [placedAt(layout, []), placedAt(layout, ['parts', 0]), placedAt(layout, ['parts', 1])]
+
+    expect(first.y).toBe(parent.y)
+    expect(first.x - parent.x).toBe(NODE_WIDTH + 2 * GRID)
+    expect(second.y).toBeGreaterThanOrEqual(first.y + 50 + 10)
+    expect(layout.wires).toHaveLength(2)
   })
 
-  it('lays the next root out under the tree before it', () => {
-    const layout = layoutNodes([node([], [node(['parts', 0])]), node(['materials', 0])])
-    const material = layout.nodes.find((placed) => placed.id === JSON.stringify(['materials', 0]))!
+  it('stacks the other roots under the first, in its column, and starts every node on a grid point', () => {
+    const layout = layoutNodes([node([], [node(['parts', 0])]), node(['materials', 0])], height)
+    const [object, material] = [placedAt(layout, []), placedAt(layout, ['materials', 0])]
 
-    expect(material.x).toBe(0)
-    expect(material.y).toBeGreaterThan(Math.max(...layout.nodes.filter((placed) => placed !== material).map((placed) => placed.y)))
+    expect(material.x).toBe(object.x)
+    expect(material.y).toBeGreaterThan(object.y + 50)
+    expect(layout.nodes.every((placed) => placed.x % GRID === 0 && placed.y % GRID === 0)).toBe(true)
+  })
+
+  it('makes room below a tall node before its next sibling', () => {
+    const tall = (graphNode: GraphNode): number => (graphNode.path.length === 2 && graphNode.path[1] === 0 ? 300 : 50)
+    const layout = layoutNodes([node([], [node(['parts', 0]), node(['parts', 1])])], tall)
+
+    expect(placedAt(layout, ['parts', 1]).y).toBeGreaterThan(placedAt(layout, ['parts', 0]).y + 300)
+  })
+
+  it('puts a node where it was dragged, and marks which nodes have sockets', () => {
+    const layout = layoutNodes([node([], [node(['parts', 0])])], height, new Map([[JSON.stringify(['parts', 0]), { x: 500, y: 44 }]]))
+    const part = placedAt(layout, ['parts', 0])
+
+    expect([part.x, part.y]).toEqual([500, 44])
+    expect([part.grown, part.growing]).toEqual([true, false])
+    expect([placedAt(layout, []).grown, placedAt(layout, []).growing]).toEqual([false, true])
+  })
+})
+
+describe('nodeAt', () => {
+  it('finds the node under a point by its own height', () => {
+    const layout = layoutNodes([node([], [node(['parts', 0])])], () => 50)
+    const part = layout.nodes[1]
+
+    expect(nodeAt(layout.nodes, { x: part.x + 5, y: part.y + 49 })?.id).toBe(part.id)
+    expect(nodeAt(layout.nodes, { x: part.x + 5, y: part.y + 51 })).toBeNull()
+  })
+})
+
+describe('canRegrow', () => {
+  const withList = (path: JsonPath, children: GraphNode[] = []): GraphNode => ({ ...node(path, children), childList: [...path, 'children'] })
+
+  it('lets a part grow from another that takes children, but not from inside itself or where it already grows', () => {
+    const part = withList(['parts', 0])
+
+    expect(canRegrow(part, withList(['parts', 1]))).toBe(true)
+    expect(canRegrow(part, withList(['parts', 0, 'children', 0]))).toBe(false)
+    expect(canRegrow(withList(['parts', 1, 'children', 0]), withList(['parts', 1]))).toBe(false)
+    expect(canRegrow({ ...part, movable: false }, withList(['parts', 1]))).toBe(false)
   })
 })
 

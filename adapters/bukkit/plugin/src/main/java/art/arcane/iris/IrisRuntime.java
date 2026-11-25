@@ -21,6 +21,7 @@ package art.arcane.iris;
 import art.arcane.iris.api.terrain.IrisTerrainService;
 import art.arcane.iris.command.CommandSVC;
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.studio.app.StudioAppInstaller;
 import art.arcane.iris.configuration.SettingsHotloadWatch;
 import art.arcane.iris.diagnostics.LogFilterSVC;
 import art.arcane.iris.diagnostics.splash.IrisSplashComposer;
@@ -976,6 +977,7 @@ public final class IrisRuntime implements IrisPluginRuntime {
             return;
         }
         BukkitGuiHost.install();
+        StudioAppInstaller.installInBackground();
         // super.onEnable() already registers this instance as a listener.
         plugin.enablePlugin();
         if (IrisStartupValidation.isRestartRequired()) {

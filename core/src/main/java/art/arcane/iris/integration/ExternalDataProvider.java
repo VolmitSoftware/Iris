@@ -14,6 +14,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
@@ -125,6 +126,25 @@ public abstract class ExternalDataProvider {
     }
 
     public boolean removeGenerated(@NotNull Block block, @NotNull String token) {
+        return false;
+    }
+
+    /**
+     * @param data The block to keep, possibly an {@link IrisCustomData} this provider returned from {@link #getBlockData}
+     * @return The block made to never decay, like custom leaves, or {@code data} itself when it is not one of the
+     * provider's decaying blocks
+     */
+    @NotNull
+    public BlockData withoutDecay(@NotNull BlockData data) {
+        return data;
+    }
+
+    /**
+     * @param data The block to check, possibly an {@link IrisCustomData} this provider returned from {@link #getBlockData}
+     * @param tag  A block tag, like {@code minecraft:logs}
+     * @return Whether the block is one of the provider's blocks and carries that tag
+     */
+    public boolean hasBlockTag(@NotNull BlockData data, @NotNull NamespacedKey tag) {
         return false;
     }
 

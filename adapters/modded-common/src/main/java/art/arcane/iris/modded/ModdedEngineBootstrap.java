@@ -46,6 +46,7 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntityBehavior;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeStateMerger;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedServerAccess;
 
+import art.arcane.iris.studio.app.StudioAppInstaller;
 import art.arcane.iris.studio.view.GuiHost;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.generation.decoration.DecoratorPlatformHooks;
@@ -492,6 +493,7 @@ public final class ModdedEngineBootstrap {
                 GuiHost.Provider previousGuiHost = GuiHost.get();
                 ModdedGuiHost.install();
                 rollback.add(() -> GuiHost.set(previousGuiHost));
+                StudioAppInstaller.installInBackground();
 
                 ModdedDecoratorHooks decoratorHooks = new ModdedDecoratorHooks();
                 DecoratorPlatformHooks.Bindings previousDecoratorBindings = DecoratorPlatformHooks.bind(decoratorHooks, decoratorHooks);

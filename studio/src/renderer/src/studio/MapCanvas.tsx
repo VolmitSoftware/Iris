@@ -8,8 +8,10 @@ import {
 } from '@/components/ui/context-menu'
 import type { BridgeClient } from '../bridge/BridgeClient'
 import type { WorldInfo } from '../bridge/types'
-import { MapController, type MapListener, type SpotSubjects } from '../map/MapController'
+import { MapController, type MapListener, type MapPlacement, type SpotSubjects } from '../map/MapController'
 import type { Highlight } from '../map/tileStyle'
+import { useRememberedRef } from './rememberedState'
+import { useTab } from './tabContext'
 
 export interface CanvasPoint {
   x: number
@@ -25,6 +27,8 @@ interface MapCanvasProps {
   highlight: Highlight | null
   onPointer(point: CanvasPoint | null): void
   onDragged(): void
+  /** Called after the mouse moved or zoomed the map. */
+  onMoved(): void
   onTeleport(point: CanvasPoint): void
   onOpenFile(point: CanvasPoint): void
   onHighlight(subject: Highlight): void
@@ -50,6 +54,8 @@ export function MapCanvas(props: MapCanvasProps): React.JSX.Element {
   const latest = useRef(props)
   latest.current = props
   const [contextSpot, setContextSpot] = useState<ContextSpot | null>(null)
+  // A hidden or moved tab lets go of its map; this brings it back where it looked.
+  const lastPlacement = useRememberedRef<MapPlacement | null>(`${useTab().id}:placement`, null)
 
   useEffect(() => {
     const canvas = canvasRef.current!
@@ -59,16 +65,20 @@ export function MapCanvas(props: MapCanvasProps): React.JSX.Element {
       onArea: (area) => latest.current.listener.onArea(area),
       onError: (message) => latest.current.listener.onError(message)
     })
+    if (lastPlacement.current !== null) {
+      map.place(lastPlacement.current)
+    }
     controllerRef.current = map
     const resize = new ResizeObserver(([entry]) => map.resize(entry.contentRect.width, entry.contentRect.height))
     resize.observe(canvas)
     return () => {
+      lastPlacement.current = map.placement()
       resize.disconnect()
       map.close()
       controllerRef.current = null
     }
     // The controller lives as long as the connection; later view changes go through setView, not a new controller.
-  }, [client, world, controllerRef])
+  }, [client, world, controllerRef, lastPlacement])
 
   useMouse(canvasRef, controllerRef, latest)
 
@@ -158,6 +168,7 @@ function useMouse(
       }
       if (press.dragged) {
         controllerRef.current?.panBy(event.clientX - press.lastX, event.clientY - press.lastY)
+        latest.current.onMoved()
       }
       press.lastX = event.clientX
       press.lastY = event.clientY
@@ -186,6 +197,7 @@ function useMouse(
       event.preventDefault()
       const point = canvasPoint({ clientX: event.clientX, clientY: event.clientY, currentTarget: canvas })
       controllerRef.current?.zoomAt(2 ** (-event.deltaY * WHEEL_ZOOM_PER_DELTA), point.x, point.y)
+      latest.current.onMoved()
     }
 
     canvas.addEventListener('pointerdown', down)

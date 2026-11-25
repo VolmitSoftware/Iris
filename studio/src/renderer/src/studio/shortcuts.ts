@@ -19,8 +19,15 @@ export type ShortcutAction =
   | 'deleteNode'
   | 'duplicateNode'
   | 'showAllNodes'
+  | 'closeTab'
+  | 'previousTab'
+  | 'nextTab'
+  | 'recentTab'
 
-export type ShortcutGroup = 'Views' | 'Everywhere' | 'Map' | 'Node editor'
+export type ShortcutGroup = 'Views' | 'Tabs' | 'Everywhere' | 'Map' | 'Node editor'
+
+/** The groups in the order the keymap and the help list them. */
+export const SHORTCUT_GROUPS: ShortcutGroup[] = ['Views', 'Tabs', 'Everywhere', 'Map', 'Node editor']
 
 /**
  * A key press as text: the modifiers in the order ctrl, alt, shift, then the key as {@code KeyboardEvent.key} names it,
@@ -46,6 +53,10 @@ interface ShortcutDefinition extends ShortcutRow {
 
 export const SHORTCUTS: ShortcutDefinition[] = [
   { id: 'nextView', label: 'Next view', group: 'Views', chords: ['m'] },
+  { id: 'closeTab', label: 'Close the tab', group: 'Tabs', chords: ['ctrl+F4'] },
+  { id: 'previousTab', label: 'Previous tab', group: 'Tabs', chords: ['alt+ArrowLeft'] },
+  { id: 'nextTab', label: 'Next tab', group: 'Tabs', chords: ['alt+ArrowRight'] },
+  { id: 'recentTab', label: 'Switch to a recent tab', group: 'Tabs', chords: ['ctrl+Tab'] },
   { id: 'refresh', label: 'Redraw the map with the latest pack files', group: 'Everywhere', chords: ['r'] },
   { id: 'zoomIn', label: 'Zoom in', group: 'Everywhere', chords: ['=', '+'] },
   { id: 'zoomOut', label: 'Zoom out', group: 'Everywhere', chords: ['-'] },
@@ -94,6 +105,7 @@ export const MOUSE_HINTS: { gesture: string; label: string }[] = [
  */
 const GROUP_SCOPES: Record<ShortcutGroup, { windowWide: boolean; nodeEditor: boolean }> = {
   Views: { windowWide: true, nodeEditor: false },
+  Tabs: { windowWide: true, nodeEditor: false },
   Everywhere: { windowWide: true, nodeEditor: true },
   Map: { windowWide: true, nodeEditor: false },
   'Node editor': { windowWide: false, nodeEditor: true }

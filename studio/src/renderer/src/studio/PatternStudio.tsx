@@ -11,7 +11,8 @@ import { BridgeAssets } from '../scene/BridgeAssets'
 import { BlockIcon } from './BlockIcon'
 import { EntryBrowser } from './EntryBrowser'
 import { Glyph } from './Glyph'
-import { Panel, SidebarPanel, Stepper, ViewIsland } from './Sidebar'
+import { DetailPanel, SidebarPanel, Stepper, ViewIsland } from './Sidebar'
+import { useSettledEntry, useTab } from './tabContext'
 import { TiledCanvas } from './TiledCanvas'
 
 const DEFAULT_NAMESPACE_PREFIX = 'minecraft:'
@@ -39,8 +40,10 @@ interface PatternStudioProps {
 /** A pattern view: its entries on the right, what the chosen one places from above in the middle. */
 export function PatternStudio({ client, view, packRevision, onSummary, tell }: PatternStudioProps): React.JSX.Element {
   const entries = usePatternEntries(client, view.id, packRevision, tell)
+  const tab = useTab()
   const [chosen, setChosen] = useState<{ key: string; depth: number } | null>(null)
-  const entry = entries.find((candidate) => candidate.key === chosen?.key) ?? entries[0] ?? null
+  const entry = entries.find((candidate) => candidate.key === tab.entry) ?? entries[0] ?? null
+  useSettledEntry(tab, entry?.key ?? null, entry?.name ?? null)
   const depth = entry !== null && chosen?.key === entry.key ? Math.min(chosen.depth, entry.depths - 1) : 0
   const layer = useMemo<PatternLayer | null>(
     () => (entry === null ? null : { viewId: view.id, key: entry.key, depth, revision: packRevision }),
@@ -80,12 +83,12 @@ export function PatternStudio({ client, view, packRevision, onSummary, tell }: P
         {status !== null && entry !== null && <div className={cn(PILL, 'right-3 bottom-3 tabular-nums')}>{readout(status)}</div>}
       </ViewIsland>
       <SidebarPanel className="flex-1">
-        <EntryBrowser className="flex-1" title={view.label} entries={entries} current={entry?.key ?? null} onSelect={(key) => setChosen({ key, depth: 0 })} />
+        <EntryBrowser className="flex-1" title={view.label} entries={entries} current={entry?.key ?? null} onSelect={(key) => tab.choose(key)} onKeep={(key) => tab.choose(key, true)} />
       </SidebarPanel>
-      <Panel className="w-[250px]">
+      <DetailPanel className="w-[250px]">
         <EntryFacts entry={entry} />
         <Legend blocks={legend} looks={blockColors} />
-      </Panel>
+      </DetailPanel>
     </>
   )
 }

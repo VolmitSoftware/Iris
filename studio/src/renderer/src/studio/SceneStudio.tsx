@@ -21,7 +21,8 @@ import { EntryBrowser } from './EntryBrowser'
 import { useEntryFiles } from './EntryFileDialogs'
 import { NodePane } from './NodePane'
 import { ProfileFormPanel } from './ProfileFormPanel'
-import { Panel, SidebarPanel, SizeChoice, Stepper, ViewIsland } from './Sidebar'
+import { DetailPanel, SidebarPanel, SizeChoice, Stepper, ViewIsland } from './Sidebar'
+import { useSettledEntry, useTab } from './tabContext'
 import { SceneViewport, type PickedSurface } from './SceneViewport'
 
 const NUMBER = new Intl.NumberFormat('en-US')
@@ -48,11 +49,13 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
   const models = useMemo(() => new BlockModels(images), [images])
   const blockLooks = useMemo(() => new BlockColors(models, images), [models, images])
   const entries = useSceneEntries(client, view.id, packRevision, tell)
+  const tab = useTab()
   const [chosen, setChosen] = useState<{ key: string; variant: number } | null>(null)
-  const entry = entries.find((candidate) => candidate.key === chosen?.key) ?? entries[0] ?? null
+  const entry = entries.find((candidate) => candidate.key === tab.entry) ?? entries[0] ?? null
+  useSettledEntry(tab, entry?.key ?? null, entry?.name ?? null)
   const variant = entry !== null && chosen?.key === entry.key ? Math.min(chosen.variant, entry.variants - 1) : 0
   const entryKeys = useMemo(() => entries.map((candidate) => candidate.key), [entries])
-  const files = useEntryFiles(client, view.id, entryKeys, (key) => setChosen({ key, variant: 0 }), tell)
+  const files = useEntryFiles(client, view.id, entryKeys, (key) => tab.choose(key, true), tell)
   const [farLeavesOnly, setFarLeavesOnly] = useState(false)
   const [chosenSize, setChosenSize] = useState<{ viewId: string; size: number } | null>(null)
   const size = chosenSize?.viewId === view.id ? chosenSize.size : (view.sizes?.opening ?? null)
@@ -64,7 +67,18 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
 
   const bakeTiming = useBakeTiming(client, view.id, entry?.key ?? null, view.baked, packRevision, tell)
 
-  const editor = useNodeEditor(client, view.id, view.editable ? (entry?.key ?? null) : null, packRevision, tell)
+  const openEditor = useNodeEditor(client, view.id, view.editable ? (entry?.key ?? null) : null, packRevision, tell)
+  const { keep } = tab
+  const editor = useMemo(
+    () => ({
+      ...openEditor,
+      edit: (...change: Parameters<typeof openEditor.edit>) => {
+        keep()
+        return openEditor.edit(...change)
+      }
+    }),
+    [openEditor, keep]
+  )
   const [selectedPath, setSelectedPath] = useState<JsonPath | null>(null)
   const selected = editor.state?.roots != null && selectedPath !== null ? nodeWithPath(editor.state.roots, selectedPath) : null
   const values = useMemo(() => (editor.state === null ? undefined : parsedText(editor.state.text)), [editor.state])
@@ -75,7 +89,8 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
   const [typed, setTyped] = useState<{ owner: string; values: Record<string, string> }>({ owner: '', values: NO_OVERRIDES })
   const typedOwner = `${view.id}:${entry?.key ?? ''}`
   const overrides = typed.owner === typedOwner ? typed.values : NO_OVERRIDES
-  const changeSetting = (name: string, value: string | null): void =>
+  const changeSetting = (name: string, value: string | null): void => {
+    keep()
     setTyped((current) => {
       const next = { ...(current.owner === typedOwner ? current.values : NO_OVERRIDES) }
       if (value === null) {
@@ -85,6 +100,7 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
       }
       return { owner: typedOwner, values: next }
     })
+  }
   const profileForm = useProfileForm(client, view, entry?.key ?? null, overrides, packRevision, tell)
   const { scene, shown, sceneParts, building } = useSceneMesh(client, view, entry, variant, size, overrides, packRevision, models, images, farLeavesOnly, highlightedPart, tell)
   const shownScene = shown?.scene ?? null
@@ -127,7 +143,8 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
           title={view.label}
           entries={entries}
           current={entry?.key ?? null}
-          onSelect={(key) => setChosen({ key, variant: 0 })}
+          onSelect={(key) => tab.choose(key)}
+          onKeep={(key) => tab.choose(key, true)}
           fileActions={view.creatable ? files.actions : undefined}
         />
         {files.dialogs}
@@ -159,11 +176,11 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
           />
         )}
       </div>
-      <Panel className={view.form ? 'w-[300px]' : 'w-[250px]'}>
+      <DetailPanel className={view.form ? 'w-[300px]' : 'w-[250px]'}>
         {view.form === true && <ProfileFormPanel className="flex-[5]" state={profileForm} onChange={changeSetting} onResetAll={() => setTyped({ owner: typedOwner, values: NO_OVERRIDES })} />}
         {view.baked && entry !== null && <BakeMeter timing={bakeTiming} />}
         <BlockList scene={scene} blocks={blockLooks} farLeavesOnly={farLeavesOnly} onFarLeavesOnly={setFarLeavesOnly} />
-      </Panel>
+      </DetailPanel>
     </>
   )
 }

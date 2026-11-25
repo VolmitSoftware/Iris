@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import type { BridgeClient } from '../bridge/BridgeClient'
 import type { ImageMapDetails, SceneEntry } from '../bridge/types'
 import { EntryBrowser } from './EntryBrowser'
-import { Panel, SidebarPanel, ViewIsland } from './Sidebar'
+import { DetailPanel, SidebarPanel, ViewIsland } from './Sidebar'
+import { useSettledEntry, useTab } from './tabContext'
 
 const PREVIEW_PIXELS = 1024
 const NUMBER = new Intl.NumberFormat('en-US')
@@ -19,8 +20,9 @@ interface ImageMapStudioProps {
 /** The pack's image maps: the list on the left, the chosen one painted over the world area it covers in the middle, what it is on the right. */
 export function ImageMapStudio({ title, client, packRevision, onSummary, tell }: ImageMapStudioProps): React.JSX.Element {
   const entries = useImageMapEntries(client, packRevision, tell)
-  const [chosen, setChosen] = useState<string | null>(null)
-  const entry = entries.find((candidate) => candidate.key === chosen) ?? entries[0] ?? null
+  const tab = useTab()
+  const entry = entries.find((candidate) => candidate.key === tab.entry) ?? entries[0] ?? null
+  useSettledEntry(tab, entry?.key ?? null, entry?.name ?? null)
   const { details, picture } = useImageMap(client, entry?.key ?? null, packRevision, tell)
 
   useEffect(() => onSummary(entry === null ? null : entry.key), [entry, onSummary])
@@ -35,9 +37,9 @@ export function ImageMapStudio({ title, client, packRevision, onSummary, tell }:
         </div>
       </ViewIsland>
       <SidebarPanel className="flex-1">
-        <EntryBrowser className="flex-1" title={title} entries={entries} current={entry?.key ?? null} onSelect={setChosen} />
+        <EntryBrowser className="flex-1" title={title} entries={entries} current={entry?.key ?? null} onSelect={(key) => tab.choose(key)} onKeep={(key) => tab.choose(key, true)} />
       </SidebarPanel>
-      <Panel className="w-[250px]">{details !== null && <Facts details={details} />}</Panel>
+      <DetailPanel className="w-[250px]">{details !== null && <Facts details={details} />}</DetailPanel>
     </>
   )
 }

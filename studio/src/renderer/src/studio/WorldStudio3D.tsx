@@ -17,7 +17,7 @@ import { PickInspector, hasPickSections } from './PickInspector'
 import { SceneViewport } from './SceneViewport'
 import { usePickInspection } from './usePickInspection'
 import { useSpotActions } from './useSpotActions'
-import { HEADER_CHOICE, Panel, SizeChoice, ViewIsland } from './Sidebar'
+import { DetailPanel, HEADER_CHOICE, SizeChoice, ViewIsland } from './Sidebar'
 import { useGroundInView, useLongPending, useTerrainStream } from './useTerrainStream'
 import { caveBandShares, useWorldCaves, type CaveArea } from './useWorldCaves'
 
@@ -159,7 +159,7 @@ export function WorldStudio3D({ title, client, world, mapArea, packRevision, onS
           </div>
         )}
       </ViewIsland>
-      <Panel className="w-[250px]">
+      <DetailPanel className="w-[250px]">
         {showsCaves ? (
           <Legend title="Caves by height" shares={caveShares} emptyText={caves.status === null ? 'No caves here' : 'Generating the caves…'} className="flex-1" />
         ) : inspectsPicks && hasPickSections(inspection) ? (
@@ -167,7 +167,7 @@ export function WorldStudio3D({ title, client, world, mapArea, packRevision, onS
         ) : (
           <Legend title="Heights in view" shares={heightShares} emptyText="Looking at the ground…" className="flex-1" />
         )}
-      </Panel>
+      </DetailPanel>
     </>
   )
 }

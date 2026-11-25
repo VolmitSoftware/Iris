@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import type { ViewInfo } from '../bridge/types'
 import { Glyph } from './Glyph'
-import { chordOf, chordText, chordsOf, chordsText, clashesWith, defaultChords, shortcutRows, type Bindings, type ShortcutGroup, type ShortcutRow } from './shortcuts'
+import { SHORTCUT_GROUPS, chordOf, chordText, chordsOf, chordsText, clashesWith, defaultChords, shortcutRows, type Bindings, type ShortcutRow } from './shortcuts'
 import { SettingGroup, SettingsPage } from './SettingsLayout'
 import { shortcutStore, useBindings } from './useBindings'
 
@@ -13,7 +13,6 @@ interface Note {
   warning: boolean
 }
 
-const GROUPS: ShortcutGroup[] = ['Views', 'Everywhere', 'Map', 'Node editor']
 const RECORDING_TEXT = 'Press a key…'
 const NO_KEYS_TEXT = 'None'
 
@@ -76,7 +75,7 @@ export function KeymapPage({ views }: { views: ViewInfo[] }): React.JSX.Element 
       }
     >
       {shown.length === 0 && <p className="text-muted-foreground">No shortcut matches</p>}
-      {GROUPS.map((group) => {
+      {SHORTCUT_GROUPS.map((group) => {
         const groupRows = shown.filter((row) => row.group === group)
         if (groupRows.length === 0) {
           return null

@@ -101,18 +101,56 @@ export function SceneViewport({ content, framing, onPick, spotActions }: SceneVi
   const [menuSpot, setMenuSpot] = useState<Vector3 | null>(null)
   const latestSpotActions = useRef(spotActions)
   latestSpotActions.current = spotActions
+  // A hidden tab lets go of its renderer and its view builds what it shows again; the camera comes back where it was
+  // for as long as what is shown takes up the same box, until the camera is moved.
+  const lastPose = useRef<CameraPose | null>(null)
 
   useEffect(() => {
     const created = new Stage(host.current!)
     stage.current = created
     return () => {
+      lastPose.current = created.pose()
       created.dispose()
       stage.current = null
     }
   }, [])
 
-  useEffect(() => stage.current?.show(content), [content])
-  useEffect(() => stage.current?.frameShown(), [framing])
+  useEffect(() => {
+    const current = stage.current
+    if (current === null) {
+      return
+    }
+    current.show(content)
+    const pose = lastPose.current
+    if (pose !== null && current.shows(pose.bounds)) {
+      current.restorePose(pose)
+    }
+  }, [content])
+  useEffect(() => {
+    const current = stage.current
+    const pose = lastPose.current
+    if (current === null) {
+      return
+    }
+    if (pose !== null && current.shows(pose.bounds)) {
+      current.restorePose(pose)
+      return
+    }
+    lastPose.current = null
+    current.frameShown()
+  }, [framing])
+  useEffect(() => {
+    const forgetPose = (): void => {
+      lastPose.current = null
+    }
+    const element = host.current!
+    element.addEventListener('pointerdown', forgetPose)
+    element.addEventListener('wheel', forgetPose)
+    return () => {
+      element.removeEventListener('pointerdown', forgetPose)
+      element.removeEventListener('wheel', forgetPose)
+    }
+  }, [])
   useEffect(() => stage.current?.onPick(onPick ?? null), [onPick])
 
   const offersSpotActions = spotActions !== undefined
@@ -157,6 +195,14 @@ function keepPressFromOpeningMenu(host: HTMLElement): () => void {
 
 function openMenuAt(host: HTMLElement, clientX: number, clientY: number): void {
   host.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX, clientY }))
+}
+
+interface CameraPose {
+  position: Vector3
+  target: Vector3
+  framedFar: number
+  /** The box of what was shown, null when nothing was. */
+  bounds: Box3 | null
 }
 
 /** The renderer, camera and controls of one viewport. What it shows belongs to whoever built it, who frees it. */
@@ -273,6 +319,26 @@ class Stage {
     this.requestFrame()
   }
 
+  pose(): CameraPose {
+    return { position: this.camera.position.clone(), target: this.controls.target.clone(), framedFar: this.framedFar, bounds: this.shown?.bounds.clone() ?? null }
+  }
+
+  /** Whether what is shown takes up {@code bounds}, or nothing is shown yet to say otherwise. */
+  shows(bounds: Box3 | null): boolean {
+    return this.shown === null || (bounds !== null && this.shown.bounds.equals(bounds))
+  }
+
+  restorePose(pose: CameraPose): void {
+    this.framed = true
+    this.framedFar = pose.framedFar
+    this.camera.position.copy(pose.position)
+    this.controls.target.copy(pose.target)
+    this.controls.update()
+    this.fitClipToOrbit()
+    this.notifyMoved()
+    this.requestFrame()
+  }
+
   onPick(listener: ((picked: PickedSurface) => void) | null): void {
     this.pickListener = listener
   }
@@ -353,6 +419,8 @@ class Stage {
     this.resizes.disconnect()
     this.controls.dispose()
     this.renderer.dispose()
+    // Chromium keeps only so many WebGL contexts, so a closed tab's goes now instead of whenever it is collected.
+    this.renderer.forceContextLoss()
     this.renderer.domElement.remove()
   }
 

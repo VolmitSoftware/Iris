@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Kbd } from '@/components/ui/kbd'
 import type { ViewInfo } from '../bridge/types'
-import { MOUSE_HINTS, keyTextOf, shortcutRows, type ShortcutGroup } from './shortcuts'
+import { MOUSE_HINTS, SHORTCUT_GROUPS, keyTextOf, shortcutRows } from './shortcuts'
 import { useBindings } from './useBindings'
 
 interface HelpDialogProps {
@@ -10,14 +10,13 @@ interface HelpDialogProps {
   views: ViewInfo[]
 }
 
-const KEY_GROUPS: ShortcutGroup[] = ['Views', 'Everywhere', 'Map', 'Node editor']
 
 /** Every key and mouse gesture of the map, with the keys as they are set now. */
 export function HelpDialog({ open, onOpenChange, views }: HelpDialogProps): React.JSX.Element {
   const bindings = useBindings()
   const rows = shortcutRows(views)
   const groups = [
-    ...KEY_GROUPS.map((group) => ({
+    ...SHORTCUT_GROUPS.map((group) => ({
       title: group,
       rows: rows.filter((row) => row.group === group).map((row) => ({ key: keyTextOf(row.id, bindings), label: row.label })).filter((row) => row.key !== '')
     })),

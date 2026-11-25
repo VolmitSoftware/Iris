@@ -5,8 +5,20 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 import { Glyph } from './Glyph'
 
-/** Where a view puts its own lists: under the views in the left island. */
+/** Where a view puts its own lists: the island beside the stripe. Null for a tab that is not the focused pane's shown one. */
 export const SidebarSlot = createContext<HTMLElement | null>(null)
+
+/** Where a view puts what it says about what it shows: the column on the window's right. Null as for {@link SidebarSlot}. */
+export const DetailSlot = createContext<HTMLElement | null>(null)
+
+/** What a pane gives the island of the tab it shows: its tabs, which stand in for the island's title. */
+export interface PaneChrome {
+  tabStrip: React.ReactNode
+  /** Whether the pane meets the left island or the stripe, where its corners go square. */
+  atLeftEdge: boolean
+}
+
+export const PaneChromeContext = createContext<PaneChrome | null>(null)
 
 /** A section of the left island under the views, filled by the view that is shown. */
 export function SidebarPanel({ className, children }: { className?: string; children: React.ReactNode }): React.JSX.Element | null {
@@ -15,6 +27,15 @@ export function SidebarPanel({ className, children }: { className?: string; chil
     return null
   }
   return createPortal(<section className={cn('flex min-h-0 flex-col overflow-hidden', className)}>{children}</section>, slot)
+}
+
+/** A card in the column on the window's right, shown while its tab is the focused one. */
+export function DetailPanel({ className, children }: { className?: string; children: React.ReactNode }): React.JSX.Element | null {
+  const slot = useContext(DetailSlot)
+  if (slot === null) {
+    return null
+  }
+  return createPortal(<Panel className={cn('min-h-0 flex-1', className)}>{children}</Panel>, slot)
 }
 
 /** One choice of a switch in an island's header: plain until chosen and filled then. */
@@ -77,14 +98,22 @@ interface ViewIslandProps {
 
 /** The island a view draws in, under a header with its name and its tools, as an IntelliJ tool window has. */
 export function ViewIsland({ title, subtitle, tools, className, children }: ViewIslandProps): React.JSX.Element {
+  const pane = useContext(PaneChromeContext)
   return (
-    <section className={cn('flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[10px] bg-card', className)}>
-      <header className="flex h-10 shrink-0 items-center gap-1 pr-1.5 pl-3">
-        <h2 className="shrink-0 text-[13px] font-semibold">{title}</h2>
-        {subtitle !== undefined && <span className="ml-1 truncate text-[12px] text-secondary-text">{subtitle}</span>}
-        <span className="flex-1" />
-        {tools}
-      </header>
+    <section data-left-edge={pane?.atLeftEdge || undefined} className={cn('flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[10px] bg-card', className)}>
+      {pane === null ? (
+        <header className="flex h-10 shrink-0 items-center gap-1 pr-1.5 pl-3">
+          <h2 className="shrink-0 text-[13px] font-semibold">{title}</h2>
+          {subtitle !== undefined && <span className="ml-1 truncate text-[12px] text-secondary-text">{subtitle}</span>}
+          <span className="flex-1" />
+          {tools}
+        </header>
+      ) : (
+        <header className="flex h-10 shrink-0 items-stretch gap-1 border-b pr-1.5">
+          {pane.tabStrip}
+          {tools !== undefined && <span className="flex shrink-0 items-center gap-1">{tools}</span>}
+        </header>
+      )}
       <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
     </section>
   )

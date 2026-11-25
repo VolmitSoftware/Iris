@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { folderPrefixOf } from '../editor/entryKeys'
 import { Glyph } from './Glyph'
+import { useRememberedState } from './rememberedState'
 
 const NUMBER = new Intl.NumberFormat('en-US')
 const DELETE_KEY = 'Delete'
@@ -34,6 +35,8 @@ interface EntryBrowserProps {
   entries: BrowsableEntry[]
   current: string | null
   onSelect(key: string): void
+  /** Opens the entry in a tab that stays, on a double click. */
+  onKeep?(key: string): void
   fileActions?: EntryFileActions
   className?: string
 }
@@ -41,16 +44,16 @@ interface EntryBrowserProps {
 type MenuTarget = { entry: string } | { folder: string } | null
 
 /** A view's entries in a tree of their folders, with a search over keys, names and folders that opens every folder holding a match. */
-export function EntryBrowser({ title, entries, current, onSelect, fileActions, className }: EntryBrowserProps): React.JSX.Element {
-  const [search, setSearch] = useState('')
+export function EntryBrowser({ title, entries, current, onSelect, onKeep, fileActions, className }: EntryBrowserProps): React.JSX.Element {
+  const [search, setSearch] = useRememberedState(`entries:${title}:search`, '')
   const [menuTarget, setMenuTarget] = useState<MenuTarget>(null)
-  const [openFolders, setOpenFolders] = useState<ReadonlySet<string>>(new Set())
+  const [openFolders, setOpenFolders] = useRememberedState<ReadonlySet<string>>(`entries:${title}:open`, new Set())
   const wanted = search.trim().toLowerCase()
   const tree = useMemo(() => folderTreeOf(entries, wanted), [entries, wanted])
   const currentGroup = useMemo(() => entries.find((entry) => entry.key === current)?.group ?? '', [entries, current])
   useEffect(() => setOpenFolders((open) => withFolderAndAncestors(open, currentGroup)), [currentGroup])
   const toggleFolder = (path: string): void => setOpenFolders((open) => toggled(open, path))
-  const tier: TierContext = { current, isOpen: (path) => wanted !== '' || openFolders.has(path), onToggle: toggleFolder, onSelect, fileActions }
+  const tier: TierContext = { current, isOpen: (path) => wanted !== '' || openFolders.has(path), onToggle: toggleFolder, onSelect, onKeep, fileActions }
   const list = (
     <div
       className="px-2 py-1.5"
@@ -145,6 +148,7 @@ interface TierContext {
   isOpen(path: string): boolean
   onToggle(path: string): void
   onSelect(key: string): void
+  onKeep?(key: string): void
   fileActions?: EntryFileActions
 }
 
@@ -188,6 +192,7 @@ function EntryRow({ entry, depth, context }: { entry: BrowsableEntry; depth: num
       data-entry-key={entry.key}
       title={entry.key}
       onClick={() => context.onSelect(entry.key)}
+      onDoubleClick={() => context.onKeep?.(entry.key)}
       onKeyDown={(event) => fileActions !== undefined && event.key === DELETE_KEY && fileActions.onDelete(entry.key)}
       className={cn('flex h-[26px] w-full items-center rounded-md px-2 text-left', entry.key === context.current ? 'bg-selection' : 'hover:bg-accent')}
       style={{ paddingLeft: indentOf(depth) + CHEVRON_SLOT_PX }}

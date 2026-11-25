@@ -1,42 +1,55 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { BridgeClient, MapLayerQuery, WorldRect } from '../bridge/BridgeClient'
-import type { MapHover, MapLabel, Marker, ModuleViewInfo, ServerUsage, StudioPack, ViewInfo, WorldInfo } from '../bridge/types'
-import type { Share } from '../map/census'
-import type { MapController, MapStatus, MapToggles } from '../map/MapController'
-import type { Highlight } from '../map/tileStyle'
-import { Waves } from 'lucide-react'
+import type { BridgeClient, WorldRect } from '../bridge/BridgeClient'
+import type { MapLabel, Marker, ModuleViewInfo, SceneViewInfo, ServerUsage, StudioPack, ViewInfo, WorldInfo } from '../bridge/types'
+import type { MapStatus, MapToggles } from '../map/MapController'
+import { MapLinks } from '../map/mapLinks'
 import { cn } from '@/lib/utils'
-import { HelpDialog } from './HelpDialog'
-import { HoverCard } from './HoverCard'
 import { Glyph } from './Glyph'
-import { Legend } from './Legend'
-import { MapCanvas, type CanvasPoint } from './MapCanvas'
-import { PickInspector, hasPickSections } from './PickInspector'
-import { RegionPreviewList } from './RegionPreviewList'
+import { HelpDialog } from './HelpDialog'
 import { ImageMapStudio } from './ImageMapStudio'
+import { MapView } from './MapView'
 import { NoiseStudio } from './NoiseStudio'
-import { PregenStudio } from './PregenStudio'
+import { PaneLayout, type WorkbenchChange } from './PaneLayout'
 import { PatternStudio } from './PatternStudio'
+import { PregenStudio } from './PregenStudio'
 import { SavedWorldStudio } from './SavedWorldStudio'
 import { SceneStudio } from './SceneStudio'
-import { WorldStudio3D } from './WorldStudio3D'
-import { isTypingInto, shortcutRows, viewOfShortcutId, windowShortcutFor, type ShortcutAction } from './shortcuts'
 import { SettingsDialog } from './SettingsDialog'
-import { Panel, SidebarPanel, SidebarSlot, ViewIsland } from './Sidebar'
+import { isTypingInto, shortcutRows, viewOfShortcutId, windowShortcutFor, type ShortcutAction } from './shortcuts'
+import { forgetTab } from './rememberedState'
+import { DetailSlot, SidebarSlot } from './Sidebar'
 import { StatusBar } from './StatusBar'
-import { MapTools, StudioToolbar } from './StudioToolbar'
+import { StudioToolbar } from './StudioToolbar'
+import { TabCommands, TabContext, type TabHandle } from './tabContext'
 import type { Theme } from './theme'
 import { useBindings } from './useBindings'
-import { usePickInspection } from './usePickInspection'
 import { ViewList } from './ViewList'
+import { WorldStudio3D } from './WorldStudio3D'
+import {
+  activateTab,
+  closeTab,
+  focusedPane,
+  focusedTab,
+  keepTab,
+  openTab,
+  panesOf,
+  peekTab,
+  settleEntry,
+  showView,
+  stepTab,
+  titleTab,
+  workbenchWith,
+  type Pane,
+  type Tab,
+  type Workbench
+} from './workbench'
 
-const KEYBOARD_ZOOM_FACTOR = 2 ** 0.25
-/** The island beside the stripe meets it flush with square corners, as IntelliJ's tool windows meet theirs; the row's gap is 1.5. */
-const ISLAND_FLUSH_WITH_STRIPE = '[&>nav]:-mr-1.5 [&>nav+div:not(:empty)]:rounded-l-none [&>nav+div:empty+*]:rounded-l-none'
-const ENTITY_POLL_MILLIS = 2000
+/**
+ * The island beside the stripe meets it flush with square corners, as IntelliJ's tool windows meet theirs, and so do
+ * the panes on the left edge while there is no island there; the row's gap is 1.5.
+ */
+const ISLAND_FLUSH_WITH_STRIPE = '[&>nav]:-mr-1.5 [&>nav+div:not(:empty)]:rounded-l-none [&:has(>nav+div:empty)_[data-left-edge]]:rounded-l-none'
 const NOTICE_MILLIS = 4000
-/** The views whose spots a noise picks, which the pick inspector explains. */
-const PICK_VIEWS = new Set(['biomes', 'regions'])
 
 interface MapStudioProps {
   client: BridgeClient
@@ -52,31 +65,48 @@ export interface StudioToggles extends MapToggles {
   entities: boolean
 }
 
-/** The map of one world: views on the left, the map in the middle, what is on screen on the right. */
+/** What a tab's view says for the status bar. */
+interface TabReport {
+  summary?: string | null
+  progress?: number | null
+  status?: MapStatus | null
+}
+
+/** What every tab's view draws from: the server, the world, and what the studio knows about both. */
+interface Shared {
+  client: BridgeClient
+  world: WorldInfo
+  views: ViewInfo[]
+  sceneViews: SceneViewInfo[]
+  patternViews: ModuleViewInfo[]
+  packRevision: number
+  regions: MapLabel[]
+  players: Marker[]
+  detailed: boolean
+  links: MapLinks
+  lastMapArea: React.RefObject<WorldRect | null>
+  report(tabId: string, report: TabReport): void
+  tell(message: string): void
+}
+
+/** The studio of one world: the views on the left, their tabs in panes in the middle, what the focused one shows on the right. */
 export function MapStudio({ client, world, theme, onOpenPack, onDisconnect }: MapStudioProps): React.JSX.Element {
-  const controller = useRef<MapController | null>(null)
-  const [viewId, setViewId] = useState(world.views[0]?.id ?? 'biomes')
-  const [toggles, setToggles] = useState<StudioToggles>({ shading: true, regionBorders: false, grid: false, blocks: false, follow: false, entities: false })
-  const [highlight, setHighlight] = useState<Highlight | null>(null)
-  const [status, setStatus] = useState<MapStatus | null>(null)
-  const [shares, setShares] = useState<Share[]>([])
+  const [workbench, setWorkbench] = useState<Workbench>(() => workbenchWith({ viewId: world.views[0]?.id ?? 'biomes', entry: null }))
+  const change = useCallback((next: WorkbenchChange) => setWorkbench(next), [])
   const [players, setPlayers] = useState<Marker[]>([])
-  const [entities, setEntities] = useState<Marker[]>([])
   const [usage, setUsage] = useState<ServerUsage | null>(null)
-  const [pointer, setPointer] = useState<CanvasPoint | null>(null)
-  const [hover, setHover] = useState<MapHover | null>(null)
   const [detailed, setDetailed] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [connected, setConnected] = useState(true)
-  const [preview, setPreview] = useState<string | null>(null)
-  const [area, setArea] = useState<WorldRect | null>(null)
   const [packRevision, setPackRevision] = useState(0)
-  const [sceneSummary, setSceneSummary] = useState<string | null>(null)
-  const [sceneProgress, setSceneProgress] = useState<number | null>(null)
+  const [reports, setReports] = useState<Record<string, TabReport>>({})
   const [sidebarSlot, setSidebarSlot] = useState<HTMLElement | null>(null)
+  const [detailSlot, setDetailSlot] = useState<HTMLElement | null>(null)
   const [openingPack, setOpeningPack] = useState<StudioPack | null>(null)
+  const links = useMemo(() => new MapLinks(), [])
+  const lastMapArea = useRef<WorldRect | null>(null)
   const loadSceneViews = useCallback(() => client.sceneViews(), [client])
   const loadPatternViews = useCallback(() => client.patternViews(), [client])
   const sceneViews = useModuleViews(loadSceneViews, packRevision)
@@ -85,17 +115,18 @@ export function MapStudio({ client, world, theme, onOpenPack, onDisconnect }: Ma
     () => [...withAppViews(world.views), ...patternViews.map(asViewInfo), ...sceneViews.map(asViewInfo)],
     [world.views, patternViews, sceneViews]
   )
-  const sceneView = sceneViews.find((candidate) => candidate.id === viewId) ?? null
-  const patternView = patternViews.find((candidate) => candidate.id === viewId) ?? null
-  const showsMap = sceneView === null && patternView === null && !APP_VIEW_IDS.has(viewId)
-  const view = views.find((candidate) => candidate.id === viewId) ?? views[0]
-  const layer = useMemo<MapLayerQuery>(() => ({ view: viewId, preview: viewId === 'regions' ? preview : null }), [viewId, preview])
+  const entryViews = useMemo(() => new Set([...ENTRY_VIEW_IDS, ...sceneViews.map((view) => view.id), ...patternViews.map((view) => view.id)]), [sceneViews, patternViews])
   const regions = usePreviewableRegions(client, packRevision)
-  const inspectsPicks = PICK_VIEWS.has(viewId)
-  const inspection = usePickInspection(client, layer, area, inspectsPicks, packRevision)
-  const previewName = layer.preview === null ? null : (regions.find((region) => region.key === layer.preview)?.name ?? layer.preview)
+  const focused = focusedTab(workbench)
+  const viewOf = useCallback((viewId: string) => views.find((candidate) => candidate.id === viewId) ?? null, [views])
+  const viewLabel = useCallback((viewId: string) => viewOf(viewId)?.label ?? viewId, [viewOf])
+  const showsMapOf = useCallback((viewId: string) => !APP_VIEW_IDS.has(viewId) && !entryViews.has(viewId), [entryViews])
 
   const tell = useCallback((message: string) => setNotice(message), [])
+  const report = useCallback(
+    (tabId: string, next: TabReport) => setReports((current) => ({ ...current, [tabId]: { ...current[tabId], ...next } })),
+    []
+  )
 
   const loadPacks = useCallback(() => client.packs(), [client])
   const openPack = useCallback(
@@ -117,238 +148,255 @@ export function MapStudio({ client, world, theme, onOpenPack, onDisconnect }: Ma
     return () => window.clearTimeout(timer)
   }, [notice])
 
-  useEffect(() => controller.current?.setView(layer.view, layer.preview), [layer])
-  useEffect(() => controller.current?.setToggles(toggles), [toggles])
-  useEffect(() => controller.current?.setHighlight(highlight), [highlight])
-  useEffect(() => controller.current?.setMarkers(players, toggles.entities ? entities : []), [players, entities, toggles.entities])
-
-  useEffect(() => {
-    if (toggles.follow && players.length > 0) {
-      controller.current?.centerOn(players[0].worldX, players[0].worldZ)
-    }
-  }, [players, toggles.follow])
-
   const packReloaded = useCallback(() => setPackRevision((revision) => revision + 1), [])
-  useServerEvents(client, controller, setPlayers, setUsage, tell, setConnected, packReloaded)
-  useEntities(client, toggles.entities, setEntities)
-  useHover(client, controller, layer, pointer, setHover)
+  useServerEvents(client, setPlayers, setUsage, tell, setConnected, packReloaded)
 
-  const selectView = useCallback((nextViewId: string) => {
-    setViewId(nextViewId)
-    setHighlight(null)
-  }, [])
-
-  const selectPreview = useCallback((regionKey: string | null) => {
-    setPreview(regionKey)
-    setHighlight(null)
-  }, [])
-
-  const toggle = useCallback((name: keyof StudioToggles) => setToggles((current) => ({ ...current, [name]: !current[name] })), [])
-
-  const highlightUnderCursor = useCallback(() => {
-    if (pointer === null || controller.current === null) {
-      return
-    }
-    const { subject } = controller.current.subjectsAt(pointer.x, pointer.y)
-    setHighlight((current) => (subject === null || sameSubject(current, subject) ? null : subject))
-  }, [pointer])
+  const openView = useCallback((viewId: string) => setWorkbench((current) => showView(current, viewId, entryViews.has(viewId))), [entryViews])
+  const commands = useCommandRegistry()
+  const recent = useRecentTabs(setWorkbench)
 
   const runShortcut = useCallback(
     (action: ShortcutAction) => {
-      const map = controller.current
       switch (action) {
-        case 'nextView':
-          selectView(views[(views.findIndex((candidate) => candidate.id === viewId) + 1) % views.length].id)
+        case 'nextView': {
+          const at = views.findIndex((candidate) => candidate.id === focused.viewId)
+          openView(views[(at + 1) % views.length].id)
           return
-        case 'refresh':
-          map?.refresh()
-          tell('Redrawing with the latest pack files')
-          return
-        case 'zoomIn':
-          map?.zoomAt(KEYBOARD_ZOOM_FACTOR)
-          return
-        case 'zoomOut':
-          map?.zoomAt(1 / KEYBOARD_ZOOM_FACTOR)
-          return
-        case 'resetZoom':
-          map?.resetZoom()
-          return
-        case 'dismiss':
-          setHighlight(null)
-          return
-        case 'follow':
-          toggle('follow')
-          return
-        case 'grid':
-          toggle('grid')
-          return
-        case 'entities':
-          toggle('entities')
-          return
-        case 'highlight':
-          highlightUnderCursor()
-          return
-        case 'shading':
-          toggle('shading')
-          return
-        case 'blocks':
-          toggle('blocks')
-          return
-        case 'borders':
-          toggle('regionBorders')
-          return
+        }
         case 'help':
           setHelpOpen((open) => !open)
+          return
+        case 'closeTab':
+          setWorkbench((current) => closeTab(current, focusedTab(current).id))
+          return
+        case 'previousTab':
+          setWorkbench((current) => stepTab(current, -1))
+          return
+        case 'nextTab':
+          setWorkbench((current) => stepTab(current, 1))
+          return
+        case 'recentTab':
+          recent.step(workbench)
+          return
+        default:
+          commands.run(focused.id, action)
       }
     },
-    [views, viewId, selectView, toggle, highlightUnderCursor, tell]
+    [views, focused, openView, recent, workbench, commands]
   )
 
-  useKeyboard(runShortcut, selectView, setDetailed, views)
+  useKeyboard(runShortcut, openView, setDetailed, recent.settle, views)
 
-  const teleport = useCallback(
-    (point: CanvasPoint) => {
-      const spot = controller.current?.worldAt(point.x, point.y)
-      if (spot === undefined) {
-        return
-      }
-      client
-        .teleport(Math.floor(spot.x), Math.floor(spot.z))
-        .then(() => tell(`Teleporting to ${Math.floor(spot.x)}, ${Math.floor(spot.z)}`))
-        .catch((failure: Error) => tell(failure.message))
+  const shared = useMemo<Shared>(
+    () => ({ client, world, views, sceneViews, patternViews, packRevision, regions, players, detailed, links, lastMapArea, report, tell }),
+    [client, world, views, sceneViews, patternViews, packRevision, regions, players, detailed, links, report, tell]
+  )
+  const renderTab = useCallback(
+    (tab: Tab, pane: Pane, shown: boolean) => {
+      const inFocus = shown && workbench.focusedPaneId === pane.id
+      return (
+        <SidebarSlot.Provider value={inFocus ? sidebarSlot : null}>
+          <DetailSlot.Provider value={inFocus ? detailSlot : null}>
+            <TabHost tab={tab} shown={shown} focused={inFocus} change={change} shared={shared} />
+          </DetailSlot.Provider>
+        </SidebarSlot.Provider>
+      )
     },
-    [client, tell]
+    [workbench.focusedPaneId, sidebarSlot, detailSlot, change, shared]
   )
 
-  const openFile = useCallback(
-    (point: CanvasPoint) => {
-      const spot = controller.current?.worldAt(point.x, point.y)
-      if (spot === undefined) {
-        return
-      }
-      client
-        .openInEditor(spot.x, spot.z, viewId)
-        .then((message) => tell(message ?? 'Opened'))
-        .catch((failure: Error) => tell(failure.message))
-    },
-    [client, viewId, tell]
-  )
+  useForgetClosedTabs(workbench, setReports)
 
+  const focusedReport = reports[focused.id] ?? {}
+  const showsMap = showsMapOf(focused.viewId)
+  const label = focused.title ?? viewLabel(focused.viewId)
   return (
     <div className="flex h-full flex-col">
       <StudioToolbar world={world} openingPack={openingPack} loadPacks={loadPacks} onOpenPack={openPack} onHelp={() => setHelpOpen(true)} onSettings={() => setSettingsOpen(true)} />
-      <SidebarSlot.Provider value={sidebarSlot}>
       <div className={cn('relative flex min-h-0 flex-1 gap-1.5 pr-1.5', ISLAND_FLUSH_WITH_STRIPE)}>
         {openingPack !== null && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 backdrop-motion">
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/70 backdrop-motion">
             <div className="popup flex items-center gap-2 px-4 py-3 dialog-motion">
               <Glyph glyph="refresh" className="animate-spin" />
               Opening {openingPack.name}…
             </div>
           </div>
         )}
-        <ViewList views={views} current={viewId} onSelect={selectView} slotRef={setSidebarSlot} />
-        {viewId === 'regions' && regions.length > 1 && (
-          <SidebarPanel className="flex-1 overflow-y-auto p-1.5">
-            <RegionPreviewList regions={regions} current={layer.preview} onSelect={selectPreview} />
-          </SidebarPanel>
-        )}
-        {sceneView !== null ? (
-          <SceneStudio client={client} view={sceneView} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
-        ) : patternView !== null ? (
-          <PatternStudio client={client} view={patternView} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
-        ) : viewId === WORLD_3D.id ? (
-          <WorldStudio3D title={view.label} client={client} world={world} mapArea={area} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
-        ) : viewId === SAVED_WORLD.id ? (
-          <SavedWorldStudio title={view.label} client={client} world={world} onSummary={setSceneSummary} onProgress={setSceneProgress} tell={tell} />
-        ) : viewId === PREGEN_VIEW_ID ? (
-          <PregenStudio title={view.label} client={client} onSummary={setSceneSummary} tell={tell} />
-        ) : viewId === IMAGE_MAPS_VIEW_ID ? (
-          <ImageMapStudio title={view.label} client={client} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
-        ) : viewId === NOISE.id ? (
-          <NoiseStudio title={view.label} client={client} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
-        ) : (
-          <>
-        <ViewIsland
-          title={view.label}
-          subtitle={previewName ?? undefined}
-          tools={
-            <MapTools
-              toggles={toggles}
-              hasPlayers={world.hasPlayers}
-              onToggle={toggle}
-              onRefresh={() => runShortcut('refresh')}
-              onResetZoom={() => runShortcut('resetZoom')}
-            />
-          }
-        >
-          <MapCanvas
-            client={client}
-            world={world}
-            viewId={viewId}
-            controllerRef={controller}
-            listener={{ onStatus: setStatus, onShares: setShares, onArea: (next) => setArea((current) => (sameRect(current, next) ? current : next)), onError: tell }}
-            onPointer={setPointer}
-            onDragged={() => setToggles((current) => (current.follow ? { ...current, follow: false } : current))}
-            onTeleport={teleport}
-            onOpenFile={openFile}
-            onHighlight={(subject) => setHighlight((current) => (sameSubject(current, subject) ? null : subject))}
-            highlight={highlight}
-            onCopy={(text) => {
-              window.studio.copyText(text)
-              tell(`Copied ${text}`)
-            }}
-          />
-          {pointer !== null && hover !== null && (
-            <HoverCard hover={hover} point={pointer} viewId={viewId} previewing={layer.preview !== null} detailed={detailed} minY={world.minY} />
-          )}
-          {viewId === 'rivers' && !world.hydrology && (
-            <div className="absolute inset-0 flex items-center justify-center bg-card">
-              <div className="text-center">
-                <Waves className="mx-auto mb-3 size-10" />
-                <p className="font-medium">No rivers planned</p>
-                <p className="mt-1 text-secondary-text">Enable hydrology in</p>
-                <p className="font-mono text-[11.5px] text-secondary-text">dimensions/{world.dimension}.json</p>
-                <p className="mt-1 text-muted-foreground">They appear here once the pack reloads.</p>
-              </div>
+        {!connected && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/70 backdrop-motion">
+            <div className="popup p-5 text-center dialog-motion">
+              <p className="font-medium">Lost the connection to the server</p>
+              <button className="mt-3 text-link hover:underline" onClick={onDisconnect}>
+                Back to the world list
+              </button>
             </div>
-          )}
-          {!connected && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-motion">
-              <div className="popup p-5 text-center dialog-motion">
-                <p className="font-medium">Lost the connection to the server</p>
-                <button className="mt-3 text-link hover:underline" onClick={onDisconnect}>
-                  Back to the world list
-                </button>
-              </div>
-            </div>
-          )}
-        </ViewIsland>
-        <div className="flex w-[250px] shrink-0 flex-col gap-1.5">
-          {inspectsPicks && hasPickSections(inspection) && (
-            <Panel className="min-h-0 flex-[7]">
-              <PickInspector title={previewName ?? view.label} inspection={inspection} />
-            </Panel>
-          )}
-          <Panel className="min-h-0 flex-[3]">
-            <Legend
-              className="flex-1"
-              title={legendTitle(layer)}
-              shares={shares}
-              selection={{ highlight, onSelect: (subject) => setHighlight((current) => (sameSubject(current, subject) ? null : subject)) }}
-            />
-          </Panel>
-        </div>
-          </>
+          </div>
         )}
+        <ViewList views={views} current={focused.viewId} onSelect={openView} slotRef={setSidebarSlot} />
+        <TabCommands.Provider value={commands.register}>
+          <PaneLayout workbench={workbench} change={change} viewLabel={viewLabel} renderTab={renderTab} keepsRunning={(tab) => showsMapOf(tab.viewId)} />
+        </TabCommands.Provider>
+        <div ref={setDetailSlot} className="flex shrink-0 flex-col gap-1.5 empty:hidden" />
       </div>
-      </SidebarSlot.Provider>
-      <StatusBar viewLabel={statusLabel(view.label, previewName, showsMap ? null : sceneSummary)} status={showsMap ? status : null} notice={notice} usage={usage} progress={showsMap ? null : sceneProgress} />
+      <StatusBar
+        viewLabel={showsMap ? label : statusLabel(viewLabel(focused.viewId), focusedReport.summary ?? null)}
+        status={showsMap ? (focusedReport.status ?? null) : null}
+        notice={notice}
+        usage={usage}
+        progress={showsMap ? null : (focusedReport.progress ?? null)}
+      />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} views={views} />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} views={views} theme={theme} />
     </div>
   )
 }
+
+interface TabHostProps {
+  tab: Tab
+  shown: boolean
+  focused: boolean
+  change(change: WorkbenchChange): void
+  shared: Shared
+}
+
+/** Gives a tab's view its tab: what it shows, and how it opens other entries. */
+function TabHost({ tab, shown, focused, change, shared }: TabHostProps): React.JSX.Element {
+  const { id, viewId } = tab
+  const choose = useCallback(
+    (entry: string, keep?: boolean) =>
+      change((current) => {
+        const opened = openTab(current, { viewId, entry }, keep !== true)
+        return keep === true ? keepTab(opened, focusedTab(opened).id) : opened
+      }),
+    [change, viewId]
+  )
+  const keep = useCallback(() => change((current) => keepTab(current, id)), [change, id])
+  const settle = useCallback(
+    (entry: string | null, title: string | null) => change((current) => titleTab(entry === null ? current : settleEntry(current, id, entry), id, title)),
+    [change, id]
+  )
+  const handle = useMemo<TabHandle>(
+    () => ({ id, viewId, entry: tab.entry, visible: shown, focused, choose, keep, settle }),
+    [id, viewId, tab.entry, shown, focused, choose, keep, settle]
+  )
+  return (
+    <TabContext.Provider value={handle}>
+      <TabView tabId={id} viewId={viewId} shared={shared} />
+    </TabContext.Provider>
+  )
+}
+
+/** The view a tab shows. */
+function TabView({ tabId, viewId, shared }: { tabId: string; viewId: string; shared: Shared }): React.JSX.Element | null {
+  const { client, world, packRevision, report, tell } = shared
+  const onSummary = useCallback((summary: string | null) => report(tabId, { summary }), [report, tabId])
+  const onProgress = useCallback((progress: number | null) => report(tabId, { progress }), [report, tabId])
+  const onStatus = useCallback((status: MapStatus | null) => report(tabId, { status }), [report, tabId])
+  const onArea = useCallback((area: WorldRect) => (shared.lastMapArea.current = area), [shared.lastMapArea])
+  // The 3D world opens around where a map looked last, and stays there as maps move on.
+  const [openingArea] = useState(() => shared.lastMapArea.current)
+  const view = shared.views.find((candidate) => candidate.id === viewId)
+  const sceneView = shared.sceneViews.find((candidate) => candidate.id === viewId)
+  if (sceneView !== undefined) {
+    return <SceneStudio client={client} view={sceneView} packRevision={packRevision} onSummary={onSummary} tell={tell} />
+  }
+  const patternView = shared.patternViews.find((candidate) => candidate.id === viewId)
+  if (patternView !== undefined) {
+    return <PatternStudio client={client} view={patternView} packRevision={packRevision} onSummary={onSummary} tell={tell} />
+  }
+  if (view === undefined) {
+    return null
+  }
+  switch (viewId) {
+    case WORLD_3D.id:
+      return <WorldStudio3D title={view.label} client={client} world={world} mapArea={openingArea} packRevision={packRevision} onSummary={onSummary} tell={tell} />
+    case SAVED_WORLD.id:
+      return <SavedWorldStudio title={view.label} client={client} world={world} onSummary={onSummary} onProgress={onProgress} tell={tell} />
+    case PREGEN_VIEW_ID:
+      return <PregenStudio title={view.label} client={client} onSummary={onSummary} tell={tell} />
+    case IMAGE_MAPS_VIEW_ID:
+      return <ImageMapStudio title={view.label} client={client} packRevision={packRevision} onSummary={onSummary} tell={tell} />
+    case NOISE.id:
+      return <NoiseStudio title={view.label} client={client} packRevision={packRevision} onSummary={onSummary} tell={tell} />
+    default:
+      return (
+        <MapView
+          client={client}
+          world={world}
+          view={view}
+          packRevision={packRevision}
+          regions={shared.regions}
+          players={shared.players}
+          detailed={shared.detailed}
+          links={shared.links}
+          onStatus={onStatus}
+          onArea={onArea}
+          tell={tell}
+        />
+      )
+  }
+}
+
+/** Drops what closed tabs left behind, so a closed tab opened again starts afresh. */
+function useForgetClosedTabs(workbench: Workbench, setReports: React.Dispatch<React.SetStateAction<Record<string, TabReport>>>): void {
+  const open = useRef(new Set<string>())
+  useEffect(() => {
+    const now = new Set(panesOf(workbench.root).flatMap((pane) => pane.tabs.map((tab) => tab.id)))
+    const closed = [...open.current].filter((id) => !now.has(id))
+    open.current = now
+    if (closed.length === 0) {
+      return
+    }
+    closed.forEach(forgetTab)
+    setReports((current) => Object.fromEntries(Object.entries(current).filter(([id]) => now.has(id))))
+  }, [workbench.root, setReports])
+}
+
+/** The keys each tab's view takes while it is the focused one, such as the map's. */
+function useCommandRegistry(): { register(tabId: string, run: (action: string) => void): () => void; run(tabId: string, action: string): void } {
+  const handlers = useRef(new Map<string, (action: string) => void>())
+  const register = useCallback((tabId: string, run: (action: string) => void) => {
+    handlers.current.set(tabId, run)
+    return () => {
+      if (handlers.current.get(tabId) === run) {
+        handlers.current.delete(tabId)
+      }
+    }
+  }, [])
+  const run = useCallback((tabId: string, action: string) => handlers.current.get(tabId)?.(action), [])
+  return useMemo(() => ({ register, run }), [register, run])
+}
+
+/**
+ * Ctrl+Tab steps through the tabs from the most recently used while Ctrl is held, as IntelliJ's switcher does, and
+ * the tab shown when Ctrl comes up counts as used.
+ */
+function useRecentTabs(setWorkbench: React.Dispatch<React.SetStateAction<Workbench>>): { step(workbench: Workbench): void; settle(): void } {
+  const stepping = useRef<{ order: string[]; at: number } | null>(null)
+  const step = useCallback(
+    (workbench: Workbench) => {
+      const order = stepping.current?.order ?? workbench.used
+      if (order.length < 2) {
+        return
+      }
+      const at = ((stepping.current?.at ?? 0) + 1) % order.length
+      stepping.current = { order, at }
+      setWorkbench((current) => peekTab(current, order[at]))
+    },
+    [setWorkbench]
+  )
+  const settle = useCallback(() => {
+    if (stepping.current === null) {
+      return
+    }
+    stepping.current = null
+    setWorkbench((current) => activateTab(current, focusedPane(current).activeId))
+  }, [setWorkbench])
+  return useMemo(() => ({ step, settle }), [step, settle])
+}
+
+/** The app's views with entries to list; every module view has them too. */
+const ENTRY_VIEW_IDS = ['noise', 'imageMaps', 'savedWorld']
 
 const SCENE_GROUP = { group: 'BLOCKS', groupLabel: 'Blocks' }
 /** The app draws the 3D world from the server's biome tiles, so the server does not list it among its views. */
@@ -386,11 +434,6 @@ function asViewInfo(view: ModuleViewInfo): ViewInfo {
   return { ...view, ...SCENE_GROUP }
 }
 
-function statusLabel(viewLabel: string, previewName: string | null, sceneSummary: string | null): string {
-  const detail = sceneSummary ?? previewName
-  return detail === null ? viewLabel : `${viewLabel} · ${detail}`
-}
-
 /** Views the pack's modules show, read again after the pack reloads; keep {@code load} stable. */
 function useModuleViews<View extends ModuleViewInfo>(load: () => Promise<View[]>, packRevision: number): View[] {
   const [views, setViews] = useState<View[]>([])
@@ -406,22 +449,8 @@ function useModuleViews<View extends ModuleViewInfo>(load: () => Promise<View[]>
   return views
 }
 
-function sameSubject(first: Highlight | null, second: Highlight | null): boolean {
-  return first !== null && second !== null && first.kind === second.kind && first.key === second.key
-}
-
-function sameRect(first: WorldRect | null, second: WorldRect): boolean {
-  return first !== null && first.minX === second.minX && first.minZ === second.minZ && first.maxX === second.maxX && first.maxZ === second.maxZ
-}
-
-function legendTitle(layer: MapLayerQuery): string {
-  if (layer.view === 'regions' && layer.preview === null) {
-    return 'Regions on screen'
-  }
-  if (layer.view === 'rivers') {
-    return 'Water on screen'
-  }
-  return 'Biomes on screen'
+function statusLabel(viewLabel: string, summary: string | null): string {
+  return summary === null ? viewLabel : `${viewLabel} · ${summary}`
 }
 
 /** The regions the region view can preview, read again after the pack reloads. */
@@ -443,7 +472,6 @@ function usePreviewableRegions(client: BridgeClient, packRevision: number): MapL
 /** Players, usage and hotloads from the server; the first world event only says the world runs, which is known. */
 function useServerEvents(
   client: BridgeClient,
-  controller: React.RefObject<MapController | null>,
   setPlayers: (players: Marker[]) => void,
   setUsage: (usage: ServerUsage) => void,
   tell: (message: string) => void,
@@ -461,7 +489,6 @@ function useServerEvents(
             return
           }
           if (running) {
-            controller.current?.refresh()
             onPackReloaded()
             tell('Pack reloaded, redrawing')
           } else {
@@ -475,57 +502,14 @@ function useServerEvents(
       stop.signal
     )
     return () => stop.abort()
-  }, [client, controller, setPlayers, setUsage, tell, setConnected, onPackReloaded])
-}
-
-function useEntities(client: BridgeClient, visible: boolean, setEntities: (entities: Marker[]) => void): void {
-  useEffect(() => {
-    if (!visible) {
-      return
-    }
-    let active = true
-    const refresh = (): void => {
-      client
-        .entities()
-        .then((found) => active && setEntities(found))
-        .catch(() => undefined)
-    }
-    refresh()
-    const timer = window.setInterval(refresh, ENTITY_POLL_MILLIS)
-    return () => {
-      active = false
-      window.clearInterval(timer)
-    }
-  }, [client, visible, setEntities])
-}
-
-/** Asks the server about the spot under the cursor; a newer spot aborts the question about an older one. */
-function useHover(
-  client: BridgeClient,
-  controller: React.RefObject<MapController | null>,
-  layer: MapLayerQuery,
-  pointer: CanvasPoint | null,
-  setHover: (hover: MapHover | null) => void
-): void {
-  useEffect(() => {
-    if (pointer === null || controller.current === null) {
-      setHover(null)
-      return
-    }
-    const spot = controller.current.worldAt(pointer.x, pointer.y)
-    const stop = new AbortController()
-    client
-      .hover(layer, Math.floor(spot.x), Math.floor(spot.z), stop.signal)
-      .then(setHover)
-      .catch(() => undefined)
-    return () => stop.abort()
-  }, [client, controller, layer, pointer, setHover])
+  }, [client, setPlayers, setUsage, tell, setConnected, onPackReloaded])
 }
 
 function useKeyboard(
   runShortcut: (action: ShortcutAction) => void,
-  selectView: (view: string) => void,
+  openView: (view: string) => void,
   setDetailed: (detailed: boolean) => void,
+  settleRecent: () => void,
   views: ViewInfo[]
 ): void {
   const bindings = useBindings()
@@ -547,15 +531,21 @@ function useKeyboard(
       if (viewId === null) {
         runShortcut(id as ShortcutAction)
       } else {
-        selectView(viewId)
+        openView(viewId)
       }
     }
     const up = (event: KeyboardEvent): void => {
       if (event.key === 'Shift') {
         setDetailed(false)
       }
+      if (event.key === 'Control' || event.key === 'Meta') {
+        settleRecent()
+      }
     }
-    const blur = (): void => setDetailed(false)
+    const blur = (): void => {
+      setDetailed(false)
+      settleRecent()
+    }
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)
     window.addEventListener('blur', blur)
@@ -564,5 +554,5 @@ function useKeyboard(
       window.removeEventListener('keyup', up)
       window.removeEventListener('blur', blur)
     }
-  }, [runShortcut, selectView, setDetailed, views, bindings])
+  }, [runShortcut, openView, setDetailed, settleRecent, views, bindings])
 }

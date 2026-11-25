@@ -18,6 +18,7 @@ import { Glyph } from './Glyph'
 import { SceneViewport } from './SceneViewport'
 import { Separator } from '@/components/ui/separator'
 import { HEADER_CHOICE, SidebarPanel, ViewIsland } from './Sidebar'
+import { useSettledEntry, useTab } from './tabContext'
 import { useSpotActions } from './useSpotActions'
 import { useTerrainStream } from './useTerrainStream'
 
@@ -40,8 +41,9 @@ interface SavedWorldStudioProps {
 /** A world as its region files hold it, in 3D, around the region nearest its origin. */
 export function SavedWorldStudio({ title, client, world, onSummary, onProgress, tell }: SavedWorldStudioProps): React.JSX.Element {
   const worlds = useSavedWorlds(client, tell)
-  const [chosenId, setChosenId] = useState<string | null>(null)
-  const chosen = worlds.find((candidate) => candidate.id === chosenId) ?? ownWorldAmong(worlds, world) ?? worlds[0] ?? null
+  const tab = useTab()
+  const chosen = worlds.find((candidate) => candidate.id === tab.entry) ?? ownWorldAmong(worlds, world) ?? worlds[0] ?? null
+  useSettledEntry(tab, chosen?.id ?? null, chosen?.name ?? null)
   const [coloring, setColoring] = useState<SavedTerrainColoring>('biomes')
   const [readings, setReadings] = useState(0)
   const { start, looking } = useSavedStart(client, chosen?.id ?? null, readings, tell)
@@ -123,14 +125,14 @@ export function SavedWorldStudio({ title, client, world, onSummary, onProgress, 
           <p className="text-[11.5px] text-secondary-text">{NUMBER.format(worlds.length)} on the server</p>
         </header>
         <ScrollArea className="min-h-0 flex-1 border-t">
-          <WorldList worlds={worlds} current={chosen?.id ?? null} onSelect={setChosenId} />
+          <WorldList worlds={worlds} current={chosen?.id ?? null} onSelect={(id) => tab.choose(id)} onKeep={(id) => tab.choose(id, true)} />
         </ScrollArea>
       </SidebarPanel>
     </>
   )
 }
 
-function WorldList({ worlds, current, onSelect }: { worlds: SavedWorldInfo[]; current: string | null; onSelect(id: string): void }): React.JSX.Element {
+function WorldList({ worlds, current, onSelect, onKeep }: { worlds: SavedWorldInfo[]; current: string | null; onSelect(id: string): void; onKeep(id: string): void }): React.JSX.Element {
   const namespaces = [...new Set(worlds.map((world) => world.namespace))]
   return (
     <div className="px-2 py-1.5">
@@ -144,6 +146,7 @@ function WorldList({ worlds, current, onSelect }: { worlds: SavedWorldInfo[]; cu
                 key={world.id}
                 title={world.id}
                 onClick={() => onSelect(world.id)}
+                onDoubleClick={() => onKeep(world.id)}
                 className={cn('flex h-[26px] w-full items-center rounded-md px-2 text-left', world.id === current ? 'bg-selection' : 'hover:bg-accent')}
               >
                 <span className="truncate">{world.name}</span>

@@ -30,6 +30,12 @@ export interface MapStatus {
   cursorZ: number
 }
 
+export interface MapPlacement {
+  centerX: number
+  centerZ: number
+  blocksPerPixel: number
+}
+
 export interface MapListener {
   onStatus(status: MapStatus): void
   onShares(shares: Share[]): void
@@ -205,6 +211,18 @@ export class MapController {
 
   resetZoom(): void {
     this.view.blocksPerPixel = DEFAULT_BLOCKS_PER_PIXEL
+    this.redraw()
+  }
+
+  /** Where the map looks and how far it is zoomed, to look there again or to show another map there. */
+  placement(): MapPlacement {
+    return { centerX: this.view.centerX, centerZ: this.view.centerZ, blocksPerPixel: this.view.blocksPerPixel }
+  }
+
+  place(placement: MapPlacement): void {
+    this.view.centerX = placement.centerX
+    this.view.centerZ = placement.centerZ
+    this.view.blocksPerPixel = clampBlocksPerPixel(placement.blocksPerPixel)
     this.redraw()
   }
 

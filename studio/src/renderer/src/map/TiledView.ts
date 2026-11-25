@@ -38,6 +38,12 @@ export interface TileSpot<Tile> {
   pixelZ: number
 }
 
+export interface TiledPlacement {
+  centerX: number
+  centerZ: number
+  blocksPerPixel: number
+}
+
 /** Where a view looks and the scale its tiles are drawn at. */
 export interface TiledFraming {
   centerX: number
@@ -116,6 +122,18 @@ export class TiledView<Tile, Layer, Style> {
   setCursor(cursor: { x: number; y: number } | null): void {
     this.cursor = cursor
     this.reportFrame()
+  }
+
+  /** Where the view looks and how far it is zoomed, to look there again after the view was made anew. */
+  placement(): TiledPlacement {
+    return { centerX: this.view.centerX, centerZ: this.view.centerZ, blocksPerPixel: this.view.blocksPerPixel }
+  }
+
+  place(placement: TiledPlacement): void {
+    this.view.centerX = placement.centerX
+    this.view.centerZ = placement.centerZ
+    this.view.blocksPerPixel = placement.blocksPerPixel
+    this.redraw()
   }
 
   framing(): TiledFraming {

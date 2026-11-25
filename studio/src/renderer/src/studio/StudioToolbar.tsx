@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Blocks, Mountain, PawPrint, SquareDashed } from 'lucide-react'
+import { Blocks, Link2, Mountain, PawPrint, SquareDashed } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Separator } from '@/components/ui/separator'
@@ -13,6 +13,8 @@ import { useKeyText } from './useBindings'
 import { IrisLogo } from './IrisLogo'
 import { PackSwitcher } from './PackSwitcher'
 import { badgeColour } from './packBadges'
+
+const TOOL_TOGGLE = 'size-6 min-w-6 p-0 hover:bg-accent hover:text-foreground data-[state=on]:bg-selection data-[state=on]:text-foreground'
 
 /** How strongly the open pack's colour tints the bar behind its name, as IntelliJ tints its toolbar with the project colour. */
 const PACK_TINT_PERCENT = 28
@@ -58,13 +60,16 @@ function PackTint({ colour }: { colour: string }): React.JSX.Element {
 interface MapToolsProps {
   toggles: StudioToggles
   hasPlayers: boolean
+  /** Whether the map moves with the other linked maps. */
+  linked: boolean
+  onLink(): void
   onToggle(name: keyof StudioToggles): void
   onRefresh(): void
   onResetZoom(): void
 }
 
 /** The map's own buttons, for the header of its island. */
-export function MapTools({ toggles, hasPlayers, onToggle, onRefresh, onResetZoom }: MapToolsProps): React.JSX.Element {
+export function MapTools({ toggles, hasPlayers, linked, onLink, onToggle, onRefresh, onResetZoom }: MapToolsProps): React.JSX.Element {
   return (
     <>
       <ToolToggle action="grid" hint="Show chunk and region borders" pressed={toggles.grid} onPressed={() => onToggle('grid')}>
@@ -87,6 +92,13 @@ export function MapTools({ toggles, hasPlayers, onToggle, onRefresh, onResetZoom
         <Glyph glyph="locate" />
       </ToolToggle>
       <Separator orientation="vertical" className="mx-1 h-4!" />
+      <IconHint hint="Move and zoom with the other linked maps">
+        <span>
+          <Toggle size="sm" aria-label="Link pan and zoom" pressed={linked} onPressedChange={onLink} className={TOOL_TOGGLE}>
+            <Link2 />
+          </Toggle>
+        </span>
+      </IconHint>
       <ToolButton action="resetZoom" hint="Go back to the default zoom" onClick={onResetZoom}>
         <Glyph glyph="actualZoom" />
       </ToolButton>
@@ -152,7 +164,7 @@ function ToolToggle({ action, hint, pressed, disabled, onPressed, children }: To
           pressed={pressed}
           disabled={disabled}
           onPressedChange={onPressed}
-          className="size-6 min-w-6 p-0 hover:bg-accent hover:text-foreground data-[state=on]:bg-selection data-[state=on]:text-foreground"
+          className={TOOL_TOGGLE}
         >
           {children}
         </Toggle>

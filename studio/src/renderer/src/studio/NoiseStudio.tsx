@@ -16,7 +16,9 @@ import { hexColor } from './colors'
 import { SceneViewport } from './SceneViewport'
 import { TiledCanvas } from './TiledCanvas'
 import { Separator } from '@/components/ui/separator'
-import { HEADER_CHOICE, Panel, SidebarPanel, ViewIsland } from './Sidebar'
+import { DetailPanel, HEADER_CHOICE, SidebarPanel, ViewIsland } from './Sidebar'
+import { useRememberedState } from './rememberedState'
+import { useSettledEntry, useTab } from './tabContext'
 import { useLongPending, useTerrainStream } from './useTerrainStream'
 
 type NoiseDisplay = 'flat' | 'terrain'
@@ -44,8 +46,9 @@ interface NoiseStudioProps {
 /** The pack's noise and the built-in styles, from above or as terrain. */
 export function NoiseStudio({ title, client, packRevision, onSummary, tell }: NoiseStudioProps): React.JSX.Element {
   const sources = useNoiseSources(client, packRevision, tell)
-  const [chosenId, setChosenId] = useState<string | null>(null)
-  const source = sources.find((candidate) => candidate.id === chosenId) ?? sources[0] ?? null
+  const tab = useTab()
+  const source = sources.find((candidate) => candidate.id === tab.entry) ?? sources[0] ?? null
+  useSettledEntry(tab, source?.id ?? null, source?.name ?? null)
   const [seed, setSeed] = useState(DEFAULT_SEED)
   const [paletteId, setPaletteId] = useState<NoisePaletteId>('terrain')
   const [display, setDisplay] = useState<NoiseDisplay>('flat')
@@ -123,12 +126,12 @@ export function NoiseStudio({ title, client, packRevision, onSummary, tell }: No
           <h2 className="text-[13px] font-semibold">Noise</h2>
           <p className="text-[11.5px] text-secondary-text">{NUMBER.format(sources.length)} sources</p>
         </header>
-        <SourceList sources={sources} current={source?.id ?? null} onSelect={setChosenId} />
+        <SourceList sources={sources} current={source?.id ?? null} onSelect={(id) => tab.choose(id)} onKeep={(id) => tab.choose(id, true)} />
       </SidebarPanel>
-      <Panel className="w-[250px]">
+      <DetailPanel className="w-[250px]">
         <SeedField seed={seed} usesSeed={source?.usesSeed ?? true} onChange={setSeed} />
         <PaletteList current={paletteId} source={source} scale={scale} onSelect={setPaletteId} />
-      </Panel>
+      </DetailPanel>
     </>
   )
 }
@@ -225,8 +228,16 @@ function gradientOf(scale: NoiseScale): string {
   return `linear-gradient(to right, ${stops.join(', ')})`
 }
 
-function SourceList({ sources, current, onSelect }: { sources: NoiseSource[]; current: string | null; onSelect(id: string): void }): React.JSX.Element {
-  const [filter, setFilter] = useState('')
+interface SourceListProps {
+  sources: NoiseSource[]
+  current: string | null
+  onSelect(id: string): void
+  /** Opens the source in a tab that stays, on a double click. */
+  onKeep(id: string): void
+}
+
+function SourceList({ sources, current, onSelect, onKeep }: SourceListProps): React.JSX.Element {
+  const [filter, setFilter] = useRememberedState('noise:filter', '')
   const shown = sources.filter((source) => source.name.toLowerCase().includes(filter.trim().toLowerCase()))
   const categories = [...new Set(shown.map((source) => source.category))]
   return (
@@ -249,6 +260,7 @@ function SourceList({ sources, current, onSelect }: { sources: NoiseSource[]; cu
                     key={source.id}
                     title={source.id}
                     onClick={() => onSelect(source.id)}
+                    onDoubleClick={() => onKeep(source.id)}
                     className={cn('flex h-[26px] w-full items-center rounded-md px-2 text-left', source.id === current ? 'bg-selection' : 'hover:bg-accent')}
                   >
                     <span className="truncate">{source.name}</span>

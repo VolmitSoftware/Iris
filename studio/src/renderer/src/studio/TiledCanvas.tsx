@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
-import type { TiledView } from '../map/TiledView'
+import type { TiledPlacement, TiledView } from '../map/TiledView'
+import { useRememberedRef } from './rememberedState'
+import { useTab } from './tabContext'
 
 type AnyTiledView = TiledView<unknown, unknown, unknown>
 
@@ -16,21 +18,27 @@ const WHEEL_ZOOM_PER_DELTA = 0.002
 /** A tiled view from above: drag to move, wheel to zoom. */
 export function TiledCanvas<View extends AnyTiledView>({ create, viewRef, className }: TiledCanvasProps<View>): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  // A hidden or moved tab lets go of its view; this brings it back where it looked.
+  const lastPlacement = useRememberedRef<TiledPlacement | null>(`${useTab().id}:placement`, null)
 
   useEffect(() => {
     const canvas = canvasRef.current!
     const view = create(canvas)
+    if (lastPlacement.current !== null) {
+      view.place(lastPlacement.current)
+    }
     viewRef.current = view
     const resize = new ResizeObserver(([entry]) => view.resize(entry.contentRect.width, entry.contentRect.height))
     resize.observe(canvas)
     const stopMouse = followMouse(canvas, view)
     return () => {
+      lastPlacement.current = view.placement()
       stopMouse()
       resize.disconnect()
       view.close()
       viewRef.current = null
     }
-  }, [create, viewRef])
+  }, [create, viewRef, lastPlacement])
 
   return <canvas ref={canvasRef} className={className} />
 }

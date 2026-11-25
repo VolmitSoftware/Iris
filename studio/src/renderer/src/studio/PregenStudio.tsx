@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import type { BridgeClient } from '../bridge/BridgeClient'
 import type { PregenSnapshot } from '../bridge/types'
-import { Panel, ViewIsland } from './Sidebar'
+import { DetailPanel, ViewIsland } from './Sidebar'
 
 const POLL_MILLIS = 1000
 const MILLIS_PER_SECOND = 1000
@@ -43,7 +43,7 @@ export function PregenStudio({ title, client, onSummary, tell }: PregenStudioPro
           {snapshot === null && <p className="text-[12px] text-secondary-text">No pregeneration is running. Start one with /iris pregen start.</p>}
         </div>
       </ViewIsland>
-      <Panel className="w-[250px]">{snapshot !== null && <Progress snapshot={snapshot} onPause={() => void client.pregenPause().catch((failure: Error) => tell(failure.message))} />}</Panel>
+      <DetailPanel className="w-[250px]">{snapshot !== null && <Progress snapshot={snapshot} onPause={() => void client.pregenPause().catch((failure: Error) => tell(failure.message))} />}</DetailPanel>
     </>
   )
 }

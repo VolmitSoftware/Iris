@@ -1047,7 +1047,8 @@ public final class IrisDatapackCompiler {
             if (retainedContract == null) {
                 return currentPhysicalResourceKey;
             }
-            return dimension.getLoader().customBiomeResourceKey(dimension, customBiome);
+            return GenerationRegistryContractFactory.retainedCustomBiomeResourceKey(
+                    retainedContract, dimension, customBiome, currentPhysicalResourceKey);
         }
 
         @Override
@@ -1082,8 +1083,8 @@ public final class IrisDatapackCompiler {
             if (retainedContract == null) {
                 return currentSource;
             }
-            PhysicalResourceKey key = new PhysicalResourceKey(registryKey, resourceKey);
-            return GenerationRegistryContractFactory.renderGeneratedSource(retainedContract, key, fixer);
+            return GenerationRegistryContractFactory.retainedGeneratedSource(
+                    retainedContract, registryKey, resourceKey, currentSource, fixer);
         }
     }
 

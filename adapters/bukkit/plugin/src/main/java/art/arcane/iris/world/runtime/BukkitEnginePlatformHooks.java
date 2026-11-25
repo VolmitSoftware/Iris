@@ -40,6 +40,12 @@ import art.arcane.iris.world.history.SavedTerrainChunk;
 import java.util.concurrent.CompletableFuture;
 import art.arcane.iris.generation.runtime.EngineMode;
 import art.arcane.iris.generation.runtime.EnginePlatformHooks;
+import art.arcane.iris.generation.runtime.StudioRestartRequirement;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
+import art.arcane.volmlib.util.localization.MessageArgument;
+import org.bukkit.entity.Player;
 import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionRuntimeContract;
@@ -96,6 +102,15 @@ public final class BukkitEnginePlatformHooks implements EnginePlatformHooks {
     public void reloadDatapacks(Engine engine) {
         synchronized (ServerConfigurator.class) {
             ServerConfigurator.installDataPacks(false);
+        }
+    }
+
+    @Override
+    public void announceStudioRestartRequirement(Engine engine, StudioRestartRequirement requirement) {
+        MessageArgument biomes = MessageArgument.untrusted("value", requirement.biomeSummary());
+        for (Player player : BukkitWorldBinding.world(engine.getWorld()).getPlayers()) {
+            J.runEntity(player, () -> new VolmitSender(player).sendMessage(
+                    IrisLanguage.text(RuntimeUiMessages.STUDIO_HOTLOADED_RESTART_NEEDED, biomes)));
         }
     }
 

@@ -1,6 +1,7 @@
 package art.arcane.iris.modded.service;
 
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.StudioRestartRequirement;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.modded.ModdedScheduler;
 import art.arcane.volmlib.util.collection.KList;
@@ -218,6 +219,7 @@ public class ModdedStudioHotloadServiceTest {
         Engine engine = mock(Engine.class);
         when(engine.isStudio()).thenReturn(true);
         when(engine.getDimension()).thenReturn(new IrisDimension());
+        when(engine.getStudioRestartRequirement()).thenReturn(StudioRestartRequirement.none());
         return engine;
     }
 

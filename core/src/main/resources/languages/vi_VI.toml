@@ -1586,6 +1586,8 @@ failed_fragment = "  lỗi {failed}"
 
 [iris.runtime.studio]
 opening = "§6Studio §bĐANG MỞ"
+restart_needed = "cần khởi động lại: {value}"
+hotloaded_restart_needed = "§eĐã tải lại Studio · cần khởi động lại: {value}"
 opening_progress = "§6Studio §bĐANG MỞ§7 {percent}%"
 failed_progress = "§6Studio §cTHẤT BẠI§7 {percent}%"
 ready_progress = "§6Studio §aSẴN SÀNG§7 100%"

@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.TreeSet;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Objects;
@@ -35,27 +36,33 @@ public final class GenerationRegistryContract {
     private static final int MAX_TOTAL_GENERATED_SOURCE_BYTES = 8 * 1024 * 1024;
     private static final Pattern RESOURCE_KEY_PATTERN = Pattern.compile("[a-z0-9_.-]+:[a-z0-9/._-]+");
     private static final Pattern SHA_256_PATTERN = Pattern.compile("[0-9a-f]{64}");
+    private static final String BIOME_REGISTRY = "minecraft:worldgen/biome";
+    private static final String CUSTOM_BIOME_STAND_INS_FIELD = "customBiomeStandIns";
 
     private final int fingerprintSchema;
     private final String fingerprint;
     private final NavigableMap<PhysicalResourceKey, String> definitions;
     private final NavigableMap<PhysicalResourceKey, GeneratedSource> generatedSources;
     private final NavigableMap<String, List<String>> biomeTags;
+    private final NavigableMap<String, String> customBiomeStandIns;
 
     private GenerationRegistryContract(
             int fingerprintSchema,
             String fingerprint,
             NavigableMap<PhysicalResourceKey, String> definitions,
             NavigableMap<PhysicalResourceKey, GeneratedSource> generatedSources,
-            Map<String, ? extends Collection<String>> biomeTags
+            Map<String, ? extends Collection<String>> biomeTags,
+            Map<String, String> customBiomeStandIns
     ) {
         requireSupportedFingerprintSchema(fingerprintSchema);
         this.fingerprintSchema = fingerprintSchema;
         this.definitions = immutableDefinitions(definitions);
         this.generatedSources = immutableGeneratedSources(generatedSources, this.definitions);
         this.biomeTags = canonicalBiomeTags(biomeTags, this.definitions);
+        this.customBiomeStandIns = canonicalCustomBiomeStandIns(customBiomeStandIns, this.definitions);
         this.fingerprint = requireSha256(fingerprint, "Registry contract fingerprint");
-        String expectedFingerprint = fingerprint(fingerprintSchema, this.definitions, this.generatedSources, this.biomeTags);
+        String expectedFingerprint = fingerprint(
+                fingerprintSchema, this.definitions, this.generatedSources, this.biomeTags, this.customBiomeStandIns);
         if (!this.fingerprint.equals(expectedFingerprint)) {
             throw new IllegalArgumentException("Registry contract fingerprint does not match its definitions.");
         }
@@ -100,9 +107,10 @@ public final class GenerationRegistryContract {
         );
         return new GenerationRegistryContract(
                 fingerprintSchema,
-                fingerprint(fingerprintSchema, canonicalDefinitions, canonicalSources, new TreeMap<>()),
+                fingerprint(fingerprintSchema, canonicalDefinitions, canonicalSources, new TreeMap<>(), new TreeMap<>()),
                 canonicalDefinitions,
                 canonicalSources,
+                Map.of(),
                 Map.of()
         );
     }
@@ -110,12 +118,27 @@ public final class GenerationRegistryContract {
     public GenerationRegistryContract withBiomeTags(Map<String, ? extends Collection<String>> tags) {
         NavigableMap<String, List<String>> canonical = canonicalBiomeTags(tags, definitions);
         return new GenerationRegistryContract(fingerprintSchema,
-                fingerprint(fingerprintSchema, definitions, generatedSources, canonical),
-                definitions, generatedSources, canonical);
+                fingerprint(fingerprintSchema, definitions, generatedSources, canonical, customBiomeStandIns),
+                definitions, generatedSources, canonical, customBiomeStandIns);
+    }
+
+    /**
+     * Records, per custom biome logical key, the platform biome that generates in its place because the running
+     * server never loaded the custom biome's registry entry.
+     */
+    public GenerationRegistryContract withCustomBiomeStandIns(Map<String, String> standIns) {
+        NavigableMap<String, String> canonical = canonicalCustomBiomeStandIns(standIns, definitions);
+        return new GenerationRegistryContract(fingerprintSchema,
+                fingerprint(fingerprintSchema, definitions, generatedSources, biomeTags, canonical),
+                definitions, generatedSources, biomeTags, canonical);
     }
 
     public NavigableMap<String, List<String>> biomeTags() {
         return biomeTags;
+    }
+
+    public NavigableMap<String, String> customBiomeStandIns() {
+        return customBiomeStandIns;
     }
 
     public int fingerprintSchema() {
@@ -186,19 +209,22 @@ public final class GenerationRegistryContract {
             tags.add(entry.getKey(), values);
         }
         json.add("biomeTags", tags);
+        if (!customBiomeStandIns.isEmpty()) {
+            JsonObject standIns = new JsonObject();
+            customBiomeStandIns.forEach(standIns::addProperty);
+            json.add(CUSTOM_BIOME_STAND_INS_FIELD, standIns);
+        }
         return json;
     }
 
     static GenerationRegistryContract fromJson(JsonObject json) {
-        GenerationManifest.JsonSchema.requireFields(
-                json,
-                "registry contract",
-                "fingerprintSchema",
-                "fingerprint",
-                "definitions",
-                "generatedSources",
-                "biomeTags"
-        );
+        boolean hasStandIns = json.has(CUSTOM_BIOME_STAND_INS_FIELD);
+        List<String> fields = new ArrayList<>(List.of(
+                "fingerprintSchema", "fingerprint", "definitions", "generatedSources", "biomeTags"));
+        if (hasStandIns) {
+            fields.add(CUSTOM_BIOME_STAND_INS_FIELD);
+        }
+        GenerationManifest.JsonSchema.requireFields(json, "registry contract", fields.toArray(String[]::new));
         int fingerprintSchema = GenerationManifest.JsonSchema.requireInt(
                 json,
                 "fingerprintSchema",
@@ -237,7 +263,23 @@ public final class GenerationRegistryContract {
             }
             tags.put(entry.getKey(), names);
         }
-        return new GenerationRegistryContract(fingerprintSchema, fingerprint, definitions, generatedSources, tags);
+        Map<String, String> standIns = hasStandIns ? parseCustomBiomeStandIns(json) : Map.of();
+        return new GenerationRegistryContract(
+                fingerprintSchema, fingerprint, definitions, generatedSources, tags, standIns);
+    }
+
+    private static Map<String, String> parseCustomBiomeStandIns(JsonObject json) {
+        JsonObject encoded = GenerationManifest.JsonSchema.requireObject(
+                json.get(CUSTOM_BIOME_STAND_INS_FIELD), "registry custom biome stand-ins");
+        Map<String, String> standIns = new TreeMap<>();
+        for (Map.Entry<String, JsonElement> entry : encoded.entrySet()) {
+            JsonElement value = entry.getValue();
+            if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
+                throw new IllegalArgumentException("Registry custom biome stand-ins must map to resource keys.");
+            }
+            standIns.put(entry.getKey(), value.getAsString());
+        }
+        return standIns;
     }
 
     @Override
@@ -252,12 +294,14 @@ public final class GenerationRegistryContract {
                 && fingerprint.equals(contract.fingerprint)
                 && definitions.equals(contract.definitions)
                 && generatedSources.equals(contract.generatedSources)
-                && biomeTags.equals(contract.biomeTags);
+                && biomeTags.equals(contract.biomeTags)
+                && customBiomeStandIns.equals(contract.customBiomeStandIns);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(fingerprintSchema, fingerprint, definitions, generatedSources, biomeTags);
+        return Objects.hash(fingerprintSchema, fingerprint, definitions, generatedSources, biomeTags,
+                customBiomeStandIns);
     }
 
     @Override
@@ -503,14 +547,41 @@ public final class GenerationRegistryContract {
         return Collections.unmodifiableNavigableMap(normalized);
     }
 
+    private static NavigableMap<String, String> canonicalCustomBiomeStandIns(
+            Map<String, String> values,
+            Map<PhysicalResourceKey, String> definitions
+    ) {
+        Map<String, String> required = Objects.requireNonNull(values, "customBiomeStandIns");
+        if (required.size() > MAX_DEFINITIONS) {
+            throw new IllegalArgumentException("Registry custom biome stand-ins contain too many biomes.");
+        }
+        TreeMap<String, String> normalized = new TreeMap<>();
+        for (Map.Entry<String, String> entry : required.entrySet()) {
+            String logicalKey = Objects.requireNonNull(entry.getKey(), "custom biome stand-in logical key");
+            if (logicalKey.isBlank() || logicalKey.indexOf(':') < 1
+                    || !logicalKey.equals(logicalKey.toLowerCase(Locale.ROOT))) {
+                throw new IllegalArgumentException("Invalid custom biome stand-in logical key: " + logicalKey);
+            }
+            PhysicalResourceKey standIn = new PhysicalResourceKey(BIOME_REGISTRY, entry.getValue());
+            if (!definitions.containsKey(standIn)) {
+                throw new IllegalArgumentException("Custom biome stand-in has no matching biome definition: "
+                        + entry.getValue());
+            }
+            normalized.put(logicalKey, standIn.resourceKey());
+        }
+        return Collections.unmodifiableNavigableMap(normalized);
+    }
+
     private static String fingerprint(
             int fingerprintSchema,
             NavigableMap<PhysicalResourceKey, String> definitions,
             NavigableMap<PhysicalResourceKey, GeneratedSource> generatedSources,
-            NavigableMap<String, List<String>> biomeTags
+            NavigableMap<String, List<String>> biomeTags,
+            NavigableMap<String, String> customBiomeStandIns
     ) {
         return switch (fingerprintSchema) {
-            case FINGERPRINT_SCHEMA_VERSION_ONE -> fingerprintVersionOne(definitions, generatedSources, biomeTags);
+            case FINGERPRINT_SCHEMA_VERSION_ONE ->
+                    fingerprintVersionOne(definitions, generatedSources, biomeTags, customBiomeStandIns);
             default -> throw new IllegalArgumentException(
                     "Unsupported generation registry fingerprint schema " + fingerprintSchema + "."
             );
@@ -520,7 +591,8 @@ public final class GenerationRegistryContract {
     private static String fingerprintVersionOne(
             NavigableMap<PhysicalResourceKey, String> definitions,
             NavigableMap<PhysicalResourceKey, GeneratedSource> generatedSources,
-            NavigableMap<String, List<String>> biomeTags
+            NavigableMap<String, List<String>> biomeTags,
+            NavigableMap<String, String> customBiomeStandIns
     ) {
         MessageDigest digest = sha256();
         updateString(digest, FINGERPRINT_DOMAIN);
@@ -548,6 +620,15 @@ public final class GenerationRegistryContract {
             updateInt(digest, entry.getValue().size());
             for (String tag : entry.getValue()) {
                 updateString(digest, tag);
+            }
+        }
+        // Contracts without stand-ins keep the fingerprint they had before stand-ins existed.
+        if (!customBiomeStandIns.isEmpty()) {
+            updateString(digest, CUSTOM_BIOME_STAND_INS_FIELD);
+            updateInt(digest, customBiomeStandIns.size());
+            for (Map.Entry<String, String> entry : customBiomeStandIns.entrySet()) {
+                updateString(digest, entry.getKey());
+                updateString(digest, entry.getValue());
             }
         }
         return HexFormat.of().formatHex(digest.digest());

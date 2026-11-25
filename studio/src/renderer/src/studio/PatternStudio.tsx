@@ -1,4 +1,4 @@
-import { IdeIcon } from '@/components/IdeIcon'
+import { RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -70,7 +70,7 @@ export function PatternStudio({ client, view, packRevision, onSummary, tell }: P
               <Stepper label={`Depth ${depth + 1} of ${entry.depths}`} backHint="Higher" onHint="Deeper" onBack={() => chooseDepth(depth - 1)} onOn={() => chooseDepth(depth + 1)} />
             )}
             <Button variant="ghost" size="icon-sm" className="size-7" title="Back to 0, 0" onClick={() => viewRef.current?.resetView()}>
-              <IdeIcon name="reset" />
+              <RotateCcw />
             </Button>
           </>
         }

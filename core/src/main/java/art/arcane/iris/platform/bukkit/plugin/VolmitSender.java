@@ -32,6 +32,9 @@ import art.arcane.volmlib.util.math.M;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Server;
 import org.bukkit.Sound;
@@ -324,6 +327,17 @@ public class VolmitSender implements CommandSender {
 
     public void sendComponent(Component component) {
         deliver(ComponentText.component(component));
+    }
+
+    /** A green line that copies {@code payload} to a player's clipboard when clicked; a console gets nothing. */
+    public void sendCopyButton(String label, String hover, String payload) {
+        if (!isPlayer()) {
+            return;
+        }
+        sendComponent(Component.text(label)
+                .color(NamedTextColor.GREEN)
+                .clickEvent(ClickEvent.copyToClipboard(payload))
+                .hoverEvent(HoverEvent.showText(Component.text(hover))));
     }
 
     private void deliver(ComponentText message) {

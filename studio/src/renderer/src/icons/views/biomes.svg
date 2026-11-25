@@ -1,8 +1,0 @@
-<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<clipPath id="map"><rect x="1.5" y="1.5" width="13" height="13" rx="2.5"/></clipPath>
-<g clip-path="url(#map)">
-<path d="M1 1H9.5L6 8.2L1 7Z" fill="#55A76A"/>
-<path d="M10.6 1H15V9.4L7.1 8.3Z" fill="#FFAF0F"/>
-<path d="M1 8.1L6.3 9.3L15 10.5V15H1Z" fill="#4682FA"/>
-</g>
-</svg>

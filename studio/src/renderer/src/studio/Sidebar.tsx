@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 import { createPortal } from 'react-dom'
-import { IdeIcon, type IdeIconName } from '@/components/IdeIcon'
+import { ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
@@ -35,11 +35,11 @@ export function Stepper({ label, backHint, onHint, onBack, onOn }: StepperProps)
   return (
     <span className="flex items-center text-[12px] text-secondary-text tabular-nums">
       <Button variant="ghost" size="icon-sm" className="size-7" title={backHint} onClick={onBack}>
-        <IdeIcon name="chevronLeft" />
+        <ChevronLeft />
       </Button>
       <span className="px-1">{label}</span>
       <Button variant="ghost" size="icon-sm" className="size-7" title={onHint} onClick={onOn}>
-        <IdeIcon name="chevronRight" />
+        <ChevronRight />
       </Button>
     </span>
   )
@@ -74,15 +74,15 @@ interface ViewIslandProps {
 }
 
 /** The shown view's icon in the stripe, which its island repeats beside its name so the two are learned together. */
-export const ShownViewIcon = createContext<IdeIconName | null>(null)
+export const ShownViewIcon = createContext<LucideIcon | null>(null)
 
 /** The island a view draws in, under a header with the view's icon, its name and its tools, as an IntelliJ tool window has. */
 export function ViewIsland({ title, tools, className, children }: ViewIslandProps): React.JSX.Element {
-  const icon = useContext(ShownViewIcon)
+  const ViewIcon = useContext(ShownViewIcon)
   return (
     <section className={cn('flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg bg-card', className)}>
       <header className="flex h-9 shrink-0 items-center gap-1 pr-1.5 pl-3">
-        {icon !== null && <IdeIcon name={icon} className="mr-1" />}
+        {ViewIcon !== null && <ViewIcon className="mr-1" />}
         <h2 className="truncate text-[13px] font-semibold">{title}</h2>
         <span className="flex-1" />
         {tools}

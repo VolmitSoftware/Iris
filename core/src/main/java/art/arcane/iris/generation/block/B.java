@@ -84,6 +84,14 @@ public class B {
         return state != null && state.isTreeBlock();
     }
 
+    public static boolean isLog(NativeBlockState state) {
+        return state != null && state.isLog();
+    }
+
+    public static boolean isLeaves(NativeBlockState state) {
+        return state != null && state.isLeaves();
+    }
+
     public static boolean isFoliagePlantable(NativeBlockState state) {
         return state != null && state.isFoliagePlantable();
     }

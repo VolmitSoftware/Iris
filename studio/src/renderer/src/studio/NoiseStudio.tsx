@@ -318,7 +318,7 @@ function NoiseTerrainView({
   return (
     <div className="absolute inset-0">
       <SceneViewport content={content} framing={content} />
-      {sampling && <div className={cn(PILL, 'top-3 left-1/2 -translate-x-1/2')}>Sampling {source.name}</div>}
+      {sampling && <div className={cn(PILL, 'top-3 left-1/2 -translate-x-1/2 notice-motion')}>Sampling {source.name}</div>}
     </div>
   )
 }

@@ -158,7 +158,7 @@ function NamedViews({ groups, current, onSelect }: { groups: ViewGroup[]; curren
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content side="right" align="end" sideOffset={8} className="popup z-50 w-56 p-1">
+        <DropdownMenu.Content side="right" align="end" sideOffset={8} className="popup z-50 w-56 p-1 popup-motion">
           {groups.map((group) => (
             <DropdownMenu.Group key={group.label}>
               <DropdownMenu.Label className="px-2 pt-1.5 pb-1 text-[11px] font-semibold text-muted-foreground">{group.label}</DropdownMenu.Label>

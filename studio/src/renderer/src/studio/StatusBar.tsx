@@ -32,7 +32,15 @@ export function StatusBar({ viewLabel, status, notice, usage, progress }: Status
         )}
       </span>
       <span className="flex min-w-0 flex-1 items-center justify-center gap-2 truncate">
-        {notice ?? (drawing ? `Drawing ${status.tilesReady} of ${status.tilesTotal} tiles` : progress !== null ? 'Reading' : '')}
+        {notice !== null ? (
+          <span key={notice} className="truncate notice-motion">
+            {notice}
+          </span>
+        ) : drawing ? (
+          `Drawing ${status.tilesReady} of ${status.tilesTotal} tiles`
+        ) : progress !== null ? (
+          'Reading'
+        ) : null}
         {notice === null && drawing && <ProgressBar fraction={status.tilesReady / status.tilesTotal} />}
         {notice === null && !drawing && progress !== null && <ProgressBar fraction={progress} />}
       </span>
@@ -50,7 +58,7 @@ export function StatusBar({ viewLabel, status, notice, usage, progress }: Status
 function ProgressBar({ fraction }: { fraction: number }): React.JSX.Element {
   return (
     <span className="h-1 w-24 overflow-hidden rounded-full bg-secondary">
-      <span className="block h-full bg-primary" style={{ width: `${fraction * 100}%` }} />
+      <span className="block h-full bg-primary meter-motion" style={{ width: `${fraction * 100}%` }} />
     </span>
   )
 }
@@ -92,7 +100,7 @@ function Reading({ high, hint, children }: ReadingProps): React.JSX.Element {
 function MemoryIndicator({ share, high, children }: { share: number; high: boolean; children: React.ReactNode }): React.JSX.Element {
   return (
     <span className="relative flex h-5 items-center overflow-hidden rounded-sm px-2">
-      <span className={cn('absolute inset-y-0 left-0', high ? 'bg-warning/30' : 'bg-meter-used')} style={{ width: `${share * 100}%` }} />
+      <span className={cn('absolute inset-y-0 left-0 meter-motion', high ? 'bg-warning/30' : 'bg-meter-used')} style={{ width: `${share * 100}%` }} />
       <span className="relative">{children}</span>
     </span>
   )

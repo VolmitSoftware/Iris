@@ -55,7 +55,7 @@ function Progress({ snapshot, onPause }: { snapshot: PregenSnapshot; onPause(): 
     <section className="flex flex-col gap-2 px-4 py-3 text-[12px]">
       <h2 className="text-[11px] font-semibold text-muted-foreground">{PHASE_LABELS[snapshot.phase]}</h2>
       <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-        <div className="h-full bg-primary" style={{ width: `${Math.min(PERCENT, progress.percent)}%` }} />
+        <div className="h-full bg-primary meter-motion" style={{ width: `${Math.min(PERCENT, progress.percent)}%` }} />
       </div>
       <Row label="Done" value={`${RATE.format(progress.percent)}%`} />
       <Row label="Chunks" value={`${NUMBER.format(progress.generated)} of ${NUMBER.format(progress.totalChunks)}`} />

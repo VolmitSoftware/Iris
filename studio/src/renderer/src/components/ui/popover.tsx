@@ -18,7 +18,7 @@ function PopoverContent({ className, align = "start", sideOffset = 4, ...props }
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          "z-50 popup p-2 outline-hidden data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0",
+          "z-50 popup p-2 outline-hidden popup-motion",
           className
         )}
         {...props}

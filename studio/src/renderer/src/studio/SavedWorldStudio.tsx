@@ -114,8 +114,8 @@ export function SavedWorldStudio({ title, client, world, onSummary, onProgress, 
         }
       >
         <SceneViewport content={content} framing={content} spotActions={spotActions} />
-        {reading && chosen !== null && <div className={PILL}>Reading {chosen.name}</div>}
-        {!reading && chosen !== null && start === null && <div className={PILL}>Nothing finished is saved in {chosen.name}</div>}
+        {reading && chosen !== null && <div className={cn(PILL, 'notice-motion')}>Reading {chosen.name}</div>}
+        {!reading && chosen !== null && start === null && <div className={cn(PILL, 'notice-motion')}>Nothing finished is saved in {chosen.name}</div>}
       </ViewIsland>
       <SidebarPanel className="flex-1">
         <header className="px-4 pt-2.5 pb-2.5">

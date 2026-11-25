@@ -54,7 +54,7 @@ export function BakeMeter({ timing }: BakeMeterProps): React.JSX.Element {
             {timing === null ? MEASURING_LABEL : weight.label}
           </span>
           <div className="h-1 min-w-0 flex-1 rounded-full bg-muted">
-            {timing !== null && <div className={cn('h-full rounded-full', weight.fillClass)} style={{ width: `${meterFill(millis) * PERCENT}%`, minWidth: MINIMUM_FILL }} />}
+            {timing !== null && <div className={cn('h-full rounded-full meter-motion', weight.fillClass)} style={{ width: `${meterFill(millis) * PERCENT}%`, minWidth: MINIMUM_FILL }} />}
           </div>
           <span className="w-[46px] shrink-0 text-right text-secondary-text tabular-nums">{timing !== null && formatMillis(millis)}</span>
         </div>

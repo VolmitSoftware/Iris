@@ -4,7 +4,7 @@ import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 import { Glyph } from "@/studio/Glyph"
 
 const MENU_SURFACE =
-  "z-50 min-w-[8rem] overflow-x-hidden overflow-y-auto popup p-1 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
+  "z-50 min-w-[8rem] overflow-x-hidden overflow-y-auto popup p-1 popup-motion"
 const MENU_ROW =
   "relative flex cursor-default items-center gap-2 rounded-md px-2 py-1 text-[13px] outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
 

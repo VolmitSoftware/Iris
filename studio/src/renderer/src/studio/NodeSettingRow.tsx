@@ -258,7 +258,7 @@ function ValueInput({ row, onDone }: { row: SettingRow; onDone(): void }): React
         }}
       />
       {shownProblem !== null && (
-        <p className="absolute top-full left-0 z-30 mt-1 w-max max-w-[260px] popup border-destructive px-1.5 py-1 text-[11px] whitespace-normal">
+        <p className="absolute top-full left-0 z-30 mt-1 w-max max-w-[260px] popup border-destructive px-1.5 py-1 text-[11px] whitespace-normal popup-motion">
           {shownProblem}
         </p>
       )}

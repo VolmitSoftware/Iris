@@ -137,6 +137,94 @@
   box-shadow: 0 0 0 1px var(--ring);
 }
 
+/*
+ * Motion after IntelliJ: popups and notices ease in quickly and leave faster, meters glide to a new reading, and
+ * everything else, hover and selection included, changes at once. Reduced motion turns all of it off.
+ */
+@keyframes popup-in {
+  from {
+    opacity: 0;
+    transform: translate(var(--popup-shift-x, 0), var(--popup-shift-y, 0));
+  }
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Drifts 2px away from what it is anchored to, by the side Radix places it on. */
+@utility popup-motion {
+  animation: popup-in 120ms ease-out;
+  &[data-side="top"] {
+    --popup-shift-y: 2px;
+  }
+  &[data-side="bottom"] {
+    --popup-shift-y: -2px;
+  }
+  &[data-side="left"] {
+    --popup-shift-x: 2px;
+  }
+  &[data-side="right"] {
+    --popup-shift-x: -2px;
+  }
+  &[data-state="closed"] {
+    animation: fade-out 80ms ease-in forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+  }
+}
+
+@utility dialog-motion {
+  animation: fade-in 100ms ease-out;
+  &[data-state="closed"] {
+    animation: fade-out 80ms ease-in forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+  }
+}
+
+@utility backdrop-motion {
+  animation: fade-in 100ms ease-out;
+  &[data-state="closed"] {
+    animation: fade-out 80ms ease-in forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+  }
+}
+
+@utility notice-motion {
+  animation: notice-in 160ms ease-out;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+  }
+}
+
+/* A meter's fill, which glides to each new reading instead of jumping. */
+@utility meter-motion {
+  transition: width 300ms ease-out;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
 /* IntelliJ draws its icons a shade off the text colour; a context that colours its icons sets this to currentColor. */
 @utility icon-tint {
   --icon-tint: currentColor;

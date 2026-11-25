@@ -289,8 +289,8 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
             </div>
           )}
           {!connected && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/70">
-              <div className="popup p-5 text-center">
+            <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-motion">
+              <div className="popup p-5 text-center dialog-motion">
                 <p className="font-medium">Lost the connection to the server</p>
                 <button className="mt-3 text-link hover:underline" onClick={onDisconnect}>
                   Back to the world list

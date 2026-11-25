@@ -98,6 +98,10 @@ public final class PackValidator {
     }
 
     private static PackValidationResult validate(File packFolder, boolean validateLiveRegistries) {
+        return PackValidationIo.withinValidationRun(() -> validateWithinRun(packFolder, validateLiveRegistries));
+    }
+
+    private static PackValidationResult validateWithinRun(File packFolder, boolean validateLiveRegistries) {
         String packName = packFolder == null ? "<unknown>" : packFolder.getName();
         List<String> blockingErrors = new ArrayList<>();
         List<String> warnings = new ArrayList<>();

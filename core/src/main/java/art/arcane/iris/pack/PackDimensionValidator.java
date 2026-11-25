@@ -26,8 +26,6 @@ import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -53,7 +51,7 @@ final class PackDimensionValidator {
             String dimensionKey = PackValidationIo.deriveKey(dimensionsFolder, dimFile);
             JSONObject dimJson;
             try {
-                dimJson = new JSONObject(Files.readString(dimFile.toPath(), StandardCharsets.UTF_8));
+                dimJson = PackValidationIo.parseJson(dimFile);
             } catch (Throwable e) {
                 blockingErrors.add("Dimension '" + dimensionKey + "' has invalid JSON: " + e.getMessage());
                 continue;
@@ -92,7 +90,7 @@ final class PackDimensionValidator {
 
                 JSONObject regionJson;
                 try {
-                    regionJson = new JSONObject(Files.readString(regionFile.toPath(), StandardCharsets.UTF_8));
+                    regionJson = PackValidationIo.parseJson(regionFile);
                 } catch (Throwable e) {
                     blockingErrors.add("Region '" + regionKey + "' has invalid JSON: " + e.getMessage());
                     continue;
@@ -269,7 +267,7 @@ final class PackDimensionValidator {
                 blockingErrors.add(context + " references missing style snippet '" + reference + "'.");
                 return;
             }
-            new JSONObject(Files.readString(snippetFile.toPath(), StandardCharsets.UTF_8));
+            PackValidationIo.parseJson(snippetFile);
         } catch (Throwable error) {
             blockingErrors.add(context + " references invalid style snippet '" + reference + "': "
                     + error.getMessage());
@@ -619,7 +617,7 @@ final class PackDimensionValidator {
             return null;
         }
         try {
-            return new JSONObject(Files.readString(snippet.toPath(), StandardCharsets.UTF_8));
+            return PackValidationIo.parseJson(snippet);
         } catch (Throwable e) {
             return null;
         }

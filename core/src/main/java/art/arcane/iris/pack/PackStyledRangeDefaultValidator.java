@@ -22,8 +22,6 @@ import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -67,7 +65,7 @@ final class PackStyledRangeDefaultValidator {
                 String key = PackValidationIo.deriveKey(resourceFolder, resourceFile);
                 JSONObject json;
                 try {
-                    json = new JSONObject(Files.readString(resourceFile.toPath(), StandardCharsets.UTF_8));
+                    json = PackValidationIo.parseJson(resourceFile);
                 } catch (Throwable e) {
                     continue;
                 }
@@ -124,7 +122,7 @@ final class PackStyledRangeDefaultValidator {
                 return; // Missing snippets are reported by the content-key machinery.
             }
             try {
-                range = new JSONObject(Files.readString(snippet.toPath(), StandardCharsets.UTF_8));
+                range = PackValidationIo.parseJson(snippet);
                 via = " (via snippet '" + resolved + "')";
             } catch (Throwable e) {
                 return;

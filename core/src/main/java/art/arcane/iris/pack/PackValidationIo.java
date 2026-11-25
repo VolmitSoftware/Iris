@@ -26,18 +26,51 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public final class PackValidationIo {
+    private static final ThreadLocal<ValidationRunReads> ACTIVE_RUN = new ThreadLocal<>();
+
     private PackValidationIo() {
+    }
+
+    /**
+     * Runs one validation pass in which every folder listing and every JSON parse is done once and shared by all
+     * steps. The shared trees are read-only by contract. Nothing outlives the pass, so the next pass sees edits.
+     */
+    static <T> T withinValidationRun(Supplier<T> validation) {
+        if (ACTIVE_RUN.get() != null) {
+            return validation.get();
+        }
+        ACTIVE_RUN.set(new ValidationRunReads());
+        try {
+            return validation.get();
+        } finally {
+            ACTIVE_RUN.remove();
+        }
+    }
+
+    static JSONObject parseJson(File file) throws IOException {
+        ValidationRunReads run = ACTIVE_RUN.get();
+        if (run == null) {
+            return parseFile(file);
+        }
+        return run.parsedJson(file).jsonOrThrow();
+    }
+
+    private static JSONObject parseFile(File file) throws IOException {
+        return new JSONObject(Files.readString(file.toPath(), StandardCharsets.UTF_8));
     }
 
     static JSONObject readJson(File file) {
         try {
-            return new JSONObject(Files.readString(file.toPath(), StandardCharsets.UTF_8));
+            return parseJson(file);
         } catch (IOException | RuntimeException parseFailure) {
             // Every folder scanned through readJson is also scanned by a readGraphJson pass
             // (validateUnsupportedStructureTransforms / validateStructureStartPools), which records the
@@ -80,6 +113,14 @@ public final class PackValidationIo {
     }
 
     static List<File> listJsonRecursive(File root) {
+        ValidationRunReads run = ACTIVE_RUN.get();
+        if (run == null) {
+            return walkJsonFiles(root);
+        }
+        return new ArrayList<>(run.jsonFiles(root));
+    }
+
+    private static List<File> walkJsonFiles(File root) {
         List<File> out = new ArrayList<>();
         try (Stream<Path> stream = Files.walk(root.toPath())) {
             stream.filter(Files::isRegularFile)
@@ -123,5 +164,39 @@ public final class PackValidationIo {
             i = end + 1;
         }
         return keys;
+    }
+
+    private static final class ValidationRunReads {
+        private final Map<File, List<File>> jsonFilesByRoot = new HashMap<>();
+        private final Map<Path, ParsedJson> parsedByPath = new HashMap<>();
+
+        List<File> jsonFiles(File root) {
+            return jsonFilesByRoot.computeIfAbsent(root, PackValidationIo::walkJsonFiles);
+        }
+
+        ParsedJson parsedJson(File file) {
+            return parsedByPath.computeIfAbsent(file.toPath().toAbsolutePath().normalize(),
+                    ignored -> ParsedJson.parse(file));
+        }
+    }
+
+    private record ParsedJson(JSONObject json, Exception failure) {
+        static ParsedJson parse(File file) {
+            try {
+                return new ParsedJson(parseFile(file), null);
+            } catch (IOException | RuntimeException failure) {
+                return new ParsedJson(null, failure);
+            }
+        }
+
+        JSONObject jsonOrThrow() throws IOException {
+            if (failure instanceof IOException readFailure) {
+                throw readFailure;
+            }
+            if (failure instanceof RuntimeException parseFailure) {
+                throw parseFailure;
+            }
+            return json;
+        }
     }
 }

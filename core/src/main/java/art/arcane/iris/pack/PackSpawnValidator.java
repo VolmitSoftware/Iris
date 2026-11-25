@@ -27,7 +27,6 @@ import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -59,7 +58,7 @@ final class PackSpawnValidator {
             String spawnerKey = PackValidationIo.deriveKey(spawnersFolder, spawnerFile);
             JSONObject spawner;
             try {
-                spawner = new JSONObject(Files.readString(spawnerFile.toPath(), StandardCharsets.UTF_8));
+                spawner = PackValidationIo.parseJson(spawnerFile);
             } catch (Throwable e) {
                 blockingErrors.add("Spawner '" + spawnerKey + "' has invalid JSON: " + e.getMessage());
                 continue;
@@ -147,7 +146,7 @@ final class PackSpawnValidator {
             }
 
             try {
-                new JSONObject(Files.readString(entityFile, StandardCharsets.UTF_8));
+                PackValidationIo.parseJson(entityFile.toFile());
                 validEntityFiles.add(entityFile);
             } catch (Throwable e) {
                 String message = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
@@ -170,7 +169,7 @@ final class PackSpawnValidator {
             String biomeKey = PackValidationIo.deriveKey(biomesFolder, biomeFile);
             JSONObject biome;
             try {
-                biome = new JSONObject(Files.readString(biomeFile.toPath(), StandardCharsets.UTF_8));
+                biome = PackValidationIo.parseJson(biomeFile);
             } catch (Throwable e) {
                 blockingErrors.add("Biome '" + biomeKey + "' has invalid JSON: " + e.getMessage());
                 continue;

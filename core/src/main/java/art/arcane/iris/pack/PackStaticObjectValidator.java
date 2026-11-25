@@ -8,7 +8,6 @@ import art.arcane.volmlib.util.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -174,7 +173,7 @@ final class PackStaticObjectValidator {
                 return null;
             }
             try {
-                return new JSONObject(Files.readString(snippet, StandardCharsets.UTF_8));
+                return PackValidationIo.parseJson(snippet.toFile());
             } catch (IOException | RuntimeException e) {
                 errors.add(path + " could not read snippet '" + reference + "': " + e.getMessage());
                 return null;

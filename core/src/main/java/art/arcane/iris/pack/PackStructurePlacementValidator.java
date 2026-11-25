@@ -27,8 +27,6 @@ import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -782,7 +780,7 @@ final class PackStructurePlacementValidator {
                                     String resourceKey,
                                     List<String> blockingErrors) {
         try {
-            return new JSONObject(Files.readString(file.toPath(), StandardCharsets.UTF_8));
+            return PackValidationIo.parseJson(file);
         } catch (IOException | RuntimeException e) {
             String reason = e.getMessage();
             if (reason == null || reason.isBlank()) {

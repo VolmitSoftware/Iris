@@ -420,7 +420,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         try {
             StudioBridge bridge = StudioBridges.open(engine.getWorld().name(), () -> engine, null);
             studioWatching = true;
-            if (!StudioWindow.show(bridge)) {
+            if (!StudioWindow.show(bridge).opened()) {
                 IrisLogging.info("Iris Studio link for the pregeneration of %s: %s", engine.getWorld().name(), bridge.link());
             }
         } catch (IOException error) {

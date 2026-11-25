@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { IdeIcon } from '@/components/IdeIcon'
+import { Blocks, ChevronDown, CircleQuestionMark, Grid3x3, LocateFixed, Mountain, PawPrint, RefreshCw, ScanSearch, Settings, SquareDashed, SunMoon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Separator } from '@/components/ui/separator'
@@ -32,21 +32,21 @@ export function StudioToolbar({ world, theme, onHelp, onSettings, onDisconnect }
           </span>
           <span className="truncate">{world.world}</span>
           <span className="truncate font-normal text-secondary-text">{world.dimensionName}</span>
-          <IdeIcon name="chevronRight" className="size-3.5 rotate-90" />
+          <ChevronDown className="size-3.5" />
         </Button>
       </IconHint>
       <div className="flex-1" />
       <IconHint hint={THEME_NAMES[theme.choice]}>
         <Button variant="ghost" size="icon-sm" onClick={theme.next}>
-          <IdeIcon name="theme" />
+          <SunMoon />
         </Button>
       </IconHint>
       <ToolButton action="help" hint="Show every mouse and key shortcut" onClick={onHelp}>
-        <IdeIcon name="help" />
+        <CircleQuestionMark />
       </ToolButton>
       <IconHint hint="Settings">
         <Button variant="ghost" size="icon-sm" onClick={onSettings}>
-          <IdeIcon name="settings" />
+          <Settings />
         </Button>
       </IconHint>
     </header>
@@ -66,30 +66,30 @@ export function MapTools({ toggles, hasPlayers, onToggle, onRefresh, onResetZoom
   return (
     <>
       <ToolToggle action="grid" hint="Show chunk and region borders" pressed={toggles.grid} onPressed={() => onToggle('grid')}>
-        <IdeIcon name="grid" />
+        <Grid3x3 />
       </ToolToggle>
       <ToolToggle action="borders" hint="Outline the regions on every view" pressed={toggles.regionBorders} onPressed={() => onToggle('regionBorders')}>
-        <IdeIcon name="borders" />
+        <SquareDashed />
       </ToolToggle>
       <ToolToggle action="shading" hint="Shade hills and valleys" pressed={toggles.shading} onPressed={() => onToggle('shading')}>
-        <IdeIcon name="shading" />
+        <Mountain />
       </ToolToggle>
       <ToolToggle action="blocks" hint="Show the blocks the world generates, zoomed in to a block a pixel" pressed={toggles.blocks} onPressed={() => onToggle('blocks')}>
-        <IdeIcon name="blocks" />
+        <Blocks />
       </ToolToggle>
       <Separator orientation="vertical" className="mx-1 h-4!" />
       <ToolToggle action="entities" hint="Show mobs and other entities" pressed={toggles.entities} disabled={!hasPlayers} onPressed={() => onToggle('entities')}>
-        <IdeIcon name="mob" />
+        <PawPrint />
       </ToolToggle>
       <ToolToggle action="follow" hint="Keep your player in the middle" pressed={toggles.follow} disabled={!hasPlayers} onPressed={() => onToggle('follow')}>
-        <IdeIcon name="locate" />
+        <LocateFixed />
       </ToolToggle>
       <Separator orientation="vertical" className="mx-1 h-4!" />
       <ToolButton action="resetZoom" hint="Go back to the default zoom" onClick={onResetZoom}>
-        <IdeIcon name="actualZoom" />
+        <ScanSearch />
       </ToolButton>
       <ToolButton action="refresh" hint="Redraw the map with the latest pack files" onClick={onRefresh}>
-        <IdeIcon name="refresh" />
+        <RefreshCw />
       </ToolButton>
     </>
   )
@@ -137,7 +137,7 @@ function ToolToggle({ action, hint, pressed, disabled, onPressed, children }: To
           pressed={pressed}
           disabled={disabled}
           onPressedChange={onPressed}
-          className="size-7 min-w-7 p-0 hover:bg-accent hover:text-foreground data-[state=on]:bg-selection data-[state=on]:text-foreground [&_svg:not([class*='size-'])]:size-3.5"
+          className="size-7 min-w-7 p-0 hover:bg-accent hover:text-foreground data-[state=on]:bg-selection data-[state=on]:text-foreground"
         >
           {children}
         </Toggle>

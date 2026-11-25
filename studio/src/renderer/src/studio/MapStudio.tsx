@@ -5,7 +5,7 @@ import type { MapHover, MapLabel, Marker, ModuleViewInfo, PickDisplay, ServerUsa
 import type { Share } from '../map/census'
 import type { MapController, MapStatus, MapToggles } from '../map/MapController'
 import type { Highlight } from '../map/tileStyle'
-import { IdeIcon } from '@/components/IdeIcon'
+import { Waves } from 'lucide-react'
 import { HelpDialog } from './HelpDialog'
 import { HoverCard } from './HoverCard'
 import { Legend } from './Legend'
@@ -280,7 +280,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
           {viewId === 'rivers' && !world.hydrology && (
             <div className="absolute inset-0 flex items-center justify-center bg-card">
               <div className="text-center">
-                <IdeIcon name="views/rivers" className="mx-auto mb-3 size-10" />
+                <Waves className="mx-auto mb-3 size-10" />
                 <p className="font-medium">No rivers planned</p>
                 <p className="mt-1 text-secondary-text">Enable hydrology in</p>
                 <p className="font-mono text-[11.5px] text-secondary-text">dimensions/{world.dimension}.json</p>

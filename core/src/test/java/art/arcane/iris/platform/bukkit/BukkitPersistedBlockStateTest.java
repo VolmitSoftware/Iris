@@ -119,8 +119,12 @@ public class BukkitPersistedBlockStateTest {
         IrisCustomData custom = IrisCustomData.of(carrier, Identifier.fromString(key));
         ExternalDataSVC provider = mock(ExternalDataSVC.class);
         when(provider.getBlockData(Identifier.fromString(key))).thenReturn(Optional.of(custom));
-        try (MockedStatic<IrisServices> services = mockStatic(IrisServices.class)) {
+        when(provider.withoutDecay(custom)).thenReturn(custom);
+        IrisSettings configuration = new IrisSettings();
+        try (MockedStatic<IrisServices> services = mockStatic(IrisServices.class);
+             MockedStatic<IrisSettings> settings = mockStatic(IrisSettings.class)) {
             services.when(() -> IrisServices.get(ExternalDataSVC.class)).thenReturn(provider);
+            settings.when(IrisSettings::get).thenReturn(configuration);
             NativeBlockState decoded = registries.decodeBlockState(key);
             assertEquals(key, decoded.key());
             assertEquals(key, decoded.deferredPlacementKey());

@@ -15,6 +15,9 @@ const FIELD_OF_VIEW_DEGREES = 45
 const VIEW_DIRECTION = new Vector3(1, 0.8, 1.2).normalize()
 const FRAMING_MARGIN = 1.15
 const NEAREST_CLIP = 0.05
+// Sizing the drawing buffer anew costs more than a frame, and so can drawing a whole world again, so while a pane is
+// resized the last frame is stretched to fit and the view is only drawn anew once the size has held this long.
+const BUFFER_FIT_DELAY_MILLIS = 150
 // The near plane follows the orbit distance: a fixed tiny one leaves too little depth precision far away, so surfaces a block apart flicker.
 const NEAR_CLIP_PER_ORBIT_DISTANCE = 0.01
 // The far plane keeps up with zooming out, so ground reaching to the horizon stays in view.
@@ -218,6 +221,8 @@ class Stage {
   private framed = false
   private framedFar = this.camera.far
   private frameRequested = false
+  private bufferFitted = false
+  private bufferFitTimer: number | undefined
   private pickListener: ((picked: PickedSurface) => void) | null = null
   private pressedAt: { x: number; y: number } | null = null
   private spotListener: ((asked: AskedSpot) => void) | null = null
@@ -227,6 +232,7 @@ class Stage {
     this.renderer.outputColorSpace = LinearSRGBColorSpace
     this.renderer.setPixelRatio(window.devicePixelRatio)
     this.renderer.setClearAlpha(0)
+    this.renderer.domElement.style.cssText = 'display:block;width:100%;height:100%'
     host.appendChild(this.renderer.domElement)
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
     this.controls.zoomToCursor = true
@@ -245,9 +251,9 @@ class Stage {
       this.notifyMoved()
       this.requestFrame()
     })
-    this.resizes = new ResizeObserver(() => this.fitToHost())
+    this.resizes = new ResizeObserver(() => this.stretchToHost())
     this.resizes.observe(host)
-    this.fitToHost()
+    this.fitBufferToHost()
   }
 
   show(content: ViewportContent | null): void {
@@ -417,6 +423,7 @@ class Stage {
   dispose(): void {
     this.removeShown()
     this.resizes.disconnect()
+    window.clearTimeout(this.bufferFitTimer)
     this.controls.dispose()
     this.renderer.dispose()
     // Chromium keeps only so many WebGL contexts, so a closed tab's goes now instead of whenever it is collected.
@@ -424,15 +431,32 @@ class Stage {
     this.renderer.domElement.remove()
   }
 
-  private fitToHost(): void {
-    const width = Math.max(1, this.host.clientWidth)
-    const height = Math.max(1, this.host.clientHeight)
-    this.renderer.setSize(width, height)
+  private stretchToHost(): void {
+    if (!this.bufferFitted) {
+      this.fitBufferToHost()
+      return
+    }
+    window.clearTimeout(this.bufferFitTimer)
+    this.bufferFitTimer = window.setTimeout(() => this.fitBufferToHost(), BUFFER_FIT_DELAY_MILLIS)
+  }
+
+  private fitBufferToHost(): void {
+    const width = this.host.clientWidth
+    const height = this.host.clientHeight
+    if (width === 0 || height === 0) {
+      return
+    }
+    this.renderer.setSize(width, height, false)
+    this.bufferFitted = true
+    this.fitCameraTo(width, height)
+    this.notifyMoved()
+    // Sizing the canvas wipes it, so waiting for the next frame would show it blank.
+    this.renderer.render(this.scene, this.camera)
+  }
+
+  private fitCameraTo(width: number, height: number): void {
     this.camera.aspect = width / height
     this.camera.updateProjectionMatrix()
-    this.notifyMoved()
-    // Sizing the canvas wipes it, so waiting for the next frame would show it blank while a pane is resized.
-    this.renderer.render(this.scene, this.camera)
   }
 
   private requestFrame(): void {

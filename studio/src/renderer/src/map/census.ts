@@ -35,25 +35,24 @@ export function countShares(tiles: PlacedTile[], area: WorldArea): Share[] {
   const totalPixels = tiles.reduce((sum, placed) => sum + placed.tile.size * placed.tile.size, 0)
   const stride = Math.max(1, Math.ceil(Math.sqrt(totalPixels / MAXIMUM_COUNTED_PIXELS)))
   let counted = 0
-  for (const { tile, worldX, worldZ } of tiles) {
-    const scale = tile.blocksPerPixel
-    const firstX = Math.max(0, Math.ceil((area.minimumX - worldX) / scale))
-    const endX = Math.min(tile.size, Math.ceil((area.maximumX - worldX) / scale))
-    const firstZ = Math.max(0, Math.ceil((area.minimumZ - worldZ) / scale))
-    const endZ = Math.min(tile.size, Math.ceil((area.maximumZ - worldZ) / scale))
-    for (let pixelZ = firstZ; pixelZ < endZ; pixelZ += stride) {
-      for (let pixelX = firstX; pixelX < endX; pixelX += stride) {
-        const subject = subjectAt(tile, gridIndex(tile, pixelX, pixelZ))
-        if (subject === null || isDryGround(subject.subject)) {
-          continue
-        }
-        const id = `${subject.subject.kind}:${subject.subject.key}`
-        const entry = counts.get(id) ?? { ...subject, count: 0 }
-        entry.count++
-        counts.set(id, entry)
-        counted++
+  for (const placed of tiles) {
+    const { tile } = placed
+    const labelCounts = countLabelsInArea(placed, area, stride)
+    labelCounts.forEach((count, index) => {
+      if (count === 0) {
+        return
       }
-    }
+      const label = tile.labels[index]
+      const subject = { kind: label.kind, key: label.key, name: label.name }
+      if (isDryGround(subject)) {
+        return
+      }
+      const id = `${subject.kind}:${subject.key}`
+      const entry = counts.get(id) ?? { subject, color: label.color, count: 0 }
+      entry.count += count
+      counts.set(id, entry)
+      counted += count
+    })
   }
   return [...counts.values()]
     .map((entry) => ({ subject: entry.subject, color: entry.color, fraction: entry.count / Math.max(1, counted) }))
@@ -103,11 +102,21 @@ function isDryGround(subject: Highlight): boolean {
   return subject.kind === 'WATER' && subject.key === 'dry'
 }
 
-function subjectAt(tile: MapTile, cell: number): { subject: Highlight; color: number } | null {
-  const index = tile.subjects[cell]
-  if (index === NO_LABEL) {
-    return null
+// Counted by label index first: building a subject per sampled pixel made the count too slow to run while the map moves.
+function countLabelsInArea({ tile, worldX, worldZ }: PlacedTile, area: WorldArea, stride: number): Uint32Array {
+  const counts = new Uint32Array(tile.labels.length)
+  const scale = tile.blocksPerPixel
+  const firstX = Math.max(0, Math.ceil((area.minimumX - worldX) / scale))
+  const endX = Math.min(tile.size, Math.ceil((area.maximumX - worldX) / scale))
+  const firstZ = Math.max(0, Math.ceil((area.minimumZ - worldZ) / scale))
+  const endZ = Math.min(tile.size, Math.ceil((area.maximumZ - worldZ) / scale))
+  for (let pixelZ = firstZ; pixelZ < endZ; pixelZ += stride) {
+    for (let pixelX = firstX; pixelX < endX; pixelX += stride) {
+      const index = tile.subjects[gridIndex(tile, pixelX, pixelZ)]
+      if (index !== NO_LABEL) {
+        counts[index]++
+      }
+    }
   }
-  const label = tile.labels[index]
-  return { subject: { kind: label.kind, key: label.key, name: label.name }, color: label.color }
+  return counts
 }

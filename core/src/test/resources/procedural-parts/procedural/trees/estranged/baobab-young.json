@@ -1,0 +1,194 @@
+{
+    "variants": 5,
+    "seed": 7002,
+    "materials": [
+        {
+            "role": "wood",
+            "block": "minecraft:acacia_wood",
+            "palette": {
+                "style": {
+                    "style": "STATIC"
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:acacia_wood",
+                        "weight": 5
+                    },
+                    {
+                        "block": "minecraft:oak_wood",
+                        "weight": 2
+                    }
+                ]
+            }
+        },
+        {
+            "role": "leaves",
+            "block": "minecraft:acacia_leaves"
+        }
+    ],
+    "parts": [
+        {
+            "role": "wood",
+            "stem": {
+                "length": [
+                    10.0,
+                    14.0
+                ],
+                "radius": 1.0,
+                "section": "SQUARE",
+                "taper": [
+                    [
+                        0.0,
+                        1.2
+                    ],
+                    [
+                        0.125,
+                        1.1125
+                    ],
+                    [
+                        0.25,
+                        1.025
+                    ],
+                    [
+                        0.375,
+                        0.9375
+                    ],
+                    [
+                        0.5,
+                        0.85
+                    ],
+                    [
+                        0.625,
+                        0.7625
+                    ],
+                    [
+                        0.75,
+                        0.675
+                    ],
+                    [
+                        0.875,
+                        0.5875
+                    ],
+                    [
+                        1.0,
+                        0.5
+                    ]
+                ]
+            },
+            "children": [
+                {
+                    "role": "wood",
+                    "at": 0,
+                    "stem": {
+                        "pitch": -90,
+                        "length": [
+                            3.0,
+                            4.0
+                        ],
+                        "radius": 1.0,
+                        "section": "SQUARE",
+                        "taper": [
+                            [
+                                0,
+                                1
+                            ],
+                            [
+                                1,
+                                0.4
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "role": "wood",
+                    "at": 0,
+                    "branches": {
+                        "count": 6,
+                        "along": {
+                            "from": 0,
+                            "to": 0
+                        },
+                        "azimuth": "EVEN",
+                        "azimuthOffset": [
+                            -14,
+                            14
+                        ],
+                        "pitch": -37.9371,
+                        "part": {
+                            "stem": {
+                                "length": 5.0664,
+                                "radius": 0.5
+                            }
+                        }
+                    }
+                },
+                {
+                    "role": "leaves",
+                    "mode": "FILL",
+                    "density": 0.9,
+                    "falloff": 1,
+                    "blob": {
+                        "radius": [
+                            5.58,
+                            8.06
+                        ],
+                        "height": [
+                            3.0,
+                            5.0
+                        ],
+                        "depth": 0.0
+                    },
+                    "at": 1.0
+                },
+                {
+                    "role": "leaves",
+                    "mode": "FILL",
+                    "density": 0.9,
+                    "falloff": 1,
+                    "blob": {
+                        "radius": 3
+                    },
+                    "at": 1
+                },
+                {
+                    "branches": {
+                        "chance": {
+                            "shape": "power",
+                            "exponent": 2.5
+                        },
+                        "azimuth": "RANDOM",
+                        "pitch": 6.0,
+                        "part": {
+                            "role": "wood",
+                            "stem": {
+                                "length": [
+                                    [
+                                        0.0,
+                                        3.0
+                                    ],
+                                    [
+                                        1.0,
+                                        6.0
+                                    ]
+                                ],
+                                "radius": 0.5,
+                                "droop": 0.2
+                            },
+                            "children": [
+                                {
+                                    "role": "leaves",
+                                    "mode": "FILL",
+                                    "density": 0.85,
+                                    "falloff": 1,
+                                    "blob": {
+                                        "radius": 2
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

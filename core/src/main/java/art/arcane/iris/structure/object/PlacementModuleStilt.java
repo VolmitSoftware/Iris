@@ -55,7 +55,7 @@ public final class PlacementModuleStilt implements PlacementModule {
             lifecycle.add(SEAT, PlacementStage.BEFORE_BLOCKS, this::seat, PlacementModuleAnchor.FINAL_HEIGHT);
         }
         lifecycle.add(FILL, PlacementStage.AFTER_BLOCKS, this::fill, PlacementModuleAnchor.HEIGHT,
-                PlacementModuleBlocks.COMPLETE, PlacementModuleTreeGrounding.ROOTS);
+                PlacementModuleBlocks.COMPLETE);
     }
 
     private static StiltLayers stiltLayers(ObjectPlacementBake bake, PlacementPalette palette) {
@@ -72,7 +72,7 @@ public final class PlacementModuleStilt implements PlacementModule {
     }
 
     private void seat(PlacementContext context, PlacementState state, Void ignored) {
-        if (state.grounding != null || state.placer.caveCell(context.x, state.y, context.z) == null) {
+        if (state.placer.caveCell(context.x, state.y, context.z) == null) {
             return;
         }
         PlacementModuleBlocks.bake(context, state);
@@ -221,9 +221,6 @@ public final class PlacementModuleStilt implements PlacementModule {
     private void fill(PlacementContext context, PlacementState state, Void ignored) {
         if (state.caveUnseated) {
             state.reject("cave-no-ground");
-            return;
-        }
-        if (state.grounding != null) {
             return;
         }
         ObjectPlacementBake bake = state.bake;

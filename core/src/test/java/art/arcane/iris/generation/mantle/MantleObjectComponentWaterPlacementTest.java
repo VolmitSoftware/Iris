@@ -4,8 +4,6 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.cave.CarvingMode;
 import art.arcane.iris.generation.context.ChunkContext;
-import art.arcane.iris.generation.decoration.IrisProceduralObjects;
-import art.arcane.iris.generation.decoration.IrisProceduralPlacement;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.SeedManager;
@@ -112,37 +110,6 @@ public class MantleObjectComponentWaterPlacementTest {
     }
 
     @Test
-    public void proceduralPlacementOutsideTheTransitionFootprintEndsWithoutBeingRecorded() {
-        Fixture fixture = new Fixture(PLACES);
-        fixture.biome.setProceduralObjects(fixture.proceduralObjects());
-        when(fixture.complex.allowsNewGenerationFootprint(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(false);
-
-        fixture.generate();
-
-        fixture.assertEndedUnrecorded();
-    }
-
-    @Test
-    public void rejectedProceduralPlacementEndsWithoutBeingRecorded() {
-        Fixture fixture = new Fixture(REJECTS);
-        fixture.biome.setProceduralObjects(fixture.proceduralObjects());
-
-        fixture.generate();
-
-        fixture.assertEndedUnrecorded();
-    }
-
-    @Test
-    public void thrownProceduralPlacementEndsWithoutBeingRecorded() {
-        Fixture fixture = new Fixture(THROWS);
-        fixture.biome.setProceduralObjects(fixture.proceduralObjects());
-
-        fixture.generate();
-
-        fixture.assertEndedUnrecorded();
-    }
-
-    @Test
     public void rejectedUpperPlacementEndsWithoutBeingRecorded() {
         Fixture fixture = new Fixture(REJECTS);
         fixture.upperObjects();
@@ -233,20 +200,6 @@ public class MantleObjectComponentWaterPlacementTest {
             when(placement.getDensity(any(RNG.class), anyDouble(), anyDouble(), any())).thenReturn(1);
             when(placement.getObject(any(), any(RNG.class))).thenReturn(object);
             return placement;
-        }
-
-        private IrisProceduralObjects proceduralObjects() {
-            IrisObjectPlacement placement = placement(CarvingMode.SURFACE_ONLY);
-            IrisProceduralPlacement procedural = mock(IrisProceduralPlacement.class);
-            when(procedural.getChance()).thenReturn(2D);
-            when(procedural.getName()).thenReturn("water-procedural");
-            when(procedural.getDensity()).thenReturn(1);
-            when(procedural.asPlacement()).thenReturn(placement);
-            when(procedural.getVariantObject(any(), any(), any())).thenReturn(object);
-            IrisProceduralObjects objects = mock(IrisProceduralObjects.class);
-            when(objects.isEmpty()).thenReturn(false);
-            when(objects.getAllPlacements()).thenReturn(new KList<>(procedural));
-            return objects;
         }
 
         private void upperObjects() {

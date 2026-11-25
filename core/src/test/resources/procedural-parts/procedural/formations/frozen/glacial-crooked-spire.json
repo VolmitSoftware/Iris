@@ -1,0 +1,77 @@
+{
+    "variants": 24,
+    "seed": 5055021,
+    "materials": [
+        {
+            "role": "rock",
+            "block": "minecraft:packed_ice",
+            "palette": "snippet/palette/frozen/magical-ice",
+            "rules": [
+                {
+                    "block": "minecraft:blue_ice",
+                    "along": {
+                        "from": 0.8824,
+                        "to": 1
+                    }
+                }
+            ]
+        }
+    ],
+    "parts": [
+        {
+            "role": "rock",
+            "stem": {
+                "length": [
+                    12.0,
+                    22.0
+                ],
+                "radius": [
+                    5.0,
+                    7.0
+                ],
+                "taper": [
+                    [
+                        0.0,
+                        0.8556
+                    ],
+                    [
+                        0.125,
+                        0.6953
+                    ],
+                    [
+                        0.25,
+                        0.5672
+                    ],
+                    [
+                        0.375,
+                        0.4628
+                    ],
+                    [
+                        0.5,
+                        0.3736
+                    ],
+                    [
+                        0.625,
+                        0.2912
+                    ],
+                    [
+                        0.75,
+                        0.2071
+                    ],
+                    [
+                        0.875,
+                        0.1129
+                    ],
+                    [
+                        1.0,
+                        0.0833
+                    ]
+                ],
+                "lean": 18.0,
+                "facing": 72.0,
+                "roughness": 0.32,
+                "jitter": 0.09
+            }
+        }
+    ]
+}

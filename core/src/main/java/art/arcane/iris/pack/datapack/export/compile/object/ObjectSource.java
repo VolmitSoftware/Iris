@@ -1,6 +1,5 @@
 package art.arcane.iris.pack.datapack.export.compile.object;
 
-import art.arcane.iris.generation.decoration.tree.TreeGrounding;
 import art.arcane.iris.pack.datapack.export.StructureTemplateEncoder;
 import art.arcane.iris.pack.datapack.export.TemplateBlock;
 import art.arcane.iris.pack.datapack.export.TemplateVolume;
@@ -9,16 +8,13 @@ import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.volmlib.util.math.Vector3i;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.ToIntFunction;
 
-public record ObjectSource(TemplateVolume volume, int baseY, TreeRoots roots) {
+public record ObjectSource(TemplateVolume volume, int baseY) {
     public ObjectSource {
         Objects.requireNonNull(volume, "Object volume");
-        Objects.requireNonNull(roots, "Object roots");
         if (baseY > 0) {
             throw new IllegalArgumentException("Object base offset must not be positive, got " + baseY);
         }
@@ -36,34 +32,11 @@ public record ObjectSource(TemplateVolume volume, int baseY, TreeRoots roots) {
             highestY = Math.max(highestY, block.y());
         }
         List<TemplateBlock> placed = new ArrayList<>(blocks.size());
-        Map<Long, TemplateBlock> byPosition = new HashMap<>(blocks.size() * 2);
         for (TemplateBlock block : blocks) {
-            TemplateBlock shifted = new TemplateBlock(x.shift(block.x()), block.y() - lowestY, z.shift(block.z()),
-                    block.state().waterlogged(false), block.nbt());
-            placed.add(shifted);
-            byPosition.put(position(shifted.x(), shifted.y(), shifted.z()), shifted);
+            placed.add(new TemplateBlock(x.shift(block.x()), block.y() - lowestY, z.shift(block.z()),
+                    block.state().waterlogged(false), block.nbt()));
         }
-        TreeRoots roots = roots(object.getTreeGrounding(), center, x, z, lowestY, byPosition);
-        return new ObjectSource(new TemplateVolume(x.size(), highestY - lowestY + 1, z.size(), placed), lowestY, roots);
-    }
-
-    private static TreeRoots roots(TreeGrounding grounding, Vector3i center, Axis x, Axis z, int lowestY, Map<Long, TemplateBlock> blocks) {
-        if (grounding == null) {
-            return TreeRoots.NONE;
-        }
-        List<TemplateBlock> cells = new ArrayList<>(grounding.roots().size());
-        for (TreeGrounding.Root root : grounding.roots()) {
-            TemplateBlock block = blocks.get(position(x.shift(root.x() + center.getX()), root.y() + center.getY() - lowestY,
-                    z.shift(root.z() + center.getZ())));
-            if (block != null) {
-                cells.add(block);
-            }
-        }
-        return new TreeRoots(cells, grounding.maxExtension());
-    }
-
-    private static long position(int x, int y, int z) {
-        return ((long) (x & 0x1FFFFF) << 42) | ((long) (y & 0x1FFFFF) << 21) | (z & 0x1FFFFF);
+        return new ObjectSource(new TemplateVolume(x.size(), highestY - lowestY + 1, z.size(), placed), lowestY);
     }
 
     private record Axis(int size, int center, int nominalCenter) {

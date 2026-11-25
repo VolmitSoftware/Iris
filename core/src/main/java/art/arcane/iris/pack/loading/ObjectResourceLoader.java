@@ -18,21 +18,27 @@
 
 package art.arcane.iris.pack.loading;
 
+import art.arcane.iris.generation.procedural.ProceduralObjectCatalog;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.data.KCache;
+import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Optional;
 
 public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
+    private final ProceduralObjectCatalog procedural;
+
     public ObjectResourceLoader(File root, IrisData idm, String folderName, String resourceTypeName, Options options) {
         super(root, idm, folderName, resourceTypeName, IrisObject.class, options);
+        procedural = new ProceduralObjectCatalog(idm);
         loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getObjectLoaderCacheSize());
     }
 
@@ -81,8 +87,15 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
         for (File i : getFolders()) {
             m.addAll(getFiles(i, ".iob", true, visitedDirectories));
         }
+        m.addAll(procedural.definitionKeys());
         possibleKeys = m.toArray(new String[0]);
         return possibleKeys;
+    }
+
+    @Override
+    public void clearCache() {
+        super.clearCache();
+        procedural.invalidate();
     }
 
     private KList<String> getFiles(File dir, String ext, boolean skipDirName, HashSet<String> visitedDirectories) {
@@ -151,6 +164,14 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
         return file == null ? null : loadFile(file, name);
     }
 
+    /** The object {@code name} names; a procedural pool key gives the variant {@code rng} picks. */
+    public IrisObject load(String name, RNG rng) {
+        if (!ProceduralObjectCatalog.isProceduralKey(name)) {
+            return load(name);
+        }
+        return procedural.object(name, rng).orElseGet(() -> load(name));
+    }
+
     public IrisObject load(String name, boolean warn) {
         if (name == null || name.trim().isEmpty()) {
             return null;
@@ -158,6 +179,12 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
         if (name.equals("null") && warn) {
             IrisLogging.warn("Refusing " + resourceTypeName + " load for literal string \"null\" (called by " + callerHint() + ")");
             return null;
+        }
+        if (ProceduralObjectCatalog.isProceduralKey(name)) {
+            Optional<IrisObject> baked = procedural.object(name);
+            if (baked.isPresent()) {
+                return baked.get();
+            }
         }
         IrisObject result = loadCache.get(name);
         if (result == null && warn) {

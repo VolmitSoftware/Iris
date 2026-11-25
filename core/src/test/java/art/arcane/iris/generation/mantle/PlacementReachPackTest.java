@@ -2,8 +2,6 @@ package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
-import art.arcane.iris.generation.decoration.IrisProceduralObjects;
-import art.arcane.iris.generation.decoration.IrisProceduralPlacement;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.MeteredCache;
@@ -143,18 +141,6 @@ public class PlacementReachPackTest {
                 }
                 PlacementReach reach = PlacementReach.of(object, placement, placement.getMaximumScale(dimension));
                 forEachVariant(object, placement, 1D, variant -> verifyCentered(key, variant, placement, reach, statistics));
-            }
-        }
-        for (IrisProceduralPlacement procedural : proceduralPlacements()) {
-            KList<IrisObject> variants = procedural.getVariantObjects(data);
-            if (variants == null) {
-                continue;
-            }
-            IrisObjectPlacement placement = procedural.asPlacement();
-            for (IrisObject variant : variants) {
-                PlacementReach reach = PlacementReach.of(variant, placement, placement.getMaximumScale(dimension));
-                forEachVariant(variant, placement, 1D,
-                        scaled -> verifyCentered(variant.getLoadKey(), scaled, placement, reach, statistics));
             }
         }
         assertTrue(statistics.checked > 0);
@@ -381,23 +367,6 @@ public class PlacementReachPackTest {
             scales[index] = scale.getMinimumScale() + (((scale.getMaximumScale() - scale.getMinimumScale()) / count) * index);
         }
         return scales;
-    }
-
-    private List<IrisProceduralPlacement> proceduralPlacements() {
-        List<IrisProceduralPlacement> placements = new ArrayList<>();
-        for (IrisRegion region : dimension.getAllRegions(() -> data)) {
-            addProcedural(placements, region.getProceduralObjects());
-        }
-        for (IrisBiome biome : dimension.getReachableBiomes(() -> data)) {
-            addProcedural(placements, biome.getProceduralObjects());
-        }
-        return placements;
-    }
-
-    private static void addProcedural(List<IrisProceduralPlacement> placements, IrisProceduralObjects procedural) {
-        if (procedural != null && !procedural.isEmpty()) {
-            placements.addAll(procedural.getAllPlacements());
-        }
     }
 
     private static int[] spins(IrisObjectRotation rotation, int axis) {

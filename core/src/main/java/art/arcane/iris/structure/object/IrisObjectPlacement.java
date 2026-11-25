@@ -382,7 +382,7 @@ public class IrisObjectPlacement {
             return null;
         }
 
-        return data.getObjectLoader().load(pool.get(random.nextInt(pool.size())));
+        return data.loadObject(pool.get(random.nextInt(pool.size())), random);
     }
 
     public IrisObject scaleObject(RNG random, IrisObject object, IrisDimension dimension) {

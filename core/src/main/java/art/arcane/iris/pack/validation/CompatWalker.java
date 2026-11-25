@@ -234,7 +234,7 @@ final class CompatWalker {
         return isIrisObject(value.getClass()) && walkObject(value, path);
     }
 
-    /** An annotated block key that generates (procedural trees, formations, ...): the chain without a backup. */
+    /** An annotated block key that generates (procedural objects, ...): the chain without a backup. */
     private void resolveBlockKey(String raw, String path) {
         ContentGate.BlockResolution resolution = gate.resolveBlock(raw);
         String key = normalizedKey(raw);

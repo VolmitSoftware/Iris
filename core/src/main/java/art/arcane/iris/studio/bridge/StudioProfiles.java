@@ -18,40 +18,29 @@
 
 package art.arcane.iris.studio.bridge;
 
-import art.arcane.iris.generation.decoration.formation.IrisFormation;
-import art.arcane.iris.generation.decoration.formation.IrisFormationProfile;
-import art.arcane.iris.generation.decoration.tree.IrisProceduralTree;
-import art.arcane.iris.generation.decoration.tree.IrisTreeProfile;
 import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.Set;
 
 /**
- * The views of the config profiles Iris v4 has: tree profiles, formation profiles and fluid profiles.
- * Each lists what the pack has of its kind, shows its settings as a form and draws it as blocks, so the studio's scene
- * viewer can show them. Values typed into a form only change the preview.
+ * The views of the config profiles the pack has: fluid profiles and objects. Each lists what the pack has of its kind,
+ * shows its settings as a form and draws it as blocks, so the studio's scene viewer can show them. Values typed into a
+ * form only change the preview.
  */
 final class StudioProfiles {
-    static final String TREES = "treeProfiles";
-    static final String FORMATIONS = "formationProfiles";
     static final String FLUIDS = "fluidProfiles";
 
-    private static final List<ProfileView> VIEWS = List.of(new TreeView(), new FormationView(), new FluidView(),
-            StudioObjects.packObjects(), StudioObjects.proceduralObjects());
+    private static final List<ProfileView> VIEWS = List.of(new FluidView(), StudioObjects.packObjects());
 
     private StudioProfiles() {
     }
@@ -104,154 +93,10 @@ final class StudioProfiles {
         SceneBlocks scene(Engine engine, String key, int variant, int size, Map<String, String> overrides) throws IOException;
     }
 
-    private static String readable(String constantName) {
-        String lower = constantName.toLowerCase(Locale.ROOT).replace('_', ' ');
-        return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
-    }
-
-    /** What the pack says about an enum constant, or its readable name when it says nothing. */
-    private static String describe(Enum<?> constant) {
-        try {
-            Description description = constant.getDeclaringClass().getField(constant.name()).getAnnotation(Description.class);
-            return description == null ? readable(constant.name()) : description.value();
-        } catch (NoSuchFieldException undocumented) {
-            return readable(constant.name());
-        }
-    }
-
-    private static Entry presetEntry(String key, int variants) {
-        return new Entry(key, readable(key), "Presets", variants);
-    }
-
     static SceneBlocks sceneOf(IrisObject object) {
         SceneBlocks scene = new SceneBlocks();
         object.getBlocks().forEach((position, state) -> scene.add(position.getBlockX(), position.getBlockY(), position.getBlockZ(), state.key()));
         return scene;
-    }
-
-    private static IrisObject variantOf(List<IrisObject> variants, int variant, String what) {
-        if (variants.isEmpty()) {
-            throw new NoSuchElementException("This " + what + " bakes nothing");
-        }
-        return variants.get(Math.floorMod(variant, variants.size()));
-    }
-
-    // Trees ------------------------------------------------------------------------------------------------------
-
-    private static final class TreeView implements ProfileView {
-        private static final Set<String> HIDDEN = Set.of("name", "chance", "density", "variants", "seed", "plausible", "mode",
-                "carvingSupport", "underwater", "profile");
-
-        @Override
-        public String id() {
-            return TREES;
-        }
-
-        @Override
-        public String label() {
-            return "Tree profiles";
-        }
-
-        @Override
-        public String description() {
-            return "The canopy shape each tree profile gives a procedural tree";
-        }
-
-        @Override
-        public Sizes sizes() {
-            return null;
-        }
-
-        @Override
-        public List<Entry> entries(Engine engine) {
-            int variants = new IrisProceduralTree().getVariants();
-            return Arrays.stream(IrisTreeProfile.values()).map(profile -> presetEntry(profile.name(), variants)).toList();
-        }
-
-        @Override
-        public ProfileForm.Form form(Engine engine, String key, Map<String, String> overrides) {
-            return ProfileForm.of("Tree", treeOf(key, overrides), HIDDEN, overrides,
-                    List.of(describe(profileOf(key)), "Values typed here change the preview only"));
-        }
-
-        @Override
-        public SceneBlocks scene(Engine engine, String key, int variant, int size, Map<String, String> overrides) {
-            return sceneOf(variantOf(treeOf(key, overrides).getVariantObjects(engine.getData()), variant, "tree"));
-        }
-
-        private static IrisProceduralTree treeOf(String key, Map<String, String> overrides) {
-            IrisProceduralTree tree = ProfileForm.withOverrides(new IrisProceduralTree(), overrides);
-            tree.setProfile(profileOf(key));
-            return tree;
-        }
-
-        private static IrisTreeProfile profileOf(String key) {
-            try {
-                return IrisTreeProfile.valueOf(key);
-            } catch (IllegalArgumentException unknown) {
-                throw new NoSuchElementException("No tree profile " + key);
-            }
-        }
-
-    }
-
-    // Formations -------------------------------------------------------------------------------------------------
-
-    private static final class FormationView implements ProfileView {
-        private static final Set<String> HIDDEN = Set.of("name", "chance", "density", "variants", "seed", "mode", "carvingSupport",
-                "surfaceSupportBuffer", "underwater", "profile");
-
-        @Override
-        public String id() {
-            return FORMATIONS;
-        }
-
-        @Override
-        public String label() {
-            return "Formation profiles";
-        }
-
-        @Override
-        public String description() {
-            return "How each formation profile shapes a formation's width from base to top";
-        }
-
-        @Override
-        public Sizes sizes() {
-            return null;
-        }
-
-        @Override
-        public List<Entry> entries(Engine engine) {
-            int variants = new IrisFormation().getVariants();
-            return Arrays.stream(IrisFormationProfile.values()).map(profile -> presetEntry(profile.name(), variants)).toList();
-        }
-
-        @Override
-        public ProfileForm.Form form(Engine engine, String key, Map<String, String> overrides) {
-            return ProfileForm.of("Formation", formationOf(key, overrides), HIDDEN, overrides,
-                    List.of(describe(profileOf(key)), "Values typed here change the preview only"));
-        }
-
-        @Override
-        public SceneBlocks scene(Engine engine, String key, int variant, int size, Map<String, String> overrides) {
-            return sceneOf(variantOf(formationOf(key, overrides).getVariantObjects(engine.getData()), variant, "formation"));
-        }
-
-        private static IrisFormation formationOf(String key, Map<String, String> overrides) {
-            IrisFormation formation = ProfileForm.withOverrides(new IrisFormation(), overrides);
-            formation.setProfile(profileOf(key));
-            return formation;
-        }
-
-        private static IrisFormationProfile profileOf(String key) {
-            try {
-                return IrisFormationProfile.valueOf(key);
-            } catch (IllegalArgumentException unknown) {
-                throw new NoSuchElementException("No formation profile " + key);
-            }
-        }
-
     }
 
     // Fluids -----------------------------------------------------------------------------------------------------

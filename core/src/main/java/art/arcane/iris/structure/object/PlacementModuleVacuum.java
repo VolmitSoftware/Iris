@@ -26,7 +26,7 @@ final class PlacementModuleVacuum implements PlacementModule {
             vacuumTerrain(context.self, state.placer, state.config, context.x, context.z,
                     state.bounds.minX(), state.bounds.maxX(), state.bounds.minZ(), state.bounds.maxZ(),
                     state.vacuumLowest, state.vacuumHighest);
-        }, COLLECT, PlacementModuleBlocks.COMPLETE, PlacementModuleTreeGrounding.ROOTS);
+        }, COLLECT, PlacementModuleBlocks.COMPLETE);
     }
 
     private static void vacuumTerrain(IrisObject self, IObjectPlacer placer, IrisObjectPlacement config, int centerX, int centerZ, int lowX, int highX, int lowZ, int highZ, int baseY, int topY) {

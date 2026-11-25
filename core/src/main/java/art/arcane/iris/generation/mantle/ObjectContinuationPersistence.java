@@ -14,7 +14,6 @@ import art.arcane.volmlib.util.matter.MatterSlice;
 
 import java.util.List;
 import java.util.Map;
-import java.util.BitSet;
 import java.util.function.Supplier;
 
 public final class ObjectContinuationPersistence {
@@ -71,35 +70,14 @@ public final class ObjectContinuationPersistence {
         }
     }
 
-    public static boolean beginBlock(Matter payload, int x, int y, int z, boolean canopy) {
-        if (canopy) {
-            MatterSlice<NativeBlockState> blocks = payload.getSlice(NativeBlockState.class);
-            NativeBlockState existing = blocks == null ? null : blocks.get(x, y, z);
-            if (existing != null && existing.isSolid()) {
-                return false;
-            }
-            payload.slice(TreeCanopy.class).set(x, y, z, TreeCanopy.INSTANCE);
-        } else {
-            MatterSlice<TreeCanopy> conditions = payload.getSlice(TreeCanopy.class);
-            if (conditions != null) {
-                conditions.set(x, y, z, null);
-            }
-        }
-        return true;
-    }
-
     public static void restore(Mantle<Matter> mantle, int chunkX, int chunkZ, Matter continuation,
                                Hunk<NativeBlockState> blocks, boolean applyBlocks) {
-        BitSet blocked = blockedCanopy(continuation, blocks, applyBlocks);
         MatterSlice<NativeBlockState> states = continuation.getSlice(NativeBlockState.class);
         MantleChunk<Matter> chunk = mantle.useChunk(chunkX, chunkZ);
         try {
             synchronized (chunk) {
                 if (states != null) {
                     states.iterateSync((x, y, z, state) -> {
-                        if (blocked.get(cellIndex(x, y, z))) {
-                            return;
-                        }
                         Matter section = chunk.get(y >> 4);
                         if (section != null) {
                             clearMetadata(section, x, y & 15, z);
@@ -107,44 +85,16 @@ public final class ObjectContinuationPersistence {
                     });
                 }
                 for (Map.Entry<Class<?>, MatterSlice<?>> entry : continuation.getSliceMap().entrySet()) {
-                    if (entry.getKey() == TreeCanopy.class) {
-                        continue;
-                    }
-                    entry.getValue().iterateSync((x, y, z, value) -> {
-                        if (!blocked.get(cellIndex(x, y, z))) {
-                            chunk.getOrCreate(y >> 4).slice(entry.getKey()).set(x, y & 15, z, value);
-                        }
-                    });
+                    entry.getValue().iterateSync((x, y, z, value) ->
+                            chunk.getOrCreate(y >> 4).slice(entry.getKey()).set(x, y & 15, z, value));
                 }
             }
         } finally {
             chunk.release();
         }
         if (applyBlocks && states != null) {
-            states.iterateSync((x, y, z, state) -> {
-                if (!blocked.get(cellIndex(x, y, z))) {
-                    blocks.set(x, y, z, state);
-                }
-            });
+            states.iterateSync((x, y, z, state) -> blocks.set(x, y, z, state));
         }
-    }
-
-    private static BitSet blockedCanopy(Matter continuation, Hunk<NativeBlockState> blocks, boolean applyBlocks) {
-        BitSet blocked = new BitSet();
-        MatterSlice<TreeCanopy> conditions = continuation.getSlice(TreeCanopy.class);
-        if (conditions != null) {
-            conditions.iterateSync((x, y, z, condition) -> {
-                NativeBlockState existing = blocks.get(x, y, z);
-                if (!applyBlocks || existing != null && existing.isSolid()) {
-                    blocked.set(cellIndex(x, y, z));
-                }
-            });
-        }
-        return blocked;
-    }
-
-    private static int cellIndex(int x, int y, int z) {
-        return (y << 8) | (z << 4) | x;
     }
 
     private static void clearMetadata(Matter section, int x, int y, int z) {

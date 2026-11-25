@@ -1,0 +1,31 @@
+{
+    "variants": 24,
+    "seed": 5055041,
+    "materials": [
+        {
+            "role": "rock",
+            "block": "minecraft:packed_ice",
+            "palette": "snippet/palette/frozen/magical-ice"
+        }
+    ],
+    "parts": [
+        {
+            "role": "rock",
+            "offset": {
+                "y": 2.0
+            },
+            "blob": {
+                "radius": [
+                    2.0,
+                    4.0
+                ],
+                "height": [
+                    2.0,
+                    2.5
+                ],
+                "stretchZ": 0.95,
+                "roughness": 0.36
+            }
+        }
+    ]
+}

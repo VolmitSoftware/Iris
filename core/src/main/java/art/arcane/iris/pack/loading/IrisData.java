@@ -57,6 +57,7 @@ import art.arcane.iris.world.entity.IrisEntity;
 import art.arcane.iris.generation.noise.IrisExpression;
 import art.arcane.iris.structure.object.IrisObjectScale;
 import art.arcane.iris.generation.noise.IrisGenerator;
+import art.arcane.iris.generation.procedural.part.ProceduralObject;
 import art.arcane.iris.generation.image.IrisImage;
 import art.arcane.iris.generation.image.IrisImageMap;
 import art.arcane.iris.structure.jigsaw.IrisJigsawPiece;
@@ -144,6 +145,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisStructure> structureLoader;
     private ResourceLoader<IrisJigsawPool> jigsawPoolLoader;
     private ResourceLoader<IrisJigsawPiece> jigsawPieceLoader;
+    private ResourceLoader<ProceduralObject> proceduralObjectLoader;
     private KMap<String, KList<String>> possibleSnippets;
     private Gson gson;
     private Gson snippetLoader;
@@ -488,6 +490,14 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         return (ResourceLoader<T>) loaders.get(type);
     }
 
+    /** The object {@code key} names; a procedural pool key gives the variant {@code rng} picks. */
+    public IrisObject loadObject(String key, RNG rng) {
+        if (objectLoader instanceof ObjectResourceLoader objects) {
+            return objects.load(key, rng);
+        }
+        return objectLoader.load(key);
+    }
+
     public ResourceLoader<?> getTypedLoaderFor(File f) {
         String[] k = f.getPath().split("\\Q" + File.separator + "\\E");
 
@@ -736,6 +746,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.structureLoader = registerLoader(IrisStructure.class, replacement);
         this.jigsawPoolLoader = registerLoader(IrisJigsawPool.class, replacement);
         this.jigsawPieceLoader = registerLoader(IrisJigsawPiece.class, replacement);
+        this.proceduralObjectLoader = registerLoader(ProceduralObject.class, replacement);
         builder.registerTypeAdapterFactory(KeyedType::createTypeAdapter);
 
         gson = builder.create();
@@ -786,6 +797,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public synchronized void invalidateStructureResources() {
         StructureGraphCatalog.invalidate(this);
+        invalidateLoader(proceduralObjectLoader);
         invalidateLoader(objectLoader);
         invalidateLoader(structureLoader);
         invalidateLoader(jigsawPoolLoader);

@@ -28,7 +28,6 @@ import art.arcane.iris.generation.runtime.UpperDimensionContext;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.cave.CarvingMode;
-import art.arcane.iris.structure.object.DecayControlPlacer;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.structure.object.IrisAxisRotationClamp;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -41,16 +40,11 @@ import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.structure.object.IrisObjectTranslate;
 import art.arcane.iris.structure.object.IrisObjectVacuum;
-import art.arcane.iris.generation.decoration.IrisProceduralObjects;
-import art.arcane.iris.generation.decoration.IrisProceduralPlacement;
-import art.arcane.iris.generation.decoration.tree.IrisProceduralTree;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.subterrain.SubterrainCell;
-import art.arcane.iris.generation.subterrain.SubterrainRoom;
 import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
-import art.arcane.iris.generation.subterrain.SubterrainPlan;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
@@ -72,7 +66,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -275,7 +268,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     + " regionCavePlacers=" + region.getCarvingObjects().size());
         }
         ObjectPlacementSummary summary = placeObjects(writer, rng, x, z, surfaceBiome, caveBiome, region, complex, traceRegen);
-        placeProceduralObjects(writer, rng, x, z, surfaceBiome, caveBiome, region, complex);
         UpperDimensionContext upperCtx = getEngineMantle().getEngine().getUpperContext();
         IrisDimension dimension = getDimension();
         if (upperCtx != null && dimension.isUpperDimensionObjects()) {
@@ -378,14 +370,12 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     private static boolean scanCollisionRules(IrisDimension dimension, DataProvider dataProvider) {
         for (IrisRegion region : dimension.getAllRegions(dataProvider)) {
-            if (region != null && (hasCollisionRules(region.getObjects())
-                    || hasCollisionRules(region.getProceduralObjects()))) {
+            if (region != null && hasCollisionRules(region.getObjects())) {
                 return true;
             }
         }
         for (IrisBiome biome : dimension.getReachableBiomes(dataProvider)) {
-            if (biome != null && (hasCollisionRules(biome.getObjects())
-                    || hasCollisionRules(biome.getProceduralObjects()))) {
+            if (biome != null && hasCollisionRules(biome.getObjects())) {
                 return true;
             }
         }
@@ -407,18 +397,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
     private static boolean hasCollisionRules(IrisObjectPlacement placement) {
         return placement != null && (!placement.getAllowedCollisions().isEmpty()
                 || !placement.getForbiddenCollisions().isEmpty());
-    }
-
-    private static boolean hasCollisionRules(IrisProceduralObjects proceduralObjects) {
-        if (proceduralObjects == null || proceduralObjects.isEmpty()) {
-            return false;
-        }
-        for (IrisProceduralPlacement placement : proceduralObjects.getAllPlacements()) {
-            if (placement != null && hasCollisionRules(placement.asPlacement())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private RNG applyNoise(int x, int z, long seed) {
@@ -607,209 +585,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 nullObjects,
                 errors
         );
-    }
-
-    @ChunkCoordinates
-    private void placeProceduralObjects(ObjectPassPlacer writer, RNG rng, int x, int z, IrisBiome surfaceBiome, IrisBiome caveBiome, IrisRegion region, IrisComplex complex) {
-        placeProceduralFrom(writer, rng, x, z, surfaceBiome.getProceduralObjects(), surfaceBiome.getName(), surfaceBiome.getLoadKey());
-        placeProceduralFrom(writer, rng, x, z, region.getProceduralObjects(), region.getName(), null);
-        if (caveBiome != null && caveBiome != surfaceBiome) {
-            placeProceduralFrom(writer, rng, x, z, caveBiome.getProceduralObjects(), caveBiome.getName(), caveBiome.getLoadKey());
-        }
-        if (complex.getSubterrainPlanner() != null && !complex.getSubterrainPlanner().isEmpty()) {
-            Set<String> placed = new HashSet<>();
-            placed.add(surfaceBiome.getLoadKey());
-            if (caveBiome != null) {
-                placed.add(caveBiome.getLoadKey());
-            }
-            for (SubterrainPlan plan : complex.getSubterrainPlanner().plansForBounds(x << 4, z << 4, (x << 4) + 15, (z << 4) + 15)) {
-                if (plan.biome().isEmpty() || !placed.add(plan.biome())) {
-                    continue;
-                }
-                IrisBiome featureBiome = getData().getBiomeLoader().load(plan.biome());
-                if (featureBiome != null) {
-                    placeProceduralFrom(writer, rng, x, z, featureBiome.getProceduralObjects(), featureBiome.getName(), featureBiome.getLoadKey());
-                }
-            }
-        }
-    }
-
-    @ChunkCoordinates
-    private void placeProceduralFrom(
-            ObjectPassPlacer writer,
-            RNG rng,
-            int x,
-            int z,
-            IrisProceduralObjects proceduralObjects,
-            String scope,
-            String expectedCaveBiomeKey
-    ) {
-        if (proceduralObjects == null || proceduralObjects.isEmpty()) {
-            return;
-        }
-
-        IrisComplex complex = getComplex();
-        int blockX = x << 4;
-        int blockZ = z << 4;
-        boolean golden = GoldenDebugObjectPlacer.isGoldenDebugChunk(x, z);
-        CaveAnchorCache caveAnchorCache = new CaveAnchorCache();
-        for (IrisProceduralPlacement p : proceduralObjects.getAllPlacements()) {
-            boolean treePlacement = p instanceof IrisProceduralTree;
-            boolean chancePassed = passesProceduralChance(rng, p.getChance());
-            if (golden) {
-                IrisLogging.debug("Goldendebug procedural chance: chunk=" + x + "," + z
-                        + " scope=" + scope
-                        + " placement=" + p.getName()
-                        + " passed=" + chancePassed);
-            }
-            if (!chancePassed) {
-                continue;
-            }
-
-            IrisObjectPlacement placement = p.asPlacement();
-            boolean carving = placement.getCarvingSupport() == CarvingMode.CARVING_ONLY;
-            IrisCaveAnchorMode anchorMode = resolveAnchorMode(placement);
-            if (placement.getMode() == ObjectPlaceMode.CEILING_HANG) {
-                anchorMode = IrisCaveAnchorMode.CEILING;
-            }
-            int anchorScanStep = CAVE_ANCHOR_SCAN_STEP_BLOCKS;
-            int minDepthBelowSurface = CAVE_OBJECT_MIN_DEPTH_BELOW_SURFACE_BLOCKS;
-            int anchorSearchAttempts = CAVE_ANCHOR_SEARCH_ATTEMPTS;
-            IObjectPlacer basePlacer = p.isPlausible() ? new DecayControlPlacer(writer) : writer;
-            IObjectPlacer placer = golden ? new GoldenDebugObjectPlacer(basePlacer, scope + "/" + p.getName()) : basePlacer;
-            int density = Math.max(1, p.getDensity());
-            for (int i = 0; i < density; i++) {
-                CavePlacementAnchor caveAnchor = null;
-                if (carving) {
-                    caveAnchor = findCavePlacementAnchor(
-                            writer,
-                            rng,
-                            blockX,
-                            blockZ,
-                            anchorMode,
-                            anchorScanStep,
-                            minDepthBelowSurface,
-                            anchorSearchAttempts,
-                            expectedCaveBiomeKey,
-                            placement.isUnderwater(),
-                            caveAnchorCache
-                    );
-                }
-                if (carving && caveAnchor == null) {
-                    if (golden) {
-                        IrisLogging.debug("Goldendebug procedural cave anchor rejected: chunk=" + x + "," + z
-                                + " placement=" + p.getName()
-                                + " minDepthBelowSurface=" + minDepthBelowSurface);
-                    }
-                    continue;
-                }
-                IrisObject variant = placement.scaleObject(rng, p.getVariantObject(getData(), rng, proceduralRoom(caveAnchor)), getDimension());
-                if (variant == null) {
-                    if (golden) {
-                        IrisLogging.debug("Goldendebug procedural pick: chunk=" + x + "," + z
-                                + " placement=" + p.getName()
-                                + " densityIndex=" + i
-                                + " variant=null");
-                    }
-                    continue;
-                }
-                int xx = caveAnchor == null ? rng.i(blockX, blockX + 16) : caveAnchor.x();
-                int zz = caveAnchor == null ? rng.i(blockZ, blockZ + 16) : caveAnchor.z();
-                int id = rng.i(0, Integer.MAX_VALUE);
-                if (golden) {
-                    KList<IrisObject> pool = p.getVariantObjects(getData());
-                    IrisLogging.debug("Goldendebug procedural pick: chunk=" + x + "," + z
-                            + " placement=" + p.getName()
-                            + " densityIndex=" + i
-                            + " variant=" + variant.getLoadKey()
-                            + " variantIndex=" + pool.indexOf(variant) + "/" + pool.size()
-                            + " xx=" + xx
-                            + " zz=" + zz
-                            + " mode=" + placement.getMode()
-                            + " carving=" + carving);
-                }
-                try {
-                    int placeResult = -1;
-                    CaveObjectPlacementTransaction.CommitResult commitResult = CaveObjectPlacementTransaction.CommitResult.EMPTY;
-                    int continuation = writer.beginObjectPlacement(placement.waterRule());
-                    if (carving) {
-                        int caveFloorY = caveAnchor.y();
-                        if (golden) {
-                            IrisLogging.debug("Goldendebug procedural caveFloor: chunk=" + x + "," + z
-                                    + " placement=" + p.getName()
-                                    + " xx=" + xx
-                                    + " zz=" + zz
-                                    + " caveFloorY=" + caveFloorY);
-                        }
-                        IrisObjectPlacement effectivePlacement = resolveEffectivePlacement(placement, variant);
-                        ContainedPlacementResult contained = placeContainedCaveObject(
-                                placer,
-                                variant,
-                                xx,
-                                caveFloorY,
-                                zz,
-                                effectivePlacement,
-                                anchorMode == IrisCaveAnchorMode.FLOOR && effectivePlacement.getMode() != ObjectPlaceMode.CEILING_HANG
-                                        ? IrisObjectPlacementAlignment.FLOOR : IrisObjectPlacementAlignment.CENTER,
-                                minDepthBelowSurface,
-                                id,
-                                "procedural",
-                                treePlacement,
-                                rng
-                        );
-                        placeResult = contained.resultY();
-                        commitResult = contained.commitResult();
-                    } else {
-                        if (!allowsObjectPlacement(complex, variant, placement, xx, zz)) {
-                            continue;
-                        }
-                        String marker = placementMarker(variant, id, "procedural");
-                        placeResult = variant.place(xx, zz, placer, placement, rng, (b, data) -> {
-                            if (marker != null) {
-                                placer.setData(b.getX(), b.getY(), b.getZ(), marker);
-                            }
-                            if (treePlacement && marker != null) {
-                                writeTreeMaterial(placer, b.getX(), b.getY(), b.getZ(), data);
-                            }
-                        }, null, getData());
-                    }
-                    if (placeResult >= 0 && (!carving || commitResult == CaveObjectPlacementTransaction.CommitResult.COMMITTED)) {
-                        writer.recordObjectPlacement(continuation);
-                    }
-                    if (golden) {
-                        IrisLogging.debug("Goldendebug procedural result: chunk=" + x + "," + z
-                                + " placement=" + p.getName()
-                                + " variant=" + variant.getLoadKey()
-                                + " xx=" + xx
-                                + " zz=" + zz
-                                + " resultY=" + placeResult
-                                + " commit=" + commitResult);
-                    }
-                } catch (Throwable e) {
-                    GenerationFailures.skipPlacement(e, "procedural object", p.getName(), x << 4, -1, z << 4, scope);
-                } finally {
-                    writer.endObjectPlacement();
-                }
-            }
-        }
-    }
-
-    private SubterrainRoom proceduralRoom(CavePlacementAnchor anchor) {
-        if (anchor == null) {
-            return null;
-        }
-        SubterrainCell cell = getEngineMantle().getEngine().getSubterrainCell(anchor.x(), anchor.y(), anchor.z());
-        return cell == null ? null : cell.room();
-    }
-
-    static boolean passesProceduralChance(RNG rng, double chance) {
-        if (chance <= 0.0) {
-            return false;
-        }
-        if (chance >= 1.0) {
-            return true;
-        }
-        return rng.chance(Math.max(0.0, Math.min(1.0, chance + rng.d(-0.005, 0.005))));
     }
 
     private CavePlacementAnchor findCavePlacementAnchor(
@@ -1849,12 +1624,12 @@ public class MantleObjectComponent extends IrisMantleComponent {
             PlacementReach reach = PlacementReach.NONE;
             for (IrisRegion region : dimension.getAllRegions(dataProvider)) {
                 if (region != null) {
-                    reach = reach.union(placements(region.getObjects())).union(procedural(region.getProceduralObjects()));
+                    reach = reach.union(placements(region.getObjects()));
                 }
             }
             for (IrisBiome biome : dimension.getReachableBiomes(dataProvider)) {
                 if (biome != null) {
-                    reach = reach.union(placements(biome.getObjects())).union(procedural(biome.getProceduralObjects()));
+                    reach = reach.union(placements(biome.getObjects()));
                 }
             }
             return reach.withReadMargin(PlacementReach.supportReadMargin(dimension.getObjectSurfaceSupportBuffer()));
@@ -1926,35 +1701,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 } catch (Throwable e) {
                     GenerationFailures.rethrowEngineFailure(e);
                     IrisLogging.reportError(e);
-                }
-            }
-            return reach;
-        }
-
-        private PlacementReach procedural(IrisProceduralObjects procedural) {
-            PlacementReach reach = PlacementReach.NONE;
-            if (procedural == null || procedural.isEmpty()) {
-                return reach;
-            }
-            for (IrisProceduralPlacement placement : procedural.getAllPlacements()) {
-                if (placement == null) {
-                    continue;
-                }
-                KList<IrisObject> variants = placement.getVariantObjects(dataProvider.getData());
-                if (variants == null) {
-                    continue;
-                }
-                IrisObjectPlacement objectPlacement = placement.asPlacement();
-                KList<PlacementReach.Profile> profiles = profiles(objectPlacement);
-                double scale = objectPlacement.getMaximumScale(dimension);
-                for (IrisObject variant : variants) {
-                    if (variant == null) {
-                        continue;
-                    }
-                    PlacementReach.Extent extent = PlacementReach.Extent.of(variant).scaled(scale);
-                    for (PlacementReach.Profile profile : profiles) {
-                        reach = reach.union(profile.of(extent));
-                    }
                 }
             }
             return reach;

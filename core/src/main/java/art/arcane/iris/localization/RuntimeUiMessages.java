@@ -78,7 +78,10 @@ public final class RuntimeUiMessages {
     public static final TextKey DUST_OBJECTS_IN_CHUNK = TextKey.of("iris.runtime.dust.objects_in_chunk", "Objects in chunk: {objects}");
     public static final TextKey DUST_COPY_BUTTON = TextKey.of("iris.runtime.dust.copy_button", "[Click to copy these stats]");
     public static final TextKey DUST_COPY_HOVER = TextKey.of("iris.runtime.dust.copy_hover", "Copy block stats to clipboard");
-    public static final TextKey STUDIO_APP_NOT_CONFIGURED = TextKey.of("iris.runtime.studio.app_not_configured", "Studio app not set up: point studio.studioApp in iris.json at a studio build.");
+    public static final TextKey STUDIO_APP_DOWNLOAD_OFF = TextKey.of("iris.runtime.studio.app_download_off", "Studio app download is off: set studio.downloadApp to true in iris.json.");
+    public static final TextKey STUDIO_APP_NO_DISPLAY = TextKey.of("iris.runtime.studio.app_no_display", "This server has no display to open the studio app on.");
+    public static final TextKey STUDIO_APP_DOWNLOADING = TextKey.of("iris.runtime.studio.app_downloading", "Studio app is still downloading; try again in a moment.");
+    public static final TextKey STUDIO_APP_UNAVAILABLE = TextKey.of("iris.runtime.studio.app_unavailable", "Studio app unavailable; see the console.");
     public static final TextKey STUDIO_APP_NOT_BUILT = TextKey.of("iris.runtime.studio.app_not_built", "Studio app not built: run npm run build in its folder.");
     public static final TextKey STUDIO_APP_FAILED_TO_START = TextKey.of("iris.runtime.studio.app_failed_to_start", "Studio app failed to start; see the console.");
     public static final TextKey STUDIO_LINK_COPY_BUTTON = TextKey.of("iris.runtime.studio.link_copy_button", "[Copy studio link]");
@@ -201,7 +204,10 @@ public final class RuntimeUiMessages {
             DUST_OBJECTS_IN_CHUNK,
             DUST_COPY_BUTTON,
             DUST_COPY_HOVER,
-            STUDIO_APP_NOT_CONFIGURED,
+            STUDIO_APP_DOWNLOAD_OFF,
+            STUDIO_APP_NO_DISPLAY,
+            STUDIO_APP_DOWNLOADING,
+            STUDIO_APP_UNAVAILABLE,
             STUDIO_APP_NOT_BUILT,
             STUDIO_APP_FAILED_TO_START,
             STUDIO_LINK_COPY_BUTTON,

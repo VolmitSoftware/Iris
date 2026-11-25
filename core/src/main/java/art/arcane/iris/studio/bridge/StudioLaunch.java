@@ -24,7 +24,10 @@ import art.arcane.volmlib.util.localization.TextKey;
 /** How a request to show the studio window ended; every outcome but {@link #OPENED} leaves the bridge link as the only way in. */
 public enum StudioLaunch {
     OPENED(null),
-    NOT_CONFIGURED(RuntimeUiMessages.STUDIO_APP_NOT_CONFIGURED),
+    DOWNLOAD_OFF(RuntimeUiMessages.STUDIO_APP_DOWNLOAD_OFF),
+    NO_DISPLAY(RuntimeUiMessages.STUDIO_APP_NO_DISPLAY),
+    DOWNLOADING(RuntimeUiMessages.STUDIO_APP_DOWNLOADING),
+    UNAVAILABLE(RuntimeUiMessages.STUDIO_APP_UNAVAILABLE),
     NOT_BUILT(RuntimeUiMessages.STUDIO_APP_NOT_BUILT),
     FAILED_TO_START(RuntimeUiMessages.STUDIO_APP_FAILED_TO_START);
 

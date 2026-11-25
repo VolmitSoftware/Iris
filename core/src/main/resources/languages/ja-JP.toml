@@ -1583,7 +1583,10 @@ failed_fragment = "  失敗 {failed}"
 "commandpack.update_world_unchanged" = "§aワールド '{world}' は同じ生成設定の {pack} v{version} を使用しています。再起動は不要です。"
 
 [iris.runtime.studio]
-app_not_configured = "Studio アプリが未設定です: iris.json の studio.studioApp に Studio のビルドを指定してください。"
+app_download_off = "Studio アプリのダウンロードがオフです: iris.json の studio.downloadApp を true にしてください。"
+app_no_display = "このサーバーには Studio アプリを開くディスプレイがありません。"
+app_downloading = "Studio アプリはまだダウンロード中です。少し待ってから再試行してください。"
+app_unavailable = "Studio アプリを利用できません。コンソールを確認してください。"
 app_not_built = "Studio アプリがビルドされていません: そのフォルダで npm run build を実行してください。"
 app_failed_to_start = "Studio アプリを起動できませんでした。コンソールを確認してください。"
 link_copy_button = "[Studio リンクをコピー]"

@@ -1580,7 +1580,10 @@ failed_fragment = "  falhou {failed}"
 "commandpack.update_world_unchanged" = "§aO mundo '{world}' já utiliza {pack} v{version} com as mesmas definições de geração. Não é necessário reiniciar."
 
 [iris.runtime.studio]
-app_not_configured = "A app Studio não está configurada: aponta studio.studioApp no iris.json para uma build do Studio."
+app_download_off = "A transferência da app Studio está desligada: define studio.downloadApp como true no iris.json."
+app_no_display = "Este servidor não tem ecrã onde abrir a app Studio."
+app_downloading = "A app Studio ainda está a ser transferida; tenta novamente daqui a pouco."
+app_unavailable = "A app Studio não está disponível; vê a consola."
 app_not_built = "A app Studio não está compilada: executa npm run build na pasta dela."
 app_failed_to_start = "Não foi possível iniciar a app Studio; vê a consola."
 link_copy_button = "[Copiar link do Studio]"

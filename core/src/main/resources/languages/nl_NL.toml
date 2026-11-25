@@ -1580,7 +1580,10 @@ failed_fragment = "  mislukt {failed}"
 "commandpack.update_world_unchanged" = "§aWereld '{world}' gebruikt al {pack} v{version} met dezelfde generatie-instellingen. Herstarten is niet nodig."
 
 [iris.runtime.studio]
-app_not_configured = "Studio-app niet ingesteld: wijs studio.studioApp in iris.json naar een Studio-build."
+app_download_off = "Download van de Studio-app staat uit: zet studio.downloadApp op true in iris.json."
+app_no_display = "Deze server heeft geen scherm om de Studio-app op te openen."
+app_downloading = "De Studio-app wordt nog gedownload; probeer het zo opnieuw."
+app_unavailable = "Studio-app niet beschikbaar; zie de console."
 app_not_built = "Studio-app niet gebouwd: voer npm run build uit in de map."
 app_failed_to_start = "Studio-app kon niet starten; zie de console."
 link_copy_button = "[Studio-link kopiëren]"

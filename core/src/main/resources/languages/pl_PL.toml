@@ -1585,7 +1585,10 @@ failed_fragment = "  nieudane {failed}"
 "commandpack.update_world_unchanged" = "§aŚwiat '{world}' już używa {pack} v{version} z tymi samymi ustawieniami generowania. Restart nie jest potrzebny."
 
 [iris.runtime.studio]
-app_not_configured = "Aplikacja Studio nie jest skonfigurowana: ustaw studio.studioApp w iris.json na build Studio."
+app_download_off = "Pobieranie aplikacji Studio jest wyłączone: ustaw studio.downloadApp na true w iris.json."
+app_no_display = "Ten serwer nie ma ekranu, na którym można otworzyć aplikację Studio."
+app_downloading = "Aplikacja Studio wciąż się pobiera; spróbuj ponownie za chwilę."
+app_unavailable = "Aplikacja Studio jest niedostępna; sprawdź konsolę."
 app_not_built = "Aplikacja Studio nie jest zbudowana: uruchom npm run build w jej folderze."
 app_failed_to_start = "Nie udało się uruchomić aplikacji Studio; sprawdź konsolę."
 link_copy_button = "[Kopiuj link Studio]"

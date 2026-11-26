@@ -92,11 +92,11 @@ public class ContinentGeneratorTest {
     }
 
     private double[] sampleSharedStyleGenerator(IrisGeneratorStyle style) {
-        return sampleSharedGenerator(style, ContinentGenerator.deriveContinentSeed(new RNG(WORLD_SEED)), packData);
+        return sampleSharedGenerator(style, ContinentGenerator.deriveContinentSeed(new RNG(WORLD_SEED)), PackRuntime.of(packData.getEngine(), packData));
     }
 
     private double[] sampleContinentMap(IrisDimension dimension, double[][] blocks) {
-        return sampleAtBlocks(ContinentGenerator.create(dimension, new RNG(WORLD_SEED), PackRuntime.forContext(packData)), blocks);
+        return sampleAtBlocks(ContinentGenerator.create(dimension, new RNG(WORLD_SEED), PackRuntime.of(packData.getEngine(), packData)), blocks);
     }
 
     private static double[][] shrinkByContinentZoom(double[][] blocks) {

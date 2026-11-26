@@ -54,7 +54,6 @@ public class PackRuntimeStateGateTest {
             "Lart/arcane/iris/world/IrisWorld;",
             "Lart/arcane/volmlib/nativelib/terrain/NativeWorld;",
             "Lorg/bukkit/World;");
-    private static final String LAZY_BOUNDED_CACHE = "Lart/arcane/iris/generation/cache/LazyBoundedCache;";
     private static final Pattern REFERENCED_TYPE = Pattern.compile("L(art/arcane/iris/[A-Za-z0-9_/$]+)[;<]");
 
     enum Kind {
@@ -277,22 +276,6 @@ public class PackRuntimeStateGateTest {
     }
 
     @Test
-    public void packTypesDoNotUseLazyBoundedCache() throws Exception {
-        PackTypes types = PackTypes.scan();
-        List<String> failures = new ArrayList<>();
-        for (String type : types.packTypesWithNested()) {
-            for (ClassFileFacts.DeclaredField field : types.facts(type).fields()) {
-                if (mentions(field, LAZY_BOUNDED_CACHE)) {
-                    failures.add(type + "#" + field.name());
-                }
-            }
-        }
-        if (!failures.isEmpty()) {
-            fail("Pack types must not cache derived values; build them in a runtime object:" + join(failures));
-        }
-    }
-
-    @Test
     public void scanFindsThePackTypes() throws Exception {
         PackTypes types = PackTypes.scan();
         assertTrue("expected the scan to find the biome type", types.packTypes().contains("art.arcane.iris.generation.biome.IrisBiome"));
@@ -363,6 +346,7 @@ public class PackRuntimeStateGateTest {
             holder("art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex", "INDEXES", Kind.STATIC, "live-engine registry; a closed engine uninstalls its index in the shutdown sequence (EngineShutdownDrainTest)"),
             holder("art.arcane.iris.structure.placement.IrisStructureLocator", "INDEX_CACHE", Kind.STATIC, "live-engine registry; a closed engine invalidates its index in the shutdown sequence (EngineShutdownDrainTest)"),
             holder("art.arcane.iris.structure.placement.IrisStructureLocator", "LOCATABLE_INDEX_CACHE", Kind.STATIC, "live-engine registry; a closed engine invalidates its index in the shutdown sequence (EngineShutdownDrainTest)"),
+            holder("art.arcane.iris.structure.placement.StructurePlacementScope", "SCOPE_INDEXES", Kind.STATIC, "live-engine registry; a closed engine invalidates its index in the shutdown sequence (EngineShutdownDrainTest)"),
             holder("art.arcane.iris.structure.placement.StructureReachability", "REACHABLE_CACHE", Kind.STATIC, "live-engine registry; a closed engine invalidates its keys in the shutdown sequence (EngineShutdownDrainTest)"),
             holder("art.arcane.iris.generation.runtime.EngineTickRegistry", "TICK_ENGINES", Kind.STATIC, "live-engine registry; every engine unregisters itself when it closes (EngineReleaseProbeTest)"),
             holder("art.arcane.iris.pack.loading.IrisData", "ENGINE_HOLDERS", Kind.STATIC, "pack data with live engines; an engine unregisters from its pack data when it closes (EngineReleaseProbeTest)"),

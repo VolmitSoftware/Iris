@@ -2,6 +2,7 @@ package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex;
 import art.arcane.iris.structure.placement.StructureReachability;
+import art.arcane.iris.structure.placement.StructurePlacementScope;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.EngineRuntimeBuilder.RuntimeAssembly;
@@ -144,6 +145,7 @@ public class EngineShutdownDrainTest {
         try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class);
              MockedStatic<IrisStructureLocator> locator = mockStatic(IrisStructureLocator.class);
              MockedStatic<StructureReachability> reachability = mockStatic(StructureReachability.class);
+             MockedStatic<StructurePlacementScope> scopes = mockStatic(StructurePlacementScope.class);
              MockedStatic<NativeStructureVolumeIndex> volumes = mockStatic(NativeStructureVolumeIndex.class)) {
             fixture.shutdown.close();
 
@@ -151,6 +153,7 @@ public class EngineShutdownDrainTest {
             ownership.verify(() -> NativeStructureOwnershipStore.release(fixture.engine));
             locator.verify(() -> IrisStructureLocator.invalidate(fixture.engine));
             reachability.verify(() -> StructureReachability.invalidate(fixture.engine));
+            scopes.verify(() -> StructurePlacementScope.invalidate(fixture.engine));
             volumes.verify(() -> NativeStructureVolumeIndex.uninstall(fixture.engine));
         }
     }

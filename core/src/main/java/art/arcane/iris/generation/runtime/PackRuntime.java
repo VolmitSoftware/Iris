@@ -137,14 +137,6 @@ public final class PackRuntime {
         return of(engine, engine.getData());
     }
 
-    /**
-     * The scope for a pack object whose class still finds its engine through the pack data's context. Each use is a
-     * caller that has not been handed its runtime scope yet.
-     */
-    public static PackRuntime forContext(IrisData data) {
-        return of(data == null ? null : data.getEngine(), data);
-    }
-
     /** The owning engine, or null for an engine-less scope. */
     public Engine engine() {
         return engine;

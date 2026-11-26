@@ -20,6 +20,7 @@ package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex;
 import art.arcane.iris.structure.placement.StructureReachability;
+import art.arcane.iris.structure.placement.StructurePlacementScope;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.EngineBackgroundTasks.BackgroundTaskDrain;
@@ -215,6 +216,7 @@ final class EngineShutdownSequence {
     private void releaseStructureRegistries() {
         NativeStructureOwnershipStore.release(engine);
         IrisStructureLocator.invalidate(engine);
+        StructurePlacementScope.invalidate(engine);
         StructureReachability.invalidate(engine);
         NativeStructureVolumeIndex.uninstall(engine);
     }

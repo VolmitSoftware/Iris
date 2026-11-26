@@ -39,7 +39,7 @@ public class IrisBiomeChildrenGeneratorTest {
     }
 
     private double[] sampleSharedChildStyleGenerator(IrisGeneratorStyle childStyle) {
-        return sampleSharedGenerator(childStyle, deriveSharedChildStyleSeed(), packData);
+        return sampleSharedGenerator(childStyle, deriveSharedChildStyleSeed(), PackRuntime.of(packData.getEngine(), packData));
     }
 
     private static RNG deriveSharedChildStyleSeed() {

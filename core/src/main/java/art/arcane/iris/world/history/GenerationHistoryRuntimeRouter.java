@@ -1,5 +1,6 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.generation.runtime.ThreadSlots;
 import art.arcane.volmlib.nativelib.terrain.NativeGenerationRoute;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockPositionPredicate;
 
@@ -49,7 +50,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
     private final ReentrantLock stateLock;
     private final Condition inactive;
     private final ThreadLocal<Integer> operationDepth;
-    private final ThreadLocal<RuntimeRoute> scopedRoute;
+    private final ThreadSlots<RuntimeRoute> scopedRoute;
     private int activeOperations;
     private int activeLoads;
     private boolean closed;
@@ -72,7 +73,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         this.stateLock = new ReentrantLock();
         this.inactive = stateLock.newCondition();
         this.operationDepth = ThreadLocal.withInitial(() -> 0);
-        this.scopedRoute = new ThreadLocal<>();
+        this.scopedRoute = ThreadSlots.bindings();
         this.biomes = new SavedBiomeRuntime(engine, history);
         this.objectContinuations = new HistoricalObjectContinuations(history, this::readObjectContinuationRegion);
 

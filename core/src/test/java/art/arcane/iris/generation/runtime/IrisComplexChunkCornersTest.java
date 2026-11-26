@@ -171,7 +171,7 @@ public class IrisComplexChunkCornersTest {
         Class<?> cacheClass = Class.forName("art.arcane.iris.generation.runtime.IrisComplex$GridBoundsCache");
         Constructor<?> cacheConstructor = cacheClass.getDeclaredConstructor();
         cacheConstructor.setAccessible(true);
-        setField(complex, "gridBoundsCache", ThreadLocal.withInitial(() -> newCache(cacheConstructor)));
+        setField(complex, "gridBoundsCache", new ThreadSlots<>(() -> newCache(cacheConstructor)));
         return complex;
     }
 

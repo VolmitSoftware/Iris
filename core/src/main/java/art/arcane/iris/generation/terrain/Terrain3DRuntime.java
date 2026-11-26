@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.runtime.ThreadSlots;
 import art.arcane.iris.generation.cache.ConcurrentClockCache;
 import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -33,7 +34,7 @@ public final class Terrain3DRuntime {
     private final Terrain3DFragmentFilter fragments;
     private final Object profileLock = new Object();
     private volatile Map<IrisTerrain3D, CompiledProfile> profiles = new IdentityHashMap<>();
-    private final ThreadLocal<ColumnMemo> localColumn = ThreadLocal.withInitial(ColumnMemo::new);
+    private final ThreadSlots<ColumnMemo> localColumn = new ThreadSlots<>(ColumnMemo::new);
     private volatile Object cacheGeneration = new Object();
 
     public Terrain3DRuntime(Sources sources, Options options) {

@@ -18,6 +18,10 @@
 
 package art.arcane.iris.generation.runtime;
 
+import static org.junit.Assert.assertNull;
+import java.util.concurrent.CountDownLatch;
+import java.util.List;
+import java.util.ArrayList;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -69,6 +73,51 @@ public class ThreadSlotsTest {
 
         assertEquals(THREAD_CHURN, created.get());
         assertEquals("The table must stay at its fixed size", 256, slotCount(slots));
+    }
+
+    @Test
+    public void bindingsStayUnsetUntilBoundAndClearOnRemove() {
+        ThreadSlots<Object> bindings = ThreadSlots.bindings();
+        Object value = new Object();
+
+        assertNull(bindings.get());
+        bindings.set(value);
+        assertSame(value, bindings.get());
+        bindings.remove();
+        assertNull(bindings.get());
+    }
+
+    @Test
+    public void liveThreadsBeyondTheProbedSlotsKeepTheirValues() throws Exception {
+        ThreadSlots<Object> slots = new ThreadSlots<>(Object::new);
+        int threads = 300;
+        CountDownLatch filled = new CountDownLatch(threads);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger lost = new AtomicInteger();
+        List<Thread> workers = new ArrayList<>();
+        for (int index = 0; index < threads; index++) {
+            Thread worker = new Thread(() -> {
+                Object first = slots.get();
+                filled.countDown();
+                try {
+                    release.await();
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                }
+                if (slots.get() != first) {
+                    lost.incrementAndGet();
+                }
+            });
+            workers.add(worker);
+            worker.start();
+        }
+        filled.await();
+        release.countDown();
+        for (Thread worker : workers) {
+            worker.join();
+        }
+
+        assertEquals(0, lost.get());
     }
 
     private static int slotCount(ThreadSlots<?> slots) throws ReflectiveOperationException {

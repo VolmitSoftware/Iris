@@ -472,12 +472,12 @@ public class IrisDimensionCarvingResolverParityTest {
     }
 
     @Test(timeout = 20_000L)
-    public void longLivedWorkerDoesNotRetainPopulatedThreadLocalStateOrEngine() throws Exception {
+    public void longLivedWorkerDoesNotRetainPopulatedResolverStateOrEngine() throws Exception {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         CountDownLatch blockerStarted = new CountDownLatch(1);
         CountDownLatch releaseBlocker = new CountDownLatch(1);
         try {
-            LifetimeReferences references = executor.submit(this::populateThreadLocalLifetimeReferences).get();
+            LifetimeReferences references = executor.submit(this::populateResolverStateLifetimeReferences).get();
             Future<?> blocker = executor.submit(() -> {
                 blockerStarted.countDown();
                 releaseBlocker.await();
@@ -496,31 +496,22 @@ public class IrisDimensionCarvingResolverParityTest {
         }
     }
 
-    private LifetimeReferences populateThreadLocalLifetimeReferences() throws Exception {
+    private LifetimeReferences populateResolverStateLifetimeReferences() throws Exception {
         RetainedFixture fixture = createRetainedFixture();
         assertNotNull(IrisDimensionCarvingResolver.resolveRootEntry(fixture.engine(), 80));
 
-        Field threadStateField = IrisDimensionCarvingResolver.class.getDeclaredField("THREAD_STATE");
-        threadStateField.setAccessible(true);
-        ThreadLocal<?> threadState = (ThreadLocal<?>) threadStateField.get(null);
-        Object value = threadState.get();
-        assertTrue(value instanceof WeakReference<?>);
-        @SuppressWarnings("unchecked")
-        WeakReference<IrisDimensionCarvingResolver.State> state =
-                (WeakReference<IrisDimensionCarvingResolver.State>) value;
-        IrisDimensionCarvingResolver.State populatedState = state.get();
-        assertNotNull(populatedState);
+        IrisDimensionCarvingResolver.State populatedState = fixture.engine().getPackRuntime().carvingResolverState();
         Field biomeCacheField = IrisDimensionCarvingResolver.State.class.getDeclaredField("biomeCache");
         biomeCacheField.setAccessible(true);
         assertFalse(((Map<?, ?>) biomeCacheField.get(populatedState)).isEmpty());
         return new LifetimeReferences(
-                state,
+                new WeakReference<>(populatedState),
                 new WeakReference<>(fixture.engine()));
     }
 
     private static void awaitCollection(LifetimeReferences references) {
         AtomicInteger attempt = new AtomicInteger();
-        Await.reached("the thread-local State and Engine to be collected", Duration.ofSeconds(5L), () -> {
+        Await.reached("the resolver State and Engine to be collected", Duration.ofSeconds(5L), () -> {
             System.gc();
             if (references.state().get() == null
                     && references.engine().get() == null) {
@@ -530,7 +521,7 @@ public class IrisDimensionCarvingResolverParityTest {
             pressure[0] = (byte) attempt.incrementAndGet();
             return false;
         });
-        assertTrue("Thread-local State was retained", references.state().get() == null);
+        assertTrue("Resolver State was retained", references.state().get() == null);
         assertTrue("Engine was retained", references.engine().get() == null);
     }
 
@@ -566,17 +557,20 @@ public class IrisDimensionCarvingResolverParityTest {
         IrisDimension dimension = new IrisDimension();
         dimension.setCarving(carvingEntries);
 
+        AtomicReference<PackRuntime> runtime = new AtomicReference<>();
         Engine engine = (Engine) Proxy.newProxyInstance(
                 Engine.class.getClassLoader(),
                 new Class<?>[]{Engine.class},
                 (proxy, method, arguments) -> switch (method.getName()) {
                     case "getDimension" -> dimension;
                     case "getData" -> data;
+                    case "getPackRuntime" -> runtime.get();
                     case "hashCode" -> System.identityHashCode(proxy);
                     case "equals" -> proxy == arguments[0];
                     case "toString" -> "carving-retention-test-engine";
                     default -> throw new UnsupportedOperationException(method.toString());
                 });
+        runtime.set(PackRuntime.forEngine(engine, data));
         return new RetainedFixture(engine, entry);
     }
 

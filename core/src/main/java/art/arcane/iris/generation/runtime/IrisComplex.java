@@ -155,9 +155,9 @@ public class IrisComplex implements DataProvider {
             InferredType.SHORE
     };
     @Getter(AccessLevel.NONE)
-    private final transient ThreadLocal<GridBoundsCache> gridBoundsCache = ThreadLocal.withInitial(GridBoundsCache::new);
+    private final transient ThreadSlots<GridBoundsCache> gridBoundsCache = new ThreadSlots<>(GridBoundsCache::new);
     @Getter(AccessLevel.NONE)
-    private final transient ThreadLocal<EffectiveWater.Chunks> effectiveChunks = ThreadLocal.withInitial(EffectiveWater.Chunks::new);
+    private final transient ThreadSlots<EffectiveWater.Chunks> effectiveChunks = new ThreadSlots<>(EffectiveWater.Chunks::new);
     @Getter(AccessLevel.NONE)
     private final int biomeBoundsSamplingStep;
     private transient volatile SharedCornerBounds sharedCornerBounds;

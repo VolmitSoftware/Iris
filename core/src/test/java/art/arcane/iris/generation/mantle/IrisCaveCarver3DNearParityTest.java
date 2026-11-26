@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.generation.runtime.ThreadSlots;
 import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
@@ -378,7 +379,7 @@ public class IrisCaveCarver3DNearParityTest {
             }
             Field scratchField = IrisCaveCarver3D.class.getDeclaredField("scratchCache");
             scratchField.setAccessible(true);
-            ThreadLocal<?> scratchCache = (ThreadLocal<?>) scratchField.get(carver);
+            ThreadSlots<?> scratchCache = (ThreadSlots<?>) scratchField.get(carver);
             CaveCarveScratch scratch = (CaveCarveScratch) scratchCache.get();
             assertTrue(scratch.sectionMatter.length > 0);
             for (Matter matter : scratch.sectionMatter) {

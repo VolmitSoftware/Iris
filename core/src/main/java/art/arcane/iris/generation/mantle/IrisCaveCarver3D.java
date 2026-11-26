@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.generation.runtime.ThreadSlots;
 import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
@@ -111,7 +112,7 @@ public class IrisCaveCarver3D {
     private final int worldMinimumY;
     private final int densityMaximumY;
     private final ThreadLocal<Boolean> carving = ThreadLocal.withInitial(() -> false);
-    private final ThreadLocal<CaveCarveScratch> scratchCache = ThreadLocal.withInitial(CaveCarveScratch::new);
+    private final ThreadSlots<CaveCarveScratch> scratchCache = new ThreadSlots<>(CaveCarveScratch::new);
     private final CaveDensityGrid densityGrid;
     private final CaveDensityGrid.Owner densityOwner;
     private final CaveDensityGrid.Owner warpOwner;

@@ -111,7 +111,7 @@ public class IrisCaveCarver3D {
     private final int verticalDensityStep;
     private final int worldMinimumY;
     private final int densityMaximumY;
-    private final ThreadLocal<Boolean> carving = ThreadLocal.withInitial(() -> false);
+    private final ThreadSlots<Boolean> carving = new ThreadSlots<>(() -> false);
     private final ThreadSlots<CaveCarveScratch> scratchCache = new ThreadSlots<>(CaveCarveScratch::new);
     private final CaveDensityGrid densityGrid;
     private final CaveDensityGrid.Owner densityOwner;

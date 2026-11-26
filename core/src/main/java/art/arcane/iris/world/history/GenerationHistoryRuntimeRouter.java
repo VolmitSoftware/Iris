@@ -49,7 +49,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
     private final Map<Long, SavedMantleEntry> savedMantles = new LinkedHashMap<>();
     private final ReentrantLock stateLock;
     private final Condition inactive;
-    private final ThreadLocal<Integer> operationDepth;
+    private final ThreadSlots<Integer> operationDepth;
     private final ThreadSlots<RuntimeRoute> scopedRoute;
     private int activeOperations;
     private int activeLoads;
@@ -72,7 +72,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         this.retiringBindings = new LinkedHashMap<>();
         this.stateLock = new ReentrantLock();
         this.inactive = stateLock.newCondition();
-        this.operationDepth = ThreadLocal.withInitial(() -> 0);
+        this.operationDepth = new ThreadSlots<>(() -> 0);
         this.scopedRoute = ThreadSlots.bindings();
         this.biomes = new SavedBiomeRuntime(engine, history);
         this.objectContinuations = new HistoricalObjectContinuations(history, this::readObjectContinuationRegion);

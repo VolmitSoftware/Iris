@@ -231,6 +231,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         } finally {
             getEngine().getMetrics().getCave().put(caveStopwatch.getMilliseconds());
             mantleChunk.release();
+            scratch.releaseReferences();
         }
     }
 

@@ -7,12 +7,9 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.testsupport.ExpectedToFailUntilFixed;
-import art.arcane.iris.testsupport.ExpectedToFailUntilFixedRule;
 import art.arcane.iris.testsupport.IrisRuntimeState;
 import com.sun.management.HotSpotDiagnosticMXBean;
 import org.junit.After;
-import org.junit.Rule;
 import org.junit.Test;
 
 import java.lang.management.ManagementFactory;
@@ -45,16 +42,12 @@ public class EngineReleaseProbeTest {
     private static final long WORKER_TASK_TIMEOUT_SECONDS = 60L;
     private static final String HEAP_DUMP_ENVIRONMENT = "IRIS_ENGINE_RELEASE_HEAP_DUMP";
 
-    @Rule
-    public final ExpectedToFailUntilFixedRule expectedFailures = new ExpectedToFailUntilFixedRule();
-
     @After
     public void resetRuntime() {
         IrisRuntimeState.reset();
     }
 
     @Test(timeout = 300_000)
-    @ExpectedToFailUntilFixed("pack objects and worker threads still cache engine-derived state")
     public void closedEngineIsCollectableWhilePackObjectsAndWorkersStayAlive() throws Exception {
         List<Object> survivingPackObjects = new ArrayList<>();
         WeakReference<Engine> closedEngine;

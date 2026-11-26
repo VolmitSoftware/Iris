@@ -85,7 +85,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     @Setter(AccessLevel.NONE)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private final ThreadLocal<Integer> activeComponentPriority = new ThreadLocal<>();
+    private final ThreadSlots<Integer> activeComponentPriority = ThreadSlots.bindings();
     @Getter(AccessLevel.NONE)
     private final ThreadSlots<ObjectPlacementCapture> objectPlacementCapture = ThreadSlots.bindings();
     @Getter(AccessLevel.NONE)

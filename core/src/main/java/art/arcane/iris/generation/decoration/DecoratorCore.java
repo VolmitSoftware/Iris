@@ -47,6 +47,7 @@ final class DecoratorCore {
     private static volatile NativeBlockState twistingVines;
     private static volatile NativeBlockState twistingVinesPlant;
 
+    /** Per-thread placement options; callers clear the mantle reference once a placement returns. */
     static final ThreadLocal<PlaceOpts> SCRATCH_OPTS = ThreadLocal.withInitial(PlaceOpts::new);
 
 

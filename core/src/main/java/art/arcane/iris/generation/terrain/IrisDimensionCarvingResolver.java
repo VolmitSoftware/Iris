@@ -313,7 +313,7 @@ public final class IrisDimensionCarvingResolver {
     }
 
     /** The calling thread's resolver state for this engine; engines without a pack runtime resolve unmemoized. */
-    private static State threadState(Engine engine) {
+    public static State threadState(Engine engine) {
         PackRuntime runtime = engine.getPackRuntime();
         return runtime == null ? new State() : runtime.carvingResolverState();
     }

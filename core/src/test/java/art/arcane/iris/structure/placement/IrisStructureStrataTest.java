@@ -114,7 +114,7 @@ public class IrisStructureStrataTest {
         when(biome.getSurfaceOreBands()).thenReturn(IrisOreBands.EMPTY);
         when(biome.getUndergroundOreBands()).thenReturn(bands);
         when(bands.contains(anyInt())).thenReturn(true);
-        when(bands.generate(eq(3), eq(40 - MIN_HEIGHT), eq(5), any(RNG.class), eq(data), any())).thenReturn(coal);
+        when(bands.generate(eq(3), eq(40 - MIN_HEIGHT), eq(5), any(RNG.class), MockPackData.runtimeOf(data))).thenReturn(coal);
 
         StructureStrata.Column column = IrisStructureStrata.world(engine).column(3, 5, 90, false);
 

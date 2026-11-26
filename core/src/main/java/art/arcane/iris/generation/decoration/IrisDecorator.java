@@ -21,7 +21,6 @@ package art.arcane.iris.generation.decoration;
 import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -53,8 +52,6 @@ import lombok.experimental.Accessors;
 @Description("A biome decorator is used for placing flowers, grass, cacti and so on")
 @Data
 public class IrisDecorator {
-    private final transient LazyBoundedCache<GeneratorKey, Generators> generators = new LazyBoundedCache<>(32);
-    private transient volatile Generators recentGenerators;
     private final transient AtomicCache<KList<NativeBlockState>> blockData = new AtomicCache<>();
     private final transient AtomicCache<KList<NativeBlockState>> blockDataTops = new AtomicCache<>();
     private final transient AtomicCache<NativeBlockState[]> blockDataArray = new AtomicCache<>();
@@ -119,50 +116,39 @@ public class IrisDecorator {
     @Description("When the stack passes the top threshold, the top palette will start being used instead of the normal palette.")
     private double topThreshold = 1.0;
 
-    public int getHeight(RNG rng, double x, double z, IrisData data) {
+    public int getHeight(RNG rng, double x, double z, PackRuntime runtime) {
         if (stackMin == stackMax) {
             return stackMin;
         }
 
-        return getHeightGenerator(rng, data)
+        return getHeightGenerator(rng, runtime)
                 .fit(stackMin, stackMax,
                         x / heightVariance.getZoom(),
                         z / heightVariance.getZoom());
     }
 
-    public CNG getHeightGenerator(RNG rng, IrisData data) {
-        AtomicCache<CNG> cache = generators(rng, data).height;
-        CNG cached = cache.getIfPresent();
-        return cached != null ? cached : cache.aquire(() ->
-                heightVariance.create(rng.nextParallelRNG(getBlockData(data).size() + stackMax + stackMin), PackRuntime.forContext(data)));
+    public CNG getHeightGenerator(RNG rng, PackRuntime runtime) {
+        return runtime.decorator(this).heightGenerator(rng.getSeed());
     }
 
-    public CNG getGenerator(RNG rng, IrisData data) {
-        AtomicCache<CNG> cache = generators(rng, data).layer;
-        CNG cached = cache.getIfPresent();
-        return cached != null ? cached : cache.aquire(() -> style.create(rng.nextParallelRNG(getBlockData(data).size()), PackRuntime.forContext(data)));
+    public CNG getGenerator(RNG rng, PackRuntime runtime) {
+        return runtime.decorator(this).layerGenerator(rng.getSeed());
     }
 
-    public CNG getVarianceGenerator(RNG rng, IrisData data) {
-        AtomicCache<CNG> cache = generators(rng, data).variance;
-        CNG cached = cache.getIfPresent();
-        return cached != null ? cached : cache.aquire(() -> createVarianceGenerator(rng, data));
+    public CNG getVarianceGenerator(RNG rng, PackRuntime runtime) {
+        return runtime.decorator(this).varianceGenerator(rng.getSeed());
     }
 
-    private Generators generators(RNG rng, IrisData data) {
-        long seed = rng.getSeed();
-        Engine engine = data == null ? null : data.getEngine();
-        Generators recent = recentGenerators;
-        if (recent != null && recent.key.seed == seed && recent.key.data == data && recent.key.engine == engine) {
-            return recent;
-        }
-        Generators selected = generators.computeIfAbsent(new GeneratorKey(seed, data, engine), Generators::new);
-        recentGenerators = selected;
-        return selected;
+    public CNG createHeightGenerator(long seed, PackRuntime runtime) {
+        return heightVariance.create(new RNG(seed).nextParallelRNG(getBlockData(runtime.data()).size() + stackMax + stackMin), runtime);
     }
 
-    private CNG createVarianceGenerator(RNG rng, IrisData data) {
-        return variance.createNoCache(deriveVarianceSeed(rng, data), PackRuntime.forContext(data)).scale(1D / variance.getZoom());
+    public CNG createLayerGenerator(long seed, PackRuntime runtime) {
+        return style.create(new RNG(seed).nextParallelRNG(getBlockData(runtime.data()).size()), runtime);
+    }
+
+    public CNG createVarianceGenerator(long seed, PackRuntime runtime) {
+        return variance.createNoCache(deriveVarianceSeed(new RNG(seed), runtime.data()), runtime).scale(1D / variance.getZoom());
     }
 
     RNG deriveVarianceSeed(RNG rng, IrisData data) {
@@ -174,27 +160,27 @@ public class IrisDecorator {
         return palette;
     }
 
-    public boolean passesChanceGate(RNG rng, double x, double z, IrisData data) {
-        if (getBlockData(data).isEmpty()) {
+    public boolean passesChanceGate(RNG rng, double x, double z, PackRuntime runtime) {
+        if (getBlockData(runtime.data()).isEmpty()) {
             return false;
         }
         double xx = x / style.getZoom();
         double zz = z / style.getZoom();
-        return getGenerator(rng, data).fitDouble(0D, 1D, xx, zz) <= chance;
+        return getGenerator(rng, runtime).fitDouble(0D, 1D, xx, zz) <= chance;
     }
 
-    public NativeBlockState getBlockData(IrisBiome b, RNG rng, double x, double z, IrisData data) {
-        if (!passesChanceGate(rng, x, z, data)) {
+    public NativeBlockState getBlockData(IrisBiome b, RNG rng, double x, double z, PackRuntime runtime) {
+        if (!passesChanceGate(rng, x, z, runtime)) {
             return null;
         }
-        if (getBlockData(data).size() == 1) {
-            return getBlockData(data).get(0);
+        if (getBlockData(runtime.data()).size() == 1) {
+            return getBlockData(runtime.data()).get(0);
         }
-        return getVarianceGenerator(rng, data).fit(getBlockData(data), z, x);
+        return getVarianceGenerator(rng, runtime).fit(getBlockData(runtime.data()), z, x);
     }
 
-    public NativeBlockState getBlockData100(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
-        KList<NativeBlockState> palette = getBlockData(data);
+    public NativeBlockState getBlockData100(IrisBiome b, RNG rng, double x, double y, double z, PackRuntime runtime) {
+        KList<NativeBlockState> palette = getBlockData(runtime.data());
         if (palette.isEmpty()) {
             IrisLogging.warnOnce("decorator-empty:" + b.getName(), "Empty Block Data for " + b.getName());
             return null;
@@ -204,24 +190,24 @@ public class IrisDecorator {
             return palette.get(0);
         }
 
-        return getVarianceGenerator(rng, data).fit(palette, z, y, x); //X and Z must be switched
+        return getVarianceGenerator(rng, runtime).fit(palette, z, y, x); //X and Z must be switched
     }
 
-    public NativeBlockState getBlockDataForTop(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
-        KList<NativeBlockState> topPalette = getBlockDataTops(data);
+    public NativeBlockState getBlockDataForTop(IrisBiome b, RNG rng, double x, double y, double z, PackRuntime runtime) {
+        KList<NativeBlockState> topPalette = getBlockDataTops(runtime.data());
         if (topPalette.isEmpty()) {
-            return getBlockData100(b, rng, x, y, z, data);
+            return getBlockData100(b, rng, x, y, z, runtime);
         }
 
         double xx = x / style.getZoom();
         double zz = z / style.getZoom();
 
-        if (getGenerator(rng, data).fitDouble(0D, 1D, xx, zz) <= chance) { //Exclude y from here
+        if (getGenerator(rng, runtime).fitDouble(0D, 1D, xx, zz) <= chance) { //Exclude y from here
             if (topPalette.size() == 1) {
                 return topPalette.get(0);
             }
 
-            return getVarianceGenerator(rng, data).fit(topPalette, z, y, x); //X and Z must be switched
+            return getVarianceGenerator(rng, runtime).fit(topPalette, z, y, x); //X and Z must be switched
         }
 
         return null;
@@ -337,55 +323,30 @@ public class IrisDecorator {
         return resolved;
     }
 
-    public NativeBlockState pickBlockData(RNG rng, IrisData data, double x, double z) {
-        NativeBlockState[] arr = getBlockDataArray(data);
+    public NativeBlockState pickBlockData(RNG rng, PackRuntime runtime, double x, double z) {
+        NativeBlockState[] arr = getBlockDataArray(runtime.data());
         if (arr.length == 0) {
             return null;
         }
         if (arr.length == 1) {
             return arr[0];
         }
-        return arr[Math.abs((int) getVarianceGenerator(rng, data).fit(0, arr.length - 1, z, x))];
+        return arr[Math.abs((int) getVarianceGenerator(rng, runtime).fit(0, arr.length - 1, z, x))];
     }
 
-    public NativeBlockState pickBlockDataTop(RNG rng, IrisData data, double x, double z) {
-        NativeBlockState[] arr = getBlockDataTopsArray(data);
+    public NativeBlockState pickBlockDataTop(RNG rng, PackRuntime runtime, double x, double z) {
+        NativeBlockState[] arr = getBlockDataTopsArray(runtime.data());
         if (arr.length == 0) {
-            return pickBlockData(rng, data, x, z);
+            return pickBlockData(rng, runtime, x, z);
         }
         if (arr.length == 1) {
             return arr[0];
         }
-        return arr[Math.abs((int) getVarianceGenerator(rng, data).fit(0, arr.length - 1, z, x))];
+        return arr[Math.abs((int) getVarianceGenerator(rng, runtime).fit(0, arr.length - 1, z, x))];
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isStacking() {
         return getStackMax() > 1;
-    }
-
-    private static final class Generators {
-        private final GeneratorKey key;
-        private final AtomicCache<CNG> layer = new AtomicCache<>();
-        private final AtomicCache<CNG> variance = new AtomicCache<>();
-        private final AtomicCache<CNG> height = new AtomicCache<>();
-
-        private Generators(GeneratorKey key) {
-            this.key = key;
-        }
-    }
-
-    private record GeneratorKey(long seed, IrisData data, Engine engine) {
-        @Override
-        public boolean equals(Object other) {
-            return other instanceof GeneratorKey key
-                    && seed == key.seed && data == key.data && engine == key.engine;
-        }
-
-        @Override
-        public int hashCode() {
-            return 31 * (31 * Long.hashCode(seed) + System.identityHashCode(data))
-                    + System.identityHashCode(engine);
-        }
     }
 }

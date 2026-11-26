@@ -145,7 +145,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         private final IrisDimension dimension;
         private final IrisData data;
         private final PackRuntime runtime;
-        private final Engine oreEngine;
         private final IrisComplex complex;
         private final ProceduralStream<Double> waterHeadStream;
         private final ProceduralStream<WaterRole> waterRoleStream;
@@ -184,7 +183,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             dimension = getDimension();
             data = getData();
             runtime = PackRuntime.of(getEngine(), data);
-            oreEngine = data == null ? null : data.getEngine();
             complex = getComplex();
             waterHeadStream = complex.getWaterHeadStream();
             waterRoleStream = complex.getWaterRoleStream();
@@ -437,13 +435,13 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         private NativeBlockState surfaceOre(int realX, int y, int realZ) {
             NativeBlockState ore = null;
             if (biomeSurfaceOres.contains(y)) {
-                ore = biomeSurfaceOres.generate(realX, y, realZ, rng, data, oreEngine);
+                ore = biomeSurfaceOres.generate(realX, y, realZ, rng, runtime);
             }
             if (ore == null && regionSurfaceOres.contains(y)) {
-                ore = regionSurfaceOres.generate(realX, y, realZ, rng, data, oreEngine);
+                ore = regionSurfaceOres.generate(realX, y, realZ, rng, runtime);
             }
             if (ore == null && dimensionSurfaceOres.contains(y)) {
-                ore = dimensionSurfaceOres.generate(realX, y, realZ, rng, data, oreEngine);
+                ore = dimensionSurfaceOres.generate(realX, y, realZ, rng, runtime);
             }
             return ore;
         }
@@ -451,13 +449,13 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         private NativeBlockState undergroundOre(int realX, int y, int realZ) {
             NativeBlockState ore = null;
             if (biomeUndergroundOres.contains(y)) {
-                ore = biomeUndergroundOres.generate(realX, y, realZ, rng, data, oreEngine);
+                ore = biomeUndergroundOres.generate(realX, y, realZ, rng, runtime);
             }
             if (ore == null && regionUndergroundOres.contains(y)) {
-                ore = regionUndergroundOres.generate(realX, y, realZ, rng, data, oreEngine);
+                ore = regionUndergroundOres.generate(realX, y, realZ, rng, runtime);
             }
             if (ore == null && dimensionUndergroundOres.contains(y)) {
-                ore = dimensionUndergroundOres.generate(realX, y, realZ, rng, data, oreEngine);
+                ore = dimensionUndergroundOres.generate(realX, y, realZ, rng, runtime);
             }
             return ore;
         }

@@ -359,7 +359,7 @@ public class IrisTerrainNormalActuatorColumnParityTest {
 
         private NativeBlockState scan(KList<IrisOreGenerator> ores, int x, int y, int z) {
             for (IrisOreGenerator ore : ores) {
-                NativeBlockState state = ore.generate(x, y, z, rng, data);
+                NativeBlockState state = ore.generate(x, y, z, rng, PackRuntime.standalone(data));
                 if (state != null) {
                     return state;
                 }

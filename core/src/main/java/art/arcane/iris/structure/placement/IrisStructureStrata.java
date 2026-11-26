@@ -123,13 +123,13 @@ public final class IrisStructureStrata implements StructureStrata {
         private NativeBlockState ore(IrisOreBands first, IrisOreBands second, IrisOreBands third, int internalY) {
             NativeBlockState ore = null;
             if (first.contains(internalY)) {
-                ore = first.generate(x, internalY, z, rng, data, data == null ? null : data.getEngine());
+                ore = first.generate(x, internalY, z, rng, runtime);
             }
             if (ore == null && second.contains(internalY)) {
-                ore = second.generate(x, internalY, z, rng, data, data == null ? null : data.getEngine());
+                ore = second.generate(x, internalY, z, rng, runtime);
             }
             if (ore == null && third.contains(internalY)) {
-                ore = third.generate(x, internalY, z, rng, data, data == null ? null : data.getEngine());
+                ore = third.generate(x, internalY, z, rng, runtime);
             }
             return ore;
         }

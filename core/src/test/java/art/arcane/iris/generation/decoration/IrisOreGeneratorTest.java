@@ -26,7 +26,7 @@ public class IrisOreGeneratorTest {
         Fixture fixture = new Fixture(0.0);
         fixture.generator.setThreshold(0.0);
 
-        assertNull(fixture.generator.generate(2, 40, 3, fixture.rng, null));
+        assertNull(fixture.generator.generate(2, 40, 3, fixture.rng, PackRuntime.standalone(null)));
         verifyNoInteractions(fixture.noise, fixture.style);
     }
 
@@ -35,12 +35,12 @@ public class IrisOreGeneratorTest {
         Fixture fixture = new Fixture(0.5);
         fixture.generator.setThreshold(0.5);
 
-        assertSame(fixture.ore, fixture.generator.generate(2, 30, 3, fixture.rng, null));
-        assertSame(fixture.ore, fixture.generator.generate(2, 80, 3, fixture.rng, null));
-        assertNull(fixture.generator.generate(2, 29, 3, fixture.rng, null));
-        assertNull(fixture.generator.generate(2, 81, 3, fixture.rng, null));
+        assertSame(fixture.ore, fixture.generator.generate(2, 30, 3, fixture.rng, PackRuntime.standalone(null)));
+        assertSame(fixture.ore, fixture.generator.generate(2, 80, 3, fixture.rng, PackRuntime.standalone(null)));
+        assertNull(fixture.generator.generate(2, 29, 3, fixture.rng, PackRuntime.standalone(null)));
+        assertNull(fixture.generator.generate(2, 81, 3, fixture.rng, PackRuntime.standalone(null)));
         fixture.generator.setThreshold(0.49);
-        assertNull(fixture.generator.generate(2, 40, 3, fixture.rng, null));
+        assertNull(fixture.generator.generate(2, 40, 3, fixture.rng, PackRuntime.standalone(null)));
     }
 
     @Test
@@ -48,7 +48,7 @@ public class IrisOreGeneratorTest {
         Fixture fixture = new Fixture(1.0);
         fixture.generator.setThreshold(1.0);
 
-        assertSame(fixture.ore, fixture.generator.generate(2, 40, 3, fixture.rng, null));
+        assertSame(fixture.ore, fixture.generator.generate(2, 40, 3, fixture.rng, PackRuntime.standalone(null)));
     }
 
     private static final class Fixture {

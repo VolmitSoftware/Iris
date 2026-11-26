@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.mantle.EngineMantle;
@@ -70,9 +71,9 @@ public class IrisShoreLineDecoratorTest {
                 output, fixture.biome, FLUID_HEIGHT, output.getHeight());
 
         assertSame(targetAir, output.get(0, FLUID_HEIGHT + 1, 0));
-        verify(fixture.decorator).passesChanceGate(any(), anyDouble(), anyDouble(), eq(fixture.data));
+        verify(fixture.decorator).passesChanceGate(any(), anyDouble(), anyDouble(), MockPackData.runtimeOf(fixture.data));
         verify(fixture.decorator, never()).getBlockData100(
-                eq(fixture.biome), any(), anyDouble(), anyDouble(), anyDouble(), eq(fixture.data));
+                eq(fixture.biome), any(), anyDouble(), anyDouble(), anyDouble(), MockPackData.runtimeOf(fixture.data));
     }
 
     @Test
@@ -88,7 +89,7 @@ public class IrisShoreLineDecoratorTest {
 
         assertSame(targetAir, output.get(0, FLUID_HEIGHT + 1, 0));
         verify(fixture.decorator, never()).getBlockData100(
-                eq(fixture.biome), any(), anyDouble(), anyDouble(), anyDouble(), eq(fixture.data));
+                eq(fixture.biome), any(), anyDouble(), anyDouble(), anyDouble(), MockPackData.runtimeOf(fixture.data));
     }
 
     @Test
@@ -199,13 +200,13 @@ public class IrisShoreLineDecoratorTest {
         when(fixture.decorator.isStacking()).thenReturn(true);
         when(fixture.decorator.isScaleStack()).thenReturn(false);
         when(fixture.decorator.getStackMax()).thenReturn(2);
-        when(fixture.decorator.getHeight(any(), anyDouble(), anyDouble(), eq(fixture.data))).thenReturn(2);
+        when(fixture.decorator.getHeight(any(), anyDouble(), anyDouble(), MockPackData.runtimeOf(fixture.data))).thenReturn(2);
         when(fixture.decorator.getTopThreshold()).thenReturn(1D);
         when(fixture.decorator.getBlockDataArray(fixture.data)).thenReturn(new NativeBlockState[0]);
         when(fixture.decorator.getBlockDataTopsArray(fixture.data))
                 .thenReturn(new NativeBlockState[]{waterloggedTop});
         when(fixture.decorator.getBlockDataForTop(
-                eq(fixture.biome), any(), anyDouble(), anyDouble(), anyDouble(), eq(fixture.data)))
+                eq(fixture.biome), any(), anyDouble(), anyDouble(), anyDouble(), MockPackData.runtimeOf(fixture.data)))
                 .thenReturn(waterloggedTop);
 
         Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, FLUID_HEIGHT + 3, 1);
@@ -239,7 +240,7 @@ public class IrisShoreLineDecoratorTest {
         SeedManager seedManager = mock(SeedManager.class);
         IrisDimension dimension = mock(IrisDimension.class);
         IrisComplex complex = mock(IrisComplex.class);
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisBiome biome = mock(IrisBiome.class);
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisSlopeClip slope = mock(IrisSlopeClip.class);
@@ -263,11 +264,11 @@ public class IrisShoreLineDecoratorTest {
         when(engine.getData()).thenReturn(data);
         when(biome.getDecoratorBucket(IrisDecorationPart.SHORE_LINE))
                 .thenReturn(new IrisDecorator[]{decorator});
-        when(decorator.passesChanceGate(any(), anyDouble(), anyDouble(), eq(data))).thenReturn(true);
+        when(decorator.passesChanceGate(any(), anyDouble(), anyDouble(), MockPackData.runtimeOf(data))).thenReturn(true);
         when(decorator.isForcePlace()).thenReturn(forcePlace);
         when(decorator.getSlopeCondition()).thenReturn(slope);
         when(slope.isDefault()).thenReturn(true);
-        when(decorator.getBlockData100(eq(biome), any(), anyDouble(), anyDouble(), anyDouble(), eq(data)))
+        when(decorator.getBlockData100(eq(biome), any(), anyDouble(), anyDouble(), anyDouble(), MockPackData.runtimeOf(data)))
                 .thenReturn(decorant);
 
         return new Fixture(new IrisShoreLineDecorator(engine), data, biome, decorator, decorant);
@@ -282,10 +283,10 @@ public class IrisShoreLineDecoratorTest {
         when(fixture.decorator.isStacking()).thenReturn(true);
         when(fixture.decorator.isScaleStack()).thenReturn(true);
         when(fixture.decorator.getAbsoluteMaxStack()).thenReturn(3);
-        when(fixture.decorator.getHeight(any(), anyDouble(), anyDouble(), eq(fixture.data))).thenReturn(100);
+        when(fixture.decorator.getHeight(any(), anyDouble(), anyDouble(), MockPackData.runtimeOf(fixture.data))).thenReturn(100);
         when(fixture.decorator.getTopThreshold()).thenReturn(0.9D);
         when(fixture.decorator.getBlockDataForTop(eq(fixture.biome), any(), anyDouble(), anyDouble(),
-                anyDouble(), eq(fixture.data))).thenReturn(top);
+                anyDouble(), MockPackData.runtimeOf(fixture.data))).thenReturn(top);
         Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 64, 1);
         for (int y = FLUID_HEIGHT + 1; y < output.getHeight(); y++) {
             output.set(0, y, 0, airState());

@@ -257,16 +257,16 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         return IrisBiomeOres.canReplaceSurfaceOre(this, state);
     }
 
-    public NativeBlockState generateOres(int x, int y, int z, RNG rng, IrisData data, boolean surface) {
-        return IrisBiomeOres.generateOres(this, x, y, z, rng, data, surface);
+    public NativeBlockState generateOres(int x, int y, int z, RNG rng, PackRuntime runtime, boolean surface) {
+        return IrisBiomeOres.generateOres(this, x, y, z, rng, runtime, surface);
     }
 
-    public NativeBlockState generateSurfaceOres(int x, int y, int z, RNG rng, IrisData data) {
-        return IrisBiomeOres.generateSurfaceOres(this, x, y, z, rng, data);
+    public NativeBlockState generateSurfaceOres(int x, int y, int z, RNG rng, PackRuntime runtime) {
+        return IrisBiomeOres.generateSurfaceOres(this, x, y, z, rng, runtime);
     }
 
-    public NativeBlockState generateUndergroundOres(int x, int y, int z, RNG rng, IrisData data) {
-        return IrisBiomeOres.generateUndergroundOres(this, x, y, z, rng, data);
+    public NativeBlockState generateUndergroundOres(int x, int y, int z, RNG rng, PackRuntime runtime) {
+        return IrisBiomeOres.generateUndergroundOres(this, x, y, z, rng, runtime);
     }
 
     public boolean hasSurfaceOres() {

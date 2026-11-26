@@ -592,7 +592,7 @@ public class HydrologyVegetationTest {
                 for (int lz = 0; lz < 16; lz++) {
                     int x = (chunkX << 4) + lx;
                     int z = (chunkZ << 4) + lz;
-                    vegetation.decorate(chunk, lx, lz, x, z, role(x, z), this, data);
+                    vegetation.decorate(chunk, lx, lz, x, z, role(x, z), this, data.standalonePackRuntime());
                 }
             }
             return chunk;
@@ -664,7 +664,7 @@ public class HydrologyVegetationTest {
                 for (int lz = 0; lz < 16; lz++) {
                     int x = (chunkX << 4) + lx;
                     int z = (chunkZ << 4) + lz;
-                    vegetation.decorate(chunk, lx, lz, x, z, role(x, z), this, data);
+                    vegetation.decorate(chunk, lx, lz, x, z, role(x, z), this, data.standalonePackRuntime());
                 }
             }
         }

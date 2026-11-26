@@ -222,7 +222,7 @@ public class HydrologyVegetationSourceTest {
                 return decorators;
             }
         };
-        new HydrologyVegetation(3L, null).decorate(chunk, 8, 8, 8, 8, WaterRole.SHORE, water, data);
+        new HydrologyVegetation(3L, null).decorate(chunk, 8, 8, 8, 8, WaterRole.SHORE, water, data.standalonePackRuntime());
         return ((PlantBlockState) chunk.get(8, 61, 8)).block();
     }
 

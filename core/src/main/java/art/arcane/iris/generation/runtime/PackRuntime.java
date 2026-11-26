@@ -25,6 +25,11 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomePaletteLayer;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
 import art.arcane.iris.generation.biome.PaletteLayerRuntime;
+import art.arcane.iris.generation.decoration.DecoratorRuntime;
+import art.arcane.iris.generation.decoration.DepositRuntime;
+import art.arcane.iris.generation.decoration.IrisDecorator;
+import art.arcane.iris.generation.decoration.IrisDepositGenerator;
+import art.arcane.iris.generation.decoration.IrisOreGenerator;
 import art.arcane.iris.generation.noise.ExpressionRuntime;
 import art.arcane.iris.generation.noise.GeneratorRuntime;
 import art.arcane.iris.generation.noise.IrisExpression;
@@ -49,6 +54,7 @@ public final class PackRuntime {
     private static final int NOISE_LAYER_SEED_CAPACITY = 32;
     private static final int MATERIAL_PALETTE_SEED_CAPACITY = 32;
     private static final int CARVING_CHILD_SEED_CAPACITY = 8;
+    private static final int ORE_CHANCE_SEED_CAPACITY = 32;
 
     private final Engine engine;
     private final IrisData data;
@@ -61,6 +67,12 @@ public final class PackRuntime {
             palette -> new SeedTable<>(MATERIAL_PALETTE_SEED_CAPACITY, seed -> palette.createLayerGenerator(seed, this)));
     private final RuntimeTable<IrisDimensionCarvingEntry, SeedTable<CNG>> carvingChildGenerators = new RuntimeTable<>(
             entry -> new SeedTable<>(CARVING_CHILD_SEED_CAPACITY, seed -> entry.createChildrenGenerator(seed, this)));
+    private final RuntimeTable<IrisOreGenerator, SeedTable<IrisOreGenerator.OreChance>> oreChances = new RuntimeTable<>(
+            ore -> new SeedTable<>(ORE_CHANCE_SEED_CAPACITY, seed -> ore.createChance(seed, this)));
+    private final RuntimeTable<IrisDecorator, DecoratorRuntime> decorators =
+            new RuntimeTable<>(decorator -> new DecoratorRuntime(decorator, this));
+    private final RuntimeTable<IrisDepositGenerator, DepositRuntime> deposits =
+            new RuntimeTable<>(deposit -> new DepositRuntime(deposit, this));
     private final RuntimeTable<IrisGenerator, GeneratorRuntime> generators = new RuntimeTable<>(GeneratorRuntime::new);
     private final RuntimeTable<IrisExpression, ExpressionRuntime> expressions =
             new RuntimeTable<>(expression -> new ExpressionRuntime(expression, this));
@@ -155,6 +167,19 @@ public final class PackRuntime {
     /** Carving entries pick their children from the carve seed, so an entry keeps one child generator per seed. */
     public CNG carvingChildGenerator(IrisDimensionCarvingEntry entry, long seed) {
         return carvingChildGenerators.get(entry).get(seed);
+    }
+
+    /** Ores are seeded by the stage that places them, so an ore keeps one chance field per seed. */
+    public IrisOreGenerator.OreChance oreChance(IrisOreGenerator ore, long seed) {
+        return oreChances.get(ore).get(seed);
+    }
+
+    public DecoratorRuntime decorator(IrisDecorator decorator) {
+        return decorators.get(decorator);
+    }
+
+    public DepositRuntime deposit(IrisDepositGenerator deposit) {
+        return deposits.get(deposit);
     }
 
     public GeneratorRuntime generator(IrisGenerator generator) {

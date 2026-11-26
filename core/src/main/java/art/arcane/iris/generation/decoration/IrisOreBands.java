@@ -1,7 +1,7 @@
 package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
@@ -95,10 +95,10 @@ public final class IrisOreBands {
     /**
      * The ore placed at a Y inside {@link #contains(int)}, or null when no generator places one.
      */
-    public NativeBlockState generate(int x, int y, int z, RNG rng, IrisData data, Engine engine) {
+    public NativeBlockState generate(int x, int y, int z, RNG rng, PackRuntime runtime) {
         IrisOreGenerator[] candidates = byY == null ? generators : byY[y - minY];
         for (IrisOreGenerator candidate : candidates) {
-            NativeBlockState ore = candidate.generate(x, y, z, rng, data, engine);
+            NativeBlockState ore = candidate.generate(x, y, z, rng, runtime);
             if (ore != null) {
                 return ore;
             }

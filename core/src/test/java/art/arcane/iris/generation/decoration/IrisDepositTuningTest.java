@@ -1,6 +1,9 @@
 package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.block.VectorMap;
 import art.arcane.iris.structure.object.IrisObject;
@@ -24,6 +27,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -163,17 +167,52 @@ public class IrisDepositTuningTest {
     }
 
     @Test
-    public void clumpCachesAreScopedByWorldSeedAndSize() {
-        IrisDepositGenerator.ClumpCacheKey firstWorld =
-                new IrisDepositGenerator.ClumpCacheKey(41L, 4, 8);
-        IrisDepositGenerator.ClumpCacheKey secondWorld =
-                new IrisDepositGenerator.ClumpCacheKey(42L, 4, 8);
-        IrisDepositGenerator.ClumpCacheKey largerVein =
-                new IrisDepositGenerator.ClumpCacheKey(41L, 8, 16);
+    public void clumpVariantsAreScopedByWorldSeedAndSize() {
+        IrisData data = mock(IrisData.class);
+        IrisDepositGenerator generator = paletteGenerator(data).setMinSize(4).setMaxSize(8);
+        DepositRuntime firstWorld = PackRuntime.forEngine(engineWithDepositSeed(41L), data).deposit(generator);
+        DepositRuntime secondWorld = PackRuntime.forEngine(engineWithDepositSeed(42L), data).deposit(generator);
+        DepositRuntime sameSeedWorld = PackRuntime.forEngine(engineWithDepositSeed(41L), data).deposit(generator);
 
-        assertNotEquals(firstWorld, secondWorld);
-        assertNotEquals(firstWorld, largerVein);
-        assertEquals(firstWorld, new IrisDepositGenerator.ClumpCacheKey(41L, 4, 8));
+        assertSame(firstWorld.clumps(), firstWorld.clumps());
+        assertSame(firstWorld.scaledClumps(4, 8), firstWorld.scaledClumps(4, 8));
+        assertEquals(blocks(firstWorld.clumps()), blocks(sameSeedWorld.clumps()));
+        assertNotEquals(blocks(firstWorld.clumps()), blocks(secondWorld.clumps()));
+        assertNotEquals(blocks(firstWorld.scaledClumps(4, 8)), blocks(firstWorld.scaledClumps(8, 16)));
+        assertNotEquals(blocks(firstWorld.clumps()), blocks(firstWorld.scaledClumps(4, 8)));
+    }
+
+    private static IrisDepositGenerator paletteGenerator(IrisData data) {
+        IrisDepositGenerator generator = new IrisDepositGenerator();
+        for (String key : new String[]{"minecraft:iron_ore", "minecraft:gold_ore", "minecraft:copper_ore"}) {
+            IrisBlockData block = mock(IrisBlockData.class);
+            NativeBlockState state = mock(NativeBlockState.class);
+            when(block.getBlockData(data)).thenReturn(state);
+            when(state.key()).thenReturn(key);
+            generator.getPalette().add(block);
+        }
+        return generator;
+    }
+
+    private static Engine engineWithDepositSeed(long depositSeed) {
+        SeedManager seeds = mock(SeedManager.class);
+        when(seeds.getDeposit()).thenReturn(depositSeed);
+        Engine engine = mock(Engine.class);
+        when(engine.getSeedManager()).thenReturn(seeds);
+        return engine;
+    }
+
+    private static List<String> blocks(KList<IrisObject> clumps) {
+        List<String> blocks = new ArrayList<>();
+        for (IrisObject clump : clumps) {
+            VectorMap<NativeBlockState>.Cursor cursor = clump.getBlocks().cursor();
+            while (cursor.next()) {
+                blocks.add(cursor.key().getBlockX() + "," + cursor.key().getBlockY() + ","
+                        + cursor.key().getBlockZ() + "=" + cursor.value().key());
+            }
+            blocks.add("|");
+        }
+        return blocks;
     }
 
     @Test
@@ -237,7 +276,7 @@ public class IrisDepositTuningTest {
             generator.setMinSize(size).setMaxSize(size);
             for (long seed = 0; seed < 300; seed++) {
                 RNG built = new RNG(seed);
-                IrisObject clump = generator.getClump(null, built, data);
+                IrisObject clump = generator.getClump(PackRuntime.standalone(data), built);
                 RNG sampled = new RNG(seed);
                 IrisDepositGenerator.ClumpFootprint footprint = generator.sampleClumpFootprint(sampled, data);
                 assertNotNull(footprint);
@@ -269,7 +308,7 @@ public class IrisDepositTuningTest {
             generator.setMinSize(size).setMaxSize(size);
             for (long seed = 0; seed < 300; seed++) {
                 RNG built = new RNG(seed);
-                IrisObject clump = generator.getClump(null, built, data);
+                IrisObject clump = generator.getClump(PackRuntime.standalone(data), built);
                 long expectedNext = built.nextLong();
                 List<String> expected = new ArrayList<>();
                 VectorMap<NativeBlockState>.Cursor cursor = clump.getBlocks().cursor();
@@ -325,7 +364,7 @@ public class IrisDepositTuningTest {
         for (int size : new int[]{0, 1, 3, 4, 9, 17, 25, 64}) {
             generator.setMinSize(size).setMaxSize(size);
             for (long seed = 0; seed < 300; seed++) {
-                IrisObject clump = generator.getClump(null, new RNG(seed), data);
+                IrisObject clump = generator.getClump(PackRuntime.standalone(data), new RNG(seed));
                 List<String> expected = new ArrayList<>();
                 VectorMap<NativeBlockState>.Cursor cursor = clump.getBlocks().cursor();
                 while (cursor.next()) {

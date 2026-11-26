@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -36,7 +37,8 @@ public class FloatingDecorator {
                                      int height, int max, Hunk<NativeBlockState> data, RNG rng,
                                      Runnable candidatesNullCallback) {
         RNG gRNG = new RNG(DecoratorCore.partSeed(engine.getSeedManager().getComponent(), part));
-        IrisDecorator decorator = DecoratorCore.pickDecorator(target, part, gRNG, rng, engine.getData(), realX, realZ);
+        PackRuntime runtime = PackRuntime.of(engine);
+        IrisDecorator decorator = DecoratorCore.pickDecorator(target, part, gRNG, rng, runtime, realX, realZ);
 
         if (decorator == null) {
             candidatesNullCallback.run();
@@ -45,11 +47,11 @@ public class FloatingDecorator {
 
         if (!decorator.isStacking()) {
             DecoratorCore.placeFloatingSimple(decorator, xf, zf, realX, realZ, height, max, data,
-                    gRNG, engine.getData(), engine.getMantle());
+                    gRNG, runtime, engine.getMantle());
             return max > 1 ? 1 : 0;
         }
 
         return DecoratorCore.placeFloatingStacked(decorator, xf, zf, realX, realZ, height, max, data,
-                gRNG, engine.getData(), engine.getMantle());
+                gRNG, runtime, engine.getMantle());
     }
 }

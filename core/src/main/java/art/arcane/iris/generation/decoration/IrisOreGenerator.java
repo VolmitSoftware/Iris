@@ -25,7 +25,6 @@ import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.pack.value.IrisRange;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
@@ -57,19 +56,12 @@ public class IrisOreGenerator {
     @Description("Vertical band (min, max) this ore can generate in, in engine-local Y where 0 is the bottom of the dimension, not world Y.")
     private IrisRange range = new IrisRange(30, 80);
 
-    private final transient LazyBoundedCache<ChanceKey, OreChance> chanceCache = new LazyBoundedCache<>(32);
-    private transient volatile CachedChance recentChance;
-
-    public void warm(RNG rng, IrisData data) {
-        chance(rng, data);
-        palette.getLayerGenerator(rng, PackRuntime.forContext(data));
+    public void warm(RNG rng, PackRuntime runtime) {
+        runtime.oreChance(this, rng.getSeed());
+        palette.getLayerGenerator(rng, runtime);
     }
 
-    public NativeBlockState generate(int x, int y, int z, RNG rng, IrisData data) {
-        return generate(x, y, z, rng, data, data == null ? null : data.getEngine());
-    }
-
-    public NativeBlockState generate(int x, int y, int z, RNG rng, IrisData data, Engine engine) {
+    public NativeBlockState generate(int x, int y, int z, RNG rng, PackRuntime runtime) {
         if (threshold <= 0 || !range.contains(y)) {
             return null;
         }
@@ -78,51 +70,22 @@ public class IrisOreGenerator {
             return null;
         }
 
-        if (chance(rng, data, engine).sample(x, y, z) > threshold) {
+        if (runtime.oreChance(this, rng.getSeed()).sample(x, y, z) > threshold) {
             return null;
         }
 
-        return palette.get(rng, x, y, z, PackRuntime.of(engine, data));
+        return palette.get(rng, x, y, z, runtime);
     }
 
-    private OreChance chance(RNG rng, IrisData data) {
-        return chance(rng, data, data == null ? null : data.getEngine());
-    }
-
-    private OreChance chance(RNG rng, IrisData data, Engine engine) {
-        long seed = rng.getSeed();
-        CachedChance recent = recentChance;
-        if (recent != null && recent.key.seed == seed && recent.key.data == data && recent.key.engine == engine) {
-            return recent.chance;
-        }
-        ChanceKey key = new ChanceKey(seed, data, engine);
-        OreChance selected = chanceCache.computeIfAbsent(key, ignored -> OreChance.of(chanceStyle.create(rng, PackRuntime.of(engine, data))));
-        recentChance = new CachedChance(key, selected);
-        return selected;
-    }
-
-    private record ChanceKey(long seed, IrisData data, Engine engine) {
-        @Override
-        public boolean equals(Object other) {
-            return other instanceof ChanceKey key
-                    && seed == key.seed && data == key.data && engine == key.engine;
-        }
-
-        @Override
-        public int hashCode() {
-            return 31 * (31 * Long.hashCode(seed) + System.identityHashCode(data))
-                    + System.identityHashCode(engine);
-        }
-    }
-
-    private record CachedChance(ChanceKey key, OreChance chance) {
+    public OreChance createChance(long seed, PackRuntime runtime) {
+        return OreChance.of(chanceStyle.create(new RNG(seed), runtime));
     }
 
     /**
      * The chance field, with its single value resolved once when it is constant (a FLAT style),
      * which bands such as a full deepslate layer sample at every block.
      */
-    private record OreChance(CNG noise, boolean constant, double value) {
+    public record OreChance(CNG noise, boolean constant, double value) {
         private static OreChance of(CNG noise) {
             boolean constant = noise.isConstant();
             return new OreChance(noise, constant, constant ? noise.noise(0D, 0D, 0D) : 0D);

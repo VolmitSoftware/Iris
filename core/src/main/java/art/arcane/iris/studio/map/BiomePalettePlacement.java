@@ -192,8 +192,8 @@ abstract class BiomePalettePlacement {
             super(runtime);
             this.decorator = decorator;
             RNG partRandom = new RNG(IrisEngineDecorator.seedForPart(componentSeed, decorator.getPartOf()));
-            this.placementNoise = decorator.getGenerator(partRandom, data);
-            this.blockNoise = decorator.getVarianceGenerator(partRandom, data);
+            this.placementNoise = decorator.getGenerator(partRandom, runtime);
+            this.blockNoise = decorator.getVarianceGenerator(partRandom, runtime);
             this.picksFromFlatNoise = decorator.getPartOf() == IrisDecorationPart.NONE
                     || decorator.getPartOf() == IrisDecorationPart.CEILING;
             this.sampleHeight = sampleHeight;

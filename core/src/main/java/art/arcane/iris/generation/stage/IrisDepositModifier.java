@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.IrisEngine;
@@ -306,7 +307,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         if (footprint != null && footprint.empty() && !scalable) {
             return null;
         }
-        IrisObject clump = footprint == null ? k.getClump(getEngine(), clumpRng, getData()) : null;
+        IrisObject clump = footprint == null ? k.getClump(PackRuntime.of(getEngine(), getData()), clumpRng) : null;
 
         int dim = footprint == null ? clump.getW() : footprint.width();
         int min = dim / 2;
@@ -368,7 +369,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
 
             double sizeMultiplier = depositBiome.getOreDepositSizeMultiplier();
             if (sizeMultiplier != 1D) {
-                IrisObject scaledClump = k.getClump(getEngine(), clumpRng, getData(), sizeMultiplier);
+                IrisObject scaledClump = k.getClump(PackRuntime.of(getEngine(), getData()), clumpRng, sizeMultiplier);
                 int scaledDimension = scaledClump.getW();
                 x = clampDepositCenter(x, scaledDimension, 16);
                 if (clippedHeight) {

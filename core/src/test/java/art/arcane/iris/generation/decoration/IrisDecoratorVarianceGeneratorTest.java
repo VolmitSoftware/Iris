@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -26,7 +27,7 @@ public class IrisDecoratorVarianceGeneratorTest {
     }
 
     private double[] sampleSharedVarianceStyleGeneratorAfterVarianceBuilt() {
-        decorator.getVarianceGenerator(new RNG(WORLD_SEED), packData);
+        decorator.getVarianceGenerator(new RNG(WORLD_SEED), PackRuntime.of(packData.getEngine(), packData));
         return sampleSharedVarianceStyleGenerator(decorator.getVariance());
     }
 

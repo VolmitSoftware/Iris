@@ -196,12 +196,6 @@ public class PackRuntimeStateGateTest {
     );
 
     private static final List<Entry> PENDING_MIGRATION = List.of(
-            pending("art.arcane.iris.generation.decoration.IrisDecorator", "generators", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.decoration.IrisDecorator", "recentGenerators", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.decoration.IrisDepositGenerator", "objects", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.decoration.IrisDepositGenerator", "scaledObjects", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.decoration.IrisOreGenerator", "chanceCache", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.decoration.IrisOreGenerator", "recentChance", Kind.RUNTIME),
             pending("art.arcane.iris.structure.object.IrisObjectPlacement", "surfaceWarpCache", Kind.RUNTIME),
             pending("art.arcane.iris.structure.object.IrisObjectReplace", "replaceGen", Kind.RUNTIME),
             pending("art.arcane.iris.world.entity.IrisEffect", "latch", Kind.RUNTIME),
@@ -229,8 +223,6 @@ public class PackRuntimeStateGateTest {
             pending("art.arcane.iris.world.history.TransitionBandIndex", "lastRegion", Kind.THREAD),
             pending("art.arcane.iris.world.history.TransitionBoundarySampler", "cache", Kind.THREAD),
             pending("art.arcane.iris.world.history.TransitionDisplacementField", "local", Kind.THREAD),
-            pending("art.arcane.iris.generation.decoration.IrisDecorator$GeneratorKey", "engine", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.decoration.IrisOreGenerator$ChanceKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.structure.object.IrisObjectPlacement$SurfaceWarpCacheKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.generation.bake.ChunkBakeCache", "SPARSE", Kind.SCRATCH),
             pending("art.arcane.iris.generation.context.IrisContext", "OVERFLOW", Kind.SCRATCH),

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.context.ChunkContext;
@@ -73,21 +74,22 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
         }
         boolean caveSkipFluid = skipsFluid(inferredType);
         RNG rng = getRNG(realX, realZ);
-        IrisDecorator decorator = DecoratorCore.pickDecorator(biome, getPart(), partRNG, rng, getData(), realX, realZ);
+        PackRuntime runtime = PackRuntime.of(getEngine(), getData());
+        IrisDecorator decorator = DecoratorCore.pickDecorator(biome, getPart(), partRNG, rng, runtime, realX, realZ);
 
         if (decorator == null || !isSlopeValid(decorator, realX, height, realZ)) {
             return;
         }
 
         try {
-            place(decorator, x, z, realX, realZ, data, height, max, underwater, fluidHeight, caveSkipFluid);
+            place(decorator, x, z, realX, realZ, data, height, max, underwater, fluidHeight, caveSkipFluid, runtime);
         } catch (Throwable e) {
             DecoratorCore.skip(e, decorator, getData(), realX, height, realZ, biome);
         }
     }
 
     private void place(IrisDecorator decorator, int x, int z, int realX, int realZ, Hunk<NativeBlockState> data,
-                       int height, int max, boolean underwater, int fluidHeight, boolean caveSkipFluid) {
+                       int height, int max, boolean underwater, int fluidHeight, boolean caveSkipFluid, PackRuntime runtime) {
         AquaticPlacementSnapshot aquaticSnapshot = captureAquaticPlacement(
                 decorator, getData(), data, x, z, height, max);
         if (decorator.isStacking()) {
@@ -97,13 +99,13 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
             opts.fluidHeight = fluidHeight;
             opts.caveSkipFluid = caveSkipFluid;
             opts.mantle = getEngine().getMantle();
-            DecoratorCore.placeStackUp(decorator, x, z, realX, realZ, height, max, data, partRNG, getData(), opts);
+            DecoratorCore.placeStackUp(decorator, x, z, realX, realZ, height, max, data, partRNG, runtime, opts);
             aquaticSnapshot.restoreIfUnsupported(data, x, z);
             return;
         }
 
         DecoratorCore.placeSurfaceSingle(decorator, x, z, realX, height, realZ,
-                data, partRNG, getData(), underwater, caveSkipFluid, getEngine().getMantle());
+                data, partRNG, runtime, underwater, caveSkipFluid, getEngine().getMantle());
         aquaticSnapshot.restoreIfUnsupported(data, x, z);
     }
 

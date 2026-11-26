@@ -13,9 +13,9 @@ import art.arcane.volmlib.util.collection.KList;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -35,8 +35,8 @@ public final class NativeStructureVolumeIndex {
     private static final int ORIGIN_REACH_CHUNKS = StructureOwnershipRecordView.MAX_REFERENCE_DISTANCE_CHUNKS;
     private static final int MAX_CACHED_ORIGIN_CHUNKS = 16_384;
     private static final int MAX_CACHED_QUERY_CHUNKS = 4_096;
-    private static final Map<Engine, NativeStructureVolumeIndex> INDEXES =
-            Collections.synchronizedMap(new WeakHashMap<>());
+    /** Indexes of live engines; each engine uninstalls its own index when it closes. */
+    private static final Map<Engine, NativeStructureVolumeIndex> INDEXES = Collections.synchronizedMap(new HashMap<>());
 
     private final OriginResolver origins;
     private final VolumeCache originCache = new VolumeCache(MAX_CACHED_ORIGIN_CHUNKS);

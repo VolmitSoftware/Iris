@@ -29,7 +29,8 @@ import java.util.function.IntConsumer;
 
 public final class NativeStructureOwnershipStore {
     private static final int MAX_CACHED_AUTHORITIES = 65_536;
-    private static final Cache<Engine, State> STATES = Caffeine.newBuilder().weakKeys().build();
+    /** Stores of live engines; each engine closes its store, then releases it once the engine is closed. */
+    private static final Cache<Engine, State> STATES = Caffeine.newBuilder().build();
 
     private NativeStructureOwnershipStore() {
     }
@@ -68,9 +69,21 @@ public final class NativeStructureOwnershipStore {
         state.close();
     }
 
+    /** Drops a closed engine's store; a closed engine cannot open a new one. */
+    public static void release(Engine engine) {
+        STATES.invalidate(Objects.requireNonNull(engine, "Native structure ownership store requires an engine"));
+    }
+
     private static State state(Engine engine) {
         Engine resolved = Objects.requireNonNull(engine,
                 "Native structure ownership store requires an engine");
+        State state = STATES.getIfPresent(resolved);
+        if (state != null) {
+            return state;
+        }
+        if (resolved.isClosed()) {
+            throw new IllegalStateException("Native structure ownership store is closed for this engine.");
+        }
         return STATES.get(resolved, State::new);
     }
 

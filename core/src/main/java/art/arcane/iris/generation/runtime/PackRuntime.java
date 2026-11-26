@@ -39,6 +39,7 @@ import art.arcane.iris.generation.noise.IrisNoiseGenerator;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingEntry;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
+import art.arcane.iris.structure.graph.StructureGraphCompilation;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.world.entity.IrisEffect;
 import art.arcane.iris.pack.loading.IrisData;
@@ -47,6 +48,8 @@ import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
 
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * The runtime objects one owner derives from pack objects: seeded generators, samplers and profiles. Pack objects are
@@ -76,6 +79,8 @@ public final class PackRuntime {
             ore -> new SeedTable<>(ORE_CHANCE_SEED_CAPACITY, seed -> ore.createChance(seed, this)));
     private final RuntimeTable<IrisObjectPlacement, SeedTable<CNG>> surfaceWarps = new RuntimeTable<>(
             placement -> new SeedTable<>(SURFACE_WARP_SEED_CAPACITY, seed -> placement.createSurfaceWarp(seed, this)));
+    private final ConcurrentMap<String, StructureGraphCompilation> structureGraphs = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Boolean> structureRuntimeOutputs = new ConcurrentHashMap<>();
     private final ThreadSlots<IrisDimensionCarvingResolver.State> carvingResolverStates =
             new ThreadSlots<>(IrisDimensionCarvingResolver.State::new);
     private final RuntimeTable<IrisEffect, ChronoLatch> effectLatches =
@@ -188,6 +193,22 @@ public final class PackRuntime {
     /** Object placements warp by the engine's component seed, so a placement keeps one warp generator per seed. */
     public CNG surfaceWarp(IrisObjectPlacement placement, long seed) {
         return surfaceWarps.get(placement).get(seed);
+    }
+
+    /** Structure graphs compile from the pack's own files, so the pack scope keeps one compilation per structure key. */
+    public ConcurrentMap<String, StructureGraphCompilation> structureGraphs() {
+        return structureGraphs;
+    }
+
+    /** Whether each structure's sampled assemblies always place output, keyed like {@link #structureGraphs()}. */
+    public ConcurrentMap<String, Boolean> structureRuntimeOutputs() {
+        return structureRuntimeOutputs;
+    }
+
+    /** Hotload drops the compiled structure graphs of a pack whose files changed. */
+    public void forgetStructureGraphs() {
+        structureGraphs.clear();
+        structureRuntimeOutputs.clear();
     }
 
     /** Carving lookups that are not handed a resolver state memoize their roots in the calling thread's state. */

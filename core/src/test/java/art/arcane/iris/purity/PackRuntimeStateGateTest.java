@@ -76,10 +76,6 @@ public class PackRuntimeStateGateTest {
         return new Entry(owner, field, Kind.CONFIG, reason);
     }
 
-    private static Entry pending(String owner, String field, Kind kind) {
-        return new Entry(owner, field, kind, "pending migration");
-    }
-
     private static final List<Entry> CONFIG_FIELDS = List.of(
             config("art.arcane.iris.generation.biome.IrisBiome", "biomeScatterResolved", "platform biome resolved from the biome's own key"),
             config("art.arcane.iris.generation.biome.IrisBiome", "biomeSkyScatterResolved", "platform biome resolved from the biome's own key"),
@@ -196,20 +192,6 @@ public class PackRuntimeStateGateTest {
             config("art.arcane.iris.world.loot.IrisVanillaLootTable", "resolvedKey", "namespaced key parsed from its own string")
     );
 
-    private static final List<Entry> PENDING_MIGRATION = List.of(
-            pending("art.arcane.iris.structure.graph.StructureGraphCatalog", "CACHE", Kind.STATIC),
-            pending("art.arcane.iris.structure.graph.StructureGraphCatalog", "RUNTIME_OUTPUT", Kind.STATIC),
-            pending("art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore", "STATES", Kind.STATIC),
-            pending("art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex", "INDEXES", Kind.STATIC),
-            pending("art.arcane.iris.structure.placement.IrisStructureLocator", "INDEX_CACHE", Kind.STATIC),
-            pending("art.arcane.iris.structure.placement.IrisStructureLocator", "LOCATABLE_INDEX_CACHE", Kind.STATIC),
-            pending("art.arcane.iris.structure.placement.StructureReachability", "REACHABLE_CACHE", Kind.STATIC),
-            pending("art.arcane.iris.studio.object.ObjectStudioActivation", "SOURCES", Kind.STATIC),
-            pending("art.arcane.iris.generation.runtime.EngineTickRegistry", "TICK_ENGINES", Kind.STATIC),
-            pending("art.arcane.iris.pack.loading.IrisData", "ENGINE_HOLDERS", Kind.STATIC),
-            pending("art.arcane.iris.pack.loading.IrisData", "dataLoaders", Kind.STATIC)
-    );
-
     @Test
     public void everyNonSerializedPackFieldIsInTheLedger() throws Exception {
         Map<String, Entry> ledger = ledger();
@@ -253,7 +235,7 @@ public class PackRuntimeStateGateTest {
     public void everyLedgerEntryStillExists() throws Exception {
         PackTypes types = PackTypes.scan();
         List<String> stale = new ArrayList<>();
-        for (List<Entry> list : List.of(CONFIG_FIELDS, PENDING_MIGRATION, SETTLED_HOLDERS, ENGINE_PARAMETERS)) {
+        for (List<Entry> list : List.of(CONFIG_FIELDS, SETTLED_HOLDERS, ENGINE_PARAMETERS)) {
             for (Entry entry : list) {
                 if (!types.declares(entry.owner(), entry.field())) {
                     stale.add(entry.key());
@@ -269,16 +251,12 @@ public class PackRuntimeStateGateTest {
             assertTrue(entry.key() + " is not CONFIG", entry.kind() == Kind.CONFIG);
             assertTrue(entry.key() + " needs a reason", !entry.reason().isBlank());
         }
-        for (Entry entry : PENDING_MIGRATION) {
-            assertTrue(entry.key() + " is CONFIG and belongs in the allowlist", entry.kind() != Kind.CONFIG);
-        }
     }
 
     @Test
     public void packTypesHoldNoEngineReference() throws Exception {
         PackTypes types = PackTypes.scan();
-        Set<String> exempt = keys(PENDING_MIGRATION);
-        exempt.addAll(keys(ENGINE_PARAMETERS));
+        Set<String> exempt = keys(ENGINE_PARAMETERS);
         List<String> failures = new ArrayList<>();
         for (String type : types.packTypesWithNested()) {
             for (ClassFileFacts.DeclaredField field : types.facts(type).fields()) {
@@ -301,13 +279,9 @@ public class PackRuntimeStateGateTest {
     @Test
     public void packTypesDoNotUseLazyBoundedCache() throws Exception {
         PackTypes types = PackTypes.scan();
-        Set<String> pending = keys(PENDING_MIGRATION);
         List<String> failures = new ArrayList<>();
         for (String type : types.packTypesWithNested()) {
             for (ClassFileFacts.DeclaredField field : types.facts(type).fields()) {
-                if (pending.contains(type + "#" + field.name())) {
-                    continue;
-                }
                 if (mentions(field, LAZY_BOUNDED_CACHE)) {
                     failures.add(type + "#" + field.name());
                 }
@@ -385,6 +359,15 @@ public class PackRuntimeStateGateTest {
             holder("art.arcane.iris.world.history.SavedBiomeStore", "DEFLATERS", Kind.SCRATCH, "a reusable zlib deflater, no engine or pack reference"),
             holder("art.arcane.iris.world.storage.matter.IrisMatterContext", "DATA", Kind.SCRATCH, "a scoped pack data binding removed when the thread's outermost scope closes"),
             holder("art.arcane.iris.world.tree.TreeSVC", "REENTRANT", Kind.SCRATCH, "a reentrancy flag, no engine or pack reference"),
+            holder("art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore", "STATES", Kind.STATIC, "live-engine registry; a closed engine releases its store in the shutdown sequence (EngineShutdownDrainTest)"),
+            holder("art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex", "INDEXES", Kind.STATIC, "live-engine registry; a closed engine uninstalls its index in the shutdown sequence (EngineShutdownDrainTest)"),
+            holder("art.arcane.iris.structure.placement.IrisStructureLocator", "INDEX_CACHE", Kind.STATIC, "live-engine registry; a closed engine invalidates its index in the shutdown sequence (EngineShutdownDrainTest)"),
+            holder("art.arcane.iris.structure.placement.IrisStructureLocator", "LOCATABLE_INDEX_CACHE", Kind.STATIC, "live-engine registry; a closed engine invalidates its index in the shutdown sequence (EngineShutdownDrainTest)"),
+            holder("art.arcane.iris.structure.placement.StructureReachability", "REACHABLE_CACHE", Kind.STATIC, "live-engine registry; a closed engine invalidates its keys in the shutdown sequence (EngineShutdownDrainTest)"),
+            holder("art.arcane.iris.generation.runtime.EngineTickRegistry", "TICK_ENGINES", Kind.STATIC, "live-engine registry; every engine unregisters itself when it closes (EngineReleaseProbeTest)"),
+            holder("art.arcane.iris.pack.loading.IrisData", "ENGINE_HOLDERS", Kind.STATIC, "pack data with live engines; an engine unregisters from its pack data when it closes (EngineReleaseProbeTest)"),
+            holder("art.arcane.iris.pack.loading.IrisData", "dataLoaders", Kind.STATIC, "pack data by folder; pack data drops each engine that closes (EngineReleaseProbeTest)"),
+            holder("art.arcane.iris.studio.object.ObjectStudioActivation", "SOURCES", Kind.STATIC, "studio object source packs, removed when the studio pack deactivates; pack data holds no closed engine"),
             holder("art.arcane.iris.generation.runtime.EnginePanic$Diagnostics", "current", Kind.UNRELATED, "panic diagnostics strings for crash reports"),
             holder("art.arcane.iris.pack.IrisPackBenchmarking", "instance", Kind.UNRELATED, "benchmark command session")
     );
@@ -408,20 +391,12 @@ public class PackRuntimeStateGateTest {
                 fail("Duplicate holder ledger entry " + entry.key());
             }
         }
-        for (Entry entry : PENDING_MIGRATION) {
-            entries.putIfAbsent(entry.key(), entry);
-        }
         return entries;
     }
 
     private static Map<String, Entry> ledger() {
         Map<String, Entry> entries = new LinkedHashMap<>();
         for (Entry entry : CONFIG_FIELDS) {
-            if (entries.put(entry.key(), entry) != null) {
-                fail("Duplicate ledger entry " + entry.key());
-            }
-        }
-        for (Entry entry : PENDING_MIGRATION) {
             if (entries.put(entry.key(), entry) != null) {
                 fail("Duplicate ledger entry " + entry.key());
             }

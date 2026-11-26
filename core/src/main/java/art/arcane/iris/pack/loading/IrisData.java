@@ -36,6 +36,8 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.IrisEngineStreamType;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 import art.arcane.iris.world.loot.IrisBlockDrops;
@@ -166,6 +168,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     @EqualsAndHashCode.Exclude
     private transient volatile CustomBiomeKeyCache customBiomeKeyCache;
     private transient volatile Engine soleEngine;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    @EqualsAndHashCode.Exclude
+    private transient volatile PackRuntime standalonePackRuntime;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private transient volatile Set<String> blockDropMaterials;
@@ -656,6 +662,23 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         dataLoaders.remove(dataFolder, this);
     }
 
+    /**
+     * The runtime scope for tools that work on this pack without an engine, such as studio previews and validators.
+     * It is replaced when the pack objects are reloaded and dropped when this data closes.
+     */
+    public PackRuntime standalonePackRuntime() {
+        PackRuntime current = standalonePackRuntime;
+        if (current != null) {
+            return current;
+        }
+        synchronized (this) {
+            if (standalonePackRuntime == null) {
+                standalonePackRuntime = PackRuntime.standalone(this);
+            }
+            return standalonePackRuntime;
+        }
+    }
+
     public IrisData copy() {
         return IrisData.get(dataFolder);
     }
@@ -774,6 +797,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public void dump() {
         blockDropMaterials = null;
+        standalonePackRuntime = null;
         StructureGraphCatalog.invalidate(this);
         IrisObjectScale.invalidate(this);
         for (ResourceLoader<?> i : loaders.values()) {

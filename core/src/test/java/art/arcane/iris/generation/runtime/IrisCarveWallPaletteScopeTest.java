@@ -219,7 +219,7 @@ public class IrisCarveWallPaletteScopeTest {
             doReturn(engine.getWorld()).when(assemblyTarget).getWorld();
             doReturn(assemblyData).when(assemblyTarget).getData();
             doReturn(mock(IrisDimension.class)).when(assemblyTarget).getDimension();
-            assembly = new EngineRuntimeBuilder.RuntimeAssembly(19, assemblyTarget);
+            assembly = new EngineRuntimeBuilder.RuntimeAssembly(engine, 19, assemblyTarget);
             assembly.complex = assemblyComplex;
             assembly.mantle = engineMantle;
             IrisBiome biome = mock(IrisBiome.class);

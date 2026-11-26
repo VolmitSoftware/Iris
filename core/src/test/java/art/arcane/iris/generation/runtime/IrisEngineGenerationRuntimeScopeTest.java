@@ -816,6 +816,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         RuntimeFixture active = runtime(1, 1D, 1D, 1D);
         IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
         EngineRuntimeBuilder.RuntimeAssembly assembly = new EngineRuntimeBuilder.RuntimeAssembly(
+                engine,
                 2,
                 active.target,
                 Path.of("build", "test-mantles", "assembly"));
@@ -1073,6 +1074,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
                 mock(SeedManager.class),
                 null,
                 complex,
+                PackRuntime.standalone(data),
                 upperContext,
                 dimensionStackContext,
                 mode,

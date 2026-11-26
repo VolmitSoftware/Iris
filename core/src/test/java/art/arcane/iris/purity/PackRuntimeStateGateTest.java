@@ -281,7 +281,33 @@ public class PackRuntimeStateGateTest {
             pending("art.arcane.iris.generation.noise.IrisNoiseGenerator$GeneratorKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.generation.terrain.IrisMaterialPalette$LayerGeneratorKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.structure.object.IrisObjectPlacement$SurfaceWarpCacheKey", "engine", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisExpressionLoad$EngineCache", "styles", Kind.RUNTIME)
+            pending("art.arcane.iris.generation.noise.IrisExpressionLoad$EngineCache", "styles", Kind.RUNTIME),
+            pending("art.arcane.iris.generation.bake.ChunkBakeCache", "SPARSE", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.biome.FloatingIslandSample", "LAST_DENSITY", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.biome.FloatingIslandSample", "LAST_REJECT", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.context.IrisContext", "OVERFLOW", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.decoration.DecoratorCore", "SCRATCH_OPTS", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.decoration.IrisDepositGenerator", "FOOTPRINT_CELLS", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.mantle.CarveOrphanSweep", "SCRATCH", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.mantle.CaveLatticeBatch", "CURRENT", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.mantle.IrisCaveCarver3D", "carving", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.mantle.MantleCarvingComponent", "BLEND_SCRATCH", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.mantle.MantleWriter", "activeComponentPriority", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.noise.IrisNoiseGenerator", "FRACTURE_SAMPLES", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.runtime.EngineTickRegistry", "TICK_ENGINES", Kind.STATIC),
+            pending("art.arcane.iris.generation.runtime.IrisComplex", "BATCH_SCRATCH", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.runtime.PaintedColumnRuns", "SCRATCH", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.stage.IrisCarveModifier", "SCRATCH", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.stream.ProvisionalSampling", "TRACKERS", Kind.SCRATCH),
+            pending("art.arcane.iris.generation.terrain.Terrain3DFragmentFilter", "TRAVERSALS", Kind.SCRATCH),
+            pending("art.arcane.iris.pack.loading.IrisData", "ENGINE_HOLDERS", Kind.STATIC),
+            pending("art.arcane.iris.pack.loading.IrisData", "dataLoaders", Kind.STATIC),
+            pending("art.arcane.iris.structure.object.IrisSurfaceSupport", "STENCIL", Kind.SCRATCH),
+            pending("art.arcane.iris.world.history.GenerationHistoryRuntimeRouter", "operationDepth", Kind.SCRATCH),
+            pending("art.arcane.iris.world.history.NativeTerrainReceipt", "DEFLATERS", Kind.SCRATCH),
+            pending("art.arcane.iris.world.history.SavedBiomeStore", "DEFLATERS", Kind.SCRATCH),
+            pending("art.arcane.iris.world.storage.matter.IrisMatterContext", "DATA", Kind.SCRATCH),
+            pending("art.arcane.iris.world.tree.TreeSVC", "REENTRANT", Kind.SCRATCH)
     );
 
     @Test
@@ -438,34 +464,8 @@ public class PackRuntimeStateGateTest {
     );
 
     private static final List<Entry> SETTLED_HOLDERS = List.of(
-            holder("art.arcane.iris.generation.bake.ChunkBakeCache", "SPARSE", Kind.SCRATCH, "int[] scratch, holds primitives only"),
-            holder("art.arcane.iris.generation.biome.FloatingIslandSample", "LAST_DENSITY", Kind.SCRATCH, "double[] scratch, holds primitives only"),
-            holder("art.arcane.iris.generation.biome.FloatingIslandSample", "LAST_REJECT", Kind.SCRATCH, "int[] scratch, holds primitives only"),
-            holder("art.arcane.iris.generation.context.IrisContext", "OVERFLOW", Kind.SCRATCH, "scoped context binding, removed when its scope closes"),
-            holder("art.arcane.iris.generation.decoration.DecoratorCore", "SCRATCH_OPTS", Kind.SCRATCH, "placement options reset by each placement"),
-            holder("art.arcane.iris.generation.decoration.IrisDepositGenerator", "FOOTPRINT_CELLS", Kind.SCRATCH, "footprint cell buffers, holds primitives only"),
-            holder("art.arcane.iris.generation.mantle.CarveOrphanSweep", "SCRATCH", Kind.SCRATCH, "sweep buffers, holds primitives only"),
-            holder("art.arcane.iris.generation.mantle.CaveLatticeBatch", "CURRENT", Kind.SCRATCH, "lattice batch buffers"),
-            holder("art.arcane.iris.generation.mantle.IrisCaveCarver3D", "carving", Kind.SCRATCH, "reentrancy flag, holds a Boolean only"),
-            holder("art.arcane.iris.generation.mantle.MantleCarvingComponent", "BLEND_SCRATCH", Kind.SCRATCH, "blend buffers, holds primitives only"),
-            holder("art.arcane.iris.generation.mantle.MantleWriter", "activeComponentPriority", Kind.SCRATCH, "scoped priority, holds an Integer only"),
-            holder("art.arcane.iris.generation.noise.IrisNoiseGenerator", "FRACTURE_SAMPLES", Kind.SCRATCH, "fracture chain buffers, nulled after each sample"),
             holder("art.arcane.iris.generation.runtime.EnginePanic$Diagnostics", "current", Kind.UNRELATED, "panic diagnostics strings for crash reports"),
-            holder("art.arcane.iris.generation.runtime.EngineTickRegistry", "TICK_ENGINES", Kind.STATIC, "registry of ticking engines, the shutdown sequence unregisters each engine"),
-            holder("art.arcane.iris.generation.runtime.IrisComplex", "BATCH_SCRATCH", Kind.SCRATCH, "terrain batch buffers"),
-            holder("art.arcane.iris.generation.runtime.PaintedColumnRuns", "SCRATCH", Kind.SCRATCH, "column run buffers"),
-            holder("art.arcane.iris.generation.stage.IrisCarveModifier", "SCRATCH", Kind.SCRATCH, "carve buffers"),
-            holder("art.arcane.iris.generation.stream.ProvisionalSampling", "TRACKERS", Kind.SCRATCH, "provisional sampling depth tracker"),
-            holder("art.arcane.iris.generation.terrain.Terrain3DFragmentFilter", "TRAVERSALS", Kind.SCRATCH, "traversal buffers, holds primitives only"),
-            holder("art.arcane.iris.pack.IrisPackBenchmarking", "instance", Kind.UNRELATED, "benchmark command session"),
-            holder("art.arcane.iris.pack.loading.IrisData", "ENGINE_HOLDERS", Kind.STATIC, "loaders with registered engines, an engine unregisters itself on close"),
-            holder("art.arcane.iris.pack.loading.IrisData", "dataLoaders", Kind.STATIC, "pack loader cache by folder"),
-            holder("art.arcane.iris.structure.object.IrisSurfaceSupport", "STENCIL", Kind.SCRATCH, "support stencil buffers"),
-            holder("art.arcane.iris.world.history.GenerationHistoryRuntimeRouter", "operationDepth", Kind.SCRATCH, "scoped depth counter, holds an Integer only"),
-            holder("art.arcane.iris.world.history.NativeTerrainReceipt", "DEFLATERS", Kind.SCRATCH, "Deflater per thread, holds no references"),
-            holder("art.arcane.iris.world.history.SavedBiomeStore", "DEFLATERS", Kind.SCRATCH, "Deflater per thread, holds no references"),
-            holder("art.arcane.iris.world.storage.matter.IrisMatterContext", "DATA", Kind.SCRATCH, "scoped IrisData binding, removed when its scope closes"),
-            holder("art.arcane.iris.world.tree.TreeSVC", "REENTRANT", Kind.SCRATCH, "reentrancy flag, holds a Boolean only")
+            holder("art.arcane.iris.pack.IrisPackBenchmarking", "instance", Kind.UNRELATED, "benchmark command session")
     );
 
     private static Entry holder(String owner, String field, Kind kind, String reason) {

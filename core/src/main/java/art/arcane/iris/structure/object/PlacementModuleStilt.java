@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.BlockDataMergeSupport;
 import art.arcane.iris.generation.decoration.IrisStiltSettings;
 import art.arcane.iris.generation.hydrology.grid.CellHash;
@@ -296,7 +297,7 @@ public final class PlacementModuleStilt implements PlacementModule {
 
             NativeBlockState d;
             if (settings != null && settings.getPalette() != null) {
-                d = settings.getPalette().get(rng, x, y, z, rdata);
+                d = settings.getPalette().get(rng, x, y, z, context.runtime);
             } else {
                 d = palette.stiltDefault(entry);
             }
@@ -316,7 +317,7 @@ public final class PlacementModuleStilt implements PlacementModule {
                                 continue;
                             }
                             if (j.isExact() ? k.matches(d) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(d))) {
-                                NativeBlockState newData = j.getReplace(rng, exactX + x, exactY + y, exactZ + z, rdata);
+                                NativeBlockState newData = j.getReplace(rng, exactX + x, exactY + y, exactZ + z, context.runtime);
 
                                 if (IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(d))) {
                                     d = BlockDataMergeSupport.merge(d, newData);

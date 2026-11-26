@@ -115,13 +115,13 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             int x,
             int y,
             int z,
-            IrisData data
+            PackRuntime runtime
     ) {
         if (palette == null || depth >= paintDepth) {
             return layerBlock;
         }
 
-        NativeBlockState painted = palette.get(rng, x, y, z, data);
+        NativeBlockState painted = palette.get(rng, x, y, z, runtime);
         return painted == null ? layerBlock : painted;
     }
 
@@ -323,7 +323,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
 
                     NativeBlockState layerBlock = paintWaterMaterial(
                             blocks.hasIndex(depth) ? blocks.get(depth) : null,
-                            rolePalette, paintDepth, depth, rng, realX, i, realZ, data);
+                            rolePalette, paintDepth, depth, rng, realX, i, realZ, runtime);
                     if (submerged && layerSurfaceY == he) {
                         layerBlock = submergedSoil(layerBlock);
                     }

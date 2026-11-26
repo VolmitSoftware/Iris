@@ -61,7 +61,7 @@ public class IrisOreGeneratorTest {
         private Fixture(double sample) {
             IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
             when(palette.getPalette()).thenReturn(new KList<>(mock(IrisBlockData.class)));
-            when(palette.get(any(), anyDouble(), anyDouble(), anyDouble(), isNull())).thenReturn(ore);
+            when(palette.get(any(), anyDouble(), anyDouble(), anyDouble(), any(PackRuntime.class))).thenReturn(ore);
             when(noise.noise(anyDouble(), anyDouble(), anyDouble())).thenReturn(sample);
             when(style.create(any(), any(PackRuntime.class))).thenReturn(noise);
             generator.setPalette(palette);

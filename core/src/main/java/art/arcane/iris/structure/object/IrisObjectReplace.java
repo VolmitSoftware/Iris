@@ -18,6 +18,7 @@
 
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 
@@ -83,8 +84,8 @@ public class IrisObjectReplace {
         });
     }
 
-    public NativeBlockState getReplace(RNG seed, double x, double y, double z, IrisData rdata) {
-        return getReplace().get(seed, x, y, z, rdata);
+    public NativeBlockState getReplace(RNG seed, double x, double y, double z, PackRuntime runtime) {
+        return getReplace().get(seed, x, y, z, runtime);
     }
 
     /**

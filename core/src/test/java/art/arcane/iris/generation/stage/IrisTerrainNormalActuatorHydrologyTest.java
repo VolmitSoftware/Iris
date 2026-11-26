@@ -497,7 +497,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
 
         private IrisMaterialPalette palette(NativeBlockState block) {
             IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
-            when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), eq(data))).thenReturn(block);
+            when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), MockPackData.runtimeOf(data))).thenReturn(block);
             return palette;
         }
 

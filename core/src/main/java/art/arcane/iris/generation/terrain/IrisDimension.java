@@ -68,7 +68,6 @@ import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.datapack.IDataFixer;
 import art.arcane.iris.pack.datapack.IDataFixer.Dimension;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.world.history.GenerationRegistryContractFactory;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
@@ -88,7 +87,6 @@ import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
-import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
 import lombok.Data;
@@ -133,21 +131,11 @@ import java.util.regex.Pattern;
 public class IrisDimension extends IrisRegistrant {
     private static final Pattern RESOURCE_KEY_PATTERN = Pattern.compile("[a-z0-9_.-]+:[a-z0-9/._-]+");
 
-    private final transient AtomicCache<Position2> parallaxSize = new AtomicCache<>();
     private final transient AtomicCache<IrisStaticObjectLayer> staticObjectLayer = new AtomicCache<>();
-    private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
-    private final transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient LazyBoundedCache<Long, CNG> coordinateFractures = new LazyBoundedCache<>(8);
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private transient volatile CachedCoordinateFracture recentCoordinateFracture;
     private final transient AtomicCache<Double> sinr = new AtomicCache<>();
     private final transient AtomicCache<Double> cosr = new AtomicCache<>();
     private final transient AtomicCache<Double> rad = new AtomicCache<>();
     private final transient AtomicCache<Boolean> undergroundSpawnTables = new AtomicCache<>();
-    private final transient AtomicCache<Boolean> featuresUsed = new AtomicCache<>();
     private final transient AtomicCache<Map<String, IrisDimensionCarvingEntry>> carvingEntryIndex = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> surfaceOreCache = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> undergroundOreCache = new AtomicCache<>();
@@ -552,18 +540,6 @@ public class IrisDimension extends IrisRegistrant {
 
     public int getFluidHeight() {
         return fluidHeight - (int) dimensionHeight.getMin();
-    }
-
-    public CNG getCoordFracture(RNG rng, int signature) {
-        long seed = rng.getSeed() + signature;
-        CachedCoordinateFracture recent = recentCoordinateFracture;
-        if (recent != null && recent.seed == seed) {
-            return recent.generator;
-        }
-        CNG generator = coordinateFractures.computeIfAbsent(seed, ignored ->
-                CNG.signature(new RNG(seed)).scale(0.012 / coordFractureZoom));
-        recentCoordinateFracture = new CachedCoordinateFracture(seed, generator);
-        return generator;
     }
 
     public double getDimensionAngle() {
@@ -1399,8 +1375,5 @@ public class IrisDimension extends IrisRegistrant {
             dimTypeVanilla.getParentFile().mkdirs();
             IO.writeAll(dimTypeVanilla, json);
         }
-    }
-
-    private record CachedCoordinateFracture(long seed, CNG generator) {
     }
 }

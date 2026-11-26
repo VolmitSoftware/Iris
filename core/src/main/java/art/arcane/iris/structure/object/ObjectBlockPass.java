@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.BlockDataMergeSupport;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
@@ -179,7 +180,7 @@ final class ObjectBlockPass {
             if (context.rng.chance(j.getChance())) {
                 for (NativeBlockState k : j.getFind(context.rdata)) {
                     if (j.isExact() ? k.matches(data) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(data))) {
-                        NativeBlockState newData = j.getReplace(context.rng, exactX + context.x, exactY + state.y, exactZ + context.z, context.rdata);
+                        NativeBlockState newData = j.getReplace(context.rng, exactX + context.x, exactY + state.y, exactZ + context.z, context.runtime);
 
                         boolean sameMaterial = IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(data));
                         if (sameMaterial && !(newData.isCustom() || data.isCustom()))

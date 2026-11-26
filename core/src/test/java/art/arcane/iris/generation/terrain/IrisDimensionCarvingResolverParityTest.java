@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
@@ -116,7 +117,7 @@ public class IrisDimensionCarvingResolverParityTest {
             dimension.getCarvingEntryIndex().put("root-low", parent);
             CNG generator = mock(CNG.class);
             doReturn(0.5D, 0D).when(generator).noiseFast2D(-17D, 23D);
-            doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(IrisData.class));
+            doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(PackRuntime.class));
             IrisDimensionCarvingResolver.Snapshot snapshot = IrisDimensionCarvingResolver.snapshot(fixture.engine);
 
             assertSame(fixture.engine.getData().getBiomeLoader().load("root-low"), snapshot.resolveBiome(-17, 40, 23));
@@ -140,7 +141,7 @@ public class IrisDimensionCarvingResolverParityTest {
         parent.setChildRecursionDepth(1);
         CNG generator = mock(CNG.class);
         doReturn(0.5D).when(generator).noiseFast2D(-17D, 23D);
-        doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(IrisData.class));
+        doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(PackRuntime.class));
 
         IrisDimensionCarvingEntry selected = IrisDimensionCarvingResolver.resolveFromRoot(
                 engine, parent, -17, -1500, 23, new IrisDimensionCarvingResolver.State());
@@ -160,7 +161,7 @@ public class IrisDimensionCarvingResolverParityTest {
         child.setWorldYRange(new IrisRange(-20, 20));
         CNG generator = mock(CNG.class);
         doReturn(0.5D).when(generator).noiseFast2D(anyDouble(), anyDouble());
-        doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(IrisData.class));
+        doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(PackRuntime.class));
         IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
         assertSame(child, IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, parent, 7, 0, 9, state));
         assertSame(parent, IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, parent, 7, 30, 9, state));
@@ -176,7 +177,7 @@ public class IrisDimensionCarvingResolverParityTest {
             parent.setChildren(new KList<>(children));
             CNG generator = mock(CNG.class);
             doReturn(0.5D).when(generator).noiseFast2D(anyDouble(), anyDouble());
-            doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(IrisData.class));
+            doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(PackRuntime.class));
             IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
 
             for (int worldY = -80; worldY < 140; worldY += 13) {
@@ -200,7 +201,7 @@ public class IrisDimensionCarvingResolverParityTest {
         parent.setChildRecursionDepth(1);
         CNG generator = mock(CNG.class);
         doReturn(0.5D).when(generator).noiseFast2D(anyDouble(), anyDouble());
-        doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(IrisData.class));
+        doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(PackRuntime.class));
         IrisDimensionCarvingEntry child = fixture.engine.getDimension().getCarvingEntryIndex().get("child-a");
         IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
 
@@ -228,7 +229,7 @@ public class IrisDimensionCarvingResolverParityTest {
             }
             CNG generator = mock(CNG.class);
             doReturn(0.5D, 0D).when(generator).noiseFast2D(-17D, 23D);
-            doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(IrisData.class));
+            doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(PackRuntime.class));
             IrisDimensionCarvingEntry child = fixture.engine.getDimension().getCarvingEntryIndex().get("child-a");
             IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
 
@@ -245,7 +246,7 @@ public class IrisDimensionCarvingResolverParityTest {
         parent.setChildRecursionDepth(1);
         CNG generator = mock(CNG.class);
         doReturn(0.5D).when(generator).noiseFast2D(anyDouble(), anyDouble());
-        doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(IrisData.class));
+        doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(PackRuntime.class));
         IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
         IrisDimensionCarvingEntry firstChild = fixture.engine.getDimension().getCarvingEntryIndex().get("child-a");
         IrisDimensionCarvingEntry replacementChild = replacement.engine.getDimension().getCarvingEntryIndex().get("child-a");
@@ -873,7 +874,7 @@ public class IrisDimensionCarvingResolverParityTest {
         }
 
         long seed = engine.getSeedManager().getCarve() ^ CHILD_SEED_SALT;
-        CNG childGenerator = parent.getChildrenGenerator(seed, engine.getData());
+        CNG childGenerator = parent.getChildrenGenerator(seed, PackRuntime.of(engine));
         LegacyCarvingChoice selected = childGenerator.fitRarity(options, worldX, worldZ);
         if (selected == null || selected.entry == null) {
             return parent;

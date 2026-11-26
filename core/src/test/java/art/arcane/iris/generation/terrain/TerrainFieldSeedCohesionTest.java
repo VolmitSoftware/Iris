@@ -14,21 +14,6 @@ import static org.junit.Assert.assertSame;
 
 public class TerrainFieldSeedCohesionTest {
     @Test
-    public void coordinateFracturesSeparateSeedAndSignature() {
-        IrisDimension shared = new IrisDimension();
-        for (long seed : new long[]{91L, 17L, 91L}) {
-            for (int signature : new int[]{73, 211}) {
-                CNG expected = new IrisDimension().getCoordFracture(new RNG(seed), signature);
-                CNG actual = shared.getCoordFracture(new RNG(seed), signature);
-                for (int index = 0; index < 8; index++) {
-                    assertEquals(expected.noise(index * 128D - 600D, index * -251D + 300D),
-                            actual.noise(index * 128D - 600D, index * -251D + 300D), 0D);
-                }
-            }
-        }
-    }
-
-    @Test
     public void cellGeneratorsRetainSeedAssignments() {
         GeneratorRuntime generator = PackRuntime.standalone(null).generator(new IrisGenerator());
         CellGenerator first = generator.cellGenerator(17L);

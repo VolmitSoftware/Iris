@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
@@ -55,6 +56,7 @@ import java.util.function.IntConsumer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
@@ -197,8 +199,8 @@ public class IrisEngineGenerationRuntimeScopeTest {
             when(childBiome.getRarity()).thenReturn(1);
             when(root.getRealBiome(fixture.data)).thenReturn(parentBiome);
             when(child.getRealBiome(fixture.data)).thenReturn(childBiome);
-            when(root.getChildrenGenerator(fixture.runtime.seedManager().getCarve() ^ 0x9E3779B97F4A7C15L,
-                    fixture.data)).thenReturn(generator);
+            when(root.getChildrenGenerator(eq(fixture.runtime.seedManager().getCarve() ^ 0x9E3779B97F4A7C15L),
+                    MockPackData.runtimeOf(fixture.data))).thenReturn(generator);
             when(fixture.dimension.getCarving()).thenReturn(new KList<>(root));
             when(fixture.dimension.getCarvingEntryIndex()).thenReturn(Map.of("child", child));
             expected[index] = childBiome;

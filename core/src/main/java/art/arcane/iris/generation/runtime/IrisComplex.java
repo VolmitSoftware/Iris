@@ -421,10 +421,10 @@ public class IrisComplex implements DataProvider {
         });
         bakeCache = new ChunkBakeCache(new BakeSource(), detached ? ChunkBakeCache.MINIMUM_CAPACITY
                 : ChunkBakeCache.capacityFor(Runtime.getRuntime().maxMemory()));
-        rockSource = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), data).stream()
+        rockSource = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), packRuntime).stream()
                 .select(engine.getDimension().getRockPalette().getBlockData(data));
         rockStream = new BakedStream<>(bakeCache, BakePlane.ROCK, rockSource);
-        fluidSource = engine.getDimension().getFluidPalette().getLayerGenerator(rng.nextParallelRNG(78), data).stream()
+        fluidSource = engine.getDimension().getFluidPalette().getLayerGenerator(rng.nextParallelRNG(78), packRuntime).stream()
                 .select(engine.getDimension().getFluidPalette().getBlockData(data));
         fluidStream = new BakedStream<>(bakeCache, BakePlane.FLUID, fluidSource);
         regionStyleStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883), packRuntime).stream()
@@ -1310,7 +1310,7 @@ public class IrisComplex implements DataProvider {
                         configurationName + " fluidPalette may contain only fluid blocks");
             }
         }
-        return palette.getLayerGenerator(fluidRng, data).stream().select(blocks);
+        return palette.getLayerGenerator(fluidRng, packRuntime).stream().select(blocks);
     }
 
     public NativeBlockState resolveSeaFluid(double x, double z) {

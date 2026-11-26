@@ -62,7 +62,7 @@ public class IrisOreGenerator {
 
     public void warm(RNG rng, IrisData data) {
         chance(rng, data);
-        palette.getLayerGenerator(rng, data);
+        palette.getLayerGenerator(rng, PackRuntime.forContext(data));
     }
 
     public NativeBlockState generate(int x, int y, int z, RNG rng, IrisData data) {
@@ -82,7 +82,7 @@ public class IrisOreGenerator {
             return null;
         }
 
-        return palette.get(rng, x, y, z, data);
+        return palette.get(rng, x, y, z, PackRuntime.of(engine, data));
     }
 
     private OreChance chance(RNG rng, IrisData data) {

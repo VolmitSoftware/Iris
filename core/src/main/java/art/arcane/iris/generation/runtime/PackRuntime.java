@@ -31,6 +31,8 @@ import art.arcane.iris.generation.noise.IrisExpression;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.IrisNoiseGenerator;
+import art.arcane.iris.generation.terrain.IrisDimensionCarvingEntry;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
@@ -45,6 +47,8 @@ import java.util.Objects;
 public final class PackRuntime {
     private static final int STYLE_SEED_CAPACITY = 8;
     private static final int NOISE_LAYER_SEED_CAPACITY = 32;
+    private static final int MATERIAL_PALETTE_SEED_CAPACITY = 32;
+    private static final int CARVING_CHILD_SEED_CAPACITY = 8;
 
     private final Engine engine;
     private final IrisData data;
@@ -53,6 +57,10 @@ public final class PackRuntime {
             style -> new SeedTable<>(STYLE_SEED_CAPACITY, seed -> style.createNoCache(new RNG(seed), this)));
     private final RuntimeTable<IrisNoiseGenerator, SeedTable<CNG>> noiseLayerGenerators = new RuntimeTable<>(
             layer -> new SeedTable<>(NOISE_LAYER_SEED_CAPACITY, seed -> layer.buildGenerator(seed, this)));
+    private final RuntimeTable<IrisMaterialPalette, SeedTable<CNG>> materialPaletteGenerators = new RuntimeTable<>(
+            palette -> new SeedTable<>(MATERIAL_PALETTE_SEED_CAPACITY, seed -> palette.createLayerGenerator(seed, this)));
+    private final RuntimeTable<IrisDimensionCarvingEntry, SeedTable<CNG>> carvingChildGenerators = new RuntimeTable<>(
+            entry -> new SeedTable<>(CARVING_CHILD_SEED_CAPACITY, seed -> entry.createChildrenGenerator(seed, this)));
     private final RuntimeTable<IrisGenerator, GeneratorRuntime> generators = new RuntimeTable<>(GeneratorRuntime::new);
     private final RuntimeTable<IrisExpression, ExpressionRuntime> expressions =
             new RuntimeTable<>(expression -> new ExpressionRuntime(expression, this));
@@ -86,9 +94,14 @@ public final class PackRuntime {
     public static PackRuntime of(Engine engine, IrisData data) {
         PackRuntime engineRuntime = engine == null ? null : engine.getPackRuntime();
         if (engineRuntime == null) {
-            return data == null ? standalone(null) : data.standalonePackRuntime();
+            return forPack(data);
         }
         return engineRuntime.scopeFor(data);
+    }
+
+    /** The scope a pack keeps for content baked from its own files alone, such as procedural object variants. */
+    public static PackRuntime forPack(IrisData data) {
+        return data == null ? standalone(null) : data.standalonePackRuntime();
     }
 
     /** The engine's scope for its own pack. */
@@ -132,6 +145,16 @@ public final class PackRuntime {
     /** Noise layers are seeded from the generator that reads them, so a layer keeps one generator per seed. */
     public CNG noiseLayerGenerator(IrisNoiseGenerator layer, long seed) {
         return noiseLayerGenerators.get(layer).get(seed);
+    }
+
+    /** Material palettes are seeded by the stream or decorator that reads them, so a palette keeps one generator per seed. */
+    public CNG materialPaletteGenerator(IrisMaterialPalette palette, long seed) {
+        return materialPaletteGenerators.get(palette).get(seed);
+    }
+
+    /** Carving entries pick their children from the carve seed, so an entry keeps one child generator per seed. */
+    public CNG carvingChildGenerator(IrisDimensionCarvingEntry entry, long seed) {
+        return carvingChildGenerators.get(entry).get(seed);
     }
 
     public GeneratorRuntime generator(IrisGenerator generator) {

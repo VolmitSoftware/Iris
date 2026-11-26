@@ -2,7 +2,6 @@ package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.IrisBlockData;
-import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.testsupport.KeyedBlockState;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -125,7 +124,7 @@ public class IrisOreBandsTest {
         }
 
         @Override
-        public NativeBlockState get(RNG rng, double x, double y, double z, IrisData data) {
+        public NativeBlockState get(RNG rng, double x, double y, double z, PackRuntime runtime) {
             return state;
         }
     }

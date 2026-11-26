@@ -403,12 +403,12 @@ public final class DimensionTerrainContext implements DataProvider {
         ProceduralStream<Double> slopeStream = GenerationStreams.cache2DDouble(shapedHeightStream.slope(3), cachePrefix + "SlopeStream", engine, cacheSize);
 
         ProceduralStream<NativeBlockState> rockStream = dimension.getRockPalette()
-                .getLayerGenerator(rng.nextParallelRNG(45), dimensionData).stream()
+                .getLayerGenerator(rng.nextParallelRNG(45), dimensionRuntime).stream()
                 .select(dimension.getRockPalette().getBlockData(dimensionData));
         FluidBlockSampler fluidBlockSampler;
         if (includeFluid) {
             ProceduralStream<NativeBlockState> fluidStream = dimension.getFluidPalette()
-                    .getLayerGenerator(rng.nextParallelRNG(78), dimensionData).stream()
+                    .getLayerGenerator(rng.nextParallelRNG(78), dimensionRuntime).stream()
                     .select(dimension.getFluidPalette().getBlockData(dimensionData));
             fluidBlockSampler = fluidStream::get;
         } else {

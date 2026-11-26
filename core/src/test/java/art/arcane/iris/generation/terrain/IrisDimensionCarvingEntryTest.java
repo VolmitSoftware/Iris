@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.pack.loading.IrisData;
@@ -25,7 +26,7 @@ public class IrisDimensionCarvingEntryTest {
     }
 
     private double[] sampleSharedChildStyleGeneratorAfterChildrenGeneratorBuilt() {
-        carvingEntry.getChildrenGenerator(WORLD_SEED, packData);
+        carvingEntry.getChildrenGenerator(WORLD_SEED, PackRuntime.of(packData.getEngine(), packData));
         return sampleSharedChildStyleGenerator(carvingEntry.getChildStyle());
     }
 

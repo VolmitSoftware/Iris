@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.pack.value.IrisRange;
@@ -237,7 +238,7 @@ public final class IrisDimensionCarvingResolver {
         }
 
         long seed = resolveChildSeed(engine, state);
-        CNG childGenerator = parent.getChildrenGenerator(seed, data);
+        CNG childGenerator = parent.getChildrenGenerator(seed, PackRuntime.of(engine, data));
         double sample = childGenerator.noiseFast2D(worldX, worldZ);
         CarvingChoice selected = selectionPlan.select(sample);
         if (selected == null || selected.entry == null) {

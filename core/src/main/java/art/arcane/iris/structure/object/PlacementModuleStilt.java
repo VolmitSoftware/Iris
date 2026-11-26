@@ -244,7 +244,7 @@ public final class PlacementModuleStilt implements PlacementModule {
         boolean hasEdits = !config.getEdit().isEmpty();
         boolean warped = !config.getWarp().isFlat();
         boolean waterlogCandidate = config.isWaterloggable() || config.isUnderwater();
-        CNG surfaceWarp = warped ? config.getSurfaceWarp(rng, self.getLoader()) : null;
+        CNG surfaceWarp = warped ? config.getSurfaceWarp(rng, context.runtime.scopeFor(self.getLoader())) : null;
         double warpHalf = warped ? config.getWarp().getMultiplier() / 2D : 0D;
         double[] exact = warped || hasEdits || eroding ? bake.exact(self, state.spin) : null;
         int count = bake.count();

@@ -44,7 +44,7 @@ final class ObjectBlockPass {
     void process() {
         boolean warped = !state.config.getWarp().isFlat();
         boolean hasEdits = !state.config.getEdit().isEmpty();
-        CNG surfaceWarp = warped ? state.config.getSurfaceWarp(context.rng, context.self.getLoader()) : null;
+        CNG surfaceWarp = warped ? state.config.getSurfaceWarp(context.rng, context.runtime.scopeFor(context.self.getLoader())) : null;
         double warpHalf = warped ? state.config.getWarp().getMultiplier() / 2D : 0D;
         boolean waterlogCandidate = state.config.isWaterloggable() || state.config.isUnderwater();
         double[] exact = warped || hasEdits ? bake.exact(context.self, state.spin) : null;

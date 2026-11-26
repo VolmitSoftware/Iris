@@ -38,6 +38,7 @@ import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.IrisNoiseGenerator;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingEntry;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
+import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
@@ -55,6 +56,7 @@ public final class PackRuntime {
     private static final int MATERIAL_PALETTE_SEED_CAPACITY = 32;
     private static final int CARVING_CHILD_SEED_CAPACITY = 8;
     private static final int ORE_CHANCE_SEED_CAPACITY = 32;
+    private static final int SURFACE_WARP_SEED_CAPACITY = 8;
 
     private final Engine engine;
     private final IrisData data;
@@ -69,6 +71,8 @@ public final class PackRuntime {
             entry -> new SeedTable<>(CARVING_CHILD_SEED_CAPACITY, seed -> entry.createChildrenGenerator(seed, this)));
     private final RuntimeTable<IrisOreGenerator, SeedTable<IrisOreGenerator.OreChance>> oreChances = new RuntimeTable<>(
             ore -> new SeedTable<>(ORE_CHANCE_SEED_CAPACITY, seed -> ore.createChance(seed, this)));
+    private final RuntimeTable<IrisObjectPlacement, SeedTable<CNG>> surfaceWarps = new RuntimeTable<>(
+            placement -> new SeedTable<>(SURFACE_WARP_SEED_CAPACITY, seed -> placement.createSurfaceWarp(seed, this)));
     private final RuntimeTable<IrisDecorator, DecoratorRuntime> decorators =
             new RuntimeTable<>(decorator -> new DecoratorRuntime(decorator, this));
     private final RuntimeTable<IrisDepositGenerator, DepositRuntime> deposits =
@@ -172,6 +176,11 @@ public final class PackRuntime {
     /** Ores are seeded by the stage that places them, so an ore keeps one chance field per seed. */
     public IrisOreGenerator.OreChance oreChance(IrisOreGenerator ore, long seed) {
         return oreChances.get(ore).get(seed);
+    }
+
+    /** Object placements warp by the engine's component seed, so a placement keeps one warp generator per seed. */
+    public CNG surfaceWarp(IrisObjectPlacement placement, long seed) {
+        return surfaceWarps.get(placement).get(seed);
     }
 
     public DecoratorRuntime decorator(IrisDecorator decorator) {

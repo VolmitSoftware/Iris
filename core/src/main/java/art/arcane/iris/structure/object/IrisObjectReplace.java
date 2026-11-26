@@ -50,7 +50,6 @@ import java.util.Map;
 @Description("Find and replace object materials")
 @Data
 public class IrisObjectReplace {
-    private final transient AtomicCache<CNG> replaceGen = new AtomicCache<>();
     private final transient AtomicCache<KList<NativeBlockState>> findData = new AtomicCache<>();
     private final transient AtomicCache<KList<NativeBlockState>> replaceData = new AtomicCache<>();
     @ArrayType(min = 1, type = IrisBlockData.class)

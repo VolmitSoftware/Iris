@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -11,8 +12,6 @@ import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
@@ -21,29 +20,26 @@ import static org.mockito.Mockito.when;
 public class IrisObjectPlacementSurfaceWarpCacheTest {
     @Test
     public void surfaceWarpSeparatesEngineSeeds() {
-        Engine first = engine(100L);
-        Engine second = engine(200L);
-        AtomicReference<Engine> active = new AtomicReference<>(first);
         IrisData data = MockPackData.create();
-        when(data.getEngine()).thenAnswer(ignored -> active.get());
+        PackRuntime first = PackRuntime.forEngine(engine(100L), data);
+        PackRuntime second = PackRuntime.forEngine(engine(200L), data);
         IrisObjectPlacement placement = placement();
 
-        CNG firstWarp = placement.getSurfaceWarp(new RNG(1L), data);
-        assertSame(firstWarp, placement.getSurfaceWarp(new RNG(999L), data));
-        active.set(second);
+        CNG firstWarp = placement.getSurfaceWarp(new RNG(1L), first);
+        assertSame(firstWarp, placement.getSurfaceWarp(new RNG(999L), first));
 
-        assertNotSame(firstWarp, placement.getSurfaceWarp(new RNG(1L), data));
+        assertNotSame(firstWarp, placement.getSurfaceWarp(new RNG(1L), second));
     }
 
     @Test
     public void standaloneSurfaceWarpUsesSuppliedSeed() {
-        IrisData data = MockPackData.create();
+        PackRuntime runtime = PackRuntime.standalone(MockPackData.create());
         IrisObjectPlacement placement = placement();
 
-        CNG first = placement.getSurfaceWarp(new RNG(1L), data);
+        CNG first = placement.getSurfaceWarp(new RNG(1L), runtime);
 
-        assertSame(first, placement.getSurfaceWarp(new RNG(1L), data));
-        assertNotSame(first, placement.getSurfaceWarp(new RNG(2L), data));
+        assertSame(first, placement.getSurfaceWarp(new RNG(1L), runtime));
+        assertNotSame(first, placement.getSurfaceWarp(new RNG(2L), runtime));
     }
 
     private IrisObjectPlacement placement() {

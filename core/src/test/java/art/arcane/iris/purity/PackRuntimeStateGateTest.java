@@ -196,8 +196,6 @@ public class PackRuntimeStateGateTest {
     );
 
     private static final List<Entry> PENDING_MIGRATION = List.of(
-            pending("art.arcane.iris.structure.object.IrisObjectPlacement", "surfaceWarpCache", Kind.RUNTIME),
-            pending("art.arcane.iris.structure.object.IrisObjectReplace", "replaceGen", Kind.RUNTIME),
             pending("art.arcane.iris.world.entity.IrisEffect", "latch", Kind.RUNTIME),
             pending("art.arcane.iris.generation.bake.ChunkBakeCache", "recent", Kind.THREAD),
             pending("art.arcane.iris.generation.hydrology.engine.HydrologyRuntime", "last", Kind.THREAD),
@@ -223,7 +221,6 @@ public class PackRuntimeStateGateTest {
             pending("art.arcane.iris.world.history.TransitionBandIndex", "lastRegion", Kind.THREAD),
             pending("art.arcane.iris.world.history.TransitionBoundarySampler", "cache", Kind.THREAD),
             pending("art.arcane.iris.world.history.TransitionDisplacementField", "local", Kind.THREAD),
-            pending("art.arcane.iris.structure.object.IrisObjectPlacement$SurfaceWarpCacheKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.generation.bake.ChunkBakeCache", "SPARSE", Kind.SCRATCH),
             pending("art.arcane.iris.generation.context.IrisContext", "OVERFLOW", Kind.SCRATCH),
             pending("art.arcane.iris.generation.decoration.DecoratorCore", "SCRATCH_OPTS", Kind.SCRATCH),

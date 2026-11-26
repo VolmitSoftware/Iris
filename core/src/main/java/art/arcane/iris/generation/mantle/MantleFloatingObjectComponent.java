@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import java.io.UncheckedIOException;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.GenerationFailures;
@@ -180,7 +181,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
         if (placement.isCompatExcluded(data)) {
             return;
         }
-        int density = placement.getDensity(rng, minX, minZ, data);
+        int density = placement.getDensity(rng, minX, minZ, PackRuntime.of(getEngineMantle().getEngine(), data));
         double perAttempt = placement.getChance();
         for (int i = 0; i < density; i++) {
             if (!rng.chance(perAttempt + rng.d(-0.005, 0.005))) {
@@ -249,7 +250,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
         if (placement.isCompatExcluded(data)) {
             return;
         }
-        int density = placement.getDensity(rng, minX, minZ, data);
+        int density = placement.getDensity(rng, minX, minZ, PackRuntime.of(getEngineMantle().getEngine(), data));
         double perAttempt = placement.getChance();
 
         for (int i = 0; i < density; i++) {
@@ -345,7 +346,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
         if (placement.isCompatExcluded(data)) {
             return;
         }
-        int density = placement.getDensity(rng, minX, minZ, data);
+        int density = placement.getDensity(rng, minX, minZ, PackRuntime.of(getEngineMantle().getEngine(), data));
         double perAttempt = placement.getChance();
 
         for (int i = 0; i < density; i++) {

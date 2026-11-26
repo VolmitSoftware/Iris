@@ -56,7 +56,7 @@ public final class GenerationCacheWarmer {
         KList<IrisBiome> biomes = engine.getAllBiomes();
         biomes.sort(Comparator.comparing(IrisBiome::getLoadKey));
         for (IrisBiome biome : biomes) {
-            warmPlacements(biome.getObjects(), root, counter, data, engine);
+            warmPlacements(biome.getObjects(), root, counter, runtime);
             warmDecorators(biome.getDecorators(), engine.getSeedManager().getComponent(), counter, runtime);
             warmOres(biome.getOres(), engine.getSeedManager().getTerrain(), counter, runtime);
             collectProcedural(biome.getProceduralObjects(), root, counter, proceduralTasks);
@@ -65,7 +65,7 @@ public final class GenerationCacheWarmer {
         KList<IrisRegion> regions = engine.getDimension().getAllRegions(engine);
         regions.sort(Comparator.comparing(IrisRegion::getLoadKey));
         for (IrisRegion region : regions) {
-            warmPlacements(region.getObjects(), root, counter, data, engine);
+            warmPlacements(region.getObjects(), root, counter, runtime);
             warmOres(region.getOres(), engine.getSeedManager().getTerrain(), counter, runtime);
             collectProcedural(region.getProceduralObjects(), root, counter, proceduralTasks);
         }
@@ -77,7 +77,7 @@ public final class GenerationCacheWarmer {
     }
 
     private static void warmPlacements(KList<IrisObjectPlacement> placements, RNG root, int[] counter,
-                                       IrisData data, Engine engine) {
+                                       PackRuntime runtime) {
         if (placements == null) {
             return;
         }
@@ -86,8 +86,8 @@ public final class GenerationCacheWarmer {
                 continue;
             }
             RNG rng = root.nextParallelRNG(counter[0]++);
-            placement.getSurfaceWarp(rng, data, engine);
-            placement.getDensity(rng, 0, 0, data);
+            placement.getSurfaceWarp(rng, runtime);
+            placement.getDensity(rng, 0, 0, runtime);
         }
     }
 

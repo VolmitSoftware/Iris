@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.ChunkedDataCache;
@@ -29,6 +31,7 @@ import org.junit.Before;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.same;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
@@ -182,7 +185,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
         for (int y = GROUND + 1; y < HEAD; y++) {
             assertSame("the mouth holds the sea fluid at y " + y, mouth.sea, estuary.get(0, y, 0));
         }
-        verify(mouth.biome).generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), eq(HEAD - GROUND), eq(mouth.data));
+        verify(mouth.biome).generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), eq(HEAD - GROUND), MockPackData.runtimeOf(mouth.data));
 
         Painter frozenMouth = new Painter(WaterRole.MOUTH, HEAD);
         when(frozenMouth.complex.resolveWaterFluid(11, -4)).thenReturn(frozenMouth.sea);
@@ -402,7 +405,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
     private static final class Painter {
         private final Engine engine = mock(Engine.class);
         private final IrisComplex complex = mock(IrisComplex.class);
-        private final IrisData data = mock(IrisData.class);
+        private final IrisData data = MockPackData.create();
         private final IrisBiome biome = mock(IrisBiome.class);
         private final IrisRegion region = new IrisRegion();
         private final ChunkContext context = mock(ChunkContext.class);
@@ -439,7 +442,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
                     ProceduralStream.of((x, z) -> rock, Interpolated.of(value -> 0D, value -> rock)), 11, -4, false));
             when(context.getFluid()).thenReturn(new ChunkedDataCache<>(
                     ProceduralStream.of((x, z) -> sea, Interpolated.of(value -> 0D, value -> sea)), 11, -4, false));
-            when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), eq(data)))
+            when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), MockPackData.runtimeOf(data)))
                     .thenAnswer(invocation -> new KList<>(List.of(ice)));
             layers(grass, dirt);
         }
@@ -453,7 +456,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
         }
 
         private void thickSeaLayers() {
-            when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), eq(data))).thenAnswer(invocation -> {
+            when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), MockPackData.runtimeOf(data))).thenAnswer(invocation -> {
                 KList<NativeBlockState> layers = new KList<>();
                 for (int layer = 0; layer < (int) invocation.getArgument(3); layer++) {
                     layers.add(ice);
@@ -475,12 +478,12 @@ public class IrisTerrainNormalActuatorHydrologyTest {
             when(complex.terrainColumn(11, -4)).thenReturn(carved);
             when(complex.naturalTerrainColumn(11, -4)).thenReturn(natural);
             when(biome.generateCeilingLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
-                    anyInt(), anyInt(), eq(data), eq(complex))).thenReturn(new KList<>());
+                    anyInt(), anyInt(), MockPackData.runtimeOf(data), eq(complex))).thenReturn(new KList<>());
         }
 
         private void layers(NativeBlockState top, NativeBlockState second) {
             when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
-                    anyInt(), anyInt(), eq(data), eq(complex))).thenAnswer(invocation -> new KList<>(List.of(top, second)));
+                    anyInt(), anyInt(), MockPackData.runtimeOf(data), eq(complex))).thenAnswer(invocation -> new KList<>(List.of(top, second)));
         }
 
         private IrisHydrologyMaterials materials(boolean palettes) {

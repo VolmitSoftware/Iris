@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
 
@@ -20,7 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public final class IrisSurfaceLayerFallbackTest {
-    private final IrisData data = mock(IrisData.class);
+    private final IrisData data = MockPackData.create();
     private final IrisBiomePaletteLayer layer = mock(IrisBiomePaletteLayer.class);
     private final CNG heightGenerator = mock(CNG.class);
     private final NativeBlockState surfaceBlock = mock(NativeBlockState.class);
@@ -34,16 +36,16 @@ public final class IrisSurfaceLayerFallbackTest {
         when(layer.getZoom()).thenReturn(1D);
         when(layer.getMinHeight()).thenReturn(1);
         when(layer.getMaxHeight()).thenReturn(2);
-        when(layer.getHeightGenerator(any(RNG.class), same(data))).thenReturn(heightGenerator);
+        when(layer.getHeightGenerator(any(RNG.class), MockPackData.runtimeOf(data))).thenReturn(heightGenerator);
         when(heightGenerator.fit(1, 2, 12D, -8D)).thenReturn(2);
-        when(layer.get(rng, 0, 12D, 0D, -8D, data)).thenReturn(surfaceBlock);
-        when(layer.get(rng, 1, 13D, 1D, -9D, data)).thenReturn(secondBlock);
+        when(layer.get(rng, 0, 12D, 0D, -8D, data.standalonePackRuntime())).thenReturn(surfaceBlock);
+        when(layer.get(rng, 1, 13D, 1D, -9D, data.standalonePackRuntime())).thenReturn(secondBlock);
         when(slopeStream.getDouble(12D, -8D)).thenReturn(9D);
         return new IrisBiome().setLayers(new KList<>(layer));
     }
 
     private KList<NativeBlockState> generate(IrisBiome biome, IrisDimension dim) {
-        return biome.generateLayersWithSlope(dim, 12D, -8D, rng, 4, 32, data, slopeStream);
+        return biome.generateLayersWithSlope(dim, 12D, -8D, rng, 4, 32, data.standalonePackRuntime(), slopeStream);
     }
 
     @Test
@@ -125,7 +127,7 @@ public final class IrisSurfaceLayerFallbackTest {
         when(layer.getSlopeCondition()).thenReturn(new IrisSlopeClip(0D, 4D));
         IrisDimension dimension = new IrisDimension();
 
-        assertTrue(biome.generateLayersWithSlope(dimension, 12D, -8D, rng, 0, 32, data, slopeStream).isEmpty());
+        assertTrue(biome.generateLayersWithSlope(dimension, 12D, -8D, rng, 0, 32, data.standalonePackRuntime(), slopeStream).isEmpty());
         assertTrue(generate(biome.setLockLayersMax(0), dimension).isEmpty());
         assertTrue(generate(biome.setLockLayersMax(7).setLayers(new KList<>()), dimension).isEmpty());
     }

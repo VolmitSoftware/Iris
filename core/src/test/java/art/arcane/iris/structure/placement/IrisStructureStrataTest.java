@@ -1,5 +1,7 @@
 package art.arcane.iris.structure.placement;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
@@ -23,6 +25,7 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.same;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
@@ -46,7 +49,7 @@ public class IrisStructureStrataTest {
     private final IrisComplex complex = mock(IrisComplex.class);
     private final IrisBiome biome = mock(IrisBiome.class);
     private final IrisImageMapRuntime imageMap = mock(IrisImageMapRuntime.class);
-    private final IrisData data = mock(IrisData.class);
+    private final IrisData data = MockPackData.create();
     private final IrisDimension dimension = new IrisDimension().setBedrock(true).setHideOresForHiddenOre(true);
 
     @Before
@@ -62,7 +65,7 @@ public class IrisStructureStrataTest {
         when(complex.getRockStream()).thenReturn(ProceduralStream.of((x, z) -> rock, Interpolated.of(value -> 0D, value -> rock)));
         when(complex.getImageMapRuntime()).thenReturn(imageMap);
         when(biome.generateLayersWithSlope(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
-                anyInt(), anyInt(), eq(data), any())).thenReturn(new KList<>(List.of(grass, dirt, dirt)));
+                anyInt(), anyInt(), MockPackData.runtimeOf(data), any())).thenReturn(new KList<>(List.of(grass, dirt, dirt)));
     }
 
     @Test
@@ -82,7 +85,7 @@ public class IrisStructureStrataTest {
         IrisStructureStrata.world(engine).column(3, 5, 90, false);
 
         verify(biome).generateLayersWithSlope(eq(dimension), eq(3D), eq(5D), any(RNG.class),
-                eq(90 - MIN_HEIGHT), eq(90 - MIN_HEIGHT), eq(data), any());
+                eq(90 - MIN_HEIGHT), eq(90 - MIN_HEIGHT), MockPackData.runtimeOf(data), any());
     }
 
     @Test

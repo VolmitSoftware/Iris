@@ -86,7 +86,7 @@ final class IrisSelectionReference {
         long maximum = selection.size() - 1L;
         IrisBiome selected = maximum <= 0L
                 ? selection.get(0L)
-                : selection.get(biome.getChildrenGenerator(childStyleSeed, biome.getChildShrinkFactor()).fit2D(0, (int) maximum, x, z));
+                : selection.get(biome.getChildrenGenerator(data.standalonePackRuntime(), childStyleSeed, biome.getChildShrinkFactor()).fit2D(0, (int) maximum, x, z));
         if (selected.getLoadKey().equals(biome.getLoadKey())) {
             return biome;
         }

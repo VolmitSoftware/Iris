@@ -18,6 +18,7 @@
 
 package art.arcane.iris.studio.map;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisEngineDecorator;
@@ -37,29 +38,31 @@ import art.arcane.volmlib.util.noise.CNG;
  * passes use.
  */
 abstract class BiomePalettePlacement {
+    protected final PackRuntime runtime;
     protected final IrisData data;
 
-    private BiomePalettePlacement(IrisData data) {
-        this.data = data;
+    private BiomePalettePlacement(PackRuntime runtime) {
+        this.runtime = runtime;
+        this.data = runtime.data();
     }
 
     static BiomePalettePlacement of(Engine engine, IrisBiome biome, BiomePalette palette) {
-        IrisData data = engine.getData();
+        PackRuntime runtime = PackRuntime.of(engine);
         RNG terrainRandom = new RNG(engine.getSeedManager().getTerrain());
         RNG carveRandom = new RNG(engine.getSeedManager().getCarve());
         RNG postRandom = new RNG(engine.getSeedManager().getPost());
         int seaLevel = seaLevel(engine.getDimension());
         int index = palette.index();
         return switch (palette.kind()) {
-            case LAYER -> new StackedLayer(palette.layerIn(biome), index, biome.getLayerHeightGenerators(terrainRandom, data),
-                    terrainRandom, data);
-            case SEA_LAYER -> new StackedLayer(palette.layerIn(biome), index, biome.getLayerSeaHeightGenerators(terrainRandom, data),
-                    terrainRandom, data);
+            case LAYER -> new StackedLayer(palette.layerIn(biome), index, biome.getLayerHeightGenerators(terrainRandom, runtime),
+                    terrainRandom, runtime);
+            case SEA_LAYER -> new StackedLayer(palette.layerIn(biome), index, biome.getLayerSeaHeightGenerators(terrainRandom, runtime),
+                    terrainRandom, runtime);
             case CAVE_CEILING_LAYER -> new StackedLayer(palette.layerIn(biome), index,
-                    biome.getCaveCeilingLayerHeightGenerators(carveRandom, data), carveRandom, data);
-            case WALL -> new SingleBlocks(palette.layerIn(biome), data, carveRandom, seaLevel);
-            case SLAB -> new SingleBlocks(palette.layerIn(biome), data, postRandom, seaLevel);
-            case DECORATOR -> new Decorations(palette.decoratorIn(biome), engine.getSeedManager().getComponent(), seaLevel, data);
+                    biome.getCaveCeilingLayerHeightGenerators(carveRandom, runtime), carveRandom, runtime);
+            case WALL -> new SingleBlocks(palette.layerIn(biome), runtime, carveRandom, seaLevel);
+            case SLAB -> new SingleBlocks(palette.layerIn(biome), runtime, postRandom, seaLevel);
+            case DECORATOR -> new Decorations(palette.decoratorIn(biome), engine.getSeedManager().getComponent(), seaLevel, runtime);
         };
     }
 
@@ -89,8 +92,8 @@ abstract class BiomePalettePlacement {
     private abstract static class LayerPlacement extends BiomePalettePlacement {
         protected final IrisBiomePaletteLayer layer;
 
-        private LayerPlacement(IrisBiomePaletteLayer layer, IrisData data) {
-            super(data);
+        private LayerPlacement(IrisBiomePaletteLayer layer, PackRuntime runtime) {
+            super(runtime);
             this.layer = layer;
         }
 
@@ -114,8 +117,8 @@ abstract class BiomePalettePlacement {
         private final RNG random;
         private final CNG thicknessNoise;
 
-        private StackedLayer(IrisBiomePaletteLayer layer, int index, KList<CNG> thicknessNoises, RNG random, IrisData data) {
-            super(layer, data);
+        private StackedLayer(IrisBiomePaletteLayer layer, int index, KList<CNG> thicknessNoises, RNG random, PackRuntime runtime) {
+            super(layer, runtime);
             this.index = index;
             this.random = random;
             this.thicknessNoise = index < thicknessNoises.size() ? thicknessNoises.get(index) : null;
@@ -143,7 +146,7 @@ abstract class BiomePalettePlacement {
         @Override
         double noise(int blockX, int blockZ, int depth) {
             double zoom = layer.getZoom();
-            return layer.getLayerGenerator(random, index + depth, data)
+            return layer.getLayerGenerator(random, index + depth, runtime)
                     .noise((blockX + depth) / zoom / zoom, depth / zoom, (blockZ - depth) / zoom / zoom);
         }
     }
@@ -155,8 +158,8 @@ abstract class BiomePalettePlacement {
         private final RNG random;
         private final int sampleHeight;
 
-        private SingleBlocks(IrisBiomePaletteLayer layer, IrisData data, RNG random, int sampleHeight) {
-            super(layer, data);
+        private SingleBlocks(IrisBiomePaletteLayer layer, PackRuntime runtime, RNG random, int sampleHeight) {
+            super(layer, runtime);
             this.random = random;
             this.sampleHeight = sampleHeight;
         }
@@ -169,7 +172,7 @@ abstract class BiomePalettePlacement {
         @Override
         double noise(int blockX, int blockZ, int depth) {
             double zoom = layer.getZoom();
-            return layer.getLayerGenerator(random, data).noise(blockX / zoom, sampleHeight / zoom, blockZ / zoom);
+            return layer.getLayerGenerator(random, runtime).noise(blockX / zoom, sampleHeight / zoom, blockZ / zoom);
         }
     }
 
@@ -185,8 +188,8 @@ abstract class BiomePalettePlacement {
         private final boolean picksFromFlatNoise;
         private final int sampleHeight;
 
-        private Decorations(IrisDecorator decorator, long componentSeed, int sampleHeight, IrisData data) {
-            super(data);
+        private Decorations(IrisDecorator decorator, long componentSeed, int sampleHeight, PackRuntime runtime) {
+            super(runtime);
             this.decorator = decorator;
             RNG partRandom = new RNG(IrisEngineDecorator.seedForPart(componentSeed, decorator.getPartOf()));
             this.placementNoise = decorator.getGenerator(partRandom, data);

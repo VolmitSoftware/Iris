@@ -2530,7 +2530,7 @@ public class IrisComplex implements DataProvider {
     }
 
     private IrisBiome pickChild(IrisBiome parent, double x, double z) {
-        CNG childCell = parent.getChildrenGenerator(childStyleSeed, parent.getChildShrinkFactor());
+        CNG childCell = parent.getChildrenGenerator(packRuntime, childStyleSeed, parent.getChildShrinkFactor());
         return resolveChildSelectionPlan(parent).select(childCell, x, z).withInferredType(parent.getInferredType());
     }
 

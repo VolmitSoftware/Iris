@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -24,6 +25,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class IrisBiomeLockedLayerTest {
+    private static final PackRuntime RUNTIME = PackRuntime.standalone(null);
+
     @Test
     public void repeatsLockedLayersAcrossTheReferenceHeight() {
         NativeBlockState first = mock(NativeBlockState.class);
@@ -38,7 +41,7 @@ public class IrisBiomeLockedLayerTest {
         int[][] expectedCycles = {{1, 2, 0}, {0, 1, 2}, {0, 1, 2}, {2, 0, 1}, {1, 2, 0}, {1, 2, 0}};
         for (int index = 0; index < heights.length; index++) {
             KList<NativeBlockState> blocks = biome.generateLockedLayers(
-                    13, -27, new RNG(37), 8, heights[index], null, null);
+                    13, -27, new RNG(37), 8, heights[index], RUNTIME, null);
             assertEquals(8, blocks.size());
             for (int depth = 0; depth < blocks.size(); depth++) {
                 assertEquals(cycle.get(expectedCycles[index][depth % 3]), blocks.get(depth));
@@ -56,8 +59,8 @@ public class IrisBiomeLockedLayerTest {
                 IrisBiomeCeilingLayerTest.layer(second, 1),
                 IrisBiomeCeilingLayerTest.layer(third, 1)));
         for (int surface : new int[]{-17, 20, 512, 1000}) {
-            KList<NativeBlockState> lower = biome.generateLockedLayers(13, -27, new RNG(37), 8, surface, null, null);
-            KList<NativeBlockState> higher = biome.generateLockedLayers(13, -27, new RNG(37), 9, surface + 1, null, null);
+            KList<NativeBlockState> lower = biome.generateLockedLayers(13, -27, new RNG(37), 8, surface, RUNTIME, null);
+            KList<NativeBlockState> higher = biome.generateLockedLayers(13, -27, new RNG(37), 9, surface + 1, RUNTIME, null);
             for (int depth = 0; depth < lower.size(); depth++) {
                 assertEquals(lower.get(depth), higher.get(depth + 1));
             }
@@ -86,7 +89,7 @@ public class IrisBiomeLockedLayerTest {
                 for (int height : heights) {
                     for (int depth : depths) {
                         assertEquals(expandedBands(biome, x, -x, rng, depth, height, 0D),
-                                biome.generateLockedLayers(x, -x, rng, depth, height, null, null));
+                                biome.generateLockedLayers(x, -x, rng, depth, height, RUNTIME, null));
                     }
                 }
             }
@@ -100,17 +103,17 @@ public class IrisBiomeLockedLayerTest {
                 palette(1, 1, 1D, block), palette(2, 2, 1D, (NativeBlockState) null)));
         RNG rng = new RNG(37L);
         assertEquals(expandedBands(biome, 3D, -11D, rng, 30, 1000, 0D),
-                biome.generateLockedLayers(3D, -11D, rng, 30, 1000, null, null));
+                biome.generateLockedLayers(3D, -11D, rng, 30, 1000, RUNTIME, null));
     }
 
     @Test
     public void zeroThicknessAndEmptyPalettesProduceNoBands() {
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLayers(new KList<>());
         RNG rng = new RNG(37L);
-        assertTrue(biome.generateLockedLayers(0D, 0D, rng, 7, 64, null, null).isEmpty());
+        assertTrue(biome.generateLockedLayers(0D, 0D, rng, 7, 64, RUNTIME, null).isEmpty());
         biome.setLayers(new KList<>(palette(0, 0, 1D, mock(NativeBlockState.class))));
-        assertTrue(biome.generateLockedLayers(0D, 0D, rng, 7, 64, null, null).isEmpty());
-        assertTrue(biome.generateLockedLayers(0D, 0D, rng, -1, 64, null, null).isEmpty());
+        assertTrue(biome.generateLockedLayers(0D, 0D, rng, 7, 64, RUNTIME, null).isEmpty());
+        assertTrue(biome.generateLockedLayers(0D, 0D, rng, -1, 64, RUNTIME, null).isEmpty());
     }
 
     @Test
@@ -119,8 +122,8 @@ public class IrisBiomeLockedLayerTest {
                 mock(NativeBlockState.class), mock(NativeBlockState.class)));
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLayers(new KList<>(layer));
         RNG rng = new RNG(37L);
-        assertEquals(7, biome.generateLockedLayers(13D, -27D, rng, 7, 64, null, null).size());
-        verify(layer, times(7)).get(same(rng), anyInt(), anyDouble(), anyDouble(), anyDouble(), isNull());
+        assertEquals(7, biome.generateLockedLayers(13D, -27D, rng, 7, 64, RUNTIME, null).size());
+        verify(layer, times(7)).get(same(rng), anyInt(), anyDouble(), anyDouble(), anyDouble(), same(RUNTIME));
     }
 
     @Test
@@ -129,8 +132,8 @@ public class IrisBiomeLockedLayerTest {
                 mock(NativeBlockState.class), mock(NativeBlockState.class)));
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLockLayersMax(100).setLayers(new KList<>(layer));
         RNG rng = new RNG(37L);
-        assertEquals(100, biome.generateLockedLayers(13D, -27D, rng, 100, 64, null, null).size());
-        verify(layer, times(3)).get(same(rng), anyInt(), anyDouble(), anyDouble(), anyDouble(), isNull());
+        assertEquals(100, biome.generateLockedLayers(13D, -27D, rng, 100, 64, RUNTIME, null).size());
+        verify(layer, times(3)).get(same(rng), anyInt(), anyDouble(), anyDouble(), anyDouble(), same(RUNTIME));
     }
 
     @Test
@@ -144,7 +147,7 @@ public class IrisBiomeLockedLayerTest {
         for (double slope : slopes) {
             ProceduralStream<Double> slopeStream = ProceduralStream.ofDouble((x, z) -> slope);
             assertEquals(expandedBands(biome, 13D, -27D, rng, 30, 64, slope),
-                    biome.generateLayersWithSlope(null, 13D, -27D, rng, 30, 64, null, slopeStream));
+                    biome.generateLayersWithSlope(null, 13D, -27D, rng, 30, 64, RUNTIME, slopeStream));
         }
     }
 
@@ -154,8 +157,8 @@ public class IrisBiomeLockedLayerTest {
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLayers(new KList<>(layer));
         RNG rng = new RNG(37L);
         IllegalStateException failure = new IllegalStateException("Palette unavailable");
-        doThrow(failure).when(layer).get(same(rng), anyInt(), anyDouble(), anyDouble(), anyDouble(), isNull());
-        assertTrue(biome.generateLockedLayers(0D, 0D, rng, 7, 64, null, null).isEmpty());
+        doThrow(failure).when(layer).get(same(rng), anyInt(), anyDouble(), anyDouble(), anyDouble(), same(RUNTIME));
+        assertTrue(biome.generateLockedLayers(0D, 0D, rng, 7, 64, RUNTIME, null).isEmpty());
     }
 
     private static IrisBiomePaletteLayer palette(int minimum, int maximum, double zoom, NativeBlockState... blocks) {
@@ -169,7 +172,7 @@ public class IrisBiomeLockedLayerTest {
                                                           int maxDepth, int height, double slope) {
         KList<NativeBlockState> expanded = new KList<>();
         KList<NativeBlockState> result = new KList<>();
-        KList<CNG> heights = biome.getLayerHeightGenerators(rng, null);
+        KList<CNG> heights = biome.getLayerHeightGenerators(rng, RUNTIME);
         for (int index = 0; index < biome.getLayers().size(); index++) {
             IrisBiomePaletteLayer layer = biome.getLayers().get(index);
             double zoom = layer.getZoom();
@@ -178,7 +181,7 @@ public class IrisBiomeLockedLayerTest {
                 continue;
             }
             for (int offset = 0; offset < thickness; offset++) {
-                expanded.add(layer.get(rng, index + offset, (x + offset) / zoom, offset, (z - offset) / zoom, null));
+                expanded.add(layer.get(rng, index + offset, (x + offset) / zoom, offset, (z - offset) / zoom, RUNTIME));
             }
         }
         if (!expanded.isEmpty()) {

@@ -26,13 +26,13 @@ public class IrisBiomeFieldSeedCohesionTest {
         for (long seed : new long[]{29L, 11L, 29L}) {
             for (int signature : new int[]{2137, 91}) {
                 for (double scale : new double[]{4D, 0.25D}) {
-                    assertArrayEquals(samples(biome(data).getChildrenGenerator(new RNG(seed), signature, scale)),
-                            samples(shared.getChildrenGenerator(new RNG(seed), signature, scale)), 0D);
+                    assertArrayEquals(samples(biome(data).getChildrenGenerator(data.standalonePackRuntime(), new RNG(seed), signature, scale)),
+                            samples(shared.getChildrenGenerator(data.standalonePackRuntime(), new RNG(seed), signature, scale)), 0D);
                 }
             }
         }
-        CNG first = shared.getChildrenGenerator(new RNG(29L), 2137, 4D);
-        assertSame(first, shared.getChildrenGenerator(new RNG(29L), 2137, 4D));
+        CNG first = shared.getChildrenGenerator(data.standalonePackRuntime(), new RNG(29L), 2137, 4D);
+        assertSame(first, shared.getChildrenGenerator(data.standalonePackRuntime(), new RNG(29L), 2137, 4D));
     }
 
     @Test(timeout = 15000)
@@ -66,12 +66,12 @@ public class IrisBiomeFieldSeedCohesionTest {
         double x = -71.25D;
         double z = 145.75D;
         return new double[]{
-                entry.getFootprintCng(seed, data).noise(x, z),
-                entry.getPickerCng(seed, data).noise(x, z),
-                entry.getAltitudeCng(seed, data).noise(x, z),
-                entry.getTopShapeCng(seed, data).noise(x, z),
-                entry.getBottomCng(seed, data).noise(x, z),
-                entry.getEdgeTaperProfile(seed, data).fade(4, -71, 145)
+                entry.getFootprintCng(seed, data.standalonePackRuntime()).noise(x, z),
+                entry.getPickerCng(seed, data.standalonePackRuntime()).noise(x, z),
+                entry.getAltitudeCng(seed, data.standalonePackRuntime()).noise(x, z),
+                entry.getTopShapeCng(seed, data.standalonePackRuntime()).noise(x, z),
+                entry.getBottomCng(seed, data.standalonePackRuntime()).noise(x, z),
+                entry.getEdgeTaperProfile(seed, data.standalonePackRuntime()).fade(4, -71, 145)
         };
     }
 

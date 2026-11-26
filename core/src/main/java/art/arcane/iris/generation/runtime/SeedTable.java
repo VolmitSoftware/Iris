@@ -20,30 +20,46 @@ package art.arcane.iris.generation.runtime;
 
 import java.util.LinkedHashMap;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.function.LongFunction;
 
 /**
  * The values one runtime object builds per seed, for pack objects that callers sample with seeds they derive
  * themselves. Bounded by least-recent use; an evicted value is rebuilt from the same seed, so eviction never changes
- * output. The most recent value is kept aside because callers usually ask for the same seed many times in a row.
+ * output. Recently used values are kept aside in seed-indexed slots because callers usually ask for the same few
+ * seeds many times in a row.
  */
 public final class SeedTable<T> {
+    private static final int SINGLE_RECENT_SLOT = 1;
+
     private final int capacity;
     private final LongFunction<T> builder;
     private final LinkedHashMap<Long, T> entries;
-    private volatile Recent<T> recent;
+    private final AtomicReferenceArray<Recent<T>> recent;
+    private final int recentMask;
 
     public SeedTable(int capacity, LongFunction<T> builder) {
+        this(capacity, SINGLE_RECENT_SLOT, builder);
+    }
+
+    /** @param recentSlots a power of two: how many seeds stay on the lock-free path at once */
+    public SeedTable(int capacity, int recentSlots, LongFunction<T> builder) {
         if (capacity < 1) {
             throw new IllegalArgumentException("Seed table capacity must be positive.");
+        }
+        if (recentSlots < 1 || Integer.bitCount(recentSlots) != 1) {
+            throw new IllegalArgumentException("Recent seed slots must be a positive power of two.");
         }
         this.capacity = capacity;
         this.builder = Objects.requireNonNull(builder, "seed builder");
         this.entries = new LinkedHashMap<>(capacity * 2, 0.75F, true);
+        this.recent = new AtomicReferenceArray<>(recentSlots);
+        this.recentMask = recentSlots - 1;
     }
 
     public T get(long seed) {
-        Recent<T> last = recent;
+        int slot = (int) seed & recentMask;
+        Recent<T> last = recent.getAcquire(slot);
         if (last != null && last.seed == seed) {
             return last.value;
         }
@@ -51,7 +67,7 @@ public final class SeedTable<T> {
         if (value == null) {
             value = publish(seed, Objects.requireNonNull(builder.apply(seed), "seeded runtime value"));
         }
-        recent = new Recent<>(seed, value);
+        recent.setRelease(slot, new Recent<>(seed, value));
         return value;
     }
 

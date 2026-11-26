@@ -3,6 +3,7 @@ package art.arcane.iris.testsupport;
 import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.withSettings;
@@ -20,6 +21,11 @@ public final class MockPackData {
 
     public static IrisData stubOnly() {
         return withStandaloneRuntime(mock(IrisData.class, withSettings().stubOnly()));
+    }
+
+    /** Matches a runtime scope of this pack data, without touching the data mock while stubbing. */
+    public static PackRuntime runtimeOf(IrisData data) {
+        return argThat(runtime -> runtime != null && runtime.data() == data);
     }
 
     private static IrisData withStandaloneRuntime(IrisData data) {

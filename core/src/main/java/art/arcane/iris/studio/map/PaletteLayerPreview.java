@@ -98,7 +98,7 @@ final class PaletteLayerPreview {
         BiomePalettePlacement placement = BiomePalettePlacement.of(engine, biome, palette);
         BiomeTintField biomeTints = textures == null
                 ? null
-                : new BiomeTintField(biome, new RNG(engine.getSeedManager().getBiome()), textures.biomeColors());
+                : new BiomeTintField(biome, engine, new RNG(engine.getSeedManager().getBiome()), textures.biomeColors());
         PaletteLayerPreview ground = palette.kind() == BiomePalette.Kind.DECORATOR
                 ? groundUnder(engine, palette.biomeKey(), biome, data, textures, biomeTints)
                 : null;

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
 import art.arcane.iris.structure.object.IrisObject;
@@ -45,18 +46,18 @@ final class IrisBiomeLayerGenerator {
     private IrisBiomeLayerGenerator() {
     }
 
-    static KList<NativeBlockState> generateLayers(IrisBiome biome, IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
-        return generateLayers(biome, dim, wx, wz, random, maxDepth, height, rdata, complex, null);
+    static KList<NativeBlockState> generateLayers(IrisBiome biome, IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, PackRuntime runtime, IrisComplex complex) {
+        return generateLayers(biome, dim, wx, wz, random, maxDepth, height, runtime, complex, null);
     }
 
-    static KList<NativeBlockState> generateLayers(IrisBiome biome, IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, ProceduralStream<Double> slopeStream) {
-        return generateLayers(biome, dim, wx, wz, random, maxDepth, height, rdata, null, slopeStream);
+    static KList<NativeBlockState> generateLayers(IrisBiome biome, IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, PackRuntime runtime, ProceduralStream<Double> slopeStream) {
+        return generateLayers(biome, dim, wx, wz, random, maxDepth, height, runtime, null, slopeStream);
     }
 
-    private static KList<NativeBlockState> generateLayers(IrisBiome biome, IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex, ProceduralStream<Double> slopeStream) {
+    private static KList<NativeBlockState> generateLayers(IrisBiome biome, IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, PackRuntime runtime, IrisComplex complex, ProceduralStream<Double> slopeStream) {
         if (biome.isLockLayers()) {
-            KList<NativeBlockState> data = generateLockedLayers(biome, wx, wz, random, maxDepth, height, rdata, complex, slopeStream);
-            appendSurfaceFallback(data, biome, dim, wx, wz, random, Math.min(maxDepth, biome.getLockLayersMax()), rdata);
+            KList<NativeBlockState> data = generateLockedLayers(biome, wx, wz, random, maxDepth, height, runtime, complex, slopeStream);
+            appendSurfaceFallback(data, biome, dim, wx, wz, random, Math.min(maxDepth, biome.getLockLayersMax()), runtime);
             return data;
         }
 
@@ -73,7 +74,7 @@ final class IrisBiomeLayerGenerator {
             return data;
         }
 
-        KList<CNG> heightGenerators = getLayerHeightGenerators(biome, random, rdata);
+        KList<CNG> heightGenerators = getLayerHeightGenerators(biome, random, runtime);
         double surfaceSlope = 0D;
         boolean sampledSlope = false;
 
@@ -98,7 +99,7 @@ final class IrisBiomeLayerGenerator {
                 continue;
             }
 
-            appendLayer(data, layer, i, d, wx, wz, random, maxDepth, rdata);
+            appendLayer(data, layer, i, d, wx, wz, random, maxDepth, runtime);
 
             if (data.size() >= maxDepth) {
                 break;
@@ -115,12 +116,12 @@ final class IrisBiomeLayerGenerator {
             }
         }
 
-        appendSurfaceFallback(data, biome, dim, wx, wz, random, maxDepth, rdata);
+        appendSurfaceFallback(data, biome, dim, wx, wz, random, maxDepth, runtime);
         return data;
     }
 
     private static void appendSurfaceFallback(KList<NativeBlockState> data, IrisBiome biome, IrisDimension dim,
-                                              double wx, double wz, RNG random, int maxDepth, IrisData rdata) {
+                                              double wx, double wz, RNG random, int maxDepth, PackRuntime runtime) {
         if (!data.isEmpty() || maxDepth <= 0 || biome.getLayers().isEmpty()) {
             return;
         }
@@ -129,11 +130,11 @@ final class IrisBiomeLayerGenerator {
             fallback = dim.getSurfaceLayerFallback();
         }
         if (fallback == IrisSurfaceLayerFallback.TOP_LAYER) {
-            appendLayer(data, biome.getLayers().get(0), 0, 1, wx, wz, random, maxDepth, rdata);
+            appendLayer(data, biome.getLayers().get(0), 0, 1, wx, wz, random, maxDepth, runtime);
         }
     }
 
-    static KList<NativeBlockState> generateCeilingLayers(IrisBiome biome, IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
+    static KList<NativeBlockState> generateCeilingLayers(IrisBiome biome, IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, PackRuntime runtime, IrisComplex complex) {
         KList<NativeBlockState> data = new KList<>();
 
         if (maxDepth <= 0) {
@@ -147,7 +148,7 @@ final class IrisBiomeLayerGenerator {
             return data;
         }
 
-        KList<CNG> heightGenerators = getCaveCeilingLayerHeightGenerators(biome, random, rdata);
+        KList<CNG> heightGenerators = getCaveCeilingLayerHeightGenerators(biome, random, runtime);
 
         for (int i = 0; i < layerCount; i++) {
             IrisBiomePaletteLayer layer = ceilingLayers.get(i);
@@ -159,7 +160,7 @@ final class IrisBiomeLayerGenerator {
                 continue;
             }
 
-            appendLayer(data, layer, i, d, wx, wz, random, maxDepth, rdata);
+            appendLayer(data, layer, i, d, wx, wz, random, maxDepth, runtime);
 
             if (data.size() >= maxDepth) {
                 break;
@@ -179,11 +180,11 @@ final class IrisBiomeLayerGenerator {
         return data;
     }
 
-    static KList<NativeBlockState> generateLockedLayers(IrisBiome biome, double wx, double wz, RNG random, int maxDepthf, int height, IrisData rdata, IrisComplex complex) {
-        return generateLockedLayers(biome, wx, wz, random, maxDepthf, height, rdata, complex, null);
+    static KList<NativeBlockState> generateLockedLayers(IrisBiome biome, double wx, double wz, RNG random, int maxDepthf, int height, PackRuntime runtime, IrisComplex complex) {
+        return generateLockedLayers(biome, wx, wz, random, maxDepthf, height, runtime, complex, null);
     }
 
-    private static KList<NativeBlockState> generateLockedLayers(IrisBiome biome, double wx, double wz, RNG random, int maxDepthf, int height, IrisData rdata, IrisComplex complex, ProceduralStream<Double> slopeStream) {
+    private static KList<NativeBlockState> generateLockedLayers(IrisBiome biome, double wx, double wz, RNG random, int maxDepthf, int height, PackRuntime runtime, IrisComplex complex, ProceduralStream<Double> slopeStream) {
         KList<NativeBlockState> data = new KList<>();
         int maxDepth = Math.min(maxDepthf, biome.getLockLayersMax());
         KList<IrisBiomePaletteLayer> layers = biome.getLayers();
@@ -192,7 +193,7 @@ final class IrisBiomeLayerGenerator {
             return data;
         }
 
-        KList<CNG> heightGenerators = getLayerHeightGenerators(biome, random, rdata);
+        KList<CNG> heightGenerators = getLayerHeightGenerators(biome, random, runtime);
         int[] boundaries = new int[layerCount + 1];
         double surfaceSlope = 0D;
         boolean sampledSlope = false;
@@ -230,7 +231,7 @@ final class IrisBiomeLayerGenerator {
             double zoom = layer.getZoom();
             try {
                 data.add(layer.get(random, layerIndex + offset,
-                        (wx + offset) / zoom, offset, (wz - offset) / zoom, rdata));
+                        (wx + offset) / zoom, offset, (wz - offset) / zoom, runtime));
             } catch (Throwable error) {
                 GenerationFailures.skipPlacement(error, "surface layer", "block", (int) wx, height - depth, (int) wz, biome.getLoadKey());
             }
@@ -274,7 +275,7 @@ final class IrisBiomeLayerGenerator {
                 : complex.getSlopeStream().getDouble(x, z);
     }
 
-    static KList<NativeBlockState> generateSeaLayers(IrisBiome biome, double wx, double wz, RNG random, int maxDepth, IrisData rdata) {
+    static KList<NativeBlockState> generateSeaLayers(IrisBiome biome, double wx, double wz, RNG random, int maxDepth, PackRuntime runtime) {
         KList<NativeBlockState> data = new KList<>();
 
         KList<IrisBiomePaletteLayer> seaLayers = biome.getSeaLayers();
@@ -284,7 +285,7 @@ final class IrisBiomeLayerGenerator {
             return data;
         }
 
-        KList<CNG> heightGenerators = getLayerSeaHeightGenerators(biome, random, rdata);
+        KList<CNG> heightGenerators = getLayerSeaHeightGenerators(biome, random, runtime);
 
         for (int i = 0; i < layerCount; i++) {
             IrisBiomePaletteLayer layer = seaLayers.get(i);
@@ -296,7 +297,7 @@ final class IrisBiomeLayerGenerator {
                 continue;
             }
 
-            appendLayer(data, layer, i, d, wx, wz, random, maxDepth, rdata);
+            appendLayer(data, layer, i, d, wx, wz, random, maxDepth, runtime);
 
             if (data.size() >= maxDepth) {
                 break;
@@ -306,46 +307,51 @@ final class IrisBiomeLayerGenerator {
         return data;
     }
 
-    static KList<CNG> getLayerHeightGenerators(IrisBiome biome, RNG rng, IrisData rdata) {
-        return getHeightGenerators(biome.getLayerHeightGenerators(), biome.getLayers(), 7235, rng, rdata);
+    static KList<CNG> getLayerHeightGenerators(IrisBiome biome, RNG rng, PackRuntime runtime) {
+        return runtime.biome(biome).layerHeights(rng.getSeed());
     }
 
-    static KList<CNG> getLayerSeaHeightGenerators(IrisBiome biome, RNG rng, IrisData data) {
-        return getHeightGenerators(biome.getLayerSeaHeightGenerators(), biome.getSeaLayers(), 7735, rng, data);
+    static KList<CNG> getLayerSeaHeightGenerators(IrisBiome biome, RNG rng, PackRuntime runtime) {
+        return runtime.biome(biome).seaLayerHeights(rng.getSeed());
     }
 
-    static KList<CNG> getCaveCeilingLayerHeightGenerators(IrisBiome biome, RNG rng, IrisData data) {
-        return getHeightGenerators(biome.getLayerCeilingHeightGenerators(), biome.getCaveCeilingLayers(), 7235, rng, data);
+    static KList<CNG> getCaveCeilingLayerHeightGenerators(IrisBiome biome, RNG rng, PackRuntime runtime) {
+        return runtime.biome(biome).ceilingLayerHeights(rng.getSeed());
     }
 
-    private static KList<CNG> getHeightGenerators(IrisBiomeLayerHeightCache cache,
-                                                  KList<IrisBiomePaletteLayer> layers,
-                                                  int seedOffset, RNG rng, IrisData data) {
-        return cache.get(layers, seedOffset, rng, data);
+    static KList<CNG> createHeightGenerators(KList<IrisBiomePaletteLayer> layers, int seedOffset, long seed,
+                                             PackRuntime runtime) {
+        RNG rng = new RNG(seed);
+        KList<CNG> result = new KList<>();
+        int offset = seedOffset;
+        for (IrisBiomePaletteLayer layer : layers) {
+            result.add(layer.getHeightGenerator(rng.nextParallelRNG((offset++) * offset * offset * offset), runtime));
+        }
+        return result;
     }
 
     private static void appendLayer(KList<NativeBlockState> blocks, IrisBiomePaletteLayer layer,
                                     int layerIndex, int thickness, double x, double z,
-                                    RNG random, int maxDepth, IrisData data) {
+                                    RNG random, int maxDepth, PackRuntime runtime) {
         double zoom = layer.getZoom();
         for (int offset = 0; offset < thickness && blocks.size() < maxDepth; offset++) {
             try {
                 blocks.add(layer.get(random, layerIndex + offset,
-                        (x + offset) / zoom, offset, (z - offset) / zoom, data));
+                        (x + offset) / zoom, offset, (z - offset) / zoom, runtime));
             } catch (Throwable error) {
                 GenerationFailures.skipPlacement(error, "surface layer", "block", (int) x, -1, (int) z, "none");
             }
         }
     }
 
-    static NativeBlockState getSurfaceBlock(IrisBiome biome, int x, int z, RNG rng, IrisData idm) {
+    static NativeBlockState getSurfaceBlock(IrisBiome biome, int x, int z, RNG rng, PackRuntime runtime) {
         KList<IrisBiomePaletteLayer> layers = biome.getLayers();
 
         if (layers.isEmpty()) {
             return B.getState("AIR");
         }
 
-        return layers.get(0).get(rng, x, 0, z, idm);
+        return layers.get(0).get(rng, x, 0, z, runtime);
     }
 
     static int getMaxHeight(IrisBiome biome, Engine engine) {

@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomePaletteLayer;
 import art.arcane.iris.generation.biome.IrisSurfaceLayerFallback;
@@ -33,7 +35,7 @@ public class IrisCarveModifierLayerMemoTest {
 
     @Test
     public void heightFreeFloorLayersIgnoreTheZoneFloor() {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisComplex complex = mock(IrisComplex.class);
         when(complex.hasTerrain3D()).thenReturn(true);
         when(complex.terrainSurfaceSlope(anyInt(), anyInt(), anyInt())).thenAnswer(call -> (double) (int) call.getArgument(1));
@@ -44,9 +46,9 @@ public class IrisCarveModifierLayerMemoTest {
         IrisDimension dimension = new IrisDimension().setSurfaceLayerFallback(IrisSurfaceLayerFallback.TOP_LAYER);
 
         assertTrue(IrisCarveModifier.hasHeightFreeFloorLayers(biome));
-        KList<NativeBlockState> reference = biome.generateLayers(dimension, 14D, -9D, rng, 3, 0, data, complex);
+        KList<NativeBlockState> reference = biome.generateLayers(dimension, 14D, -9D, rng, 3, 0, data.standalonePackRuntime(), complex);
         for (int floor = -64; floor < 320; floor += 7) {
-            assertEquals(reference, biome.generateLayers(dimension, 14D, -9D, rng, 3, floor, data, complex));
+            assertEquals(reference, biome.generateLayers(dimension, 14D, -9D, rng, 3, floor, data.standalonePackRuntime(), complex));
         }
 
         biome.setLockLayers(true);
@@ -82,9 +84,9 @@ public class IrisCarveModifierLayerMemoTest {
         when(layer.getMinHeight()).thenReturn(thickness);
         when(layer.getMaxHeight()).thenReturn(thickness);
         when(layer.getSlopeCondition()).thenReturn(slope);
-        when(layer.getHeightGenerator(any(RNG.class), same(data))).thenReturn(height);
+        when(layer.getHeightGenerator(any(RNG.class), MockPackData.runtimeOf(data))).thenReturn(height);
         when(height.fit(anyInt(), anyInt(), anyDouble(), anyDouble())).thenReturn(thickness);
-        when(layer.get(any(RNG.class), anyInt(), anyDouble(), anyDouble(), anyDouble(), same(data)))
+        when(layer.get(any(RNG.class), anyInt(), anyDouble(), anyDouble(), anyDouble(), MockPackData.runtimeOf(data)))
                 .thenAnswer(call -> block((int) call.getArgument(1)));
         return layer;
     }

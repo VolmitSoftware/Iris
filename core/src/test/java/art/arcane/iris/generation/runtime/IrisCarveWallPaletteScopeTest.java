@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.stage.IrisCarveModifier;
@@ -171,7 +172,7 @@ public class IrisCarveWallPaletteScopeTest {
         private final MantleChunk<Matter> chunk;
         private final GenerationRuntime active;
         private final GenerationRuntime detached;
-        private final IrisData assemblyData = mock(IrisData.class);
+        private final IrisData assemblyData = MockPackData.create();
         private final IrisComplex assemblyComplex = mock(IrisComplex.class);
         private final EngineRuntimeBuilder.RuntimeAssembly assembly;
         private final AtomicInteger dataLookups = new AtomicInteger();
@@ -194,8 +195,8 @@ public class IrisCarveWallPaletteScopeTest {
             doReturn(1).when(chunk).sectionCount();
             doReturn(true).when(chunk).exists(0);
             doReturn(section).when(chunk).get(0);
-            active = runtime(mock(IrisData.class), mock(IrisComplex.class), engineMantle);
-            detached = runtime(mock(IrisData.class), mock(IrisComplex.class), engineMantle);
+            active = runtime(MockPackData.create(), mock(IrisComplex.class), engineMantle);
+            detached = runtime(MockPackData.create(), mock(IrisComplex.class), engineMantle);
             field(engine, IrisEngine.class, "lifecycleLock", new Object());
             field(engine, IrisEngine.class, "threadState", new EngineThreadState());
             field(engine, IrisEngine.class, "detachedGenerationRuntimes", Collections.newSetFromMap(new IdentityHashMap<>()));
@@ -226,10 +227,10 @@ public class IrisCarveWallPaletteScopeTest {
             IrisBiomePaletteLayer palette = mock(IrisBiomePaletteLayer.class);
             doReturn(palette).when(biome).getWall();
             doAnswer(call -> {
-                assertSame(expectedData, call.getArgument(4));
+                assertSame(expectedData, call.<PackRuntime>getArgument(4).data());
                 paletteCalls.incrementAndGet();
                 return wall;
-            }).when(palette).get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class));
+            }).when(palette).get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(PackRuntime.class));
             for (IrisComplex complex : new IrisComplex[]{activeComplex, detachedComplex, assemblyComplex}) {
                 doReturn(ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> null)))
                         .when(complex).getTrueBiomeStream();

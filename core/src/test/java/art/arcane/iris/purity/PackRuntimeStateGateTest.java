@@ -196,21 +196,6 @@ public class PackRuntimeStateGateTest {
     );
 
     private static final List<Entry> PENDING_MIGRATION = List.of(
-            pending("art.arcane.iris.generation.biome.IrisBiome", "biomeGenerators", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisBiome", "childrenGenerators", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisBiome", "layerCeilingHeightGenerators", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisBiome", "layerHeightGenerators", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisBiome", "layerSeaHeightGenerators", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisBiome", "recentBiomeGenerator", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisBiome", "recentChildGenerator", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisBiomePaletteLayer", "heightGenerators", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisBiomePaletteLayer", "layerGenerators", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisBiomePaletteLayer", "recentHeightGenerator", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisBiomePaletteLayer", "recentLayerGenerators", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisFloatingChildBiomes", "carvingProfileSamplers", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisFloatingChildBiomes", "edgeTaperProfiles", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisFloatingChildBiomes", "recentCarvingProfile", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisFloatingChildBiomes", "recentEdgeProfile", Kind.RUNTIME),
             pending("art.arcane.iris.generation.decoration.IrisDecorator", "generators", Kind.RUNTIME),
             pending("art.arcane.iris.generation.decoration.IrisDecorator", "recentGenerators", Kind.RUNTIME),
             pending("art.arcane.iris.generation.decoration.IrisDepositGenerator", "objects", Kind.RUNTIME),
@@ -230,8 +215,6 @@ public class PackRuntimeStateGateTest {
             pending("art.arcane.iris.structure.object.IrisObjectReplace", "replaceGen", Kind.RUNTIME),
             pending("art.arcane.iris.world.entity.IrisEffect", "latch", Kind.RUNTIME),
             pending("art.arcane.iris.generation.bake.ChunkBakeCache", "recent", Kind.THREAD),
-            pending("art.arcane.iris.generation.biome.FloatingIslandSample", "CHUNK_MEMO", Kind.THREAD),
-            pending("art.arcane.iris.generation.biome.FloatingIslandSample", "FOOTPRINT_MEMO", Kind.THREAD),
             pending("art.arcane.iris.generation.hydrology.engine.HydrologyRuntime", "last", Kind.THREAD),
             pending("art.arcane.iris.generation.mantle.IrisCaveCarver3D", "scratchCache", Kind.THREAD),
             pending("art.arcane.iris.generation.mantle.MantleWriter", "objectPlacementCapture", Kind.THREAD),
@@ -255,16 +238,11 @@ public class PackRuntimeStateGateTest {
             pending("art.arcane.iris.world.history.TransitionBandIndex", "lastRegion", Kind.THREAD),
             pending("art.arcane.iris.world.history.TransitionBoundarySampler", "cache", Kind.THREAD),
             pending("art.arcane.iris.world.history.TransitionDisplacementField", "local", Kind.THREAD),
-            pending("art.arcane.iris.generation.biome.IrisBiome$ChildGeneratorKey", "engine", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisBiomePaletteLayer$LayerGeneratorKey", "engine", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.biome.IrisFloatingChildBiomes$RuntimeKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.generation.decoration.IrisDecorator$GeneratorKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.generation.decoration.IrisOreGenerator$ChanceKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.generation.terrain.IrisMaterialPalette$LayerGeneratorKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.structure.object.IrisObjectPlacement$SurfaceWarpCacheKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.generation.bake.ChunkBakeCache", "SPARSE", Kind.SCRATCH),
-            pending("art.arcane.iris.generation.biome.FloatingIslandSample", "LAST_DENSITY", Kind.SCRATCH),
-            pending("art.arcane.iris.generation.biome.FloatingIslandSample", "LAST_REJECT", Kind.SCRATCH),
             pending("art.arcane.iris.generation.context.IrisContext", "OVERFLOW", Kind.SCRATCH),
             pending("art.arcane.iris.generation.decoration.DecoratorCore", "SCRATCH_OPTS", Kind.SCRATCH),
             pending("art.arcane.iris.generation.decoration.IrisDepositGenerator", "FOOTPRINT_CELLS", Kind.SCRATCH),
@@ -444,6 +422,8 @@ public class PackRuntimeStateGateTest {
     );
 
     private static final List<Entry> SETTLED_HOLDERS = List.of(
+            holder("art.arcane.iris.generation.biome.FloatingIslandSample", "LAST_DENSITY", Kind.SCRATCH, "the last cluster diagnostic doubles, no engine or pack reference"),
+            holder("art.arcane.iris.generation.biome.FloatingIslandSample", "LAST_REJECT", Kind.SCRATCH, "the last reject code, no engine or pack reference"),
             holder("art.arcane.iris.generation.noise.ExpressionRuntime", "EVALUATION_SCRATCH", Kind.SCRATCH, "per-depth double argument arrays, no engine or pack reference"),
             holder("art.arcane.iris.generation.runtime.EnginePanic$Diagnostics", "current", Kind.UNRELATED, "panic diagnostics strings for crash reports"),
             holder("art.arcane.iris.pack.IrisPackBenchmarking", "instance", Kind.UNRELATED, "benchmark command session")

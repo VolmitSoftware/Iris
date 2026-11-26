@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineAssignedActuator;
 import art.arcane.iris.pack.loading.IrisData;
@@ -143,6 +144,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         private final int chunkHeight;
         private final IrisDimension dimension;
         private final IrisData data;
+        private final PackRuntime runtime;
         private final Engine oreEngine;
         private final IrisComplex complex;
         private final ProceduralStream<Double> waterHeadStream;
@@ -181,6 +183,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             chunkHeight = h.getHeight();
             dimension = getDimension();
             data = getData();
+            runtime = PackRuntime.of(getEngine(), data);
             oreEngine = data == null ? null : data.getEngine();
             complex = getComplex();
             waterHeadStream = complex.getWaterHeadStream();
@@ -278,7 +281,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                 if (i > he && i <= hf) {
                     int fdepth = hf - i;
                     if (seaFloor && fblocks == null) {
-                        fblocks = biome.generateSeaLayers(realX, realZ, rng, role == WaterRole.INLET ? INLET_SEA_LAYERS : hf - he, data);
+                        fblocks = biome.generateSeaLayers(realX, realZ, rng, role == WaterRole.INLET ? INLET_SEA_LAYERS : hf - he, runtime);
                     }
                     put(i, HydrologyFluidLayerSelector.select(
                             fblocks,
@@ -297,7 +300,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                     }
                     if (blocks == null) {
                         blocks = biome.generateLayers(dimension, realX, realZ, rng,
-                                layerSurfaceY + 1 - bedrockFloor, layerSurfaceY, data, complex);
+                                layerSurfaceY + 1 - bedrockFloor, layerSurfaceY, runtime, complex);
                     }
 
                     int deepFloor = Math.max(bedrockFloor, layerCeilingY > 0 ? layerCeilingY + 2 : 0);
@@ -310,7 +313,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                     if (layerCeilingY > 0 && depth >= 2 && i - layerCeilingY < 2) {
                         if (ceilingBlocks == null) {
                             ceilingBlocks = biome.generateCeilingLayers(dimension, realX, realZ, rng,
-                                    2, layerCeilingY, data, complex);
+                                    2, layerCeilingY, runtime, complex);
                         }
                         int ceilingDepth = i - layerCeilingY;
                         put(i, ceilingBlocks.hasIndex(ceilingDepth)
@@ -495,7 +498,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                 if (upperBlocks == null && upperBiome != null) {
                     upperBlocks = upperBiome.generateLayersWithSlope(upperContext.getDimension(),
                             realX, realZ, rng, sourceSurfaceY + 1 - (bedrockEnabled ? 1 : 0), sourceSurfaceY,
-                            upperContext.getData(), upperContext.getSurfaceSlopeStream(sourceSurfaceY));
+                            runtime.scopeFor(upperContext.getData()), upperContext.getSurfaceSlopeStream(sourceSurfaceY));
                 }
                 if (upperBlocks != null && upperBlocks.hasIndex(depthFromFace)) {
                     put(y, upperBlocks.get(depthFromFace));

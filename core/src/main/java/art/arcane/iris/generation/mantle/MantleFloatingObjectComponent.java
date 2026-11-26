@@ -76,7 +76,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
         RNG chunkRng = new RNG(Cache.key(x, z) + seed() + 0x0FA710BEL);
         FloatingIslandSampleResolver sampleResolver = new FloatingIslandSampleResolver(getEngineMantle(), context.getFloatingIslandBoundarySampler());
 
-        FloatingIslandSample.clearChunkMemo();
+        FloatingIslandSample.clearChunkMemo(sampleResolver.runtime());
 
         FloatingIslandSample[] samples = new FloatingIslandSample[256];
         for (int xf = 0; xf < 16; xf++) {

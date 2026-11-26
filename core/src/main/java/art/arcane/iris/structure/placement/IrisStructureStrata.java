@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.placement;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.runtime.Engine;
@@ -25,6 +26,7 @@ public final class IrisStructureStrata implements StructureStrata {
     private final IrisComplex complex;
     private final IrisDimension dimension;
     private final IrisData data;
+    private final PackRuntime runtime;
     private final RNG rng;
     private final int offsetY;
     private final int bedrockFloor;
@@ -34,6 +36,7 @@ public final class IrisStructureStrata implements StructureStrata {
         complex = Objects.requireNonNull(engine.getComplex(), "Structure strata require a terrain complex");
         dimension = engine.getDimension();
         data = engine.getData();
+        runtime = PackRuntime.of(engine, data);
         rng = new RNG(engine.getSeedManager().getTerrain());
         offsetY = engine.getMinHeight();
         bedrockFloor = dimension.isBedrock() ? 1 : 0;
@@ -57,7 +60,7 @@ public final class IrisStructureStrata implements StructureStrata {
         }
         int surface = surfaceY - offsetY;
         KList<NativeBlockState> layers = biome.generateLayersWithSlope(dimension, x, z, rng,
-                surface + 1 - bedrockFloor, surface, data, FLAT_GROUND);
+                surface + 1 - bedrockFloor, surface, runtime, FLAT_GROUND);
         return new StrataColumn(x, z, surface, submerged, layers, mapped, rock, biome, region);
     }
 

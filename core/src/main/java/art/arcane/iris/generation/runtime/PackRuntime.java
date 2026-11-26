@@ -18,6 +18,13 @@
 
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.generation.biome.BiomeRuntime;
+import art.arcane.iris.generation.biome.FloatingChildRuntime;
+import art.arcane.iris.generation.biome.FloatingIslandMemo;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomePaletteLayer;
+import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
+import art.arcane.iris.generation.biome.PaletteLayerRuntime;
 import art.arcane.iris.generation.noise.ExpressionRuntime;
 import art.arcane.iris.generation.noise.GeneratorRuntime;
 import art.arcane.iris.generation.noise.IrisExpression;
@@ -49,6 +56,12 @@ public final class PackRuntime {
     private final RuntimeTable<IrisGenerator, GeneratorRuntime> generators = new RuntimeTable<>(GeneratorRuntime::new);
     private final RuntimeTable<IrisExpression, ExpressionRuntime> expressions =
             new RuntimeTable<>(expression -> new ExpressionRuntime(expression, this));
+    private final RuntimeTable<IrisBiome, BiomeRuntime> biomes = new RuntimeTable<>(biome -> new BiomeRuntime(biome, this));
+    private final RuntimeTable<IrisBiomePaletteLayer, PaletteLayerRuntime> paletteLayers =
+            new RuntimeTable<>(layer -> new PaletteLayerRuntime(layer, this));
+    private final RuntimeTable<IrisFloatingChildBiomes, FloatingChildRuntime> floatingChildren =
+            new RuntimeTable<>(entry -> new FloatingChildRuntime(entry, this));
+    private final ThreadSlots<FloatingIslandMemo> floatingIslandMemos = new ThreadSlots<>(FloatingIslandMemo::new);
 
     private PackRuntime(Engine engine, IrisData data) {
         this.engine = engine;
@@ -76,6 +89,11 @@ public final class PackRuntime {
             return data == null ? standalone(null) : data.standalonePackRuntime();
         }
         return engineRuntime.scopeFor(data);
+    }
+
+    /** The engine's scope for its own pack. */
+    public static PackRuntime of(Engine engine) {
+        return of(engine, engine.getData());
     }
 
     /**
@@ -122,5 +140,22 @@ public final class PackRuntime {
 
     public ExpressionRuntime expression(IrisExpression expression) {
         return expressions.get(expression);
+    }
+
+    public BiomeRuntime biome(IrisBiome biome) {
+        return biomes.get(biome);
+    }
+
+    public PaletteLayerRuntime paletteLayer(IrisBiomePaletteLayer layer) {
+        return paletteLayers.get(layer);
+    }
+
+    public FloatingChildRuntime floatingChild(IrisFloatingChildBiomes entry) {
+        return floatingChildren.get(entry);
+    }
+
+    /** The calling worker's floating island samples for its current chunk. */
+    public FloatingIslandMemo floatingIslandMemo() {
+        return floatingIslandMemos.get();
     }
 }

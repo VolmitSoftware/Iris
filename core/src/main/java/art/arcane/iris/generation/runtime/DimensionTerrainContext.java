@@ -278,7 +278,7 @@ public final class DimensionTerrainContext implements DataProvider {
                                     : inferredStreams.get(InferredType.LAND).get(x, z);
                         })
                         .convertAware2D((biome, x, z) -> implode(
-                                biome, x, z, rng, dataProvider, childSelectionPlans, 3))
+                                biome, x, z, rng, dimensionRuntime, dataProvider, childSelectionPlans, 3))
                 : ProceduralStream.of(
                         (x, z) -> focusBiome,
                         Interpolated.of(value -> 0D, value -> focusBiome)
@@ -379,7 +379,7 @@ public final class DimensionTerrainContext implements DataProvider {
                     );
                     return resolvedBiome == baseBiome
                             ? baseBiome
-                            : implode(resolvedBiome, x, z, rng, dataProvider, childSelectionPlans, 3);
+                            : implode(resolvedBiome, x, z, rng, dimensionRuntime, dataProvider, childSelectionPlans, 3);
                 }), cachePrefix + "ImageMappedFinalBiomeStream", engine, cacheSize)
                 : GenerationStreams.cache2D(ProceduralStream.of(
                         (x, z) -> focusBiome,
@@ -596,6 +596,7 @@ public final class DimensionTerrainContext implements DataProvider {
             double x,
             double z,
             RNG rng,
+            PackRuntime runtime,
             DataProvider dataProvider,
             Map<IrisBiome, IrisComplex.ChildSelectionPlan> childSelectionPlans,
             int remainingDepth
@@ -623,7 +624,7 @@ public final class DimensionTerrainContext implements DataProvider {
         }
 
         IrisBiome selected = selectionPlan.select(
-                biome.getChildrenGenerator(rng, 123, biome.getChildShrinkFactor()), x, z);
+                biome.getChildrenGenerator(runtime, rng, 123, biome.getChildShrinkFactor()), x, z);
         if (selected == null) {
             return biome;
         }
@@ -632,6 +633,7 @@ public final class DimensionTerrainContext implements DataProvider {
                 x,
                 z,
                 rng,
+                runtime,
                 dataProvider,
                 childSelectionPlans,
                 remainingDepth - 1

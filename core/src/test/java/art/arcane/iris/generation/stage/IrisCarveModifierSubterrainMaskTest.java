@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
@@ -157,7 +158,8 @@ public class IrisCarveModifierSubterrainMaskTest {
         when(engine.getWorld()).thenReturn(IrisWorld.builder().minHeight(MINIMUM_Y).maxHeight(64).build());
         when(engine.getComplex()).thenReturn(complex);
         when(engine.getDimension()).thenReturn(new IrisDimension());
-        when(engine.getData()).thenReturn(mock(IrisData.class));
+        IrisData data = MockPackData.create();
+        when(engine.getData()).thenReturn(data);
         when(complex.getSubterrainPlanner()).thenReturn(planner);
         when(complex.getHydrologyRuntime()).thenReturn(hydrology);
         IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);

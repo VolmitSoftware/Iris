@@ -48,7 +48,6 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.IrisRegistrant;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.iris.pack.schema.annotation.DependsOn;
@@ -64,7 +63,6 @@ import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.iris.generation.block.DataProvider;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
-import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -94,7 +92,6 @@ import java.util.Objects;
 @EqualsAndHashCode(callSuper = false)
 public class IrisBiome extends IrisRegistrant implements Rarity {
     public static final int CHILD_HOPS = 4;
-    private static final int BIOME_GENERATOR_CACHE_SIZE = 8;
     private static final int CHILDREN_SEED_SALT = 2137;
 
     private final transient AtomicCache<KMap<String, IrisBiomeGeneratorLink>> genCache = new AtomicCache<>();
@@ -105,25 +102,10 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     private final transient AtomicCache<Color> cacheColorDecoratorLoad = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColorLayerLoad = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColorDepositLoad = new AtomicCache<>();
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient LazyBoundedCache<ChildGeneratorKey, CNG> childrenGenerators = new LazyBoundedCache<>(8);
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private transient volatile CachedChildGenerator recentChildGenerator;
-    @Getter(AccessLevel.NONE)
-    private final transient LazyBoundedCache<Long, CNG> biomeGenerators =
-            new LazyBoundedCache<>(BIOME_GENERATOR_CACHE_SIZE);
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private transient volatile SeededBiomeGenerator recentBiomeGenerator;
     private final transient AtomicCache<Integer> maxHeight = new AtomicCache<>();
     private final transient AtomicCache<Integer> maxWithObjectHeight = new AtomicCache<>();
     private final transient AtomicCache<IrisBiome> realCarveBiome = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
-    private final transient IrisBiomeLayerHeightCache layerHeightGenerators = new IrisBiomeLayerHeightCache();
-    private final transient IrisBiomeLayerHeightCache layerCeilingHeightGenerators = new IrisBiomeLayerHeightCache();
-    private final transient IrisBiomeLayerHeightCache layerSeaHeightGenerators = new IrisBiomeLayerHeightCache();
     private final transient AtomicCache<KList<IrisOreGenerator>> surfaceOreCache = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> undergroundOreCache = new AtomicCache<>();
     private final transient AtomicCache<IrisOreBands> surfaceOreBandsCache = new AtomicCache<>();
@@ -470,69 +452,37 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         });
     }
 
-    public double getHeight(Engine xg, double x, double z, long seed) {
+    public double getHeight(PackRuntime runtime, double x, double z, long seed) {
         double height = 0;
-        PackRuntime runtime = PackRuntime.of(xg, xg.getData());
 
         for (IrisBiomeGeneratorLink i : generators) {
             height += i.getHeight(runtime, x, z, seed);
         }
 
-        return Math.max(0, Math.min(height, xg.getHeight()));
+        return Math.max(0, Math.min(height, runtime.engine().getHeight()));
     }
 
-    public CNG getBiomeGenerator(RNG random) {
-        IrisData loader = getLoader();
-        Engine engine = resolveBiomeGeneratorEngine(loader);
-        return getBiomeGenerator(random, engine);
-    }
-
+    /** Engines seed the scatter generator from their own biome seed; engine-less tools use the caller's seed. */
     public CNG getBiomeGenerator(RNG random, Engine engine) {
-        IrisData loader = getLoader();
         long seed = engine == null ? random.getSeed() : engine.getSeedManager().getBiome();
-        SeededBiomeGenerator recent = recentBiomeGenerator;
-        if (recent != null && recent.seed == seed) {
-            return recent.generator;
-        }
-
-        CNG generator = biomeGenerators.computeIfAbsent(seed, ignored -> createBiomeGenerator(seed, loader));
-        recentBiomeGenerator = new SeededBiomeGenerator(seed, generator);
-        return generator;
+        return PackRuntime.of(engine, getLoader()).biome(this).biomeGenerator(seed);
     }
 
-    private Engine resolveBiomeGeneratorEngine(IrisData loader) {
-        IrisContext context = IrisContext.get();
-        if (context != null) {
-            Engine contextEngine = context.getEngine();
-            if (!contextEngine.isClosed() && (loader == null || contextEngine.getData() == loader)) {
-                return contextEngine;
-            }
-        }
-
-        return loader == null ? null : loader.getEngine();
-    }
-
-    private CNG createBiomeGenerator(long seed, IrisData loader) {
+    CNG createBiomeGenerator(long seed, PackRuntime runtime) {
         int signature = 213949 + 228888 + getRarity() + getName().length();
-        return biomeStyle.createNoCache(new RNG(seed).nextParallelRNG(signature), PackRuntime.forContext(loader));
+        return biomeStyle.createNoCache(new RNG(seed).nextParallelRNG(signature), runtime);
     }
 
-    public CNG getChildrenGenerator(RNG random, int sig, double scale) {
-        return getChildrenGenerator(deriveChildStyleSeed(random, sig).getSeed(), scale);
+    public CNG getChildrenGenerator(PackRuntime runtime, RNG random, int sig, double scale) {
+        return getChildrenGenerator(runtime, deriveChildStyleSeed(random, sig).getSeed(), scale);
     }
 
-    public CNG getChildrenGenerator(long seed, double scale) {
-        IrisData data = getLoader();
-        Engine engine = data == null ? null : data.getEngine();
-        CachedChildGenerator recent = recentChildGenerator;
-        if (recent != null && recent.key.matches(seed, scale, data, engine)) {
-            return recent.generator;
-        }
-        ChildGeneratorKey key = new ChildGeneratorKey(seed, scale, data, engine);
-        CNG generator = childrenGenerators.computeIfAbsent(key,
-                ignored -> getChildStyle().createScaledGenerator(new RNG(seed), PackRuntime.of(engine, data), scale));
-        recentChildGenerator = new CachedChildGenerator(key, generator);
-        return generator;
+    public CNG getChildrenGenerator(PackRuntime runtime, long seed, double scale) {
+        return runtime.biome(this).childrenGenerator(seed, scale);
+    }
+
+    CNG createChildrenGenerator(long seed, double scale, PackRuntime runtime) {
+        return getChildStyle().createScaledGenerator(new RNG(seed), runtime, scale);
     }
 
     static RNG deriveChildStyleSeed(RNG random, int signature) {
@@ -543,24 +493,24 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         return deriveChildStyleSeed(random, signature).getSeed();
     }
 
-    public KList<NativeBlockState> generateLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
-        return IrisBiomeLayerGenerator.generateLayers(this, dim, wx, wz, random, maxDepth, height, rdata, complex);
+    public KList<NativeBlockState> generateLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, PackRuntime runtime, IrisComplex complex) {
+        return IrisBiomeLayerGenerator.generateLayers(this, dim, wx, wz, random, maxDepth, height, runtime, complex);
     }
 
-    public KList<NativeBlockState> generateLayersWithSlope(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, ProceduralStream<Double> slopeStream) {
-        return IrisBiomeLayerGenerator.generateLayers(this, dim, wx, wz, random, maxDepth, height, rdata, slopeStream);
+    public KList<NativeBlockState> generateLayersWithSlope(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, PackRuntime runtime, ProceduralStream<Double> slopeStream) {
+        return IrisBiomeLayerGenerator.generateLayers(this, dim, wx, wz, random, maxDepth, height, runtime, slopeStream);
     }
 
-    public KList<NativeBlockState> generateCeilingLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
-        return IrisBiomeLayerGenerator.generateCeilingLayers(this, dim, wx, wz, random, maxDepth, height, rdata, complex);
+    public KList<NativeBlockState> generateCeilingLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, PackRuntime runtime, IrisComplex complex) {
+        return IrisBiomeLayerGenerator.generateCeilingLayers(this, dim, wx, wz, random, maxDepth, height, runtime, complex);
     }
 
-    public KList<NativeBlockState> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, IrisData rdata, IrisComplex complex) {
-        return IrisBiomeLayerGenerator.generateLockedLayers(this, wx, wz, random, maxDepthf, height, rdata, complex);
+    public KList<NativeBlockState> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, PackRuntime runtime, IrisComplex complex) {
+        return IrisBiomeLayerGenerator.generateLockedLayers(this, wx, wz, random, maxDepthf, height, runtime, complex);
     }
 
-    public KList<NativeBlockState> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, IrisData rdata) {
-        return IrisBiomeLayerGenerator.generateSeaLayers(this, wx, wz, random, maxDepth, rdata);
+    public KList<NativeBlockState> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, PackRuntime runtime) {
+        return IrisBiomeLayerGenerator.generateSeaLayers(this, wx, wz, random, maxDepth, runtime);
     }
 
     /**
@@ -575,20 +525,20 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         return IrisBiomeLayerGenerator.getMaxWithObjectHeight(this, data, engine);
     }
 
-    public KList<CNG> getLayerHeightGenerators(RNG rng, IrisData rdata) {
-        return IrisBiomeLayerGenerator.getLayerHeightGenerators(this, rng, rdata);
+    public KList<CNG> getLayerHeightGenerators(RNG rng, PackRuntime runtime) {
+        return runtime.biome(this).layerHeights(rng.getSeed());
     }
 
-    public KList<CNG> getLayerSeaHeightGenerators(RNG rng, IrisData data) {
-        return IrisBiomeLayerGenerator.getLayerSeaHeightGenerators(this, rng, data);
+    public KList<CNG> getLayerSeaHeightGenerators(RNG rng, PackRuntime runtime) {
+        return runtime.biome(this).seaLayerHeights(rng.getSeed());
     }
 
-    public KList<CNG> getCaveCeilingLayerHeightGenerators(RNG rng, IrisData data) {
-        return IrisBiomeLayerGenerator.getCaveCeilingLayerHeightGenerators(this, rng, data);
+    public KList<CNG> getCaveCeilingLayerHeightGenerators(RNG rng, PackRuntime runtime) {
+        return runtime.biome(this).ceilingLayerHeights(rng.getSeed());
     }
 
-    public NativeBlockState getSurfaceBlock(int x, int z, RNG rng, IrisData idm) {
-        return IrisBiomeLayerGenerator.getSurfaceBlock(this, x, z, rng, idm);
+    public NativeBlockState getSurfaceBlock(int x, int z, RNG rng, PackRuntime runtime) {
+        return IrisBiomeLayerGenerator.getSurfaceBlock(this, x, z, rng, runtime);
     }
 
     public boolean isLand() {
@@ -618,16 +568,8 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         return inferredType.equals(InferredType.SHORE);
     }
 
-    public Biome getSkyBiome(RNG rng, double x, double y, double z) {
-        return IrisBiomeDerivatives.getSkyBiome(this, rng, resolveBiomeGeneratorEngine(getLoader()), x, y, z);
-    }
-
     public Biome getSkyBiome(RNG rng, Engine engine, double x, double y, double z) {
         return IrisBiomeDerivatives.getSkyBiome(this, rng, engine, x, y, z);
-    }
-
-    public IrisBiomeCustom getCustomBiome(RNG rng, double x, double y, double z) {
-        return IrisBiomeDerivatives.getCustomBiome(this, rng, resolveBiomeGeneratorEngine(getLoader()), x, y, z);
     }
 
     public IrisBiomeCustom getCustomBiome(RNG rng, Engine engine, double x, double y, double z) {
@@ -658,25 +600,12 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         return new KList<>(m);
     }
 
-    //TODO: Test
-    public Biome getGroundBiome(RNG rng, double x, double y, double z) {
-        return IrisBiomeDerivatives.getGroundBiome(this, rng, resolveBiomeGeneratorEngine(getLoader()), x, y, z);
-    }
-
     public Biome getGroundBiome(RNG rng, Engine engine, double x, double y, double z) {
         return IrisBiomeDerivatives.getGroundBiome(this, rng, engine, x, y, z);
     }
 
-    public String getSkyBiomeKey(RNG rng, double x, double y, double z) {
-        return IrisBiomeDerivatives.getSkyBiomeKey(this, rng, resolveBiomeGeneratorEngine(getLoader()), x, y, z);
-    }
-
     public String getSkyBiomeKey(RNG rng, Engine engine, double x, double y, double z) {
         return IrisBiomeDerivatives.getSkyBiomeKey(this, rng, engine, x, y, z);
-    }
-
-    public String getGroundBiomeKey(RNG rng, double x, double y, double z) {
-        return IrisBiomeDerivatives.getGroundBiomeKey(this, rng, resolveBiomeGeneratorEngine(getLoader()), x, y, z);
     }
 
     public String getGroundBiomeKey(RNG rng, Engine engine, double x, double y, double z) {
@@ -715,38 +644,5 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
 
     public String getTypeName() {
         return "Biome";
-    }
-
-    private static final class SeededBiomeGenerator {
-        private final long seed;
-        private final CNG generator;
-
-        private SeededBiomeGenerator(long seed, CNG generator) {
-            this.seed = seed;
-            this.generator = generator;
-        }
-    }
-
-    private record ChildGeneratorKey(long seed, double scale, IrisData data, Engine engine) {
-        private boolean matches(long seed, double scale, IrisData data, Engine engine) {
-            return this.seed == seed && Double.doubleToLongBits(this.scale) == Double.doubleToLongBits(scale)
-                    && this.data == data && this.engine == engine;
-        }
-
-        @Override
-        public boolean equals(Object object) {
-            return object instanceof ChildGeneratorKey other && matches(other.seed, other.scale, other.data, other.engine);
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = Long.hashCode(seed);
-            hash = 31 * hash + Double.hashCode(scale);
-            hash = 31 * hash + System.identityHashCode(data);
-            return 31 * hash + System.identityHashCode(engine);
-        }
-    }
-
-    private record CachedChildGenerator(ChildGeneratorKey key, CNG generator) {
     }
 }

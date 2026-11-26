@@ -89,24 +89,48 @@ public class IrisSettingsFileTest {
     }
 
     @Test
-    public void upToDateFileIsNotRewritten() throws Exception {
-        Files.writeString(settingsFile.toPath(), IrisSettingsFile.render(new IrisSettings()));
+    public void fileWithEverySettingIsNotRewritten() throws Exception {
+        String adminEdited = IrisSettingsFile.render(new IrisSettings())
+                .replace("debug = false\n", "")
+                .replace("[general]\n", "[general]\n# Turned on while chasing a bug\ndebug   =   true\n")
+                .replace("[world]\n", "[world]\nretiredOption = 3\n")
+                + "\n[custom]\nnote = \"kept\"\n";
+        Files.writeString(settingsFile.toPath(), adminEdited);
         Files.setLastModifiedTime(settingsFile.toPath(), LONG_AGO);
 
-        IrisSettingsFile.load();
+        IrisSettings loaded = IrisSettingsFile.load();
 
+        assertTrue(loaded.getGeneral().isDebug());
+        assertEquals(adminEdited, Files.readString(settingsFile.toPath()));
         assertEquals(LONG_AGO, Files.getLastModifiedTime(settingsFile.toPath()));
     }
 
     @Test
     public void missingKeysAreAddedOnLoad() throws Exception {
-        Files.writeString(settingsFile.toPath(), "[general]\ndebug = true\n");
+        Files.writeString(settingsFile.toPath(), "# Admin header\n[general]\n# keep debug on\ndebug = true\n");
 
-        IrisSettingsFile.load();
+        IrisSettings loaded = IrisSettingsFile.load();
 
         String rewritten = Files.readString(settingsFile.toPath());
-        assertTrue(rewritten.contains("\ndebug = true"));
-        assertTrue(rewritten.contains("\n[studio]"));
+        assertTrue(rewritten.startsWith("# Admin header\n[general]\nlanguage = \"en_US\"\nmetrics = true\n"));
+        assertTrue(rewritten.contains("\n# keep debug on\ndebug = true\n"));
+        assertTrue(rewritten.contains("\n[studio]\n"));
+        assertEquals(new Gson().toJson(loaded), new Gson().toJson(IrisSettingsFile.parse(rewritten)));
+        Files.setLastModifiedTime(settingsFile.toPath(), LONG_AGO);
+        IrisSettingsFile.load();
+        assertEquals(LONG_AGO, Files.getLastModifiedTime(settingsFile.toPath()));
+    }
+
+    @Test
+    public void savingKeepsAdminComments() throws Exception {
+        String adminEdited = "# Admin header\n" + IrisSettingsFile.render(new IrisSettings());
+        Files.writeString(settingsFile.toPath(), adminEdited);
+        IrisSettings loaded = IrisSettingsFile.load();
+        loaded.getGeneral().setDebug(true);
+
+        loaded.forceSave();
+
+        assertEquals(adminEdited.replace("\ndebug = false\n", "\ndebug = true\n"), Files.readString(settingsFile.toPath()));
     }
 
     @Test

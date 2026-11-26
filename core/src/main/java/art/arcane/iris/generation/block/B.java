@@ -121,7 +121,7 @@ public class B {
     }
 
     public static boolean canPlaceOnto(NativeBlockState mat, NativeBlockState onto) {
-        return mat != null && onto != null && PlantPlacement.canPlaceOnto(mat, onto);
+        return mat != null && onto != null && mat.canPlaceOnto(onto);
     }
 
     public static boolean matches(NativeBlockState filter, NativeBlockState state) {

@@ -56,7 +56,6 @@ import art.arcane.iris.generation.runtime.EngineWorldManagerProvider;
 import art.arcane.iris.generation.runtime.PreservationRegistry;
 import art.arcane.iris.generation.block.BlockDataMergeSupport;
 import art.arcane.iris.structure.object.IrisObjectRotation;
-import art.arcane.iris.generation.block.PlantPlacement;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.iris.modded.catalog.ModdedWorldgenCatalogs;
@@ -497,9 +496,6 @@ public final class ModdedEngineBootstrap {
                 ModdedDecoratorHooks decoratorHooks = new ModdedDecoratorHooks();
                 DecoratorPlatformHooks.Bindings previousDecoratorBindings = DecoratorPlatformHooks.bind(decoratorHooks, decoratorHooks);
                 rollback.add(() -> DecoratorPlatformHooks.restore(previousDecoratorBindings));
-
-                PlantPlacement.ServerRule previousPlacementRule = PlantPlacement.bindServerRule(new ModdedGroundSurvival());
-                rollback.add(() -> PlantPlacement.restoreServerRule(previousPlacementRule));
 
                 ModdedPreservationService preservation = createdServices.register(
                         ModdedPreservationService.class, new ModdedPreservationService());

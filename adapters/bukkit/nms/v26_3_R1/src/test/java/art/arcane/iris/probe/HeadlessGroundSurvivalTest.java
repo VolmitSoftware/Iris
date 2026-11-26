@@ -1,22 +1,23 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.modded.ModdedGroundSurvival;
-import art.arcane.iris.platform.bukkit.ServerGroundSurvival;
+import art.arcane.volmlib.nativelib.common.block.GroundSurvival;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.Map;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /** Both platforms ask the server's own canSurvive rule where a plant may stand, against the real block tags. */
 public final class HeadlessGroundSurvivalTest {
-    private static ServerGroundSurvival bukkit;
-
     @BeforeClass
-    public static void bootstrap() throws ReflectiveOperationException {
+    public static void bootstrap() {
         HeadlessNativeBootstrap.initialize();
-        bukkit = ServerGroundSurvival.connect(HeadlessGroundSurvivalTest.class.getClassLoader());
     }
 
     @Test
@@ -44,7 +45,7 @@ public final class HeadlessGroundSurvivalTest {
             assertPlacement(true, Blocks.SUGAR_CANE, ground);
         }
         for (Block ground : new Block[]{Blocks.STONE, Blocks.GRAVEL, Blocks.CLAY, Blocks.DIRT_PATH,
-                Blocks.FARMLAND, Blocks.WATER}) {
+                Blocks.FARMLAND, Blocks.AIR, Blocks.WATER}) {
             assertPlacement(false, Blocks.SUGAR_CANE, ground);
         }
     }
@@ -55,7 +56,7 @@ public final class HeadlessGroundSurvivalTest {
             for (Block ground : new Block[]{Blocks.CRIMSON_NYLIUM, Blocks.WARPED_NYLIUM, Blocks.SOUL_SOIL}) {
                 assertPlacement(true, plant, ground);
             }
-            for (Block ground : new Block[]{Blocks.NETHERRACK, Blocks.STONE, Blocks.GRAVEL}) {
+            for (Block ground : new Block[]{Blocks.NETHERRACK, Blocks.STONE, Blocks.GRAVEL, Blocks.AIR}) {
                 assertPlacement(false, plant, ground);
             }
         }
@@ -67,10 +68,26 @@ public final class HeadlessGroundSurvivalTest {
         assertPlacement(true, Blocks.VINE, Blocks.SAND);
     }
 
+    @Test
+    public void deadBushStaysOffGrassAsPacksExpect() {
+        assertTrue(moddedPlacement(Blocks.DEAD_BUSH, Blocks.SAND));
+        assertFalse(moddedPlacement(Blocks.DEAD_BUSH, Blocks.GRASS_BLOCK));
+    }
+
     private static void assertPlacement(boolean expected, Block plant, Block ground) {
         String pair = plant + " on " + ground;
-        assertEquals("modded " + pair, expected,
-                new ModdedGroundSurvival().canSurviveOn(plant.defaultBlockState(), ground.defaultBlockState()));
-        assertEquals("bukkit " + pair, expected, bukkit.canSurviveOn(plant.defaultBlockState(), ground.defaultBlockState()));
+        assertEquals("modded " + pair, expected, moddedPlacement(plant, ground));
+        if (!ground.defaultBlockState().isAir()) {
+            assertEquals("bukkit native " + pair, expected,
+                    new GroundSurvival().canSurviveOn(plant.defaultBlockState(), ground.defaultBlockState()));
+        }
+    }
+
+    private static boolean moddedPlacement(Block plant, Block ground) {
+        return wrap(plant).canPlaceOnto(wrap(ground));
+    }
+
+    private static ModdedBlockState wrap(Block block) {
+        return ModdedBlockState.deferred(block.defaultBlockState(), Map.of(), "iris:test");
     }
 }

@@ -1,6 +1,5 @@
 package art.arcane.iris.generation.decoration;
 
-import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -35,13 +34,13 @@ final class IrisSugarCane {
         int baseY = y - 1;
         NativeBlockState support = data.get(x, baseY, z);
         NativeBlockState target = data.get(x, y, z);
-        if (support == null || !B.canPlaceOnto(block, support) || target != null && !target.isAir()) {
+        if (support == null || !block.canPlaceOnto(support) || target != null && !target.isAir()) {
             return false;
         }
         while (isSugarCane(support) && baseY > 0) {
             support = data.get(x, --baseY, z);
         }
-        if (support == null || isSugarCane(support) || !B.canPlaceOnto(block, support)) {
+        if (support == null || isSugarCane(support) || !block.canPlaceOnto(support)) {
             return false;
         }
         for (int[] offset : NEIGHBORS) {

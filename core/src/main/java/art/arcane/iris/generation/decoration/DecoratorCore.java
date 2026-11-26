@@ -100,12 +100,14 @@ final class DecoratorCore {
             return null;
         }
 
+        DecoratorRuntime[] decoratorRuntimes = runtime.biome(biome).decorators(part);
         IrisDecorator picked = null;
         int count = 0;
 
-        for (IrisDecorator d : bucket) {
+        for (int index = 0; index < bucket.length; index++) {
+            IrisDecorator d = bucket[index];
             try {
-                if (d.passesChanceGate(gRNG, realX, realZ, runtime)) {
+                if (d.passesChanceGate(gRNG, realX, realZ, decoratorRuntimes[index])) {
                     count++;
                     if (count == 1 || colRng.nextInt(count) == 0) {
                         picked = d;

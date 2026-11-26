@@ -123,7 +123,8 @@ public class IrisBiomeLockedLayerTest {
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLayers(new KList<>(layer));
         RNG rng = new RNG(37L);
         assertEquals(7, biome.generateLockedLayers(13D, -27D, rng, 7, 64, RUNTIME, null).size());
-        verify(layer, times(7)).get(same(rng), anyInt(), anyDouble(), anyDouble(), anyDouble(), same(RUNTIME));
+        PaletteLayerRuntime layerRuntime = RUNTIME.paletteLayer(layer);
+        verify(layer, times(7)).get(same(rng), anyInt(), anyDouble(), anyDouble(), anyDouble(), same(layerRuntime));
     }
 
     @Test
@@ -133,7 +134,8 @@ public class IrisBiomeLockedLayerTest {
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLockLayersMax(100).setLayers(new KList<>(layer));
         RNG rng = new RNG(37L);
         assertEquals(100, biome.generateLockedLayers(13D, -27D, rng, 100, 64, RUNTIME, null).size());
-        verify(layer, times(3)).get(same(rng), anyInt(), anyDouble(), anyDouble(), anyDouble(), same(RUNTIME));
+        PaletteLayerRuntime layerRuntime = RUNTIME.paletteLayer(layer);
+        verify(layer, times(3)).get(same(rng), anyInt(), anyDouble(), anyDouble(), anyDouble(), same(layerRuntime));
     }
 
     @Test
@@ -157,7 +159,8 @@ public class IrisBiomeLockedLayerTest {
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLayers(new KList<>(layer));
         RNG rng = new RNG(37L);
         IllegalStateException failure = new IllegalStateException("Palette unavailable");
-        doThrow(failure).when(layer).get(same(rng), anyInt(), anyDouble(), anyDouble(), anyDouble(), same(RUNTIME));
+        PaletteLayerRuntime layerRuntime = RUNTIME.paletteLayer(layer);
+        doThrow(failure).when(layer).get(same(rng), anyInt(), anyDouble(), anyDouble(), anyDouble(), same(layerRuntime));
         assertTrue(biome.generateLockedLayers(0D, 0D, rng, 7, 64, RUNTIME, null).isEmpty());
     }
 

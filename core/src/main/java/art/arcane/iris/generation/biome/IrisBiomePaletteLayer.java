@@ -95,20 +95,26 @@ public class IrisBiomePaletteLayer {
      */
     public NativeBlockState get(RNG parent, int signature, double x, double y, double z, PackRuntime runtime) {
         KList<NativeBlockState> localBlockData = getBlockData(runtime.data());
-
-        if (localBlockData.isEmpty()) {
-            return null;
+        if (localBlockData.size() <= 1) {
+            return localBlockData.isEmpty() ? null : localBlockData.get(0);
         }
+        return fit(localBlockData, runtime.paletteLayer(this), parent, signature, x, y, z);
+    }
 
-        if (localBlockData.size() == 1) {
-            return localBlockData.get(0);
+    /** {@link #get(RNG, int, double, double, double, PackRuntime)} for a caller that already holds this layer's runtime. */
+    public NativeBlockState get(RNG parent, int signature, double x, double y, double z, PaletteLayerRuntime layerRuntime) {
+        KList<NativeBlockState> localBlockData = getBlockData(layerRuntime.packRuntime().data());
+        if (localBlockData.size() <= 1) {
+            return localBlockData.isEmpty() ? null : localBlockData.get(0);
         }
+        return fit(localBlockData, layerRuntime, parent, signature, x, y, z);
+    }
 
+    private NativeBlockState fit(KList<NativeBlockState> localBlockData, PaletteLayerRuntime layerRuntime,
+                                 RNG parent, int signature, double x, double y, double z) {
         double localZoom = zoom;
-        double scaledX = x / localZoom;
-        double scaledY = y / localZoom;
-        double scaledZ = z / localZoom;
-        return getLayerGenerator(parent, signature, runtime).fit(localBlockData, scaledX, scaledY, scaledZ);
+        CNG generator = layerRuntime.layerGenerator(layerGeneratorSeed(parent, signature, localBlockData.size()));
+        return generator.fit(localBlockData, x / localZoom, y / localZoom, z / localZoom);
     }
 
     public CNG getLayerGenerator(RNG rng, PackRuntime runtime) {
@@ -116,8 +122,12 @@ public class IrisBiomePaletteLayer {
     }
 
     public CNG getLayerGenerator(RNG parent, int signature, PackRuntime runtime) {
-        long generatorSeed = parent.getSeed() + signature + minHeight + maxHeight + getBlockData(runtime.data()).size();
+        long generatorSeed = layerGeneratorSeed(parent, signature, getBlockData(runtime.data()).size());
         return runtime.paletteLayer(this).layerGenerator(generatorSeed);
+    }
+
+    private long layerGeneratorSeed(RNG parent, int signature, int blockCount) {
+        return parent.getSeed() + signature + minHeight + maxHeight + blockCount;
     }
 
     CNG createLayerGenerator(long generatorSeed, PackRuntime runtime) {

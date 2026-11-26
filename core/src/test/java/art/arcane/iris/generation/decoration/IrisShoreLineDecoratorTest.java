@@ -71,7 +71,7 @@ public class IrisShoreLineDecoratorTest {
                 output, fixture.biome, FLUID_HEIGHT, output.getHeight());
 
         assertSame(targetAir, output.get(0, FLUID_HEIGHT + 1, 0));
-        verify(fixture.decorator).passesChanceGate(any(), anyDouble(), anyDouble(), MockPackData.runtimeOf(fixture.data));
+        verify(fixture.decorator).passesChanceGate(any(), anyDouble(), anyDouble(), MockPackData.decoratorRuntimeOf(fixture.data));
         verify(fixture.decorator, never()).getBlockData100(
                 eq(fixture.biome), any(), anyDouble(), anyDouble(), anyDouble(), MockPackData.runtimeOf(fixture.data));
     }
@@ -264,7 +264,7 @@ public class IrisShoreLineDecoratorTest {
         when(engine.getData()).thenReturn(data);
         when(biome.getDecoratorBucket(IrisDecorationPart.SHORE_LINE))
                 .thenReturn(new IrisDecorator[]{decorator});
-        when(decorator.passesChanceGate(any(), anyDouble(), anyDouble(), MockPackData.runtimeOf(data))).thenReturn(true);
+        when(decorator.passesChanceGate(any(), anyDouble(), anyDouble(), MockPackData.decoratorRuntimeOf(data))).thenReturn(true);
         when(decorator.isForcePlace()).thenReturn(forcePlace);
         when(decorator.getSlopeCondition()).thenReturn(slope);
         when(slope.isDefault()).thenReturn(true);

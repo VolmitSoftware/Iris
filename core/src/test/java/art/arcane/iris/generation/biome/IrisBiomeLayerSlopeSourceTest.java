@@ -70,7 +70,8 @@ public final class IrisBiomeLayerSlopeSourceTest {
         when(grass.getSlopeCondition()).thenReturn(new IrisSlopeClip(0D, 2.6D));
         when(grass.getHeightGenerator(any(RNG.class), MockPackData.runtimeOf(data))).thenReturn(heightGenerator);
         when(heightGenerator.fit(1, 1, 12D, -8D)).thenReturn(1);
-        when(grass.get(rng, 0, 12D, 0D, -8D, data.standalonePackRuntime())).thenReturn(block);
+        PaletteLayerRuntime grassRuntime = data.standalonePackRuntime().paletteLayer(grass);
+        when(grass.get(rng, 0, 12D, 0D, -8D, grassRuntime)).thenReturn(block);
 
         KList<NativeBlockState> ledge = biome.generateLayers(
                 rockFallbackDimension(), 12D, -8D, rng, 1, 32, data.standalonePackRuntime(), complex);
@@ -110,7 +111,8 @@ public final class IrisBiomeLayerSlopeSourceTest {
         when(paletteLayer.getSlopeCondition()).thenReturn(new IrisSlopeClip(5D, 5D));
         when(paletteLayer.getHeightGenerator(any(RNG.class), MockPackData.runtimeOf(data))).thenReturn(heightGenerator);
         when(heightGenerator.fit(1, 1, 12D, -8D)).thenReturn(1);
-        when(paletteLayer.get(rng, 0, 12D, 0D, -8D, data.standalonePackRuntime())).thenReturn(surfaceBlock);
+        PaletteLayerRuntime paletteLayerRuntime = data.standalonePackRuntime().paletteLayer(paletteLayer);
+        when(paletteLayer.get(rng, 0, 12D, 0D, -8D, paletteLayerRuntime)).thenReturn(surfaceBlock);
 
         KList<NativeBlockState> hostLayers = biome.generateLayers(
                 rockFallbackDimension(), 12D, -8D, rng, 1, 32, data.standalonePackRuntime(), hostComplex);

@@ -43,6 +43,7 @@ import art.arcane.iris.generation.mantle.TerrainMatterView;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomePaletteLayer;
+import art.arcane.iris.generation.biome.PaletteLayerRuntime;
 import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
@@ -608,6 +609,9 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         private final IrisData data;
         private final int chunkBlockX;
         private final int chunkBlockZ;
+        private final PackRuntime wallRuntime;
+        private IrisBiomePaletteLayer lastWall;
+        private PaletteLayerRuntime lastWallRuntime;
 
         private WallPainter(Hunk<NativeBlockState> output, CaveTerrainSnapshot terrain, CaveInputs inputs,
                             Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, Map<String, IrisBiome> customBiomeCache,
@@ -621,6 +625,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             this.data = data;
             this.chunkBlockX = chunkBlockX;
             this.chunkBlockZ = chunkBlockZ;
+            this.wallRuntime = inputs.runtime.scopeFor(data);
         }
 
         @Override
@@ -639,10 +644,19 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             if (biome == null) {
                 return;
             }
-            NativeBlockState wall = biome.getWall().get(rng, worldX, yy, worldZ, inputs.runtime.scopeFor(data));
+            IrisBiomePaletteLayer wallLayer = biome.getWall();
+            NativeBlockState wall = wallLayer.get(rng, 0, worldX, yy, worldZ, wallLayerRuntime(wallLayer));
             if (wall != null) {
                 output.setRaw(rx, yy, rz, wall);
             }
+        }
+
+        private PaletteLayerRuntime wallLayerRuntime(IrisBiomePaletteLayer wallLayer) {
+            if (wallLayer != lastWall) {
+                lastWall = wallLayer;
+                lastWallRuntime = wallRuntime.paletteLayer(wallLayer);
+            }
+            return lastWallRuntime;
         }
     }
 

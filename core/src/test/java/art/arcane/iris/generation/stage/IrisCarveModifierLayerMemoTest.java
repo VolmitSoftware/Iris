@@ -86,7 +86,7 @@ public class IrisCarveModifierLayerMemoTest {
         when(layer.getSlopeCondition()).thenReturn(slope);
         when(layer.getHeightGenerator(any(RNG.class), MockPackData.runtimeOf(data))).thenReturn(height);
         when(height.fit(anyInt(), anyInt(), anyDouble(), anyDouble())).thenReturn(thickness);
-        when(layer.get(any(RNG.class), anyInt(), anyDouble(), anyDouble(), anyDouble(), MockPackData.runtimeOf(data)))
+        when(layer.get(any(RNG.class), anyInt(), anyDouble(), anyDouble(), anyDouble(), MockPackData.paletteLayerRuntimeOf(data)))
                 .thenAnswer(call -> block((int) call.getArgument(1)));
         return layer;
     }

@@ -103,7 +103,7 @@ public class DecoratorCoreTest {
         IrisData data = MockPackData.create();
         PackRuntime runtime = data.standalonePackRuntime();
         IrisDecorator d = mock(IrisDecorator.class);
-        when(d.passesChanceGate(any(RNG.class), anyDouble(), anyDouble(), any(PackRuntime.class))).thenReturn(false);
+        when(d.passesChanceGate(any(RNG.class), anyDouble(), anyDouble(), any(DecoratorRuntime.class))).thenReturn(false);
         when(biome.getDecoratorBucket(IrisDecorationPart.NONE)).thenReturn(new IrisDecorator[]{d});
 
         IrisDecorator result = DecoratorCore.pickDecorator(
@@ -117,7 +117,7 @@ public class DecoratorCoreTest {
         IrisData data = MockPackData.create();
         PackRuntime runtime = data.standalonePackRuntime();
         IrisDecorator d = mock(IrisDecorator.class);
-        when(d.passesChanceGate(any(RNG.class), anyDouble(), anyDouble(), any(PackRuntime.class))).thenReturn(true);
+        when(d.passesChanceGate(any(RNG.class), anyDouble(), anyDouble(), any(DecoratorRuntime.class))).thenReturn(true);
         when(biome.getDecoratorBucket(IrisDecorationPart.NONE)).thenReturn(new IrisDecorator[]{d});
 
         RNG gRNG = new RNG(42L);
@@ -138,7 +138,7 @@ public class DecoratorCoreTest {
         IrisDecorator[] decorators = new IrisDecorator[n];
         for (int i = 0; i < n; i++) {
             IrisDecorator d = mock(IrisDecorator.class);
-            when(d.passesChanceGate(any(RNG.class), anyDouble(), anyDouble(), any(PackRuntime.class))).thenReturn(true);
+            when(d.passesChanceGate(any(RNG.class), anyDouble(), anyDouble(), any(DecoratorRuntime.class))).thenReturn(true);
             decorators[i] = d;
         }
         when(biome.getDecoratorBucket(IrisDecorationPart.NONE)).thenReturn(decorators);

@@ -161,12 +161,17 @@ public class IrisDecorator {
     }
 
     public boolean passesChanceGate(RNG rng, double x, double z, PackRuntime runtime) {
-        if (getBlockData(runtime.data()).isEmpty()) {
+        return passesChanceGate(rng, x, z, runtime.decorator(this));
+    }
+
+    /** {@link #passesChanceGate(RNG, double, double, PackRuntime)} for a caller that already holds this decorator's runtime. */
+    public boolean passesChanceGate(RNG rng, double x, double z, DecoratorRuntime decoratorRuntime) {
+        if (getBlockData(decoratorRuntime.packRuntime().data()).isEmpty()) {
             return false;
         }
         double xx = x / style.getZoom();
         double zz = z / style.getZoom();
-        return getGenerator(rng, runtime).fitDouble(0D, 1D, xx, zz) <= chance;
+        return decoratorRuntime.layerGenerator(rng.getSeed()).fitDouble(0D, 1D, xx, zz) <= chance;
     }
 
     public NativeBlockState getBlockData(IrisBiome b, RNG rng, double x, double z, PackRuntime runtime) {

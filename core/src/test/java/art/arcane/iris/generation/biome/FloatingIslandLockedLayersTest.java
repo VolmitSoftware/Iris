@@ -125,7 +125,7 @@ public class FloatingIslandLockedLayersTest {
         when(layer.getSlopeCondition()).thenReturn(new IrisSlopeClip());
         when(layer.getHeightGenerator(any(), any())).thenReturn(height);
         when(height.fit(anyInt(), anyInt(), anyDouble(), anyDouble())).thenReturn(1);
-        when(layer.get(any(), anyInt(), anyDouble(), anyDouble(), anyDouble(), any())).thenReturn(block);
+        when(layer.get(any(), anyInt(), anyDouble(), anyDouble(), anyDouble(), any(PaletteLayerRuntime.class))).thenReturn(block);
         when(layer.get(any(), anyDouble(), anyDouble(), anyDouble(), any())).thenReturn(block);
         return layer;
     }

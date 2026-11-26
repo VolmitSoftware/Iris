@@ -26,14 +26,21 @@ import art.arcane.volmlib.util.noise.CNG;
 public final class DecoratorRuntime {
     private static final int SEED_CAPACITY = 32;
 
+    private final PackRuntime runtime;
     private final SeedTable<CNG> heightGenerators;
     private final SeedTable<CNG> layerGenerators;
     private final SeedTable<CNG> varianceGenerators;
 
     public DecoratorRuntime(IrisDecorator decorator, PackRuntime runtime) {
+        this.runtime = runtime;
         this.heightGenerators = new SeedTable<>(SEED_CAPACITY, seed -> decorator.createHeightGenerator(seed, runtime));
         this.layerGenerators = new SeedTable<>(SEED_CAPACITY, seed -> decorator.createLayerGenerator(seed, runtime));
         this.varianceGenerators = new SeedTable<>(SEED_CAPACITY, seed -> decorator.createVarianceGenerator(seed, runtime));
+    }
+
+    /** The scope this runtime was built in, whose pack data resolves the decorator's palettes. */
+    public PackRuntime packRuntime() {
+        return runtime;
     }
 
     public CNG heightGenerator(long seed) {

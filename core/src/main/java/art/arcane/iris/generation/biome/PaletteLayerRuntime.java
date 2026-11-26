@@ -31,13 +31,20 @@ public final class PaletteLayerRuntime {
     private static final int LAYER_RECENT_SLOTS = 32;
     private static final int HEIGHT_SEED_CAPACITY = 32;
 
+    private final PackRuntime runtime;
     private final SeedTable<CNG> layerGenerators;
     private final SeedTable<CNG> heightGenerators;
 
     public PaletteLayerRuntime(IrisBiomePaletteLayer layer, PackRuntime runtime) {
+        this.runtime = runtime;
         this.layerGenerators = new SeedTable<>(LAYER_SEED_CAPACITY, LAYER_RECENT_SLOTS,
                 seed -> layer.createLayerGenerator(seed, runtime));
         this.heightGenerators = new SeedTable<>(HEIGHT_SEED_CAPACITY, IrisBiomePaletteLayer::createHeightGenerator);
+    }
+
+    /** The scope this runtime was built in, whose pack data resolves the layer's palette. */
+    public PackRuntime packRuntime() {
+        return runtime;
     }
 
     public CNG layerGenerator(long seed) {

@@ -1,5 +1,7 @@
 package art.arcane.iris.testsupport;
 
+import art.arcane.iris.generation.biome.PaletteLayerRuntime;
+import art.arcane.iris.generation.decoration.DecoratorRuntime;
 import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 
@@ -26,6 +28,16 @@ public final class MockPackData {
     /** Matches a runtime scope of this pack data, without touching the data mock while stubbing. */
     public static PackRuntime runtimeOf(IrisData data) {
         return argThat(runtime -> runtime != null && runtime.data() == data);
+    }
+
+    /** Matches a palette layer runtime built in a runtime scope of this pack data. */
+    public static PaletteLayerRuntime paletteLayerRuntimeOf(IrisData data) {
+        return argThat(runtime -> runtime != null && runtime.packRuntime().data() == data);
+    }
+
+    /** Matches a decorator runtime built in a runtime scope of this pack data. */
+    public static DecoratorRuntime decoratorRuntimeOf(IrisData data) {
+        return argThat(runtime -> runtime != null && runtime.packRuntime().data() == data);
     }
 
     private static IrisData withStandaloneRuntime(IrisData data) {

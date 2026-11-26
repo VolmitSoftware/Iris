@@ -38,8 +38,9 @@ public final class IrisSurfaceLayerFallbackTest {
         when(layer.getMaxHeight()).thenReturn(2);
         when(layer.getHeightGenerator(any(RNG.class), MockPackData.runtimeOf(data))).thenReturn(heightGenerator);
         when(heightGenerator.fit(1, 2, 12D, -8D)).thenReturn(2);
-        when(layer.get(rng, 0, 12D, 0D, -8D, data.standalonePackRuntime())).thenReturn(surfaceBlock);
-        when(layer.get(rng, 1, 13D, 1D, -9D, data.standalonePackRuntime())).thenReturn(secondBlock);
+        PaletteLayerRuntime layerRuntime = data.standalonePackRuntime().paletteLayer(layer);
+        when(layer.get(rng, 0, 12D, 0D, -8D, layerRuntime)).thenReturn(surfaceBlock);
+        when(layer.get(rng, 1, 13D, 1D, -9D, layerRuntime)).thenReturn(secondBlock);
         when(slopeStream.getDouble(12D, -8D)).thenReturn(9D);
         return new IrisBiome().setLayers(new KList<>(layer));
     }

@@ -74,7 +74,8 @@ final class IrisBiomeLayerGenerator {
             return data;
         }
 
-        KList<CNG> heightGenerators = getLayerHeightGenerators(biome, random, runtime);
+        BiomeRuntime biomeRuntime = runtime.biome(biome);
+        KList<CNG> heightGenerators = biomeRuntime.layerHeights(random.getSeed());
         double surfaceSlope = 0D;
         boolean sampledSlope = false;
 
@@ -99,7 +100,7 @@ final class IrisBiomeLayerGenerator {
                 continue;
             }
 
-            appendLayer(data, layer, i, d, wx, wz, random, maxDepth, runtime);
+            appendLayer(data, layer, biomeRuntime.surfaceLayer(i), i, d, wx, wz, random, maxDepth);
 
             if (data.size() >= maxDepth) {
                 break;
@@ -130,7 +131,7 @@ final class IrisBiomeLayerGenerator {
             fallback = dim.getSurfaceLayerFallback();
         }
         if (fallback == IrisSurfaceLayerFallback.TOP_LAYER) {
-            appendLayer(data, biome.getLayers().get(0), 0, 1, wx, wz, random, maxDepth, runtime);
+            appendLayer(data, biome.getLayers().get(0), runtime.biome(biome).surfaceLayer(0), 0, 1, wx, wz, random, maxDepth);
         }
     }
 
@@ -148,7 +149,8 @@ final class IrisBiomeLayerGenerator {
             return data;
         }
 
-        KList<CNG> heightGenerators = getCaveCeilingLayerHeightGenerators(biome, random, runtime);
+        BiomeRuntime biomeRuntime = runtime.biome(biome);
+        KList<CNG> heightGenerators = biomeRuntime.ceilingLayerHeights(random.getSeed());
 
         for (int i = 0; i < layerCount; i++) {
             IrisBiomePaletteLayer layer = ceilingLayers.get(i);
@@ -160,7 +162,7 @@ final class IrisBiomeLayerGenerator {
                 continue;
             }
 
-            appendLayer(data, layer, i, d, wx, wz, random, maxDepth, runtime);
+            appendLayer(data, layer, biomeRuntime.ceilingLayer(i), i, d, wx, wz, random, maxDepth);
 
             if (data.size() >= maxDepth) {
                 break;
@@ -193,7 +195,8 @@ final class IrisBiomeLayerGenerator {
             return data;
         }
 
-        KList<CNG> heightGenerators = getLayerHeightGenerators(biome, random, runtime);
+        BiomeRuntime biomeRuntime = runtime.biome(biome);
+        KList<CNG> heightGenerators = biomeRuntime.layerHeights(random.getSeed());
         int[] boundaries = new int[layerCount + 1];
         double surfaceSlope = 0D;
         boolean sampledSlope = false;
@@ -231,7 +234,7 @@ final class IrisBiomeLayerGenerator {
             double zoom = layer.getZoom();
             try {
                 data.add(layer.get(random, layerIndex + offset,
-                        (wx + offset) / zoom, offset, (wz - offset) / zoom, runtime));
+                        (wx + offset) / zoom, offset, (wz - offset) / zoom, biomeRuntime.surfaceLayer(layerIndex)));
             } catch (Throwable error) {
                 GenerationFailures.skipPlacement(error, "surface layer", "block", (int) wx, height - depth, (int) wz, biome.getLoadKey());
             }
@@ -285,7 +288,8 @@ final class IrisBiomeLayerGenerator {
             return data;
         }
 
-        KList<CNG> heightGenerators = getLayerSeaHeightGenerators(biome, random, runtime);
+        BiomeRuntime biomeRuntime = runtime.biome(biome);
+        KList<CNG> heightGenerators = biomeRuntime.seaLayerHeights(random.getSeed());
 
         for (int i = 0; i < layerCount; i++) {
             IrisBiomePaletteLayer layer = seaLayers.get(i);
@@ -297,7 +301,7 @@ final class IrisBiomeLayerGenerator {
                 continue;
             }
 
-            appendLayer(data, layer, i, d, wx, wz, random, maxDepth, runtime);
+            appendLayer(data, layer, biomeRuntime.seaLayer(i), i, d, wx, wz, random, maxDepth);
 
             if (data.size() >= maxDepth) {
                 break;
@@ -331,13 +335,13 @@ final class IrisBiomeLayerGenerator {
     }
 
     private static void appendLayer(KList<NativeBlockState> blocks, IrisBiomePaletteLayer layer,
-                                    int layerIndex, int thickness, double x, double z,
-                                    RNG random, int maxDepth, PackRuntime runtime) {
+                                    PaletteLayerRuntime layerRuntime, int layerIndex, int thickness, double x, double z,
+                                    RNG random, int maxDepth) {
         double zoom = layer.getZoom();
         for (int offset = 0; offset < thickness && blocks.size() < maxDepth; offset++) {
             try {
                 blocks.add(layer.get(random, layerIndex + offset,
-                        (x + offset) / zoom, offset, (z - offset) / zoom, runtime));
+                        (x + offset) / zoom, offset, (z - offset) / zoom, layerRuntime));
             } catch (Throwable error) {
                 GenerationFailures.skipPlacement(error, "surface layer", "block", (int) x, -1, (int) z, "none");
             }

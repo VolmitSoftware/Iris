@@ -6,6 +6,7 @@ import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.stage.IrisCarveModifier;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomePaletteLayer;
+import art.arcane.iris.generation.biome.PaletteLayerRuntime;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.world.IrisWorld;
@@ -227,10 +228,10 @@ public class IrisCarveWallPaletteScopeTest {
             IrisBiomePaletteLayer palette = mock(IrisBiomePaletteLayer.class);
             doReturn(palette).when(biome).getWall();
             doAnswer(call -> {
-                assertSame(expectedData, call.<PackRuntime>getArgument(4).data());
+                assertSame(expectedData, call.<PaletteLayerRuntime>getArgument(5).packRuntime().data());
                 paletteCalls.incrementAndGet();
                 return wall;
-            }).when(palette).get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(PackRuntime.class));
+            }).when(palette).get(any(RNG.class), anyInt(), anyDouble(), anyDouble(), anyDouble(), any(PaletteLayerRuntime.class));
             for (IrisComplex complex : new IrisComplex[]{activeComplex, detachedComplex, assemblyComplex}) {
                 doReturn(ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> null)))
                         .when(complex).getTrueBiomeStream();

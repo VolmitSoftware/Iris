@@ -121,7 +121,7 @@ public class ThreadSlotsTest {
     }
 
     private static int slotCount(ThreadSlots<?> slots) throws ReflectiveOperationException {
-        Field field = ThreadSlots.class.getDeclaredField("slots");
+        Field field = ThreadSlots.class.getDeclaredField("owners");
         field.setAccessible(true);
         return ((AtomicReferenceArray<?>) field.get(slots)).length();
     }

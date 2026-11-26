@@ -1,7 +1,7 @@
 package art.arcane.iris.generation.terrain;
 
 import art.arcane.iris.generation.cache.ConcurrentClockCache;
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.volmlib.util.noise.CNG;
@@ -38,7 +38,7 @@ public final class Terrain3DRuntime {
 
     public Terrain3DRuntime(Sources sources, Options options) {
         this(sources, options, (style, seed) -> {
-            CNG noise = style.createNoCache(new RNG(seed), options.data());
+            CNG noise = style.createNoCache(new RNG(seed), options.runtime());
             return noise::noiseFastSigned3D;
         });
     }
@@ -317,7 +317,7 @@ public final class Terrain3DRuntime {
         }
     }
 
-    public record Options(long seed, int height, double fluidHeight, IrisData data,
+    public record Options(long seed, int height, double fluidHeight, PackRuntime runtime,
                           boolean enabled, int maximumColumns) {
         public Options {
             if (height < 2 || height > 4096 || !Double.isFinite(fluidHeight)

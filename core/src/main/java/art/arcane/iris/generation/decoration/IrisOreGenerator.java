@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
@@ -95,7 +96,7 @@ public class IrisOreGenerator {
             return recent.chance;
         }
         ChanceKey key = new ChanceKey(seed, data, engine);
-        OreChance selected = chanceCache.computeIfAbsent(key, ignored -> OreChance.of(chanceStyle.create(rng, data)));
+        OreChance selected = chanceCache.computeIfAbsent(key, ignored -> OreChance.of(chanceStyle.create(rng, PackRuntime.of(engine, data))));
         recentChance = new CachedChance(key, selected);
         return selected;
     }

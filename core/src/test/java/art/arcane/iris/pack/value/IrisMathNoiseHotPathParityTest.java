@@ -1,5 +1,6 @@
 package art.arcane.iris.pack.value;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.IrisNoiseGenerator;
@@ -38,17 +39,17 @@ public class IrisMathNoiseHotPathParityTest {
                 .setStyle(NoiseStyle.PERLIN_IRIS.style())
                 .setExponent(1.15D);
 
-        assertEquals(0.4646529061250786D, noiseGenerator.getNoise(9988L, 31.25D, -17.5D, null), 0D);
+        assertEquals(0.4646529061250786D, noiseGenerator.getNoise(9988L, 31.25D, -17.5D, PackRuntime.standalone(null)), 0D);
 
         IrisGeneratorStyle style = NoiseStyle.IRIS_DOUBLE.style();
-        assertEquals(0.6855680984398492D, style.createNoCache(new RNG(112233L), null).noiseFast2D(42.5D, -19.75D), 0D);
+        assertEquals(0.6855680984398492D, style.createNoCache(new RNG(112233L), PackRuntime.standalone(null)).noiseFast2D(42.5D, -19.75D), 0D);
 
         IrisGenerator generator = new IrisGenerator()
                 .setZoom(9.5D)
                 .setOpacity(0.91D)
                 .setComposite(new KList<IrisNoiseGenerator>().qadd(noiseGenerator));
 
-        assertEquals(0.5023367573389593D, generator.getHeight(63.0D, -27.0D, 445566L), 0D);
+        assertEquals(0.5023367573389593D, generator.getHeight(PackRuntime.standalone(null), 63.0D, -27.0D, 445566L), 0D);
     }
 
     @Test

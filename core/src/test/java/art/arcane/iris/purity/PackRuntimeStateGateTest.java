@@ -217,21 +217,6 @@ public class PackRuntimeStateGateTest {
             pending("art.arcane.iris.generation.decoration.IrisDepositGenerator", "scaledObjects", Kind.RUNTIME),
             pending("art.arcane.iris.generation.decoration.IrisOreGenerator", "chanceCache", Kind.RUNTIME),
             pending("art.arcane.iris.generation.decoration.IrisOreGenerator", "recentChance", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisExpression", "evaluationScratch", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisExpression", "expressionCache", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisExpression", "streams", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisExpressionFunction", "data", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisExpressionFunction", "providers", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisExpressionFunction", "recentProvider", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisExpressionLoad", "engineCaches", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisExpressionLoad", "standaloneStyleCache", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisGenerator", "cellGenerators", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisGenerator", "recentCellGenerator", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisGenerator", "surfaceSamples", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisGeneratorStyle", "generatorCache", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisGeneratorStyle", "recentGenerator", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisNoiseGenerator", "generators", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisNoiseGenerator", "recentGenerator", Kind.RUNTIME),
             pending("art.arcane.iris.generation.terrain.IrisDimension", "coordinateFractures", Kind.RUNTIME),
             pending("art.arcane.iris.generation.terrain.IrisDimension", "featuresUsed", Kind.RUNTIME),
             pending("art.arcane.iris.generation.terrain.IrisDimension", "fluidLayerGenerator", Kind.RUNTIME),
@@ -275,13 +260,8 @@ public class PackRuntimeStateGateTest {
             pending("art.arcane.iris.generation.biome.IrisFloatingChildBiomes$RuntimeKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.generation.decoration.IrisDecorator$GeneratorKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.generation.decoration.IrisOreGenerator$ChanceKey", "engine", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisExpressionFunction$FunctionKey", "engine", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisGenerator$SurfaceCache", "engine", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisGeneratorStyle$GeneratorCacheKey", "engine", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisNoiseGenerator$GeneratorKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.generation.terrain.IrisMaterialPalette$LayerGeneratorKey", "engine", Kind.RUNTIME),
             pending("art.arcane.iris.structure.object.IrisObjectPlacement$SurfaceWarpCacheKey", "engine", Kind.RUNTIME),
-            pending("art.arcane.iris.generation.noise.IrisExpressionLoad$EngineCache", "styles", Kind.RUNTIME),
             pending("art.arcane.iris.generation.bake.ChunkBakeCache", "SPARSE", Kind.SCRATCH),
             pending("art.arcane.iris.generation.biome.FloatingIslandSample", "LAST_DENSITY", Kind.SCRATCH),
             pending("art.arcane.iris.generation.biome.FloatingIslandSample", "LAST_REJECT", Kind.SCRATCH),
@@ -464,6 +444,7 @@ public class PackRuntimeStateGateTest {
     );
 
     private static final List<Entry> SETTLED_HOLDERS = List.of(
+            holder("art.arcane.iris.generation.noise.ExpressionRuntime", "EVALUATION_SCRATCH", Kind.SCRATCH, "per-depth double argument arrays, no engine or pack reference"),
             holder("art.arcane.iris.generation.runtime.EnginePanic$Diagnostics", "current", Kind.UNRELATED, "panic diagnostics strings for crash reports"),
             holder("art.arcane.iris.pack.IrisPackBenchmarking", "instance", Kind.UNRELATED, "benchmark command session")
     );

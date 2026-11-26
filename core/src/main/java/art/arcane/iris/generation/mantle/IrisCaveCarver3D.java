@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.GenerationCounter;
@@ -78,6 +79,7 @@ public class IrisCaveCarver3D {
 
     private final Engine engine;
     private final IrisData data;
+    private final PackRuntime runtime;
     private final IrisCaveProfile profile;
     private final NoiseProgram baseDensity;
     private final NoiseProgram detailDensity;
@@ -122,6 +124,7 @@ public class IrisCaveCarver3D {
         this.engine = engine;
         this.densityGrid = densityGrid;
         this.data = engine.getData();
+        this.runtime = PackRuntime.of(engine, data);
         this.profile = profile;
         this.carveAir = new MatterCavern(true, "", LIQUID_AIR);
         this.carveFluid = new MatterCavern(true, "", LIQUID_FLUID);
@@ -130,10 +133,10 @@ public class IrisCaveCarver3D {
         List<CaveFieldModuleState> moduleStates = new ArrayList<>();
 
         RNG baseRng = new RNG(engine.getSeedManager().getCarve());
-        this.baseDensity = NoiseProgram.compileSigned3D(profile.getBaseDensityStyle().create(baseRng.nextParallelRNG(934_447), data));
-        this.detailDensity = NoiseProgram.compileSigned3D(profile.getDetailDensityStyle().create(baseRng.nextParallelRNG(612_991), data));
-        this.warpDensity = NoiseProgram.compileSigned3D(profile.getWarpStyle().create(baseRng.nextParallelRNG(770_713), data));
-        this.surfaceBreakDensity = profile.getSurfaceBreakStyle().create(baseRng.nextParallelRNG(341_219), data);
+        this.baseDensity = NoiseProgram.compileSigned3D(profile.getBaseDensityStyle().create(baseRng.nextParallelRNG(934_447), runtime));
+        this.detailDensity = NoiseProgram.compileSigned3D(profile.getDetailDensityStyle().create(baseRng.nextParallelRNG(612_991), runtime));
+        this.warpDensity = NoiseProgram.compileSigned3D(profile.getWarpStyle().create(baseRng.nextParallelRNG(770_713), runtime));
+        this.surfaceBreakDensity = profile.getSurfaceBreakStyle().create(baseRng.nextParallelRNG(341_219), runtime);
         this.thresholdRng = baseRng.nextParallelRNG(489_112);
         this.baseWeight = profile.getBaseWeight();
         this.detailWeight = profile.getDetailWeight();
@@ -149,7 +152,7 @@ public class IrisCaveCarver3D {
         double weight = Math.abs(baseWeight) + Math.abs(detailWeight);
         int index = 0;
         for (IrisCaveFieldModule module : profile.getModules()) {
-            CNG moduleDensity = module.getStyle().create(baseRng.nextParallelRNG(1_000_003L + (index * 65_537L)), data);
+            CNG moduleDensity = module.getStyle().create(baseRng.nextParallelRNG(1_000_003L + (index * 65_537L)), runtime);
             CaveFieldModuleState state = new CaveFieldModuleState(module, NoiseProgram.compileSigned3D(moduleDensity));
             moduleStates.add(state);
             weight += Math.abs(state.weight);
@@ -342,7 +345,7 @@ public class IrisCaveCarver3D {
             } else if (densityThreshold.getStyle().isFlat()) {
                 constantThreshold = M.lerp(thresholdMin, thresholdMax, 0.5);
             } else {
-                thresholdDensity = densityThreshold.getStyle().create(thresholdRng, data);
+                thresholdDensity = densityThreshold.getStyle().create(thresholdRng, runtime);
             }
 
             for (int lx = 0; lx < 16; lx++) {

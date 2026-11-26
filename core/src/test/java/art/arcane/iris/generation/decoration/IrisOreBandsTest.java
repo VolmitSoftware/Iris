@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.testsupport.KeyedBlockState;
@@ -71,7 +72,7 @@ public class IrisOreBandsTest {
         IrisGeneratorStyle style = new IrisGeneratorStyle(NoiseStyle.FLAT).setZoom(2.5D).setExponent(1.3D)
                 .setFracture(new IrisGeneratorStyle(NoiseStyle.SIMPLEX).setMultiplier(9D));
         flat.setPalette(palette).setChanceStyle(style).setRange(new IrisRange(0, 100));
-        CNG reference = style.create(RNG_SOURCE, null);
+        CNG reference = style.create(RNG_SOURCE, PackRuntime.standalone(null));
         for (double threshold : new double[]{0.1D, 0.5D, 0.99D, 1D}) {
             flat.setThreshold(threshold);
             for (int index = 0; index < 100; index++) {
@@ -137,7 +138,7 @@ public class IrisOreBandsTest {
         }
 
         @Override
-        public CNG create(RNG rng, IrisData data) {
+        public CNG create(RNG rng, PackRuntime runtime) {
             return chance;
         }
     }

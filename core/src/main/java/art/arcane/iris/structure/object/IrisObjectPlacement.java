@@ -18,6 +18,7 @@
 
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.cave.CarvingMode;
 import art.arcane.iris.generation.cave.IrisCaveAnchorMode;
 import art.arcane.iris.generation.decoration.IrisStiltSettings;
@@ -367,7 +368,7 @@ public class IrisObjectPlacement {
         long seed = engine == null ? rng.getSeed() : engine.getSeedManager().getComponent() + 1024L;
         SurfaceWarpCacheKey key = new SurfaceWarpCacheKey(data, engine, seed);
         return surfaceWarpCache.computeIfAbsent(key,
-                ignored -> getWarp().create(new RNG(seed), data, engine));
+                ignored -> getWarp().create(new RNG(seed), PackRuntime.of(engine, data)));
     }
 
     public double warp(RNG rng, double x, double y, double z, IrisData data) {
@@ -419,7 +420,7 @@ public class IrisObjectPlacement {
             return density;
         }
 
-        return (int) Math.round(densityStyle.get(rng, x, z, data));
+        return (int) Math.round(densityStyle.get(rng, x, z, PackRuntime.forContext(data)));
     }
 
     private TableCache getCache(IrisData manager) {

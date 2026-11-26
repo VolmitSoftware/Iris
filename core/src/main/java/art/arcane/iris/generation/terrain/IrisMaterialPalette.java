@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.nativelib.terrain.structure.StructurePalette;
 
 import art.arcane.iris.generation.block.IrisBlockData;
@@ -120,7 +121,7 @@ public class IrisMaterialPalette implements StructurePalette {
 
         LayerGeneratorKey key = new LayerGeneratorKey(rdata, engine, generatorSeed);
         CNG generator = layerGenerators.computeIfAbsent(key,
-                ignored -> style.create(new RNG(generatorSeed), rdata, engine));
+                ignored -> style.create(new RNG(generatorSeed), PackRuntime.of(engine, rdata)));
         if (generator != null) {
             recentLayerGenerator.set(new CachedLayerGenerator(key, generator));
         }

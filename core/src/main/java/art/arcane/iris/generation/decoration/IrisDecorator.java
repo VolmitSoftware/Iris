@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.cache.LazyBoundedCache;
@@ -133,13 +134,13 @@ public class IrisDecorator {
         AtomicCache<CNG> cache = generators(rng, data).height;
         CNG cached = cache.getIfPresent();
         return cached != null ? cached : cache.aquire(() ->
-                heightVariance.create(rng.nextParallelRNG(getBlockData(data).size() + stackMax + stackMin), data));
+                heightVariance.create(rng.nextParallelRNG(getBlockData(data).size() + stackMax + stackMin), PackRuntime.forContext(data)));
     }
 
     public CNG getGenerator(RNG rng, IrisData data) {
         AtomicCache<CNG> cache = generators(rng, data).layer;
         CNG cached = cache.getIfPresent();
-        return cached != null ? cached : cache.aquire(() -> style.create(rng.nextParallelRNG(getBlockData(data).size()), data));
+        return cached != null ? cached : cache.aquire(() -> style.create(rng.nextParallelRNG(getBlockData(data).size()), PackRuntime.forContext(data)));
     }
 
     public CNG getVarianceGenerator(RNG rng, IrisData data) {
@@ -161,7 +162,7 @@ public class IrisDecorator {
     }
 
     private CNG createVarianceGenerator(RNG rng, IrisData data) {
-        return variance.createNoCache(deriveVarianceSeed(rng, data), data).scale(1D / variance.getZoom());
+        return variance.createNoCache(deriveVarianceSeed(rng, data), PackRuntime.forContext(data)).scale(1D / variance.getZoom());
     }
 
     RNG deriveVarianceSeed(RNG rng, IrisData data) {

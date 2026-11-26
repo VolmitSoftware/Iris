@@ -392,7 +392,7 @@ public class IrisComplexGridBoundsCacheTest {
         }
 
         @Override
-        public double getHeight(double x, double z, long seed) {
+        public double getHeight(PackRuntime runtime, double x, double z, long seed) {
             invocations++;
             return value;
         }

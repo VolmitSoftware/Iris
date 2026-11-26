@@ -79,7 +79,7 @@ public final class IrisMaterialPaletteGeneratorCacheTest {
                     11L + GENERATOR_SALT, firstGenerator,
                     29L + GENERATOR_SALT, secondGenerator
             );
-            when(style.create(any(RNG.class), same(data), same(engine))).thenAnswer(invocation -> {
+            when(style.create(any(RNG.class), any())).thenAnswer(invocation -> {
                 RNG rng = invocation.getArgument(0);
                 return generators.get(rng.getSeed());
             });

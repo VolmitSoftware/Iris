@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
@@ -8,6 +9,8 @@ import java.util.SplittableRandom;
 import static org.junit.Assert.assertEquals;
 
 public class GeneratorProgramParityTest {
+    private final PackRuntime runtime = PackRuntime.standalone(null);
+
     private static final NoiseStyle[] STYLES = {
             NoiseStyle.SIMPLEX, NoiseStyle.PERLIN, NoiseStyle.IRIS, NoiseStyle.IRIS_HALF, NoiseStyle.FRACTAL_SMOKE,
             NoiseStyle.FRACTAL_WATER, NoiseStyle.CLOVER, NoiseStyle.CELLULAR, NoiseStyle.NOWHERE,
@@ -24,7 +27,7 @@ public class GeneratorProgramParityTest {
             IrisGenerator scalar = generator(new SplittableRandom(shapeSeed));
             IrisGenerator batch = generator(new SplittableRandom(shapeSeed));
             long superSeed = random.nextLong();
-            GeneratorProgram program = batch.compileProgram(superSeed);
+            GeneratorProgram program = batch.compileProgram(runtime, superSeed);
             int count = 1 + random.nextInt(600);
             double[] xs = new double[count];
             double[] zs = new double[count];
@@ -33,7 +36,7 @@ public class GeneratorProgramParityTest {
             program.heights(scratch, xs, zs, count, out);
             for (int index = 0; index < count; index++) {
                 assertEquals("generator " + generatorIndex + " point " + xs[index] + "," + zs[index],
-                        Double.doubleToRawLongBits(scalar.getHeight(xs[index], zs[index], superSeed)),
+                        Double.doubleToRawLongBits(scalar.getHeight(runtime, xs[index], zs[index], superSeed)),
                         Double.doubleToRawLongBits(out[index]));
             }
         }
@@ -48,12 +51,12 @@ public class GeneratorProgramParityTest {
             IrisGenerator scalar = generator(new SplittableRandom(shapeSeed));
             IrisGenerator compiled = generator(new SplittableRandom(shapeSeed));
             long superSeed = random.nextLong();
-            GeneratorProgram program = compiled.compileProgram(superSeed);
+            GeneratorProgram program = compiled.compileProgram(runtime, superSeed);
             for (int sample = 0; sample < 400; sample++) {
                 double x = coordinate(random);
                 double z = random.nextInt(5) == 0 ? x : coordinate(random);
                 assertEquals("generator " + generatorIndex + " point " + x + "," + z,
-                        Double.doubleToRawLongBits(scalar.getHeight(x, z, superSeed)),
+                        Double.doubleToRawLongBits(scalar.getHeight(runtime, x, z, superSeed)),
                         Double.doubleToRawLongBits(program.height(scratch, x, z)));
             }
         }
@@ -71,7 +74,7 @@ public class GeneratorProgramParityTest {
             IrisGenerator scalar = generator(new SplittableRandom(shapeSeed));
             IrisGenerator batch = generator(new SplittableRandom(shapeSeed));
             long superSeed = random.nextLong();
-            GeneratorProgram program = batch.compileProgram(superSeed);
+            GeneratorProgram program = batch.compileProgram(runtime, superSeed);
             for (int chunk = 0; chunk < 4; chunk++) {
                 int originX = random.nextInt(-200_000, 200_000) << 4;
                 int originZ = random.nextInt(-200_000, 200_000) << 4;
@@ -81,7 +84,7 @@ public class GeneratorProgramParityTest {
                 }
                 program.heights(scratch, xs, zs, 256, out);
                 for (int index = 0; index < 256; index++) {
-                    assertEquals(Double.doubleToRawLongBits(scalar.getHeight(xs[index], zs[index], superSeed)),
+                    assertEquals(Double.doubleToRawLongBits(scalar.getHeight(runtime, xs[index], zs[index], superSeed)),
                             Double.doubleToRawLongBits(out[index]));
                 }
             }

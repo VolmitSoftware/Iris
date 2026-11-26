@@ -1,5 +1,6 @@
 package art.arcane.iris.pack.datapack.export.compile.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.stream.RarityStream;
 import art.arcane.iris.generation.terrain.ContinentGenerator;
@@ -40,15 +41,15 @@ final class IrisSelectionReference {
                 loaded.add(region);
             }
         }
-        regions = new RarityStream<>(dimension.getRegionStyle().create(rng.nextParallelRNG(883), data).stream().zoom(dimension.getRegionZoom()), loaded);
-        continent = ContinentGenerator.create(dimension, rng, data);
+        regions = new RarityStream<>(dimension.getRegionStyle().create(rng.nextParallelRNG(883), PackRuntime.standalone(data)).stream().zoom(dimension.getRegionZoom()), loaded);
+        continent = ContinentGenerator.create(dimension, rng, PackRuntime.standalone(data));
         for (IrisRegion region : loaded) {
             Map<InferredType, RarityStream<IrisBiome>> streams = new EnumMap<>(InferredType.class);
-            streams.put(InferredType.LAND, new RarityStream<>(dimension.getLandBiomeStyle().create(rng.nextParallelRNG(InferredType.LAND.ordinal()), data).stream()
+            streams.put(InferredType.LAND, new RarityStream<>(dimension.getLandBiomeStyle().create(rng.nextParallelRNG(InferredType.LAND.ordinal()), PackRuntime.standalone(data)).stream()
                     .zoom(dimension.getBiomeZoom()).zoom(dimension.getLandZoom()).zoom(region.getLandBiomeZoom()), pool(region.getLandBiomes())));
-            streams.put(InferredType.SEA, new RarityStream<>(dimension.getSeaBiomeStyle().create(rng.nextParallelRNG(InferredType.SEA.ordinal()), data).stream()
+            streams.put(InferredType.SEA, new RarityStream<>(dimension.getSeaBiomeStyle().create(rng.nextParallelRNG(InferredType.SEA.ordinal()), PackRuntime.standalone(data)).stream()
                     .zoom(dimension.getBiomeZoom()).zoom(dimension.getSeaZoom()).zoom(region.getSeaBiomeZoom()), pool(region.getSeaBiomes())));
-            streams.put(InferredType.SHORE, new RarityStream<>(dimension.getShoreBiomeStyle().create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), data).stream()
+            streams.put(InferredType.SHORE, new RarityStream<>(dimension.getShoreBiomeStyle().create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), PackRuntime.standalone(data)).stream()
                     .zoom(dimension.getBiomeZoom()).zoom(region.getShoreBiomeZoom()), pool(region.getShoreBiomes())));
             picks.put(region, streams);
         }

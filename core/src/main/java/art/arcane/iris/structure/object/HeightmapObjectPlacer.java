@@ -18,6 +18,7 @@
 
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.block.TileData;
@@ -37,11 +38,11 @@ public class HeightmapObjectPlacer implements IObjectPlacer {
     }
 
     public int getHighest(int param1Int1, int param1Int2, IrisData data) {
-        return (int) Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2, data));
+        return (int) Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2, PackRuntime.forContext(data)));
     }
 
     public int getHighest(int param1Int1, int param1Int2, IrisData data, boolean param1Boolean) {
-        return (int) Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2, data));
+        return (int) Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2, PackRuntime.forContext(data)));
     }
 
     public void set(int param1Int1, int param1Int2, int param1Int3, NativeBlockState param1BlockData) {

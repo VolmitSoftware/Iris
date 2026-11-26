@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 
@@ -23,7 +24,7 @@ public class IrisObjectPlacementSurfaceWarpCacheTest {
         Engine first = engine(100L);
         Engine second = engine(200L);
         AtomicReference<Engine> active = new AtomicReference<>(first);
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         when(data.getEngine()).thenAnswer(ignored -> active.get());
         IrisObjectPlacement placement = placement();
 
@@ -36,7 +37,7 @@ public class IrisObjectPlacementSurfaceWarpCacheTest {
 
     @Test
     public void standaloneSurfaceWarpUsesSuppliedSeed() {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisObjectPlacement placement = placement();
 
         CNG first = placement.getSurfaceWarp(new RNG(1L), data);

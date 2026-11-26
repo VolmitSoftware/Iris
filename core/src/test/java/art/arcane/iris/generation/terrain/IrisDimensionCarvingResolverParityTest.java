@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.pack.value.IrisRange;
@@ -395,7 +396,7 @@ public class IrisDimensionCarvingResolverParityTest {
         Fixture fixture = createFixture();
         Engine engine = fixture.engine;
         IrisData firstData = engine.getData();
-        IrisData replacementData = mock(IrisData.class);
+        IrisData replacementData = MockPackData.create();
         IrisDimensionCarvingEntry entry = mock(IrisDimensionCarvingEntry.class);
         IrisBiome firstBiome = new IrisBiome();
         IrisBiome replacementBiome = new IrisBiome();
@@ -430,7 +431,7 @@ public class IrisDimensionCarvingResolverParityTest {
             Fixture fixture = createFixture();
             IrisData firstData = fixture.engine.getData();
             IrisDimension dimension = fixture.engine.getDimension();
-            IrisData replacementData = mock(IrisData.class);
+            IrisData replacementData = MockPackData.create();
             IrisDimensionCarvingEntry entry = mock(IrisDimensionCarvingEntry.class);
             IrisBiome firstBiome = new IrisBiome();
             IrisBiome replacementBiome = new IrisBiome();
@@ -547,7 +548,7 @@ public class IrisDimensionCarvingResolverParityTest {
     }
 
     private RetainedFixture createRetainedFixture() {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisBiome biome = new IrisBiome();
         biome.setLoader(data);
 
@@ -602,7 +603,7 @@ public class IrisDimensionCarvingResolverParityTest {
         doReturn(childBBiome).when(biomeLoader).load("child-b");
         doReturn(childCBiome).when(biomeLoader).load("child-c");
 
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         doReturn(biomeLoader).when(data).getBiomeLoader();
 
         IrisDimensionCarvingEntry rootLow = buildEntry("root-low", "root-low", new IrisRange(-64, 120), 4, List.of("child-a", "child-b"));
@@ -678,7 +679,7 @@ public class IrisDimensionCarvingResolverParityTest {
         doReturn(childFBiome).when(biomeLoader).load("child-f");
         doReturn(childGBiome).when(biomeLoader).load("child-g");
 
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         doReturn(biomeLoader).when(data).getBiomeLoader();
 
         IrisDimensionCarvingEntry rootLow = buildEntry("root-low", "root-low", new IrisRange(-64, 120), 7, List.of("child-a", "child-d", "child-e"));

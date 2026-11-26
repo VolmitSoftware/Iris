@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.cave;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.noise.IrisStyledRange;
@@ -26,7 +27,7 @@ public class IrisCaveProfileSamplerTest {
     public void resolvesThresholdNoiseOnceWhilePreservingCoordinateDecisions() {
         IrisGeneratorStyle style = mock(IrisGeneratorStyle.class);
         CNG thresholdNoise = mock(CNG.class);
-        when(style.create(any(), isNull())).thenReturn(thresholdNoise);
+        when(style.create(any(), any(PackRuntime.class))).thenReturn(thresholdNoise);
         when(thresholdNoise.fitDouble(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
                 .thenAnswer(invocation -> (double) invocation.getArgument(2) * 0.003D
                         + (double) invocation.getArgument(3) * 0.005D);
@@ -41,7 +42,7 @@ public class IrisCaveProfileSamplerTest {
                 assertEquals(density <= threshold, sampler.shouldCarve(x, y, z, 0.75D));
             }
         }
-        verify(style, times(1)).create(any(), isNull());
+        verify(style, times(1)).create(any(), any(PackRuntime.class));
         verify(thresholdNoise, times(585)).fitDouble(anyDouble(), anyDouble(), anyDouble(), anyDouble());
     }
 
@@ -58,7 +59,7 @@ public class IrisCaveProfileSamplerTest {
             for (int z : coordinates) {
                 for (int y = -60; y <= 60; y += 3) {
                     for (double floatingThreshold : floatingThresholds) {
-                        double threshold = range.get(thresholdRng, x, z, null) - profile.getThresholdBias();
+                        double threshold = range.get(thresholdRng, x, z, PackRuntime.standalone(null)) - profile.getThresholdBias();
                         threshold += (1D - Math.max(0D, Math.min(1D, floatingThreshold))) * 0.2D;
                         assertEquals("x=" + x + " y=" + y + " z=" + z + " floating=" + floatingThreshold,
                                 density(x, y, z) <= threshold, sampler.shouldCarve(x, y, z, floatingThreshold));
@@ -98,7 +99,7 @@ public class IrisCaveProfileSamplerTest {
         when(densityNoise.noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble())).thenAnswer(invocation ->
                 density(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2)));
         IrisGeneratorStyle densityStyle = mock(IrisGeneratorStyle.class);
-        when(densityStyle.create(any(), isNull())).thenReturn(densityNoise);
+        when(densityStyle.create(any(), any(PackRuntime.class))).thenReturn(densityNoise);
         IrisCaveProfile profile = mock(IrisCaveProfile.class);
         when(profile.getBaseDensityStyle()).thenReturn(densityStyle);
         when(profile.getDetailDensityStyle()).thenReturn(densityStyle);

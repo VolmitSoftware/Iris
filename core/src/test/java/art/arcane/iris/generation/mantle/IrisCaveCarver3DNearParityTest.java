@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineMetrics;
@@ -209,7 +210,7 @@ public class IrisCaveCarver3DNearParityTest {
         }).when(density).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
         IrisGeneratorStyle style = mock(IrisGeneratorStyle.class, withSettings().stubOnly());
         doReturn("density_expression").when(style).getExpression();
-        doReturn(density).when(style).create(any(RNG.class), any(IrisData.class));
+        doReturn(density).when(style).create(any(RNG.class), any());
         IrisCaveProfile profile = createProfile(false, false).setBaseDensityStyle(style)
                 .setDetailWeight(0D).setAllowFluid(false)
                 .setDensityThreshold(new IrisStyledRange(0.15D, 0.15D, new IrisGeneratorStyle(NoiseStyle.FLAT)));
@@ -1304,7 +1305,7 @@ public class IrisCaveCarver3DNearParityTest {
                 .noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
         IrisGeneratorStyle style = mock(IrisGeneratorStyle.class, withSettings().stubOnly());
         doReturn("density_expression").when(style).getExpression();
-        doReturn(density).when(style).create(any(RNG.class), any(IrisData.class));
+        doReturn(density).when(style).create(any(RNG.class), any());
         AtomicInteger lookups = new AtomicInteger();
         CaveDensityGrid grid = countingGrid(4, lookups);
         IrisCaveCarver3D carver = new IrisCaveCarver3D(engine,
@@ -1470,7 +1471,7 @@ public class IrisCaveCarver3DNearParityTest {
                     continue;
                 }
 
-                passThreshold[columnIndex] = profile.getDensityThreshold().get(thresholdRng, x, z, data) - profile.getThresholdBias();
+                passThreshold[columnIndex] = profile.getDensityThreshold().get(thresholdRng, x, z, PackRuntime.standalone(data)) - profile.getThresholdBias();
             }
         }
 
@@ -1642,6 +1643,7 @@ public class IrisCaveCarver3DNearParityTest {
         IrisWorld world = IrisWorld.builder().minHeight(0).maxHeight(worldHeight).build();
 
         doReturn(data).when(engine).getData();
+        doReturn(PackRuntime.forEngine(engine, data)).when(engine).getPackRuntime();
         doReturn(dimension).when(engine).getDimension();
         doReturn(seedManager).when(engine).getSeedManager();
         doReturn(CARVE_SEED).when(seedManager).getCarve();

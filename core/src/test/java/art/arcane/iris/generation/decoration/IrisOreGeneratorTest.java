@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
@@ -62,7 +63,7 @@ public class IrisOreGeneratorTest {
             when(palette.getPalette()).thenReturn(new KList<>(mock(IrisBlockData.class)));
             when(palette.get(any(), anyDouble(), anyDouble(), anyDouble(), isNull())).thenReturn(ore);
             when(noise.noise(anyDouble(), anyDouble(), anyDouble())).thenReturn(sample);
-            when(style.create(any(), isNull())).thenReturn(noise);
+            when(style.create(any(), any(PackRuntime.class))).thenReturn(noise);
             generator.setPalette(palette);
             generator.setChanceStyle(style);
         }

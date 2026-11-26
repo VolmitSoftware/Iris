@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
@@ -471,9 +472,10 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
 
     public double getHeight(Engine xg, double x, double z, long seed) {
         double height = 0;
+        PackRuntime runtime = PackRuntime.of(xg, xg.getData());
 
         for (IrisBiomeGeneratorLink i : generators) {
-            height += i.getHeight(xg, x, z, seed);
+            height += i.getHeight(runtime, x, z, seed);
         }
 
         return Math.max(0, Math.min(height, xg.getHeight()));
@@ -512,7 +514,7 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
 
     private CNG createBiomeGenerator(long seed, IrisData loader) {
         int signature = 213949 + 228888 + getRarity() + getName().length();
-        return biomeStyle.createNoCache(new RNG(seed).nextParallelRNG(signature), loader);
+        return biomeStyle.createNoCache(new RNG(seed).nextParallelRNG(signature), PackRuntime.forContext(loader));
     }
 
     public CNG getChildrenGenerator(RNG random, int sig, double scale) {
@@ -528,7 +530,7 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         }
         ChildGeneratorKey key = new ChildGeneratorKey(seed, scale, data, engine);
         CNG generator = childrenGenerators.computeIfAbsent(key,
-                ignored -> getChildStyle().createScaledGenerator(new RNG(seed), data, scale));
+                ignored -> getChildStyle().createScaledGenerator(new RNG(seed), PackRuntime.of(engine, data), scale));
         recentChildGenerator = new CachedChildGenerator(key, generator);
         return generator;
     }

@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.decoration.HydrologyVegetation;
@@ -42,7 +43,7 @@ public class HydrologyVegetationSourceTest {
     private static final Set<String> KNOWN = Set.of("minecraft:air", "minecraft:dirt", "minecraft:fern", "minecraft:sugar_cane",
             "minecraft:short_grass", "minecraft:dead_bush", "minecraft:poppy", "minecraft:dandelion");
 
-    private final IrisData data = mock(IrisData.class);
+    private final IrisData data = MockPackData.create();
     private PlantPlatform platform;
 
     @Before

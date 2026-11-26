@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.interpolation.IrisInterpolation;
 
 import java.util.Arrays;
@@ -21,9 +22,14 @@ public final class GeneratorProgram {
     private final double cliffHeightMin;
     private final double cliffHeightMax;
     private final boolean cellCracks;
+    private final PackRuntime runtime;
+    private final IrisGenerator.SurfaceCacheStripe[] surfaceStripes;
 
-    GeneratorProgram(IrisGenerator generator, long superSeed, NoiseLayerProgram[] layers, double totalOpacity, NoiseLayerProgram cliffs) {
+    GeneratorProgram(IrisGenerator generator, long superSeed, NoiseLayerProgram[] layers, double totalOpacity,
+                     NoiseLayerProgram cliffs, PackRuntime runtime) {
         this.generator = generator;
+        this.runtime = runtime;
+        this.surfaceStripes = runtime.generator(generator).surfaceStripes();
         this.superSeed = superSeed;
         this.layers = layers;
         this.totalOpacity = totalOpacity;
@@ -69,7 +75,7 @@ public final class GeneratorProgram {
         double lowerZ = Math.floor(z / SURFACE_GRID) * SURFACE_GRID;
         double dx = (x - lowerX) / SURFACE_GRID;
         double dz = (z - lowerZ) / SURFACE_GRID;
-        IrisGenerator.SurfaceCacheStripe[] stripes = generator.surfaceStripes();
+        IrisGenerator.SurfaceCacheStripe[] stripes = surfaceStripes;
         double northWest = lattice(scratch, stripes, lowerX, lowerZ);
         if (dx == 0D && dz == 0D) {
             return northWest;
@@ -124,7 +130,7 @@ public final class GeneratorProgram {
             double height = IrisInterpolation.lerp(cliffHeightMin, cliffHeightMax, cliffs.sample(scratch, sampleX, sampleZ));
             value = (Math.round((value * 255D) / height) * height) / 255D;
         }
-        return cellCracks ? generator.cell(x, z, value, 0D) : value;
+        return cellCracks ? generator.cell(runtime, x, z, value, 0D) : value;
     }
 
     private void surfaceHeights(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] out) {
@@ -226,7 +232,7 @@ public final class GeneratorProgram {
     }
 
     private void resolveLattice(TerrainBatchScratch scratch, int nodes, double[] lattice) {
-        IrisGenerator.SurfaceCacheStripe[] stripes = generator.surfaceStripes();
+        IrisGenerator.SurfaceCacheStripe[] stripes = surfaceStripes;
         int indexMark = scratch.indexMark();
         int mark = scratch.mark();
         try {
@@ -308,7 +314,7 @@ public final class GeneratorProgram {
         }
         if (cellCracks) {
             for (int index = 0; index < count; index++) {
-                out[index] = generator.cell(xs[index], zs[index], out[index], 0D);
+                out[index] = generator.cell(runtime, xs[index], zs[index], out[index], 0D);
             }
         }
     }

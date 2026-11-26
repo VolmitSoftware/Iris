@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
@@ -41,7 +42,7 @@ public class HydrologyVegetationTest {
     private static final Set<String> WATER_PLANTS = Set.of("minecraft:seagrass", "minecraft:tall_seagrass", "minecraft:kelp", "minecraft:kelp_plant");
     private static final int[][] SIDES = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
-    private final IrisData data = mock(IrisData.class);
+    private final IrisData data = MockPackData.create();
     private PlantPlatform platform;
 
     @Before

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.cave.IrisCaveProfileSampler;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -77,7 +78,7 @@ public class IrisFloatingChildBiomes implements Rarity {
     private final transient AtomicCache<IrisObjectScale> shrinkScaleCache = new AtomicCache<>();
 
     public CNG getFootprintCng(long baseSeed, IrisData data) {
-        return getFootprintStyle().create(baseSeed ^ 0xF007B17DL, data);
+        return getFootprintStyle().create(baseSeed ^ 0xF007B17DL, PackRuntime.forContext(data));
     }
 
     public FloatingIslandEdgeProfile getEdgeTaperProfile(long baseSeed, IrisData data) {
@@ -93,7 +94,7 @@ public class IrisFloatingChildBiomes implements Rarity {
                     getEdgeTaperVariationAmplitude(), width);
             IrisGeneratorStyle style = getEdgeTaperVariationStyle();
             CNG variation = amplitude > 0.0D && style != null
-                    ? style.create(baseSeed ^ 0xED6E7A9E5L, data)
+                    ? style.create(baseSeed ^ 0xED6E7A9E5L, PackRuntime.forContext(data))
                     : null;
             return new FloatingIslandEdgeProfile(width, getEdgeTaperExponent(), amplitude, variation);
         });
@@ -102,19 +103,19 @@ public class IrisFloatingChildBiomes implements Rarity {
     }
 
     public CNG getPickerCng(long baseSeed, IrisData data) {
-        return getPickerStyle().create(baseSeed ^ 0x91C4E72DL, data);
+        return getPickerStyle().create(baseSeed ^ 0x91C4E72DL, PackRuntime.forContext(data));
     }
 
     public CNG getAltitudeCng(long baseSeed, IrisData data) {
-        return getAltitudeStyle().create(baseSeed ^ 0xA17DEBBL, data);
+        return getAltitudeStyle().create(baseSeed ^ 0xA17DEBBL, PackRuntime.forContext(data));
     }
 
     public CNG getTopShapeCng(long baseSeed, IrisData data) {
-        return getTopShapeStyle().create(baseSeed ^ 0x70970601DEFL, data);
+        return getTopShapeStyle().create(baseSeed ^ 0x70970601DEFL, PackRuntime.forContext(data));
     }
 
     public CNG getBottomCng(long baseSeed, IrisData data) {
-        return getBottomStyle().create(baseSeed ^ 0xB0770075CAFEL, data);
+        return getBottomStyle().create(baseSeed ^ 0xB0770075CAFEL, PackRuntime.forContext(data));
     }
 
     public CNG getWallWarpCng(long baseSeed, IrisData data) {
@@ -122,7 +123,7 @@ public class IrisFloatingChildBiomes implements Rarity {
         if (style == null) {
             return null;
         }
-        return style.create(baseSeed ^ 0xA117BA17E0FL, data);
+        return style.create(baseSeed ^ 0xA117BA17E0FL, PackRuntime.forContext(data));
     }
 
     public CNG getCarveCng(long baseSeed, IrisData data) {
@@ -130,7 +131,7 @@ public class IrisFloatingChildBiomes implements Rarity {
         if (style == null) {
             return null;
         }
-        return style.create(baseSeed ^ 0xCA5EC1EE5EL, data);
+        return style.create(baseSeed ^ 0xCA5EC1EE5EL, PackRuntime.forContext(data));
     }
 
     public IrisCaveProfileSampler getCarvingProfileSampler(Engine engine, IrisData data) {

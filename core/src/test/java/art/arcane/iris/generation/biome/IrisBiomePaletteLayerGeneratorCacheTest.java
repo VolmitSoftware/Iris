@@ -85,7 +85,7 @@ public final class IrisBiomePaletteLayerGeneratorCacheTest {
                     11L + SIGNATURE + LAYER_SIGNATURE, carveGenerator,
                     29L + SIGNATURE + LAYER_SIGNATURE, postGenerator
             );
-            when(style.create(any(RNG.class), same(data), same(engine))).thenAnswer(invocation -> {
+            when(style.create(any(RNG.class), any())).thenAnswer(invocation -> {
                 RNG rng = invocation.getArgument(0);
                 return generators.get(rng.getSeed());
             });

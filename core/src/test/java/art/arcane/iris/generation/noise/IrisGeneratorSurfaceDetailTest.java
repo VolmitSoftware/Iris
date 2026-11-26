@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.collection.KList;
@@ -20,6 +21,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class IrisGeneratorSurfaceDetailTest {
+    private final PackRuntime runtime = PackRuntime.standalone(null);
+
     @Test
     public void defaultUsesTheOriginalSampleOnce() {
         AtomicInteger samples = new AtomicInteger();
@@ -28,7 +31,7 @@ public class IrisGeneratorSurfaceDetailTest {
             return x * 0.01D + z * 0.02D;
         });
 
-        assertEquals(0.07D, generator.getHeight(1, 3, 27L), 1e-12D);
+        assertEquals(0.07D, generator.getHeight(runtime, 1, 3, 27L), 1e-12D);
         assertEquals(1, samples.get());
     }
 
@@ -41,7 +44,7 @@ public class IrisGeneratorSurfaceDetailTest {
         for (int z = -12; z <= 12; z++) {
             for (int x = -12; x <= 12; x++) {
                 double expected = x % 6 == 0 && z % 6 == 0 ? 0.2D : 0.5D;
-                assertEquals(expected, generator.getHeight(x, z, 27L), 1e-12D);
+                assertEquals(expected, generator.getHeight(runtime, x, z, 27L), 1e-12D);
             }
         }
     }
@@ -54,7 +57,7 @@ public class IrisGeneratorSurfaceDetailTest {
         for (double z = -4.25D; z < 4D; z += 0.5D) {
             for (double x = -4.75D; x < 4D; x += 0.5D) {
                 assertEquals(0.5D + x * 0.01D + z * 0.02D,
-                        generator.getHeight(x, z, 27L), 1e-12D);
+                        generator.getHeight(runtime, x, z, 27L), 1e-12D);
             }
         }
     }
@@ -70,7 +73,7 @@ public class IrisGeneratorSurfaceDetailTest {
 
         for (int z = 0; z < 16; z++) {
             for (int x = 0; x < 16; x++) {
-                assertEquals(0.5D, generator.getHeight(x, z, 27L), 0D);
+                assertEquals(0.5D, generator.getHeight(runtime, x, z, 27L), 0D);
             }
         }
 
@@ -89,7 +92,7 @@ public class IrisGeneratorSurfaceDetailTest {
 
         for (int z = -16; z < 16; z += 4) {
             for (int x = -16; x < 16; x += 4) {
-                generator.getHeight(x, z, 27L);
+                generator.getHeight(runtime, x, z, 27L);
             }
         }
 
@@ -108,10 +111,9 @@ public class IrisGeneratorSurfaceDetailTest {
         };
 
         for (double[] point : points) {
-            cold.rescale(1D);
-            long expected = Double.doubleToRawLongBits(cold.getHeight(point[0], point[1], 27L));
+            long expected = Double.doubleToRawLongBits(cold.getHeight(PackRuntime.standalone(null), point[0], point[1], 27L));
             for (int repeat = 0; repeat < 4; repeat++) {
-                assertEquals(expected, Double.doubleToRawLongBits(warm.getHeight(point[0], point[1], 27L)));
+                assertEquals(expected, Double.doubleToRawLongBits(warm.getHeight(runtime, point[0], point[1], 27L)));
             }
         }
     }
@@ -124,16 +126,16 @@ public class IrisGeneratorSurfaceDetailTest {
             return seed * 0.000001D;
         }).setSurfaceDetail(0.5D);
 
-        double first = generator.getHeight(0, 0, 27L);
-        assertEquals(Double.doubleToRawLongBits(first), Double.doubleToRawLongBits(generator.getHeight(0, 0, 27L)));
+        double first = generator.getHeight(runtime, 0, 0, 27L);
+        assertEquals(Double.doubleToRawLongBits(first), Double.doubleToRawLongBits(generator.getHeight(runtime, 0, 0, 27L)));
         assertEquals(1, samples.get());
 
-        double second = generator.getHeight(0, 0, 28L);
+        double second = generator.getHeight(runtime, 0, 0, 28L);
         assertEquals(0.000001D, second - first, 1e-12D);
-        assertEquals(Double.doubleToRawLongBits(second), Double.doubleToRawLongBits(generator.getHeight(0, 0, 28L)));
+        assertEquals(Double.doubleToRawLongBits(second), Double.doubleToRawLongBits(generator.getHeight(runtime, 0, 0, 28L)));
         assertEquals(2, samples.get());
 
-        assertEquals(Double.doubleToRawLongBits(first), Double.doubleToRawLongBits(generator.getHeight(0, 0, 27L)));
+        assertEquals(Double.doubleToRawLongBits(first), Double.doubleToRawLongBits(generator.getHeight(runtime, 0, 0, 27L)));
         assertEquals(3, samples.get());
     }
 
@@ -147,14 +149,14 @@ public class IrisGeneratorSurfaceDetailTest {
             return x * 0.00001D;
         }).setSurfaceDetail(0.5D);
 
-        assertEquals(0L, Double.doubleToRawLongBits(generator.getHeight(0, 0, 27L)));
-        assertEquals(0L, Double.doubleToRawLongBits(generator.getHeight(0, 0, 27L)));
+        assertEquals(0L, Double.doubleToRawLongBits(generator.getHeight(runtime, 0, 0, 27L)));
+        assertEquals(0L, Double.doubleToRawLongBits(generator.getHeight(runtime, 0, 0, 27L)));
         assertEquals(1, originSamples.get());
         assertEquals(Double.doubleToRawLongBits(71754D * 0.00001D),
-                Double.doubleToRawLongBits(generator.getHeight(71754, 0, 27L)));
-        assertEquals(0L, Double.doubleToRawLongBits(generator.getHeight(0, 0, 27L)));
+                Double.doubleToRawLongBits(generator.getHeight(runtime, 71754, 0, 27L)));
+        assertEquals(0L, Double.doubleToRawLongBits(generator.getHeight(runtime, 0, 0, 27L)));
         assertEquals(2, originSamples.get());
-        assertEquals(0L, Double.doubleToRawLongBits(generator.getHeight(0, 0, 27L)));
+        assertEquals(0L, Double.doubleToRawLongBits(generator.getHeight(runtime, 0, 0, 27L)));
         assertEquals(2, originSamples.get());
     }
 
@@ -168,7 +170,7 @@ public class IrisGeneratorSurfaceDetailTest {
         long[][] expected = new long[xs.length][seeds.length];
         for (int coordinate = 0; coordinate < xs.length; coordinate++) {
             for (int seed = 0; seed < seeds.length; seed++) {
-                expected[coordinate][seed] = Double.doubleToRawLongBits(reference.getHeight(xs[coordinate], 0D, seeds[seed]));
+                expected[coordinate][seed] = Double.doubleToRawLongBits(reference.getHeight(runtime, xs[coordinate], 0D, seeds[seed]));
             }
         }
         ForkJoinPool pool = new ForkJoinPool(4);
@@ -181,7 +183,7 @@ public class IrisGeneratorSurfaceDetailTest {
                         int coordinate = (sample + offset) & 1;
                         int seed = (sample / 2 + offset) & 1;
                         assertEquals(expected[coordinate][seed],
-                                Double.doubleToRawLongBits(generator.getHeight(xs[coordinate], 0D, seeds[seed])));
+                                Double.doubleToRawLongBits(generator.getHeight(runtime, xs[coordinate], 0D, seeds[seed])));
                     }
                 }));
             }
@@ -198,67 +200,32 @@ public class IrisGeneratorSurfaceDetailTest {
     public void cachedLatticeHeightsRemainIsolatedBySeed() {
         IrisGenerator generator = generator((seed, x, z) -> seed * 0.000001D);
         generator.setSurfaceDetail(0.5D);
-        double first = generator.getHeight(1, 1, 27L);
-        double second = generator.getHeight(1, 1, 28L);
+        double first = generator.getHeight(runtime, 1, 1, 27L);
+        double second = generator.getHeight(runtime, 1, 1, 28L);
 
         assertEquals(0.000001D, second - first, 1e-12D);
-        assertEquals(first, generator.getHeight(1, 1, 27L), 0D);
+        assertEquals(first, generator.getHeight(runtime, 1, 1, 27L), 0D);
     }
 
     @Test
-    public void cachedLatticeHeightsRemainIsolatedByEngine() {
-        Engine firstEngine = mock(Engine.class);
-        Engine secondEngine = mock(Engine.class);
-        AtomicReference<Engine> activeEngine = new AtomicReference<>(firstEngine);
-        IrisData data = mock(IrisData.class);
-        when(data.getEngine()).thenAnswer(ignored -> activeEngine.get());
-        IrisGenerator generator = new IrisGenerator().setSurfaceDetail(0.5D).setComposite(new KList<>(
-                new ContextNoise(loader -> loader.getEngine() == firstEngine ? 0.2D : 0.8D)));
-        generator.setLoader(data);
-
-        assertEquals(0.2D, generator.getHeight(0, 0, 27L), 1e-12D);
-        assertEquals(0.2D, generator.getHeight(1, 1, 27L), 1e-12D);
-        activeEngine.set(secondEngine);
-        assertEquals(0.8D, generator.getHeight(0, 0, 27L), 1e-12D);
-        assertEquals(0.8D, generator.getHeight(1, 1, 27L), 1e-12D);
-        activeEngine.set(firstEngine);
-        assertEquals(0.2D, generator.getHeight(1, 1, 27L), 1e-12D);
-    }
-
-    @Test
-    public void cachedLatticeHeightsRemainIsolatedByLoader() {
-        Engine engine = mock(Engine.class);
+    public void cachedLatticeHeightsBelongToTheirRuntime() {
         IrisData firstData = mock(IrisData.class);
         IrisData secondData = mock(IrisData.class);
-        when(firstData.getEngine()).thenReturn(engine);
-        when(secondData.getEngine()).thenReturn(engine);
+        PackRuntime first = PackRuntime.standalone(firstData);
+        PackRuntime second = PackRuntime.standalone(secondData);
         IrisGenerator generator = new IrisGenerator().setSurfaceDetail(0.5D).setComposite(new KList<>(
-                new ContextNoise(loader -> loader == firstData ? 0.2D : 0.8D)));
-        generator.setLoader(firstData);
+                new ContextNoise(scope -> scope.data() == firstData ? 0.2D : 0.8D)));
 
-        assertEquals(0.2D, generator.getHeight(0, 0, 27L), 1e-12D);
-        assertEquals(0.2D, generator.getHeight(1, 1, 27L), 1e-12D);
-        generator.setLoader(secondData);
-        assertEquals(0.8D, generator.getHeight(0, 0, 27L), 1e-12D);
-        assertEquals(0.8D, generator.getHeight(1, 1, 27L), 1e-12D);
-        generator.setLoader(firstData);
-        assertEquals(0.2D, generator.getHeight(1, 1, 27L), 1e-12D);
-    }
-
-    @Test
-    public void rescalingClearsCachedLatticeHeights() {
-        IrisGenerator generator = generator((seed, x, z) -> x * 0.01D + z * 0.02D);
-        generator.setSurfaceDetail(0.5D);
-        assertEquals(0.06D, generator.getHeight(2, 2, 27L), 1e-12D);
-
-        generator.rescale(2D);
-
-        assertEquals(0.12D, generator.getHeight(2, 2, 27L), 1e-12D);
+        assertEquals(0.2D, generator.getHeight(first, 0, 0, 27L), 1e-12D);
+        assertEquals(0.2D, generator.getHeight(first, 1, 1, 27L), 1e-12D);
+        assertEquals(0.8D, generator.getHeight(second, 0, 0, 27L), 1e-12D);
+        assertEquals(0.8D, generator.getHeight(second, 1, 1, 27L), 1e-12D);
+        assertEquals(0.2D, generator.getHeight(first, 1, 1, 27L), 1e-12D);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void rejectsNonfiniteDetail() {
-        generator((seed, x, z) -> 0D).setSurfaceDetail(Double.NaN).getHeight(1, 1, 27L);
+        generator((seed, x, z) -> 0D).setSurfaceDetail(Double.NaN).getHeight(runtime, 1, 1, 27L);
     }
 
     private static IrisGenerator generator(Sampler sampler) {
@@ -277,21 +244,21 @@ public class IrisGeneratorSurfaceDetailTest {
         }
 
         @Override
-        public double getNoise(long superSeed, double x, double z, IrisData data, Engine engine) {
+        public double getNoise(long superSeed, double x, double z, PackRuntime runtime) {
             return sampler.sample(superSeed, x, z);
         }
     }
 
     private static final class ContextNoise extends IrisNoiseGenerator {
-        private final ToDoubleFunction<IrisData> sampler;
+        private final ToDoubleFunction<PackRuntime> sampler;
 
-        private ContextNoise(ToDoubleFunction<IrisData> sampler) {
+        private ContextNoise(ToDoubleFunction<PackRuntime> sampler) {
             this.sampler = sampler;
         }
 
         @Override
-        public double getNoise(long superSeed, double x, double z, IrisData data, Engine engine) {
-            return sampler.applyAsDouble(data);
+        public double getNoise(long superSeed, double x, double z, PackRuntime runtime) {
+            return sampler.applyAsDouble(runtime);
         }
     }
 }

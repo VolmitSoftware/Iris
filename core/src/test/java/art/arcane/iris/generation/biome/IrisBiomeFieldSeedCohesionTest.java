@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.math.RNG;
@@ -20,7 +21,7 @@ import static org.mockito.Mockito.mock;
 public class IrisBiomeFieldSeedCohesionTest {
     @Test
     public void childrenGeneratorsSeparateSeedsSignaturesAndScales() {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisBiome shared = biome(data);
         for (long seed : new long[]{29L, 11L, 29L}) {
             for (int signature : new int[]{2137, 91}) {
@@ -36,7 +37,7 @@ public class IrisBiomeFieldSeedCohesionTest {
 
     @Test(timeout = 15000)
     public void concurrentFloatingFieldsAndEvictionRetainSeedAssignments() throws Exception {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisFloatingChildBiomes shared = new IrisFloatingChildBiomes();
         ExecutorService workers = Executors.newFixedThreadPool(4);
         try {

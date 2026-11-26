@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -87,7 +88,7 @@ public class IrisDimensionCarvingEntry {
     }
 
     private CNG createChildrenGenerator(long childrenGeneratorSeed, IrisData data) {
-        return getChildStyle().createScaledGenerator(deriveChildStyleSeed(childrenGeneratorSeed), data, childShrinkFactor());
+        return getChildStyle().createScaledGenerator(deriveChildStyleSeed(childrenGeneratorSeed), PackRuntime.forContext(data), childShrinkFactor());
     }
 
     long deriveChildrenGeneratorSeed(long worldSeed) {

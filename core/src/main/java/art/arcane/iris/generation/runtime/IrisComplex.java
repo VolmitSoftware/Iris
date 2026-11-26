@@ -200,6 +200,7 @@ public class IrisComplex implements DataProvider {
     private RNG rng;
     private double fluidHeight;
     private IrisData data;
+    private final transient PackRuntime packRuntime;
     private Map<IrisInterpolator, Set<IrisGenerator>> generators;
     private ProceduralStream<IrisRegion> regionStream;
     private ProceduralStream<Double> regionStyleStream;
@@ -325,6 +326,7 @@ public class IrisComplex implements DataProvider {
         this.rng = new RNG(engine.getSeedManager().getComplex());
         childStyleSeed = IrisBiome.childStyleSeed(rng, 123);
         this.data = engine.getData();
+        this.packRuntime = PackRuntime.of(engine, data);
         imageMapRuntime = IrisImageMapRuntime.compile(engine);
         double height = engine.getMaxHeight();
         fluidHeight = engine.getDimension().getFluidHeight();
@@ -412,7 +414,7 @@ public class IrisComplex implements DataProvider {
             double value = 0D;
 
             for (IrisShapedGeneratorStyle style : overlayNoise) {
-                value += style.get(rng, getData(), x, z);
+                value += style.get(rng, packRuntime, x, z);
             }
 
             return value;
@@ -425,7 +427,7 @@ public class IrisComplex implements DataProvider {
         fluidSource = engine.getDimension().getFluidPalette().getLayerGenerator(rng.nextParallelRNG(78), data).stream()
                 .select(engine.getDimension().getFluidPalette().getBlockData(data));
         fluidStream = new BakedStream<>(bakeCache, BakePlane.FLUID, fluidSource);
-        regionStyleStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883), getData()).stream()
+        regionStyleStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883), packRuntime).stream()
                 .zoom(engine.getDimension().getRegionZoom());
         regionIdentityStream = regionStyleStream.fit(Integer.MIN_VALUE, Integer.MAX_VALUE);
         regionSource = focusedRegions != null ? focusedRegions
@@ -451,7 +453,7 @@ public class IrisComplex implements DataProvider {
                 .convertAware2D(ProceduralStream::get);
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
         bridgeStream = focusedBiomes != null ? focusedBiomes.convert(IrisBiome::getInferredType) :
-                ContinentGenerator.create(engine.getDimension(), rng, getData()).stream()
+                ContinentGenerator.create(engine.getDimension(), rng, packRuntime).stream()
                         .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND);
         ProceduralStream<IrisBiome> proceduralBaseBiomeStream = focusedBiomes != null ? focusedBiomes
                 : ProceduralStream.of(this::proceduralBaseBiome,
@@ -483,7 +485,7 @@ public class IrisComplex implements DataProvider {
                         (x, z) -> baseTerrainHeightStream.getDouble(x, z),
                         this::sampleTerrain3DBiome),
                 new Terrain3DRuntime.Options(engine.getSeedManager().getTerrain(), engine.getHeight(),
-                        fluidHeight, data, terrain3DEnabled, TERRAIN_COLUMN_CACHE_SIZE));
+                        fluidHeight, packRuntime, terrain3DEnabled, TERRAIN_COLUMN_CACHE_SIZE));
         unblendedNaturalHeightStream = terrain3DEnabled
                 ? ProceduralStream.ofDouble(this::sampleTerrain3DHeight)
                 : baseTerrainHeightStream;
@@ -1056,7 +1058,7 @@ public class IrisComplex implements DataProvider {
             synchronized (this) {
                 program = terrainProgram;
                 if (program == null) {
-                    program = TerrainProgram.compile(frozenGenerators, terrainEngine.getSeedManager().getHeight() + 239945);
+                    program = TerrainProgram.compile(packRuntime, frozenGenerators, terrainEngine.getSeedManager().getHeight() + 239945);
                     terrainProgram = program;
                 }
             }
@@ -1174,21 +1176,21 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<Double> biomePickNoiseStream(IrisDimension dimension, IrisRegion region, InferredType inferredType) {
         return switch (inferredType) {
             case CAVE -> dimension.getCaveBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.CAVE.ordinal()), getData()).stream()
+                    .create(rng.nextParallelRNG(InferredType.CAVE.ordinal()), packRuntime).stream()
                     .zoom(dimension.getBiomeZoom())
                     .zoom(region.getCaveBiomeZoom());
             case LAND -> dimension.getLandBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
+                    .create(rng.nextParallelRNG(InferredType.LAND.ordinal()), packRuntime).stream()
                     .zoom(dimension.getBiomeZoom())
                     .zoom(dimension.getLandZoom())
                     .zoom(region.getLandBiomeZoom());
             case SEA -> dimension.getSeaBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.SEA.ordinal()), getData()).stream()
+                    .create(rng.nextParallelRNG(InferredType.SEA.ordinal()), packRuntime).stream()
                     .zoom(dimension.getBiomeZoom())
                     .zoom(dimension.getSeaZoom())
                     .zoom(region.getSeaBiomeZoom());
             case SHORE -> dimension.getShoreBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), getData()).stream()
+                    .create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), packRuntime).stream()
                     .zoom(dimension.getBiomeZoom())
                     .zoom(region.getShoreBiomeZoom());
         };
@@ -1961,7 +1963,7 @@ public class IrisComplex implements DataProvider {
         }
         if (program == null || program.heightSeed() != heightSeed || group >= program.groups()
                 || program.groupSize(group) != generators.length || generators != frozenGenerators[group]) {
-            return averageGeneratorHeights(generators, low, high, x, z, heightSeed);
+            return averageGeneratorHeights(packRuntime, generators, low, high, x, z, heightSeed);
         }
         return program.average(group, BATCH_SCRATCH.get(), low, high, x, z);
     }
@@ -2128,7 +2130,7 @@ public class IrisComplex implements DataProvider {
             IrisBiome biome = focusedBiomeAt(x, z);
             for (GeneratorGroup group : biomeBuffetGenerators.get(biome)) {
                 NoiseBounds bounds = generatorBounds.get(group.interpolator()).get(biome).noiseBounds;
-                h += averageGeneratorHeights(group.generators(), bounds.min(), bounds.max(), x, z, seed + 239945);
+                h += averageGeneratorHeights(packRuntime, group.generators(), bounds.min(), bounds.max(), x, z, seed + 239945);
             }
             return h;
         }
@@ -2407,6 +2409,7 @@ public class IrisComplex implements DataProvider {
     }
 
     static double averageGeneratorHeights(
+            PackRuntime runtime,
             IrisGenerator[] generators,
             double low,
             double high,
@@ -2433,7 +2436,7 @@ public class IrisComplex implements DataProvider {
             GenerationCounter.GENERATOR_EVALUATIONS.add(generators.length);
         }
         for (IrisGenerator generator : generators) {
-            double noise = generator.getHeight(x, z, seed);
+            double noise = generator.getHeight(runtime, x, z, seed);
             if (!Double.isFinite(noise)) {
                 throw new IllegalStateException("Terrain generator noise was not finite at " + x + "," + z
                         + " (generator=" + generator.getLoadKey() + ", noise=" + noise

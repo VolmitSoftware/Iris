@@ -154,6 +154,7 @@ public final class DimensionTerrainContext implements DataProvider {
             resolvedData = engine.getData();
         }
         IrisData dimensionData = resolvedData;
+        PackRuntime dimensionRuntime = PackRuntime.of(engine, dimensionData);
         IrisImageMapRuntime imageMapRuntime = IrisImageMapRuntime.compile(
                 dimensionData,
                 dimension,
@@ -219,7 +220,7 @@ public final class DimensionTerrainContext implements DataProvider {
         }
 
         ProceduralStream<Double> regionStyleStream = dimension.getRegionStyle()
-                .create(rng.nextParallelRNG(883), dimensionData).stream()
+                .create(rng.nextParallelRNG(883), dimensionRuntime).stream()
                 .zoom(dimension.getRegionZoom());
         KList<IrisRegion> regionPool = new KList<>();
         for (IrisRegion region : dimensionData.getRegionLoader().loadAll(dimension.getRegions())) {
@@ -238,7 +239,7 @@ public final class DimensionTerrainContext implements DataProvider {
                         .convertAware2D((region, x, z) -> mappedRegion(imageMapRuntime, region, x, z)), cachePrefix + "ImageMappedRegionStream", engine, cacheSize)
                 : proceduralRegionStream;
         Map<IrisRegion, Map<InferredType, ProceduralStream<IrisBiome>>> preparedBiomeStreams =
-                compileInferredBiomeStreams(dimension, dimensionData, rng, preparedRegions);
+                compileInferredBiomeStreams(dimension, dimensionRuntime, rng, preparedRegions);
 
         ProceduralStream<IrisBiome> landBiomeStream = regionStream
                 .convert(region -> IrisComplex.preparedInferredBiomeStream(
@@ -259,7 +260,7 @@ public final class DimensionTerrainContext implements DataProvider {
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
 
         ProceduralStream<InferredType> bridgeStream = focusBiome == null
-                ? ContinentGenerator.create(dimension, rng, dimensionData).stream()
+                ? ContinentGenerator.create(dimension, rng, dimensionRuntime).stream()
                         .convert(value -> value >= dimension.getLandChance()
                                 ? InferredType.SEA
                                 : InferredType.LAND)
@@ -293,7 +294,7 @@ public final class DimensionTerrainContext implements DataProvider {
                 : ProceduralStream.ofDouble((x, z) -> {
             double value = 0D;
             for (IrisShapedGeneratorStyle style : overlayNoise) {
-                value += style.get(rng, dimensionData, x, z);
+                value += style.get(rng, dimensionRuntime, x, z);
             }
             return value;
         });
@@ -340,6 +341,7 @@ public final class DimensionTerrainContext implements DataProvider {
                     }
                 });
                 interpolatedHeight += IrisComplex.averageGeneratorHeights(
+                        dimensionRuntime,
                         groupGenerators,
                         sampledBounds.min(),
                         sampledBounds.max(),
@@ -394,7 +396,7 @@ public final class DimensionTerrainContext implements DataProvider {
         Terrain3DRuntime terrain3D = !terrain3DEnabled ? null : new Terrain3DRuntime(
                 new Terrain3DRuntime.Sources(heightStream::getDouble, finalBiomeStream::get),
                 new Terrain3DRuntime.Options(engine.getSeedManager().getTerrain() ^ seedOffset,
-                        localHeight, fluidHeight, dimensionData, true, Math.max(4096, cacheSize))
+                        localHeight, fluidHeight, dimensionRuntime, true, Math.max(4096, cacheSize))
         );
         ProceduralStream<Double> shapedHeightStream = terrain3D == null ? heightStream
                 : GenerationStreams.cache2DDouble(ProceduralStream.ofDouble((x, z) -> shapedHeight(terrain3D, x, z)), cachePrefix + "Terrain3DHeightStream", engine, cacheSize);
@@ -505,7 +507,7 @@ public final class DimensionTerrainContext implements DataProvider {
 
     private static Map<IrisRegion, Map<InferredType, ProceduralStream<IrisBiome>>> compileInferredBiomeStreams(
             IrisDimension dimension,
-            IrisData data,
+            PackRuntime runtime,
             RNG rng,
             Iterable<IrisRegion> regions
     ) {
@@ -517,11 +519,11 @@ public final class DimensionTerrainContext implements DataProvider {
             }
             EnumMap<InferredType, ProceduralStream<IrisBiome>> streams = new EnumMap<>(InferredType.class);
             streams.put(InferredType.LAND, createInferredBiomeStream(
-                    dimension, data, rng, region, InferredType.LAND));
+                    dimension, runtime, rng, region, InferredType.LAND));
             streams.put(InferredType.SEA, createInferredBiomeStream(
-                    dimension, data, rng, region, InferredType.SEA));
+                    dimension, runtime, rng, region, InferredType.SEA));
             streams.put(InferredType.SHORE, createInferredBiomeStream(
-                    dimension, data, rng, region, InferredType.SHORE));
+                    dimension, runtime, rng, region, InferredType.SHORE));
             compiled.put(region, Collections.unmodifiableMap(streams));
         }
         return Collections.unmodifiableMap(compiled);
@@ -529,29 +531,29 @@ public final class DimensionTerrainContext implements DataProvider {
 
     private static ProceduralStream<IrisBiome> createInferredBiomeStream(
             IrisDimension dimension,
-            IrisData data,
+            PackRuntime runtime,
             RNG rng,
             IrisRegion region,
             InferredType type
     ) {
         return switch (type) {
             case LAND -> dimension.getLandBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.LAND.ordinal()), data).stream()
+                    .create(rng.nextParallelRNG(InferredType.LAND.ordinal()), runtime).stream()
                     .zoom(dimension.getBiomeZoom())
                     .zoom(dimension.getLandZoom())
                     .zoom(region.getLandBiomeZoom())
-                    .selectRarity(loadInferredBiomes(data, region.getLandBiomes(), InferredType.LAND));
+                    .selectRarity(loadInferredBiomes(runtime.data(), region.getLandBiomes(), InferredType.LAND));
             case SEA -> dimension.getSeaBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.SEA.ordinal()), data).stream()
+                    .create(rng.nextParallelRNG(InferredType.SEA.ordinal()), runtime).stream()
                     .zoom(dimension.getBiomeZoom())
                     .zoom(dimension.getSeaZoom())
                     .zoom(region.getSeaBiomeZoom())
-                    .selectRarity(loadInferredBiomes(data, region.getSeaBiomes(), InferredType.SEA));
+                    .selectRarity(loadInferredBiomes(runtime.data(), region.getSeaBiomes(), InferredType.SEA));
             case SHORE -> dimension.getShoreBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), data).stream()
+                    .create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), runtime).stream()
                     .zoom(dimension.getBiomeZoom())
                     .zoom(region.getShoreBiomeZoom())
-                    .selectRarity(loadInferredBiomes(data, region.getShoreBiomes(), InferredType.SHORE));
+                    .selectRarity(loadInferredBiomes(runtime.data(), region.getShoreBiomes(), InferredType.SHORE));
             default -> throw new IllegalArgumentException("Unsupported stacked terrain biome type: " + type);
         };
     }

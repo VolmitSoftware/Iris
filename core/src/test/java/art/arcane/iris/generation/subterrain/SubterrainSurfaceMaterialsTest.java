@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.subterrain;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomePaletteLayer;
 import art.arcane.iris.generation.decoration.IrisDecorationPart;
@@ -235,7 +236,7 @@ public class SubterrainSurfaceMaterialsTest {
         private final NativeBlockState wall = solid("minecraft:andesite");
         private final IrisDimension dimension = new IrisDimension();
         private final IrisComplex complex = mock(IrisComplex.class);
-        private final IrisData data = mock(IrisData.class);
+        private final IrisData data = MockPackData.create();
         private final IrisBiome biome = mock(IrisBiome.class);
         private final RNG random = new RNG(44339L);
         private final SubterrainPlanner planner;

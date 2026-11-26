@@ -257,7 +257,7 @@ public class IrisComplexChunkCornersTest {
         private boolean nested;
 
         @Override
-        public double getHeight(double x, double z, long seed) {
+        public double getHeight(PackRuntime runtime, double x, double z, long seed) {
             if (nested) {
                 return Math.cos(x * 0.13D) * 0.5D;
             }
@@ -281,7 +281,7 @@ public class IrisComplexChunkCornersTest {
         }
 
         @Override
-        public double getHeight(double x, double z, long seed) {
+        public double getHeight(PackRuntime runtime, double x, double z, long seed) {
             invocations++;
             return Math.sin(x * 0.37D + seed) * Math.cos(z * 0.21D) * amplitude;
         }

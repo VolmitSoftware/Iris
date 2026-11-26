@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -155,7 +156,7 @@ public class IrisBiomePaletteLayer {
 
         LayerGeneratorKey key = new LayerGeneratorKey(data, engine, generatorSeed);
         CNG generator = layerGenerators.computeIfAbsent(key,
-                ignored -> style.create(new RNG(generatorSeed), data, engine));
+                ignored -> style.create(new RNG(generatorSeed), PackRuntime.of(engine, data)));
         if (generator != null) {
             recentLayerGenerators.setRelease(slot, new CachedLayerGenerator(key, generator));
         }

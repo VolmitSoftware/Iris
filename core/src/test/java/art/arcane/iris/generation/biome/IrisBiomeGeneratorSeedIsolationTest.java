@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
@@ -115,7 +116,7 @@ public class IrisBiomeGeneratorSeedIsolationTest {
     }
 
     private IrisData dataWithActiveEngine(AtomicReference<Engine> activeEngine) {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         when(data.getEngine()).thenAnswer(ignored -> activeEngine.get());
         return data;
     }

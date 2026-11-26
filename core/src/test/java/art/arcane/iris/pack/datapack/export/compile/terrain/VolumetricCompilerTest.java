@@ -1,5 +1,6 @@
 package art.arcane.iris.pack.datapack.export.compile.terrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -101,7 +102,7 @@ public class VolumetricCompilerTest {
         try {
             NoiseRegistry registry = new NoiseRegistry(TerrainTestSupport.NAMESPACE);
             Compiled compiled = compile(data, registry, NoiseStyleCompiler.create(new ArrayList<>()), TerrainTestSupport.twoBiomeCodes(registry, 0.0));
-            CNG iris = new IrisGeneratorStyle(NoiseStyle.SIMPLEX).createNoCache(new RNG(MARGINAL_SEED), data);
+            CNG iris = new IrisGeneratorStyle(NoiseStyle.SIMPLEX).createNoCache(new RNG(MARGINAL_SEED), PackRuntime.standalone(data));
             SplittableRandom random = new SplittableRandom(MARGINAL_SEED);
             double[] exported = new double[MARGINAL_SAMPLES];
             double[] expected = new double[MARGINAL_SAMPLES];
@@ -129,7 +130,7 @@ public class VolumetricCompilerTest {
         try {
             NoiseRegistry registry = new NoiseRegistry(TerrainTestSupport.NAMESPACE);
             Compiled compiled = compile(data, registry, NoiseStyleCompiler.create(new ArrayList<>()), TerrainTestSupport.twoBiomeCodes(registry, 0.0));
-            CNG iris = new IrisGeneratorStyle(NoiseStyle.SIMPLEX).createNoCache(new RNG(MARGINAL_SEED), data);
+            CNG iris = new IrisGeneratorStyle(NoiseStyle.SIMPLEX).createNoCache(new RNG(MARGINAL_SEED), PackRuntime.standalone(data));
             SplittableRandom random = new SplittableRandom(MARGINAL_SEED);
             int exported = 0;
             int expected = 0;

@@ -482,7 +482,7 @@ List<String> dependencyBuildMetadata = [
     'META-INF/versions/*/OSGI-INF/**'
 ]
 
-String languageTomlSupportClassPattern = 'art/arcane/volmlib/util/config/(?:TomlCodec|ConfigJson|ConfigExposePolicy|ConfigDoc|ConfigDescription|ConfigDocumentation)(?:\\$[^/]+)?\\.class'
+String languageTomlSupportClassPattern = 'art/arcane/volmlib/util/config/(?:TomlCodec|TomlSegments|TomlDocumentEditor|ConfigJson|ConfigExposePolicy|ConfigComments|ConfigDoc|ConfigDescription|ConfigDocumentation)(?:\\$[^/]+)?\\.class'
 
 tasks.named('shadowJar', ShadowJar).configure {
     inputs.property('languageTomlSupportClassPattern', languageTomlSupportClassPattern)

@@ -29,7 +29,6 @@ public class IrisSettingsFileTest {
     private IrisPlatform previousPlatform;
     private IrisSettings previousSettings;
     private File settingsFile;
-    private File legacyFile;
 
     @Before
     public void bindPlatform() throws Exception {
@@ -38,7 +37,6 @@ public class IrisSettingsFileTest {
         IrisPlatforms.unbind();
         File dataFolder = temporaryFolder.newFolder("Iris");
         settingsFile = new File(dataFolder, IrisSettingsFile.FILE_NAME);
-        legacyFile = new File(dataFolder, IrisSettingsFile.LEGACY_FILE_NAME);
         IrisPlatform platform = mock(IrisPlatform.class);
         doReturn(settingsFile).when(platform).dataFile(IrisSettingsFile.FILE_NAME);
         IrisPlatforms.bind(platform);
@@ -76,29 +74,6 @@ public class IrisSettingsFileTest {
 
         assertEquals(new Gson().toJson(new IrisSettings()), new Gson().toJson(loaded));
         assertEquals(IrisSettingsFile.render(new IrisSettings()), Files.readString(settingsFile.toPath()));
-    }
-
-    @Test
-    public void legacyJsonMovesToToml() throws Exception {
-        Files.writeString(legacyFile.toPath(), "{\"general\":{\"debug\":true},\"pregen\":{\"runtimeSchedulerMode\":\"FOLIA\"}}");
-
-        IrisSettings loaded = IrisSettingsFile.load();
-
-        assertTrue(loaded.getGeneral().isDebug());
-        assertEquals(IrisRuntimeSchedulerMode.FOLIA, loaded.getPregen().getRuntimeSchedulerMode());
-        assertFalse(legacyFile.exists());
-        assertTrue(IrisSettingsFile.parse(Files.readString(settingsFile.toPath())).getGeneral().isDebug());
-    }
-
-    @Test
-    public void brokenLegacyJsonStaysWhereItIs() throws Exception {
-        Files.writeString(legacyFile.toPath(), "{\"general\":");
-
-        IrisSettings loaded = IrisSettingsFile.load();
-
-        assertFalse(loaded.getGeneral().isDebug());
-        assertEquals("{\"general\":", Files.readString(legacyFile.toPath()));
-        assertFalse(settingsFile.exists());
     }
 
     @Test

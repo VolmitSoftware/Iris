@@ -3,7 +3,6 @@ package art.arcane.iris.configuration;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.config.TomlCodec;
-import com.google.gson.Gson;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,12 +10,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 /**
- * Reads and writes the Iris settings file. Settings live in iris.toml so each key can carry a comment; a file
- * left by a build that used iris.json is moved over once on first load.
+ * Reads and writes the Iris settings file. Settings live in iris.toml so each key can carry a comment.
  */
 public final class IrisSettingsFile {
     public static final String FILE_NAME = "iris.toml";
-    static final String LEGACY_FILE_NAME = "iris.json";
     private static final String SOURCE_TAG = "iris";
 
     private IrisSettingsFile() {
@@ -35,11 +32,6 @@ public final class IrisSettingsFile {
         File file = location();
         if (file.exists()) {
             return loadExisting(file);
-        }
-
-        File legacyFile = new File(file.getParentFile(), LEGACY_FILE_NAME);
-        if (legacyFile.exists()) {
-            return migrateLegacy(legacyFile, file);
         }
 
         IrisSettings defaults = new IrisSettings();
@@ -79,31 +71,6 @@ public final class IrisSettingsFile {
         return loaded;
     }
 
-    private static IrisSettings migrateLegacy(File legacyFile, File file) {
-        IrisSettings migrated;
-        try {
-            migrated = parseLegacy(Files.readString(legacyFile.toPath(), StandardCharsets.UTF_8));
-        } catch (Throwable failure) {
-            IrisLogging.error("Configuration Error in " + LEGACY_FILE_NAME + "! " + rootCause(failure)
-                    + ". Using defaults; fix the file to move it to " + FILE_NAME + ".");
-            return new IrisSettings();
-        }
-
-        if (!rewrite(file, migrated)) {
-            return migrated;
-        }
-        deleteMigratedLegacy(legacyFile);
-        IrisLogging.info("Moved Iris settings from " + LEGACY_FILE_NAME + " to " + FILE_NAME + ".");
-        return migrated;
-    }
-
-    private static IrisSettings parseLegacy(String json) {
-        IrisSettings parsed = new Gson().fromJson(json, IrisSettings.class);
-        IrisSettings migrated = parsed == null ? new IrisSettings() : parsed;
-        migrated.fillMissingSections();
-        return migrated;
-    }
-
     private static boolean rewrite(File file, IrisSettings settings) {
         try {
             write(settings, file);
@@ -112,15 +79,6 @@ public final class IrisSettingsFile {
             IrisLogging.reportError("Could not rewrite " + file.getAbsolutePath()
                     + "; settings changes made in game will not survive a restart.", failure);
             return false;
-        }
-    }
-
-    private static void deleteMigratedLegacy(File legacyFile) {
-        try {
-            Files.deleteIfExists(legacyFile.toPath());
-        } catch (IOException | SecurityException failure) {
-            IrisLogging.warn("Could not delete " + legacyFile.getAbsolutePath() + " after moving it to "
-                    + FILE_NAME + ": " + failure.getMessage());
         }
     }
 

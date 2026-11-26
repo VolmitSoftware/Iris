@@ -2,6 +2,8 @@ package art.arcane.iris.configuration;
 
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.volmlib.util.config.ConfigComments;
+import art.arcane.volmlib.util.config.ConfigExposePolicy;
 import art.arcane.volmlib.util.config.TomlCodec;
 
 import java.io.File;
@@ -49,7 +51,7 @@ public final class IrisSettingsFile {
     }
 
     static String render(IrisSettings settings) {
-        return TomlCodec.toToml(settings, SOURCE_TAG);
+        return TomlCodec.toToml(settings, SOURCE_TAG, ConfigExposePolicy.ALL, ConfigComments.ANNOTATED_ONLY);
     }
 
     private static IrisSettings loadExisting(File file) {

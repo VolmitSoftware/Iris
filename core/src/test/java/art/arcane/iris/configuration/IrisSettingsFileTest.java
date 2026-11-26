@@ -13,6 +13,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -115,5 +116,19 @@ public class IrisSettingsFileTest {
         assertTrue(rendered.contains("# Turns unresolved pack content keys and bad block-state properties into blocking pack errors.\n"
                 + "# Effect: The -Diris.strictContent system property overrides this.\n"
                 + "strictContentKeys = false\n"));
+    }
+
+    @Test
+    public void undocumentedSettingsHaveNoComment() {
+        String rendered = IrisSettingsFile.render(new IrisSettings());
+
+        assertFalse(lineBefore(rendered, "debug = false").startsWith("#"));
+    }
+
+    private static String lineBefore(String text, String line) {
+        List<String> lines = text.lines().toList();
+        int index = lines.indexOf(line);
+        assertTrue(index > 0);
+        return lines.get(index - 1);
     }
 }

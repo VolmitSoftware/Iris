@@ -152,6 +152,14 @@ export function MapStudio({ client, world, theme, onOpenPack, onDisconnect }: Ma
   useServerEvents(client, setPlayers, setUsage, tell, setConnected, packReloaded)
 
   const openView = useCallback((viewId: string) => setWorkbench((current) => showView(current, viewId, entryViews.has(viewId))), [entryViews])
+  const keepView = useCallback(
+    (viewId: string) =>
+      setWorkbench((current) => {
+        const shown = showView(current, viewId, false)
+        return keepTab(shown, focusedTab(shown).id)
+      }),
+    []
+  )
   const commands = useCommandRegistry()
   const recent = useRecentTabs(setWorkbench)
 
@@ -232,7 +240,7 @@ export function MapStudio({ client, world, theme, onOpenPack, onDisconnect }: Ma
             </div>
           </div>
         )}
-        <ViewList views={views} current={focused.viewId} onSelect={openView} slotRef={setSidebarSlot} />
+        <ViewList views={views} current={focused.viewId} onOpen={openView} onKeep={keepView} slotRef={setSidebarSlot} />
         <TabCommands.Provider value={commands.register}>
           <PaneLayout workbench={workbench} change={change} viewLabel={viewLabel} renderTab={renderTab} keepsRunning={(tab) => showsMapOf(tab.viewId)} />
         </TabCommands.Provider>

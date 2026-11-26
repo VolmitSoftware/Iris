@@ -31,6 +31,7 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.decoration.IrisOreBands;
+import art.arcane.iris.generation.decoration.OreBandsRuntime;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
@@ -156,14 +157,14 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         private final ChunkedDataCache<NativeBlockState> rockCache;
         private final ChunkedDataCache<NativeBlockState> fluidCache;
         private final UpperDimensionContext upperContext;
-        private final IrisOreBands dimensionSurfaceOres;
-        private final IrisOreBands dimensionUndergroundOres;
+        private final OreBandsRuntime dimensionSurfaceOres;
+        private final OreBandsRuntime dimensionUndergroundOres;
         private final NativeBlockState air;
         private final NativeBlockState bedrock;
-        private IrisOreBands biomeSurfaceOres;
-        private IrisOreBands regionSurfaceOres;
-        private IrisOreBands biomeUndergroundOres;
-        private IrisOreBands regionUndergroundOres;
+        private OreBandsRuntime biomeSurfaceOres;
+        private OreBandsRuntime regionSurfaceOres;
+        private OreBandsRuntime biomeUndergroundOres;
+        private OreBandsRuntime regionUndergroundOres;
         private int surfaceOreTop;
         private int surfaceOreFloor;
         private int undergroundOreTop;
@@ -194,8 +195,8 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             rockCache = context.getRock();
             fluidCache = context.getFluid();
             upperContext = getEngine().getUpperContext();
-            dimensionSurfaceOres = hideOres ? IrisOreBands.EMPTY : dimension.getSurfaceOreBands();
-            dimensionUndergroundOres = hideOres ? IrisOreBands.EMPTY : dimension.getUndergroundOreBands();
+            dimensionSurfaceOres = ores(hideOres ? IrisOreBands.EMPTY : dimension.getSurfaceOreBands(), null);
+            dimensionUndergroundOres = ores(hideOres ? IrisOreBands.EMPTY : dimension.getUndergroundOreBands(), null);
             air = AIR.get();
             bedrock = BEDROCK.get();
         }
@@ -235,10 +236,10 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                     : fluidCache.get(xf, zf);
             NativeBlockState rock = rockCache.get(xf, zf);
             NativeBlockState mappedSurfaceBlock = complex.getImageMapRuntime().sampleSurfaceBlock(realX, realZ);
-            biomeSurfaceOres = hideOres ? IrisOreBands.EMPTY : biome.getSurfaceOreBands();
-            regionSurfaceOres = hideOres ? IrisOreBands.EMPTY : region.getSurfaceOreBands();
-            biomeUndergroundOres = hideOres ? IrisOreBands.EMPTY : biome.getUndergroundOreBands();
-            regionUndergroundOres = hideOres ? IrisOreBands.EMPTY : region.getUndergroundOreBands();
+            biomeSurfaceOres = ores(hideOres ? IrisOreBands.EMPTY : biome.getSurfaceOreBands(), biomeSurfaceOres);
+            regionSurfaceOres = ores(hideOres ? IrisOreBands.EMPTY : region.getSurfaceOreBands(), regionSurfaceOres);
+            biomeUndergroundOres = ores(hideOres ? IrisOreBands.EMPTY : biome.getUndergroundOreBands(), biomeUndergroundOres);
+            regionUndergroundOres = ores(hideOres ? IrisOreBands.EMPTY : region.getUndergroundOreBands(), regionUndergroundOres);
             surfaceOreTop = oreTop(biomeSurfaceOres, regionSurfaceOres, dimensionSurfaceOres);
             surfaceOreFloor = oreFloor(biomeSurfaceOres, regionSurfaceOres, dimensionSurfaceOres);
             undergroundOreTop = oreTop(biomeUndergroundOres, regionUndergroundOres, dimensionUndergroundOres);
@@ -404,7 +405,14 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             runState = null;
         }
 
-        private static int oreTop(IrisOreBands first, IrisOreBands second, IrisOreBands third) {
+        private OreBandsRuntime ores(IrisOreBands bands, OreBandsRuntime previousColumn) {
+            if (previousColumn != null && previousColumn.bands() == bands) {
+                return previousColumn;
+            }
+            return runtime.oreBands(bands, rng.getSeed());
+        }
+
+        private static int oreTop(OreBandsRuntime first, OreBandsRuntime second, OreBandsRuntime third) {
             int top = Integer.MIN_VALUE;
             if (first.hasOres()) {
                 top = Math.max(top, first.highestY());
@@ -418,7 +426,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             return top;
         }
 
-        private static int oreFloor(IrisOreBands first, IrisOreBands second, IrisOreBands third) {
+        private static int oreFloor(OreBandsRuntime first, OreBandsRuntime second, OreBandsRuntime third) {
             int floor = Integer.MAX_VALUE;
             if (first.hasOres()) {
                 floor = Math.min(floor, first.lowestY());
@@ -435,13 +443,13 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         private NativeBlockState surfaceOre(int realX, int y, int realZ) {
             NativeBlockState ore = null;
             if (biomeSurfaceOres.contains(y)) {
-                ore = biomeSurfaceOres.generate(realX, y, realZ, rng, runtime);
+                ore = biomeSurfaceOres.generate(realX, y, realZ, rng);
             }
             if (ore == null && regionSurfaceOres.contains(y)) {
-                ore = regionSurfaceOres.generate(realX, y, realZ, rng, runtime);
+                ore = regionSurfaceOres.generate(realX, y, realZ, rng);
             }
             if (ore == null && dimensionSurfaceOres.contains(y)) {
-                ore = dimensionSurfaceOres.generate(realX, y, realZ, rng, runtime);
+                ore = dimensionSurfaceOres.generate(realX, y, realZ, rng);
             }
             return ore;
         }
@@ -449,13 +457,13 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         private NativeBlockState undergroundOre(int realX, int y, int realZ) {
             NativeBlockState ore = null;
             if (biomeUndergroundOres.contains(y)) {
-                ore = biomeUndergroundOres.generate(realX, y, realZ, rng, runtime);
+                ore = biomeUndergroundOres.generate(realX, y, realZ, rng);
             }
             if (ore == null && regionUndergroundOres.contains(y)) {
-                ore = regionUndergroundOres.generate(realX, y, realZ, rng, runtime);
+                ore = regionUndergroundOres.generate(realX, y, realZ, rng);
             }
             if (ore == null && dimensionUndergroundOres.contains(y)) {
-                ore = dimensionUndergroundOres.generate(realX, y, realZ, rng, runtime);
+                ore = dimensionUndergroundOres.generate(realX, y, realZ, rng);
             }
             return ore;
         }

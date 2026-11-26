@@ -29,7 +29,9 @@ import art.arcane.iris.generation.decoration.DecoratorRuntime;
 import art.arcane.iris.generation.decoration.DepositRuntime;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
+import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.decoration.IrisOreGenerator;
+import art.arcane.iris.generation.decoration.OreBandsRuntime;
 import art.arcane.iris.generation.noise.ExpressionRuntime;
 import art.arcane.iris.generation.noise.GeneratorRuntime;
 import art.arcane.iris.generation.noise.IrisExpression;
@@ -62,6 +64,7 @@ public final class PackRuntime {
     private static final int MATERIAL_PALETTE_SEED_CAPACITY = 32;
     private static final int CARVING_CHILD_SEED_CAPACITY = 8;
     private static final int ORE_CHANCE_SEED_CAPACITY = 32;
+    private static final int ORE_BANDS_SEED_CAPACITY = 8;
     private static final int SURFACE_WARP_SEED_CAPACITY = 8;
 
     private final Engine engine;
@@ -77,6 +80,8 @@ public final class PackRuntime {
             entry -> new SeedTable<>(CARVING_CHILD_SEED_CAPACITY, seed -> entry.createChildrenGenerator(seed, this)));
     private final RuntimeTable<IrisOreGenerator, SeedTable<IrisOreGenerator.OreChance>> oreChances = new RuntimeTable<>(
             ore -> new SeedTable<>(ORE_CHANCE_SEED_CAPACITY, seed -> ore.createChance(seed, this)));
+    private final RuntimeTable<IrisOreBands, SeedTable<OreBandsRuntime>> oreBands = new RuntimeTable<>(
+            bands -> new SeedTable<>(ORE_BANDS_SEED_CAPACITY, seed -> new OreBandsRuntime(bands, seed, this)));
     private final RuntimeTable<IrisObjectPlacement, SeedTable<CNG>> surfaceWarps = new RuntimeTable<>(
             placement -> new SeedTable<>(SURFACE_WARP_SEED_CAPACITY, seed -> placement.createSurfaceWarp(seed, this)));
     private final ConcurrentMap<String, StructureGraphCompilation> structureGraphs = new ConcurrentHashMap<>();
@@ -180,6 +185,11 @@ public final class PackRuntime {
     /** Ores are seeded by the stage that places them, so an ore keeps one chance field per seed. */
     public IrisOreGenerator.OreChance oreChance(IrisOreGenerator ore, long seed) {
         return oreChances.get(ore).get(seed);
+    }
+
+    /** An ore list's chance fields for one seed, resolved together so painting a column holds them directly. */
+    public OreBandsRuntime oreBands(IrisOreBands bands, long seed) {
+        return oreBands.get(bands).get(seed);
     }
 
     /** Object placements warp by the engine's component seed, so a placement keeps one warp generator per seed. */

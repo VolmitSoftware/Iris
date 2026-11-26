@@ -62,18 +62,28 @@ public class IrisOreGenerator {
     }
 
     public NativeBlockState generate(int x, int y, int z, RNG rng, PackRuntime runtime) {
-        if (threshold <= 0 || !range.contains(y)) {
+        if (!canPlaceAt(y)) {
             return null;
         }
+        return placeByChance(x, y, z, rng, runtime.oreChance(this, rng.getSeed()), runtime);
+    }
 
-        if (palette.getPalette().isEmpty()) {
+    /** Places with a chance field already resolved for {@code rng}'s seed, as {@link OreBandsRuntime} holds them. */
+    public NativeBlockState generate(int x, int y, int z, RNG rng, OreChance chance, PackRuntime runtime) {
+        if (!canPlaceAt(y)) {
             return null;
         }
+        return placeByChance(x, y, z, rng, chance, runtime);
+    }
 
-        if (runtime.oreChance(this, rng.getSeed()).sample(x, y, z) > threshold) {
+    private boolean canPlaceAt(int y) {
+        return threshold > 0 && range.contains(y) && !palette.getPalette().isEmpty();
+    }
+
+    private NativeBlockState placeByChance(int x, int y, int z, RNG rng, OreChance chance, PackRuntime runtime) {
+        if (chance.sample(x, y, z) > threshold) {
             return null;
         }
-
         return palette.get(rng, x, y, z, runtime);
     }
 

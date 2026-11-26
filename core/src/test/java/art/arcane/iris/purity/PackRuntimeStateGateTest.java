@@ -196,7 +196,6 @@ public class PackRuntimeStateGateTest {
     );
 
     private static final List<Entry> PENDING_MIGRATION = List.of(
-            pending("art.arcane.iris.world.entity.IrisEffect", "latch", Kind.RUNTIME),
             pending("art.arcane.iris.generation.bake.ChunkBakeCache", "recent", Kind.THREAD),
             pending("art.arcane.iris.generation.hydrology.engine.HydrologyRuntime", "last", Kind.THREAD),
             pending("art.arcane.iris.generation.mantle.IrisCaveCarver3D", "scratchCache", Kind.THREAD),

@@ -39,9 +39,11 @@ import art.arcane.iris.generation.noise.IrisNoiseGenerator;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingEntry;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
+import art.arcane.iris.world.entity.IrisEffect;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
+import art.arcane.volmlib.util.scheduling.ChronoLatch;
 
 import java.util.Objects;
 
@@ -73,6 +75,8 @@ public final class PackRuntime {
             ore -> new SeedTable<>(ORE_CHANCE_SEED_CAPACITY, seed -> ore.createChance(seed, this)));
     private final RuntimeTable<IrisObjectPlacement, SeedTable<CNG>> surfaceWarps = new RuntimeTable<>(
             placement -> new SeedTable<>(SURFACE_WARP_SEED_CAPACITY, seed -> placement.createSurfaceWarp(seed, this)));
+    private final RuntimeTable<IrisEffect, ChronoLatch> effectLatches =
+            new RuntimeTable<>(effect -> new ChronoLatch(effect.getInterval()));
     private final RuntimeTable<IrisDecorator, DecoratorRuntime> decorators =
             new RuntimeTable<>(decorator -> new DecoratorRuntime(decorator, this));
     private final RuntimeTable<IrisDepositGenerator, DepositRuntime> deposits =
@@ -181,6 +185,11 @@ public final class PackRuntime {
     /** Object placements warp by the engine's component seed, so a placement keeps one warp generator per seed. */
     public CNG surfaceWarp(IrisObjectPlacement placement, long seed) {
         return surfaceWarps.get(placement).get(seed);
+    }
+
+    /** Every player and entity of this owner shares one interval latch per effect. */
+    public ChronoLatch effectLatch(IrisEffect effect) {
+        return effectLatches.get(effect);
     }
 
     public DecoratorRuntime decorator(IrisDecorator decorator) {

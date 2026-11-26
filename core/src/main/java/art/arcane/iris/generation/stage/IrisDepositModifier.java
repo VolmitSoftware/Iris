@@ -101,10 +101,11 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         try {
             List<DepositPlan> plans = new ArrayList<>(generators.size());
             AboveTerrainHosts aboveTerrainHosts = new AboveTerrainHosts(terrain, context);
+            PackRuntime runtime = PackRuntime.of(getEngine(), getData());
             int attempts = 0;
             for (int i = 0; i < generators.size(); i++) {
                 try {
-                    DepositPlan plan = plan(generators.get(i), rng.nextParallelRNG(seed * (i + 1L)), context);
+                    DepositPlan plan = plan(generators.get(i), rng.nextParallelRNG(seed * (i + 1L)), context, runtime);
                     if (plan.attempts() == 0 || footprintsMissTerrain(plan, highestSurface)
                             || plan.generator().getPlacementScope() == IrisDepositPlacementScope.ABOVE_TERRAIN
                             && !aboveTerrainHosts.present(plan.generator().getSurfaceClearance())) {
@@ -210,7 +211,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
     }
 
     public void generate(IrisDepositGenerator k, MantleChunk chunk, Hunk<NativeBlockState> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
-        DepositPlan plan = plan(k, rng, context);
+        DepositPlan plan = plan(k, rng, context, PackRuntime.of(getEngine(), getData()));
         if (plan.attempts() == 0) {
             return;
         }
@@ -232,13 +233,13 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         return lowest > (long) highestSurface - Math.max(0, generator.getSurfaceClearance());
     }
 
-    private DepositPlan plan(IrisDepositGenerator generator, RNG rng, ChunkContext context) {
+    private DepositPlan plan(IrisDepositGenerator generator, RNG rng, ChunkContext context, PackRuntime runtime) {
         if (generator.getSpawnChance() < rng.d()) {
-            return new DepositPlan(generator, rng.getSeed(), false, 0);
+            return new DepositPlan(generator, runtime, rng.getSeed(), false, 0);
         }
         boolean ore = generator.isOre(getData());
         int attempts = rng.i(generator.getMinPerChunk(), generator.getMaxPerChunk() + 1);
-        return new DepositPlan(generator, rng.getSeed(), ore,
+        return new DepositPlan(generator, runtime, rng.getSeed(), ore,
                 attempts == 0 || surfaceBiomeMayMatch(generator, context) ? attempts : 0);
     }
 
@@ -307,7 +308,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         if (footprint != null && footprint.empty() && !scalable) {
             return null;
         }
-        IrisObject clump = footprint == null ? k.getClump(PackRuntime.of(getEngine(), getData()), clumpRng) : null;
+        IrisObject clump = footprint == null ? k.getClump(plan.runtime(), clumpRng) : null;
 
         int dim = footprint == null ? clump.getW() : footprint.width();
         int min = dim / 2;
@@ -369,7 +370,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
 
             double sizeMultiplier = depositBiome.getOreDepositSizeMultiplier();
             if (sizeMultiplier != 1D) {
-                IrisObject scaledClump = k.getClump(PackRuntime.of(getEngine(), getData()), clumpRng, sizeMultiplier);
+                IrisObject scaledClump = k.getClump(plan.runtime(), clumpRng, sizeMultiplier);
                 int scaledDimension = scaledClump.getW();
                 x = clampDepositCenter(x, scaledDimension, 16);
                 if (clippedHeight) {
@@ -701,7 +702,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         }
     }
 
-    private record DepositPlan(IrisDepositGenerator generator, long seed, boolean ore, int attempts) {
+    private record DepositPlan(IrisDepositGenerator generator, PackRuntime runtime, long seed, boolean ore, int attempts) {
     }
 
     private static final class HostStates {

@@ -290,11 +290,13 @@ final class PackDimensionValidator {
         JSONObject height = resolveDimensionHeight(packFolder, dimension);
         int minY = height == null ? VANILLA_OVERWORLD_MIN_Y : (int) height.optDouble("min", 16D);
         int maxY = height == null ? VANILLA_OVERWORLD_MAX_Y : (int) height.optDouble("max", 32D);
-        if (minY >= VANILLA_OVERWORLD_MIN_Y && maxY <= VANILLA_OVERWORLD_MAX_Y) {
+        // Vanilla anchors ore bands to the world bottom and top, so any height other than -64..320 moves them.
+        if (minY == VANILLA_OVERWORLD_MIN_Y && maxY == VANILLA_OVERWORLD_MAX_Y) {
             return;
         }
         warnings.add("Dimension '" + dimensionKey + "' runs importedFeatures in a " + minY + ".." + maxY
-                + " world. Vanilla ores shift with the height; limit them with importedFeatures.steps or disabled.");
+                + " world. Vanilla ores shift with the height; remove them with importedFeatures.disabled"
+                + " (minecraft:ore) or disabledSteps (UNDERGROUND_ORES).");
     }
 
     static void validateStaticObjects(File packFolder, String dimensionKey, JSONObject dimension,

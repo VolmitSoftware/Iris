@@ -30,8 +30,20 @@ public class PackValidatorImportedFeatureHeightTest {
     }
 
     @Test
-    public void shorterWorldInsideVanillaBoundsStaysSilent() {
-        assertTrue(validate(featuresEnabled(true).put("dimensionHeight", height(0, 256))).isEmpty());
+    public void shorterWorldInsideVanillaBoundsWarns() {
+        List<String> warnings = validate(featuresEnabled(true).put("dimensionHeight", height(0, 256)));
+
+        assertEquals(1, warnings.size());
+        assertTrue(warnings.get(0), warnings.get(0).contains("in a 0..256 world"));
+    }
+
+    @Test
+    public void warningPointsAtTheSettingsThatRemoveOres() {
+        String warning = validate(featuresEnabled(true).put("dimensionHeight", height(-256, 512))).get(0);
+
+        assertTrue(warning, warning.contains("importedFeatures.disabled"));
+        assertTrue(warning, warning.contains("disabledSteps"));
+        assertTrue(warning, !warning.contains("importedFeatures.steps"));
     }
 
     @Test

@@ -55,6 +55,7 @@
 #   {befb}  החלק המעוצב בתווית זמני המנוע שלפני הסוגריים המרובעים.
 #   {before}  הערך לפני השינוי, או בלוקי העץ הבלתי נגישים לפני תיקון.
 #   {biome}  שם הביומה או המזהה שלה.
+#   {biomes}  ביומים שהשינויים בהם יחולו רק לאחר הפעלה מחדש של השרת.
 #   {block}  סוג הבלוק הנבדק או תיאורו.
 #   {blockX}  קואורדינטת X של הבלוק או יעד השיגור.
 #   {blockY}  קואורדינטת Y של הבלוק או יעד השיגור.
@@ -1587,6 +1588,9 @@ failed_fragment = "  נכשל {failed}"
 "commandpack.update_world_unchanged" = "§aהעולם '{world}' כבר משתמש בחבילה {pack} v{version} עם אותן הגדרות יצירה. אין צורך בהפעלה מחדש."
 
 [iris.runtime.studio]
+restart_needed = "נדרשת הפעלה מחדש: {biomes}"
+hotloaded_restart_needed = "§eStudio נטען מחדש · נדרשת הפעלה מחדש: {biomes}"
+hotload_blocked_restart_needed = "§cטעינה מחדש של Studio נחסמה · נדרשת הפעלה מחדש: {biomes}"
 opening = "§6Studio §bנפתח"
 opening_progress = "§6Studio §bנפתח§7 {percent}%"
 failed_progress = "§6Studio §cנכשל§7 {percent}%"

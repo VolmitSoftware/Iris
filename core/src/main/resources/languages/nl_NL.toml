@@ -50,6 +50,7 @@
 #   {befb}  Opgemaakt deel van een motortijdmetingslabel vóór het gedeelte tussen vierkante haken.
 #   {before}  Waarde vóór de wijziging, of onbereikbare boomblokken vóór reparatie.
 #   {biome}  Naam of identificatie van het getoonde bioom.
+#   {biomes}  Biomen waarvan de wijzigingen pas na een serverherstart gelden.
 #   {block}  Type of beschrijving van het onderzochte blok.
 #   {blockX}  X-coördinaat van het blok of de teleportbestemming.
 #   {blockY}  Y-coördinaat van het blok of de teleportbestemming.
@@ -1582,6 +1583,9 @@ failed_fragment = "  mislukt {failed}"
 "commandpack.update_world_unchanged" = "§aWereld '{world}' gebruikt al {pack} v{version} met dezelfde generatie-instellingen. Herstarten is niet nodig."
 
 [iris.runtime.studio]
+restart_needed = "herstart nodig: {biomes}"
+hotloaded_restart_needed = "§eStudio herladen · herstart nodig: {biomes}"
+hotload_blocked_restart_needed = "§cStudio-herladen geblokkeerd · herstart nodig: {biomes}"
 opening = "§6Studio §bOPENEN"
 opening_progress = "§6Studio §bOPENEN§7 {percent}%"
 failed_progress = "§6Studio §cMISLUKT§7 {percent}%"

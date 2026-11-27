@@ -50,6 +50,7 @@
 #   {befb}  Formatierter Teil einer Engine-Zeitmessungsbezeichnung vor dem Klammerteil.
 #   {before}  Wert vor der Änderung oder unerreichbare Baumblöcke vor der Reparatur.
 #   {biome}  Name oder Kennung des angezeigten Bioms.
+#   {biomes}  Biome, deren Änderungen erst nach einem Serverneustart gelten.
 #   {block}  Typ oder Beschreibung des untersuchten Blocks.
 #   {blockX}  X-Koordinate des Blocks oder Teleportationsziels.
 #   {blockY}  Y-Koordinate des Blocks oder Teleportationsziels.
@@ -1582,6 +1583,9 @@ failed_fragment = "  fehlgeschlagen {failed}"
 "commandpack.update_world_unchanged" = "§aWelt '{world}' verwendet bereits {pack} v{version} mit denselben Generierungseinstellungen. Kein Neustart erforderlich."
 
 [iris.runtime.studio]
+restart_needed = "Neustart nötig: {biomes}"
+hotloaded_restart_needed = "§eStudio neu geladen · Neustart nötig: {biomes}"
+hotload_blocked_restart_needed = "§cStudio-Neuladen blockiert · Neustart nötig: {biomes}"
 opening = "§6Studio §bÖFFNET"
 opening_progress = "§6Studio §bÖFFNET§7 {percent}%"
 failed_progress = "§6Studio §cFEHLGESCHLAGEN§7 {percent}%"

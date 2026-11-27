@@ -50,6 +50,7 @@
 #   {befb}  Partie mise en forme d’un libellé de mesure du moteur, avant le passage entre crochets.
 #   {before}  Valeur avant modification ou blocs d’arbre inaccessibles avant réparation.
 #   {biome}  Nom ou identifiant du biome affiché.
+#   {biomes}  Biomes dont les modifications ne s'appliquent qu'après un redémarrage du serveur.
 #   {block}  Type ou description du bloc inspecté.
 #   {blockX}  Coordonnée X du bloc ou de la destination de téléportation.
 #   {blockY}  Coordonnée Y du bloc ou de la destination de téléportation.
@@ -1582,6 +1583,9 @@ failed_fragment = "  échecs {failed}"
 "commandpack.update_world_unchanged" = "§aLe monde '{world}' utilise déjà {pack} v{version} avec les mêmes paramètres de génération. Aucun redémarrage nécessaire."
 
 [iris.runtime.studio]
+restart_needed = "redémarrage requis : {biomes}"
+hotloaded_restart_needed = "§eStudio rechargé · redémarrage requis : {biomes}"
+hotload_blocked_restart_needed = "§cRechargement de Studio bloqué · redémarrage requis : {biomes}"
 opening = "§6Studio §bOUVERTURE"
 opening_progress = "§6Studio §bOUVERTURE§7 {percent}%"
 failed_progress = "§6Studio §cÉCHEC§7 {percent}%"

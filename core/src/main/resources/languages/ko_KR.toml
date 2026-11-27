@@ -53,6 +53,7 @@
 #   {befb}  엔진 처리 시간 라벨에서 괄호 앞에 오는 서식 지정 텍스트.
 #   {before}  변경 전 값 또는 수리 전에 연결되지 않았던 나무 블록 수.
 #   {biome}  표시 중인 생물 군계의 이름 또는 식별자.
+#   {biomes}  서버를 재시작해야 변경 사항이 적용되는 생물 군계.
 #   {block}  조사 중인 블록의 종류 또는 설명.
 #   {blockX}  블록 또는 순간 이동 목적지의 X 좌표.
 #   {blockY}  블록 또는 순간 이동 목적지의 Y 좌표.
@@ -1585,6 +1586,9 @@ failed_fragment = "  실패 {failed}"
 "commandpack.update_world_unchanged" = "§a월드 '{world}'는 이미 같은 생성 설정으로 {pack} v{version}을 사용 중입니다. 재시작할 필요가 없습니다."
 
 [iris.runtime.studio]
+restart_needed = "재시작 필요: {biomes}"
+hotloaded_restart_needed = "§eStudio 다시 불러옴 · 재시작 필요: {biomes}"
+hotload_blocked_restart_needed = "§cStudio 다시 불러오기 차단됨 · 재시작 필요: {biomes}"
 opening = "§6Studio §b여는 중"
 opening_progress = "§6Studio §b여는 중§7 {percent}%"
 failed_progress = "§6Studio §c실패§7 {percent}%"

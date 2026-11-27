@@ -113,7 +113,7 @@ final class MarkerSpawnScanner {
 
     private Map<IrisPosition, MarkerSpawnData> collectMarkerSpawnData(int chunkX, int chunkZ) {
         if (manager.getEngine() instanceof IrisEngine engine) {
-            engine.getGenerationSource().prepareSavedBiomes(chunkX, chunkZ);
+            engine.getGenerationSource().savedBiomes().prepareChunk(chunkX, chunkZ);
         }
         Map<IrisPosition, MarkerSpawnData> markerData = new KMap<>();
         manager.getMantle().iterateChunk(chunkX, chunkZ, MatterMarker.class, (x, y, z, t) -> {

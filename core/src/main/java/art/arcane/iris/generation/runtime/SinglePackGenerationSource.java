@@ -22,6 +22,9 @@ import java.util.function.Predicate;
 final class SinglePackGenerationSource implements GenerationSource {
     static final SinglePackGenerationSource INSTANCE = new SinglePackGenerationSource();
     private static final GenerationScope UNROUTED = new UnroutedScope();
+    private static final SavedBiomes NO_SAVED_BIOMES = new NoSavedBiomes();
+    private static final RecordedChunks NO_RECORDED_CHUNKS = new NoRecordedChunks();
+    private static final PackTransitions NO_TRANSITIONS = new NoTransitions();
 
     private SinglePackGenerationSource() {
     }
@@ -57,84 +60,26 @@ final class SinglePackGenerationSource implements GenerationSource {
     }
 
     @Override
-    public boolean ownedByEarlierPack(int chunkX, int chunkZ) {
-        return false;
-    }
-
-    @Override
-    public boolean hasUnrecordedEarlierPackChunkInSquare(int centerChunkX, int centerChunkZ, int radius) {
-        return false;
-    }
-
-    @Override
-    public Optional<ChunkGenerationSemantics> recordedSemantics(int chunkX, int chunkZ) {
-        return Optional.empty();
-    }
-
-    @Override
-    public Optional<GenerationSemanticIndex.Match> findRecorded(
-            GenerationSemanticIndex.Query query,
-            Predicate<ChunkGenerationSemantics> eligibility
-    ) {
-        return Optional.empty();
-    }
-
-    @Override
-    public Optional<BiomeEnvironment> savedBiome(int blockX, int worldY, int blockZ, boolean surface) {
-        return Optional.empty();
-    }
-
-    @Override
-    public Optional<BiomeEnvironment> savedCaveBase(int blockX, int blockZ) {
-        return Optional.empty();
-    }
-
-    @Override
-    public Optional<SubterrainCell> savedSubterrainCell(int blockX, int worldY, int blockZ) {
-        return Optional.empty();
-    }
-
-    @Override
-    public <T> T readSavedSurfaceBiome(int blockX, int blockZ, Function<Optional<BiomeEnvironment>, T> reader) {
-        return reader.apply(Optional.empty());
-    }
-
-    @Override
-    public CompletableFuture<Optional<SavedBiomeRuntime.ReadSession>> readSavedBiomes(int chunkX, int chunkZ) {
-        return CompletableFuture.completedFuture(Optional.empty());
-    }
-
-    @Override
-    public void prepareSavedBiomes(int chunkX, int chunkZ) {
-    }
-
-    @Override
-    public boolean savedBiomesMayHaveBlockDropRules(String material) {
-        return false;
-    }
-
-    @Override
-    public List<Matter> objectContinuations(TransitionGenerationPlan plan, int chunkX, int chunkZ) {
-        return List.of();
-    }
-
-    @Override
-    public boolean allowsObjectFootprint(
-            TransitionGenerationPlan plan, int minimumX, int minimumZ, int maximumX, int maximumZ
-    ) {
-        return true;
-    }
-
-    @Override
-    public void recordNaturalTerrain(SavedTerrainChunk terrain, FloatingBiomeOverlay floatingBiomes) {
-    }
-
-    @Override
     public void releaseForRegeneration(List<GenerationBoundary.ChunkCoordinate> chunks) {
     }
 
     @Override
     public void sync() {
+    }
+
+    @Override
+    public SavedBiomes savedBiomes() {
+        return NO_SAVED_BIOMES;
+    }
+
+    @Override
+    public RecordedChunks recordedChunks() {
+        return NO_RECORDED_CHUNKS;
+    }
+
+    @Override
+    public PackTransitions transitions() {
+        return NO_TRANSITIONS;
     }
 
     private static final class UnroutedScope implements GenerationScope {
@@ -145,6 +90,85 @@ final class SinglePackGenerationSource implements GenerationSource {
 
         @Override
         public void close() {
+        }
+    }
+
+    private static final class NoSavedBiomes implements SavedBiomes {
+        @Override
+        public Optional<BiomeEnvironment> at(int blockX, int worldY, int blockZ, boolean surface) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<BiomeEnvironment> caveBaseAt(int blockX, int blockZ) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<SubterrainCell> subterrainCellAt(int blockX, int worldY, int blockZ) {
+            return Optional.empty();
+        }
+
+        @Override
+        public <T> T readSurface(int blockX, int blockZ, Function<Optional<BiomeEnvironment>, T> reader) {
+            return reader.apply(Optional.empty());
+        }
+
+        @Override
+        public CompletableFuture<Optional<SavedBiomeRuntime.ReadSession>> readChunk(int chunkX, int chunkZ) {
+            return CompletableFuture.completedFuture(Optional.empty());
+        }
+
+        @Override
+        public void prepareChunk(int chunkX, int chunkZ) {
+        }
+
+        @Override
+        public boolean mayHaveBlockDropRules(String material) {
+            return false;
+        }
+    }
+
+    private static final class NoRecordedChunks implements RecordedChunks {
+        @Override
+        public boolean ownedByEarlierPack(int chunkX, int chunkZ) {
+            return false;
+        }
+
+        @Override
+        public boolean hasUnrecordedEarlierPackChunkInSquare(int centerChunkX, int centerChunkZ, int radius) {
+            return false;
+        }
+
+        @Override
+        public Optional<ChunkGenerationSemantics> semantics(int chunkX, int chunkZ) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<GenerationSemanticIndex.Match> findNearest(
+                GenerationSemanticIndex.Query query,
+                Predicate<ChunkGenerationSemantics> eligibility
+        ) {
+            return Optional.empty();
+        }
+    }
+
+    private static final class NoTransitions implements PackTransitions {
+        @Override
+        public List<Matter> objectContinuations(TransitionGenerationPlan plan, int chunkX, int chunkZ) {
+            return List.of();
+        }
+
+        @Override
+        public boolean allowsObjectFootprint(
+                TransitionGenerationPlan plan, int minimumX, int minimumZ, int maximumX, int maximumZ
+        ) {
+            return true;
+        }
+
+        @Override
+        public void recordNaturalTerrain(SavedTerrainChunk terrain, FloatingBiomeOverlay floatingBiomes) {
         }
     }
 }

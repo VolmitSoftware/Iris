@@ -524,7 +524,7 @@ public class IrisEngine implements Engine {
             if (!usesSavedBiomeEnvironment()) {
                 return Engine.super.draw(x, z);
             }
-            return getGenerationSource().readSavedSurfaceBiome(x, z, saved -> {
+            return getGenerationSource().savedBiomes().readSurface(x, z, saved -> {
                 if (saved.isPresent()) {
                     return drawBiomeEnvironment(x, z, saved.get());
                 }
@@ -553,7 +553,7 @@ public class IrisEngine implements Engine {
                 return CompletableFuture.completedFuture(getBiomeEnvironment(x, y, z));
             }
             int worldY = y + getWorld().minHeight();
-            return getGenerationSource().readSavedBiomes(Math.floorDiv(x, 16), Math.floorDiv(z, 16))
+            return getGenerationSource().savedBiomes().readChunk(Math.floorDiv(x, 16), Math.floorDiv(z, 16))
                     .thenApply(read -> read.flatMap(session -> session.resolve(x, worldY, z, false))
                             .orElseGet(() -> resolveUnsavedBiomeEnvironment(x, y, z)));
         } catch (RuntimeException | Error failure) {
@@ -604,7 +604,7 @@ public class IrisEngine implements Engine {
         if (!usesSavedBiomeEnvironment()) {
             return Optional.empty();
         }
-        return getGenerationSource().savedBiome(x, y + getWorld().minHeight(), z, surface);
+        return getGenerationSource().savedBiomes().at(x, y + getWorld().minHeight(), z, surface);
     }
 
     private boolean usesSavedBiomeEnvironment() {
@@ -621,7 +621,7 @@ public class IrisEngine implements Engine {
         EngineThreadState.Frame frame = threadState.current();
         if ((frame == null || frame.binding == null) && getGenerationSource().keepsPackVersions()) {
             Optional<SubterrainCell> saved = generationSource
-                    .savedSubterrainCell(x, y + targetIn(frame).getWorld().minHeight(), z);
+                    .savedBiomes().subterrainCellAt(x, y + targetIn(frame).getWorld().minHeight(), z);
             if (saved.isPresent()) {
                 return saved.get();
             }
@@ -774,7 +774,7 @@ public class IrisEngine implements Engine {
     @Override
     public IrisBiome getCaveBiome(int x, int z) {
         if (usesSavedBiomeEnvironment()) {
-            Optional<BiomeEnvironment> saved = getGenerationSource().savedCaveBase(x, z);
+            Optional<BiomeEnvironment> saved = getGenerationSource().savedBiomes().caveBaseAt(x, z);
             if (saved.isPresent()) {
                 return saved.get().biome();
             }
@@ -858,7 +858,7 @@ public class IrisEngine implements Engine {
     @ChunkCoordinates
     @Override
     public Set<String> getObjectsAt(int x, int z) {
-        Optional<ChunkGenerationSemantics> recorded = getGenerationSource().recordedSemantics(x, z);
+        Optional<ChunkGenerationSemantics> recorded = getGenerationSource().recordedChunks().semantics(x, z);
         if (recorded.isPresent()) {
             return recorded.get().objectKeys();
         }
@@ -871,7 +871,7 @@ public class IrisEngine implements Engine {
     @ChunkCoordinates
     @Override
     public Set<ChunkGenerationSemantics.PointOfInterest> getPOIsAt(int chunkX, int chunkZ) {
-        Optional<ChunkGenerationSemantics> recorded = getGenerationSource().recordedSemantics(chunkX, chunkZ);
+        Optional<ChunkGenerationSemantics> recorded = getGenerationSource().recordedChunks().semantics(chunkX, chunkZ);
         if (recorded.isPresent()) {
             return new HashSet<>(recorded.get().pointsOfInterest());
         }

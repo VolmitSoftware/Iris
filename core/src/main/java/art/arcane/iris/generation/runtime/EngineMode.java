@@ -235,7 +235,7 @@ public interface EngineMode extends Staged {
             return List.of();
         }
         try {
-            List<Matter> continuations = irisEngine.getGenerationSource().objectContinuations(
+            List<Matter> continuations = irisEngine.getGenerationSource().transitions().objectContinuations(
                     getComplex().getTransitionGenerationPlan(), x >> 4, z >> 4);
             for (Matter continuation : continuations) {
                 if (continuation.getHeight() != getEngine().getHeight()) {
@@ -274,7 +274,7 @@ public interface EngineMode extends Staged {
         try {
             SavedTerrainChunk terrain = IrisTransitionGeometryActuator.capture(
                     x, z, blocks, biomes, getEngine().getMinHeight(), context, true);
-            source.recordNaturalTerrain(terrain, floating);
+            source.transitions().recordNaturalTerrain(terrain, floating);
         } catch (IOException failure) {
             throw new IllegalStateException("Unable to capture natural terrain at " + (x >> 4) + "," + (z >> 4), failure);
         }

@@ -66,7 +66,7 @@ final class HistoryAwareLocator<T> implements Locator<T> {
 
     @Override
     public SearchCandidate nearestRecordedCandidate(Engine engine, Position2 origin, int maxChunkRadius) {
-        GenerationSemanticIndex.Match match = GenerationLocatorPolicy.source(engine).findRecorded(
+        GenerationSemanticIndex.Match match = GenerationLocatorPolicy.source(engine).recordedChunks().findNearest(
                 GenerationSemanticIndex.Query.acrossActivations(
                         kind,
                         key,
@@ -138,7 +138,7 @@ final class GenerationLocatorPolicy {
     }
 
     static Optional<ChunkGenerationSemantics> recorded(Engine engine, Position2 chunk) {
-        return source(engine).recordedSemantics(chunk.getX(), chunk.getZ());
+        return source(engine).recordedChunks().semantics(chunk.getX(), chunk.getZ());
     }
 
     static boolean allowsActivePrediction(Engine engine, Position2 chunk) {
@@ -149,11 +149,11 @@ final class GenerationLocatorPolicy {
     }
 
     static boolean generatesWithActivePack(Engine engine, Position2 chunk) {
-        return !source(engine).ownedByEarlierPack(chunk.getX(), chunk.getZ()) && recorded(engine, chunk).isEmpty();
+        return !source(engine).recordedChunks().ownedByEarlierPack(chunk.getX(), chunk.getZ()) && recorded(engine, chunk).isEmpty();
     }
 
     static boolean allowsHistoricalFallback(Engine engine, Position2 chunk) {
-        return source(engine).ownedByEarlierPack(chunk.getX(), chunk.getZ()) && recorded(engine, chunk).isEmpty();
+        return source(engine).recordedChunks().ownedByEarlierPack(chunk.getX(), chunk.getZ()) && recorded(engine, chunk).isEmpty();
     }
 
     static boolean allowsProceduralPrediction(Engine engine, Position2 chunk) {
@@ -168,7 +168,7 @@ final class GenerationLocatorPolicy {
         if (radius < 0) {
             throw new IllegalArgumentException("Historical fallback radius cannot be negative.");
         }
-        return source(engine).hasUnrecordedEarlierPackChunkInSquare(center.getX(), center.getZ(), radius);
+        return source(engine).recordedChunks().hasUnrecordedEarlierPackChunkInSquare(center.getX(), center.getZ(), radius);
     }
 
     static boolean evaluateScoped(

@@ -176,7 +176,7 @@ public final class BiomeLocator implements Locator<IrisBiome> {
                 new ChunkGenerationSemantics.BlockPosition((origin.getX() << 4) + 8, originWorldY,
                         (origin.getZ() << 4) + 8), maximumRadius);
         while (!engine.isClosing() && !Thread.currentThread().isInterrupted() && System.nanoTime() < searchDeadline) {
-            GenerationSemanticIndex.Match match = source.findRecorded(query,
+            GenerationSemanticIndex.Match match = source.recordedChunks().findNearest(query,
                     record -> !rejected.contains(new Position2(record.chunkX(), record.chunkZ()))).orElse(null);
             if (match == null) {
                 return null;
@@ -325,7 +325,7 @@ public final class BiomeLocator implements Locator<IrisBiome> {
     }
 
     public CompletableFuture<Optional<SavedBiomeRuntime.ReadSession>> prepareRead(Engine engine, Position2 chunk) {
-        return GenerationLocatorPolicy.source(engine).readSavedBiomes(chunk.getX(), chunk.getZ());
+        return GenerationLocatorPolicy.source(engine).savedBiomes().readChunk(chunk.getX(), chunk.getZ());
     }
 
     public SubterrainPosition landing(Engine engine, NativeWorld world, SubterrainPosition target,

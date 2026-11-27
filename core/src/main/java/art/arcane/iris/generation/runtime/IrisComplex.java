@@ -1706,7 +1706,7 @@ public class IrisComplex implements DataProvider {
             return false;
         }
         return !(terrainEngine instanceof IrisEngine irisEngine) || irisEngine.getGenerationSource()
-                .allowsObjectFootprint(transitionGenerationPlan, minimumX, minimumZ, maximumX, maximumZ);
+                .transitions().allowsObjectFootprint(transitionGenerationPlan, minimumX, minimumZ, maximumX, maximumZ);
     }
 
     public Optional<String> historicalPhysicalBiomeKeyAt(int blockX, int blockY, int blockZ) {

@@ -1,21 +1,10 @@
 package art.arcane.iris.generation.runtime;
 
-import art.arcane.iris.generation.subterrain.SubterrainCell;
-import art.arcane.iris.world.history.ChunkGenerationSemantics;
-import art.arcane.iris.world.history.FloatingBiomeOverlay;
 import art.arcane.iris.world.history.GenerationBoundary;
-import art.arcane.iris.world.history.GenerationSemanticIndex;
-import art.arcane.iris.world.history.SavedBiomeRuntime;
-import art.arcane.iris.world.history.SavedTerrainChunk;
-import art.arcane.iris.world.history.TransitionGenerationPlan;
-import art.arcane.volmlib.util.matter.Matter;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 /**
  * Answers which pack generated, or will generate, a chunk. A single-pack world always answers the current pack. A
@@ -42,43 +31,16 @@ public interface GenerationSource {
 
     boolean predatesActivePack(long activationId);
 
-    boolean ownedByEarlierPack(int chunkX, int chunkZ);
-
-    boolean hasUnrecordedEarlierPackChunkInSquare(int centerChunkX, int centerChunkZ, int radius);
-
-    Optional<ChunkGenerationSemantics> recordedSemantics(int chunkX, int chunkZ);
-
-    Optional<GenerationSemanticIndex.Match> findRecorded(
-            GenerationSemanticIndex.Query query,
-            Predicate<ChunkGenerationSemantics> eligibility
-    );
-
-    Optional<BiomeEnvironment> savedBiome(int blockX, int worldY, int blockZ, boolean surface);
-
-    Optional<BiomeEnvironment> savedCaveBase(int blockX, int blockZ);
-
-    Optional<SubterrainCell> savedSubterrainCell(int blockX, int worldY, int blockZ);
-
-    <T> T readSavedSurfaceBiome(int blockX, int blockZ, Function<Optional<BiomeEnvironment>, T> reader)
-            throws InterruptedException;
-
-    CompletableFuture<Optional<SavedBiomeRuntime.ReadSession>> readSavedBiomes(int chunkX, int chunkZ);
-
-    void prepareSavedBiomes(int chunkX, int chunkZ);
-
-    boolean savedBiomesMayHaveBlockDropRules(String material);
-
-    /** Object fragments that earlier packs placed across the transition band into this chunk. */
-    List<Matter> objectContinuations(TransitionGenerationPlan plan, int chunkX, int chunkZ) throws IOException;
-
-    boolean allowsObjectFootprint(TransitionGenerationPlan plan, int minimumX, int minimumZ, int maximumX, int maximumZ);
-
-    void recordNaturalTerrain(SavedTerrainChunk terrain, FloatingBiomeOverlay floatingBiomes);
-
     /** Lets the current pack regenerate these chunks, whichever pack generated them before. */
     void releaseForRegeneration(List<GenerationBoundary.ChunkCoordinate> chunks) throws IOException;
 
     void sync() throws IOException;
+
+    SavedBiomes savedBiomes();
+
+    RecordedChunks recordedChunks();
+
+    PackTransitions transitions();
 
     record RouteOwnership(long activationId, IrisEngine.GenerationRuntimeBinding binding) {
     }

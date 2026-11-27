@@ -8,6 +8,7 @@ import art.arcane.iris.generation.noise.IrisStyledRange;
 import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.datapack.export.ir.CostClass;
 import art.arcane.iris.pack.datapack.export.ir.ExportDiagnostic;
+import art.arcane.iris.pack.datapack.export.ir.ExportLimit;
 import art.arcane.iris.pack.datapack.export.ir.Field;
 import art.arcane.iris.pack.datapack.export.ir.NoiseDef;
 import art.arcane.iris.pack.datapack.export.lower.ExportCapabilities;
@@ -23,6 +24,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
@@ -37,6 +39,8 @@ public final class NoiseStyleCompiler implements StyleCompiler {
 
     private final CellularStyleLowering cellular;
     private final StyleCompiler selectors;
+    private final List<ExportDiagnostic> diagnostics;
+    private final Set<String> reportedSeeds = ConcurrentHashMap.newKeySet();
     private final Map<LeafKey, LeafNoiseFit.FittedLeaf> leaves = new ConcurrentHashMap<>();
     private final Map<LevelKey, WarpFit.LevelFit> levels = new ConcurrentHashMap<>();
     private final PackRuntime runtime = PackRuntime.standalone(null);
@@ -44,17 +48,20 @@ public final class NoiseStyleCompiler implements StyleCompiler {
     public NoiseStyleCompiler(CellularStyleLowering cellular) {
         this.cellular = Objects.requireNonNull(cellular, "cellular");
         this.selectors = this;
+        this.diagnostics = null;
     }
 
-    private NoiseStyleCompiler(Function<StyleCompiler, CellularStyleLowering> cellular, StyleCompiler selectors) {
+    private NoiseStyleCompiler(Function<StyleCompiler, CellularStyleLowering> cellular, StyleCompiler selectors,
+                               List<ExportDiagnostic> diagnostics) {
         this.cellular = Objects.requireNonNull(cellular.apply(this), "cellular");
         this.selectors = selectors == null ? this : selectors;
+        this.diagnostics = diagnostics;
     }
 
     public static NoiseStyleCompiler create(List<ExportDiagnostic> diagnostics) {
         Objects.requireNonNull(diagnostics, "diagnostics");
-        NoiseStyleCompiler selectors = new NoiseStyleCompiler(nested -> new DefaultCellularStyleLowering(diagnostics, nested::compile, CellularMode.QUADRANT_2X2), null);
-        return new NoiseStyleCompiler(nested -> new DefaultCellularStyleLowering(diagnostics, nested::compile, CellularMode.GRID_3X3), selectors);
+        NoiseStyleCompiler selectors = new NoiseStyleCompiler(nested -> new DefaultCellularStyleLowering(diagnostics, nested::compile, CellularMode.QUADRANT_2X2), null, diagnostics);
+        return new NoiseStyleCompiler(nested -> new DefaultCellularStyleLowering(diagnostics, nested::compile, CellularMode.GRID_3X3), selectors, diagnostics);
     }
 
     public static CNG generator(IrisGeneratorStyle style) {
@@ -65,6 +72,14 @@ public final class NoiseStyleCompiler implements StyleCompiler {
     public Field compile(IrisGeneratorStyle style, long seedSalt, NoiseRegistry registry, ExportCapabilities capabilities) {
         Emit emit = new Emit(registry, capabilities, seedSalt);
         return style(Objects.requireNonNull(style, "style"), 1, Domain.IDENTITY, emit, "s");
+    }
+
+    private void reportSeed(IrisGeneratorStyle style) {
+        if (diagnostics == null || style == null || !style.isSeeded() || !reportedSeeds.add(String.valueOf(style.getSeed()))) {
+            return;
+        }
+        diagnostics.add(new ExportDiagnostic(ExportDiagnostic.Severity.WARNING, ExportLimit.NOISE_STYLE, "",
+                "Noise style seed " + style.getSeed() + " is not exported; the style uses its exported salt instead"));
     }
 
     @Override
@@ -182,6 +197,7 @@ public final class NoiseStyleCompiler implements StyleCompiler {
     }
 
     private Field style(IrisGeneratorStyle style, int octaveMultiplier, Domain domain, Emit emit, String path) {
+        reportSeed(style);
         IrisGeneratorStyle prepared = prepared(Objects.requireNonNull(style, "noise style"), domain.zoom());
         String stylePath = path + "/" + styleName(style);
         CNG root = build(prepared, octaveMultiplier, runtime);

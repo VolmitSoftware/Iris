@@ -65,6 +65,7 @@ public final class IrisBiomeLayerSlopeSourceTest {
         when(complex.terrainSurfaceSlope(12, 32, -8)).thenReturn(0D);
         when(complex.terrainSurfaceSlope(12, 96, -8)).thenReturn(5D);
         when(grass.getZoom()).thenReturn(1D);
+        when(grass.blocksPerSample()).thenReturn(1D);
         when(grass.getMinHeight()).thenReturn(1);
         when(grass.getMaxHeight()).thenReturn(1);
         when(grass.getSlopeCondition()).thenReturn(new IrisSlopeClip(0D, 2.6D));
@@ -106,6 +107,7 @@ public final class IrisBiomeLayerSlopeSourceTest {
         when(hostSlope.getDouble(12D, -8D)).thenReturn(0D);
         when(sourceSlope.getDouble(12D, -8D)).thenReturn(5D);
         when(paletteLayer.getZoom()).thenReturn(1D);
+        when(paletteLayer.blocksPerSample()).thenReturn(1D);
         when(paletteLayer.getMinHeight()).thenReturn(1);
         when(paletteLayer.getMaxHeight()).thenReturn(1);
         when(paletteLayer.getSlopeCondition()).thenReturn(new IrisSlopeClip(5D, 5D));

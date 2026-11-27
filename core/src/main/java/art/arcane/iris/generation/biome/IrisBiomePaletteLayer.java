@@ -112,9 +112,17 @@ public class IrisBiomePaletteLayer {
 
     private NativeBlockState fit(KList<NativeBlockState> localBlockData, PaletteLayerRuntime layerRuntime,
                                  RNG parent, int signature, double x, double y, double z) {
-        double localZoom = zoom;
         CNG generator = layerRuntime.layerGenerator(layerGeneratorSeed(parent, signature, localBlockData.size()));
+        if (style.isSeeded()) {
+            return generator.fit(localBlockData, x, z);
+        }
+        double localZoom = zoom;
         return generator.fit(localBlockData, x / localZoom, y / localZoom, z / localZoom);
+    }
+
+    /** How many blocks one step of the layer's block noise spans: its zoom, or 1 for a seeded style, which is read flat. */
+    public double blocksPerSample() {
+        return style.isSeeded() ? 1 : zoom;
     }
 
     public CNG getLayerGenerator(RNG rng, PackRuntime runtime) {

@@ -87,6 +87,7 @@ import java.util.function.Function;
 @Description("Represents an iris object placer. It places objects.")
 @Data
 public class IrisObjectPlacement {
+    private static final String LOOT_TABLE_KEY_KIND = "missing-loot-table";
     @RegistryListResource(IrisObject.class)
     @Required
     @ArrayType(min = 1, type = String.class)
@@ -417,7 +418,7 @@ public class IrisObjectPlacement {
         return (int) Math.round(densityStyle.get(rng, x, z, runtime));
     }
 
-    private TableCache getCache(IrisData manager) {
+    TableCache getCache(IrisData manager) {
         return cache.aquire(() -> {
             TableCache cache = new TableCache();
 
@@ -436,7 +437,8 @@ public class IrisObjectPlacement {
                 continue;
             IrisLootTable table = loader.apply(loot.getName());
             if (table == null) {
-                IrisLogging.warn("Couldn't find loot table " + loot.getName());
+                IrisLogging.warnOnce(IrisData.onceKey(manager, LOOT_TABLE_KEY_KIND, loot.getName()),
+                        "Couldn't find loot table " + loot.getName());
                 continue;
             }
             if (table.isCompatExcluded()) {

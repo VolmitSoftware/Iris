@@ -4,6 +4,7 @@ import art.arcane.iris.world.history.GenerationEpoch;
 import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.GenerationHistoryPaths;
 import art.arcane.iris.world.history.GenerationPackFingerprint;
+import art.arcane.iris.world.history.PackTreeState;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -30,45 +32,80 @@ public final class StudioGenerationUpdateTest {
     public final TemporaryFolder temporary = new TemporaryFolder();
 
     @Test
-    public void unchangedSourceNeedsNoSnapshotOrManifestUpdate() throws Exception {
+    public void unchangedSourceNeedsNoManifestUpdateAndLeavesNoSnapshot() throws Exception {
         Path source = temporary.newFolder("unchanged-pack").toPath();
         Files.createDirectories(source.resolve("dimensions"));
         Files.writeString(source.resolve("dimensions/test.json"), "{}");
-        String fingerprint = GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION);
+
+        assertUnchangedSourceStagesNothing(source, source);
+    }
+
+    @Test
+    public void unchangedAuthoringRootAliasNeedsNoManifestUpdate() throws Exception {
+        Path source = temporary.newFolder("unchanged-alias-target").toPath();
+        Files.createDirectories(source.resolve("dimensions"));
+        Files.writeString(source.resolve("dimensions/test.json"), "{}");
+        Path alias = temporary.getRoot().toPath().resolve("unchanged-alias");
+        Files.createSymbolicLink(alias, source);
+
+        assertUnchangedSourceStagesNothing(alias, source);
+        assertThrows(IOException.class, () -> GenerationPackFingerprint.compute(alias, GenerationPackFingerprint.CURRENT_VERSION));
+    }
+
+    @Test
+    public void sourceMatchingTheActivatedRecordNeedsNoSnapshot() throws Exception {
+        Path source = temporary.newFolder("recorded-pack").toPath();
+        Files.createDirectories(source.resolve("dimensions"));
+        Files.writeString(source.resolve("dimensions/test.json"), "{}");
         IrisEngine engine = mock(IrisEngine.class);
         GenerationHistory history = mock(GenerationHistory.class);
         GenerationEpoch active = mock(GenerationEpoch.class);
         when(engine.getStudioGenerationSource()).thenReturn(source);
         when(history.activeEpoch()).thenReturn(active);
-        when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
-        when(active.packFingerprint()).thenReturn(fingerprint);
+        when(active.epochId()).thenReturn("a".repeat(64));
+        ActivatedStudioSource recorded = new ActivatedStudioSource("a".repeat(64), PackTreeState.capture(source));
 
-        assertNull(StudioGenerationUpdate.prepare(engine, history));
+        assertNull(StudioGenerationUpdate.prepare(engine, history, recorded, StudioPackValidation.BEFORE_ACTIVATION));
 
         verify(history).activeEpoch();
         verifyNoMoreInteractions(history);
     }
 
     @Test
-    public void unchangedAuthoringRootAliasNeedsNoSnapshot() throws Exception {
-        Path source = temporary.newFolder("unchanged-alias-target").toPath();
+    public void recordOfAnotherEpochIsIgnored() throws Exception {
+        Path source = temporary.newFolder("stale-record-pack").toPath();
         Files.createDirectories(source.resolve("dimensions"));
         Files.writeString(source.resolve("dimensions/test.json"), "{}");
-        Path alias = temporary.getRoot().toPath().resolve("unchanged-alias");
-        Files.createSymbolicLink(alias, source);
+        GenerationEpoch active = mock(GenerationEpoch.class);
+        when(active.epochId()).thenReturn("a".repeat(64));
+        ActivatedStudioSource stale = new ActivatedStudioSource("b".repeat(64), PackTreeState.capture(source));
+
+        assertTrue(stale.sourceStateOf(active).isEmpty());
+    }
+
+    private void assertUnchangedSourceStagesNothing(Path authoringRoot, Path source) throws Exception {
         String fingerprint = GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION);
+        GenerationHistoryPaths paths = GenerationHistoryPaths.forDimension(temporary.newFolder().toPath());
+        Files.createDirectories(paths.generationRoot());
+        Files.writeString(paths.manifest(), "unchanged manifest");
         IrisEngine engine = mock(IrisEngine.class);
         GenerationHistory history = mock(GenerationHistory.class);
         GenerationEpoch active = mock(GenerationEpoch.class);
-        when(engine.getStudioGenerationSource()).thenReturn(alias);
+        when(engine.getStudioGenerationSource()).thenReturn(authoringRoot);
         when(history.activeEpoch()).thenReturn(active);
+        when(history.paths()).thenReturn(paths);
         when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
         when(active.packFingerprint()).thenReturn(fingerprint);
 
-        assertNull(StudioGenerationUpdate.prepare(engine, history));
+        assertNull(StudioGenerationUpdate.prepare(engine, history, null, StudioPackValidation.BEFORE_ACTIVATION));
 
-        assertThrows(IOException.class, () -> GenerationPackFingerprint.compute(alias, GenerationPackFingerprint.CURRENT_VERSION));
+        assertEquals("unchanged manifest", Files.readString(paths.manifest()));
+        try (Stream<Path> entries = Files.list(paths.generationRoot())) {
+            assertEquals(1L, entries.count());
+        }
         verify(history).activeEpoch();
+        verify(history).paths();
+        verify(history).activePackLinkBasis();
         verifyNoMoreInteractions(history);
     }
 
@@ -91,7 +128,7 @@ public final class StudioGenerationUpdateTest {
         when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
         when(active.packFingerprint()).thenReturn("0".repeat(64));
 
-        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history));
+        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null, StudioPackValidation.BEFORE_ACTIVATION));
 
         assertTrue(failure.getMessage(), failure.getMessage().contains(
                 "Studio pack update is invalid: Dimension 'test' declares no regions."));
@@ -101,6 +138,7 @@ public final class StudioGenerationUpdateTest {
         }
         verify(history, times(2)).activeEpoch();
         verify(history).paths();
+        verify(history).activePackLinkBasis();
         verifyNoMoreInteractions(history);
     }
 
@@ -117,11 +155,34 @@ public final class StudioGenerationUpdateTest {
             when(engine.getStudioGenerationSource()).thenReturn(alias);
             GenerationHistory history = mock(GenerationHistory.class);
 
-            IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history));
+            IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null, StudioPackValidation.BEFORE_ACTIVATION));
 
-            assertTrue(failure.getMessage(), failure.getMessage().contains("rejected symbolic link"));
+            assertTrue(failure.getMessage(), failure.getMessage().contains("Pack contains a symbolic link"));
             verifyNoInteractions(history);
         }
+    }
+
+    @Test
+    public void validationAfterActivationDoesNotRejectAnInvalidPackInPrepare() throws Exception {
+        Path source = temporary.newFolder("unvalidated-pack").toPath();
+        Files.createDirectories(source.resolve("dimensions"));
+        Files.writeString(source.resolve("dimensions/test.json"), "{}");
+        GenerationHistoryPaths paths = GenerationHistoryPaths.forDimension(temporary.newFolder("unvalidated-world").toPath());
+        Files.createDirectories(paths.generationRoot());
+        IrisEngine engine = mock(IrisEngine.class);
+        GenerationHistory history = mock(GenerationHistory.class);
+        GenerationEpoch active = mock(GenerationEpoch.class);
+        when(engine.getStudioGenerationSource()).thenReturn(source);
+        when(history.activeEpoch()).thenReturn(active);
+        when(history.paths()).thenReturn(paths);
+        when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
+        when(active.packFingerprint()).thenReturn("0".repeat(64));
+
+        Throwable failure = assertThrows(Throwable.class, () -> StudioGenerationUpdate.prepare(
+                engine, history, null, StudioPackValidation.AFTER_ACTIVATION));
+
+        assertFalse(String.valueOf(failure.getMessage()),
+                String.valueOf(failure.getMessage()).contains("Studio pack update is invalid"));
     }
 
     @Test
@@ -141,15 +202,16 @@ public final class StudioGenerationUpdateTest {
         when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
         when(active.packFingerprint()).thenReturn("0".repeat(64));
 
-        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history));
+        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null, StudioPackValidation.BEFORE_ACTIVATION));
 
-        assertTrue(failure.getMessage().contains("Missing dimensions/ folder"));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("Missing dimensions/ folder"));
         assertEquals("unchanged manifest", Files.readString(paths.manifest()));
         try (Stream<Path> entries = Files.list(paths.generationRoot())) {
             assertEquals(1L, entries.count());
         }
         verify(history, times(2)).activeEpoch();
         verify(history).paths();
+        verify(history).activePackLinkBasis();
         verifyNoMoreInteractions(history);
     }
 
@@ -174,7 +236,7 @@ public final class StudioGenerationUpdateTest {
         when(active.packFingerprintVersion()).thenReturn(GenerationPackFingerprint.CURRENT_VERSION);
         when(active.packFingerprint()).thenReturn("0".repeat(64));
 
-        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history));
+        IOException failure = assertThrows(IOException.class, () -> StudioGenerationUpdate.prepare(engine, history, null, StudioPackValidation.BEFORE_ACTIVATION));
 
         assertTrue(failure.getMessage(), failure.getMessage().contains(
                 "Dimension 'test' structures[0].anchor must be omitted, null, or LEGACY for nativeStructures."));
@@ -184,6 +246,7 @@ public final class StudioGenerationUpdateTest {
         }
         verify(history, times(2)).activeEpoch();
         verify(history).paths();
+        verify(history).activePackLinkBasis();
         verifyNoMoreInteractions(history);
     }
 }

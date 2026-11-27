@@ -46,6 +46,11 @@ import art.arcane.iris.generation.runtime.IrisWorldManager;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.chunk.TerrainChunk;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.StudioRestartRequirement;
+import art.arcane.iris.world.history.RegistryRestartRequiredException;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.iris.generation.runtime.EngineTarget;
 import art.arcane.iris.generation.runtime.GenerationSessionException;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
@@ -81,7 +86,6 @@ import art.arcane.iris.generation.chunk.SectionBuffer;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.volmlib.util.io.ReactiveFolder;
-import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.iris.world.task.J;
 import art.arcane.iris.world.runtime.WorldRuntimeControlService;
 import art.arcane.volmlib.util.scheduling.Looper;
@@ -128,7 +132,7 @@ import java.util.function.BooleanSupplier;
 @Data
 public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChunkGenerator, Listener {
     private static final int LOAD_LOCKS = Runtime.getRuntime().availableProcessors() * 4;
-    private static final long HOTLOAD_LOOP_DELAY_MS = 250L;
+    private static final long HOTLOAD_LOOP_DELAY_MS = 100L;
     private static final long HOTLOAD_MAINTENANCE_DELAY_MS = 4000L;
     private static final int PLAYER_ENTRY_MOVE_PADDING = 3;
     private static final int SPAWN_HYDROLOGY_REACH = 256;
@@ -140,7 +144,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final ReactiveFolder folder;
     private final ReentrantLock lock = new ReentrantLock();
     private final KList<BlockPopulator> populators;
-    private final ChronoLatch hotloadChecker;
     private final AtomicBoolean setup;
     private final boolean studio;
     private final AtomicBoolean studioEntryBootstrapActive;
@@ -183,7 +186,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         populators = new KList<>();
         loadLock = new GenerationStageGate(LOAD_LOCKS, () -> closing);
         this.world = world;
-        this.hotloadChecker = new ChronoLatch(1000, false);
         this.studio = studio;
         this.studioEntryBootstrapActive = new AtomicBoolean(studio);
         this.dataLocation = dataLocation;
@@ -838,10 +840,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                         return HOTLOAD_MAINTENANCE_DELAY_MS;
                     }
 
-                    if (hotloadChecker.flip()) {
-                        folder.check();
-                    }
-
+                    folder.check();
                     return HOTLOAD_LOOP_DELAY_MS;
                 }
 
@@ -1095,7 +1094,16 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         Engine activeEngine = getEngine();
         long started = M.ms();
         activeEngine.hotload();
-        IrisLogging.info("Hotloaded " + packKeyOf(activeEngine) + " in " + (M.ms() - started) + "ms");
+        IrisLogging.info("Hotloaded " + packKeyOf(activeEngine) + " in " + (M.ms() - started) + "ms"
+                + restartSuffix(activeEngine.getStudioRestartRequirement()));
+    }
+
+    private static String restartSuffix(StudioRestartRequirement requirement) {
+        if (!requirement.isPending()) {
+            return "";
+        }
+        return " · " + IrisLanguage.plain(RuntimeUiMessages.STUDIO_RESTART_NEEDED,
+                MessageArgument.untrusted("biomes", requirement.biomeSummary()));
     }
 
     private static String packKeyOf(Engine activeEngine) {
@@ -1147,6 +1155,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             Thread.currentThread().interrupt();
             throw new CancellationException("Studio hotload watcher interrupted.");
         } catch (ExecutionException failure) {
+            if (RegistryRestartRequiredException.inCauseChain(failure)) {
+                return;
+            }
             throw new CompletionException(failure.getCause());
         } finally {
             watcherHotload.compareAndSet(pending, null);

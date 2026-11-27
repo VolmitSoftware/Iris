@@ -22,8 +22,6 @@ import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -68,7 +66,7 @@ final class PackGeneratorDuplicateValidator {
             String key = PackValidationIo.deriveKey(generatorsFolder, generatorFile);
             String fingerprint;
             try {
-                fingerprint = fingerprint(new JSONObject(Files.readString(generatorFile.toPath(), StandardCharsets.UTF_8)));
+                fingerprint = fingerprint(PackValidationIo.parseJson(generatorFile));
             } catch (Throwable e) {
                 continue;
             }
@@ -98,7 +96,7 @@ final class PackGeneratorDuplicateValidator {
         for (File biomeFile : PackValidationIo.listJsonRecursive(biomesFolder)) {
             JSONObject biome;
             try {
-                biome = new JSONObject(Files.readString(biomeFile.toPath(), StandardCharsets.UTF_8));
+                biome = PackValidationIo.parseJson(biomeFile);
             } catch (Throwable e) {
                 continue;
             }
@@ -133,7 +131,7 @@ final class PackGeneratorDuplicateValidator {
             return null;
         }
         try {
-            return new JSONObject(Files.readString(snippet.toPath(), StandardCharsets.UTF_8));
+            return PackValidationIo.parseJson(snippet);
         } catch (Throwable e) {
             return null;
         }

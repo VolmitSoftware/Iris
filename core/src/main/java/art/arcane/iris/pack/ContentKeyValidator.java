@@ -30,7 +30,6 @@ import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -540,7 +539,7 @@ public final class ContentKeyValidator {
                 boolean inEntities = relative.startsWith("entities/");
                 JSONObject json;
                 try {
-                    json = new JSONObject(Files.readString(path, StandardCharsets.UTF_8));
+                    json = PackValidationIo.parseJson(path.toFile());
                 } catch (Throwable ignored) {
                     continue;
                 }

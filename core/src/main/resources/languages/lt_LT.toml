@@ -55,6 +55,7 @@
 #   {befb}  Suformatuota variklio laiko žymos dalis prieš laužtinius skliaustus.
 #   {before}  Reikšmė prieš pakeitimą arba nepasiekiami medžio blokai prieš taisymą.
 #   {biome}  Rodomo biomo pavadinimas arba identifikatorius.
+#   {biomes}  Biomai, kurių pakeitimai įsigalioja tik paleidus serverį iš naujo.
 #   {block}  Tikrinamo bloko tipas arba aprašymas.
 #   {blockX}  Bloko arba teleportacijos vietos X koordinatė.
 #   {blockY}  Bloko arba teleportacijos vietos Y koordinatė.
@@ -1587,6 +1588,9 @@ failed_fragment = "  nepavyko {failed}"
 "commandpack.update_world_unchanged" = "§aPasaulis '{world}' jau naudoja {pack} v{version} su tais pačiais generavimo nustatymais. Paleisti iš naujo nereikia."
 
 [iris.runtime.studio]
+restart_needed = "reikia paleisti iš naujo: {biomes}"
+hotloaded_restart_needed = "§eStudio įkelta iš naujo · reikia paleisti iš naujo: {biomes}"
+hotload_blocked_restart_needed = "§cStudio įkėlimas iš naujo užblokuotas · reikia paleisti iš naujo: {biomes}"
 opening = "§6Studio §bATIDAROMA"
 opening_progress = "§6Studio §bATIDAROMA§7 {percent}%"
 failed_progress = "§6Studio §cNEPAVYKO§7 {percent}%"

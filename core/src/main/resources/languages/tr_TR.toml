@@ -55,6 +55,7 @@
 #   {befb}  Motor zamanlama etiketinin köşeli parantezli bölümünden önceki biçimlendirilmiş kısmı.
 #   {before}  Değişiklikten önceki değer veya onarım öncesi erişilemeyen ağaç blokları.
 #   {biome}  Gösterilen biyomun adı veya kimliği.
+#   {biomes}  Değişiklikleri yalnızca sunucu yeniden başlatıldıktan sonra geçerli olan biyomlar.
 #   {block}  İncelenen bloğun türü veya açıklaması.
 #   {blockX}  Bloğun veya ışınlanma hedefinin X koordinatı.
 #   {blockY}  Bloğun veya ışınlanma hedefinin Y koordinatı.
@@ -1587,6 +1588,9 @@ failed_fragment = "  başarısız {failed}"
 "commandpack.update_world_unchanged" = "§a'{world}' dünyası aynı üretim ayarlarıyla zaten {pack} v{version} kullanıyor. Yeniden başlatma gerekmiyor."
 
 [iris.runtime.studio]
+restart_needed = "yeniden başlatma gerekli: {biomes}"
+hotloaded_restart_needed = "§eStudio yeniden yüklendi · yeniden başlatma gerekli: {biomes}"
+hotload_blocked_restart_needed = "§cStudio yeniden yüklemesi engellendi · yeniden başlatma gerekli: {biomes}"
 opening = "§6Studio §bAÇILIYOR"
 opening_progress = "§6Studio §bAÇILIYOR§7 {percent}%"
 failed_progress = "§6Studio §cBAŞARISIZ§7 {percent}%"

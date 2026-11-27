@@ -55,6 +55,7 @@
 #   {befb}  Moottorin ajoitusotsikon muotoiltu osa ennen hakasulkuosaa.
 #   {before}  Arvo ennen muutosta tai saavuttamattomat puulohkot ennen korjausta.
 #   {biome}  Näytettävän biomin nimi tai tunniste.
+#   {biomes}  Biomit, joiden muutokset tulevat voimaan vasta palvelimen uudelleenkäynnistyksen jälkeen.
 #   {block}  Tarkasteltavan lohkon tyyppi tai kuvaus.
 #   {blockX}  Lohkon tai teleporttikohteen X-koordinaatti.
 #   {blockY}  Lohkon tai teleporttikohteen Y-koordinaatti.
@@ -1587,6 +1588,9 @@ failed_fragment = "  epäonnistui {failed}"
 "commandpack.update_world_unchanged" = "§aMaailma '{world}' käyttää jo pakettia {pack} v{version} samoilla generointiasetuksilla. Uudelleenkäynnistystä ei tarvita."
 
 [iris.runtime.studio]
+restart_needed = "uudelleenkäynnistys tarvitaan: {biomes}"
+hotloaded_restart_needed = "§eStudio ladattu uudelleen · uudelleenkäynnistys tarvitaan: {biomes}"
+hotload_blocked_restart_needed = "§cStudion uudelleenlataus estetty · uudelleenkäynnistys tarvitaan: {biomes}"
 opening = "§6Studio §bAVATAAN"
 opening_progress = "§6Studio §bAVATAAN§7 {percent}%"
 failed_progress = "§6Studio §cEPÄONNISTUI§7 {percent}%"

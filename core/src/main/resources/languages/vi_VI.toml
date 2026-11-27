@@ -53,6 +53,7 @@
 #   {befb}  Phần văn bản đã định dạng trước đoạn trong ngoặc của nhãn thời gian xử lý.
 #   {before}  Giá trị trước thay đổi hoặc số khối cây chưa nối được trước sửa chữa.
 #   {biome}  Tên hoặc mã định danh quần xã đang hiển thị.
+#   {biomes}  Các quần xã có thay đổi chỉ áp dụng sau khi khởi động lại máy chủ.
 #   {block}  Loại hoặc mô tả khối đang kiểm tra.
 #   {blockX}  Tọa độ X của khối hoặc điểm dịch chuyển.
 #   {blockY}  Tọa độ Y của khối hoặc điểm dịch chuyển.
@@ -1585,6 +1586,9 @@ failed_fragment = "  lỗi {failed}"
 "commandpack.update_world_unchanged" = "§aThế giới '{world}' đã dùng {pack} v{version} với cùng thiết lập tạo địa hình. Không cần khởi động lại."
 
 [iris.runtime.studio]
+restart_needed = "cần khởi động lại: {biomes}"
+hotloaded_restart_needed = "§eStudio đã tải lại · cần khởi động lại: {biomes}"
+hotload_blocked_restart_needed = "§cTải lại Studio bị chặn · cần khởi động lại: {biomes}"
 opening = "§6Studio §bĐANG MỞ"
 opening_progress = "§6Studio §bĐANG MỞ§7 {percent}%"
 failed_progress = "§6Studio §cTHẤT BẠI§7 {percent}%"

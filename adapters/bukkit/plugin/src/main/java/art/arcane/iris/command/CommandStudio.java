@@ -54,6 +54,7 @@ import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.platform.generation.EngineBukkitOps;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
+import art.arcane.iris.world.history.RegistryRestartRequiredException;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
@@ -229,7 +230,7 @@ public class CommandStudio implements DirectorExecutor {
         UUID audience = LanguageAudience.current();
         commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_HOTLOADING));
         generator.hotloadAsync().whenComplete((ignored, failure) ->
-                LanguageAudience.run(audience, () -> sendHotloadResult(commandSender, failure)));
+                LanguageAudience.run(audience, () -> sendHotloadResult(commandSender, generator, failure)));
     }
 
     @Director(name = "regen", aliases = {"rg"}, description = "Delete and regenerate nearby chunks in place using Iris generation", descriptionKey = "iris.director.commanddeveloper.director.delete_regenerate_nearby_chunks_place_using_iris_generation", origin = DirectorOrigin.PLAYER)
@@ -785,7 +786,12 @@ public class CommandStudio implements DirectorExecutor {
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_DONE, MessageArgument.untrusted("value", report.getPath())));
     }
 
-    private void sendHotloadResult(VolmitSender commandSender, Throwable failure) {
+    private void sendHotloadResult(VolmitSender commandSender, PlatformChunkGenerator generator, Throwable failure) {
+        if (RegistryRestartRequiredException.inCauseChain(failure)) {
+            commandSender.sendMessage(IrisLanguage.text(RuntimeUiMessages.STUDIO_HOTLOAD_BLOCKED_RESTART_NEEDED,
+                    MessageArgument.untrusted("biomes", generator.getEngine().getStudioRestartRequirement().biomeSummary())));
+            return;
+        }
         if (failure != null) {
             Iris.reportError(failure);
             commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_HOTLOAD_FAILED,

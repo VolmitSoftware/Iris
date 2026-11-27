@@ -63,8 +63,14 @@ public final class GenerationBoundaryStore {
 
     private final Path dimensionRoot;
     private final Path directory;
+    private final EpochPolicy policy;
 
     public GenerationBoundaryStore(Path dimensionRoot) {
+        this(dimensionRoot, EpochPolicy.DURABLE);
+    }
+
+    public GenerationBoundaryStore(Path dimensionRoot, EpochPolicy policy) {
+        this.policy = Objects.requireNonNull(policy, "policy");
         Path root = Objects.requireNonNull(dimensionRoot, "Dimension root").toAbsolutePath().normalize();
         this.dimensionRoot = root;
         this.directory = root.resolve("iris").resolve("generation").resolve("boundaries").normalize();
@@ -223,7 +229,7 @@ public final class GenerationBoundaryStore {
                 ".activation-" + activationId + SNAPSHOT_FILE_SUFFIX + ".lock"
         )) {
             ensureDirectory();
-            PublishedCatalog catalog = builder.publish(directory, activationId);
+            PublishedCatalog catalog = builder.publish(directory, activationId, policy);
             Path target = snapshotPath(activationId);
             if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
                 GenerationBoundary existing = load(activationId);
@@ -235,7 +241,7 @@ public final class GenerationBoundaryStore {
                 }
                 return existing;
             }
-            publishAtomic(target, catalog.encoded(), "generation boundary catalog");
+            publishAtomic(target, catalog.encoded(), "generation boundary catalog", policy);
             return load(activationId);
         }
     }
@@ -263,7 +269,7 @@ public final class GenerationBoundaryStore {
         requireSafeDirectory(directory);
     }
 
-    private static Path ensureChildDirectory(Path parent, String name) throws IOException {
+    private Path ensureChildDirectory(Path parent, String name) throws IOException {
         Path child = parent.resolve(name);
         if (Files.exists(child, LinkOption.NOFOLLOW_LINKS)) {
             requireSafeDirectory(child);
@@ -275,7 +281,7 @@ public final class GenerationBoundaryStore {
             requireSafeDirectory(child);
             return child;
         }
-        forceDirectory(parent);
+        forceDirectory(parent, policy);
         return child;
     }
 
@@ -356,7 +362,8 @@ public final class GenerationBoundaryStore {
         return withChecksum(bodyBytes.toByteArray());
     }
 
-    private static void publishAtomic(Path target, byte[] encoded, String kind) throws IOException {
+    private static void publishAtomic(Path target, byte[] encoded, String kind, EpochPolicy policy)
+            throws IOException {
         Path directory = target.getParent();
         Path temporary = Files.createTempFile(directory, ".boundary-", ".tmp");
         try {
@@ -366,14 +373,16 @@ public final class GenerationBoundaryStore {
                     StandardOpenOption.TRUNCATE_EXISTING
             )) {
                 writeFully(channel, ByteBuffer.wrap(encoded));
-                channel.force(true);
+                if (policy.syncs()) {
+                    channel.force(true);
+                }
             }
             try {
                 Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException error) {
                 throw new IOException("Generation boundary " + kind + " publication requires an atomic move", error);
             }
-            forceDirectory(directory);
+            forceDirectory(directory, policy);
         } finally {
             Files.deleteIfExists(temporary);
         }
@@ -482,8 +491,8 @@ public final class GenerationBoundaryStore {
         }
     }
 
-    private static void forceDirectory(Path path) throws IOException {
-        if (File.separatorChar == '\\') {
+    private static void forceDirectory(Path path, EpochPolicy policy) throws IOException {
+        if (!policy.syncs() || File.separatorChar == '\\') {
             return;
         }
         try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ)) {
@@ -520,7 +529,7 @@ public final class GenerationBoundaryStore {
             }
         }
 
-        private PublishedCatalog publish(Path directory, long activationId) throws IOException {
+        private PublishedCatalog publish(Path directory, long activationId, EpochPolicy policy) throws IOException {
             if (masks.size() > MAX_REGION_COUNT) {
                 throw new IOException("Generation boundary exceeds the maximum region count");
             }
@@ -528,7 +537,7 @@ public final class GenerationBoundaryStore {
             sortRegionKeys(regionKeys);
             Long2ObjectOpenHashMap<String> shardHashes = new Long2ObjectOpenHashMap<>(regionKeys.length);
             for (long regionKey : regionKeys) {
-                String hash = MaskShard.publish(directory, masks.get(regionKey));
+                String hash = MaskShard.publish(directory, masks.get(regionKey), policy);
                 shardHashes.put(regionKey, hash);
             }
             byte[] identity = computeIdentity(activationId, chunkCount, regionKeys, shardHashes);
@@ -545,7 +554,7 @@ public final class GenerationBoundaryStore {
     }
 
     private static final class MaskShard {
-        private static String publish(Path directory, byte[] mask) throws IOException {
+        private static String publish(Path directory, byte[] mask, EpochPolicy policy) throws IOException {
             byte[] encoded = encode(mask);
             String hash = sha256(encoded);
             Path target = directory.resolve(maskFileName(hash));
@@ -555,7 +564,7 @@ public final class GenerationBoundaryStore {
                 return hash;
             }
             try {
-                publishAtomic(target, encoded, "mask shard");
+                publishAtomic(target, encoded, "mask shard", policy);
             } catch (FileAlreadyExistsException race) {
                 requireRegularFile(target, "Generation boundary mask");
                 read(target, hash);

@@ -53,6 +53,7 @@
 #   {befb}  エンジン処理時間ラベルの括弧部分より前にある書式付きテキスト。
 #   {before}  変更前の値、または修復前に接続されていなかった木のブロック数。
 #   {biome}  表示中のバイオームの名前または識別子。
+#   {biomes}  サーバーの再起動後にのみ変更が反映されるバイオーム。
 #   {block}  調べているブロックの種類または説明。
 #   {blockX}  ブロックまたはテレポート先の X 座標。
 #   {blockY}  ブロックまたはテレポート先の Y 座標。
@@ -1585,6 +1586,9 @@ failed_fragment = "  失敗 {failed}"
 "commandpack.update_world_unchanged" = "§aワールド '{world}' は同じ生成設定の {pack} v{version} を使用しています。再起動は不要です。"
 
 [iris.runtime.studio]
+restart_needed = "再起動が必要: {biomes}"
+hotloaded_restart_needed = "§eStudio を再読み込みしました · 再起動が必要: {biomes}"
+hotload_blocked_restart_needed = "§cStudio の再読み込みをブロックしました · 再起動が必要: {biomes}"
 opening = "§6Studio §bオープン中"
 opening_progress = "§6Studio §bオープン中§7 {percent}%"
 failed_progress = "§6Studio §c失敗§7 {percent}%"

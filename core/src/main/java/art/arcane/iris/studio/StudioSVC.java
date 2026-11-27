@@ -52,6 +52,7 @@ import art.arcane.iris.world.runtime.WorldDeletionQueue;
 import art.arcane.iris.studio.jigsaw.JigsawStudioActivation;
 import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.volmlib.util.cache.AtomicCache;
+import art.arcane.iris.world.history.EpochPolicy;
 import art.arcane.iris.world.history.GenerationActivation;
 import art.arcane.iris.world.history.GenerationEpoch;
 import art.arcane.iris.world.history.GenerationEpochContractFactory;
@@ -218,7 +219,17 @@ public class StudioSVC implements IrisService {
             File dimensionRoot,
             long worldSeed
     ) {
-        return publishGenerationHistory(sender, dimension, dimensionRoot, worldSeed, false);
+        return installIntoWorld(sender, dimension, dimensionRoot, worldSeed, EpochPolicy.configured());
+    }
+
+    public GenerationPublication installIntoWorld(
+            VolmitSender sender,
+            IrisDimension dimension,
+            File dimensionRoot,
+            long worldSeed,
+            EpochPolicy epochPolicy
+    ) {
+        return publishGenerationHistory(sender, dimension, dimensionRoot, worldSeed, false, epochPolicy);
     }
 
     public IrisDimension replaceIntoWorld(
@@ -227,7 +238,8 @@ public class StudioSVC implements IrisService {
             File dimensionRoot,
             long worldSeed
     ) {
-        GenerationPublication publication = publishGenerationHistory(sender, dimension, dimensionRoot, worldSeed, true);
+        GenerationPublication publication = publishGenerationHistory(
+                sender, dimension, dimensionRoot, worldSeed, true, EpochPolicy.configured());
         return publication == null ? null : publication.dimension();
     }
 
@@ -248,7 +260,8 @@ public class StudioSVC implements IrisService {
             IrisDimension dimension,
             File dimensionRoot,
             long worldSeed,
-            boolean stageUpdate
+            boolean stageUpdate,
+            EpochPolicy epochPolicy
     ) {
         if (J.isPrimaryThread()) {
             sender.sendMessage(IrisLanguage.text(
@@ -290,7 +303,8 @@ public class StudioSVC implements IrisService {
                         candidate.packFingerprint(),
                         worldSeed,
                         candidate.dimensionContract(),
-                        candidate.registryContract()
+                        candidate.registryContract(),
+                        epochPolicy
                 );
             }
             Path installedPack = stageUpdate && history.pendingActivation().isPresent()

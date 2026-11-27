@@ -5,6 +5,7 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.placement.StructureReachability;
 import art.arcane.iris.world.IrisWorld;
+import art.arcane.iris.world.history.GenerationActivation;
 import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.world.history.IrisBoundarySignatureSampler;
@@ -66,7 +67,7 @@ public class EngineHotloaderRetirementTest {
                 }
             });
             planning.get(5L, TimeUnit.SECONDS);
-            return null;
+            return mock(GenerationActivation.class);
         }).when(cutover).promotePending();
         StudioGenerationUpdate update = mock(StudioGenerationUpdate.class);
         IrisSettings settings = mock(IrisSettings.class, RETURNS_DEEP_STUBS);
@@ -76,7 +77,7 @@ public class EngineHotloaderRetirementTest {
              MockedStatic<IrisStructureLocator> structures = mockStatic(IrisStructureLocator.class);
              MockedStatic<StructureReachability> reachability = mockStatic(StructureReachability.class);
              MockedStatic<IrisSettings> configuration = mockStatic(IrisSettings.class)) {
-            updates.when(() -> StudioGenerationUpdate.prepare(engine, history)).thenReturn(update);
+            updates.when(() -> StudioGenerationUpdate.prepare(engine, history, null, StudioPackValidation.AFTER_ACTIVATION)).thenReturn(update);
             configuration.when(IrisSettings::get).thenReturn(settings);
 
             new EngineHotloader(engine).hotloadSilently();

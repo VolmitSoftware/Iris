@@ -53,6 +53,7 @@
 #   {befb}  引擎耗时标签中括号部分之前的已格式化文本。
 #   {before}  更改前的值，或修复前无法连通的树木方块数。
 #   {biome}  正在显示的生物群系名称或标识符。
+#   {biomes}  其更改仅在服务器重启后生效的生物群系。
 #   {block}  正在检查的方块类型或描述。
 #   {blockX}  方块或传送目的地的 X 坐标。
 #   {blockY}  方块或传送目的地的 Y 坐标。
@@ -1585,6 +1586,9 @@ failed_fragment = "  失败 {failed}"
 "commandpack.update_world_unchanged" = "§a世界 '{world}' 已使用 {pack} v{version}，且生成设置相同。无需重启。"
 
 [iris.runtime.studio]
+restart_needed = "需要重启: {biomes}"
+hotloaded_restart_needed = "§eStudio 已热加载 · 需要重启: {biomes}"
+hotload_blocked_restart_needed = "§cStudio 热加载被阻止 · 需要重启: {biomes}"
 opening = "§6Studio §b正在打开"
 opening_progress = "§6Studio §b正在打开§7  {percent}%"
 failed_progress = "§6Studio §c失败§7  {percent}%"

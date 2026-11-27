@@ -74,6 +74,7 @@ final class IrisLanguageGuide {
             Map.entry("befb", "Formatted part of an engine timing label before its bracketed portion."),
             Map.entry("before", "Value before the change, or unreachable tree blocks before repair."),
             Map.entry("biome", "Name or identifier of the biome being shown."),
+            Map.entry("biomes", "Biomes whose edits apply only after a server restart."),
             Map.entry("block", "Block type or block description being inspected."),
             Map.entry("blockX", "X coordinate of the block or teleport destination."),
             Map.entry("blockY", "Y coordinate of the block or teleport destination."),

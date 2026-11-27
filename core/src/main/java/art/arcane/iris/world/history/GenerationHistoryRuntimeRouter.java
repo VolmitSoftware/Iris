@@ -1408,6 +1408,9 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
             Path packRoot = history.packRoot(activation.activationId());
             IrisData data = IrisData.openRuntime(packRoot.toFile());
             try {
+                if (epoch.packFingerprintVersion() == GenerationPackFingerprint.CURRENT_VERSION) {
+                    data.useVerifiedGenerationPackFingerprint(epoch.packFingerprint());
+                }
                 data.bindGenerationRegistryContract(epoch.registryContract());
                 IrisDimension dimension = data.getDimensionLoader().load(epoch.dimensionContract().dimensionKey());
                 if (dimension == null) {

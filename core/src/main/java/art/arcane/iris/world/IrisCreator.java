@@ -22,6 +22,7 @@ import art.arcane.volmlib.nativelib.NativeAdapters;
 import art.arcane.volmlib.nativelib.server.NativeServerDiagnostics;
 import art.arcane.iris.world.runtime.TransientWorldCleanupSupport;
 import art.arcane.iris.world.runtime.WorldRuntimeControlService;
+import art.arcane.iris.world.history.EpochPolicy;
 import art.arcane.iris.world.history.GenerationHistory;
 import com.google.common.util.concurrent.AtomicDouble;
 import art.arcane.iris.spi.IrisLogging;
@@ -273,8 +274,9 @@ public class IrisCreator {
             if (benchmark && !studio) {
                 installedDimension = studioService.installIntoTransientWorld(sender, resolvedDimension, dimensionRoot);
             } else {
+                EpochPolicy epochPolicy = studio ? EpochPolicy.STUDIO : EpochPolicy.configured();
                 StudioSVC.GenerationPublication publication = studioService.installIntoWorld(
-                        sender, resolvedDimension, dimensionRoot, seed);
+                        sender, resolvedDimension, dimensionRoot, seed, epochPolicy);
                 installedDimension = publication == null ? null : publication.dimension();
                 if (publication != null) {
                     publishedHistory = publication.history();

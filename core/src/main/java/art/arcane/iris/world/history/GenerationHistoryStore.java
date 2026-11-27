@@ -48,7 +48,11 @@ public final class GenerationHistoryStore {
     private final Path generationDirectory;
     private final Path manifestPath;
     private final Clock clock;
+    private static final DirectorySync NO_DIRECTORY_SYNC = directory -> {
+    };
+
     private final DirectorySync directorySync;
+    private final EpochPolicy policy;
     private GenerationManifest manifest;
     private IOException failure;
 
@@ -56,20 +60,34 @@ public final class GenerationHistoryStore {
             Path generationDirectory,
             GenerationManifest manifest,
             Clock clock,
-            DirectorySync directorySync
+            DirectorySync directorySync,
+            EpochPolicy policy
     ) {
         this.generationDirectory = generationDirectory;
         this.manifestPath = generationDirectory.resolve(MANIFEST_FILE_NAME);
         this.manifest = Objects.requireNonNull(manifest, "manifest");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.directorySync = Objects.requireNonNull(directorySync, "directorySync");
+        this.policy = Objects.requireNonNull(policy, "policy");
     }
 
     public static GenerationHistoryStore initialize(
             Path generationDirectory,
             GenerationEpoch initialEpoch
     ) throws IOException {
-        return initialize(generationDirectory, initialEpoch, Clock.systemUTC());
+        return initialize(generationDirectory, initialEpoch, EpochPolicy.configured());
+    }
+
+    /**
+     * Histories whose policy does not sync skip every manifest and epoch metadata fsync, so a crash can lose the
+     * latest manifest update.
+     */
+    public static GenerationHistoryStore initialize(
+            Path generationDirectory,
+            GenerationEpoch initialEpoch,
+            EpochPolicy policy
+    ) throws IOException {
+        return initialize(generationDirectory, initialEpoch, Clock.systemUTC(), manifestDirectorySync(policy), policy);
     }
 
     static GenerationHistoryStore initialize(
@@ -86,13 +104,23 @@ public final class GenerationHistoryStore {
             Clock clock,
             DirectorySync directorySync
     ) throws IOException {
+        return initialize(generationDirectory, initialEpoch, clock, directorySync, EpochPolicy.configured());
+    }
+
+    private static GenerationHistoryStore initialize(
+            Path generationDirectory,
+            GenerationEpoch initialEpoch,
+            Clock clock,
+            DirectorySync directorySync,
+            EpochPolicy policy
+    ) throws IOException {
         Path directory = normalizeDirectory(generationDirectory);
         requireSafeParent(directory);
         Path parent = Objects.requireNonNull(directory.getParent(), "Generation history parent");
         String lockName = "." + Objects.requireNonNull(directory.getFileName(), "Generation history directory name")
                 + ".manifest.lock";
         try (GenerationPublicationLock ignored = GenerationPublicationLock.acquire(parent, lockName)) {
-            ensureDirectory(directory);
+            ensureDirectory(directory, policy);
             Path manifestPath = directory.resolve(MANIFEST_FILE_NAME);
             if (Files.exists(manifestPath, LinkOption.NOFOLLOW_LINKS)) {
                 throw new FileAlreadyExistsException(manifestPath.toString());
@@ -103,16 +131,25 @@ public final class GenerationHistoryStore {
                     requiredClock.millis()
             );
             DirectorySync requiredDirectorySync = Objects.requireNonNull(directorySync, "directorySync");
-            writeManifestAtomically(directory, manifestPath, manifest, null, false, requiredDirectorySync);
-            return new GenerationHistoryStore(directory, manifest, requiredClock, requiredDirectorySync);
+            writeManifestAtomically(directory, manifestPath, manifest, null, false, requiredDirectorySync, policy);
+            return new GenerationHistoryStore(directory, manifest, requiredClock, requiredDirectorySync, policy);
         }
     }
 
     public static GenerationHistoryStore open(Path generationDirectory) throws IOException {
-        return open(generationDirectory, Clock.systemUTC());
+        return open(generationDirectory, EpochPolicy.configured());
+    }
+
+    public static GenerationHistoryStore open(Path generationDirectory, EpochPolicy policy) throws IOException {
+        return open(generationDirectory, Clock.systemUTC(), policy);
     }
 
     static GenerationHistoryStore open(Path generationDirectory, Clock clock) throws IOException {
+        return open(generationDirectory, clock, EpochPolicy.configured());
+    }
+
+    private static GenerationHistoryStore open(Path generationDirectory, Clock clock, EpochPolicy policy)
+            throws IOException {
         Path directory = normalizeDirectory(generationDirectory);
         requireDirectory(directory);
         Path manifestPath = directory.resolve(MANIFEST_FILE_NAME);
@@ -122,8 +159,13 @@ public final class GenerationHistoryStore {
                 directory,
                 manifest,
                 clock,
-                GenerationHistoryStore::forceDirectory
+                manifestDirectorySync(policy),
+                policy
         );
+    }
+
+    private static DirectorySync manifestDirectorySync(EpochPolicy policy) {
+        return policy.syncs() ? GenerationHistoryStore::forceDirectory : NO_DIRECTORY_SYNC;
     }
 
     public Path generationDirectory() {
@@ -213,7 +255,7 @@ public final class GenerationHistoryStore {
 
     private void writeUpdatedManifest(GenerationManifest updated) throws IOException {
         try {
-            writeManifestAtomically(generationDirectory, manifestPath, updated, manifest, true, directorySync);
+            writeManifestAtomically(generationDirectory, manifestPath, updated, manifest, true, directorySync, policy);
         } catch (IOException error) {
             reconcileAfterWriteFailure(error);
             throw error;
@@ -261,7 +303,8 @@ public final class GenerationHistoryStore {
             GenerationManifest manifest,
             GenerationManifest previous,
             boolean replaceExisting,
-            DirectorySync directorySync
+            DirectorySync directorySync,
+            EpochPolicy policy
     ) throws IOException {
         requireSafeParent(generationDirectory);
         requireDirectory(generationDirectory);
@@ -271,7 +314,7 @@ public final class GenerationHistoryStore {
         }
         for (GenerationEpoch epoch : manifest.epochs()) {
             if (previous == null || previous.epoch(epoch.epochId()).isEmpty()) {
-                publishEpoch(generationDirectory, epoch);
+                publishEpoch(generationDirectory, epoch, policy);
             }
         }
         Path temporary = Files.createTempFile(generationDirectory, ".manifest-", ".tmp");
@@ -285,7 +328,7 @@ public final class GenerationHistoryStore {
                 while (buffer.hasRemaining()) {
                     channel.write(buffer);
                 }
-                Durability.force(channel);
+                forceFile(channel, policy);
             }
             try {
                 if (replaceExisting) {
@@ -332,11 +375,12 @@ public final class GenerationHistoryStore {
         }
     }
 
-    private static void publishEpoch(Path generationDirectory, GenerationEpoch epoch) throws IOException {
+    private static void publishEpoch(Path generationDirectory, GenerationEpoch epoch, EpochPolicy policy)
+            throws IOException {
         Path epochsDirectory = generationDirectory.resolve("epochs");
-        ensureDirectory(epochsDirectory);
+        ensureDirectory(epochsDirectory, policy);
         Path epochDirectory = epochDirectory(generationDirectory, epoch.epochId());
-        ensureDirectory(epochDirectory);
+        ensureDirectory(epochDirectory, policy);
         Path metadata = epochDirectory.resolve("epoch.json");
         if (Files.exists(metadata, LinkOption.NOFOLLOW_LINKS)) {
             if (!readEpoch(generationDirectory, epoch.epochId()).equals(epoch)) {
@@ -355,14 +399,14 @@ public final class GenerationHistoryStore {
                 while (buffer.hasRemaining()) {
                     channel.write(buffer);
                 }
-                Durability.force(channel);
+                forceFile(channel, policy);
             }
             try {
                 Files.move(temporary, metadata, StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException exception) {
                 throw new IOException("Generation history requires atomic epoch publication.", exception);
             }
-            forceDirectory(epochDirectory);
+            forceDirectory(epochDirectory, policy);
         } finally {
             Files.deleteIfExists(temporary);
         }
@@ -379,22 +423,35 @@ public final class GenerationHistoryStore {
         return Objects.requireNonNull(directory, "generationDirectory").toAbsolutePath().normalize();
     }
 
-    private static void ensureDirectory(Path directory) throws IOException {
+    private static void ensureDirectory(Path directory, EpochPolicy policy) throws IOException {
         requireSafeParent(directory);
+        Path parent = Objects.requireNonNull(directory.getParent(), "Generation history parent");
         if (Files.exists(directory, LinkOption.NOFOLLOW_LINKS)) {
             requireDirectory(directory);
-            forceDirectory(Objects.requireNonNull(directory.getParent(), "Generation history parent"));
+            forceDirectory(parent, policy);
             return;
         }
         try {
             Files.createDirectory(directory);
         } catch (FileAlreadyExistsException race) {
             requireDirectory(directory);
-            forceDirectory(Objects.requireNonNull(directory.getParent(), "Generation history parent"));
+            forceDirectory(parent, policy);
             return;
         }
-        forceDirectory(Objects.requireNonNull(directory.getParent(), "Generation history parent"));
+        forceDirectory(parent, policy);
         requireDirectory(directory);
+    }
+
+    private static void forceFile(FileChannel channel, EpochPolicy policy) throws IOException {
+        if (policy.syncs()) {
+            Durability.force(channel);
+        }
+    }
+
+    private static void forceDirectory(Path directory, EpochPolicy policy) throws IOException {
+        if (policy.syncs()) {
+            forceDirectory(directory);
+        }
     }
 
     private static void requireDirectory(Path directory) throws IOException {

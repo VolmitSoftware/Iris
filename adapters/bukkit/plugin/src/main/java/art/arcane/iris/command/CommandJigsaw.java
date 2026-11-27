@@ -1,5 +1,8 @@
 package art.arcane.iris.command;
 
+import art.arcane.iris.command.specialhandlers.OpenSuggestionHandler;
+import art.arcane.iris.command.specialhandlers.RegisteredStructureKeyHandler;
+import art.arcane.iris.command.specialhandlers.ExportFormatHandler;
 import art.arcane.iris.Iris;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.object.StudioOpenCoordinator;
@@ -52,7 +55,10 @@ import org.bukkit.entity.Player;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -145,7 +151,7 @@ public class CommandJigsaw implements DirectorExecutor {
             aliases = {"import", "import-vanilla"}, sync = true, origin = DirectorOrigin.PLAYER)
     public void convert(
             @Param(description = "Pack dimension") IrisDimension dimension,
-            @Param(description = "Registered structure key such as minecraft:village_plains") String source,
+            @Param(description = "Registered structure key such as minecraft:village_plains", customHandler = RegisteredStructureKeyHandler.class) String source,
             @Param(description = "New Iris structure key, or auto", defaultValue = "auto") String target,
             @Param(description = "Studio world seed", defaultValue = "1337") long seed
     ) {
@@ -366,7 +372,7 @@ public class CommandJigsaw implements DirectorExecutor {
     @Director(description = "Flush the automatic save for a workcell now", sync = true,
             origin = DirectorOrigin.PLAYER)
     public void save(
-            @Param(description = "Workcell ID or selected", defaultValue = "selected") String bay
+            @Param(description = "Workcell ID or selected", defaultValue = "selected", customHandler = JigsawWorkcellOrSelectedHandler.class) String bay
     ) {
         ActiveContext context = requireActive();
         if (context == null) {
@@ -387,7 +393,7 @@ public class CommandJigsaw implements DirectorExecutor {
     @Director(name = "goto", aliases = "teleport", description = "Select and teleport to a Studio workcell",
             sync = true, origin = DirectorOrigin.PLAYER)
     public void gotoBay(
-            @Param(description = "Workcell ID") String bay
+            @Param(description = "Workcell ID", customHandler = JigsawWorkcellHandler.class) String bay
     ) {
         if (requireActive() != null) {
             JigsawStudioService.get().teleportTo(player(), bay);
@@ -410,7 +416,7 @@ public class CommandJigsaw implements DirectorExecutor {
             @Param(description = "Datapack namespace", defaultValue = "iris") String namespace,
             @Param(description = "Output name under the Studio exports folder", defaultValue = "jigsaw-export")
             String output,
-            @Param(description = "directory or zip", defaultValue = "zip") String format,
+            @Param(description = "directory or zip", defaultValue = "zip", customHandler = ExportFormatHandler.class) String format,
             @Param(description = "Replace an existing export", defaultValue = "false") boolean replace
     ) {
         ActiveContext context = requireActive();
@@ -812,6 +818,29 @@ public class CommandJigsaw implements DirectorExecutor {
         @Override
         public boolean supports(Class<?> type) {
             return type == String.class;
+        }
+    }
+
+    public static class JigsawWorkcellHandler extends OpenSuggestionHandler {
+        @Override
+        protected Collection<String> suggestions() {
+            ActiveContext context = active(player());
+            if (context == null) {
+                return List.of();
+            }
+            return context.session().layout().bays().stream().map(JigsawStudioBay::stableId).toList();
+        }
+    }
+
+    public static final class JigsawWorkcellOrSelectedHandler extends JigsawWorkcellHandler {
+        private static final String SELECTED_WORKCELL = "selected";
+
+        @Override
+        protected Collection<String> suggestions() {
+            List<String> options = new ArrayList<>();
+            options.add(SELECTED_WORKCELL);
+            options.addAll(super.suggestions());
+            return options;
         }
     }
 

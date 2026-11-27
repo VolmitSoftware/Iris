@@ -82,6 +82,7 @@ import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 import art.arcane.iris.localization.BukkitRuntimeMessages;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.localization.IrisLanguage;
 public class ServerConfigurator {
     private static final Object DATAPACK_INSTALL_LOCK = new Object();
@@ -133,7 +134,7 @@ public class ServerConfigurator {
                     && pinLoadedDatapackCompilerInputs(
                             DefaultPackBootstrapProvisioner.compilerInputFingerprintThisStartup())
                     && pinLoadedDatapackRegistryRequirements();
-            IrisLogging.info("Paper loaded the Iris datapack during bootstrap; skipping the legacy startup install.");
+            IrisLogging.debug("Paper loaded the Iris datapack during bootstrap; skipping the legacy startup install.");
         } else {
             DatapackInstallResult result = installDataPacks(true);
             loadedDatapackRuntimeReady = result.succeeded()
@@ -815,9 +816,11 @@ public class ServerConfigurator {
 
             for (Player i : Bukkit.getOnlinePlayers()) {
                 if (i.isOp() || i.hasPermission("iris.all")) {
-                    VolmitSender sender = new VolmitSender(i, BukkitPlatform.volmitPlugin().getTag("WARNING"));
-                    sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.SERVER_CONFIGURATOR_THERE_ARE_SOME_IRIS_PACKS_THAT_HAVE_CUSTOM_BIOMES_THEM));
-                    sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.SERVER_CONFIGURATOR_YOU_NEED_RESTART_YOUR_SERVER_USE_THESE_PACKS));
+                    VolmitSender sender = new VolmitSender(i, BukkitPlatform.volmitPlugin().getTag());
+                    sender.sendReport(ChatReport.of(ChatReport.Tone.WARNING,
+                                    IrisLanguage.text(BukkitRuntimeMessages.SERVER_CONFIGURATOR_THERE_ARE_SOME_IRIS_PACKS_THAT_HAVE_CUSTOM_BIOMES_THEM))
+                            .hint(IrisLanguage.text(BukkitRuntimeMessages.SERVER_CONFIGURATOR_YOU_NEED_RESTART_YOUR_SERVER_USE_THESE_PACKS), null)
+                            .build());
                 }
             }
 

@@ -37,6 +37,7 @@ import art.arcane.iris.world.lifecycle.WorldLifecycleCaller;
 import art.arcane.iris.world.lifecycle.WorldLifecycleRequest;
 import art.arcane.iris.world.lifecycle.WorldLifecycleService;
 import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.ProgressBar;
 import art.arcane.iris.localization.RuntimeProgressMessages;
 import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.iris.world.pregen.PregenTask;
@@ -96,6 +97,8 @@ public class IrisCreator {
     private static final long INITIAL_SPAWN_TIMEOUT_SECONDS = 600L;
     private static final long WORLD_ENTRY_TELEPORT_TIMEOUT_SECONDS = 60L;
     private static final long ROLLBACK_PHASE_TIMEOUT_SECONDS = 120L;
+    private static final int PLAYER_PROGRESS_INTERVAL_TICKS = 4;
+    private static final int CONSOLE_PROGRESS_INTERVAL_TICKS = 20;
 
     /**
      * Specify an area to pregenerate during creation
@@ -645,7 +648,9 @@ public class IrisCreator {
                 return;
             }
 
-            int interval = studioProgressConsumer != null || creationReporter != null && sender.isPlayer() ? 1 : 20;
+            int interval = studioProgressConsumer != null || creationReporter != null && sender.isPlayer()
+                    ? PLAYER_PROGRESS_INTERVAL_TICKS
+                    : CONSOLE_PROGRESS_INTERVAL_TICKS;
             taskId.set(J.ar(() -> {
                 if (done.get()) {
                     cancelRepeatingTask(taskId);
@@ -697,7 +702,7 @@ public class IrisCreator {
             WorldCreationProgressReporter creationReporter
     ) {
         AtomicInteger taskId = new AtomicInteger(-1);
-        int interval = sender.isPlayer() ? 1 : 20;
+        int interval = sender.isPlayer() ? PLAYER_PROGRESS_INTERVAL_TICKS : CONSOLE_PROGRESS_INTERVAL_TICKS;
         taskId.set(J.ar(() -> {
             if (done.get()) {
                 cancelRepeatingTask(taskId);
@@ -718,17 +723,9 @@ public class IrisCreator {
                             MessageArgument.trusted("percent", percent)
                     ), p, BarColor.GREEN, BarStyle.SOLID, 4000L);
                 }
-                int barWidth = 44;
-                int filled = (int) Math.round(Math.max(0.0D, Math.min(1.0D, p)) * barWidth);
-                StringBuilder bar = new StringBuilder(barWidth * 3 + 4);
-                bar.append(C.DARK_GRAY).append("[");
-                for (int bi = 0; bi < barWidth; bi++) {
-                    bar.append(bi < filled ? C.GREEN : C.DARK_GRAY).append("|");
-                }
-                bar.append(C.DARK_GRAY).append("]");
                 sender.sendAction(IrisLanguage.text(
                         RuntimeProgressMessages.WORLD_PREGEN_ACTION,
-                        MessageArgument.trusted("bar", bar.toString()),
+                        MessageArgument.trusted("bar", ProgressBar.player(p)),
                         MessageArgument.trusted("percent", percent)
                 ));
                 return;

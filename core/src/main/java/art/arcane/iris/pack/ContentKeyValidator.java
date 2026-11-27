@@ -46,6 +46,7 @@ import java.util.stream.Stream;
 
 public final class ContentKeyValidator {
     private static final int MAX_SUGGESTION_SCANS = 4096;
+    private static final int GROUPED_KEYS_SHOWN = 5;
     private static final int MAX_OBJECT_PALETTE_SCANS = 20_000;
     private static final String DEFAULT_NAMESPACE = "minecraft";
     private static final String STRICT_PROPERTY = "iris.strictContent";
@@ -403,10 +404,67 @@ public final class ContentKeyValidator {
      * @param strict   issues the caller may promote to blocking errors under {@link #strictContent()}
      * @param advisory issues that stay warnings whatever the mode - see {@link #collectContentKeyIssues(File)}
      */
-    record ContentKeyIssues(List<String> strict, List<String> advisory) {
+    record ContentKeyIssues(List<ContentKeyError> strictKeys, List<String> propertyIssues, List<ContentKeyError> advisoryKeys) {
         static ContentKeyIssues none() {
-            return new ContentKeyIssues(List.of(), List.of());
+            return new ContentKeyIssues(List.of(), List.of(), List.of());
         }
+
+        List<String> strict(Set<String> alreadyReportedKeys) {
+            List<String> messages = new ArrayList<>(groupedMessages(withoutKeys(strictKeys, alreadyReportedKeys)));
+            messages.addAll(propertyIssues);
+            return messages;
+        }
+
+        List<String> advisory(Set<String> alreadyReportedKeys) {
+            return groupedMessages(withoutKeys(advisoryKeys, alreadyReportedKeys));
+        }
+
+        private static List<ContentKeyError> withoutKeys(List<ContentKeyError> errors, Set<String> excluded) {
+            return errors.stream().filter(error -> !excluded.contains(error.key())).toList();
+        }
+    }
+
+    /**
+     * One message per registry and namespace instead of one per key, so a pack that references a missing plugin's
+     * blocks reports a single line rather than one line per block.
+     */
+    static List<String> groupedMessages(List<ContentKeyError> errors) {
+        Map<String, List<ContentKeyError>> groups = new LinkedHashMap<>();
+        for (ContentKeyError error : errors) {
+            String group = error.registry().name() + '|' + (error.namespaceLoaded() ? "" : namespaceOf(error.key()));
+            groups.computeIfAbsent(group, ignored -> new ArrayList<>()).add(error);
+        }
+        List<String> messages = new ArrayList<>(groups.size());
+        for (List<ContentKeyError> group : groups.values()) {
+            messages.add(group.size() == 1 ? group.getFirst().message() : groupMessage(group));
+        }
+        return messages;
+    }
+
+    private static String groupMessage(List<ContentKeyError> group) {
+        ContentKeyError first = group.getFirst();
+        String registry = first.registry().label();
+        StringBuilder sb = new StringBuilder(96);
+        sb.append(group.size()).append(" unknown ").append(registry).append(" keys");
+        if (!first.namespaceLoaded()) {
+            sb.append(" (namespace '").append(namespaceOf(first.key())).append("' is not loaded on this server)");
+        }
+        sb.append(": ");
+        int shown = Math.min(GROUPED_KEYS_SHOWN, group.size());
+        for (int index = 0; index < shown; index++) {
+            if (index > 0) {
+                sb.append(", ");
+            }
+            ContentKeyError error = group.get(index);
+            sb.append(error.key());
+            if (error.suggestion() != null) {
+                sb.append(" (did you mean '").append(error.suggestion()).append("'?)");
+            }
+        }
+        if (group.size() > shown) {
+            sb.append(" +").append(group.size() - shown).append(" more");
+        }
+        return sb.toString();
     }
 
     /**
@@ -422,8 +480,9 @@ public final class ContentKeyValidator {
      * library over keys the author cannot edit and the engine handles.
      */
     static ContentKeyIssues collectContentKeyIssues(File packFolder) {
-        List<String> strict = new ArrayList<>();
-        List<String> advisory = new ArrayList<>();
+        List<ContentKeyError> strict = new ArrayList<>();
+        List<ContentKeyError> advisory = new ArrayList<>();
+        List<String> propertyIssues = new ArrayList<>();
         try {
             if (!IrisPlatforms.isBound()) {
                 return ContentKeyIssues.none();
@@ -448,16 +507,16 @@ public final class ContentKeyValidator {
                     registries, referenced.blocks(), referenced.items(), referenced.entities());
             for (ContentKeyValidator.ContentKeyError error : errors) {
                 if (referenced.paletteOnlyBlocks().contains(error.key())) {
-                    advisory.add(error.message());
+                    advisory.add(error);
                 } else {
-                    strict.add(error.message());
+                    strict.add(error);
                 }
             }
-            strict.addAll(validateBlockStateProperties(registries, referenced.blockStates()));
+            propertyIssues.addAll(validateBlockStateProperties(registries, referenced.blockStates()));
         } catch (Throwable e) {
             IrisLogging.reportError("PackValidator content-key validation failed for pack '" + packFolder.getName() + "'", e);
         }
-        return new ContentKeyIssues(List.copyOf(strict), List.copyOf(advisory));
+        return new ContentKeyIssues(List.copyOf(strict), List.copyOf(propertyIssues), List.copyOf(advisory));
     }
 
     private static int size(List<String> keys) {

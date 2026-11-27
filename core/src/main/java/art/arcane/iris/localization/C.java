@@ -344,7 +344,7 @@ public enum C {
     }
 
     C(char code, int intCode, boolean isFormat) {
-        this("^", code, intCode, false);
+        this("^", code, intCode, isFormat);
     }
 
     C(String token, char code, int intCode, boolean isFormat) {
@@ -384,25 +384,11 @@ public enum C {
     }
 
     public static String mini(String s) {
-        String msg = compress(s);
-        StringBuilder b = new StringBuilder();
-        boolean c = false;
+        return toMarkup(s, color -> color.token);
+    }
 
-        for (char i : msg.toCharArray()) {
-            if (!c) {
-                if (i == C.COLOR_CHAR) {
-                    c = true;
-                    continue;
-                }
-                b.append(i);
-            } else {
-                c = false;
-                C o = C.getByChar(i);
-                b.append(o.token);
-            }
-        }
-
-        return b.toString();
+    public static String escapeTags(String s) {
+        return MiniMessage.miniMessage().escapeTags(s);
     }
 
     public static String aura(String s, int hrad, int srad, int vrad) {
@@ -410,39 +396,48 @@ public enum C {
     }
 
     public static String aura(String s, int hrad, int srad, int vrad, double pulse) {
+        if (hrad == 0 && srad == 0 && vrad == 0) {
+            return mini(s);
+        }
+        return toMarkup(s, color -> pulse > 0
+                ? VolmitSender.pulse(spinToHex(color, hrad, srad, vrad), spinToHex(color, -hrad, -srad, -vrad), pulse)
+                : "<gradient:" + spinToHex(color, hrad, srad, vrad) + ":" + spinToHex(color, -hrad, -srad, -vrad) + ">");
+    }
+
+    /**
+     * Converts legacy section codes to MiniMessage. Format codes become their tags, and a color code after a format
+     * emits a reset first, because in legacy text a color ends bold/italic while MiniMessage tags stay open.
+     */
+    private static String toMarkup(String s, java.util.function.Function<C, String> colorTag) {
         String msg = compress(s);
         StringBuilder b = new StringBuilder();
-        boolean c = false;
+        boolean codeFollows = false;
+        boolean formatOpen = false;
 
         for (char i : msg.toCharArray()) {
-            if (c) {
-                c = false;
-
-                C o = C.getByChar(i);
-
-                if (hrad != 0 || srad != 0 || vrad != 0) {
-                    if (pulse > 0) {
-                        b.append(VolmitSender.pulse(spinToHex(o, hrad, srad, vrad), spinToHex(o, -hrad, -srad, -vrad), pulse));
-                    } else {
-                        b.append("<gradient:")
-                                .append(spinToHex(o, hrad, srad, vrad))
-                                .append(":")
-                                .append(spinToHex(o, -hrad, -srad, -vrad))
-                                .append(">");
-                    }
+            if (!codeFollows) {
+                if (i == C.COLOR_CHAR) {
+                    codeFollows = true;
                 } else {
-                    b.append(C.getByChar(i).token);
+                    b.append(i);
                 }
-
                 continue;
             }
-
-            if (i == C.COLOR_CHAR) {
-                c = true;
-                continue;
+            codeFollows = false;
+            C code = C.getByChar(i);
+            if (code == RESET) {
+                b.append(code.token);
+                formatOpen = false;
+            } else if (code.isFormat()) {
+                b.append(code.token);
+                formatOpen = true;
+            } else {
+                if (formatOpen) {
+                    b.append(RESET.token);
+                    formatOpen = false;
+                }
+                b.append(colorTag.apply(code));
             }
-
-            b.append(i);
         }
 
         return b.toString();

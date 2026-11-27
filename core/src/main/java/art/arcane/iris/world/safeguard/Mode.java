@@ -1,13 +1,13 @@
 package art.arcane.iris.world.safeguard;
 
-import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.diagnostics.splash.IrisSplashComposer;
 import art.arcane.iris.diagnostics.splash.IrisSplashRenderer;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ConsoleGlyphs;
 import org.bukkit.Bukkit;
 
+import java.util.List;
 import java.util.Locale;
 
 public enum Mode {
@@ -43,18 +43,15 @@ public enum Mode {
         return wrap("Iris") + " " + wrap(subTag) + C.GRAY + ": ";
     }
 
-    public void trySplash() {
-        if (!IrisSettings.get().getGeneral().isSplashLogoStartup()) {
-            return;
-        }
-        splash();
+    public String logTag() {
+        return color.toString() + C.BOLD + "Iris" + C.RESET + C.DARK_GRAY + " " + ConsoleGlyphs.BAR + " " + C.RESET;
     }
 
-    public void splash() {
+    public String composeSplash(List<List<IrisSplashComposer.Detail>> detailRows) {
         String version = BukkitPlatform.plugin().getDescription().getVersion();
         String[] splash = IrisSplashRenderer.render(this::splashTone);
-        String[] info = IrisSplashComposer.composeInfo(version, getServerVersion(), infoStyle());
-        IrisLogging.info(IrisSplashComposer.compose(splash, info));
+        String[] info = IrisSplashComposer.composeInfo(version, getServerVersion(), infoStyle(), detailRows);
+        return IrisSplashComposer.compose(splash, info);
     }
 
     private IrisSplashComposer.InfoStyle infoStyle() {
@@ -66,17 +63,17 @@ public enum Mode {
 
             @Override
             public String title(String text) {
-                return color + text;
+                return color.toString() + C.BOLD + text;
             }
 
             @Override
             public String subtitle(String text) {
-                return C.AQUA + text;
+                return C.WHITE.toString() + C.BOLD + text;
             }
 
             @Override
             public String tag(String text) {
-                return C.RED + text;
+                return C.DARK_GRAY + text;
             }
 
             @Override
@@ -86,7 +83,12 @@ public enum Mode {
 
             @Override
             public String value(String text) {
-                return color + text;
+                return C.GRAY + text;
+            }
+
+            @Override
+            public String headlineValue(String text) {
+                return C.WHITE + text;
             }
         };
     }
@@ -102,7 +104,7 @@ public enum Mode {
     }
 
     private String wrap(String tag) {
-        return C.BOLD.toString() + C.DARK_GRAY + "[" + C.BOLD + color + tag + C.BOLD + C.DARK_GRAY + "]" + C.RESET;
+        return C.DARK_GRAY.toString() + C.BOLD + "[" + color + C.BOLD + tag + C.DARK_GRAY + C.BOLD + "]" + C.RESET;
     }
 
     private String getServerVersion() {

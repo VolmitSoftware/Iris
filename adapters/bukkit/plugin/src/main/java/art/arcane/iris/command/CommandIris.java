@@ -18,6 +18,7 @@
 
 package art.arcane.iris.command;
 
+import art.arcane.iris.command.specialhandlers.OpenSuggestionHandler;
 import art.arcane.iris.Iris;
 import art.arcane.iris.IrisRuntime;
 import art.arcane.iris.world.BukkitWorldReconciler;
@@ -47,6 +48,8 @@ import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
 import art.arcane.iris.command.specialhandlers.NullablePlayerHandler;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.BukkitRuntimeMessages;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.iris.world.task.J;
 import org.bukkit.Bukkit;
@@ -58,6 +61,8 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -82,6 +87,7 @@ public class CommandIris implements DirectorExecutor {
     private static final String NO_DOWNLOAD_SOURCE = "__none__";
     private static final String PRESERVE_REPLACEMENT_SEED = "preserve";
     private static final long WORLD_UNLOAD_TIMEOUT_SECONDS = 150L;
+    private static final int METRICS_DETAIL_LIMIT = 12;
 
     private CommandStudio studio;
     private CommandPregen pregen;
@@ -196,7 +202,8 @@ public class CommandIris implements DirectorExecutor {
                     name = "target",
                     aliases = "world-name",
                     description = "The exact existing world slot to replace",
-                    descriptionKey = "iris.director.commandiris.param.replace_exact_existing_world_slot_next_restart"
+                    descriptionKey = "iris.director.commandiris.param.replace_exact_existing_world_slot_next_restart",
+                    customHandler = WorldSlotHandler.class
             )
             String target,
             @Param(
@@ -340,26 +347,18 @@ public class CommandIris implements DirectorExecutor {
             }
         }
 
-        if (sender().isPlayer()) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_IRIS_IRIS_WORLDS));
-            for (World IrisWorld : IrisWorlds.copy()) {
-                sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_IRIS_MESSAGE, MessageArgument.untrusted("value", IrisWorld.getName())));
-            }
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_IRIS_BUKKIT_WORLDS));
-            for (World BukkitWorld : BukkitWorlds.copy()) {
-                sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_IRIS_MESSAGE_2, MessageArgument.untrusted("value", BukkitWorld.getName())));
-            }
-        } else {
-            Iris.info(C.BLUE + "Iris Worlds: ");
-            for (World IrisWorld : IrisWorlds.copy()) {
-                Iris.info(C.IRIS + "- " +IrisWorld.getName());
-            }
-            Iris.info(C.GOLD + "Bukkit Worlds: ");
-            for (World BukkitWorld : BukkitWorlds.copy()) {
-                Iris.info(C.GRAY + "- " +BukkitWorld.getName());
-            }
-            
+        sender().sendReport(worldListReport(ChatReport.Tone.SUCCESS,
+                IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_IRIS_IRIS_WORLDS), IrisWorlds));
+        sender().sendReport(worldListReport(ChatReport.Tone.INFO,
+                IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_IRIS_BUKKIT_WORLDS), BukkitWorlds));
+    }
+
+    private static ChatReport worldListReport(ChatReport.Tone tone, String title, List<World> worlds) {
+        ChatReport.Builder report = ChatReport.of(tone, title).unlimited();
+        for (World world : worlds) {
+            report.item(world.getName());
         }
+        return report.build();
     }
 
     @Director(description = "Remove an Iris world", descriptionKey = "iris.director.commandiris.director.remove_iris_world", aliases = {"rm"}, sync = true)
@@ -465,8 +464,22 @@ public class CommandIris implements DirectorExecutor {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_IRIS_YOU_MUST_BE_IRIS_WORLD));
             return;
         }
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_IRIS_SENDING_METRICS));
-        engine().printMetrics(sender()::sendMessage);
+        List<String> lines = new ArrayList<>();
+        engine().printMetrics(lines::add);
+        String detailsHeader = IrisLanguage.text(BukkitRuntimeMessages.IRIS_ENGINE_DETAILS);
+        int detailsIndex = lines.indexOf(detailsHeader);
+        List<String> totals = detailsIndex < 0 ? lines : lines.subList(0, detailsIndex);
+        sender().sendReport(ChatReport.of(ChatReport.Tone.SUCCESS,
+                        IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_IRIS_SENDING_METRICS))
+                .items(totals)
+                .unlimited()
+                .build());
+        if (detailsIndex >= 0) {
+            sender().sendReport(ChatReport.of(ChatReport.Tone.INFO, detailsHeader)
+                    .items(lines.subList(detailsIndex + 1, lines.size()))
+                    .limit(METRICS_DETAIL_LIMIT)
+                    .build());
+        }
     }
 
     @Director(description = "Reload configuration file (this is also done automatically)", descriptionKey = "iris.director.commandiris.director.reload_configuration_file_this_is_also_done_automatically")
@@ -489,7 +502,7 @@ public class CommandIris implements DirectorExecutor {
     }
 
 
-    @Director(description = "Unload an Iris World", descriptionKey = "iris.director.commandiris.director.unload_iris_world", origin = DirectorOrigin.PLAYER, sync = true)
+    @Director(name = "unload-world", description = "Unload an Iris World", descriptionKey = "iris.director.commandiris.director.unload_iris_world", origin = DirectorOrigin.PLAYER, sync = true)
     public void unloadWorld(
             @Param(description = "The world to unload", descriptionKey = "iris.director.commandiris.param.world_unload")
             World world
@@ -609,7 +622,7 @@ public class CommandIris implements DirectorExecutor {
         }
     }
 
-    @Director(description = "Load an Iris World", descriptionKey = "iris.director.commandiris.director.load_iris_world", origin = DirectorOrigin.PLAYER, sync = true, aliases = {"import"})
+    @Director(name = "load-world", description = "Load an Iris World", descriptionKey = "iris.director.commandiris.director.load_iris_world", origin = DirectorOrigin.PLAYER, sync = true, aliases = {"import"})
     public void loadWorld(
             @Param(
                     description = "The name of the world to load",
@@ -709,6 +722,13 @@ public class CommandIris implements DirectorExecutor {
                 IrisWorldStorage.configuredWorldName(worldKey, levelRoot.getName()),
                 worldKey
         ).isPresent();
+    }
+
+    public static final class WorldSlotHandler extends OpenSuggestionHandler {
+        @Override
+        protected Collection<String> suggestions() {
+            return Bukkit.getWorlds().stream().map(world -> world.getKey().toString()).toList();
+        }
     }
 
     public static class ManagedWorldNameHandler implements DirectorParameterHandler<String> {

@@ -2,7 +2,7 @@ package art.arcane.iris.world.safeguard;
 
 import art.arcane.iris.world.IrisStartupValidation;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ChatReport;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -105,21 +105,29 @@ public final class IrisSafeguard {
 
     public static void printReports() {
         switch (mode) {
-            case STABLE -> IrisLogging.info(C.BLUE + "0 Conflicts found");
-            case WARNING -> IrisLogging.warn(C.GOLD + "%s Issues found", count);
-            case UNSTABLE -> IrisLogging.error(C.DARK_RED + "%s Issues found", count);
+            case STABLE -> {
+            }
+            case WARNING -> IrisLogging.warn(issueCountLine());
+            case UNSTABLE -> IrisLogging.error(issueCountLine());
         }
 
         for (CheckResult value : results.values()) {
+            if (value.mode() == Mode.STABLE) {
+                continue;
+            }
             // Without the stack trace: Diagnostic.Logger splits on newlines, so a trace became one log
             // record per frame at the diagnostic's own severity. Traces go through reportError.
             value.log(true, false);
         }
     }
 
+    private static String issueCountLine() {
+        return count == 1 ? "1 startup issue" : count + " startup issues";
+    }
+
     public static void printFooter() {
         switch (mode) {
-            case STABLE -> IrisLogging.info(C.BLUE + "Iris is running Stable");
+            case STABLE -> IrisLogging.info(ChatReport.Tone.SUCCESS.marked(ChatReport.Tone.SUCCESS.consolePaint("Stable, no conflicts")));
             case WARNING -> warning();
             case UNSTABLE -> unstable();
         }
@@ -133,14 +141,18 @@ public final class IrisSafeguard {
     // A log record carries a level, so a blank record renders as an empty [WARN] line and a rule of
     // dashes renders as a [SEVERE] one. Spacing belongs to a console, not to the server log.
     private static void warning() {
-        IrisLogging.warn(C.GOLD + "Iris is running in Warning Mode");
-        IrisLogging.warn(C.GRAY + "Some startup checks need attention. Review the messages above for tuning suggestions.");
-        IrisLogging.warn(C.GRAY + "Iris will continue startup normally.");
+        ChatReport.of(ChatReport.Tone.WARNING, "Iris is running in Warning Mode")
+                .item("Some startup checks need attention. The warnings above suggest fixes.")
+                .item("Startup continues.")
+                .build()
+                .log();
     }
 
     private static void unstable() {
-        IrisLogging.error(C.DARK_RED + "Iris is running in Danger Mode");
-        IrisLogging.error("Critical startup checks failed. Review and resolve the errors above as soon as possible.");
+        ChatReport.of(ChatReport.Tone.ERROR, "Iris is running in Danger Mode")
+                .item("Critical startup checks failed. Fix the errors above.")
+                .build()
+                .log();
         // No startup sleep: blocking the boot thread protected nothing — world creation and
         // player admission are already gated by IrisStartupValidation.
     }

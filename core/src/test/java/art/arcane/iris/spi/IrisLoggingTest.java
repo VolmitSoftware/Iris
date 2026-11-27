@@ -6,6 +6,9 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -69,6 +72,22 @@ public class IrisLoggingTest {
 
         assertEquals(List.of(LogLevel.DEBUG), levels);
         assertEquals("chunk=3,7", messages.getFirst());
+    }
+
+    @Test
+    public void debugIsDroppedWhenNoPlatformCanSayDebugIsOn() {
+        IrisPlatforms.unbind();
+        ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        PrintStream originalOut = System.out;
+        System.setOut(new PrintStream(captured, true, StandardCharsets.UTF_8));
+        try {
+            IrisLogging.debug("Loader<Biome> iload plains");
+            IrisLogging.info("visible");
+        } finally {
+            System.setOut(originalOut);
+        }
+
+        assertEquals("[Iris/INFO] visible" + System.lineSeparator(), captured.toString(StandardCharsets.UTF_8));
     }
 
     @Test

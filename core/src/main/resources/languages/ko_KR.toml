@@ -1122,6 +1122,8 @@ replace_installed_types = "설치된 팩: {value}"
 "export.invalid" = "데이터 팩 내보내기 인수가 잘못되었습니다: {reason}"
 
 [iris.director.commanddeveloper]
+"director.stop_regen_running_world" = "월드에서 실행 중인 재생성 중지"
+"param.world_regen_stop" = "재생성을 중지할 월드"
 "director.iris_world_manager" = "Iris 월드 관리자"
 "director.get_loaded_tectonicplates_count" = "로드된 TectonicPlates 수를 가져옵니다"
 "director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "고정 영역의 생성 블록 출력을 해시해 결정성과 일치성을 검사합니다"
@@ -1638,6 +1640,14 @@ progress = "§e{world} 교체: {stage} ({elapsed}초 경과)"
 "stage.cleanup" = "실패한 교체 작업 정리 중"
 
 [iris.runtime.chunk_job]
+"stage.stopping" = "중지 중"
+"bossbar.stopped" = "§6{title} §e중지됨§7 §e{summary}"
+"action.stopped" = "{bar}§7 §e중지됨§7 | §f{summary}"
+stopped = "§6{title} 중지됨: {summary}"
+already_running = "{world}에서 이미 {title}이(가) 실행 중입니다: {applied}/{total} 청크"
+stop_hint = "{command}(으)로 중지하세요"
+stopping = "{world}의 {title}을(를) 중지하는 중입니다. 진행 중인 청크는 먼저 완료됩니다"
+none_running = "{world}에서 실행 중인 {title}이(가) 없습니다"
 "title.regen" = "재생성"
 "title.delete" = "삭제"
 "title.golden_hash" = "GoldenHash"
@@ -2129,3 +2139,7 @@ open = "열기: {url}"
 open-description = "업로드한 진단 보고서를 엽니다."
 copy-path = "로컬 경로 복사"
 copy-path-description = "로컬 보고서 경로를 복사합니다."
+
+[iris.runtime.report]
+more = "외 {count}개"
+click_to_insert = "클릭하여 {command} 입력"

@@ -400,7 +400,7 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsStudio {
         public boolean openVSCode = true;
-        public boolean blendChanges = false;
+        public boolean keepPackVersions = false;
         public boolean disableTimeAndWeather = true;
         public boolean entitySpawning = true;
         public boolean autoStartDefaultStudio = false;

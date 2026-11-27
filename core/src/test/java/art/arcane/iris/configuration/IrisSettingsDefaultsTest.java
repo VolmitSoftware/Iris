@@ -72,16 +72,23 @@ public class IrisSettingsDefaultsTest {
     }
 
     @Test
-    public void studioBlendingIsOptInAndAcceptsEnabledHotload() {
+    public void studioPackVersionsAreOptInAndAcceptEnabledHotload() {
         IrisSettings defaults = new IrisSettings();
-        assertFalse(defaults.getStudio().isBlendChanges());
-        assertFalse(new Gson().fromJson("{\"studio\":{}}", IrisSettings.class).getStudio().isBlendChanges());
-        assertTrue(new Gson().toJson(defaults).contains("\"blendChanges\":false"));
+        assertFalse(defaults.getStudio().isKeepPackVersions());
+        assertFalse(new Gson().fromJson("{\"studio\":{}}", IrisSettings.class).getStudio().isKeepPackVersions());
+        assertTrue(new Gson().toJson(defaults).contains("\"keepPackVersions\":false"));
 
-        IrisSettings changed = IrisSettings.parseHotloadSnapshot("{\"studio\":{\"blendChanges\":true}}");
+        IrisSettings changed = IrisSettings.parseHotloadSnapshot("{\"studio\":{\"keepPackVersions\":true}}");
 
-        assertTrue(changed.getStudio().isBlendChanges());
+        assertTrue(changed.getStudio().isKeepPackVersions());
         assertEquals(256, changed.getGenerator().getGenerationTransitionWidthBlocks());
+    }
+
+    @Test
+    public void settingsSavedBeforePackVersionsBecameOptInStaySinglePack() {
+        IrisSettings saved = IrisSettings.parseHotloadSnapshot("{\"studio\":{\"blendChanges\":true}}");
+
+        assertFalse(saved.getStudio().isKeepPackVersions());
     }
 
     @Test

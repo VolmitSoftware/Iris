@@ -139,12 +139,8 @@ public class IrisCreator {
         );
     }
 
-    /**
-     * Studio worlds generate straight from the authoring pack unless blendChanges asks to keep every hotload as a
-     * versioned activation.
-     */
     private boolean usesSinglePackStudio() {
-        return studio && !IrisSettings.get().getStudio().isBlendChanges();
+        return studio && !IrisSettings.get().getStudio().isKeepPackVersions();
     }
 
     public static int removeTransientStudioWorldsFromBukkitYml() throws IOException {

@@ -28,6 +28,7 @@ public class NativeBiomeSpawnSelectionTest {
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         SavedBiomeRuntime saved = mock(SavedBiomeRuntime.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.biomes()).thenReturn(saved);
         NativeBiomeSpawnSelection retained = new NativeBiomeSpawnSelection(
                 NativeBiomeSpawnSelection.Mode.RETAINED, "minecraft:plains");
@@ -53,6 +54,7 @@ public class NativeBiomeSpawnSelectionTest {
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         SavedBiomeRuntime saved = mock(SavedBiomeRuntime.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.biomes()).thenReturn(saved);
         when(saved.nativeSpawnSelection(0, 64, 0, "iris:old"))
                 .thenThrow(new SavedBiomeUnavailableException("loading", true))

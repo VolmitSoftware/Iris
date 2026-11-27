@@ -57,8 +57,6 @@ import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.image.IrisImageMapApplication;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
-import art.arcane.iris.generation.mantle.ObjectContinuationBundle;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeGeneratorLink;
@@ -1707,10 +1705,8 @@ public class IrisComplex implements DataProvider {
         if (!transitionGenerationPlan.allowsNewFootprint(minimumX, minimumZ, maximumX, maximumZ)) {
             return false;
         }
-        GenerationHistoryRuntimeRouter router = terrainEngine instanceof IrisEngine irisEngine
-                ? irisEngine.getGenerationHistoryRuntimeRouter().orElse(null) : null;
-        return router == null || router.allowsObjectFootprint(transitionGenerationPlan,
-                new ObjectContinuationBundle.Bounds(minimumX, minimumZ, maximumX, maximumZ));
+        return !(terrainEngine instanceof IrisEngine irisEngine) || irisEngine.getGenerationSource()
+                .allowsObjectFootprint(transitionGenerationPlan, minimumX, minimumZ, maximumX, maximumZ);
     }
 
     public Optional<String> historicalPhysicalBiomeKeyAt(int blockX, int blockY, int blockZ) {

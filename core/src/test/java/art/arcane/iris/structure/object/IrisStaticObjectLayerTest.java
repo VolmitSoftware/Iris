@@ -1,5 +1,7 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.GenerationSource;
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
@@ -351,10 +353,12 @@ public class IrisStaticObjectLayerTest {
         when(engine.getComplex()).thenReturn(complex);
         when(complex.getTransitionGenerationPlan()).thenReturn(mock(TransitionGenerationPlan.class));
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+        when(engine.getGenerationSource()).thenReturn(GenerationSource.singlePack());
         when(complex.allowsNewGenerationFootprint(16, 0, 16, 0)).thenReturn(true);
         assertSame(layer, layer.forTransition(engine));
 
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(mock(GenerationHistoryRuntimeRouter.class)));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(mock(GenerationHistoryRuntimeRouter.class)));
         when(complex.allowsNewGenerationFootprint(16, 0, 16, 0)).thenReturn(false);
         assertTrue(layer.forTransition(engine).isEmpty());
     }

@@ -32,7 +32,7 @@ import art.arcane.iris.platform.generation.EngineBukkitOps;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.world.history.GenerationBoundary;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.runtime.GenerationSource;
 import art.arcane.iris.generation.runtime.WrongEngineBroException;
 import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.generation.mantle.EngineMantle;
@@ -97,7 +97,7 @@ public final class InPlaceChunkRegenerator {
         boolean error = false;
         try {
             List<int[]> targets = ChunkJobReporter.orderedTargets(centerChunkX, centerChunkZ, radius);
-            reclaimForActivePack(engine, targets);
+            releaseForRegeneration(engine, targets);
             reporter.setStage(IrisLanguage.text(RuntimeProgressMessages.CHUNK_STAGE_RESETTING_MANTLE));
             resetMantleMargin();
 
@@ -125,19 +125,19 @@ public final class InPlaceChunkRegenerator {
      * Chunks generated before the last hotload stay frozen to the old pack, which bars objects, caves and structures there.
      * Regen always rebuilds with the current pack, so it hands its targets over first.
      */
-    static void reclaimForActivePack(Engine engine, List<int[]> targets) throws IOException {
+    static void releaseForRegeneration(Engine engine, List<int[]> targets) throws IOException {
         if (!(engine instanceof IrisEngine irisEngine)) {
             return;
         }
-        GenerationHistoryRuntimeRouter router = irisEngine.getGenerationHistoryRuntimeRouter().orElse(null);
-        if (router == null) {
+        GenerationSource source = irisEngine.getGenerationSource();
+        if (!source.keepsPackVersions()) {
             return;
         }
         List<GenerationBoundary.ChunkCoordinate> chunks = new ArrayList<>(targets.size());
         for (int[] target : targets) {
             chunks.add(new GenerationBoundary.ChunkCoordinate(target[0], target[1]));
         }
-        router.reclaimForActivePack(chunks);
+        source.releaseForRegeneration(chunks);
     }
 
     private void resetMantleMargin() {

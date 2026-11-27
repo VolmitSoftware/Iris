@@ -5,8 +5,8 @@ import art.arcane.iris.structure.placement.IrisStructureLocator;
 
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.world.history.ChunkGenerationSemantics;
-import art.arcane.iris.world.history.GenerationHistory;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.runtime.GenerationScope;
+import art.arcane.iris.generation.runtime.GenerationSource;
 import art.arcane.iris.world.history.GenerationSemanticIndex;
 import art.arcane.volmlib.util.math.Position2;
 
@@ -66,11 +66,7 @@ final class HistoryAwareLocator<T> implements Locator<T> {
 
     @Override
     public SearchCandidate nearestRecordedCandidate(Engine engine, Position2 origin, int maxChunkRadius) {
-        GenerationHistory history = GenerationLocatorPolicy.history(engine).orElse(null);
-        if (history == null) {
-            return null;
-        }
-        GenerationSemanticIndex.Match match = history.findRecorded(
+        GenerationSemanticIndex.Match match = GenerationLocatorPolicy.source(engine).findRecorded(
                 GenerationSemanticIndex.Query.acrossActivations(
                         kind,
                         key,
@@ -80,7 +76,8 @@ final class HistoryAwareLocator<T> implements Locator<T> {
                                 blockCenter(origin.getZ())
                         ),
                         maxChunkRadius
-                )
+                ),
+                recorded -> true
         ).orElse(null);
         if (match == null) {
             return null;
@@ -136,40 +133,27 @@ final class GenerationLocatorPolicy {
     private GenerationLocatorPolicy() {
     }
 
-    static Optional<GenerationHistory> history(Engine engine) {
-        if (!(engine instanceof IrisEngine irisEngine)) {
-            return Optional.empty();
-        }
-        return irisEngine.getGenerationHistoryRuntimeRouter()
-                .map(GenerationHistoryRuntimeRouter::history);
+    static GenerationSource source(Engine engine) {
+        return engine instanceof IrisEngine irisEngine ? irisEngine.getGenerationSource() : GenerationSource.singlePack();
     }
 
     static Optional<ChunkGenerationSemantics> recorded(Engine engine, Position2 chunk) {
-        GenerationHistory history = history(engine).orElse(null);
-        if (history == null) {
-            return Optional.empty();
-        }
-        return history.semantics(chunk.getX(), chunk.getZ())
-                .filter(ChunkGenerationSemantics::sealed);
+        return source(engine).recordedSemantics(chunk.getX(), chunk.getZ());
     }
 
     static boolean allowsActivePrediction(Engine engine, Position2 chunk) {
         if (!engine.getComplex().allowsNewGenerationChunk(chunk.getX(), chunk.getZ())) {
             return false;
         }
-        GenerationHistory history = history(engine).orElse(null);
-        if (history == null) {
-            return true;
-        }
-        return history.isActiveUnowned(chunk.getX(), chunk.getZ())
-                && recorded(engine, chunk).isEmpty();
+        return generatesWithActivePack(engine, chunk);
+    }
+
+    static boolean generatesWithActivePack(Engine engine, Position2 chunk) {
+        return !source(engine).ownedByEarlierPack(chunk.getX(), chunk.getZ()) && recorded(engine, chunk).isEmpty();
     }
 
     static boolean allowsHistoricalFallback(Engine engine, Position2 chunk) {
-        GenerationHistory history = history(engine).orElse(null);
-        return history != null
-                && history.isHistoricallyOwned(chunk.getX(), chunk.getZ())
-                && recorded(engine, chunk).isEmpty();
+        return source(engine).ownedByEarlierPack(chunk.getX(), chunk.getZ()) && recorded(engine, chunk).isEmpty();
     }
 
     static boolean allowsProceduralPrediction(Engine engine, Position2 chunk) {
@@ -184,8 +168,7 @@ final class GenerationLocatorPolicy {
         if (radius < 0) {
             throw new IllegalArgumentException("Historical fallback radius cannot be negative.");
         }
-        GenerationHistory history = history(engine).orElse(null);
-        return history != null && history.hasHistoricalFallbackInSquare(center.getX(), center.getZ(), radius);
+        return source(engine).hasUnrecordedEarlierPackChunkInSquare(center.getX(), center.getZ(), radius);
     }
 
     static boolean evaluateScoped(
@@ -199,8 +182,7 @@ final class GenerationLocatorPolicy {
         }
         int blockX = Math.multiplyExact(chunk.getX(), 16);
         int blockZ = Math.multiplyExact(chunk.getZ(), 16);
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     irisEngine.openGenerationHistoryCoordinateScope(blockX, blockZ)) {
+        try (GenerationScope ignored = irisEngine.openGenerationScope(blockX, blockZ)) {
             return requiredQuery.getAsBoolean();
         } catch (IOException exception) {
             throw new IllegalStateException("Unable to scope an Iris locator query at chunk "
@@ -219,8 +201,7 @@ final class GenerationLocatorPolicy {
         }
         int blockX = Math.multiplyExact(chunk.getX(), 16);
         int blockZ = Math.multiplyExact(chunk.getZ(), 16);
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     irisEngine.openGenerationHistoryCoordinateScope(blockX, blockZ)) {
+        try (GenerationScope ignored = irisEngine.openGenerationScope(blockX, blockZ)) {
             return requiredQuery.get();
         } catch (IOException exception) {
             throw new IllegalStateException("Unable to scope an Iris locator query at chunk "

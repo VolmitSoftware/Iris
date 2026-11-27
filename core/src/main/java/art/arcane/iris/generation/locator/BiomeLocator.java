@@ -4,9 +4,8 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.BiomeEnvironment;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.runtime.GenerationSource;
 import art.arcane.iris.world.history.SavedBiomeRuntime;
 import art.arcane.iris.generation.runtime.GenerationSessionException;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
@@ -20,7 +19,6 @@ import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.world.history.GenerationSemanticIndex;
 import art.arcane.iris.world.history.GenerationSemanticQueries;
 import art.arcane.iris.world.history.GenerationFindCatalog;
-import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.ChunkGenerationSemantics;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
@@ -168,8 +166,8 @@ public final class BiomeLocator implements Locator<IrisBiome> {
 
     @Override
     public SearchCandidate nearestRecordedCandidate(Engine engine, Position2 origin, int maximumRadius) {
-        GenerationHistory history = GenerationLocatorPolicy.history(engine).orElse(null);
-        if (history == null) {
+        GenerationSource source = GenerationLocatorPolicy.source(engine);
+        if (!source.keepsPackVersions()) {
             return null;
         }
         Set<Position2> rejected = new HashSet<>();
@@ -178,7 +176,7 @@ public final class BiomeLocator implements Locator<IrisBiome> {
                 new ChunkGenerationSemantics.BlockPosition((origin.getX() << 4) + 8, originWorldY,
                         (origin.getZ() << 4) + 8), maximumRadius);
         while (!engine.isClosing() && !Thread.currentThread().isInterrupted() && System.nanoTime() < searchDeadline) {
-            GenerationSemanticIndex.Match match = history.findRecorded(query,
+            GenerationSemanticIndex.Match match = source.findRecorded(query,
                     record -> !rejected.contains(new Position2(record.chunkX(), record.chunkZ()))).orElse(null);
             if (match == null) {
                 return null;
@@ -236,7 +234,7 @@ public final class BiomeLocator implements Locator<IrisBiome> {
 
     public SubterrainPosition position(Engine engine, Position2 chunk) {
         if (authoredTarget != null || cavernTargets.containsKey(chunk) || surfaceTargets.contains(chunk) || authored
-                || activePredictionWithoutHistory(engine, chunk)) {
+                || GenerationLocatorPolicy.generatesWithActivePack(engine, chunk)) {
             return position(engine, chunk, Optional.empty());
         }
         try {
@@ -326,26 +324,8 @@ public final class BiomeLocator implements Locator<IrisBiome> {
         return GenerationSemanticQueries.drySubterrainLanding(engine, candidate, running).orElse(null);
     }
 
-    private static boolean activePredictionWithoutHistory(Engine engine, Position2 chunk) {
-        if (!(engine instanceof IrisEngine irisEngine)) {
-            return true;
-        }
-        GenerationHistoryRuntimeRouter router = irisEngine.getGenerationHistoryRuntimeRouter().orElse(null);
-        if (router == null) {
-            return true;
-        }
-        GenerationHistory history = router.history();
-        return history.isActiveUnowned(chunk.getX(), chunk.getZ()) && history.semantics(chunk.getX(), chunk.getZ()).isEmpty();
-    }
-
     public CompletableFuture<Optional<SavedBiomeRuntime.ReadSession>> prepareRead(Engine engine, Position2 chunk) {
-        if (engine instanceof IrisEngine irisEngine) {
-            GenerationHistoryRuntimeRouter router = irisEngine.getGenerationHistoryRuntimeRouter().orElse(null);
-            if (router != null) {
-                return router.biomes().readChunkAsync(chunk.getX(), chunk.getZ()).thenApply(Optional::of);
-            }
-        }
-        return CompletableFuture.completedFuture(Optional.empty());
+        return GenerationLocatorPolicy.source(engine).readSavedBiomes(chunk.getX(), chunk.getZ());
     }
 
     public SubterrainPosition landing(Engine engine, NativeWorld world, SubterrainPosition target,

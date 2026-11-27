@@ -30,6 +30,7 @@ import art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore;
 import art.arcane.iris.world.history.GenerationBoundarySignatureSampler;
 import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.world.history.ChunkGenerationSemantics;
 import art.arcane.iris.world.history.GenerationKernelRegistry;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
@@ -176,9 +177,8 @@ public class IrisEngine implements Engine {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     volatile GenerationHistoryRuntimeRouter generationHistoryRuntimeRouter;
-    @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
-    private volatile boolean generationHistoryRoutingRequired;
+    private volatile GenerationSource generationSource = GenerationSource.singlePack();
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private volatile SubterrainGate subterrainGate;
@@ -499,8 +499,7 @@ public class IrisEngine implements Engine {
     @Override
     public void generateMatter(int x, int z, boolean multicore, ChunkContext context) {
         awaitGenerationCacheWarm();
-        try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope =
-                     openGenerationHistoryCoordinateScope(x << 4, z << 4);
+        try (GenerationScope historyScope = openGenerationScope(x << 4, z << 4);
              GenerationSessionLease lease = acquireGenerationLease("matter_generate");
              IrisContext.Scope ignored = IrisContext.open(this, lease.sessionId(), context)) {
             IrisComplex activeComplex = getComplex();
@@ -525,12 +524,12 @@ public class IrisEngine implements Engine {
             if (!usesSavedBiomeEnvironment()) {
                 return Engine.super.draw(x, z);
             }
-            return generationHistoryRuntimeRouter.biomes().readSurfaceBiome(x, z, saved -> {
+            return getGenerationSource().readSavedSurfaceBiome(x, z, saved -> {
                 if (saved.isPresent()) {
                     return drawBiomeEnvironment(x, z, saved.get());
                 }
-                try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                             openGenerationHistoryReadScope(x, z, "draw a pregeneration preview")) {
+                try (GenerationScope ignored =
+                             openReadScope(x, z, "draw a pregeneration preview")) {
                     return Engine.super.draw(x, z);
                 }
             });
@@ -554,8 +553,8 @@ public class IrisEngine implements Engine {
                 return CompletableFuture.completedFuture(getBiomeEnvironment(x, y, z));
             }
             int worldY = y + getWorld().minHeight();
-            return generationHistoryRuntimeRouter.biomes().readChunkAsync(Math.floorDiv(x, 16), Math.floorDiv(z, 16))
-                    .thenApply(session -> session.resolve(x, worldY, z, false)
+            return getGenerationSource().readSavedBiomes(Math.floorDiv(x, 16), Math.floorDiv(z, 16))
+                    .thenApply(read -> read.flatMap(session -> session.resolve(x, worldY, z, false))
                             .orElseGet(() -> resolveUnsavedBiomeEnvironment(x, y, z)));
         } catch (RuntimeException | Error failure) {
             return CompletableFuture.failedFuture(failure);
@@ -568,8 +567,8 @@ public class IrisEngine implements Engine {
         if (saved.isPresent()) {
             return saved.get();
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve a mantle biome environment")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve a mantle biome environment")) {
             return Engine.super.getBiomeOrMantleEnvironment(x, y, z);
         }
     }
@@ -580,8 +579,8 @@ public class IrisEngine implements Engine {
         if (saved.isPresent()) {
             return saved.get();
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve a surface biome environment")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve a surface biome environment")) {
             return Engine.super.getSurfaceBiomeEnvironment(x, z);
         }
     }
@@ -595,8 +594,8 @@ public class IrisEngine implements Engine {
     }
 
     private BiomeEnvironment resolveUnsavedBiomeEnvironment(int x, int y, int z) {
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve a biome environment")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve a biome environment")) {
             return Engine.super.getBiomeEnvironment(x, y, z);
         }
     }
@@ -605,11 +604,11 @@ public class IrisEngine implements Engine {
         if (!usesSavedBiomeEnvironment()) {
             return Optional.empty();
         }
-        return generationHistoryRuntimeRouter.biomes().resolve(x, y + getWorld().minHeight(), z, surface);
+        return getGenerationSource().savedBiome(x, y + getWorld().minHeight(), z, surface);
     }
 
     private boolean usesSavedBiomeEnvironment() {
-        if (hasGenerationRuntimeScope() || generationHistoryRuntimeRouter == null) {
+        if (hasGenerationRuntimeScope() || !getGenerationSource().keepsPackVersions()) {
             return false;
         }
         IrisContext context = IrisContext.get();
@@ -620,10 +619,9 @@ public class IrisEngine implements Engine {
     @Override
     public SubterrainCell getSubterrainCell(int x, int y, int z) {
         EngineThreadState.Frame frame = threadState.current();
-        GenerationHistoryRuntimeRouter router = generationHistoryRuntimeRouter;
-        if ((frame == null || frame.binding == null) && router != null) {
-            Optional<SubterrainCell> saved = router.biomes()
-                    .subterrainCell(x, y + targetIn(frame).getWorld().minHeight(), z);
+        if ((frame == null || frame.binding == null) && getGenerationSource().keepsPackVersions()) {
+            Optional<SubterrainCell> saved = generationSource
+                    .savedSubterrainCell(x, y + targetIn(frame).getWorld().minHeight(), z);
             if (saved.isPresent()) {
                 return saved.get();
             }
@@ -645,7 +643,7 @@ public class IrisEngine implements Engine {
     @ChunkCoordinates
     public SubterrainChunkCells subterrainChunkCells(int chunkX, int chunkZ) {
         EngineThreadState.Frame frame = threadState.current();
-        if ((frame == null || frame.binding == null) && generationHistoryRuntimeRouter != null) {
+        if ((frame == null || frame.binding == null) && getGenerationSource().keepsPackVersions()) {
             return SubterrainChunkCells.delegated(this);
         }
         SubterrainPlanner planner = subterrainPlannerIn(frame);
@@ -673,7 +671,7 @@ public class IrisEngine implements Engine {
     @ChunkCoordinates
     @Override
     public boolean subterrainAbsentInChunk(int chunkX, int chunkZ) {
-        if (!hasGenerationRuntimeScope() && generationHistoryRuntimeRouter != null) {
+        if (!hasGenerationRuntimeScope() && getGenerationSource().keepsPackVersions()) {
             return false;
         }
         return Engine.super.subterrainAbsentInChunk(chunkX, chunkZ);
@@ -698,8 +696,8 @@ public class IrisEngine implements Engine {
         if (saved.isPresent()) {
             return saved.get().biome();
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve a biome")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve a biome")) {
             return Engine.super.getBiome(x, y, z);
         }
     }
@@ -711,8 +709,8 @@ public class IrisEngine implements Engine {
         if (saved.isPresent()) {
             return saved.get().biome();
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve a biome or mantle biome")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve a biome or mantle biome")) {
             return Engine.super.getBiomeOrMantle(x, y, z);
         }
     }
@@ -727,8 +725,8 @@ public class IrisEngine implements Engine {
             }
             return;
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve a biome or mantle biome column")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve a biome or mantle biome column")) {
             Engine.super.getBiomeOrMantleColumn(x, z, step, biomes, regions);
         }
     }
@@ -740,8 +738,8 @@ public class IrisEngine implements Engine {
         if (saved.isPresent()) {
             return saved.get().region();
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve a region")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve a region")) {
             return Engine.super.getRegion(x, z);
         }
     }
@@ -753,8 +751,8 @@ public class IrisEngine implements Engine {
         if (saved.isPresent()) {
             return saved.get().region();
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve a vertical region")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve a vertical region")) {
             return Engine.super.getRegion(x, y, z);
         }
     }
@@ -766,8 +764,8 @@ public class IrisEngine implements Engine {
         if (saved.isPresent()) {
             return saved.get().biome();
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve a cave or mantle biome")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve a cave or mantle biome")) {
             return Engine.super.getCaveOrMantleBiome(x, y, z);
         }
     }
@@ -776,7 +774,7 @@ public class IrisEngine implements Engine {
     @Override
     public IrisBiome getCaveBiome(int x, int z) {
         if (usesSavedBiomeEnvironment()) {
-            Optional<BiomeEnvironment> saved = generationHistoryRuntimeRouter.biomes().resolveCaveBase(x, z);
+            Optional<BiomeEnvironment> saved = getGenerationSource().savedCaveBase(x, z);
             if (saved.isPresent()) {
                 return saved.get().biome();
             }
@@ -784,8 +782,8 @@ public class IrisEngine implements Engine {
         if (usesScopedNaturalTerrain()) {
             return Engine.super.getCaveBiome(x, z);
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve a cave biome")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve a cave biome")) {
             return Engine.super.getCaveBiome(x, z);
         }
     }
@@ -811,8 +809,8 @@ public class IrisEngine implements Engine {
         if (usesScopedNaturalTerrain()) {
             return Engine.super.getCaveBiome(x, y, z, state);
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve a vertical cave biome")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve a vertical cave biome")) {
             return Engine.super.getCaveBiome(x, y, z, state);
         }
     }
@@ -827,8 +825,8 @@ public class IrisEngine implements Engine {
         if (usesScopedNaturalTerrain()) {
             return Engine.super.getSurfaceBiome(x, z);
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve a surface biome")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve a surface biome")) {
             return Engine.super.getSurfaceBiome(x, z);
         }
     }
@@ -836,8 +834,8 @@ public class IrisEngine implements Engine {
     @BlockCoordinates
     @Override
     public double getSlope(int x, int z) {
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve terrain slope")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve terrain slope")) {
             return Engine.super.getSlope(x, z);
         }
     }
@@ -851,8 +849,8 @@ public class IrisEngine implements Engine {
     @BlockCoordinates
     @Override
     public int getHeight(int x, int z, boolean ignoreFluid) {
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve terrain height")) {
+        try (GenerationScope ignored =
+                     openReadScope(x, z, "resolve terrain height")) {
             return Engine.super.getHeight(x, z, ignoreFluid);
         }
     }
@@ -860,12 +858,12 @@ public class IrisEngine implements Engine {
     @ChunkCoordinates
     @Override
     public Set<String> getObjectsAt(int x, int z) {
-        Optional<ChunkGenerationSemantics> recorded = recordedChunkSemantics(x, z);
+        Optional<ChunkGenerationSemantics> recorded = getGenerationSource().recordedSemantics(x, z);
         if (recorded.isPresent()) {
             return recorded.get().objectKeys();
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x << 4, z << 4, "resolve chunk objects")) {
+        try (GenerationScope ignored =
+                     openReadScope(x << 4, z << 4, "resolve chunk objects")) {
             return getMantle().getObjectComponent().guess(x, z);
         }
     }
@@ -873,12 +871,12 @@ public class IrisEngine implements Engine {
     @ChunkCoordinates
     @Override
     public Set<ChunkGenerationSemantics.PointOfInterest> getPOIsAt(int chunkX, int chunkZ) {
-        Optional<ChunkGenerationSemantics> recorded = recordedChunkSemantics(chunkX, chunkZ);
+        Optional<ChunkGenerationSemantics> recorded = getGenerationSource().recordedSemantics(chunkX, chunkZ);
         if (recorded.isPresent()) {
             return new HashSet<>(recorded.get().pointsOfInterest());
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(
+        try (GenerationScope ignored =
+                     openReadScope(
                              chunkX << 4, chunkZ << 4, "resolve chunk points of interest")) {
             Set<ChunkGenerationSemantics.PointOfInterest> pois = new HashSet<>();
             getMantle().getMantle().iterateChunk(
@@ -890,12 +888,6 @@ public class IrisEngine implements Engine {
                             Math.addExact(Math.multiplyExact(chunkZ, 16), z)))));
             return pois;
         }
-    }
-
-    private Optional<ChunkGenerationSemantics> recordedChunkSemantics(int chunkX, int chunkZ) {
-        GenerationHistoryRuntimeRouter router = getGenerationHistoryRuntimeRouter().orElse(null);
-        return router == null ? Optional.empty()
-                : router.history().semantics(chunkX, chunkZ).filter(ChunkGenerationSemantics::sealed);
     }
 
     private void warmupChunk(int x, int z) {
@@ -973,8 +965,8 @@ public class IrisEngine implements Engine {
                 int queryMaximumX = Math.min(maximumX, chunkMinimumX + 15);
                 int queryMinimumZ = Math.max(minimumZ, chunkMinimumZ);
                 int queryMaximumZ = Math.min(maximumZ, chunkMinimumZ + 15);
-                try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                             openGenerationHistoryReadScope(
+                try (GenerationScope ignored =
+                             openReadScope(
                                      chunkMinimumX,
                                      chunkMinimumZ,
                                      "resolve native structure volumes")) {
@@ -1070,46 +1062,25 @@ public class IrisEngine implements Engine {
         return Optional.ofNullable(generationHistoryRuntimeRouter);
     }
 
-    public GenerationHistoryRuntimeRouter.CoordinateScope openGenerationHistoryCoordinateScope(
-            int blockX,
-            int blockZ
-    ) throws IOException {
-        GenerationHistoryRuntimeRouter router = generationHistoryRuntimeRouter;
-        if (router != null) {
-            return router.openCoordinateScope(blockX, blockZ);
-        }
-        if (!generationHistoryRoutingRequired) {
-            return null;
-        }
-        router = generationHistoryRuntimeRouter;
-        if (router == null) {
-            throw new IllegalStateException("Iris generation-history runtime router is detached.");
-        }
-        return router.openCoordinateScope(blockX, blockZ);
-    }
-
     public boolean hasGenerationRuntimeScope() {
         return threadState.binding() != null;
-    }
-
-    public boolean hasGenerationHistoryRouting() {
-        return generationHistoryRuntimeRouter != null || generationHistoryRoutingRequired;
     }
 
     private boolean usesScopedNaturalTerrain() {
         return hasGenerationRuntimeScope() && getComplex().isNaturalTerrainContext();
     }
 
-    private GenerationHistoryRuntimeRouter.CoordinateScope openGenerationHistoryReadScope(
+    public GenerationScope openGenerationScope(int blockX, int blockZ) throws IOException {
+        return getGenerationSource().openGenerationScope(blockX, blockZ);
+    }
+
+    private GenerationScope openReadScope(
             int blockX,
             int blockZ,
             String operation
     ) {
         try {
-            GenerationHistoryRuntimeRouter router = generationHistoryRuntimeRouter;
-            return router == null
-                    ? openGenerationHistoryCoordinateScope(blockX, blockZ)
-                    : router.openReadScope(blockX, blockZ);
+            return getGenerationSource().openReadScope(blockX, blockZ);
         } catch (IOException failure) {
             throw new IllegalStateException("Unable to " + operation + " through Iris generation history at "
                     + blockX + "," + blockZ + ".", failure);
@@ -1129,7 +1100,7 @@ public class IrisEngine implements Engine {
                 }
                 shutdownSequence.retainGenerationHistory(required.history());
                 generationHistoryRuntimeRouter = required;
-                generationHistoryRoutingRequired = true;
+                generationSource = new VersionedGenerationSource(required);
             }
         }
     }
@@ -1137,8 +1108,15 @@ public class IrisEngine implements Engine {
     public void detachGenerationHistoryRuntimeRouter(GenerationHistoryRuntimeRouter router) {
         synchronized (generationHistoryRuntimeRouterLock) {
             if (generationHistoryRuntimeRouter == router) {
-                generationHistoryRuntimeRouter = null;
+                releaseGenerationHistoryRuntimeRouterLocked();
             }
+        }
+    }
+
+    private void releaseGenerationHistoryRuntimeRouterLocked() {
+        generationHistoryRuntimeRouter = null;
+        if (generationSource instanceof VersionedGenerationSource versioned) {
+            versioned.detach();
         }
     }
 
@@ -1153,7 +1131,7 @@ public class IrisEngine implements Engine {
         attached.close();
         synchronized (generationHistoryRuntimeRouterLock) {
             if (generationHistoryRuntimeRouter == attached) {
-                generationHistoryRuntimeRouter = null;
+                releaseGenerationHistoryRuntimeRouterLocked();
             }
         }
     }
@@ -1628,8 +1606,7 @@ public class IrisEngine implements Engine {
         if (platformHooks.shouldRefuseGeneration(this)) {
             refuseMaintenanceGeneration(x >> 4, z >> 4);
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope =
-                     openGenerationHistoryCoordinateScope(x, z);
+        try (GenerationScope historyScope = openGenerationScope(x, z);
              GenerationSessionLease lease = acquireGenerationLease("chunk_generate");
              IrisContext.Scope generationScope = IrisContext.open(this, lease.sessionId(), null)) {
             getEngineData().getStatistics().generatedChunk();
@@ -1718,12 +1695,8 @@ public class IrisEngine implements Engine {
 
     @Override
     public void syncGenerationHistory() {
-        GenerationHistoryRuntimeRouter router = getGenerationHistoryRuntimeRouter().orElse(null);
-        if (router == null) {
-            return;
-        }
         try {
-            router.history().sync();
+            getGenerationSource().sync();
         } catch (IOException failure) {
             throw new IllegalStateException("Unable to force Iris generation history to stable storage for "
                     + getWorld().name() + ".", failure);

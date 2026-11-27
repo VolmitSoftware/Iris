@@ -39,6 +39,7 @@ public class SavedSubterrainQueriesTest {
         SubterrainLocator.Result target = new SubterrainLocator.Result(plan.id(), plan.family(), plan.biome(),
                 anchor.x(), anchor.y(), anchor.z());
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(router.biomes()).thenReturn(saved);
         when(saved.subterrainPlanner(old.activationId())).thenReturn(historical);
@@ -70,6 +71,7 @@ public class SavedSubterrainQueriesTest {
         SubterrainPosition anchor = plan.anchor();
         when(engine.getComplex()).thenReturn(complex);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(router.biomes()).thenReturn(saved);
         when(history.manifest()).thenReturn(manifest);
@@ -107,6 +109,7 @@ public class SavedSubterrainQueriesTest {
         SubterrainPosition anchor = planner.plansForBounds(0, 0, 511, 511).getFirst().anchor();
         when(engine.getComplex()).thenReturn(complex);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(router.biomes()).thenReturn(saved);
         when(history.manifest()).thenReturn(manifest);

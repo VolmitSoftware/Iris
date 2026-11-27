@@ -12,7 +12,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.IrisEngine;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.runtime.GenerationSource;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -108,11 +108,10 @@ public final class IrisStaticObjectLayer {
         if (complex.getTransitionGenerationPlan() == null) {
             return this;
         }
-        GenerationHistoryRuntimeRouter router = engine instanceof IrisEngine irisEngine
-                ? irisEngine.getGenerationHistoryRuntimeRouter().orElse(null) : null;
-        boolean cacheable = !(engine instanceof IrisEngine) || router != null;
+        GenerationSource source = engine instanceof IrisEngine irisEngine ? irisEngine.getGenerationSource() : null;
+        boolean cacheable = source == null || source.keepsPackVersions();
         TransitionLayer cached = transitionLayer;
-        if (cacheable && cached != null && cached.complex() == complex && cached.router() == router) {
+        if (cacheable && cached != null && cached.complex() == complex && cached.source() == source) {
             return cached.layer();
         }
         List<Placement> accepted = new ArrayList<>(placements.size());
@@ -125,7 +124,7 @@ public final class IrisStaticObjectLayer {
         }
         IrisStaticObjectLayer filtered = accepted.size() == placements.size() ? this : merge(accepted);
         if (cacheable) {
-            transitionLayer = new TransitionLayer(complex, router, filtered);
+            transitionLayer = new TransitionLayer(complex, source, filtered);
         }
         return filtered;
     }
@@ -249,7 +248,7 @@ public final class IrisStaticObjectLayer {
     private record Placement(ObjectContinuationBundle.PlacementKey key, Map<Long, Chunk> chunks, Footprint footprint) {
     }
 
-    private record TransitionLayer(IrisComplex complex, GenerationHistoryRuntimeRouter router, IrisStaticObjectLayer layer) {
+    private record TransitionLayer(IrisComplex complex, GenerationSource source, IrisStaticObjectLayer layer) {
     }
 
     private static final class Compilation implements IObjectPlacer {

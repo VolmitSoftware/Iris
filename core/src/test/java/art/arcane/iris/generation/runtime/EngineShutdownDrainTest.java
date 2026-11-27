@@ -893,6 +893,7 @@ public class EngineShutdownDrainTest {
             doReturn(new GenerationRuntime.BiomeMaxes(0D, 0D, 0D)).when(builder).computeBiomeMaxes();
             setField(engine, "runtimeBuilder", builder);
             when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+            when(engine.getGenerationSource()).thenReturn(GenerationSource.singlePack());
             return kernel;
         }
 

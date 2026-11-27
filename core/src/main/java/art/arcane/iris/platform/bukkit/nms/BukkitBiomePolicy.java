@@ -14,7 +14,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.generation.runtime.GenerationSessionException;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.runtime.GenerationScope;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -310,7 +310,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
     public H getNoiseBiome(int x, int y, int z) {
         int blockX = x << 2;
         int blockZ = z << 2;
-        try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope =
+        try (GenerationScope historyScope =
                      openHistoryCoordinateScope(blockX, blockZ, "bukkit_structure_biome");
              GenerationSessionLease lease = requireGenerationLease(
                      "bukkit_structure_biome",
@@ -436,7 +436,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
     }
 
     private H locateVisibleBiomeHolder(int quartX, int quartY, int quartZ) {
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored = openHistoryCoordinateScope(
+        try (GenerationScope ignored = openHistoryCoordinateScope(
                 quartX << 2, quartZ << 2, "bukkit_locate_visible_biome")) {
             return resolveVisibleBiomeHolder(quartX, quartY, quartZ, null);
         }
@@ -501,7 +501,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
     private H getSurfaceStructureBiomeHolder(int x, int z) {
         int blockX = x << 2;
         int blockZ = z << 2;
-        try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope =
+        try (GenerationScope historyScope =
                      openHistoryCoordinateScope(blockX, blockZ, "bukkit_surface_structure_biome")) {
             RuntimeColumnKey columnKey = new RuntimeColumnKey(
                     engine.getCacheID(), packColumnKey(x, z));
@@ -563,7 +563,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
     private H getNaturalSurfaceStructureBiomeHolder(int x, int z) {
         int blockX = x << 2;
         int blockZ = z << 2;
-        try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope =
+        try (GenerationScope historyScope =
                      openHistoryCoordinateScope(blockX, blockZ, "bukkit_natural_structure_biome")) {
             RuntimeColumnKey columnKey = new RuntimeColumnKey(
                     engine.getCacheID(), packColumnKey(x, z));
@@ -633,7 +633,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
     }
 
     public H getVisibleNoiseBiome(int x, int y, int z) {
-        try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope = openHistoryCoordinateScope(
+        try (GenerationScope historyScope = openHistoryCoordinateScope(
                      x << 2, z << 2, "bukkit_visible_biome");
              GenerationSessionLease lease = requireGenerationLease(
                      "bukkit_visible_biome",
@@ -749,7 +749,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
         return !engine.isClosed() && engine.getComplex() != null;
     }
 
-    private GenerationHistoryRuntimeRouter.CoordinateScope openHistoryCoordinateScope(
+    private GenerationScope openHistoryCoordinateScope(
             int blockX,
             int blockZ,
             String operation
@@ -758,7 +758,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
             return null;
         }
         try {
-            return irisEngine.openGenerationHistoryCoordinateScope(blockX, blockZ);
+            return irisEngine.openGenerationScope(blockX, blockZ);
         } catch (IOException failure) {
             throw new IllegalStateException("Iris " + operation
                     + " could not route generation history at "

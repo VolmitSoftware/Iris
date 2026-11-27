@@ -1,5 +1,6 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.iris.generation.runtime.GenerationScope;
 import art.arcane.iris.structure.nativegen.IrisStructurePolicy;
 
 import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureReferenceRepair;
@@ -439,7 +440,7 @@ public class NativeStructureReferenceRepairTest {
         }
 
         @Override
-        public GenerationHistoryRuntimeRouter.CoordinateScope openGenerationHistoryCoordinateScope(
+        public GenerationScope openGenerationScope(
                 int blockX,
                 int blockZ
         ) {

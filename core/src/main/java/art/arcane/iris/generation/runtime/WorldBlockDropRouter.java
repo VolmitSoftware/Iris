@@ -308,7 +308,7 @@ final class WorldBlockDropRouter {
             return true;
         }
         if (manager.getEngine() instanceof IrisEngine engine) {
-            return engine.getGenerationHistoryRuntimeRouter().map(router -> router.biomes().mayHaveBlockDropRules(material)).orElse(false);
+            return engine.getGenerationSource().savedBiomesMayHaveBlockDropRules(material);
         }
         return false;
     }

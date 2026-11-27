@@ -72,15 +72,15 @@ public class IrisSettingsDefaultsTest {
     }
 
     @Test
-    public void studioBlendingDefaultsOnAndAcceptsDisabledHotload() {
+    public void studioBlendingIsOptInAndAcceptsEnabledHotload() {
         IrisSettings defaults = new IrisSettings();
-        assertTrue(defaults.getStudio().isBlendChanges());
-        assertTrue(new Gson().fromJson("{\"studio\":{}}", IrisSettings.class).getStudio().isBlendChanges());
-        assertTrue(new Gson().toJson(defaults).contains("\"blendChanges\":true"));
+        assertFalse(defaults.getStudio().isBlendChanges());
+        assertFalse(new Gson().fromJson("{\"studio\":{}}", IrisSettings.class).getStudio().isBlendChanges());
+        assertTrue(new Gson().toJson(defaults).contains("\"blendChanges\":false"));
 
-        IrisSettings changed = IrisSettings.parseHotloadSnapshot("{\"studio\":{\"blendChanges\":false}}");
+        IrisSettings changed = IrisSettings.parseHotloadSnapshot("{\"studio\":{\"blendChanges\":true}}");
 
-        assertFalse(changed.getStudio().isBlendChanges());
+        assertTrue(changed.getStudio().isBlendChanges());
         assertEquals(256, changed.getGenerator().getGenerationTransitionWidthBlocks());
     }
 

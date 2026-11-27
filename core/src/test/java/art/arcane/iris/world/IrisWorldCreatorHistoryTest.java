@@ -19,12 +19,14 @@ import org.mockito.MockedStatic;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -52,6 +54,40 @@ public class IrisWorldCreatorHistoryTest {
     @Test
     public void creationWithoutAHandoffOpensAndValidatesThePackOnce() throws Exception {
         assertGeneratorHistory(false, false);
+    }
+
+    @Test
+    public void studioCreationWithoutAHandoffGeneratesFromTheAuthoringPackWithoutHistory() throws Exception {
+        File root = temporaryFolder.newFolder("studio-world");
+        File authoring = temporaryFolder.newFolder("studio-authoring");
+        IrisDimension dimension = mock(IrisDimension.class);
+        when(dimension.getLoadKey()).thenReturn("overworld");
+        when(dimension.getMinHeight()).thenReturn(-64);
+        when(dimension.getMaxHeight()).thenReturn(320);
+        IrisWorldCreator creator = new IrisWorldCreator().name("studio").dimension(dimension)
+                .studio(true).studioPackSource(authoring).seed(42L);
+        NamespacedKey key = new NamespacedKey("iris", "studio");
+        WorldCreator bukkitCreator = mock(WorldCreator.class, RETURNS_SELF);
+        when(bukkitCreator.name()).thenReturn("world_iris_studio");
+        List<File> packs = new ArrayList<>();
+        List<GenerationHistory> histories = new ArrayList<>();
+        try (MockedStatic<IrisWorldStorage> storage = mockStatic(IrisWorldStorage.class);
+             MockedStatic<WorldCreatorCompat> compatibility = mockStatic(WorldCreatorCompat.class);
+             MockedConstruction<BukkitChunkGenerator> generators = mockConstruction(BukkitChunkGenerator.class,
+                     (generator, context) -> {
+                         packs.add((File) context.arguments().get(2));
+                         histories.add((GenerationHistory) context.arguments().get(4));
+                     })) {
+            storage.when(() -> IrisWorldStorage.keyFromName("studio")).thenReturn(key);
+            storage.when(() -> IrisWorldStorage.dimensionRoot(key)).thenReturn(root);
+            compatibility.when(() -> WorldCreatorCompat.ofKey(key)).thenReturn(bukkitCreator);
+
+            assertSame(bukkitCreator, creator.create());
+
+            assertEquals(List.of(authoring), packs);
+            assertNull(histories.getFirst());
+            assertFalse(Files.exists(root.toPath().resolve("iris"), LinkOption.NOFOLLOW_LINKS));
+        }
     }
 
     @Test

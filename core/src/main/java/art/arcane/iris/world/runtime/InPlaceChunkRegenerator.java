@@ -97,7 +97,7 @@ public final class InPlaceChunkRegenerator {
         boolean error = false;
         try {
             List<int[]> targets = ChunkJobReporter.orderedTargets(centerChunkX, centerChunkZ, radius);
-            reclaimForActivePack(targets);
+            reclaimForActivePack(engine, targets);
             reporter.setStage(IrisLanguage.text(RuntimeProgressMessages.CHUNK_STAGE_RESETTING_MANTLE));
             resetMantleMargin();
 
@@ -125,7 +125,7 @@ public final class InPlaceChunkRegenerator {
      * Chunks generated before the last hotload stay frozen to the old pack, which bars objects, caves and structures there.
      * Regen always rebuilds with the current pack, so it hands its targets over first.
      */
-    private void reclaimForActivePack(List<int[]> targets) throws IOException {
+    static void reclaimForActivePack(Engine engine, List<int[]> targets) throws IOException {
         if (!(engine instanceof IrisEngine irisEngine)) {
             return;
         }

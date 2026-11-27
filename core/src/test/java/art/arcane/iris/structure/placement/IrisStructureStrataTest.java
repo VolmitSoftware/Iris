@@ -1,7 +1,13 @@
 package art.arcane.iris.structure.placement;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.decoration.IrisOreBands;
+import art.arcane.iris.generation.decoration.IrisOreGenerator;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
+import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -23,6 +29,7 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.same;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
@@ -46,7 +53,7 @@ public class IrisStructureStrataTest {
     private final IrisComplex complex = mock(IrisComplex.class);
     private final IrisBiome biome = mock(IrisBiome.class);
     private final IrisImageMapRuntime imageMap = mock(IrisImageMapRuntime.class);
-    private final IrisData data = mock(IrisData.class);
+    private final IrisData data = MockPackData.create();
     private final IrisDimension dimension = new IrisDimension().setBedrock(true).setHideOresForHiddenOre(true);
 
     @Before
@@ -62,7 +69,7 @@ public class IrisStructureStrataTest {
         when(complex.getRockStream()).thenReturn(ProceduralStream.of((x, z) -> rock, Interpolated.of(value -> 0D, value -> rock)));
         when(complex.getImageMapRuntime()).thenReturn(imageMap);
         when(biome.generateLayersWithSlope(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
-                anyInt(), anyInt(), eq(data), any())).thenReturn(new KList<>(List.of(grass, dirt, dirt)));
+                anyInt(), anyInt(), MockPackData.runtimeOf(data), any())).thenReturn(new KList<>(List.of(grass, dirt, dirt)));
     }
 
     @Test
@@ -82,7 +89,7 @@ public class IrisStructureStrataTest {
         IrisStructureStrata.world(engine).column(3, 5, 90, false);
 
         verify(biome).generateLayersWithSlope(eq(dimension), eq(3D), eq(5D), any(RNG.class),
-                eq(90 - MIN_HEIGHT), eq(90 - MIN_HEIGHT), eq(data), any());
+                eq(90 - MIN_HEIGHT), eq(90 - MIN_HEIGHT), MockPackData.runtimeOf(data), any());
     }
 
     @Test
@@ -107,16 +114,31 @@ public class IrisStructureStrataTest {
     public void oreBandsAreSampledAtEachHeightSoAFillNeverStretchesOneOreBlock() {
         dimension.setHideOresForHiddenOre(false);
         NativeBlockState coal = state("minecraft:coal_ore");
-        IrisOreBands bands = mock(IrisOreBands.class);
+        IrisOreGenerator coalSeam = new IrisOreGenerator()
+                .setPalette(new FixedPalette(coal))
+                .setThreshold(1D)
+                .setRange(new IrisRange(40 - MIN_HEIGHT, 40 - MIN_HEIGHT));
         when(biome.getSurfaceOreBands()).thenReturn(IrisOreBands.EMPTY);
-        when(biome.getUndergroundOreBands()).thenReturn(bands);
-        when(bands.contains(anyInt())).thenReturn(true);
-        when(bands.generate(eq(3), eq(40 - MIN_HEIGHT), eq(5), any(RNG.class), eq(data), any())).thenReturn(coal);
+        when(biome.getUndergroundOreBands()).thenReturn(IrisOreBands.of(new KList<>(List.of(coalSeam))));
 
         StructureStrata.Column column = IrisStructureStrata.world(engine).column(3, 5, 90, false);
 
         assertSame(coal, column.block(40));
         assertSame(rock, column.block(41));
+    }
+
+    private static final class FixedPalette extends IrisMaterialPalette {
+        private final NativeBlockState state;
+
+        private FixedPalette(NativeBlockState state) {
+            this.state = state;
+            setPalette(new KList<>(new IrisBlockData()));
+        }
+
+        @Override
+        public NativeBlockState get(RNG rng, double x, double y, double z, PackRuntime runtime) {
+            return state;
+        }
     }
 
     private static NativeBlockState state(String key) {

@@ -1,6 +1,6 @@
 package art.arcane.iris.generation.terrain;
 
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
 
@@ -10,12 +10,12 @@ public final class ContinentGenerator {
     private ContinentGenerator() {
     }
 
-    public static CNG create(IrisDimension dimension, RNG parentSeedSource, IrisData packData) {
-        return createScaledContinentalStyleGenerator(dimension, deriveContinentSeed(parentSeedSource), packData);
+    public static CNG create(IrisDimension dimension, RNG parentSeedSource, PackRuntime runtime) {
+        return createScaledContinentalStyleGenerator(dimension, deriveContinentSeed(parentSeedSource), runtime);
     }
 
-    private static CNG createScaledContinentalStyleGenerator(IrisDimension dimension, RNG continentSeed, IrisData packData) {
-        return dimension.getContinentalStyle().createScaledGenerator(continentSeed, packData, inverseContinentZoom(dimension));
+    private static CNG createScaledContinentalStyleGenerator(IrisDimension dimension, RNG continentSeed, PackRuntime runtime) {
+        return dimension.getContinentalStyle().createScaledGenerator(continentSeed, runtime, inverseContinentZoom(dimension));
     }
 
     static RNG deriveContinentSeed(RNG parentSeedSource) {

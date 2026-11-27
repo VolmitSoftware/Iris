@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
 
 import art.arcane.iris.generation.noise.IrisNoiseGenerator;
@@ -74,7 +75,7 @@ public class IrisObjectPlacementLifecycleRegressionTest {
 
         engine = mock(Engine.class);
         when(engine.getHeight()).thenReturn(256);
-        data = mock(IrisData.class);
+        data = MockPackData.create();
         when(data.getEngine()).thenReturn(engine);
         solid = state("minecraft:stone", true);
         schematicAir = state("minecraft:air", false);

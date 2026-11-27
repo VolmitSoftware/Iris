@@ -19,6 +19,7 @@
 package art.arcane.iris.generation.mantle;
 
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.cache.Cache;
@@ -959,7 +960,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         int rejected = 0;
         int nullObjects = 0;
         int errors = 0;
-        int density = objectPlacement.getDensity(rng, x, z, getData());
+        int density = objectPlacement.getDensity(rng, x, z, PackRuntime.of(getEngineMantle().getEngine(), getData()));
         boolean golden = GoldenDebugObjectPlacer.isGoldenDebugChunk(chunkX, chunkZ);
 
         for (int i = 0; i < density; i++) {
@@ -1094,7 +1095,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         int errors = 0;
         int minX = chunkX << 4;
         int minZ = chunkZ << 4;
-        int density = objectPlacement.getDensity(rng, minX, minZ, getData());
+        int density = objectPlacement.getDensity(rng, minX, minZ, PackRuntime.of(getEngineMantle().getEngine(), getData()));
         IrisCaveAnchorMode anchorMode = resolveAnchorMode(objectPlacement, caveProfile);
         if (objectPlacement.getMode() == ObjectPlaceMode.CEILING_HANG) {
             anchorMode = IrisCaveAnchorMode.CEILING;
@@ -1328,7 +1329,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         int chunkHeight = getEngineMantle().getEngine().getHeight();
         int minX = chunkX << 4;
         int minZ = chunkZ << 4;
-        int density = objectPlacement.getDensity(rng, minX, minZ, getData());
+        int density = objectPlacement.getDensity(rng, minX, minZ, PackRuntime.of(getEngineMantle().getEngine(), getData()));
 
         for (int i = 0; i < density; i++) {
             IrisObject v = objectPlacement.scaleObject(rng, objectPlacement.getObject(upperCtx, rng), upperCtx.getDimension());
@@ -1734,7 +1735,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
     @BlockCoordinates
     private Set<String> guessPlacedKeys(RNG rng, int x, int z, IrisObjectPlacement objectPlacement) {
         Set<String> f = new KSet<>();
-        for (int i = 0; i < objectPlacement.getDensity(rng, x, z, getData()); i++) {
+        for (int i = 0; i < objectPlacement.getDensity(rng, x, z, PackRuntime.of(getEngineMantle().getEngine(), getData())); i++) {
             IrisObject v = objectPlacement.scaleObject(rng, objectPlacement.getObject(getComplex(), rng), getDimension());
             if (v == null) {
                 continue;

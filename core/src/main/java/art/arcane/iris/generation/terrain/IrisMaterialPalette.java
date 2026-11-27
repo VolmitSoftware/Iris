@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.nativelib.terrain.structure.StructurePalette;
 
 import art.arcane.iris.generation.block.IrisBlockData;
@@ -27,8 +28,6 @@ import art.arcane.iris.generation.noise.NoiseStyle;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.generation.cache.LazyBoundedCache;
-import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
@@ -47,7 +46,6 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Snippet("palette")
 @Accessors(chain = true)
@@ -56,17 +54,9 @@ import java.util.concurrent.atomic.AtomicReference;
 @Description("A palette of materials")
 @Data
 public class IrisMaterialPalette implements StructurePalette {
-    private static final int LAYER_GENERATOR_CACHE_SIZE = 32;
     private static final int LAYER_GENERATOR_SALT = -23_498_896;
 
     private final transient AtomicCache<KList<NativeBlockState>> blockData = new AtomicCache<>();
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient LazyBoundedCache<LayerGeneratorKey, CNG> layerGenerators =
-            new LazyBoundedCache<>(LAYER_GENERATOR_CACHE_SIZE);
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient AtomicReference<CachedLayerGenerator> recentLayerGenerator = new AtomicReference<>();
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final transient IrisBlockData fallback = new IrisBlockData("STONE");
@@ -84,8 +74,8 @@ public class IrisMaterialPalette implements StructurePalette {
         return palette != null && palette.size() == 1 && palette.get(0) == fallback;
     }
 
-    public NativeBlockState get(RNG rng, double x, double y, double z, IrisData rdata) {
-        KList<NativeBlockState> localBlockData = getBlockData(rdata);
+    public NativeBlockState get(RNG rng, double x, double y, double z, PackRuntime runtime) {
+        KList<NativeBlockState> localBlockData = getBlockData(runtime.data());
         int blockDataSize = localBlockData.size();
         if (blockDataSize == 0) {
             return null;
@@ -98,7 +88,7 @@ public class IrisMaterialPalette implements StructurePalette {
         double scaledX = x / zoom;
         double scaledY = y / zoom;
         double scaledZ = z / zoom;
-        return getLayerGenerator(rng, rdata).fit(localBlockData, scaledX, scaledY, scaledZ);
+        return getLayerGenerator(rng, runtime).fit(localBlockData, scaledX, scaledY, scaledZ);
     }
 
     public Optional<TileData> getTile(RNG rng, double x, double y, double z, IrisData rdata) {
@@ -109,22 +99,13 @@ public class IrisMaterialPalette implements StructurePalette {
         return tile != null ? Optional.of(tile) : Optional.empty();
     }
 
-    public CNG getLayerGenerator(RNG rng, IrisData rdata) {
-        Engine engine = rdata == null ? null : rdata.getEngine();
-        int generatorSignature = LAYER_GENERATOR_SALT + getBlockData(rdata).size();
-        long generatorSeed = rng.getSeed() + generatorSignature;
-        CachedLayerGenerator recent = recentLayerGenerator.get();
-        if (recent != null && recent.key.matches(rdata, engine, generatorSeed)) {
-            return recent.generator;
-        }
+    public CNG getLayerGenerator(RNG rng, PackRuntime runtime) {
+        int generatorSignature = LAYER_GENERATOR_SALT + getBlockData(runtime.data()).size();
+        return runtime.materialPaletteGenerator(this, rng.getSeed() + generatorSignature);
+    }
 
-        LayerGeneratorKey key = new LayerGeneratorKey(rdata, engine, generatorSeed);
-        CNG generator = layerGenerators.computeIfAbsent(key,
-                ignored -> style.create(new RNG(generatorSeed), rdata, engine));
-        if (generator != null) {
-            recentLayerGenerator.set(new CachedLayerGenerator(key, generator));
-        }
-        return generator;
+    public CNG createLayerGenerator(long seed, PackRuntime runtime) {
+        return style.createNoCache(new RNG(seed), runtime);
     }
 
     public IrisMaterialPalette qclear() {
@@ -164,50 +145,5 @@ public class IrisMaterialPalette implements StructurePalette {
     public IrisMaterialPalette zero() {
         palette.clear();
         return this;
-    }
-
-    private static final class LayerGeneratorKey {
-        private final IrisData data;
-        private final Engine engine;
-        private final long seed;
-
-        private LayerGeneratorKey(IrisData data, Engine engine, long seed) {
-            this.data = data;
-            this.engine = engine;
-            this.seed = seed;
-        }
-
-        private boolean matches(IrisData data, Engine engine, long seed) {
-            return this.data == data && this.engine == engine && this.seed == seed;
-        }
-
-        @Override
-        public boolean equals(Object object) {
-            if (this == object) {
-                return true;
-            }
-            if (!(object instanceof LayerGeneratorKey other)) {
-                return false;
-            }
-            return data == other.data && engine == other.engine && seed == other.seed;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = System.identityHashCode(data);
-            result = 31 * result + System.identityHashCode(engine);
-            result = 31 * result + Long.hashCode(seed);
-            return result;
-        }
-    }
-
-    private static final class CachedLayerGenerator {
-        private final LayerGeneratorKey key;
-        private final CNG generator;
-
-        private CachedLayerGenerator(LayerGeneratorKey key, CNG generator) {
-            this.key = key;
-            this.generator = generator;
-        }
     }
 }

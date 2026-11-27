@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.pack.loading.IrisData;
@@ -91,11 +92,11 @@ public class ContinentGeneratorTest {
     }
 
     private double[] sampleSharedStyleGenerator(IrisGeneratorStyle style) {
-        return sampleSharedGenerator(style, ContinentGenerator.deriveContinentSeed(new RNG(WORLD_SEED)), packData);
+        return sampleSharedGenerator(style, ContinentGenerator.deriveContinentSeed(new RNG(WORLD_SEED)), PackRuntime.of(packData.getEngine(), packData));
     }
 
     private double[] sampleContinentMap(IrisDimension dimension, double[][] blocks) {
-        return sampleAtBlocks(ContinentGenerator.create(dimension, new RNG(WORLD_SEED), packData), blocks);
+        return sampleAtBlocks(ContinentGenerator.create(dimension, new RNG(WORLD_SEED), PackRuntime.of(packData.getEngine(), packData)), blocks);
     }
 
     private static double[][] shrinkByContinentZoom(double[][] blocks) {

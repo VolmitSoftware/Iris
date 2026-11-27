@@ -23,29 +23,17 @@ import art.arcane.iris.generation.runtime.IrisEngine.BiomeEnvironmentBinding;
 import art.arcane.iris.generation.runtime.IrisEngine.GenerationRuntimeBinding;
 import art.arcane.iris.generation.runtime.IrisEngine.GenerationRuntimeScope;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReferenceArray;
-
 /**
  * Every per-thread engine binding (runtime assembly, biome environment, generation runtime scope) in one frame.
  * The engine getters run on generation hot paths, where a ThreadLocal lookup probes long collision chains in the
- * workers' crowded thread-local maps. Frames therefore live in a table indexed by thread id and owned by their
- * thread; a frame whose slot is taken by another thread falls back to a ThreadLocal.
+ * workers' crowded thread-local maps. Frames therefore live in thread slots the engine owns, so a closed engine
+ * leaves nothing behind on its pooled workers.
  */
 final class EngineThreadState {
-    private static final int SLOTS = 256;
-
-    private final AtomicReferenceArray<Frame> slots = new AtomicReferenceArray<>(SLOTS);
-    private final ThreadLocal<Frame> overflow = new ThreadLocal<>();
-    private final AtomicInteger overflowFrames = new AtomicInteger();
+    private final ThreadSlots<Frame> frames = ThreadSlots.bindings();
 
     Frame current() {
-        Thread thread = Thread.currentThread();
-        Frame frame = slots.getPlain(slot(thread));
-        if (frame != null && frame.owner == thread) {
-            return frame;
-        }
-        return overflowFrames.get() == 0 ? null : overflow.get();
+        return frames.get();
     }
 
     GenerationRuntimeBinding binding() {
@@ -122,13 +110,8 @@ final class EngineThreadState {
         if (frame != null) {
             return frame;
         }
-        Thread thread = Thread.currentThread();
-        frame = new Frame(thread);
-        if (!slots.compareAndSet(slot(thread), null, frame)) {
-            frame.overflow = true;
-            overflow.set(frame);
-            overflowFrames.incrementAndGet();
-        }
+        frame = new Frame();
+        frames.set(frame);
         return frame;
     }
 
@@ -136,27 +119,12 @@ final class EngineThreadState {
         if (frame.assembly != null || frame.environment != null || frame.binding != null) {
             return;
         }
-        if (frame.overflow) {
-            overflow.remove();
-            overflowFrames.decrementAndGet();
-            return;
-        }
-        slots.compareAndSet(slot(frame.owner), frame, null);
-    }
-
-    private static int slot(Thread thread) {
-        return (int) thread.threadId() & (SLOTS - 1);
+        frames.remove();
     }
 
     static final class Frame {
-        private final Thread owner;
-        private boolean overflow;
         RuntimeAssembly assembly;
         BiomeEnvironmentBinding environment;
         GenerationRuntimeBinding binding;
-
-        private Frame(Thread owner) {
-            this.owner = owner;
-        }
     }
 }

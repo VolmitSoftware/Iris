@@ -18,6 +18,7 @@
 
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.cave.CarvingMode;
 import art.arcane.iris.generation.cave.IrisCaveAnchorMode;
 import art.arcane.iris.generation.decoration.IrisStiltSettings;
@@ -43,7 +44,6 @@ import art.arcane.iris.pack.validation.ContentGate;
 import art.arcane.iris.pack.validation.PackCompatReport;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.placement.LootResolver;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
@@ -87,11 +87,6 @@ import java.util.function.Function;
 @Description("Represents an iris object placer. It places objects.")
 @Data
 public class IrisObjectPlacement {
-    private static final int SURFACE_WARP_CACHE_SIZE = 8;
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient LazyBoundedCache<SurfaceWarpCacheKey, CNG> surfaceWarpCache =
-            new LazyBoundedCache<>(SURFACE_WARP_CACHE_SIZE);
     @RegistryListResource(IrisObject.class)
     @Required
     @ArrayType(min = 1, type = String.class)
@@ -359,19 +354,19 @@ public class IrisObjectPlacement {
         return p;
     }
 
-    public CNG getSurfaceWarp(RNG rng, IrisData data) {
-        return getSurfaceWarp(rng, data, data.getEngine());
-    }
-
-    public CNG getSurfaceWarp(RNG rng, IrisData data, @Nullable Engine engine) {
+    /** Engines seed the surface warp from their component seed; engine-less tools use the caller's seed. */
+    public CNG getSurfaceWarp(RNG rng, PackRuntime runtime) {
+        Engine engine = runtime.engine();
         long seed = engine == null ? rng.getSeed() : engine.getSeedManager().getComponent() + 1024L;
-        SurfaceWarpCacheKey key = new SurfaceWarpCacheKey(data, engine, seed);
-        return surfaceWarpCache.computeIfAbsent(key,
-                ignored -> getWarp().create(new RNG(seed), data, engine));
+        return runtime.surfaceWarp(this, seed);
     }
 
-    public double warp(RNG rng, double x, double y, double z, IrisData data) {
-        return getSurfaceWarp(rng, data).fitDouble(-(getWarp().getMultiplier() / 2D), (getWarp().getMultiplier() / 2D), x, y, z);
+    public CNG createSurfaceWarp(long seed, PackRuntime runtime) {
+        return getWarp().create(new RNG(seed), runtime);
+    }
+
+    public double warp(RNG rng, double x, double y, double z, PackRuntime runtime) {
+        return getSurfaceWarp(rng, runtime).fitDouble(-(getWarp().getMultiplier() / 2D), (getWarp().getMultiplier() / 2D), x, y, z);
     }
 
     public IrisObject getObject(DataProvider g, RNG random) {
@@ -414,12 +409,12 @@ public class IrisObjectPlacement {
         return densityStyle.getMid();
     }
 
-    public int getDensity(RNG rng, double x, double z, IrisData data) {
+    public int getDensity(RNG rng, double x, double z, PackRuntime runtime) {
         if (densityStyle == null) {
             return density;
         }
 
-        return (int) Math.round(densityStyle.get(rng, x, z, data));
+        return (int) Math.round(densityStyle.get(rng, x, z, runtime));
     }
 
     private TableCache getCache(IrisData manager) {
@@ -513,36 +508,6 @@ public class IrisObjectPlacement {
         }
 
         return null;
-    }
-
-    private static final class SurfaceWarpCacheKey {
-        private final IrisData data;
-        private final Engine engine;
-        private final long seed;
-
-        private SurfaceWarpCacheKey(IrisData data, Engine engine, long seed) {
-            this.data = data;
-            this.engine = engine;
-            this.seed = seed;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) {
-                return true;
-            }
-            if (!(other instanceof SurfaceWarpCacheKey key)) {
-                return false;
-            }
-            return data == key.data && engine == key.engine && seed == key.seed;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = System.identityHashCode(data);
-            result = 31 * result + System.identityHashCode(engine);
-            return 31 * result + Long.hashCode(seed);
-        }
     }
 
     private static class TableCache {

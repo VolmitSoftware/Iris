@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
 import org.junit.Test;
@@ -60,12 +61,12 @@ public class NoiseSeedCohesionTest {
     public void generatorCacheEvictionRetainsSamples() {
         for (NoiseStyle style : NoiseStyle.values()) {
             IrisGeneratorStyle configured = style.style();
-            double[] expected = samples(configured.create(new RNG(SEEDS[0]), null), false);
+            double[] expected = samples(configured.create(new RNG(SEEDS[0]), PackRuntime.standalone(null)), false);
             for (long seed = 0; seed < 9; seed++) {
-                configured.create(new RNG(seed), null);
+                configured.create(new RNG(seed), PackRuntime.standalone(null));
             }
             assertArrayEquals(style.name(), expected,
-                    samples(configured.create(new RNG(SEEDS[0]), null), true), 0D);
+                    samples(configured.create(new RNG(SEEDS[0]), PackRuntime.standalone(null)), true), 0D);
         }
     }
 

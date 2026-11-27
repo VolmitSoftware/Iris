@@ -1,9 +1,9 @@
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.noise.CNG;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
 
@@ -24,7 +24,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.never;
 
 public final class IrisNoiseGeneratorCacheTest {
     private static final long GENERATOR_SALT = 33_955_677L;
@@ -35,17 +34,17 @@ public final class IrisNoiseGeneratorCacheTest {
     public void callerSeedsDoNotShareAFirstWinnerGenerator() {
         GeneratorFixture fixture = new GeneratorFixture();
 
-        assertSame(fixture.firstGenerator, fixture.generator.getGenerator(11L, fixture.data, fixture.engine));
-        assertSame(fixture.secondGenerator, fixture.generator.getGenerator(29L, fixture.data, fixture.engine));
-        assertSame(fixture.firstGenerator, fixture.generator.getGenerator(11L, fixture.data, fixture.engine));
+        assertSame(fixture.firstGenerator, fixture.generator.getGenerator(11L, fixture.runtime));
+        assertSame(fixture.secondGenerator, fixture.generator.getGenerator(29L, fixture.runtime));
+        assertSame(fixture.firstGenerator, fixture.generator.getGenerator(11L, fixture.runtime));
     }
 
     @Test
     public void reverseInitializationOrderKeepsSeedAssignments() {
         GeneratorFixture fixture = new GeneratorFixture();
 
-        assertSame(fixture.secondGenerator, fixture.generator.getGenerator(29L, fixture.data, fixture.engine));
-        assertSame(fixture.firstGenerator, fixture.generator.getGenerator(11L, fixture.data, fixture.engine));
+        assertSame(fixture.secondGenerator, fixture.generator.getGenerator(29L, fixture.runtime));
+        assertSame(fixture.firstGenerator, fixture.generator.getGenerator(11L, fixture.runtime));
     }
 
     @Test
@@ -56,11 +55,11 @@ public final class IrisNoiseGeneratorCacheTest {
         try {
             Future<CNG> first = executor.submit(() -> {
                 assertTrue(start.await(5L, TimeUnit.SECONDS));
-                return fixture.generator.getGenerator(11L, fixture.data, fixture.engine);
+                return fixture.generator.getGenerator(11L, fixture.runtime);
             });
             Future<CNG> second = executor.submit(() -> {
                 assertTrue(start.await(5L, TimeUnit.SECONDS));
-                return fixture.generator.getGenerator(29L, fixture.data, fixture.engine);
+                return fixture.generator.getGenerator(29L, fixture.runtime);
             });
             start.countDown();
 
@@ -72,55 +71,34 @@ public final class IrisNoiseGeneratorCacheTest {
     }
 
     @Test
-    public void heightResolvesEngineOnceAcrossFracturesAndSurfaceCorners() {
+    public void eachRuntimeBuildsItsOwnGeneratorAndKeepsIt() {
         IrisData data = mock(IrisData.class);
-        Engine engine = mock(Engine.class);
-        when(data.getEngine()).thenReturn(engine);
-        IrisNoiseGenerator child = new IrisNoiseGenerator().setStyle(NoiseStyle.SIMPLEX.style());
-        IrisNoiseGenerator layer = new IrisNoiseGenerator().setStyle(NoiseStyle.SIMPLEX.style())
-                .setFracture(new KList<>(child));
-        IrisGenerator generator = new IrisGenerator().setComposite(new KList<>(layer, child))
-                .setSurfaceDetail(0.5D);
-        generator.setLoader(data);
-
-        double first = generator.getHeight(13D, -21D, 71L);
-        verify(data, times(1)).getEngine();
-        assertEquals(Double.doubleToRawLongBits(first),
-                Double.doubleToRawLongBits(generator.getHeight(13D, -21D, 71L)));
-        verify(data, times(2)).getEngine();
-    }
-
-    @Test
-    public void changedEngineUsesDistinctConstructionAndRestoresPreviousGenerator() {
-        IrisData data = mock(IrisData.class);
-        Engine firstEngine = mock(Engine.class);
-        Engine secondEngine = mock(Engine.class);
+        PackRuntime firstRuntime = PackRuntime.forEngine(mock(Engine.class), data);
+        PackRuntime secondRuntime = PackRuntime.forEngine(mock(Engine.class), data);
         IrisGeneratorStyle style = mock(IrisGeneratorStyle.class);
         CNG first = mock(CNG.class);
         CNG second = mock(CNG.class);
         IrisNoiseGenerator layer = new IrisNoiseGenerator().setStyle(style);
-        when(data.getEngine()).thenReturn(firstEngine, secondEngine, firstEngine);
-        when(style.createForLayer(any(RNG.class), same(data), eq(1), same(firstEngine))).thenReturn(first);
-        when(style.createForLayer(any(RNG.class), same(data), eq(1), same(secondEngine))).thenReturn(second);
+        when(style.createForLayer(any(RNG.class), same(firstRuntime), eq(1))).thenReturn(first);
+        when(style.createForLayer(any(RNG.class), same(secondRuntime), eq(1))).thenReturn(second);
 
-        assertSame(first, layer.getGenerator(11L, data, data.getEngine()));
-        assertSame(second, layer.getGenerator(11L, data, data.getEngine()));
-        assertSame(first, layer.getGenerator(11L, data, data.getEngine()));
-        verify(style, times(1)).createForLayer(any(RNG.class), same(data), eq(1), same(firstEngine));
-        verify(style, times(1)).createForLayer(any(RNG.class), same(data), eq(1), same(secondEngine));
+        assertSame(first, layer.getGenerator(11L, firstRuntime));
+        assertSame(second, layer.getGenerator(11L, secondRuntime));
+        assertSame(first, layer.getGenerator(11L, firstRuntime));
+        verify(style, times(1)).createForLayer(any(RNG.class), same(firstRuntime), eq(1));
+        verify(style, times(1)).createForLayer(any(RNG.class), same(secondRuntime), eq(1));
     }
 
     @Test
-    public void disabledNoiseDoesNotResolveEngine() {
-        IrisData data = mock(IrisData.class);
+    public void disabledNoiseReturnsItsOffset() {
         IrisNoiseGenerator layer = new IrisNoiseGenerator(false).setOffsetY(0.37D);
-        assertEquals(0.37D, layer.getNoise(11L, 13D, -21D, data), 0D);
-        verify(data, never()).getEngine();
+        assertEquals(0.37D, layer.getNoise(11L, 13D, -21D, PackRuntime.standalone(null)), 0D);
     }
 
     private static final class GeneratorFixture {
         private final IrisData data = mock(IrisData.class);
         private final Engine engine = mock(Engine.class);
+        private final PackRuntime runtime = PackRuntime.forEngine(engine, data);
         private final IrisGeneratorStyle style = mock(IrisGeneratorStyle.class);
         private final CNG firstGenerator = mock(CNG.class);
         private final CNG secondGenerator = mock(CNG.class);
@@ -130,12 +108,11 @@ public final class IrisNoiseGeneratorCacheTest {
                 .setOctaves(OCTAVES);
 
         private GeneratorFixture() {
-            when(data.getEngine()).thenReturn(engine);
             Map<Long, CNG> generators = Map.of(
                     11L + GENERATOR_SALT - CONFIGURED_SEED, firstGenerator,
                     29L + GENERATOR_SALT - CONFIGURED_SEED, secondGenerator
             );
-            when(style.createForLayer(any(RNG.class), same(data), eq(OCTAVES), same(engine))).thenAnswer(invocation -> {
+            when(style.createForLayer(any(RNG.class), same(runtime), eq(OCTAVES))).thenAnswer(invocation -> {
                 RNG rng = invocation.getArgument(0);
                 return generators.get(rng.getSeed());
             });

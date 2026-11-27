@@ -19,6 +19,7 @@
 package art.arcane.iris.modded;
 
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.BiomeEnvironment;
@@ -223,17 +224,18 @@ public final class ModdedEngineEffects extends EngineAssignedComponent implement
     }
 
     private void applyEffects(NativeWorld level, NativeProtocolPlayer player, Iterable<IrisEffect> effects) {
+        PackRuntime runtime = PackRuntime.of(getEngine());
         for (IrisEffect effect : effects) {
             try {
-                applyEffect(level, player, effect);
+                applyEffect(level, player, effect, runtime);
             } catch (Throwable error) {
                 IrisLogging.reportError(error);
             }
         }
     }
 
-    private void applyEffect(NativeWorld level, NativeProtocolPlayer player, IrisEffect effect) {
-        if (!effect.shouldApplyNow()) {
+    private void applyEffect(NativeWorld level, NativeProtocolPlayer player, IrisEffect effect, PackRuntime runtime) {
+        if (!effect.shouldApplyNow(runtime)) {
             return;
         }
 

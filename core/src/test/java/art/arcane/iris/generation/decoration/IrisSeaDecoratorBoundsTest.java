@@ -1,6 +1,8 @@
 package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -121,10 +123,13 @@ public class IrisSeaDecoratorBoundsTest {
 
         private Fixture(int height, boolean surface) {
             when(engine.getHeight()).thenReturn(height);
+            IrisData data = MockPackData.create();
+            when(engine.getPackRuntime()).thenReturn(null);
+            when(engine.getData()).thenReturn(data);
             output = Hunk.newArrayHunk(1, height, 1);
             IrisDecorationPart part = surface ? IrisDecorationPart.SEA_SURFACE : IrisDecorationPart.SEA_FLOOR;
             when(biome.getDecoratorBucket(part)).thenReturn(new IrisDecorator[]{decorator});
-            when(decorator.passesChanceGate(any(), anyDouble(), anyDouble(), any())).thenReturn(true);
+            when(decorator.passesChanceGate(any(), anyDouble(), anyDouble(), any(DecoratorRuntime.class))).thenReturn(true);
             when(decorator.getBlockData100(any(), any(), anyDouble(), anyDouble(), anyDouble(), any())).thenReturn(body);
             when(decorator.getBlockDataForTop(any(), any(), anyDouble(), anyDouble(), anyDouble(), any())).thenReturn(top);
             when(decorator.getTopThreshold()).thenReturn(1D);

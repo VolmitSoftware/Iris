@@ -92,6 +92,7 @@
 #   {dumpPath}  Locatie van opgeslagen opruim- of herstelgegevens.
 #   {duration}  Opgemaakte duur van de bewerking.
 #   {e}  Exceptietekst van een mislukte zoekactie naar structuursjablonen.
+#   {editor}  Naam van de studio-editor die Iris opent, bijv. VSCode of Zed.
 #   {elapsed}  Opgemaakte verstreken tijd sinds het begin van de bewerking.
 #   {engines}  Aantal actieve Iris-generatiemotoren of dimensies.
 #   {entity}  Entiteittype dat de onderzochte spawner heeft geselecteerd.
@@ -656,7 +657,7 @@ regions_scan_failed = "§cRegioscan mislukt: {value}"
 opening_studio_pack_seed = "§aStudio openen voor het pakket \"{value}\" (seed: {seed})"
 provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§cGeef een dimensiepakket op: /iris std importvanilla pack=<dimension>"
 could_not_resolve_pack_dimension = "§cKon het pakket voor dimensie {value} niet bepalen"
-opening_vscode_pack = "§aVSCode openen voor het pakket \"{value}\""
+opening_editor_pack = "§a{editor} openen voor het pakket \"{value}\""
 pack_has_version = "§aHet pakket \"{value}\" heeft versie: {value2}"
 opening_noise_explorer = "§aOpenen van Noise Explorer!"
 cannot_add_items_virtual_inventory_because = "§cKan items niet toevoegen aan virtuele inventaris vanwege: {value}"
@@ -720,13 +721,13 @@ you_must_be_studio_world = "§cJe moet in een studio wereld zijn!"
 cannot_open_files_headless_environments = "§cKan geen bestanden openen in headless omgevingen!"
 desktop_is_not_supported_by_this_environment = "§cDesktop wordt niet ondersteund door deze omgeving!"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6Kan het bestand niet vinden; Misschien is het niet direct vanuit een bestand geladen?"
-opening_vscode = "§a{value} {value2} openen in VSCode! "
+opening_in_editor = "§a{value} {value2} openen in {editor}!"
+could_not_open_editor = "§c{editor} kon niet worden geopend. Controleer de console."
+no_editor_configured = "§cGeen editor geconfigureerd. Stel studio.editor in iris.json in op vscode of zed."
 cant_find_file_registrant_does_not_exist = "§cKan het bestand niet vinden. Of de registrant bestaat niet"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6Kan het bestand niet vinden; Misschien is het niet direct vanuit een bestand geladen?"
-opening_vscode_2 = "§a{value} {value2} openen in VSCode! "
 cant_find_file_registrant_does_not_exist_2 = "§cKan het bestand niet vinden. Of de registrant bestaat niet"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6Kan het bestand niet vinden; Misschien is het niet direct vanuit een bestand geladen?"
-opening_vscode_3 = "§a{value} {value2} openen in VSCode! "
 cant_find_file_registrant_does_not_exist_3 = "§cKan het bestand niet vinden. Of de registrant bestaat niet"
 
 [iris.bukkit.commandpregen]
@@ -1277,8 +1278,8 @@ replace_installed_types = "Geïnstalleerde pakketten: {value}"
 "param.dimension_pack_import_vanilla_content_into" = "Het dimensiepakket om vanilla-inhoud in te importeren"
 "param.how_many_variants_capture_per_tree_object_feature" = "Hoeveel varianten per boom/object-feature vast te leggen"
 "param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "Importeer ook vanilla & datapack structures/jigsaw in het pakket"
-"director.open_vscode_dimension" = "Open VSCode voor een dimensie"
-"param.dimension_open_vscode" = "De dimensie waarvoor VSCode wordt geopend"
+"director.open_editor_dimension" = "Open de geconfigureerde editor voor een dimensie"
+"param.dimension_open_editor" = "De dimensie waarvoor de editor wordt geopend"
 "director.close_open_studio_project" = "Sluit een open studioproject"
 "director.toggle_your_studio_debug_scoreboard" = "Je Studio-debugscorebord aan/uit"
 "director.create_new_studio_project" = "Een nieuw studioproject aanmaken"

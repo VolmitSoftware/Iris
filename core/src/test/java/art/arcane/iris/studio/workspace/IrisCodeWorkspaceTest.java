@@ -22,15 +22,18 @@ import org.mockito.Answers;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -121,10 +124,10 @@ public class IrisCodeWorkspaceTest {
         Files.writeString(unrelatedWorkspace.toPath(), "unrelated", StandardCharsets.UTF_8);
         Files.createDirectories(intellijMappings.toPath().getParent());
         Files.writeString(intellijMappings.toPath(), "not xml", StandardCharsets.UTF_8);
-        IrisSettings.get().getStudio().setOpenVSCode(false);
+        IrisSettings.get().getStudio().setEditor(StudioEditor.NONE);
 
         IrisCodeWorkspace workspace = new IrisCodeWorkspace(new IrisProject(pack));
-        workspace.prepareAndOpenVSCode();
+        workspace.prepareAndOpenEditor();
         data = IrisData.get(pack);
 
         JSONArray schemas = assertWorkspaceSchemasMaterialized(pack, canonicalWorkspace);
@@ -132,10 +135,75 @@ public class IrisCodeWorkspaceTest {
         Files.writeString(canonicalWorkspace.toPath(), "{\"settings\":{\"json.schemas\":[]}}", StandardCharsets.UTF_8);
         Files.delete(new File(pack, firstSchemaPath).toPath());
 
-        workspace.prepareAndOpenVSCode();
+        workspace.prepareAndOpenEditor();
         assertWorkspaceSchemasMaterialized(pack, canonicalWorkspace);
         assertEquals("Studio open must target only the canonical workspace", "unrelated",
                 Files.readString(unrelatedWorkspace.toPath(), StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void reopeningAfterAFileMoveOffersTheNewKeyAndChangesZedsSchemaHash() throws Exception {
+        File pack = temporaryFolder.newFolder("moved-biome");
+        Path biomes = Files.createDirectories(pack.toPath().resolve("biomes"));
+        Files.writeString(biomes.resolve("before-move.json"), "{}", StandardCharsets.UTF_8);
+        IrisSettings.get().getStudio().setEditor(StudioEditor.NONE);
+        IrisCodeWorkspace workspace = new IrisCodeWorkspace(new IrisProject(pack));
+        workspace.prepareAndOpenEditor();
+        data = IrisData.get(pack);
+        String hashBefore = zedSchemaHash(pack);
+        assertTrue(schemasMention(pack, "before-move"));
+
+        Files.move(biomes.resolve("before-move.json"), biomes.resolve("after-move.json"));
+        workspace.prepareAndOpenEditor();
+
+        assertTrue("The refreshed schemas must offer the moved file's new key", schemasMention(pack, "after-move"));
+        assertFalse("The refreshed schemas must stop offering the old key", schemasMention(pack, "before-move"));
+        assertNotEquals("Zed must see a settings change so it reloads the schemas", hashBefore, zedSchemaHash(pack));
+    }
+
+    @Test
+    public void updateWorkspaceMirrorsSchemasIntoZedSettings() throws Exception {
+        File pack = temporaryFolder.newFolder("zed-pack");
+        IrisCodeWorkspace workspace = new IrisCodeWorkspace(new IrisProject(pack));
+
+        assertTrue(workspace.updateWorkspace());
+        data = IrisData.get(pack);
+
+        JSONArray workspaceSchemas = new JSONObject(Files.readString(workspace.getCodeWorkspaceFile().toPath(), StandardCharsets.UTF_8))
+                .getJSONObject("settings").getJSONArray("json.schemas");
+        JSONArray zedSchemas = new JSONObject(Files.readString(new File(pack, ".zed/settings.json").toPath(), StandardCharsets.UTF_8))
+                .getJSONObject("lsp").getJSONObject("json-language-server").getJSONObject("settings")
+                .getJSONObject("json").getJSONArray("schemas");
+        assertTrue("Zed settings must carry the workspace schemas", zedSchemas.similar(workspaceSchemas));
+    }
+
+    @Test
+    public void workspaceOpensPackJsonAsJsoncSoCommentsAreNotFlagged() throws Exception {
+        File pack = temporaryFolder.newFolder("jsonc-pack");
+        JSONObject configuration = new IrisCodeWorkspace(new IrisProject(pack)).createCodeWorkspaceConfig();
+        data = IrisData.get(pack);
+
+        assertEquals("jsonc", configuration.getJSONObject("settings").getJSONObject("files.associations").getString("*.json"));
+    }
+
+    private static boolean schemasMention(File pack, String key) throws Exception {
+        try (Stream<Path> schemaFiles = Files.walk(pack.toPath().resolve(".iris/schema"))) {
+            return schemaFiles.filter(Files::isRegularFile)
+                    .anyMatch(file -> readQuietly(file).contains("\"" + key + "\""));
+        }
+    }
+
+    private static String readQuietly(Path file) {
+        try {
+            return Files.readString(file, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private static String zedSchemaHash(File pack) throws Exception {
+        JSONObject settings = new JSONObject(Files.readString(pack.toPath().resolve(".zed/settings.json"), StandardCharsets.UTF_8));
+        return settings.getJSONObject("lsp").getJSONObject("json-language-server").getJSONObject("settings").getString("irisSchemaHash");
     }
 
     private static JSONArray assertWorkspaceSchemasMaterialized(File pack, File canonicalWorkspace) throws Exception {

@@ -23,7 +23,9 @@ import art.arcane.iris.world.IrisPaperLikeBackendMode;
 import art.arcane.iris.world.IrisRuntimeSchedulerMode;
 
 import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.studio.workspace.StudioEditor;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONException;
@@ -110,6 +112,7 @@ public class IrisSettings {
             if (parsed != null) {
                 loaded = parsed;
             }
+            loaded.migrateLegacySettings();
 
             try {
                 IO.writeAll(s, new JSONObject(new Gson().toJson(loaded)).toString(4));
@@ -169,6 +172,7 @@ public class IrisSettings {
         }
 
         parsed.fillMissingSections();
+        parsed.migrateLegacySettings();
         return parsed;
     }
 
@@ -193,6 +197,12 @@ public class IrisSettings {
             IO.writeAll(s, new JSONObject(new Gson().toJson(this)).toString(4));
         } catch (JSONException | IOException e) {
             IrisLogging.reportError(e);
+        }
+    }
+
+    private void migrateLegacySettings() {
+        if (studio != null) {
+            studio.migrateLegacyOpenVSCode();
         }
     }
 
@@ -399,7 +409,10 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsStudio {
-        public boolean openVSCode = true;
+        public StudioEditor editor = StudioEditor.AUTO;
+        // Read-only bridge for iris.json files written before `editor` existed; Gson omits it again on save.
+        @SerializedName("openVSCode")
+        public Boolean legacyOpenVSCode = null;
         public boolean blendChanges = true;
         public boolean disableTimeAndWeather = true;
         public boolean entitySpawning = true;
@@ -407,6 +420,20 @@ public class IrisSettings {
         public boolean downloadApp = true;
         public String studioApp = "";
         public String electron = "electron";
+
+        public StudioEditor getEditor() {
+            return editor == null ? StudioEditor.AUTO : editor;
+        }
+
+        private void migrateLegacyOpenVSCode() {
+            if (legacyOpenVSCode == null) {
+                return;
+            }
+            if (!legacyOpenVSCode) {
+                editor = StudioEditor.NONE;
+            }
+            legacyOpenVSCode = null;
+        }
     }
 
     @Data

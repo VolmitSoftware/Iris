@@ -23,7 +23,8 @@ import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.pack.schema.SchemaBuilder;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.world.task.J;
+import art.arcane.iris.studio.workspace.SchemaFiles;
+import art.arcane.iris.studio.workspace.ZedProjectSettings;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.io.IO;
@@ -32,6 +33,9 @@ import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public final class ModdedWorkspaceGenerator {
     private ModdedWorkspaceGenerator() {
@@ -42,17 +46,29 @@ public final class ModdedWorkspaceGenerator {
     }
 
     public static File writeWorkspace(IrisData data, File folder, boolean immediateSchemas) throws IOException {
-        JSONObject workspaceConfig = buildWorkspace(data, immediateSchemas);
+        List<CompletableFuture<String>> schemaWrites = new ArrayList<>();
+        JSONObject workspaceConfig = buildWorkspace(data, immediateSchemas, schemaWrites);
         File workspace = new File(folder, folder.getName() + ".code-workspace");
         IO.writeAll(workspace, workspaceConfig.toString(4));
+        JSONArray schemas = workspaceConfig.getJSONObject("settings").getJSONArray("json.schemas");
+        writeZedSettings(folder, schemas, schemaWrites);
         return workspace;
     }
 
     public static JSONObject buildWorkspace(IrisData data) {
-        return buildWorkspace(data, false);
+        return buildWorkspace(data, false, new ArrayList<>());
     }
 
-    private static JSONObject buildWorkspace(IrisData data, boolean immediateSchemas) {
+    private static void writeZedSettings(File folder, JSONArray schemas, List<CompletableFuture<String>> schemaWrites) {
+        try {
+            new ZedProjectSettings(folder).writeIrisSettings(schemas, SchemaFiles.awaitTexts(schemaWrites));
+        } catch (Throwable e) {
+            IrisLogging.reportError(e);
+            IrisLogging.warn("Could not update Zed schema mappings for " + folder.getAbsolutePath() + "; VSCode workspace generation will continue.");
+        }
+    }
+
+    private static JSONObject buildWorkspace(IrisData data, boolean immediateSchemas, List<CompletableFuture<String>> schemaWrites) {
         JSONObject ws = new JSONObject();
         JSONArray folders = new JSONArray();
         JSONObject folder = new JSONObject();
@@ -82,17 +98,20 @@ public final class ModdedWorkspaceGenerator {
         json.put("editor.suggest.insertMode", "replace");
         settings.put("[json]", json);
         settings.put("json.maxItemsComputed", 30000);
-        settings.put("json.schemas", buildSchemas(data, immediateSchemas));
+        settings.put("json.schemas", buildSchemas(data, immediateSchemas, schemaWrites));
         ws.put("settings", settings);
         return ws;
     }
 
-    private static JSONArray buildSchemas(IrisData data, boolean immediateSchemas) {
+    private static JSONArray buildSchemas(IrisData data, boolean immediateSchemas, List<CompletableFuture<String>> schemaWrites) {
         JSONArray schemas = new JSONArray();
+        // The shared instance keeps its file listings across edits, so files added, moved or removed since would be missing.
+        data.clearLists();
 
         for (ResourceLoader<?> loader : data.getLoaders().v()) {
             if (loader.supportsSchemas()) {
-                schemas.put(immediateSchemas ? loader.buildSchemaImmediately() : loader.buildSchema());
+                schemas.put(loader.schemaMapping());
+                schemaWrites.add(loader.writeSchemaFile(immediateSchemas));
             }
         }
 
@@ -110,17 +129,7 @@ public final class ModdedWorkspaceGenerator {
                 entry.put("url", "./.iris/schema/snippet/" + snipType + "-schema.json");
                 schemas.put(entry);
                 File schemaFile = new File(data.getDataFolder(), ".iris/schema/snippet/" + snipType + "-schema.json");
-                if (immediateSchemas) {
-                    IO.writeAll(schemaFile, new SchemaBuilder(snippetClass, data).construct().toString(4));
-                } else {
-                    J.attemptAsync(() -> {
-                        try {
-                            IO.writeAll(schemaFile, new SchemaBuilder(snippetClass, data).construct().toString(4));
-                        } catch (Throwable e) {
-                            IrisLogging.reportError(e);
-                        }
-                    });
-                }
+                schemaWrites.add(SchemaFiles.write(schemaFile, () -> new SchemaBuilder(snippetClass, data).construct().toString(4), immediateSchemas));
             } catch (Throwable e) {
                 if (immediateSchemas) {
                     throw new IllegalStateException("Could not write snippet schema for " + snippetClass.getName(), e);

@@ -97,6 +97,7 @@
 #   {dumpPath}  Расположение сохранённых данных очистки или восстановления.
 #   {duration}  Длительность операции в готовом для отображения виде.
 #   {e}  Текст исключения при неудачном поиске шаблонов структур.
+#   {editor}  Название редактора студии, который открывает Iris, например VSCode или Zed.
 #   {elapsed}  Время с начала операции в готовом для отображения виде.
 #   {engines}  Число активных движков генерации Iris или измерений.
 #   {entity}  Тип сущности, выбранный проверяемым спавнером.
@@ -661,7 +662,7 @@ regions_scan_failed = "§cНе удалось просканировать ре�
 opening_studio_pack_seed = "§aОткрытие Studio для пакета \"{value}\" (сид: {seed})"
 provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§cУкажите пакет измерения: /iris std importvanilla pack=<dimension>"
 could_not_resolve_pack_dimension = "§cНе удалось определить пакет для измерения {value}"
-opening_vscode_pack = "§aОткрытие VSCode для пакета \"{value}\""
+opening_editor_pack = "§aОткрытие {editor} для пакета \"{value}\""
 pack_has_version = "§aПакет \"{value}\" имеет версию: {value2}"
 opening_noise_explorer = "§aОткрытие Noise Explorer!"
 cannot_add_items_virtual_inventory_because = "§cНельзя добавлять предметы в виртуальный инвентарь из-за: {value}"
@@ -725,13 +726,13 @@ you_must_be_studio_world = "§cВы должны находиться в мир�
 cannot_open_files_headless_environments = "§cНевозможно открыть файлы в среде без графического интерфейса!"
 desktop_is_not_supported_by_this_environment = "§cДесктоп не поддерживается этой средой!"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6Не удаётся найти файл; возможно, он был загружен не напрямую из файла?"
-opening_vscode = "§aОткрытие {value} {value2} в VSCode! "
+opening_in_editor = "§aОткрытие {value} {value2} в {editor}!"
+could_not_open_editor = "§cНе удалось открыть {editor}. Проверьте консоль."
+no_editor_configured = "§cРедактор не настроен. Укажите studio.editor как vscode или zed в iris.json."
 cant_find_file_registrant_does_not_exist = "§cНе удаётся найти файл. Или регистрант не существует"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6Не удаётся найти файл; возможно, он был загружен не напрямую из файла?"
-opening_vscode_2 = "§aОткрытие {value} {value2} в VSCode! "
 cant_find_file_registrant_does_not_exist_2 = "§cНе удаётся найти файл. Или регистрант не существует"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6Не удаётся найти файл; возможно, он был загружен не напрямую из файла?"
-opening_vscode_3 = "§aОткрытие {value} {value2} в VSCode! "
 cant_find_file_registrant_does_not_exist_3 = "§cНе удаётся найти файл. Или регистрант не существует"
 
 [iris.bukkit.commandpregen]
@@ -1282,8 +1283,8 @@ replace_installed_types = "Установленные пакеты: {value}"
 "param.dimension_pack_import_vanilla_content_into" = "Пакет измерения, в который импортировать контент vanilla"
 "param.how_many_variants_capture_per_tree_object_feature" = "Сколько вариантов захватывать для каждого элемента генерации дерева/объекта"
 "param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "Также импортировать structures/jigsaw vanilla & пакетов данных в пакет"
-"director.open_vscode_dimension" = "Открыть VSCode для измерения"
-"param.dimension_open_vscode" = "Измерение, для которого открыть VSCode"
+"director.open_editor_dimension" = "Открыть настроенный редактор для измерения"
+"param.dimension_open_editor" = "Измерение, для которого открыть редактор"
 "director.close_open_studio_project" = "Закрыть открытый студийный проект"
 "director.toggle_your_studio_debug_scoreboard" = "Переключить ваше табло отладки Studio"
 "director.create_new_studio_project" = "Создание нового студийного проекта"

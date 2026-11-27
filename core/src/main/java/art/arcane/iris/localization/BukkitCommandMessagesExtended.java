@@ -94,9 +94,17 @@ public final class BukkitCommandMessagesExtended {
             "iris.bukkit.commandedit.cannot_find_file_perhaps_it_was_not_loaded_directly_from",
             C.GOLD + "Cannot find the file; Perhaps it was not loaded directly from a file?"
     );
-    public static final TextKey COMMAND_EDIT_OPENING_VSCODE = TextKey.of(
-            "iris.bukkit.commandedit.opening_vscode",
-            C.GREEN + "Opening " + "{value}" + " " + "{value2}" + " in VSCode! "
+    public static final TextKey COMMAND_EDIT_OPENING_IN_EDITOR = TextKey.of(
+            "iris.bukkit.commandedit.opening_in_editor",
+            C.GREEN + "Opening " + "{value}" + " " + "{value2}" + " in " + "{editor}" + "!"
+    );
+    public static final TextKey COMMAND_EDIT_COULD_NOT_OPEN_EDITOR = TextKey.of(
+            "iris.bukkit.commandedit.could_not_open_editor",
+            C.RED + "Could not open " + "{editor}" + ". Check the console."
+    );
+    public static final TextKey COMMAND_EDIT_NO_EDITOR_CONFIGURED = TextKey.of(
+            "iris.bukkit.commandedit.no_editor_configured",
+            C.RED + "No editor configured. Set studio.editor to vscode or zed in iris.json."
     );
     public static final TextKey COMMAND_EDIT_CANT_FIND_FILE_REGISTRANT_DOES_NOT_EXIST = TextKey.of(
             "iris.bukkit.commandedit.cant_find_file_registrant_does_not_exist",
@@ -106,10 +114,6 @@ public final class BukkitCommandMessagesExtended {
             "iris.bukkit.commandedit.cannot_find_file_perhaps_it_was_not_loaded_directly_from_2",
             C.GOLD + "Cannot find the file; Perhaps it was not loaded directly from a file?"
     );
-    public static final TextKey COMMAND_EDIT_OPENING_VSCODE_2 = TextKey.of(
-            "iris.bukkit.commandedit.opening_vscode_2",
-            C.GREEN + "Opening " + "{value}" + " " + "{value2}" + " in VSCode! "
-    );
     public static final TextKey COMMAND_EDIT_CANT_FIND_FILE_REGISTRANT_DOES_NOT_EXIST_2 = TextKey.of(
             "iris.bukkit.commandedit.cant_find_file_registrant_does_not_exist_2",
             C.RED + "Cant find the file. Or registrant does not exist"
@@ -117,10 +121,6 @@ public final class BukkitCommandMessagesExtended {
     public static final TextKey COMMAND_EDIT_CANNOT_FIND_FILE_PERHAPS_IT_WAS_NOT_LOADED_DIRECTLY_FROM_3 = TextKey.of(
             "iris.bukkit.commandedit.cannot_find_file_perhaps_it_was_not_loaded_directly_from_3",
             C.GOLD + "Cannot find the file; Perhaps it was not loaded directly from a file?"
-    );
-    public static final TextKey COMMAND_EDIT_OPENING_VSCODE_3 = TextKey.of(
-            "iris.bukkit.commandedit.opening_vscode_3",
-            C.GREEN + "Opening " + "{value}" + " " + "{value2}" + " in VSCode! "
     );
     public static final TextKey COMMAND_EDIT_CANT_FIND_FILE_REGISTRANT_DOES_NOT_EXIST_3 = TextKey.of(
             "iris.bukkit.commandedit.cant_find_file_registrant_does_not_exist_3",
@@ -555,9 +555,9 @@ public final class BukkitCommandMessagesExtended {
             "iris.bukkit.commandstudio.could_not_resolve_pack_dimension",
             C.RED + "Could not resolve the pack for dimension " + "{value}"
     );
-    public static final TextKey COMMAND_STUDIO_OPENING_VSCODE_PACK = TextKey.of(
-            "iris.bukkit.commandstudio.opening_vscode_pack",
-            C.GREEN + "Opening VSCode for the \"" + "{value}" + "\" pack"
+    public static final TextKey COMMAND_STUDIO_OPENING_EDITOR_PACK = TextKey.of(
+            "iris.bukkit.commandstudio.opening_editor_pack",
+            C.GREEN + "Opening " + "{editor}" + " for the \"" + "{value}" + "\" pack"
     );
     public static final TextKey COMMAND_STUDIO_PACK_HAS_VERSION = TextKey.of(
             "iris.bukkit.commandstudio.pack_has_version",
@@ -787,13 +787,13 @@ public final class BukkitCommandMessagesExtended {
             COMMAND_EDIT_CANNOT_OPEN_FILES_HEADLESS_ENVIRONMENTS,
             COMMAND_EDIT_DESKTOP_IS_NOT_SUPPORTED_BY_THIS_ENVIRONMENT,
             COMMAND_EDIT_CANNOT_FIND_FILE_PERHAPS_IT_WAS_NOT_LOADED_DIRECTLY_FROM,
-            COMMAND_EDIT_OPENING_VSCODE,
+            COMMAND_EDIT_OPENING_IN_EDITOR,
+            COMMAND_EDIT_COULD_NOT_OPEN_EDITOR,
+            COMMAND_EDIT_NO_EDITOR_CONFIGURED,
             COMMAND_EDIT_CANT_FIND_FILE_REGISTRANT_DOES_NOT_EXIST,
             COMMAND_EDIT_CANNOT_FIND_FILE_PERHAPS_IT_WAS_NOT_LOADED_DIRECTLY_FROM_2,
-            COMMAND_EDIT_OPENING_VSCODE_2,
             COMMAND_EDIT_CANT_FIND_FILE_REGISTRANT_DOES_NOT_EXIST_2,
             COMMAND_EDIT_CANNOT_FIND_FILE_PERHAPS_IT_WAS_NOT_LOADED_DIRECTLY_FROM_3,
-            COMMAND_EDIT_OPENING_VSCODE_3,
             COMMAND_EDIT_CANT_FIND_FILE_REGISTRANT_DOES_NOT_EXIST_3,
             COMMAND_FIND_NOT_IRIS_WORLD,
             COMMAND_FIND_NOT_IRIS_WORLD_2,
@@ -901,7 +901,7 @@ public final class BukkitCommandMessagesExtended {
             COMMAND_STUDIO_OPENING_STUDIO_PACK_SEED,
             COMMAND_STUDIO_PROVIDE_DIMENSION_PACK_IRIS_STD_IMPORTVANILLA_PACK_DIMENSION,
             COMMAND_STUDIO_COULD_NOT_RESOLVE_PACK_DIMENSION,
-            COMMAND_STUDIO_OPENING_VSCODE_PACK,
+            COMMAND_STUDIO_OPENING_EDITOR_PACK,
             COMMAND_STUDIO_PACK_HAS_VERSION,
             COMMAND_STUDIO_OPENING_NOISE_EXPLORER,
             COMMAND_STUDIO_OPENING_IMAGE_MAP_STUDIO,

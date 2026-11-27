@@ -116,6 +116,7 @@ final class IrisLanguageGuide {
             Map.entry("dumpPath", "Location of the saved cleanup or restore data."),
             Map.entry("duration", "Formatted duration of the operation."),
             Map.entry("e", "Exception text from a failed structure-template scan."),
+            Map.entry("editor", "Name of the studio editor Iris opens, such as VSCode or Zed."),
             Map.entry("elapsed", "Formatted time elapsed since the operation started."),
             Map.entry("engines", "Number of active Iris generation engines or dimensions."),
             Map.entry("entity", "Entity type selected by the inspected spawner."),

@@ -167,20 +167,37 @@ public class IrisLoggingTest {
     }
 
     @Test
-    public void aKeyPastTheCapIsStillStatedWhileClaimedKeysStayQuiet() {
-        String claimed = uniqueKey();
-        assertTrue(IrisLogging.warnOnce(claimed, "claimed"));
-        for (int filler = 1; filler < IrisLogging.MAX_ONCE_KEYS; filler++) {
+    public void pastTheCapTheLeastRecentlySeenKeyIsDroppedAndWarnsAgain() {
+        String stale = uniqueKey();
+        String recurring = uniqueKey();
+        assertTrue(IrisLogging.warnOnce(stale, "stale"));
+        assertTrue(IrisLogging.warnOnce(recurring, "recurring"));
+        for (int filler = 2; filler < IrisLogging.MAX_ONCE_KEYS; filler++) {
             IrisLogging.warnOnce(uniqueKey(), "filler");
         }
-        String unclaimable = uniqueKey();
+        assertFalse(IrisLogging.warnOnce(recurring, "recurring"));
+        String newer = uniqueKey();
         levels.clear();
 
-        assertTrue(IrisLogging.warnOnce(unclaimable, "new condition"));
-        assertTrue(IrisLogging.warnOnce(unclaimable, "new condition"));
-        assertFalse(IrisLogging.warnOnce(claimed, "claimed"));
+        assertTrue(IrisLogging.warnOnce(newer, "new condition"));
+        assertFalse(IrisLogging.warnOnce(newer, "new condition"));
+        assertFalse(IrisLogging.warnOnce(recurring, "recurring"));
+        assertTrue(IrisLogging.warnOnce(stale, "stale"));
 
-        assertEquals(List.of(LogLevel.WARN, LogLevel.WARN, LogLevel.DEBUG), levels);
+        assertEquals(List.of(LogLevel.WARN, LogLevel.DEBUG, LogLevel.DEBUG, LogLevel.WARN), levels);
+    }
+
+    @Test
+    public void aSuppliedMessageIsOnlyBuiltWhenStated() {
+        String key = uniqueKey();
+        int[] built = {0};
+
+        assertTrue(IrisLogging.warnOnce(key, () -> "built " + ++built[0]));
+        assertFalse(IrisLogging.warnOnce(key, () -> "built " + ++built[0]));
+
+        assertEquals(1, built[0]);
+        assertEquals(List.of(LogLevel.WARN), levels);
+        assertEquals(List.of("built 1"), messages);
     }
 
     private void bindCapturingPlatform() {

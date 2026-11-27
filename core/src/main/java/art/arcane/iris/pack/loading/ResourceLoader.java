@@ -311,12 +311,12 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
 
     protected void warnMissingOnce(String name) {
         IrisLogging.warnOnce(manager.onceKey(MISSING_KEY_KIND + resourceTypeName, name),
-                "Couldn't find " + resourceTypeName + ": " + name + " (called by " + callerHint() + ")");
+                () -> "Couldn't find " + resourceTypeName + ": " + name + " (called by " + callerHint() + ")");
     }
 
     protected void warnLiteralNullOnce(String action) {
         IrisLogging.warnOnce(manager.onceKey(LITERAL_NULL_KEY_KIND + resourceTypeName, action),
-                "Refusing " + resourceTypeName + " " + action + " for literal string \"null\" (called by " + callerHint() + ")");
+                () -> "Refusing " + resourceTypeName + " " + action + " for literal string \"null\" (called by " + callerHint() + ")");
     }
 
     /**

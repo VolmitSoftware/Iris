@@ -18,9 +18,11 @@
 
 package art.arcane.iris.spi;
 
+import java.util.Collections;
 import java.util.IllegalFormatException;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
@@ -36,7 +38,13 @@ import java.util.regex.Pattern;
  */
 public final class IrisLogging {
     static final int MAX_ONCE_KEYS = 512;
-    private static final Set<String> ONCE_KEYS = ConcurrentHashMap.newKeySet();
+    private static final Map<String, Boolean> ONCE_KEYS = Collections.synchronizedMap(
+            new LinkedHashMap<>(64, 0.75F, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+                    return size() > MAX_ONCE_KEYS;
+                }
+            });
     private static final Pattern LEGACY_COLOR = Pattern.compile("(?i)\\u00a7[0-9A-FK-ORX]");
     private static final Pattern MINI_MESSAGE_TAG = Pattern.compile("(?i)</?(?:reset|bold|b|italic|i|underlined?|u|strikethrough|st|obfuscated?|obf|black|dark_blue|dark_green|dark_aqua|dark_red|dark_purple|gold|gray|dark_gray|blue|green|aqua|red|light_purple|yellow|white|gradient|font|hover|click|rainbow)(?::[^>\\n]{0,96})?>|<#[0-9a-f]{6}>");
 
@@ -88,13 +96,26 @@ public final class IrisLogging {
      * Logs at {@link LogLevel#WARN} the first time {@code key} is seen and at {@link LogLevel#DEBUG} every
      * time after, for a condition that is worth stating once but is reached per block, per sample or per
      * chunk. Returns true when the warning was the one that got stated, so a caller can attach a stack trace
-     * or other one-off detail to it. Once {@link #MAX_ONCE_KEYS} keys are claimed, a key not among them is
-     * stated at {@link LogLevel#WARN} every time: repeating is the lesser harm than hiding a new condition.
+     * or other one-off detail to it. At most {@link #MAX_ONCE_KEYS} keys are held; past that the least recently
+     * seen key is dropped and warns again the next time it comes up.
      *
      * @see #resetOnceKeys()
      */
     public static boolean warnOnce(String key, String format, Object... args) {
         return once(LogLevel.WARN, key, format, args);
+    }
+
+    /**
+     * {@link #warnOnce(String, String, Object...)} for a message that is costly to build: {@code message} is
+     * only called when the warning is stated, and a repeat logs nothing.
+     */
+    public static boolean warnOnce(String key, Supplier<String> message) {
+        if (isRepeat(key)) {
+            return false;
+        }
+
+        emit(LogLevel.WARN, message == null ? "null" : String.valueOf(message.get()));
+        return true;
     }
 
     /**
@@ -210,7 +231,9 @@ public final class IrisLogging {
             return;
         }
 
-        ONCE_KEYS.removeIf(key -> key.startsWith(prefix));
+        synchronized (ONCE_KEYS) {
+            ONCE_KEYS.keySet().removeIf(key -> key.startsWith(prefix));
+        }
     }
 
     private static boolean once(LogLevel level, String key, String format, Object... args) {
@@ -226,16 +249,11 @@ public final class IrisLogging {
 
     /**
      * The cap is what keeps a key space nobody bounded - a block name, a biome name, a mod id - from becoming
-     * a leak. Past it nothing new is claimed, so a key that could not be claimed never counts as a repeat:
-     * it is stated at its own level every time rather than hidden at debug.
+     * a leak. Eviction is least recently seen, so a condition that keeps recurring stays claimed while one
+     * that stopped makes room for new ones.
      */
     private static boolean isRepeat(String key) {
-        String claimable = key == null ? "null" : key;
-        if (ONCE_KEYS.size() >= MAX_ONCE_KEYS) {
-            return ONCE_KEYS.contains(claimable);
-        }
-
-        return !ONCE_KEYS.add(claimable);
+        return ONCE_KEYS.put(key == null ? "null" : key, Boolean.TRUE) != null;
     }
 
     private static void emit(LogLevel level, String message) {

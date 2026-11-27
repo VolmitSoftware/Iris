@@ -208,7 +208,7 @@ public final class PackValidator {
             GatedDimensions dimensions = loadEverything(packFolder, data, dimensionFiles);
             List<CompatFinding> findings = data.getCompatReport().findings();
             applyCompatFindings(minecraftVersion, dimensions.anyExcluded(), findings, blockingErrors, warnings);
-            applyFailOnMissingContent(packFolder.getName(), dimensions.dimensionsFailingOnMissingContent(),
+            applyRequireAllContent(packFolder.getName(), dimensions.dimensionsRequiringAllContent(),
                     minecraftVersion, findings, blockingErrors);
             return findings;
         } catch (Throwable e) {
@@ -233,11 +233,11 @@ public final class PackValidator {
      * every static object on each dimension.
      *
      * @return whether any dimension in the pack cannot generate on this server, and which dimensions opted into
-     * failing on missing content
+     * requiring all content
      */
     private static GatedDimensions loadEverything(File packFolder, IrisData data, File[] dimensionFiles) {
         boolean dimensionExcluded = false;
-        List<String> dimensionsFailingOnMissingContent = new ArrayList<>();
+        List<String> dimensionsRequiringAllContent = new ArrayList<>();
         File dimensionsFolder = new File(packFolder, DIMENSIONS_FOLDER);
         for (File dimensionFile : dimensionFiles) {
             IrisDimension dimension = data.getDimensionLoader().load(
@@ -248,8 +248,8 @@ public final class PackValidator {
             if (dimension.isCompatExcluded()) {
                 dimensionExcluded = true;
             }
-            if (dimension.isFailOnMissingContent()) {
-                dimensionsFailingOnMissingContent.add(dimension.getLoadKey());
+            if (dimension.isRequireAllContent()) {
+                dimensionsRequiringAllContent.add(dimension.getLoadKey());
             }
             // Static objects gate themselves (the walker never descends into them), so ask each one here.
             dimension.evaluateStaticObjectsCompat(data);
@@ -268,10 +268,10 @@ public final class PackValidator {
         for (IrisObjectPlacement placement : placements) {
             placement.evaluateCompat(data);
         }
-        return new GatedDimensions(dimensionExcluded, List.copyOf(dimensionsFailingOnMissingContent));
+        return new GatedDimensions(dimensionExcluded, List.copyOf(dimensionsRequiringAllContent));
     }
 
-    private record GatedDimensions(boolean anyExcluded, List<String> dimensionsFailingOnMissingContent) {
+    private record GatedDimensions(boolean anyExcluded, List<String> dimensionsRequiringAllContent) {
     }
 
     private static void collectPlacements(IrisRegistrant registrant, Set<IrisObjectPlacement> out) {
@@ -346,24 +346,24 @@ public final class PackValidator {
     }
 
     /**
-     * A dimension with {@code failOnMissingContent} refuses to load when the gate excluded or dropped anything in its pack;
+     * A dimension with {@code requireAllContent} refuses to load when the gate excluded or dropped anything in its pack;
      * substitutions are declared fallbacks and never count.
      */
-    static void applyFailOnMissingContent(
+    static void applyRequireAllContent(
             String packName,
-            List<String> failingDimensionKeys,
+            List<String> requiringDimensionKeys,
             String minecraftVersion,
             List<CompatFinding> findings,
             List<String> blockingErrors
     ) {
-        if (failingDimensionKeys == null || failingDimensionKeys.isEmpty()) {
+        if (requiringDimensionKeys == null || requiringDimensionKeys.isEmpty()) {
             return;
         }
         List<CompatFinding> removed = removedContent(findings);
         if (removed.isEmpty()) {
             return;
         }
-        for (String dimensionKey : failingDimensionKeys) {
+        for (String dimensionKey : requiringDimensionKeys) {
             addDistinct(blockingErrors, List.of(missingContentError(packName, dimensionKey, minecraftVersion, removed)));
         }
     }
@@ -376,7 +376,7 @@ public final class PackValidator {
     }
 
     /**
-     * {@code Dimension 'overworld' in pack 'overworld' uses failOnMissingContent and content is unavailable on Minecraft
+     * {@code Dimension 'overworld' in pack 'overworld' uses requireAllContent and content is unavailable on Minecraft
      * 26.1.2: minecraft:sulfur (block): excluded biome cave/sulfur at layers[0].palette[1] | ...}
      */
     static String missingContentError(
@@ -387,7 +387,7 @@ public final class PackValidator {
     ) {
         List<String> keyLines = PackCompatReport.of(removed).keyLines(MISSING_CONTENT_SUBJECTS_PER_KEY);
         return "Dimension '" + dimensionKey + "' in pack '" + packName
-                + "' uses failOnMissingContent and content is unavailable on Minecraft "
+                + "' uses requireAllContent and content is unavailable on Minecraft "
                 + versionOrUnknown(minecraftVersion) + ": " + String.join(MISSING_CONTENT_KEY_SEPARATOR, keyLines);
     }
 

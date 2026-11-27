@@ -15,7 +15,7 @@ import static org.junit.Assert.assertTrue;
 
 public class PackValidatorMissingContentFailureTest {
     private static final String PACK = "overworld";
-    private static final List<String> FAILING_DIMENSION = List.of("overworld");
+    private static final List<String> REQUIRING_DIMENSION = List.of("overworld");
 
     private static CompatFinding block(CompatAction action, String subjectKey) {
         return new CompatFinding(
@@ -27,15 +27,15 @@ public class PackValidatorMissingContentFailureTest {
                 CompatRegistry.ENTITY, "minecraft:camel", action, "Spawner", subjectKey, "spawns[0]");
     }
 
-    private static List<String> blockingErrors(List<String> failingDimensions, List<CompatFinding> findings) {
+    private static List<String> blockingErrors(List<String> requiringDimensions, List<CompatFinding> findings) {
         List<String> blockingErrors = new ArrayList<>();
-        PackValidator.applyFailOnMissingContent(PACK, failingDimensions, "26.1.2", findings, blockingErrors);
+        PackValidator.applyRequireAllContent(PACK, requiringDimensions, "26.1.2", findings, blockingErrors);
         return blockingErrors;
     }
 
     @Test
-    public void failingIsOffByDefaultAndMissingContentStaysNonBlocking() {
-        assertFalse(new IrisDimension().isFailOnMissingContent());
+    public void requirementIsOffByDefaultAndMissingContentStaysNonBlocking() {
+        assertFalse(new IrisDimension().isRequireAllContent());
 
         List<String> errors = blockingErrors(List.of(),
                 List.of(block(CompatAction.EXCLUDED, "cave/sulfur"), entity(CompatAction.DROPPED, "desert")));
@@ -45,15 +45,15 @@ public class PackValidatorMissingContentFailureTest {
 
     @Test
     public void droppedEntryFailsTheDimension() {
-        List<String> errors = blockingErrors(FAILING_DIMENSION, List.of(entity(CompatAction.DROPPED, "desert")));
+        List<String> errors = blockingErrors(REQUIRING_DIMENSION, List.of(entity(CompatAction.DROPPED, "desert")));
 
-        assertEquals(List.of("Dimension 'overworld' in pack 'overworld' uses failOnMissingContent and content is unavailable"
+        assertEquals(List.of("Dimension 'overworld' in pack 'overworld' uses requireAllContent and content is unavailable"
                 + " on Minecraft 26.1.2: minecraft:camel (entity): dropped Spawner desert at spawns[0]"), errors);
     }
 
     @Test
     public void excludedRegistrantFailsTheDimension() {
-        List<String> errors = blockingErrors(FAILING_DIMENSION, List.of(
+        List<String> errors = blockingErrors(REQUIRING_DIMENSION, List.of(
                 block(CompatAction.EXCLUDED, "cave/sulfur"), entity(CompatAction.DROPPED, "desert")));
 
         assertEquals(1, errors.size());
@@ -64,19 +64,19 @@ public class PackValidatorMissingContentFailureTest {
 
     @Test
     public void substitutionsAloneKeepTheDimensionLoadable() {
-        List<String> errors = blockingErrors(FAILING_DIMENSION, List.of(block(CompatAction.SUBSTITUTED, "desert/dunes")));
+        List<String> errors = blockingErrors(REQUIRING_DIMENSION, List.of(block(CompatAction.SUBSTITUTED, "desert/dunes")));
 
         assertTrue(errors.toString(), errors.isEmpty());
     }
 
     @Test
     public void dimensionWithNothingMissingIsLoadable() {
-        assertTrue(blockingErrors(FAILING_DIMENSION, List.of()).isEmpty());
+        assertTrue(blockingErrors(REQUIRING_DIMENSION, List.of()).isEmpty());
     }
 
     @Test
     public void substitutionsAreLeftOutAndSubjectsAreCappedPerKey() {
-        List<String> errors = blockingErrors(FAILING_DIMENSION, List.of(
+        List<String> errors = blockingErrors(REQUIRING_DIMENSION, List.of(
                 block(CompatAction.EXCLUDED, "a"),
                 block(CompatAction.EXCLUDED, "b"),
                 block(CompatAction.DROPPED, "c"),

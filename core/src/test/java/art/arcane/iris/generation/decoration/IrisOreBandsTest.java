@@ -1,7 +1,7 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.IrisBlockData;
-import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.testsupport.KeyedBlockState;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -48,7 +48,7 @@ public class IrisOreBandsTest {
                 }
                 for (int x = -3; x <= 3; x++) {
                     assertSame("trial " + trial + " y " + y + " x " + x,
-                            scan(ores, x, y, 5 - x), bands.generate(x, y, 5 - x, RNG_SOURCE, null, null));
+                            scan(ores, x, y, 5 - x), generate(bands, x, y, 5 - x));
                 }
             }
         }
@@ -71,7 +71,7 @@ public class IrisOreBandsTest {
         IrisGeneratorStyle style = new IrisGeneratorStyle(NoiseStyle.FLAT).setZoom(2.5D).setExponent(1.3D)
                 .setFracture(new IrisGeneratorStyle(NoiseStyle.SIMPLEX).setMultiplier(9D));
         flat.setPalette(palette).setChanceStyle(style).setRange(new IrisRange(0, 100));
-        CNG reference = style.create(RNG_SOURCE, null);
+        CNG reference = style.create(RNG_SOURCE, PackRuntime.standalone(null));
         for (double threshold : new double[]{0.1D, 0.5D, 0.99D, 1D}) {
             flat.setThreshold(threshold);
             for (int index = 0; index < 100; index++) {
@@ -79,14 +79,18 @@ public class IrisOreBandsTest {
                 int y = index % 101;
                 int z = 400 - index * 11;
                 NativeBlockState expected = reference.noise(x, y, z) > threshold ? null : ore;
-                assertSame(expected, flat.generate(x, y, z, RNG_SOURCE, null));
+                assertSame(expected, flat.generate(x, y, z, RNG_SOURCE, PackRuntime.standalone(null)));
             }
         }
     }
 
+    private static NativeBlockState generate(IrisOreBands bands, int x, int y, int z) {
+        return PackRuntime.standalone(null).oreBands(bands, RNG_SOURCE.getSeed()).generate(x, y, z, RNG_SOURCE);
+    }
+
     private static NativeBlockState scan(KList<IrisOreGenerator> ores, int x, int y, int z) {
         for (IrisOreGenerator ore : ores) {
-            NativeBlockState state = ore.generate(x, y, z, RNG_SOURCE, null);
+            NativeBlockState state = ore.generate(x, y, z, RNG_SOURCE, PackRuntime.standalone(null));
             if (state != null) {
                 return state;
             }
@@ -110,10 +114,10 @@ public class IrisOreBandsTest {
         ores.add(generator(1D, 57D, 1D, 2L));
         ores.add(generator(58D, 58D, 1D, 3L));
         IrisOreBands bands = IrisOreBands.of(ores);
-        assertSame(scan(ores, 0, 0, 0), bands.generate(0, 0, 0, RNG_SOURCE, null, null));
-        assertSame(scan(ores, 0, 30, 0), bands.generate(0, 30, 0, RNG_SOURCE, null, null));
-        assertSame(scan(ores, 0, 58, 0), bands.generate(0, 58, 0, RNG_SOURCE, null, null));
-        assertNull(bands.contains(59) ? bands.generate(0, 59, 0, RNG_SOURCE, null, null) : null);
+        assertSame(scan(ores, 0, 0, 0), generate(bands, 0, 0, 0));
+        assertSame(scan(ores, 0, 30, 0), generate(bands, 0, 30, 0));
+        assertSame(scan(ores, 0, 58, 0), generate(bands, 0, 58, 0));
+        assertNull(bands.contains(59) ? generate(bands, 0, 59, 0) : null);
     }
     private static final class FixedPalette extends IrisMaterialPalette {
         private final NativeBlockState state;
@@ -124,7 +128,7 @@ public class IrisOreBandsTest {
         }
 
         @Override
-        public NativeBlockState get(RNG rng, double x, double y, double z, IrisData data) {
+        public NativeBlockState get(RNG rng, double x, double y, double z, PackRuntime runtime) {
             return state;
         }
     }
@@ -137,7 +141,7 @@ public class IrisOreBandsTest {
         }
 
         @Override
-        public CNG create(RNG rng, IrisData data) {
+        public CNG create(RNG rng, PackRuntime runtime) {
             return chance;
         }
     }

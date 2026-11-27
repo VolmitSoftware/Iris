@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
 
@@ -52,7 +54,7 @@ public final class IrisBiomeLayerSlopeSourceTest {
 
     @Test
     public void lowerLedgeSlopeControlsSurfacePaletteSelection() {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisComplex complex = mock(IrisComplex.class);
         IrisBiomePaletteLayer grass = mock(IrisBiomePaletteLayer.class);
         CNG heightGenerator = mock(CNG.class);
@@ -66,14 +68,15 @@ public final class IrisBiomeLayerSlopeSourceTest {
         when(grass.getMinHeight()).thenReturn(1);
         when(grass.getMaxHeight()).thenReturn(1);
         when(grass.getSlopeCondition()).thenReturn(new IrisSlopeClip(0D, 2.6D));
-        when(grass.getHeightGenerator(any(RNG.class), same(data))).thenReturn(heightGenerator);
+        when(grass.getHeightGenerator(any(RNG.class), MockPackData.runtimeOf(data))).thenReturn(heightGenerator);
         when(heightGenerator.fit(1, 1, 12D, -8D)).thenReturn(1);
-        when(grass.get(rng, 0, 12D, 0D, -8D, data)).thenReturn(block);
+        PaletteLayerRuntime grassRuntime = data.standalonePackRuntime().paletteLayer(grass);
+        when(grass.get(rng, 0, 12D, 0D, -8D, grassRuntime)).thenReturn(block);
 
         KList<NativeBlockState> ledge = biome.generateLayers(
-                rockFallbackDimension(), 12D, -8D, rng, 1, 32, data, complex);
+                rockFallbackDimension(), 12D, -8D, rng, 1, 32, data.standalonePackRuntime(), complex);
         KList<NativeBlockState> cap = biome.generateLayers(
-                rockFallbackDimension(), 12D, -8D, rng, 1, 96, data, complex);
+                rockFallbackDimension(), 12D, -8D, rng, 1, 96, data.standalonePackRuntime(), complex);
 
         assertEquals(1, ledge.size());
         assertSame(block, ledge.get(0));
@@ -84,7 +87,7 @@ public final class IrisBiomeLayerSlopeSourceTest {
     @Test
     @SuppressWarnings("unchecked")
     public void explicitSlopeStreamControlsSurfacePaletteSelection() {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisComplex hostComplex = mock(IrisComplex.class);
         ProceduralStream<Double> hostSlope = mock(ProceduralStream.class);
         ProceduralStream<Double> sourceSlope = mock(ProceduralStream.class);
@@ -106,14 +109,15 @@ public final class IrisBiomeLayerSlopeSourceTest {
         when(paletteLayer.getMinHeight()).thenReturn(1);
         when(paletteLayer.getMaxHeight()).thenReturn(1);
         when(paletteLayer.getSlopeCondition()).thenReturn(new IrisSlopeClip(5D, 5D));
-        when(paletteLayer.getHeightGenerator(any(RNG.class), same(data))).thenReturn(heightGenerator);
+        when(paletteLayer.getHeightGenerator(any(RNG.class), MockPackData.runtimeOf(data))).thenReturn(heightGenerator);
         when(heightGenerator.fit(1, 1, 12D, -8D)).thenReturn(1);
-        when(paletteLayer.get(rng, 0, 12D, 0D, -8D, data)).thenReturn(surfaceBlock);
+        PaletteLayerRuntime paletteLayerRuntime = data.standalonePackRuntime().paletteLayer(paletteLayer);
+        when(paletteLayer.get(rng, 0, 12D, 0D, -8D, paletteLayerRuntime)).thenReturn(surfaceBlock);
 
         KList<NativeBlockState> hostLayers = biome.generateLayers(
-                rockFallbackDimension(), 12D, -8D, rng, 1, 32, data, hostComplex);
+                rockFallbackDimension(), 12D, -8D, rng, 1, 32, data.standalonePackRuntime(), hostComplex);
         KList<NativeBlockState> sourceLayers = biome.generateLayersWithSlope(
-                rockFallbackDimension(), 12D, -8D, rng, 1, 32, data, sourceSlope);
+                rockFallbackDimension(), 12D, -8D, rng, 1, 32, data.standalonePackRuntime(), sourceSlope);
 
         assertTrue(hostLayers.isEmpty());
         assertEquals(1, sourceLayers.size());

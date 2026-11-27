@@ -18,6 +18,7 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.decoration.IrisSurface;
 import art.arcane.iris.generation.runtime.Engine;
@@ -127,7 +128,7 @@ public final class ModdedEntitySpawner {
 
         entity.configureAnimal(irisEntity);
 
-        applySpawnEffect(irisEntity.getSpawnEffect(), entity, level);
+        applySpawnEffect(irisEntity.getSpawnEffect(), entity, level, PackRuntime.of(engine));
         ModdedEntityCommandRunner.run(irisEntity.getRawCommands(), level.world(), blockX, blockY, blockZ);
         if (riseEffectActive && entity.living()) {
             startRiseEffect(engine, level, entity);
@@ -200,8 +201,9 @@ public final class ModdedEntitySpawner {
         return level.chunksSafe(chunkX, chunkZ);
     }
 
-    private static void applySpawnEffect(IrisEffect effect, NativeSpawnedEntity entity, NativeEntityRuntime level) {
-        if (effect == null || !effect.shouldApplyNow()) {
+    private static void applySpawnEffect(IrisEffect effect, NativeSpawnedEntity entity, NativeEntityRuntime level,
+                                         PackRuntime runtime) {
+        if (effect == null || !effect.shouldApplyNow(runtime)) {
             return;
         }
 

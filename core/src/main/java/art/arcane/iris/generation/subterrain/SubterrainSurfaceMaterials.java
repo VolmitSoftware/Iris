@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.subterrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
@@ -22,19 +23,21 @@ public final class SubterrainSurfaceMaterials {
     private final IrisDimension dimension;
     private final IrisComplex complex;
     private final IrisData data;
+    private final PackRuntime runtime;
     private final RNG random;
     private final int minimumY;
     private final Map<String, IrisBiome> biomes = new HashMap<>();
     private final Map<String, Set<String>> floorSupports = new HashMap<>();
 
     public SubterrainSurfaceMaterials(SubterrainPlanner planner, List<SubterrainPlan> plans,
-                                     IrisDimension dimension, IrisComplex complex, IrisData data,
+                                     IrisDimension dimension, IrisComplex complex, PackRuntime runtime,
                                      RNG random, int minimumY) {
         this.planner = planner;
         this.plans = plans;
         this.dimension = dimension;
         this.complex = complex;
-        this.data = data;
+        this.runtime = runtime;
+        this.data = runtime.data();
         this.random = random;
         this.minimumY = minimumY;
     }
@@ -54,11 +57,11 @@ public final class SubterrainSurfaceMaterials {
         }
         NativeBlockState candidate;
         if (surface == Surface.WALL) {
-            candidate = biome.getWall().get(random, x, worldY - minimumY, z, data);
+            candidate = biome.getWall().get(random, x, worldY - minimumY, z, runtime);
         } else {
             KList<NativeBlockState> layers = surface == Surface.FLOOR
-                    ? biome.generateLayers(dimension, x, z, random, 1, worldY + 1 - minimumY, data, complex)
-                    : biome.generateCeilingLayers(dimension, x, z, random, 1, worldY - 1 - minimumY, data, complex);
+                    ? biome.generateLayers(dimension, x, z, random, 1, worldY + 1 - minimumY, runtime, complex)
+                    : biome.generateCeilingLayers(dimension, x, z, random, 1, worldY - 1 - minimumY, runtime, complex);
             candidate = layers.isEmpty() ? null : layers.getFirst();
         }
         return SubterrainRasterizer.isRetainedSolid(candidate) ? candidate : fallback;

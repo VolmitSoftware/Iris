@@ -1,6 +1,5 @@
 package art.arcane.iris.generation.runtime;
 
-import art.arcane.iris.generation.cache.ReleasableThreadLocal;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisInterpolator;
 import art.arcane.volmlib.util.interpolation.NoiseBounds;
@@ -248,7 +247,7 @@ public class IrisComplexGridBoundsCacheTest {
         Class<?> cacheClass = Class.forName("art.arcane.iris.generation.runtime.IrisComplex$GridBoundsCache");
         Constructor<?> cacheConstructor = cacheClass.getDeclaredConstructor();
         cacheConstructor.setAccessible(true);
-        ReleasableThreadLocal<Object> cache = new ReleasableThreadLocal<>(() -> newCache(cacheConstructor));
+        ThreadSlots<Object> cache = new ThreadSlots<>(() -> newCache(cacheConstructor));
         Field gridBoundsCache = IrisComplex.class.getDeclaredField("gridBoundsCache");
         gridBoundsCache.setAccessible(true);
         gridBoundsCache.set(complex, cache);
@@ -296,7 +295,7 @@ public class IrisComplexGridBoundsCacheTest {
     private static long invokeCornerBounds(IrisComplex complex, Method method, IrisInterpolator interpolator, int x, int z) throws Exception {
         Field gridBoundsCache = IrisComplex.class.getDeclaredField("gridBoundsCache");
         gridBoundsCache.setAccessible(true);
-        ReleasableThreadLocal<?> cache = (ReleasableThreadLocal<?>) gridBoundsCache.get(complex);
+        ThreadSlots<?> cache = (ThreadSlots<?>) gridBoundsCache.get(complex);
         return (long) method.invoke(complex, cache.get(), null, interpolator, 0, new IrisGenerator[0], x, z);
     }
 
@@ -393,7 +392,7 @@ public class IrisComplexGridBoundsCacheTest {
         }
 
         @Override
-        public double getHeight(double x, double z, long seed) {
+        public double getHeight(PackRuntime runtime, double x, double z, long seed) {
             invocations++;
             return value;
         }

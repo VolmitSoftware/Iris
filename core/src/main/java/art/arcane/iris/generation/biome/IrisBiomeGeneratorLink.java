@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGenerator;
 
 import art.arcane.volmlib.util.cache.AtomicCache;
@@ -81,8 +82,8 @@ public class IrisBiomeGeneratorLink {
         });
     }
 
-    public double getHeight(DataProvider xg, double x, double z, long seed) {
-        double g = getCachedGenerator(xg).getHeight(x, z, seed);
+    public double getHeight(PackRuntime runtime, double x, double z, long seed) {
+        double g = getCachedGenerator(runtime::data).getHeight(runtime, x, z, seed);
         g = g < 0 ? 0 : g;
         g = g > 1 ? 1 : g;
 

@@ -1,5 +1,6 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.generation.runtime.ThreadSlots;
 import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -9,7 +10,7 @@ final class TransitionBandIndex {
     private final GenerationBoundary boundary;
     private final TransitionBoundarySampler sampler;
     private final AtomicReferenceArray<Region> regions = new AtomicReferenceArray<>(MAXIMUM_CACHED_REGIONS);
-    private final ThreadLocal<Region> lastRegion = new ThreadLocal<>();
+    private final ThreadSlots<Region> lastRegion = ThreadSlots.bindings();
 
     TransitionBandIndex(GenerationBoundary boundary, TransitionBoundarySampler sampler) {
         this.boundary = boundary;

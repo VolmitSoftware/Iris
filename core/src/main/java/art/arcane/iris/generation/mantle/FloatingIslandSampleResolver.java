@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.runtime.Engine;
@@ -32,6 +33,7 @@ import org.jetbrains.annotations.Nullable;
 final class FloatingIslandSampleResolver implements IslandObjectPlacer.SampleProvider {
     private final IrisData data;
     private final Engine engine;
+    private final PackRuntime runtime;
     private final int chunkHeight;
     private final long baseSeed;
     private final FloatingIslandBoundarySampler boundarySampler;
@@ -41,11 +43,16 @@ final class FloatingIslandSampleResolver implements IslandObjectPlacer.SamplePro
     FloatingIslandSampleResolver(EngineMantle engineMantle, FloatingIslandBoundarySampler boundarySampler) {
         this.data = engineMantle.getData();
         this.engine = engineMantle.getEngine();
+        this.runtime = PackRuntime.of(engine, data);
         this.chunkHeight = engine.getHeight();
         this.baseSeed = engine.getSeedManager().getTerrain() ^ IrisFloatingChildBiomeModifier.FLOATING_BASE_SEED_SALT;
         this.boundarySampler = boundarySampler;
         this.sampleCache = new Long2ObjectOpenHashMap<>();
         this.resolvedSamples = new LongOpenHashSet();
+    }
+
+    PackRuntime runtime() {
+        return runtime;
     }
 
     @Override
@@ -59,7 +66,7 @@ final class FloatingIslandSampleResolver implements IslandObjectPlacer.SamplePro
             resolvedSamples.add(key);
             return null;
         }
-        FloatingIslandSample sample = FloatingIslandSample.sample(parent, x, z, chunkHeight, baseSeed, data, engine, boundarySampler);
+        FloatingIslandSample sample = FloatingIslandSample.sample(parent, x, z, chunkHeight, baseSeed, runtime, boundarySampler);
         resolvedSamples.add(key);
         if (sample != null) {
             sampleCache.put(key, sample);

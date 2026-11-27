@@ -1,6 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.matter.MatterCavern;
@@ -20,15 +20,15 @@ public class IrisStructureFoundationWriteTest {
         MantleWriter writer = mock(MantleWriter.class);
         IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
         RNG rng = new RNG(1337L);
-        IrisData data = mock(IrisData.class);
+        PackRuntime runtime = PackRuntime.standalone(null);
         NativeBlockState deepslateBricks = mock(NativeBlockState.class);
-        when(palette.get(rng, 12, -247, -18, data)).thenReturn(deepslateBricks);
+        when(palette.get(rng, 12, -247, -18, runtime)).thenReturn(deepslateBricks);
 
         IrisStructureComponent.writeFoundationSupport(
-                writer, palette, rng, data, 12, 9, -18, -256);
+                writer, palette, rng, runtime, 12, 9, -18, -256);
 
         InOrder order = inOrder(palette, writer);
-        order.verify(palette).get(rng, 12, -247, -18, data);
+        order.verify(palette).get(rng, 12, -247, -18, runtime);
         order.verify(writer).clearData(12, 9, -18, MatterCavern.class);
         order.verify(writer).set(12, 9, -18, deepslateBricks);
     }
@@ -38,11 +38,11 @@ public class IrisStructureFoundationWriteTest {
         MantleWriter writer = mock(MantleWriter.class);
         IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
         RNG rng = new RNG(1337L);
-        IrisData data = mock(IrisData.class);
+        PackRuntime runtime = PackRuntime.standalone(null);
 
         try {
             IrisStructureComponent.writeFoundationSupport(
-                    writer, palette, rng, data, 12, 9, -18, -256);
+                    writer, palette, rng, runtime, 12, 9, -18, -256);
         } catch (IllegalStateException error) {
             assertTrue(error.getMessage().contains("12,-247,-18"));
             verifyNoInteractions(writer);

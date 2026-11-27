@@ -1,5 +1,6 @@
 package art.arcane.iris.pack.datapack.export.compile.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.IrisNoiseGenerator;
@@ -38,6 +39,7 @@ public final class NoiseStyleCompiler implements StyleCompiler {
     private final StyleCompiler selectors;
     private final Map<LeafKey, LeafNoiseFit.FittedLeaf> leaves = new ConcurrentHashMap<>();
     private final Map<LevelKey, WarpFit.LevelFit> levels = new ConcurrentHashMap<>();
+    private final PackRuntime runtime = PackRuntime.standalone(null);
 
     public NoiseStyleCompiler(CellularStyleLowering cellular) {
         this.cellular = Objects.requireNonNull(cellular, "cellular");
@@ -56,7 +58,7 @@ public final class NoiseStyleCompiler implements StyleCompiler {
     }
 
     public static CNG generator(IrisGeneratorStyle style) {
-        return build(prepared(Objects.requireNonNull(style, "style"), 1.0), 1);
+        return build(prepared(Objects.requireNonNull(style, "style"), 1.0), 1, PackRuntime.standalone(null));
     }
 
     @Override
@@ -182,7 +184,7 @@ public final class NoiseStyleCompiler implements StyleCompiler {
     private Field style(IrisGeneratorStyle style, int octaveMultiplier, Domain domain, Emit emit, String path) {
         IrisGeneratorStyle prepared = prepared(Objects.requireNonNull(style, "noise style"), domain.zoom());
         String stylePath = path + "/" + styleName(style);
-        CNG root = build(prepared, octaveMultiplier);
+        CNG root = build(prepared, octaveMultiplier, runtime);
         if (cellular(prepared, root)) {
             if (domain.warpX() != null || domain.warpZ() != null) {
                 throw new IllegalArgumentException("Cellular noise style " + styleName(style) + " cannot be exported under a layer fracture warp");
@@ -393,8 +395,8 @@ public final class NoiseStyleCompiler implements StyleCompiler {
         }
     }
 
-    private static CNG build(IrisGeneratorStyle style, int octaveMultiplier) {
-        return style.createForLayer(new RNG(BUILD_SEED), null, octaveMultiplier);
+    private static CNG build(IrisGeneratorStyle style, int octaveMultiplier, PackRuntime runtime) {
+        return style.createForLayer(new RNG(BUILD_SEED), runtime, octaveMultiplier);
     }
 
     private static IrisGeneratorStyle prepared(IrisGeneratorStyle style, double zoom) {

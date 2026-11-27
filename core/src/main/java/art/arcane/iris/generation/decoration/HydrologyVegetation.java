@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
@@ -32,7 +33,7 @@ public final class HydrologyVegetation {
         this.shoreRng = new RNG(DecoratorCore.partSeed(this.seed, IrisDecorationPart.SHORE_LINE));
     }
 
-    public void decorate(Hunk<NativeBlockState> output, int localX, int localZ, int x, int z, WaterRole role, Water water, IrisData data) {
+    public void decorate(Hunk<NativeBlockState> output, int localX, int localZ, int x, int z, WaterRole role, Water water, PackRuntime runtime) {
         Placement placement = placement(role);
         if (placement == Placement.NONE) {
             return;
@@ -45,7 +46,7 @@ public final class HydrologyVegetation {
         if (ground < 0 || ground + 1 >= output.getHeight()) {
             return;
         }
-        Column column = new Column(output, localX, localZ, x, z, ground, water, data);
+        Column column = new Column(output, localX, localZ, x, z, ground, water, runtime);
         if (placement == Placement.SHORE) {
             decorateShore(column, decorators.shore);
             return;
@@ -112,7 +113,7 @@ public final class HydrologyVegetation {
         int count = 0;
         for (IrisDecorator decorator : bucket) {
             try {
-                if (!decorator.passesChanceGate(partRng, column.x, column.z, column.data)) {
+                if (!decorator.passesChanceGate(partRng, column.x, column.z, column.runtime)) {
                     continue;
                 }
             } catch (Throwable e) {
@@ -213,9 +214,10 @@ public final class HydrologyVegetation {
         private final int z;
         private final int ground;
         private final Water water;
+        private final PackRuntime runtime;
         private final IrisData data;
 
-        private Column(Hunk<NativeBlockState> output, int localX, int localZ, int x, int z, int ground, Water water, IrisData data) {
+        private Column(Hunk<NativeBlockState> output, int localX, int localZ, int x, int z, int ground, Water water, PackRuntime runtime) {
             this.output = output;
             this.localX = localX;
             this.localZ = localZ;
@@ -223,7 +225,8 @@ public final class HydrologyVegetation {
             this.z = z;
             this.ground = ground;
             this.water = water;
-            this.data = data;
+            this.runtime = runtime;
+            this.data = runtime.data();
         }
 
         private boolean accepts(IrisDecorator decorator, NativeBlockState support) {
@@ -231,7 +234,7 @@ public final class HydrologyVegetation {
         }
 
         private int stack(IrisDecorator decorator, RNG rng, int room) {
-            return decorator.isStacking() ? Math.min(room, DecoratorCore.computeStack(decorator, rng, x, z, data, room)) : 1;
+            return decorator.isStacking() ? Math.min(room, DecoratorCore.computeStack(decorator, rng, x, z, runtime, room)) : 1;
         }
 
         private void place(IrisDecorator decorator, RNG rng, int baseY, int room, Slot slot, NativeBlockState support) {
@@ -243,7 +246,7 @@ public final class HydrologyVegetation {
         }
 
         private void placePicked(IrisDecorator decorator, RNG rng, int baseY, int room, Slot slot, NativeBlockState support) {
-            NativeBlockState first = decorator.pickBlockData(rng, data, x, z);
+            NativeBlockState first = decorator.pickBlockData(rng, runtime, x, z);
             if (first == null) {
                 return;
             }
@@ -260,7 +263,7 @@ public final class HydrologyVegetation {
                 int y = baseY + index;
                 boolean top = (stack == 1 ? 1D : (double) index / (stack - 1)) >= decorator.getTopThreshold();
                 if (top != sampledTop) {
-                    sampled = top ? decorator.pickBlockDataTop(rng, data, x, z) : decorator.pickBlockData(rng, data, x, z);
+                    sampled = top ? decorator.pickBlockDataTop(rng, runtime, x, z) : decorator.pickBlockData(rng, runtime, x, z);
                     sampledTop = top;
                 }
                 NativeBlockState block = sampled == null ? null : fit(sampled, y, slot, decorator, index == 0 ? support : null);

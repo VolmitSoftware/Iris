@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.noise.CNG;
@@ -40,7 +41,7 @@ public final class PlacementModulePaint implements PlacementModule {
                 state.reject("paint-projection");
                 return;
             }
-            var warp = state.config.getWarp().isFlat() ? null : state.config.getSurfaceWarp(context.rng, context.self.getLoader());
+            var warp = state.config.getWarp().isFlat() ? null : state.config.getSurfaceWarp(context.rng, context.runtime.scopeFor(context.self.getLoader()));
             double half = state.config.getWarp().isFlat() ? 0 : state.config.getWarp().getMultiplier() / 2D;
             state.paintSupport = transformedPaintSupport(context.self, state.spin, state.translateOffset, warp, half,
                     context.x, state.y + state.yrand, context.z);

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.mantle.EngineMantle;
@@ -46,6 +47,7 @@ final class DecoratorCore {
     private static volatile NativeBlockState twistingVines;
     private static volatile NativeBlockState twistingVinesPlant;
 
+    /** Per-thread placement options; callers clear the mantle reference once a placement returns. */
     static final ThreadLocal<PlaceOpts> SCRATCH_OPTS = ThreadLocal.withInitial(PlaceOpts::new);
 
 
@@ -73,11 +75,13 @@ final class DecoratorCore {
         boolean caveSkipFluid;
         boolean underwater;
         int fluidHeight;
+        EngineMantle mantle;
 
         void reset() {
             caveSkipFluid = false;
             underwater = false;
             fluidHeight = 0;
+            mantle = null;
         }
     }
 
@@ -90,25 +94,27 @@ final class DecoratorCore {
     }
 
     static IrisDecorator pickDecorator(IrisBiome biome, IrisDecorationPart part, RNG gRNG,
-                                       RNG colRng, IrisData data, double realX, double realZ) {
+                                       RNG colRng, PackRuntime runtime, double realX, double realZ) {
         IrisDecorator[] bucket = biome.getDecoratorBucket(part);
         if (bucket.length == 0) {
             return null;
         }
 
+        DecoratorRuntime[] decoratorRuntimes = runtime.biome(biome).decorators(part);
         IrisDecorator picked = null;
         int count = 0;
 
-        for (IrisDecorator d : bucket) {
+        for (int index = 0; index < bucket.length; index++) {
+            IrisDecorator d = bucket[index];
             try {
-                if (d.passesChanceGate(gRNG, realX, realZ, data)) {
+                if (d.passesChanceGate(gRNG, realX, realZ, decoratorRuntimes[index])) {
                     count++;
                     if (count == 1 || colRng.nextInt(count) == 0) {
                         picked = d;
                     }
                 }
             } catch (Throwable e) {
-                skip(e, d, data, (int) realX, -1, (int) realZ, biome);
+                skip(e, d, runtime.data(), (int) realX, -1, (int) realZ, biome);
             }
         }
 
@@ -117,14 +123,14 @@ final class DecoratorCore {
 
     static void placeSurfaceSingle(IrisDecorator decorator,
                                    int x, int z, int realX, int height, int realZ,
-                                   Hunk<NativeBlockState> data, RNG rng, IrisData irisData,
+                                   Hunk<NativeBlockState> data, RNG rng, PackRuntime runtime,
                                    boolean underwater, boolean caveSkipFluid, EngineMantle mantle) {
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
 
         NativeBlockState bdx = data.get(x, height, z);
-        NativeBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
+        NativeBlockState bd = decorator.pickBlockData(rng, runtime, realX, realZ);
 
         if (!IrisSpeleothems.isSpike(bd) && !underwater && !canGoOn(bd, bdx)
                 && !decorator.isForcePlace() && decorator.getForceBlock() == null) {
@@ -136,14 +142,14 @@ final class DecoratorCore {
                 return;
             }
             data.set(x, height, z, fixFacesForHunk(
-                    decorator.getForceBlock().getBlockData(irisData), data, x, z, realX, height, realZ, mantle));
+                    decorator.getForceBlock().getBlockData(runtime.data()), data, x, z, realX, height, realZ, mantle));
         }
 
         if (!decorator.isForcePlace()) {
-            if (decorator.getWhitelist() != null && !matchesPalette(decorator.getWhitelistArray(irisData), bdx)) {
+            if (decorator.getWhitelist() != null && !matchesPalette(decorator.getWhitelistArray(runtime.data()), bdx)) {
                 return;
             }
-            if (decorator.getBlacklist() != null && matchesPalette(decorator.getBlacklistArray(irisData), bdx)) {
+            if (decorator.getBlacklist() != null && matchesPalette(decorator.getBlacklistArray(runtime.data()), bdx)) {
                 return;
             }
         }
@@ -174,7 +180,7 @@ final class DecoratorCore {
                 data.set(x, lowerY, z, lower);
                 data.set(x, upperY, z, IrisProceduralBlocks.normalizeWaterlogging(upper, data.get(x, upperY, z), true));
             } catch (Throwable e) {
-                skip(e, decorator, irisData, realX, lowerY, realZ, null);
+                skip(e, decorator, runtime.data(), realX, lowerY, realZ, null);
             }
             return;
         }
@@ -200,8 +206,8 @@ final class DecoratorCore {
 
     static void placeSingleAt(IrisDecorator decorator, int x, int z,
                               int realX, int height, int realZ, Hunk<NativeBlockState> data,
-                              RNG rng, IrisData irisData, boolean applyFixFaces, EngineMantle mantle) {
-        NativeBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
+                              RNG rng, PackRuntime runtime, boolean applyFixFaces, EngineMantle mantle) {
+        NativeBlockState bd = decorator.pickBlockData(rng, runtime, realX, realZ);
         if (bd == null) {
             return;
         }
@@ -210,7 +216,7 @@ final class DecoratorCore {
             return;
         }
         if (IrisSpeleothems.isSpike(bd)) {
-            if (height + 1 < data.getHeight() && allowsSurface(decorator, data.get(x, height + 1, z), irisData)) {
+            if (height + 1 < data.getHeight() && allowsSurface(decorator, data.get(x, height + 1, z), runtime.data())) {
                 placeSingleSpike(bd, data, x, z, height, false, false);
             }
             return;
@@ -223,17 +229,17 @@ final class DecoratorCore {
 
     static void placeStackUp(IrisDecorator decorator, int x, int z, int realX, int realZ,
                              int height, int max, Hunk<NativeBlockState> data,
-                             RNG rng, IrisData irisData, PlaceOpts opts, EngineMantle mantle) {
+                             RNG rng, PackRuntime runtime, PlaceOpts opts) {
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
 
         NativeBlockState support = data.get(x, height, z);
-        if (!allowsSurface(decorator, support, irisData)) {
+        if (!allowsSurface(decorator, support, runtime.data())) {
             return;
         }
         int effectiveMax = opts.underwater ? Math.min(max, opts.fluidHeight - height) : max;
-        int stack = computeStack(decorator, rng, realX, realZ, irisData, effectiveMax);
+        int stack = computeStack(decorator, rng, realX, realZ, runtime, effectiveMax);
         int placed = 0;
         boolean hasSpikes = false;
         NativeBlockState sampledBlock = null;
@@ -252,8 +258,8 @@ final class DecoratorCore {
             boolean top = threshold >= decorator.getTopThreshold();
             if (sampledBlock == null || top != sampledTop) {
                 sampledBlock = top
-                        ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
-                        : decorator.pickBlockData(rng, irisData, realX, realZ);
+                        ? decorator.pickBlockDataTop(rng, runtime, realX, realZ)
+                        : decorator.pickBlockData(rng, runtime, realX, realZ);
                 sampledTop = top;
             }
             NativeBlockState block = sampledBlock;
@@ -261,7 +267,7 @@ final class DecoratorCore {
                 break;
             }
             if (!IrisSugarCane.canPlace(block, data, x, y, z, realX, realZ,
-                    mantle == null ? null : mantle.getEngine())) {
+                    opts.mantle == null ? null : opts.mantle.getEngine())) {
                 break;
             }
             if (IrisSpeleothems.isSpike(block)) {
@@ -286,15 +292,15 @@ final class DecoratorCore {
 
     static void placeStackDown(IrisDecorator decorator, int x, int z, int realX, int realZ,
                                int height, int minHeight, Hunk<NativeBlockState> data,
-                               RNG rng, IrisData irisData, int max, PlaceOpts opts, EngineMantle mantle) {
+                               RNG rng, PackRuntime runtime, int max, PlaceOpts opts, EngineMantle mantle) {
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
         NativeBlockState support = height + 1 < data.getHeight() ? data.get(x, height + 1, z) : null;
-        if (!allowsSurface(decorator, support, irisData)) {
+        if (!allowsSurface(decorator, support, runtime.data())) {
             return;
         }
-        int stack = computeStack(decorator, rng, realX, realZ, irisData, max);
+        int stack = computeStack(decorator, rng, realX, realZ, runtime, max);
         int placed = 0;
         boolean hasSpikes = false;
         NativeBlockState sampledBlock = null;
@@ -313,8 +319,8 @@ final class DecoratorCore {
             boolean top = threshold >= decorator.getTopThreshold();
             if (sampledBlock == null || top != sampledTop) {
                 sampledBlock = top
-                        ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
-                        : decorator.pickBlockData(rng, irisData, realX, realZ);
+                        ? decorator.pickBlockDataTop(rng, runtime, realX, realZ)
+                        : decorator.pickBlockData(rng, runtime, realX, realZ);
                 sampledTop = top;
             }
             NativeBlockState block = sampledBlock;
@@ -347,11 +353,11 @@ final class DecoratorCore {
     static void placeFloatingSimple(IrisDecorator decorator,
                                     int xf, int zf, int realX, int realZ,
                                     int height, int max, Hunk<NativeBlockState> data,
-                                    RNG rng, IrisData irisData, EngineMantle mantle) {
+                                    RNG rng, PackRuntime runtime, EngineMantle mantle) {
         if (!hasFloatingSurface(data, xf, height, zf)) {
             return;
         }
-        NativeBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
+        NativeBlockState bd = decorator.pickBlockData(rng, runtime, realX, realZ);
         if (bd == null) {
             return;
         }
@@ -361,7 +367,7 @@ final class DecoratorCore {
         }
 
         if (IrisSpeleothems.isSpike(bd)) {
-            if (max > 1 && allowsSurface(decorator, data.get(xf, height, zf), irisData)) {
+            if (max > 1 && allowsSurface(decorator, data.get(xf, height, zf), runtime.data())) {
                 placeSingleSpike(bd, data, xf, zf, height + 1, true, false);
             }
             return;
@@ -381,7 +387,7 @@ final class DecoratorCore {
                 data.set(xf, lowerY, zf, IrisProceduralBlocks.normalizeWaterlogging(lower, data.get(xf, lowerY, zf), true));
                 data.set(xf, upperY, zf, IrisProceduralBlocks.normalizeWaterlogging(upper, data.get(xf, upperY, zf), true));
             } catch (Throwable e) {
-                skip(e, decorator, irisData, realX, lowerY, realZ, null);
+                skip(e, decorator, runtime.data(), realX, lowerY, realZ, null);
             }
             return;
         }
@@ -394,11 +400,11 @@ final class DecoratorCore {
     static int placeFloatingStacked(IrisDecorator decorator,
                                     int xf, int zf, int realX, int realZ,
                                     int height, int max, Hunk<NativeBlockState> data,
-                                    RNG rng, IrisData irisData, EngineMantle mantle) {
+                                    RNG rng, PackRuntime runtime, EngineMantle mantle) {
         if (!hasFloatingSurface(data, xf, height, zf)) {
             return 0;
         }
-        int stack = decorator.getHeight(rng, realX, realZ, irisData);
+        int stack = decorator.getHeight(rng, realX, realZ, runtime);
         if (decorator.isScaleStack()) {
             stack = Math.min((int) Math.ceil((double) max * ((double) stack / 100)), decorator.getAbsoluteMaxStack());
         } else {
@@ -418,8 +424,8 @@ final class DecoratorCore {
             boolean top = threshold >= decorator.getTopThreshold();
             if (sampledBlock == null || top != sampledTop) {
                 sampledBlock = top
-                        ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
-                        : decorator.pickBlockData(rng, irisData, realX, realZ);
+                        ? decorator.pickBlockDataTop(rng, runtime, realX, realZ)
+                        : decorator.pickBlockData(rng, runtime, realX, realZ);
                 sampledTop = top;
             }
             NativeBlockState bd = sampledBlock;
@@ -431,7 +437,7 @@ final class DecoratorCore {
                 break;
             }
             if (IrisSpeleothems.isSpike(bd)) {
-                if (!allowsSurface(decorator, data.get(xf, height, zf), irisData)
+                if (!allowsSurface(decorator, data.get(xf, height, zf), runtime.data())
                         || !IrisSpeleothems.canPlace(bd, data, xf, zf, h, true, false)) {
                     break;
                 }
@@ -579,8 +585,8 @@ final class DecoratorCore {
     }
 
     static int computeStack(IrisDecorator decorator, RNG rng, double realX, double realZ,
-                                    IrisData irisData, int max) {
-        int stack = decorator.getHeight(rng, realX, realZ, irisData);
+                                    PackRuntime runtime, int max) {
+        int stack = decorator.getHeight(rng, realX, realZ, runtime);
         if (decorator.isScaleStack()) {
             stack = Math.min((int) Math.ceil((double) max * ((double) stack / 100)), decorator.getAbsoluteMaxStack());
         } else {

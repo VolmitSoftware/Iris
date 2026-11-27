@@ -65,10 +65,8 @@ import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import lombok.AccessLevel;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -101,10 +99,6 @@ public class IrisEngine implements Engine {
     private final AtomicDouble perSecond;
     private final AtomicLong lastGPS;
     private final EngineTarget target;
-    @Getter(AccessLevel.PACKAGE)
-    @EqualsAndHashCode.Exclude
-    @ToString.Exclude
-    private final EngineRef cacheRef = new EngineRef(this);
     private final InitializationMode initializationMode;
     private final Path initialMantleStorageDirectory;
     private final GenerationKernelRegistry.Version initialKernelVersion;
@@ -1428,6 +1422,17 @@ public class IrisEngine implements Engine {
     @Override
     public IrisComplex getComplex() {
         return complexIn(threadState.current());
+    }
+
+    @Override
+    public PackRuntime getPackRuntime() {
+        EngineThreadState.Frame frame = threadState.current();
+        RuntimeAssembly assembly = frame == null ? null : frame.assembly;
+        if (assembly != null) {
+            return assembly.packRuntime;
+        }
+        GenerationRuntime current = selectedGenerationRuntime(frame);
+        return current == null ? null : current.packRuntime();
     }
 
     private IrisComplex complexIn(EngineThreadState.Frame frame) {

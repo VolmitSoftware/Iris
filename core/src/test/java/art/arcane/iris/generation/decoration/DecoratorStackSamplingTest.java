@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -36,6 +37,7 @@ public class DecoratorStackSamplingTest {
 
     private static void assertEquivalentStack(long seed, int height, int direction, int coordinate) {
         IrisData data = mock(IrisData.class);
+        PackRuntime runtime = PackRuntime.standalone(data);
         RNG rng = new RNG(seed);
         RNG controlRng = new RNG(seed);
         CNG variance = new CNG(new RNG(seed + 11L));
@@ -46,7 +48,7 @@ public class DecoratorStackSamplingTest {
                 .setStackMin(height).setStackMax(height).setTopThreshold(0.4D));
         doReturn(body).when(decorator).getBlockDataArray(data);
         doReturn(top).when(decorator).getBlockDataTopsArray(data);
-        doReturn(variance).when(decorator).getVarianceGenerator(rng, data);
+        doReturn(variance).when(decorator).getVarianceGenerator(rng, runtime);
         NativeBlockState air = block("minecraft:air");
         doReturn(true).when(air).isAir();
         NativeBlockState support = block("minecraft:stone");
@@ -64,11 +66,11 @@ public class DecoratorStackSamplingTest {
         int z = coordinate * 3 - 7;
         switch (direction) {
             case 0 -> DecoratorCore.placeStackUp(decorator, 0, 0, coordinate, z, 0, height,
-                    output, rng, data, opts, null);
+                    output, rng, runtime, opts);
             case 1 -> DecoratorCore.placeStackDown(decorator, 0, 0, coordinate, z, height, 0,
-                    output, rng, data, height, opts, null);
+                    output, rng, runtime, height, opts, null);
             case 2 -> assertEquals(height, DecoratorCore.placeFloatingStacked(decorator, 0, 0,
-                    coordinate, z, 0, height + 1, output, rng, data, null));
+                    coordinate, z, 0, height + 1, output, rng, runtime, null));
             default -> throw new IllegalArgumentException("Unknown stack direction");
         }
         boolean usedBody = false;
@@ -84,8 +86,8 @@ public class DecoratorStackSamplingTest {
             usedTop |= topSegment;
         }
         assertSame(support, output.get(0, supportY, 0));
-        verify(decorator, times(usedBody ? 1 : 0)).pickBlockData(rng, data, coordinate, z);
-        verify(decorator, times(usedTop ? 1 : 0)).pickBlockDataTop(rng, data, coordinate, z);
+        verify(decorator, times(usedBody ? 1 : 0)).pickBlockData(rng, runtime, coordinate, z);
+        verify(decorator, times(usedTop ? 1 : 0)).pickBlockDataTop(rng, runtime, coordinate, z);
         assertEquals(controlRng.nextLong(), rng.nextLong());
     }
 

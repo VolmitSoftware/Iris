@@ -18,6 +18,10 @@
 
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex;
+import art.arcane.iris.structure.placement.StructureReachability;
+import art.arcane.iris.structure.placement.StructurePlacementScope;
+import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.EngineBackgroundTasks.BackgroundTaskDrain;
 import art.arcane.iris.generation.runtime.EngineRuntimeBuilder.RuntimeAssembly;
@@ -180,6 +184,7 @@ final class EngineShutdownSequence {
                     engine.closed = true;
                     engine.lifecycleState = LifecycleState.CLOSED;
                 }
+                failure = appendFailure(failure, runCleanup(null, this::releaseStructureRegistries));
                 IrisLogging.debug("Engine Fully Shutdown!");
             }
         }
@@ -205,6 +210,15 @@ final class EngineShutdownSequence {
         IrisLogging.error("Iris engine shutdown remains incomplete after cleanup failures for " + engine.getWorld().name() + ".");
         IrisLogging.reportError(failure);
         throw new IllegalStateException("Iris engine shutdown remains incomplete after cleanup failures.", failure);
+    }
+
+    /** Engine-keyed structure registries hold only live engines, so a closed engine removes itself from each one. */
+    private void releaseStructureRegistries() {
+        NativeStructureOwnershipStore.release(engine);
+        IrisStructureLocator.invalidate(engine);
+        StructurePlacementScope.invalidate(engine);
+        StructureReachability.invalidate(engine);
+        NativeStructureVolumeIndex.uninstall(engine);
     }
 
     void cleanupFailedConstruction(Throwable original) {
@@ -251,6 +265,7 @@ final class EngineShutdownSequence {
                 cleanupFailure = releaseGenerationAdmissions(cleanupFailure);
                 if (generationAdmissions.isEmpty()) {
                     engine.closed = true;
+                    cleanupFailure = appendFailure(cleanupFailure, runCleanup(null, this::releaseStructureRegistries));
                 }
             }
         }

@@ -20,10 +20,9 @@ package art.arcane.iris.generation.noise;
 
 import art.arcane.iris.generation.image.IrisImageMap;
 
-import art.arcane.iris.generation.runtime.EngineRef;
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.world.history.GenerationKernelRegistry;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
@@ -53,15 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Description("A gen style")
 @Data
 public class IrisGeneratorStyle {
-    private static final int GENERATOR_CACHE_SIZE = 8;
     private static final ConcurrentHashMap<String, String> ACTIVE_CACHE_KEYS = new ConcurrentHashMap<>();
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient LazyBoundedCache<GeneratorCacheKey, CNG> generatorCache =
-            new LazyBoundedCache<>(GENERATOR_CACHE_SIZE);
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private transient volatile CachedGenerator recentGenerator;
     @Description("The base noise style. Used when neither expression nor imageMap is set; a failed expression also falls back to this style, except one that names an unknown engine stream, which fails the pack load.")
     private NoiseStyle style = NoiseStyle.FLAT;
 
@@ -102,24 +93,20 @@ public class IrisGeneratorStyle {
         return this;
     }
 
-    public CNG createNoCache(RNG rng, IrisData data) {
-        return createNoCache(rng, data, 1, 0, false, resolveEngine(data));
+    public CNG createNoCache(RNG rng, PackRuntime runtime) {
+        return createNoCache(rng, runtime, 1, 0, false);
     }
 
-    public CNG createScaledGenerator(RNG rng, IrisData data, double scaleFactor) {
-        return createNoCache(rng, data).bake().scale(scaleFactor).bake();
+    public CNG createScaledGenerator(RNG rng, PackRuntime runtime, double scaleFactor) {
+        return createNoCache(rng, runtime).bake().scale(scaleFactor).bake();
     }
 
-    public CNG createForLayer(RNG rng, IrisData data, int octaveMultiplier) {
-        return createForLayer(rng, data, octaveMultiplier, resolveEngine(data));
+    public CNG createForLayer(RNG rng, PackRuntime runtime, int octaveMultiplier) {
+        return createNoCache(rng, runtime, Math.clamp(octaveMultiplier, 1, 16), 0, false);
     }
 
-    CNG createForLayer(RNG rng, IrisData data, int octaveMultiplier, Engine engine) {
-        return createNoCache(rng, data, Math.clamp(octaveMultiplier, 1, 16), 0, false, engine);
-    }
-
-    public CNG createForPrebake(RNG rng, IrisData data, int fallbackCacheSize) {
-        return createNoCache(rng, data, 1, Math.max(0, fallbackCacheSize), true, resolveEngine(data));
+    public CNG createForPrebake(RNG rng, PackRuntime runtime, int fallbackCacheSize) {
+        return createNoCache(rng, runtime, 1, Math.max(0, fallbackCacheSize), true);
     }
 
 
@@ -176,8 +163,10 @@ public class IrisGeneratorStyle {
         }
     }
 
-    private CNG createNoCache(RNG rng, IrisData data, int octaveMultiplier, int fallbackCacheSize,
-                              boolean quietCacheLog, Engine engine) {
+    private CNG createNoCache(RNG rng, PackRuntime runtime, int octaveMultiplier, int fallbackCacheSize,
+                              boolean quietCacheLog) {
+        IrisData data = runtime.data();
+        Engine engine = runtime.engine();
         requirePositiveFinite("zoom", zoom);
         requirePositiveFinite("exponent", exponent);
         if (!Double.isFinite(cellularFrequency) || cellularFrequency < 0D) {
@@ -194,7 +183,7 @@ public class IrisGeneratorStyle {
         if (getExpression() != null) {
             IrisExpression e = data.getExpressionLoader().load(getExpression());
             if (e != null) {
-                cng = new CNG(rng, new ExpressionNoise(rng, e), 1D, 1).bake();
+                cng = new CNG(rng, new ExpressionNoise(rng, runtime.expression(e)), 1D, 1).bake();
                 sourceStamp = Integer.toUnsignedLong(Objects.hash(getExpression(),
                         e.getLoadFile() == null ? 0L : e.getLoadFile().lastModified()));
             }
@@ -212,8 +201,8 @@ public class IrisGeneratorStyle {
                 .pow(cng.getPower() * exponent);
 
         if (fracture != null) {
-            cng.fractureWith(fracture.createNoCache(rng.nextParallelRNG(2934), data, 1,
-                    fallbackCacheSize, quietCacheLog, engine), fracture.getMultiplier());
+            cng.fractureWith(fracture.createNoCache(rng.nextParallelRNG(2934), runtime, 1,
+                    fallbackCacheSize, quietCacheLog), fracture.getMultiplier());
         }
 
         if (cellularFrequency > 0) {
@@ -233,32 +222,17 @@ public class IrisGeneratorStyle {
         return cng;
     }
 
-    public double warp(RNG rng, IrisData data, double value, double... coords) {
-        return create(rng, data).noise(coords) + value;
+    public double warp(RNG rng, PackRuntime runtime, double value, double... coords) {
+        return create(rng, runtime).noise(coords) + value;
     }
 
-    public CNG create(RNG rng, IrisData data) {
-        return create(rng, data, resolveEngine(data));
+    /** The generator this runtime shares for this style and seed. */
+    public CNG create(RNG rng, PackRuntime runtime) {
+        return create(rng.getSeed(), runtime);
     }
 
-    public CNG create(long seed, IrisData data) {
-        return cachedGenerator(seed, data, resolveEngine(data));
-    }
-
-    public CNG create(RNG rng, IrisData data, Engine engine) {
-        return cachedGenerator(rng.getSeed(), data, engine);
-    }
-
-    private CNG cachedGenerator(long seed, IrisData data, Engine engine) {
-        CachedGenerator recent = recentGenerator;
-        if (recent != null && recent.key.matches(data, engine, seed)) {
-            return recent.generator;
-        }
-        GeneratorCacheKey key = new GeneratorCacheKey(data, engine, seed);
-        CNG generator = generatorCache.computeIfAbsent(key,
-                ignored -> createNoCache(new RNG(seed), data, 1, 0, false, engine));
-        recentGenerator = new CachedGenerator(key, generator);
-        return generator;
+    public CNG create(long seed, PackRuntime runtime) {
+        return runtime.styleGenerator(this, seed);
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -283,10 +257,6 @@ public class IrisGeneratorStyle {
         ));
     }
 
-    private Engine resolveEngine(IrisData data) {
-        return data == null ? null : data.getEngine();
-    }
-
     private static void requirePositiveFinite(String field, double value) {
         if (!Double.isFinite(value) || value <= 0D || !Double.isFinite(1D / value)) {
             throw new IllegalArgumentException(field + " must be finite and positive");
@@ -304,42 +274,5 @@ public class IrisGeneratorStyle {
                 throw new IllegalStateException("Cannot identify the noise cache implementation", failure);
             }
         }
-    }
-
-    private static final class GeneratorCacheKey {
-        private final IrisData data;
-        private final EngineRef engine;
-        private final long seed;
-
-        private GeneratorCacheKey(IrisData data, Engine engine, long seed) {
-            this.data = data;
-            this.engine = EngineRef.of(engine);
-            this.seed = seed;
-        }
-
-        private boolean matches(IrisData data, Engine engine, long seed) {
-            return this.data == data && this.engine.refersTo(engine) && this.seed == seed;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) {
-                return true;
-            }
-            if (!(other instanceof GeneratorCacheKey key)) {
-                return false;
-            }
-            return data == key.data && engine.equals(key.engine) && seed == key.seed;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = System.identityHashCode(data);
-            result = 31 * result + engine.hashCode();
-            return 31 * result + Long.hashCode(seed);
-        }
-    }
-
-    private record CachedGenerator(GeneratorCacheKey key, CNG generator) {
     }
 }

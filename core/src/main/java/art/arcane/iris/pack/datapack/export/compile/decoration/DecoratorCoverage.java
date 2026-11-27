@@ -30,7 +30,7 @@ final class DecoratorCoverage {
     }
 
     static Coverage measure(IrisGeneratorStyle style, double chance, IrisData data) {
-        CNG generator = style.createNoCache(new RNG(STYLE_SEED), data);
+        CNG generator = style.createNoCache(new RNG(STYLE_SEED), data.standalonePackRuntime());
         double zoom = style.getZoom();
         return measure((x, z) -> generator.fitDouble(0.0, 1.0, x / zoom, z / zoom) <= chance);
     }

@@ -177,6 +177,8 @@ public class IrisDimension extends IrisRegistrant {
     private int version = 1;
     @Description("When a block key does not exist on the running Minecraft version, generate this block state instead. Keys are base block keys such as minecraft:sulfur; values are full block states. Applies to every palette, decorator, deposit, replace rule and object in this pack. Content that uses a missing block with no fallback here (and no per-entry backup) is excluded from generation on that version and listed at startup.")
     private KMap<String, String> blockFallbacks = new KMap<>();
+    @Description("When true, the pack refuses to load if this Minecraft version lacks content it uses and no fallback covers it, instead of generating without that content. Declared fallbacks (blockFallbacks, block backup) still apply.")
+    private boolean failOnMissingContent = false;
     @ArrayType(min = 1, type = IrisBlockDrops.class)
     @Description("Define custom block drops for this dimension")
     private KList<IrisBlockDrops> blockDrops = new KList<>();

@@ -137,6 +137,20 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
     public record ObjectContinuation(long activationId, ObjectContinuationBundle.Fragment fragment) {
     }
 
+    /**
+     * Hands historical chunks to the active pack, so they generate like new chunks. Regen uses it to rebuild chunks from
+     * before the last hotload with the current pack, objects and caves included.
+     */
+    public int reclaimForActivePack(List<GenerationBoundary.ChunkCoordinate> chunks) throws IOException {
+        try (GenerationTransitionGate.Participation ignored = engine.getGenerationSessions().transitionGate().enter()) {
+            int reclaimed = history.reclaimForActivePack(chunks);
+            if (reclaimed > 0) {
+                objectContinuations.clear();
+            }
+            return reclaimed;
+        }
+    }
+
     public boolean allowsObjectFootprint(TransitionGenerationPlan plan, ObjectContinuationBundle.Bounds bounds) {
         return objectContinuations.allowsFootprint(plan, bounds.minimumX(), bounds.minimumZ(), bounds.maximumX(), bounds.maximumZ());
     }

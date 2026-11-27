@@ -25,8 +25,16 @@ import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.iris.generation.chunk.TerrainChunk;
 import art.arcane.iris.generation.chunk.ChunkDataHunkView;
 import art.arcane.iris.generation.chunk.TerrainChunkBiomeHunkView;
+import art.arcane.iris.platform.bukkit.BukkitPlatform;
+import art.arcane.iris.platform.generation.BukkitChunkGenerator;
+import art.arcane.iris.platform.generation.BukkitChunkGenerator.GenerationStagePermit;
 import art.arcane.iris.platform.generation.EngineBukkitOps;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.world.history.GenerationBoundary;
+import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.runtime.WrongEngineBroException;
+import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.mantle.DeferredPlacementRecords;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
@@ -46,8 +54,12 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -55,6 +67,8 @@ import java.util.function.Consumer;
 public final class InPlaceChunkRegenerator {
     private static final int BIOME_STEP = 4;
     private static final int APPLY_AHEAD = 8;
+    private static final int PROBE_BATCH_CHUNKS = 256;
+    private static final String GENERATION_STAGE = "regen";
 
     private final World world;
     private final Engine engine;
@@ -82,19 +96,48 @@ public final class InPlaceChunkRegenerator {
     private void run() {
         boolean error = false;
         try {
+            List<int[]> targets = ChunkJobReporter.orderedTargets(centerChunkX, centerChunkZ, radius);
+            reclaimForActivePack(targets);
             reporter.setStage(IrisLanguage.text(RuntimeProgressMessages.CHUNK_STAGE_RESETTING_MANTLE));
             resetMantleMargin();
 
-            List<int[]> targets = ChunkJobReporter.orderedTargets(centerChunkX, centerChunkZ, radius);
             reporter.setTotal(targets.size());
             reporter.setStage(IrisLanguage.text(RuntimeProgressMessages.CHUNK_STAGE_REGENERATING));
             regenerate(targets);
+            logSkippedChunks();
         } catch (Throwable e) {
             IrisLogging.reportError(e);
             error = true;
         } finally {
             reporter.finish(error);
         }
+    }
+
+    private void logSkippedChunks() {
+        if (reporter.skipped() == 0) {
+            return;
+        }
+        IrisLogging.info("Regen skipped " + reporter.skipped() + " chunks in " + world.getName()
+                + " that were never generated; they generate fresh when visited.");
+    }
+
+    /**
+     * Chunks generated before the last hotload stay frozen to the old pack, which bars objects, caves and structures there.
+     * Regen always rebuilds with the current pack, so it hands its targets over first.
+     */
+    private void reclaimForActivePack(List<int[]> targets) throws IOException {
+        if (!(engine instanceof IrisEngine irisEngine)) {
+            return;
+        }
+        GenerationHistoryRuntimeRouter router = irisEngine.getGenerationHistoryRuntimeRouter().orElse(null);
+        if (router == null) {
+            return;
+        }
+        List<GenerationBoundary.ChunkCoordinate> chunks = new ArrayList<>(targets.size());
+        for (int[] target : targets) {
+            chunks.add(new GenerationBoundary.ChunkCoordinate(target[0], target[1]));
+        }
+        router.reclaimForActivePack(chunks);
     }
 
     private void resetMantleMargin() {
@@ -111,59 +154,133 @@ public final class InPlaceChunkRegenerator {
 
     private void regenerate(List<int[]> targets) throws InterruptedException {
         Semaphore inFlight = new Semaphore(APPLY_AHEAD);
-        CountDownLatch allApplied = new CountDownLatch(targets.size());
 
-        for (int[] target : targets) {
-            int chunkX = target[0];
-            int chunkZ = target[1];
+        for (int from = 0; from < targets.size(); from += PROBE_BATCH_CHUNKS) {
+            List<int[]> batch = targets.subList(from, Math.min(targets.size(), from + PROBE_BATCH_CHUNKS));
+            for (int[] generated : generatedChunksOf(batch)) {
+                inFlight.acquire();
+                MultiBurst.burst.lazy(() -> regenerateChunk(generated[0], generated[1], inFlight::release));
+            }
+        }
 
-            inFlight.acquire();
-            MultiBurst.burst.lazy(() -> {
-                // Settle exactly once no matter which path fails: an unguarded throw here
-                // (TerrainChunk.create, runRegion) parked the regen thread on the latch
-                // forever and stranded the player's boss bar. CAS is required — on Folia's
-                // owned-region path runRegion runs the apply inline before returning.
-                AtomicBoolean settled = new AtomicBoolean();
-                Consumer<Boolean> settle = ok -> {
-                    if (settled.compareAndSet(false, true)) {
-                        reporter.countApplied(ok);
-                        inFlight.release();
-                        allApplied.countDown();
-                    }
-                };
-                try {
-                    TerrainChunk buffer = TerrainChunk.create(world);
-                    engine.generate(chunkX << 4, chunkZ << 4, new ChunkDataHunkView(buffer.getChunkData()),
-                            new TerrainChunkBiomeHunkView(buffer), false);
+        inFlight.acquire(APPLY_AHEAD);
+    }
 
-                    boolean scheduled = J.runRegion(world, chunkX, chunkZ, () -> {
-                        boolean ok = false;
-                        try {
-                            applyToLiveChunk(chunkX, chunkZ, buffer);
-                            ok = true;
-                        } catch (Throwable e) {
-                            IrisLogging.reportError(e);
-                        } finally {
-                            settle.accept(ok);
-                        }
-                    });
+    /**
+     * Chunks that were never generated are skipped: their mantle is reset, so they generate fresh when first visited.
+     * Regenerating them here would generate each one twice, and loading them on the server thread stalls it.
+     */
+    private List<int[]> generatedChunksOf(List<int[]> batch) {
+        List<CompletableFuture<Chunk>> loads = new ArrayList<>(batch.size());
+        for (int[] target : batch) {
+            loads.add(loadIfGenerated(target[0], target[1]));
+        }
 
-                    if (!scheduled) {
-                        IrisLogging.warn("Regen could not schedule chunk apply at " + chunkX + "," + chunkZ + " in " + world.getName() + ".");
-                        settle.accept(false);
-                    }
-                } catch (Throwable e) {
-                    IrisLogging.reportError(e);
+        List<int[]> generated = new ArrayList<>(batch.size());
+        for (int index = 0; index < batch.size(); index++) {
+            try {
+                if (loads.get(index).join() == null) {
+                    reporter.countSkipped();
+                    continue;
+                }
+                generated.add(batch.get(index));
+            } catch (CompletionException | CancellationException e) {
+                IrisLogging.reportError(e);
+                reporter.countApplied(false);
+            }
+        }
+        return generated;
+    }
+
+    /** Spigot has no async chunk loading, so its fallback loads in place; that must happen on the server thread. */
+    private CompletableFuture<Chunk> loadIfGenerated(int chunkX, int chunkZ) {
+        if (BukkitPlatform.isPaperServer()) {
+            return BukkitPlatform.chunkAtAsync(world, chunkX, chunkZ, false);
+        }
+        return J.sfut(() -> BukkitPlatform.chunkAtAsync(world, chunkX, chunkZ, false)).thenCompose(load -> load);
+    }
+
+    private void regenerateChunk(int chunkX, int chunkZ, Runnable release) {
+        // Settle exactly once no matter which path fails: an unguarded throw stranded the regen thread and the
+        // player's boss bar. CAS is required because the apply can run inline, before the scheduling call returns.
+        AtomicBoolean settled = new AtomicBoolean();
+        Consumer<Boolean> settle = ok -> {
+            if (settled.compareAndSet(false, true)) {
+                reporter.countApplied(ok);
+                release.run();
+            }
+        };
+        try {
+            TerrainChunk buffer = generate(chunkX, chunkZ);
+            loadIfGenerated(chunkX, chunkZ).whenComplete((chunk, loadFailure) -> {
+                if (loadFailure != null) {
+                    IrisLogging.reportError(loadFailure);
+                }
+                if (!scheduledApply(chunk, buffer, settle)) {
                     settle.accept(false);
                 }
             });
+        } catch (Throwable e) {
+            IrisLogging.reportError(e);
+            settle.accept(false);
         }
-
-        allApplied.await();
     }
 
-    private void applyToLiveChunk(int chunkX, int chunkZ, TerrainChunk buffer) {
-        Chunk chunk = world.getChunkAt(chunkX, chunkZ);
+    /**
+     * @return false when the apply could not be handed to the thread owning the chunk, so the caller settles the chunk
+     * as failed; true leaves settling to the apply.
+     */
+    private boolean scheduledApply(Chunk chunk, TerrainChunk buffer, Consumer<Boolean> settle) {
+        if (chunk == null) {
+            IrisLogging.warn("Regen could not load a chunk it found generated in " + world.getName() + ".");
+            return false;
+        }
+        try {
+            return runOnThreadOwning(chunk, () -> settle.accept(applied(chunk, buffer)));
+        } catch (Throwable e) {
+            IrisLogging.reportError(e);
+            return false;
+        }
+    }
+
+    /** Holds a generation stage like any chunk the server generates, so a hotload waits for it instead of rejecting it. */
+    private TerrainChunk generate(int chunkX, int chunkZ) throws WrongEngineBroException {
+        TerrainChunk buffer = TerrainChunk.create(world);
+        try (GenerationStagePermit ignored = acquireGenerationStage()) {
+            engine.generate(chunkX << 4, chunkZ << 4, new ChunkDataHunkView(buffer.getChunkData()),
+                    new TerrainChunkBiomeHunkView(buffer), false);
+        }
+        return buffer;
+    }
+
+    private GenerationStagePermit acquireGenerationStage() {
+        if (IrisToolbelt.access(world) instanceof BukkitChunkGenerator generator) {
+            return generator.acquireGenerationStage(GENERATION_STAGE);
+        }
+        return GenerationStagePermit.noop();
+    }
+
+    private boolean runOnThreadOwning(Chunk chunk, Runnable task) {
+        if (!J.isFolia() && J.isPrimaryThread()) {
+            task.run();
+            return true;
+        }
+        return J.runRegion(world, chunk.getX(), chunk.getZ(), task);
+    }
+
+    private boolean applied(Chunk chunk, TerrainChunk buffer) {
+        try {
+            applyToLiveChunk(chunk, buffer);
+            return true;
+        } catch (Throwable e) {
+            IrisLogging.reportError(e);
+            return false;
+        }
+    }
+
+    private void applyToLiveChunk(Chunk chunk, TerrainChunk buffer) {
+        int chunkX = chunk.getX();
+        int chunkZ = chunk.getZ();
         for (Entity entity : chunk.getEntities()) {
             if (!(entity instanceof Player)) {
                 entity.remove();

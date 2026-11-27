@@ -144,6 +144,17 @@ public final class ChunkGenerationOwnership {
         }
     }
 
+    public boolean reclaim(int chunkX, int chunkZ, long activation) throws IOException {
+        requireActivation(activation);
+        lock.writeLock().lock();
+        try {
+            RegionGenerationOwnership region = regionForAssignment(chunkX, chunkZ);
+            return region.reclaim(chunkX, chunkZ, activation);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
     public int assignAll(WorldChunkInventory inventory, long activation) throws IOException {
         requireActivation(activation);
         lock.writeLock().lock();

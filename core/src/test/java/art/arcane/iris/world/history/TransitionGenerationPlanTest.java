@@ -103,6 +103,28 @@ public class TransitionGenerationPlanTest {
     }
 
     @Test
+    public void reclaimedChunksAllowNewContentWhileTheBoundaryStaysFrozen() throws Exception {
+        GenerationBoundary boundary = GenerationBoundary.freeze("reclaim", List.of(
+                new GenerationBoundary.ChunkCoordinate(0, 0),
+                new GenerationBoundary.ChunkCoordinate(1, 0)));
+        TerrainBoundarySignatureStore.Snapshot snapshot = snapshot(2L, boundary);
+        ReclaimedChunks reclaimed = new ReclaimedChunks();
+        TransitionGenerationPlan plan = new TransitionGenerationPlan(
+                specification(2L, "old", "new", 0, "reclaim", snapshot.identity()), boundary, snapshot, reclaimed);
+
+        reclaimed.add(0, 0);
+
+        assertFalse(plan.isHistoricalChunk(0, 0));
+        assertFalse(plan.isHistoricalBlock(8, 8));
+        assertTrue(plan.allowsNewDiscreteContentAt(8, 8));
+        assertFalse(plan.terrainSampleAt(8, 8).hasHistoricalSignature());
+        assertTrue(plan.allowsNewFootprint(0, 0, 15, 15));
+        assertFalse(plan.allowsNewFootprint(0, 0, 16, 15));
+        assertTrue(plan.isHistoricalChunk(1, 0));
+        assertTrue(plan.boundary().isHistoricalChunk(0, 0));
+    }
+
+    @Test
     public void computesTransitionForEnclosedNewTerritory() throws Exception {
         GenerationBoundary boundary = GenerationBoundary.freeze("ring", List.of(
                 new GenerationBoundary.ChunkCoordinate(-1, 0),

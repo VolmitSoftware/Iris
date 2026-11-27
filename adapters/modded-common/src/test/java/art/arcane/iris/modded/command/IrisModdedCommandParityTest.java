@@ -207,6 +207,23 @@ public class IrisModdedCommandParityTest {
     }
 
     @Test
+    public void regenLivesUnderStudio() {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
+
+        IrisModdedCommands.register(new NativeCommandRegistration(dispatcher));
+
+        CommandNode<CommandSourceStack> iris = child(dispatcher.getRoot(), "iris");
+        assertNotNull("std regen", child(child(iris, "std"), "regen").getCommand());
+        assertNotNull("studio rg radius", child(child(child(iris, "studio"), "rg"), "radius").getCommand());
+        assertNull("top-level regen", iris.getChild("regen"));
+        assertNull("top-level rg", iris.getChild("rg"));
+        assertTrue(ModdedCommandHelp.consoleLines("studio").stream().anyMatch((String line) ->
+                line.startsWith("/iris studio regen [radius] (rg) - ")));
+    }
+
+    @Test
     public void consoleHelpListsEveryEntryWithInlineUsageAndDescription() {
         List<String> root = ModdedCommandHelp.consoleLines("");
 

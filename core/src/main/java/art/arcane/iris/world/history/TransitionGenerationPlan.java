@@ -10,12 +10,23 @@ public final class TransitionGenerationPlan {
     private final TransitionBoundarySampler terrainSampler;
     private final TransitionBandIndex terrainBand;
     private final TerrainSample newTerrain;
+    private final ReclaimedChunks reclaimedChunks;
 
     public TransitionGenerationPlan(
             Specification specification,
             GenerationBoundary boundary,
             TerrainBoundarySignatureStore.Snapshot terrainSignatures
     ) {
+        this(specification, boundary, terrainSignatures, new ReclaimedChunks());
+    }
+
+    TransitionGenerationPlan(
+            Specification specification,
+            GenerationBoundary boundary,
+            TerrainBoundarySignatureStore.Snapshot terrainSignatures,
+            ReclaimedChunks reclaimedChunks
+    ) {
+        this.reclaimedChunks = Objects.requireNonNull(reclaimedChunks, "Reclaimed chunks");
         this.specification = Objects.requireNonNull(specification, "Transition specification");
         this.boundary = Objects.requireNonNull(boundary, "Generation boundary");
         this.terrainSignatures = Objects.requireNonNull(terrainSignatures, "Terrain signatures");
@@ -76,8 +87,13 @@ public final class TransitionGenerationPlan {
         return terrainSignatures;
     }
 
+    /** A chunk the boundary froze, unless regen has since rebuilt it with this activation's pack. */
+    public boolean isHistoricalChunk(int chunkX, int chunkZ) {
+        return boundary.isHistoricalChunk(chunkX, chunkZ) && !reclaimedChunks.contains(chunkX, chunkZ);
+    }
+
     public boolean isHistoricalBlock(int blockX, int blockZ) {
-        return boundary.isHistoricalBlock(blockX, blockZ);
+        return isHistoricalChunk(blockX >> 4, blockZ >> 4);
     }
 
     public double distanceToHistoricalChunks(int blockX, int blockZ) {
@@ -89,7 +105,7 @@ public final class TransitionGenerationPlan {
     }
 
     public boolean allowsNewDiscreteContentAt(int blockX, int blockZ) {
-        return !boundary.isHistoricalBlock(blockX, blockZ);
+        return !isHistoricalBlock(blockX, blockZ);
     }
 
     public boolean hasTransitionAtChunk(int chunkX, int chunkZ) {
@@ -104,7 +120,7 @@ public final class TransitionGenerationPlan {
     }
 
     public TerrainSample terrainSampleAt(int blockX, int blockZ) {
-        if (boundary.isHistoricalBlock(blockX, blockZ)) {
+        if (isHistoricalBlock(blockX, blockZ)) {
             return TerrainSample.historicalTerrain();
         }
         return hasTransitionAtChunk(blockX >> 4, blockZ >> 4) ? terrainSampler.sample(blockX, blockZ) : newTerrain;
@@ -129,7 +145,8 @@ public final class TransitionGenerationPlan {
         if (minimumX > maximumX || minimumZ > maximumZ) {
             throw new IllegalArgumentException("Generation footprint bounds are inverted");
         }
-        return !boundary.intersectsHistoricalBlocks(minimumX, minimumZ, maximumX, maximumZ);
+        return !boundary.intersectsHistoricalBlocks(minimumX, minimumZ, maximumX, maximumZ,
+                (chunkX, chunkZ) -> !reclaimedChunks.contains(chunkX, chunkZ));
     }
 
     long terrainCatalogProbeCount() {

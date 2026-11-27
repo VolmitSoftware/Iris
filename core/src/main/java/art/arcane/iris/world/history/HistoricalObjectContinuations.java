@@ -35,7 +35,7 @@ final class HistoricalObjectContinuations {
     }
 
     List<ObjectContinuation> at(TransitionGenerationPlan plan, int chunkX, int chunkZ) {
-        if (plan == null || plan.boundary().isHistoricalChunk(chunkX, chunkZ)) {
+        if (plan == null || plan.isHistoricalChunk(chunkX, chunkZ)) {
             return List.of();
         }
         RegionKey key = new RegionKey(plan.activationId(), chunkX >> 5, chunkZ >> 5);
@@ -74,7 +74,7 @@ final class HistoricalObjectContinuations {
                 for (Map.Entry<Long, ObjectContinuationBundle> entry : stored.entrySet()) {
                     int chunkX = ChunkGenerationOwnership.chunkX(entry.getKey());
                     int chunkZ = ChunkGenerationOwnership.chunkZ(entry.getKey());
-                    if (plan.boundary().isHistoricalChunk(chunkX, chunkZ)) {
+                    if (plan.isHistoricalChunk(chunkX, chunkZ)) {
                         continue;
                     }
                     for (ObjectContinuationBundle.Fragment fragment : entry.getValue().fragments()) {
@@ -99,7 +99,7 @@ final class HistoricalObjectContinuations {
     private boolean intersectsSavedPlacement(TransitionGenerationPlan plan, long activationId,
                                             ObjectContinuationBundle.Fragment fragment) {
         for (ObjectContinuationBundle.ChunkPosition chunk : fragment.touchedChunks()) {
-            if (plan.boundary().isHistoricalChunk(chunk.x(), chunk.z())
+            if (plan.isHistoricalChunk(chunk.x(), chunk.z())
                     && history.resolveActivation(chunk.x(), chunk.z()).activationId() == activationId) {
                 return true;
             }

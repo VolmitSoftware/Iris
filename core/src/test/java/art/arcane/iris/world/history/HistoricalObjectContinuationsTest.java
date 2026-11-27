@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -97,7 +98,9 @@ public class HistoricalObjectContinuationsTest {
     private static TransitionGenerationPlan plan(long id) {
         TransitionGenerationPlan plan = mock(TransitionGenerationPlan.class);
         when(plan.activationId()).thenReturn(id);
-        when(plan.boundary()).thenReturn(GenerationBoundary.freeze("frontier", List.of(new GenerationBoundary.ChunkCoordinate(0, 0))));
+        GenerationBoundary boundary = GenerationBoundary.freeze("frontier", List.of(new GenerationBoundary.ChunkCoordinate(0, 0)));
+        when(plan.boundary()).thenReturn(boundary);
+        when(plan.isHistoricalChunk(anyInt(), anyInt())).thenAnswer(call -> boundary.isHistoricalChunk(call.getArgument(0), call.getArgument(1)));
         return plan;
     }
 

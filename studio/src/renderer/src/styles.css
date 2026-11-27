@@ -1,0 +1,238 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * IntelliJ's Islands Light and Islands Dark themes (ManyIslandsLight and ManyIslandsDark.theme.json): the frame, toolbar,
+ * stripe and status bar share the main window colour, and the views and tool windows are islands on it.
+ */
+:root {
+  --background: #e9eaee;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #3871e1;
+  --primary-foreground: #ffffff;
+  --secondary: #dddfe4;
+  --secondary-foreground: #000000;
+  --muted: #f7f8f9;
+  --muted-foreground: #73767c;
+  --secondary-text: #5f6269;
+  --accent: rgb(0 0 0 / 0.07);
+  --accent-foreground: #000000;
+  --selection: #d0dffe;
+  --destructive: #c54e58;
+  --warning: #a56906;
+  --success: #338555;
+  --link: #2f5eb9;
+  --border: #dddfe4;
+  --input: #c9ccd6;
+  --ring: #3871e1;
+  --overlay-border: #dddfe4;
+  --map-background: #ffffff;
+  --icon: #6c707e;
+  /* MemoryIndicator.usedBackground in expUI_light.theme.json */
+  --meter-used: #b7cefa75;
+  --popup-shadow: 0 6px 20px rgb(0 0 0 / 0.15);
+}
+
+.dark {
+  --background: #26282c;
+  --foreground: #d1d3d9;
+  --card: #191a1c;
+  --card-foreground: #d1d3d9;
+  --popover: #26282c;
+  --popover-foreground: #d1d3d9;
+  --primary: #3871e1;
+  --primary-foreground: #ffffff;
+  --secondary: rgb(255 255 255 / 0.16);
+  --secondary-foreground: #d1d3d9;
+  --muted: #212326;
+  --muted-foreground: #8b8e94;
+  --secondary-text: #9fa2a8;
+  --accent: rgb(255 255 255 / 0.09);
+  --accent-foreground: #d1d3d9;
+  --selection: #2a4371;
+  --destructive: #f57e84;
+  --warning: #d59637;
+  --success: #6db083;
+  --link: #71a1fe;
+  --border: #33353b;
+  --input: #40434a;
+  --ring: #3871e1;
+  --overlay-border: #33353b;
+  --map-background: #191a1c;
+  --icon: #ced0d6;
+  /* MemoryIndicator.usedBackground in expUI_dark.theme.json */
+  --meter-used: #35538f80;
+  --popup-shadow: 0 6px 20px rgb(0 0 0 / 0.45);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary-text: var(--secondary-text);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-selection: var(--selection);
+  --color-destructive: var(--destructive);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-link: var(--link);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-overlay-border: var(--overlay-border);
+  --color-map-background: var(--map-background);
+  --color-icon: var(--icon);
+  --color-meter-used: var(--meter-used);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body,
+  #root {
+    @apply h-full overflow-hidden;
+  }
+
+  body {
+    @apply bg-background text-foreground text-[13px] antialiased select-none;
+  }
+}
+
+/* Floats above everything else: menus, popovers, tooltips and cards that follow the cursor. */
+@utility popup {
+  border-radius: 8px;
+  border: 1px solid var(--overlay-border);
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--popup-shadow);
+}
+
+/* Keyboard focus and a field being typed in: a crisp accent edge, as IntelliJ draws it, instead of a soft glow. */
+@utility focused {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 1px var(--ring);
+}
+
+/*
+ * Motion after IntelliJ: popups and notices ease in quickly and leave faster, meters glide to a new reading, and
+ * everything else, hover and selection included, changes at once. Reduced motion turns all of it off.
+ */
+@keyframes popup-in {
+  from {
+    opacity: 0;
+    transform: translate(var(--popup-shift-x, 0), var(--popup-shift-y, 0));
+  }
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Drifts 2px away from what it is anchored to, by the side Radix places it on. */
+@utility popup-motion {
+  animation: popup-in 120ms ease-out;
+  &[data-side="top"] {
+    --popup-shift-y: 2px;
+  }
+  &[data-side="bottom"] {
+    --popup-shift-y: -2px;
+  }
+  &[data-side="left"] {
+    --popup-shift-x: 2px;
+  }
+  &[data-side="right"] {
+    --popup-shift-x: -2px;
+  }
+  &[data-state="closed"] {
+    animation: fade-out 80ms ease-in forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+  }
+}
+
+@utility dialog-motion {
+  animation: fade-in 100ms ease-out;
+  &[data-state="closed"] {
+    animation: fade-out 80ms ease-in forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+  }
+}
+
+@utility backdrop-motion {
+  animation: fade-in 100ms ease-out;
+  &[data-state="closed"] {
+    animation: fade-out 80ms ease-in forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+  }
+}
+
+@utility notice-motion {
+  animation: notice-in 160ms ease-out;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+  }
+}
+
+/* A meter's fill, which glides to each new reading instead of jumping. */
+@utility meter-motion {
+  transition: width 300ms ease-out;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* IntelliJ draws its icons a shade off the text colour; a context that colours its icons sets this to currentColor. */
+@utility icon-tint {
+  --icon-tint: currentColor;
+}
+
+@layer base {
+  .lucide,
+  .glyph {
+    color: var(--icon-tint, var(--icon));
+  }
+}

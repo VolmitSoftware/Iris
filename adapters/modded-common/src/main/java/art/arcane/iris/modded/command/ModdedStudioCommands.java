@@ -23,8 +23,11 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldView;
 
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.configuration.IrisSettings;
-import art.arcane.iris.studio.map.MapWindow;
-import art.arcane.iris.studio.map.PaletteExplorerStart;
+import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.studio.bridge.StudioBridge;
+import art.arcane.iris.studio.bridge.StudioBridges;
+import art.arcane.iris.studio.bridge.StudioLaunch;
+import art.arcane.iris.studio.bridge.StudioWindow;
 import art.arcane.iris.studio.view.GuiHost;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.StructurePackageClosure;
@@ -74,7 +77,7 @@ import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
 import org.zeroturnaround.zip.ZipUtil;
 
-import java.awt.Desktop;
+import art.arcane.iris.studio.workspace.FileOpener;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -93,6 +96,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText.Format;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
 import art.arcane.volmlib.util.localization.LanguageAudience;
 import art.arcane.volmlib.util.localization.MessageArgument;
@@ -226,11 +232,7 @@ public final class ModdedStudioCommands {
 
     private static LiteralArgumentBuilder<NativeCommandSource> noiseTree(String name) {
         return NativeCommandRegistration.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> noise(context.getSource(), null, 12345L)))
-                .then(NativeCommandRegistration.argument("generator", StringArgumentType.word()).suggests(GENERATOR_KEYS)
-                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> noise(context.getSource(), StringArgumentType.getString(context, "generator"), 12345L)))
-                        .then(NativeCommandRegistration.argument("seed", LongArgumentType.longArg())
-                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> noise(context.getSource(), StringArgumentType.getString(context, "generator"), LongArgumentType.getLong(context, "seed"))))));
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> noise(context.getSource())));
     }
 
     private static LiteralArgumentBuilder<NativeCommandSource> mapTree(String name) {
@@ -243,86 +245,75 @@ public final class ModdedStudioCommands {
                 .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> imageMap(context.getSource())));
     }
 
-    private static int noise(NativeCommandSource source, String generatorKey, long seed) {
-        NativeWorld level = source.world();
-        Engine engine = IrisModdedCommands.engineFor(level);
-        if (!GuiHost.isAvailable() || !IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
-            IrisModdedCommands.fail(source, guiUnavailableMessage());
-            return 0;
-        }
-        if (engine != null) {
-            NativeProtocolPlayer player = source.player();
-            ModdedGuiHost.bindContext(worldView(source.server(), level), engine, player == null ? null : player.id());
-        }
-        Engine mapEngine = engine != null ? engine : GuiHost.get().findActiveEngine();
-        if ((generatorKey == null || generatorKey.isBlank()) && mapEngine != null) {
-            MapWindow.openNoise(mapStart(mapEngine, source.player()), new MapWindow.NoiseSelection(null, null, seed));
-            IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_NOISE_EXPLORER_ON_SERVER_DISPLAY));
-            return 1;
-        }
+    private static int noise(NativeCommandSource source) {
+        Engine engine = IrisModdedCommands.engineFor(source.world());
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_RUN_IRIS_STUDIO));
             return 0;
         }
-        IrisGenerator generator = engine.getData().getGeneratorLoader().load(generatorKey.trim());
-        if (generator == null) {
-            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_UNKNOWN_GENERATOR_PACK, MessageArgument.untrusted("generatorKey", generatorKey), MessageArgument.untrusted("value", engine.getDimension().getLoadKey())));
-            return 0;
-        }
-        String selectedGeneratorKey = generatorKey.trim();
-        MapWindow.openNoise(mapStart(engine, source.player()), new MapWindow.NoiseSelection(selectedGeneratorKey, generator, seed));
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_NOISE_EXPLORER_GENERATOR_SEED, MessageArgument.untrusted("value", generatorKey.trim()), MessageArgument.untrusted("seed", seed)));
-        return 1;
+        return openStudioApp(source, engine, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_NOISE_EXPLORER_ON_SERVER_DISPLAY));
     }
 
     private static int map(NativeCommandSource source) {
-        NativeWorld level = source.world();
-        Engine engine = IrisModdedCommands.engineFor(level);
+        Engine engine = IrisModdedCommands.engineFor(source.world());
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_STAND_IRIS_STUDIO));
             return 0;
         }
-        if (!GuiHost.isAvailable() || !IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
-            IrisModdedCommands.fail(source, guiUnavailableMessage());
-            return 0;
-        }
-        NativeProtocolPlayer player = source.player();
-        ModdedGuiHost.bindContext(worldView(source.server(), level), engine, player == null ? null : player.id());
-        MapWindow.openMap(mapStart(engine, player));
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_VISION_MAP_ON_SERVER_DISPLAY, MessageArgument.untrusted("value", level.name())));
-        return 1;
-    }
-
-    // Modded worlds have no Bukkit world id; the map finds the engine again through the bound GUI context.
-    private static PaletteExplorerStart mapStart(Engine engine, NativeProtocolPlayer player) {
-        IrisWorld world = engine.getWorld();
-        NativeWorld level = world == null ? null : world.platformWorld();
-        boolean inWorld = player != null && player.connected() && level != null && player.inWorld(level);
-        return new PaletteExplorerStart(engine, null, player == null ? null : player.id(), null,
-                inWorld ? player.x() : 0D, inWorld ? player.z() : 0D);
+        return openStudioApp(source, engine, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_VISION_MAP_ON_SERVER_DISPLAY, MessageArgument.untrusted("value", source.world().name())));
     }
 
     private static int imageMap(NativeCommandSource source) {
-        NativeWorld level = source.world();
-        Engine engine = IrisModdedCommands.engineFor(level);
+        Engine engine = IrisModdedCommands.engineFor(source.world());
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(
                     ModdedCommandMessages.MODDED_STUDIO_COMMANDS_IMAGE_MAP_REQUIRES_IRIS_DIMENSION
             ));
             return 0;
         }
-        if (!GuiHost.isAvailable() || !IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
+        return openStudioApp(source, engine, IrisLanguage.plain(
+                ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_IMAGE_MAP_STUDIO_ON_SERVER_DISPLAY,
+                MessageArgument.untrusted("value", source.world().name())
+        ));
+    }
+
+    /** Opens the studio app on the source's world; when it can't, tells the source why and hands over the link to connect by hand. */
+    private static int openStudioApp(NativeCommandSource source, Engine engine, String openedMessage) {
+        if (GuiHost.isDesktopSuppressed()) {
             IrisModdedCommands.fail(source, guiUnavailableMessage());
             return 0;
         }
+        NativeWorld level = source.world();
         NativeProtocolPlayer player = source.player();
-        ModdedGuiHost.bindContext(worldView(source.server(), level), engine, player == null ? null : player.id());
-        MapWindow.openImageMaps(mapStart(engine, player));
-        IrisModdedCommands.ok(source, IrisLanguage.plain(
-                ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_IMAGE_MAP_STUDIO_ON_SERVER_DISPLAY,
-                MessageArgument.untrusted("value", level.name())
-        ));
+        UUID openerId = player == null ? null : player.id();
+        ModdedGuiHost.bindContext(worldView(source.server(), level), engine, openerId);
+        StudioBridge bridge;
+        try {
+            bridge = StudioBridges.open(level.name(), () -> engine, openerId);
+        } catch (IOException error) {
+            IrisModdedCommands.fail(source, "Could not open the studio bridge: " + error.getMessage());
+            return 0;
+        }
+        StudioLaunch launch = StudioWindow.show(bridge);
+        if (!launch.opened()) {
+            IrisLogging.info("Iris Studio link for %s: %s", level.name(), bridge.link());
+            sendStudioLink(source, launch, bridge.link());
+            return 0;
+        }
+        IrisModdedCommands.ok(source, openedMessage);
         return 1;
+    }
+
+    private static void sendStudioLink(NativeCommandSource source, StudioLaunch launch, String link) {
+        IrisModdedCommands.fail(source, IrisLanguage.plain(launch.failureMessage()));
+        if (source.player() == null) {
+            return;
+        }
+        NativeCommandText hover = NativeCommandText.literal(IrisLanguage.plain(RuntimeUiMessages.STUDIO_LINK_COPY_HOVER));
+        NativeCommandText button = NativeCommandText.literal(IrisLanguage.plain(RuntimeUiMessages.STUDIO_LINK_COPY_BUTTON))
+                .withStyle(Format.GREEN)
+                .withStyle(style -> style.copyToClipboard(link).hover(hover));
+        IrisModdedCommands.ok(source, button);
     }
 
     private static LiteralArgumentBuilder<NativeCommandSource> workspaceTree(String name, boolean open) {
@@ -349,12 +340,12 @@ public final class ModdedStudioCommands {
         if (!open) {
             return 1;
         }
-        if (!GuiHost.isAvailable() || !Desktop.isDesktopSupported()) {
+        if (!GuiHost.isAvailable() || !FileOpener.isDesktopAvailable()) {
             IrisModdedCommands.fail(source, guiUnavailableMessage());
             return 0;
         }
         try {
-            Desktop.getDesktop().open(workspace);
+            FileOpener.open(workspace);
         } catch (Throwable e) {
             ModdedIrisLog.error("Iris workspace open failed for {}", workspace, e);
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_COULD_NOT_OPEN, MessageArgument.untrusted("value", workspace.getName()), MessageArgument.untrusted("value2", e.getClass().getSimpleName())));

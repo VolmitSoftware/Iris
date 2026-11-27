@@ -21,6 +21,7 @@ package art.arcane.iris;
 import art.arcane.iris.api.terrain.IrisTerrainService;
 import art.arcane.iris.command.CommandSVC;
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.studio.app.StudioAppInstaller;
 import art.arcane.iris.configuration.SettingsHotloadWatch;
 import art.arcane.iris.diagnostics.LogFilterSVC;
 import art.arcane.iris.diagnostics.splash.IrisSplashComposer;
@@ -78,6 +79,7 @@ import art.arcane.iris.studio.jigsaw.JigsawStudioService;
 import art.arcane.iris.studio.object.ObjectSVC;
 import art.arcane.iris.studio.object.ObjectStudioSaveService;
 import art.arcane.iris.studio.view.BukkitGuiHost;
+import art.arcane.iris.studio.view.BukkitStudioPackSwitch;
 import art.arcane.iris.studio.view.GuiHost;
 import art.arcane.iris.studio.view.PregeneratorJob;
 import art.arcane.iris.studio.wand.WandSVC;
@@ -976,6 +978,8 @@ public final class IrisRuntime implements IrisPluginRuntime {
             return;
         }
         BukkitGuiHost.install();
+        BukkitStudioPackSwitch.install();
+        StudioAppInstaller.installInBackground();
         // super.onEnable() already registers this instance as a listener.
         plugin.enablePlugin();
         if (IrisStartupValidation.isRestartRequired()) {

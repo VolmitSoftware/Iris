@@ -1,0 +1,118 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
+import type { ServerUsage } from '../bridge/types'
+import type { MapStatus } from '../map/MapController'
+import { cpuIsHigh, formatCpu, formatHeap, heapIsHigh, heapShare } from './serverUsage'
+
+interface StatusBarProps {
+  viewLabel: string
+  status: MapStatus | null
+  notice: string | null
+  usage: ServerUsage | null
+  /** How far a scene view's reading has come, 0 to 1, or null when it is not reading. */
+  progress: number | null
+}
+
+const NUMBER = new Intl.NumberFormat('en-US')
+
+/** What the map shows, what it is busy with, and where the cursor is. */
+export function StatusBar({ viewLabel, status, notice, usage, progress }: StatusBarProps): React.JSX.Element {
+  const drawing = status !== null && status.tilesReady < status.tilesTotal
+  return (
+    <footer className="flex h-7 shrink-0 items-center gap-6 px-3 text-[12px] text-secondary-text tabular-nums">
+      <span className="truncate">
+        {viewLabel}
+        {status !== null && (
+          <>
+            <Gap />
+            {formatScale(status.blocksPerPixel)} blocks/px
+            <Gap />
+            {NUMBER.format(status.widthBlocks)} × {NUMBER.format(status.heightBlocks)} blocks
+          </>
+        )}
+      </span>
+      <span className="flex min-w-0 flex-1 items-center justify-center gap-2 truncate">
+        {notice !== null ? (
+          <span key={notice} className="truncate notice-motion">
+            {notice}
+          </span>
+        ) : drawing ? (
+          `Drawing ${status.tilesReady} of ${status.tilesTotal} tiles`
+        ) : progress !== null ? (
+          'Reading'
+        ) : null}
+        {notice === null && drawing && <ProgressBar fraction={status.tilesReady / status.tilesTotal} />}
+        {notice === null && !drawing && progress !== null && <ProgressBar fraction={progress} />}
+      </span>
+      {usage !== null && <UsageReadout usage={usage} />}
+      {status !== null && (
+        <span>
+          X {NUMBER.format(status.cursorX)}
+          <Gap />Z {NUMBER.format(status.cursorZ)}
+        </span>
+      )}
+    </footer>
+  )
+}
+
+function ProgressBar({ fraction }: { fraction: number }): React.JSX.Element {
+  return (
+    <span className="h-1 w-24 overflow-hidden rounded-full bg-secondary">
+      <span className="block h-full bg-primary meter-motion" style={{ width: `${fraction * 100}%` }} />
+    </span>
+  )
+}
+
+/** The server's CPU, 100% per busy thread, and Java heap; each turns warning-coloured at 80%. */
+function UsageReadout({ usage }: { usage: ServerUsage }): React.JSX.Element {
+  return (
+    <span className="flex items-center gap-3">
+      <Reading high={cpuIsHigh(usage)} hint={`Server CPU, 100% per busy thread, ${usage.threads} threads in all`}>
+        CPU {formatCpu(usage)}
+      </Reading>
+      <Reading high={heapIsHigh(usage)} hint="Java memory the server uses, of its maximum">
+        <MemoryIndicator share={heapShare(usage)} high={heapIsHigh(usage)}>
+          {formatHeap(usage)}
+        </MemoryIndicator>
+      </Reading>
+    </span>
+  )
+}
+
+interface ReadingProps {
+  high: boolean
+  hint: string
+  children: React.ReactNode
+}
+
+function Reading({ high, hint, children }: ReadingProps): React.JSX.Element {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={cn('flex items-center', high && 'text-warning')}>{children}</span>
+      </TooltipTrigger>
+      <TooltipContent>{hint}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+/** IntelliJ's memory indicator: the reading over a bar filled as far as the heap is used. */
+function MemoryIndicator({ share, high, children }: { share: number; high: boolean; children: React.ReactNode }): React.JSX.Element {
+  return (
+    <span className="relative flex h-5 items-center overflow-hidden rounded-sm px-2">
+      <span className={cn('absolute inset-y-0 left-0 meter-motion', high ? 'bg-warning/30' : 'bg-meter-used')} style={{ width: `${share * 100}%` }} />
+      <span className="relative">{children}</span>
+    </span>
+  )
+}
+
+function Gap(): React.JSX.Element {
+  return <span className="inline-block w-3" />
+}
+
+function formatScale(blocksPerPixel: number): string {
+  if (blocksPerPixel >= 10) {
+    return String(Math.round(blocksPerPixel))
+  }
+  return blocksPerPixel >= 1 ? blocksPerPixel.toFixed(1) : blocksPerPixel.toFixed(2)
+}

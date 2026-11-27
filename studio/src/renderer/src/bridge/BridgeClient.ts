@@ -1,0 +1,447 @@
+import type { BridgeConnection } from '../../../shared/bridge'
+import { decodeScene, type BlockScene } from '../scene/sceneDecoding'
+import { decodePattern } from './patternDecoding'
+import { decodeSavedTile } from './savedTileDecoding'
+import { decodeTile } from './tileDecoding'
+import type {
+  BakeRun,
+  BlockSource,
+  EditorState,
+  GraphEdit,
+  ImageMapDetails,
+  MapHover,
+  MapLabel,
+  MapTile,
+  Marker,
+  ModuleViewInfo,
+  NoiseSource,
+  NoiseTile,
+  PatternEntry,
+  PatternTile,
+  PickInspection,
+  PregenStatus,
+  ProfileFormState,
+  SavedStart,
+  SavedTile,
+  SavedWorldInfo,
+  SceneEntry,
+  SceneViewInfo,
+  ServerUsage,
+  StudioPack,
+  WorldInfo
+} from './types'
+
+export const STATUS_NOT_FOUND = 404
+export const STATUS_CONFLICT = 409
+export const STATUS_UNAVAILABLE = 503
+
+export class BridgeError extends Error {
+  constructor(
+    readonly status: number,
+    message: string
+  ) {
+    super(message)
+  }
+}
+
+/** Which scene of a scene view: an entry's variant, at one of the view's sizes or null when it has none. */
+export interface ScenePlace {
+  key: string
+  variant: number
+  size: number | null
+  /** Settings typed into a profile form, by name, which only change the preview. */
+  overrides?: Record<string, string>
+}
+
+export interface TileRequest {
+  view: string
+  /** The region the region view previews everywhere, or null for the world as it is. */
+  preview: string | null
+  tileX: number
+  tileZ: number
+  blocksPerPixel: number
+  size: number
+  heights: boolean
+  pickNoise: boolean
+  /** Where the tile's blocks come from, or null for a tile without them. */
+  blocks: BlockSource | null
+  /**
+   * Whether a tile with blocks also carries the ground's shape in 3D: every block seen from the open air at a block a
+   * pixel, the runs of solid blocks of each cell's area when coarser.
+   */
+  shape?: boolean
+}
+
+/** One tile of a pattern: tile (x, z) covers columns × blocksPerColumn blocks from x × that, z × that. */
+export interface PatternRequest {
+  viewId: string
+  key: string
+  depth: number
+  tileX: number
+  tileZ: number
+  blocksPerColumn: number
+  columns: number
+}
+
+/** What a map spot or area is asked about: a view, and the region it previews. */
+export interface MapLayerQuery {
+  view: string
+  preview: string | null
+}
+
+export interface WorldRect {
+  minX: number
+  minZ: number
+  maxX: number
+  maxZ: number
+}
+
+export interface BridgeEvents {
+  onWorld(running: boolean): void
+  onPlayers(players: Marker[]): void
+  onUsage(usage: ServerUsage): void
+  onClosed(): void
+}
+
+const EVENT_SEPARATOR = '\n\n'
+
+/** One connection to a world's bridge, over HTTP on the loopback interface. */
+export class BridgeClient {
+  private readonly base: string
+  private readonly authorization: string
+
+  constructor(readonly connection: BridgeConnection) {
+    this.base = `http://127.0.0.1:${connection.port}/v1/`
+    this.authorization = `Bearer ${connection.token}`
+  }
+
+  world(): Promise<WorldInfo> {
+    return this.json('world')
+  }
+
+  hover(layer: MapLayerQuery, worldX: number, worldZ: number, signal?: AbortSignal): Promise<MapHover> {
+    return this.json(`hover?${layerQuery(layer, { x: String(worldX), z: String(worldZ) })}`, { signal })
+  }
+
+  /** How the noise picks what the layer shows across {@code area}. */
+  picks(layer: MapLayerQuery, area: WorldRect, signal?: AbortSignal): Promise<PickInspection> {
+    const corners = { minX: String(area.minX), minZ: String(area.minZ), maxX: String(area.maxX), maxZ: String(area.maxZ) }
+    return this.json(`picks?${layerQuery(layer, corners)}`, { signal })
+  }
+
+  /** The regions the world picks biomes for, which the region view can preview. */
+  regions(): Promise<MapLabel[]> {
+    return this.json('regions')
+  }
+
+  entities(): Promise<Marker[]> {
+    return this.json('entities')
+  }
+
+  /** The packs the server can switch the studio to; none on a server that cannot. */
+  packs(): Promise<StudioPack[]> {
+    return this.json('packs')
+  }
+
+  /** Replaces the studio world with one of the pack; the new world's bridge, once the world is ready. */
+  openPack(packKey: string): Promise<BridgeConnection> {
+    return this.json(`open-pack?${new URLSearchParams({ pack: packKey })}`, { method: 'POST' })
+  }
+
+  async teleport(worldX: number, worldZ: number): Promise<void> {
+    await this.json(`teleport?x=${worldX}&z=${worldZ}`, { method: 'POST' })
+  }
+
+  /** Opens the file of the biome or region at a spot on the server's machine; the server's answer, if any. */
+  async openInEditor(worldX: number, worldZ: number, view: string): Promise<string | null> {
+    const answer = await this.json<{ message: string | null }>(`open?x=${worldX}&z=${worldZ}&view=${view}`, { method: 'POST' })
+    return answer.message
+  }
+
+  async tile(request: TileRequest, signal: AbortSignal): Promise<MapTile> {
+    const query = layerQuery(request, {
+      x: String(request.tileX),
+      z: String(request.tileZ),
+      scale: String(request.blocksPerPixel),
+      size: String(request.size),
+      heights: request.heights ? '1' : '0',
+      noise: request.pickNoise ? '1' : '0'
+    })
+    if (request.blocks !== null) {
+      query.set('blocks', request.blocks)
+      if (request.shape === true) {
+        query.set('shape', '1')
+      }
+      this.cancelOnAbort(query, signal)
+    }
+    const response = await this.fetch(`tile?${query}`, { signal })
+    return decodeTile(await response.arrayBuffer())
+  }
+
+  // A tile with blocks can keep the server generating chunks for a minute; dropping the request alone would not stop it.
+  private cancelOnAbort(query: URLSearchParams, signal: AbortSignal): void {
+    const request = crypto.randomUUID()
+    query.set('request', request)
+    signal.addEventListener('abort', () => void this.fetch(`tile-cancel?${new URLSearchParams({ request })}`, { method: 'POST' }).catch(() => {}), { once: true })
+  }
+
+  /** The scene views the pack's modules show, such as its objects. */
+  sceneViews(): Promise<SceneViewInfo[]> {
+    return this.json('scenes')
+  }
+
+  /** An editable entry's file, as nodes. */
+  sceneFile(viewId: string, key: string, signal?: AbortSignal): Promise<EditorState> {
+    return this.json(`scene-file?${new URLSearchParams({ view: viewId, key })}`, { signal })
+  }
+
+  /** Makes {@code edit} on the file as it was at {@code revision} and saves it; refused with STATUS_CONFLICT when it changed since. */
+  sceneEdit(viewId: string, key: string, revision: string, edit: GraphEdit): Promise<EditorState> {
+    return this.json(`scene-edit?${new URLSearchParams({ view: viewId, key })}`, { method: 'POST', body: JSON.stringify({ revision, edit }) })
+  }
+
+  /** Replaces the whole file, as undoing does; refused with STATUS_CONFLICT when it changed since {@code revision}. */
+  sceneWrite(viewId: string, key: string, revision: string, text: string): Promise<EditorState> {
+    return this.json(`scene-write?${new URLSearchParams({ view: viewId, key })}`, { method: 'POST', body: JSON.stringify({ revision, text }) })
+  }
+
+  /** Writes a new entry from its view's starter; it is listed once the pack has reloaded. Refused when the key can't name a new one. */
+  async sceneCreate(viewId: string, key: string): Promise<void> {
+    await this.json(`scene-create?${new URLSearchParams({ view: viewId, key })}`, { method: 'POST' })
+  }
+
+  /** The pack files that still name the entry, such as the biomes that place it. */
+  async sceneUses(viewId: string, key: string): Promise<string[]> {
+    const uses = await this.json<{ files: string[] }>(`scene-uses?${new URLSearchParams({ view: viewId, key })}`)
+    return uses.files
+  }
+
+  /** Moves the entry's file to the trash; says where it went. */
+  async sceneDelete(viewId: string, key: string): Promise<string> {
+    const trashed = await this.json<{ to: string }>(`scene-delete?${new URLSearchParams({ view: viewId, key })}`, { method: 'POST' })
+    return trashed.to
+  }
+
+  /** What a setting naming an entry of a platform registry (reference) or a resource of the pack (resource) may be typed as, sorted. */
+  suggestions(of: { reference: string } | { resource: string }): Promise<string[]> {
+    return this.json(`suggestions?${new URLSearchParams(of)}`)
+  }
+
+  /** A profile entry's settings as a form, with the typed values applied. */
+  profileForm(viewId: string, key: string, overrides: Record<string, string>, signal?: AbortSignal): Promise<ProfileFormState> {
+    const query = sceneQuery(viewId, { key, variant: 0, size: null, overrides })
+    query.delete('variant')
+    return this.json(`profile-form?${query}`, { signal })
+  }
+
+  sceneEntries(viewId: string): Promise<SceneEntry[]> {
+    return this.json(`scene-entries?${new URLSearchParams({ view: viewId })}`)
+  }
+
+  /** Bakes the entry once more and times each step; one run of the median the studio shows. */
+  sceneBake(viewId: string, key: string, signal?: AbortSignal): Promise<BakeRun> {
+    return this.json(`scene-bake?${new URLSearchParams({ view: viewId, key })}`, { signal })
+  }
+
+  async scene(viewId: string, place: ScenePlace, signal?: AbortSignal): Promise<BlockScene> {
+    const response = await this.fetch(`scene?${sceneQuery(viewId, place)}`, { signal })
+    return decodeScene(await response.arrayBuffer())
+  }
+
+  /** The part that placed each block of {@link scene}, in the same order, or NO_PART; baked again on the server to find out. */
+  async sceneParts(viewId: string, place: ScenePlace, signal?: AbortSignal): Promise<Int32Array> {
+    const response = await this.fetch(`scene-parts?${sceneQuery(viewId, place)}`, { signal })
+    return new Int32Array(await response.arrayBuffer())
+  }
+
+  /**
+   * The caves of the world's generated chunks over a square {@code size} blocks across around a spot: every air block
+   * under the terrain, drawn as blocks coloured by height. Every chunk of the square is generated, which takes seconds.
+   */
+  async caves(centerX: number, centerZ: number, size: number, signal: AbortSignal): Promise<BlockScene> {
+    const query = new URLSearchParams({ x: String(Math.round(centerX)), z: String(Math.round(centerZ)), size: String(size) })
+    this.cancelOnAbort(query, signal)
+    const response = await this.fetch(`caves?${query}`, { signal })
+    return decodeScene(await response.arrayBuffer())
+  }
+
+  /** The pattern views the pack's modules show, such as its palettes. */
+  patternViews(): Promise<ModuleViewInfo[]> {
+    return this.json('patterns')
+  }
+
+  patternEntries(viewId: string): Promise<PatternEntry[]> {
+    return this.json(`pattern-entries?${new URLSearchParams({ view: viewId })}`)
+  }
+
+  /** What an entry places at {@code depth} below the top across one tile, a column every {@code blocksPerColumn} blocks. */
+  async pattern(request: PatternRequest, signal: AbortSignal): Promise<PatternTile> {
+    const query = new URLSearchParams({
+      view: request.viewId,
+      key: request.key,
+      depth: String(request.depth),
+      x: String(request.tileX),
+      z: String(request.tileZ),
+      scale: String(request.blocksPerColumn),
+      size: String(request.columns)
+    })
+    const response = await this.fetch(`pattern?${query}`, { signal })
+    return decodePattern(await response.arrayBuffer())
+  }
+
+  pregen(signal?: AbortSignal): Promise<PregenStatus> {
+    return this.json('pregen', { signal })
+  }
+
+  /** The running pregeneration's chunks, one pixel each. */
+  async pregenMap(signal?: AbortSignal): Promise<Blob> {
+    const response = await this.fetch('pregen-map', { signal })
+    return response.blob()
+  }
+
+  /** Pauses the pregeneration, or resumes it when it is paused. */
+  async pregenPause(): Promise<void> {
+    await this.json('pregen-pause', { method: 'POST' })
+  }
+
+  /** The pack's image maps, listed like scene entries. */
+  imageMaps(): Promise<SceneEntry[]> {
+    return this.json('image-maps')
+  }
+
+  imageMap(key: string, signal?: AbortSignal): Promise<ImageMapDetails> {
+    return this.json(`image-map?${new URLSearchParams({ key })}`, { signal })
+  }
+
+  /** The image map painted over the world area it covers, {@code pixels} across its longer side. */
+  async imageMapPreview(key: string, pixels: number, signal?: AbortSignal): Promise<Blob> {
+    const response = await this.fetch(`image-map-preview?${new URLSearchParams({ key, size: String(pixels) })}`, { signal })
+    return response.blob()
+  }
+
+  /** The worlds saved on the server's disk. */
+  savedWorlds(): Promise<SavedWorldInfo[]> {
+    return this.json('saved-worlds')
+  }
+
+  /** Where a saved world's view opens; reads the region nearest the origin whole, so it can take a second or two. */
+  savedStart(worldId: string, signal?: AbortSignal): Promise<SavedStart> {
+    return this.json(`saved-start?${new URLSearchParams({ world: worldId })}`, { signal })
+  }
+
+  async savedTile(worldId: string, tileX: number, tileZ: number, blocksPerPixel: number, size: number, signal: AbortSignal): Promise<SavedTile> {
+    const query = new URLSearchParams({ world: worldId, x: String(tileX), z: String(tileZ), scale: String(blocksPerPixel), size: String(size) })
+    const response = await this.fetch(`saved-tile?${query}`, { signal })
+    return decodeSavedTile(await response.arrayBuffer())
+  }
+
+  /** The pack's generators and expressions, the dimension's overlay noise, and the built-in noise styles. */
+  noiseSources(): Promise<NoiseSource[]> {
+    return this.json('noise-sources')
+  }
+
+  async noiseTile(sourceId: string, seed: string, tileX: number, tileZ: number, blocksPerPixel: number, size: number, signal: AbortSignal): Promise<NoiseTile> {
+    const query = new URLSearchParams({ source: sourceId, seed, x: String(tileX), z: String(tileZ), scale: String(blocksPerPixel), size: String(size) })
+    const response = await this.fetch(`noise-tile?${query}`, { signal })
+    return { size, values: new Float32Array(await response.arrayBuffer()) }
+  }
+
+  /** A file of the Minecraft client's assets, such as {@code minecraft/blockstates/stone.json}; null when there is none. */
+  async asset(path: string): Promise<Response | null> {
+    try {
+      return await this.fetch(`assets/${path}`, {})
+    } catch (error) {
+      if (error instanceof BridgeError && error.status === STATUS_NOT_FOUND) {
+        return null
+      }
+      throw error
+    }
+  }
+
+  /** Streams the bridge's events until {@code signal} aborts or the bridge goes away. */
+  async listen(events: BridgeEvents, signal: AbortSignal): Promise<void> {
+    try {
+      const response = await this.fetch('events', { signal })
+      const reader = response.body!.pipeThrough(new TextDecoderStream()).getReader()
+      let pending = ''
+      for (;;) {
+        const { value, done } = await reader.read()
+        if (done) {
+          break
+        }
+        pending += value
+        let end: number
+        while ((end = pending.indexOf(EVENT_SEPARATOR)) >= 0) {
+          dispatch(pending.slice(0, end), events)
+          pending = pending.slice(end + EVENT_SEPARATOR.length)
+        }
+      }
+    } catch (error) {
+      if (signal.aborted) {
+        return
+      }
+      console.warn('Studio events stopped', error)
+    }
+    if (!signal.aborted) {
+      events.onClosed()
+    }
+  }
+
+  private async json<T>(endpoint: string, init: RequestInit = {}): Promise<T> {
+    const response = await this.fetch(endpoint, init)
+    return (await response.json()) as T
+  }
+
+  private async fetch(endpoint: string, init: RequestInit): Promise<Response> {
+    const response = await fetch(this.base + endpoint, {
+      ...init,
+      headers: { Authorization: this.authorization }
+    })
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({ error: response.statusText }))
+      throw new BridgeError(response.status, String(body.error ?? response.statusText))
+    }
+    return response
+  }
+}
+
+function sceneQuery(viewId: string, place: ScenePlace): URLSearchParams {
+  const query = new URLSearchParams({ view: viewId, key: place.key, variant: String(place.variant) })
+  if (place.size !== null) {
+    query.set('size', String(place.size))
+  }
+  for (const [name, value] of Object.entries(place.overrides ?? {})) {
+    query.set(`set.${name}`, value)
+  }
+  return query
+}
+
+function layerQuery(layer: MapLayerQuery, rest: Record<string, string>): URLSearchParams {
+  const query = new URLSearchParams({ view: layer.view, ...rest })
+  if (layer.preview !== null) {
+    query.set('preview', layer.preview)
+  }
+  return query
+}
+
+function dispatch(block: string, events: BridgeEvents): void {
+  let name = 'message'
+  let data = ''
+  for (const line of block.split('\n')) {
+    if (line.startsWith('event: ')) {
+      name = line.slice('event: '.length)
+    } else if (line.startsWith('data: ')) {
+      data += line.slice('data: '.length)
+    }
+  }
+  if (data === '') {
+    return
+  }
+  if (name === 'world') {
+    events.onWorld((JSON.parse(data) as { running: boolean }).running)
+  } else if (name === 'players') {
+    events.onPlayers(JSON.parse(data) as Marker[])
+  } else if (name === 'usage') {
+    events.onUsage(JSON.parse(data) as ServerUsage)
+  }
+}

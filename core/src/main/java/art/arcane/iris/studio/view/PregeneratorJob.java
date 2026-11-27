@@ -34,6 +34,9 @@ import art.arcane.iris.world.pregen.PregenSavedChunkStatus;
 import art.arcane.iris.world.pregen.PregenTask;
 import art.arcane.iris.world.pregen.PregeneratorMethod;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.studio.bridge.StudioBridge;
+import art.arcane.iris.studio.bridge.StudioBridges;
+import art.arcane.iris.studio.bridge.StudioWindow;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import art.arcane.volmlib.util.format.MemoryMonitor;
@@ -41,8 +44,8 @@ import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.iris.world.task.J;
 
 import java.awt.Color;
-import java.awt.EventQueue;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -73,7 +76,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
     private final ExecutorService service;
     private final Thread worker;
     private final PregenPhaseTracker apiPhases = new PregenPhaseTracker();
-    private volatile PregenRenderer renderer;
+    private volatile boolean studioWatching;
     private volatile PregenRenderSnapshot renderSnapshot;
     private volatile boolean closed;
     private volatile boolean finished;
@@ -122,7 +125,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
                 new ThreadPoolExecutor.DiscardOldestPolicy());
 
         switch (GuiHost.serverGuiLaunch(task.isGui())) {
-            case OPEN -> open();
+            case OPEN -> openInStudio();
             case UNAVAILABLE -> IrisLogging.info("Pregen GUI unavailable (headless), continuing");
             case DISABLED -> {
             }
@@ -403,32 +406,26 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         closed = true;
         try {
             monitor.close();
-            PregenRenderer activeRenderer = renderer;
-            if (activeRenderer != null) {
-                activeRenderer.close();
-            }
         } catch (Throwable error) {
             IrisLogging.reportError(error);
-            IrisLogging.error("Error closing pregen gui");
+            IrisLogging.error("Error closing pregen monitor");
         }
     }
 
-    public void open() {
-        EventQueue.invokeLater(() -> {
-            if (closed) {
-                return;
+    /** Opens the studio app on the pregeneration's world, or logs its link when no app is set up. */
+    public void openInStudio() {
+        if (closed || engine == null) {
+            return;
+        }
+        try {
+            StudioBridge bridge = StudioBridges.open(engine.getWorld().name(), () -> engine, null);
+            studioWatching = true;
+            if (!StudioWindow.show(bridge).opened()) {
+                IrisLogging.info("Iris Studio link for the pregeneration of %s: %s", engine.getWorld().name(), bridge.link());
             }
-            try {
-                PregenRenderer opened = PregenRenderer.open(IrisLanguage.plain(DesktopUiMessages.PREGEN_TITLE), this, this::togglePause);
-                renderer = opened;
-                if (closed) {
-                    opened.close();
-                }
-            } catch (Throwable error) {
-                IrisLogging.reportError(error);
-                IrisLogging.error("Error opening pregen gui");
-            }
-        });
+        } catch (IOException error) {
+            IrisLogging.warn("Could not open the studio for the pregeneration: %s", error.getMessage());
+        }
     }
 
     @Override
@@ -483,12 +480,12 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
 
     @Override
     public void onChunkGenerating(int x, int z) {
-        draw(x, z, PregenRenderer.GENERATING);
+        draw(x, z, PregenChunkColors.GENERATING);
     }
 
     @Override
     public void onChunkGenerated(int x, int z, boolean cached) {
-        drawChunkPreview(x, z, PregenRenderer.GENERATED);
+        drawChunkPreview(x, z, PregenChunkColors.GENERATED);
     }
 
     @Override
@@ -523,7 +520,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
 
     @Override
     public void onNetworkStarted(int x, int z) {
-        drawRegion(x, z, PregenRenderer.NETWORK);
+        drawRegion(x, z, PregenChunkColors.NETWORK);
     }
 
     @Override
@@ -538,12 +535,12 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
 
     @Override
     public void onNetworkGeneratedChunk(int x, int z) {
-        draw(x, z, PregenRenderer.NETWORK_GENERATING);
+        draw(x, z, PregenChunkColors.NETWORK_GENERATING);
     }
 
     @Override
     public void onNetworkDownloaded(int x, int z) {
-        drawRegion(x, z, PregenRenderer.NETWORK);
+        drawRegion(x, z, PregenChunkColors.NETWORK);
     }
 
     @Override
@@ -571,7 +568,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
 
     @Override
     public void onChunkExistsInRegionGen(int x, int z) {
-        drawChunkPreview(x, z, PregenRenderer.EXISTS);
+        drawChunkPreview(x, z, PregenChunkColors.EXISTS);
     }
 
     public boolean paused() {
@@ -604,8 +601,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
 
     private void drawChunkPreview(int x, int z, Color statusColor) {
         draw(x, z, statusColor);
-        PregenRenderer activeRenderer = renderer;
-        if (activeRenderer == null || !activeRenderer.isVisibleFrame() || service.isShutdown()) {
+        if (!studioWatching || service.isShutdown()) {
             return;
         }
         if (engine != null) {
@@ -614,8 +610,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
     }
 
     private void renderChunkPreview(int x, int z) {
-        PregenRenderer activeRenderer = renderer;
-        if (activeRenderer == null || !activeRenderer.isVisibleFrame() || service.isShutdown() || engine.isClosing()) {
+        if (!studioWatching || service.isShutdown() || engine.isClosing()) {
             return;
         }
         try {

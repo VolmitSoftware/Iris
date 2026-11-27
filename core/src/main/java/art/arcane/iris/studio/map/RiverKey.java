@@ -30,16 +30,16 @@ import java.util.Map;
 /**
  * What the colours of the river view stand for, one row per colour, so features drawn alike share a row.
  */
-final class RiverKey {
+public final class RiverKey {
     private static final List<Row> ROWS = buildRows();
 
     private RiverKey() {
     }
 
-    record Row(int color, String label) {
+    public record Row(int color, String label) {
     }
 
-    static List<Row> rows() {
+    public static List<Row> rows() {
         return ROWS;
     }
 

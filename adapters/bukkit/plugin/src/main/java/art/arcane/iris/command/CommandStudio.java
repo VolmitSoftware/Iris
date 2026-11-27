@@ -21,9 +21,11 @@ package art.arcane.iris.command;
 import art.arcane.iris.Iris;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.configuration.IrisSettings;
-import art.arcane.iris.studio.map.MapWindow;
-import art.arcane.iris.studio.map.PaletteExplorerStart;
-import art.arcane.iris.studio.view.GuiHost;
+import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.studio.bridge.StudioBridge;
+import art.arcane.iris.studio.bridge.StudioBridges;
+import art.arcane.iris.studio.bridge.StudioLaunch;
+import art.arcane.iris.studio.bridge.StudioWindow;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.workspace.IrisProject;
 import art.arcane.iris.studio.workspace.IrisCodeWorkspace;
@@ -104,6 +106,7 @@ import java.util.function.Consumer;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.BukkitCommandMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
+import art.arcane.volmlib.util.localization.TextKey;
 import art.arcane.volmlib.util.localization.LanguageAudience;
 import art.arcane.iris.localization.BukkitCommandMessagesExtended;
 @Director(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", descriptionKey = "iris.director.commandstudio.director.studio_commands")
@@ -267,16 +270,10 @@ public class CommandStudio implements DirectorExecutor {
 
     @Director(description = "Open the noise explorer (External GUI)", descriptionKey = "iris.director.commandstudio.director.open_noise_explorer_external_gui", aliases = {"nmap"})
     public void noise(
-            @Param(description = "Optional pack generator to preview", descriptionKey = "iris.director.commandstudio.param.optional_pack_generator_preview", defaultValue = "null", contextual = true, contextualOverride = true)
-            IrisGenerator generator,
-            @Param(description = "The seed to preview the generator with", descriptionKey = "iris.director.commandstudio.param.seed_preview_generator_with", defaultValue = "12345")
-            long seed
+            @Param(name = "world", description = "The Iris world whose pack the noise explorer reads", descriptionKey = "iris.director.commandstudio.param.world_open_generator", contextual = true, contextualOverride = true)
+            World world
     ) {
-        if (noGUI()) return;
-        VolmitSender commandSender = sender();
-        UUID openerId = commandSender.isPlayer() ? commandSender.player().getUniqueId() : null;
-        MapWindow.NoiseSelection selection = new MapWindow.NoiseSelection(generator == null ? null : generator.getLoadKey(), generator, seed);
-        withPlayerContext(opener -> openNoiseAtPlayer(commandSender, openerId, opener, selection));
+        openStudioApp(world, BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_NOISE_EXPLORER);
     }
 
     @Director(description = "Open the image-map studio (External GUI)", descriptionKey = "iris.director.commandstudio.director.open_image_map_studio_external_gui", aliases = {"imap"})
@@ -284,16 +281,7 @@ public class CommandStudio implements DirectorExecutor {
             @Param(name = "world", description = "The Iris world whose active pack receives image-map exports", descriptionKey = "iris.director.commandstudio.param.world_open_image_map_studio", contextual = true, contextualOverride = true)
             World world
     ) {
-        if (noGUI()) {
-            return;
-        }
-        if (!IrisToolbelt.isIrisWorld(world)) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_NEED_BE_SPECIFY_IRIS_GENERATED_WORLD));
-            return;
-        }
-
-        requestMapStart(world, MapWindow::openImageMaps);
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_IMAGE_MAP_STUDIO));
+        openStudioApp(world, BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_IMAGE_MAP_STUDIO);
     }
 
     @Director(description = "Show loot if a chest were right here", descriptionKey = "iris.director.commandstudio.director.show_loot_if_chest_were_right_here", origin = DirectorOrigin.PLAYER, sync = true)
@@ -425,66 +413,45 @@ public class CommandStudio implements DirectorExecutor {
             @Param(name = "world", description = "The world to open the generator for", descriptionKey = "iris.director.commandstudio.param.world_open_generator", contextual = true, contextualOverride = true)
             World world
     ) {
-        if (noGUI()) return;
+        openStudioApp(world, BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_MAP);
+    }
 
+    @Director(description = "Open the Iris Studio app on a world", descriptionKey = "iris.director.commandstudio.director.render_world_map_external_gui", aliases = "app")
+    public void studioApp(
+            @Param(name = "world", description = "The world to open the generator for", descriptionKey = "iris.director.commandstudio.param.world_open_generator", contextual = true, contextualOverride = true)
+            World world
+    ) {
+        openStudioApp(world, BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_MAP);
+    }
+
+    /** Opens the app on the world; when it can't, tells the sender why and hands over the link to connect by hand. */
+    private void openStudioApp(World world, TextKey openedMessage) {
         if (!IrisToolbelt.isIrisWorld(world)) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_NEED_BE_SPECIFY_IRIS_GENERATED_WORLD));
             return;
         }
-
-        requestMapStart(world, MapWindow::openMap);
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_MAP));
-    }
-
-    // The map opens where the player stands when they are in that world, otherwise at the world origin.
-    private PaletteExplorerStart mapStartIn(World world, Player opener, UUID openerId) {
-        Location center = opener != null && opener.getWorld().equals(world) ? opener.getLocation() : null;
-        return new PaletteExplorerStart(
-                IrisToolbelt.access(world).getEngine(),
-                world.getUID(),
-                openerId,
-                null,
-                center == null ? 0D : center.getX(),
-                center == null ? 0D : center.getZ()
-        );
-    }
-
-    private void requestMapStart(World world, Consumer<PaletteExplorerStart> launch) {
         UUID openerId = sender().isPlayer() ? player().getUniqueId() : null;
-        withPlayerContext(opener -> launch.accept(mapStartIn(world, opener, openerId)));
-    }
-
-    private void openNoiseAtPlayer(VolmitSender commandSender, UUID openerId, Player opener, MapWindow.NoiseSelection selection) {
-        World world = opener == null ? null : opener.getWorld();
-        PlatformChunkGenerator worldGenerator = world == null ? null : IrisToolbelt.access(world);
-        Engine engine = worldGenerator == null ? GuiHost.get().findActiveEngine() : worldGenerator.getEngine();
-        if (engine == null) {
-            commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_NEED_BE_SPECIFY_IRIS_GENERATED_WORLD));
+        PlatformChunkGenerator generator = IrisToolbelt.access(world);
+        StudioBridge bridge;
+        try {
+            bridge = StudioBridges.open(world.getName(), generator::getEngine, openerId);
+        } catch (IOException error) {
+            IrisLogging.warn("Could not open the studio bridge: %s", error.getMessage());
             return;
         }
-        PaletteExplorerStart start = worldGenerator == null
-                ? new PaletteExplorerStart(engine, null, openerId, null, 0D, 0D)
-                : mapStartIn(world, opener, openerId);
-        MapWindow.openNoise(start, selection);
-        commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_NOISE_EXPLORER));
-    }
-
-    private void withPlayerContext(Consumer<Player> action) {
-        Player opener = sender().isPlayer() ? player() : null;
-        if (opener == null) {
-            action.accept(null);
+        StudioLaunch launch = StudioWindow.show(bridge);
+        if (launch.opened()) {
+            sender().sendMessage(IrisLanguage.text(openedMessage));
             return;
         }
-        AtomicBoolean completed = new AtomicBoolean();
-        Consumer<Player> complete = player -> {
-            if (completed.compareAndSet(false, true)) {
-                action.accept(player);
-            }
-        };
-        Runnable retired = () -> complete.accept(null);
-        if (!J.runEntity(opener, () -> complete.accept(opener.isOnline() ? opener : null), 0, retired)) {
-            retired.run();
-        }
+        IrisLogging.info("Iris Studio link for %s: %s", world.getName(), bridge.link());
+        sendStudioLink(launch, bridge.link());
+    }
+
+    private void sendStudioLink(StudioLaunch launch, String link) {
+        sender().sendMessage(C.RED + IrisLanguage.text(launch.failureMessage()));
+        sender().sendCopyButton(IrisLanguage.text(RuntimeUiMessages.STUDIO_LINK_COPY_BUTTON),
+                IrisLanguage.text(RuntimeUiMessages.STUDIO_LINK_COPY_HOVER), link);
     }
 
     @Director(description = "Profiles the performance of a dimension", descriptionKey = "iris.director.commandstudio.director.profiles_performance_dimension", origin = DirectorOrigin.PLAYER)
@@ -951,21 +918,6 @@ public class CommandStudio implements DirectorExecutor {
                         .computeIfAbsent(n2, (k) -> new KList<>()).addIfMissing(n3);
             }
         }
-    }
-
-    /**
-     * @return true if server GUIs are not enabled
-     */
-    private boolean noGUI() {
-        if (!IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_MUST_HAVE_SERVER_LAUNCHED_GUIS_ENABLED_SETTINGS));
-            return true;
-        }
-        if (!GuiHost.isAvailable()) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_DESKTOP_UNAVAILABLE));
-            return true;
-        }
-        return false;
     }
 
     /**

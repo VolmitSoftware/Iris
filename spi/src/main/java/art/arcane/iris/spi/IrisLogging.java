@@ -222,10 +222,19 @@ public final class IrisLogging {
         return ONCE_KEYS.add(key == null ? "null" : key);
     }
 
+    /**
+     * Without a bound platform the debug setting cannot be read, so debug lines are dropped as if it were off:
+     * the Paper bootstrap runs pack loading before the plugin binds, and would otherwise print every loader
+     * line to the console.
+     */
     private static void emit(LogLevel level, String message) {
         LogLevel target = level == null ? LogLevel.INFO : level;
         if (IrisPlatforms.isBound()) {
             IrisPlatforms.get().log(target, message);
+            return;
+        }
+
+        if (target == LogLevel.DEBUG) {
             return;
         }
 

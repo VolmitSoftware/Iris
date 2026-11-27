@@ -18,6 +18,7 @@
 
 package art.arcane.iris.command;
 
+import art.arcane.iris.command.specialhandlers.SubterrainFeatureHandler;
 import art.arcane.iris.Iris;
 import art.arcane.iris.localization.BukkitCommandMessages;
 import art.arcane.iris.localization.BukkitCommandMessagesExtended;
@@ -93,7 +94,7 @@ public class CommandFind implements DirectorExecutor {
 
     @Director(description = "Find an authored underground feature by id or geometry family", sync = true)
     public void subterrain(
-            @Param(description = "Feature definition id or family: tectonic_fault, cenote, lava_tube, travertine_terraces")
+            @Param(description = "Feature definition id or family: tectonic_fault, cenote, lava_tube, travertine_terraces", customHandler = SubterrainFeatureHandler.class)
             String feature,
             @Param(description = "Search radius in blocks", defaultValue = "8192")
             int radius,

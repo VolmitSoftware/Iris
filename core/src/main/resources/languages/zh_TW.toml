@@ -1122,6 +1122,8 @@ replace_installed_types = "已安裝的包：{value}"
 "export.invalid" = "資料包匯出參數無效：{reason}"
 
 [iris.director.commanddeveloper]
+"director.stop_regen_running_world" = "停止世界中正在執行的重新生成"
+"param.world_regen_stop" = "要停止重新生成的世界"
 "director.iris_world_manager" = "Iris 世界管理器"
 "director.get_loaded_tectonicplates_count" = "取得已載入的 TectonicPlates 數量"
 "director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "對固定區域生成的方塊輸出進行雜湊，以進行確定性/一致性測試"
@@ -1638,6 +1640,14 @@ progress = "§e替換 {world}：{stage}（已耗時 {elapsed} 秒）"
 "stage.cleanup" = "正在清理失敗的替換內容"
 
 [iris.runtime.chunk_job]
+"stage.stopping" = "正在停止"
+"bossbar.stopped" = "§6{title} §e已停止§7 §e{summary}"
+"action.stopped" = "{bar}§7 §e已停止§7 | §f{summary}"
+stopped = "§6{title} 已停止：{summary}"
+already_running = "{world} 中已有 {title} 正在執行：{applied}/{total} 個區塊"
+stop_hint = "使用 {command} 停止"
+stopping = "正在停止 {world} 中的 {title}；處理中的區塊會先完成"
+none_running = "{world} 中沒有正在執行的 {title}"
 "title.regen" = "重新生成"
 "title.delete" = "刪除"
 "title.golden_hash" = "GoldenHash"
@@ -2129,3 +2139,7 @@ open = "開啟：{url}"
 open-description = "開啟已上傳的診斷報告。"
 copy-path = "複製本機路徑"
 copy-path-description = "複製本機報告的路徑。"
+
+[iris.runtime.report]
+more = "另有 {count} 項"
+click_to_insert = "點擊插入 {command}"

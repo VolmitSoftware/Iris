@@ -22,7 +22,7 @@ final class JsonSchemaValidator {
     private JsonSchemaValidator() {
     }
 
-    static void validateTopLevelKeys(JSONObject parsed, String rawText, File file, String resourceTypeName, Class<?> objectClass) {
+    static void validateTopLevelKeys(JSONObject parsed, String rawText, File file, File dataFolder, String resourceTypeName, Class<?> objectClass) {
         if (parsed == null || objectClass == null) {
             return;
         }
@@ -31,7 +31,7 @@ final class JsonSchemaValidator {
             if (known.contains(key)) {
                 continue;
             }
-            reportUnknownKey(key, rawText, file, resourceTypeName, known);
+            reportUnknownKey(key, rawText, file, dataFolder, resourceTypeName, known);
         }
     }
 
@@ -56,25 +56,10 @@ final class JsonSchemaValidator {
         IrisLogging.warn(out.toString());
     }
 
-    private static void reportUnknownKey(String key, String rawText, File file, String resourceTypeName, Set<String> known) {
+    private static void reportUnknownKey(String key, String rawText, File file, File dataFolder, String resourceTypeName, Set<String> known) {
         int line = findLineForKey(rawText, key);
         String suggestion = closestMatch(key, known);
-        StringBuilder out = new StringBuilder();
-        out.append("Unknown ").append(resourceTypeName).append(" field ")
-                .append(C.WHITE).append('"').append(key).append('"').append(C.YELLOW)
-                .append(" in ").append(C.WHITE).append(file.getPath());
-        if (line > 0) {
-            out.append(":").append(line);
-        }
-        out.append(C.YELLOW).append(" (Gson will silently ignore this)");
-        if (suggestion != null) {
-            out.append(". Did you mean ").append(C.WHITE).append('"').append(suggestion).append('"').append(C.YELLOW).append("?");
-        }
-        String snippet = buildSnippet(rawText, line);
-        if (snippet != null) {
-            out.append('\n').append(snippet);
-        }
-        IrisLogging.warn(out.toString());
+        UnknownFieldReport.record(dataFolder, file, resourceTypeName, key, line, suggestion);
     }
 
     private static Set<String> collectFieldNames(Class<?> cls) {

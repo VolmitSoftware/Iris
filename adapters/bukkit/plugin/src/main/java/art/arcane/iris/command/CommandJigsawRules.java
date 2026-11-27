@@ -13,8 +13,8 @@ public class CommandJigsawRules implements DirectorExecutor {
     @Director(description = "Set maximum expansion depth and horizontal radius", sync = true,
             origin = DirectorOrigin.PLAYER)
     public void limits(
-            @Param(description = "Maximum expansion depth") int maxDepth,
-            @Param(description = "Maximum radius in chunks") int maxSizeChunks
+            @Param(name = "max-depth", description = "Maximum expansion depth") int maxDepth,
+            @Param(name = "max-size-chunks", description = "Maximum radius in chunks") int maxSizeChunks
     ) {
         CommandJigsaw.ActiveContext context = CommandJigsaw.active(player());
         if (context == null) {
@@ -36,16 +36,16 @@ public class CommandJigsawRules implements DirectorExecutor {
                     context,
                     "",
                     "",
-                    "Persisted jigsaw limits: maxDepth=" + maxDepth
-                            + ", maxSizeChunks=" + maxSizeChunks + ".");
+                    "Persisted jigsaw limits: max-depth=" + maxDepth
+                            + ", max-size-chunks=" + maxSizeChunks + ".");
         });
     }
 
     @Director(description = "Set or clear one owned pool's direct fallback", sync = true,
             origin = DirectorOrigin.PLAYER)
     public void fallback(
-            @Param(description = "Owned pool resource key") String poolKey,
-            @Param(description = "Owned fallback pool key, or none") String fallbackPoolKey
+            @Param(name = "pool-key", description = "Owned pool resource key") String poolKey,
+            @Param(name = "fallback-pool-key", description = "Owned fallback pool key, or none") String fallbackPoolKey
     ) {
         CommandJigsaw.ActiveContext context = CommandJigsaw.active(player());
         if (context == null) {

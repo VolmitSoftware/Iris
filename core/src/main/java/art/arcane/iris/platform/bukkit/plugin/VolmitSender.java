@@ -27,6 +27,11 @@ import art.arcane.volmlib.util.hud.HudSlot;
 import art.arcane.volmlib.util.plugin.ComponentMessenger;
 import art.arcane.volmlib.util.plugin.ComponentText;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ChatReport;
+import art.arcane.iris.localization.ConsoleGlyphs;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.math.M;
 import lombok.Getter;
@@ -251,7 +256,8 @@ public class VolmitSender implements CommandSender {
         ComponentMessenger.sendActionBar(player, message);
     }
 
-    private ComponentText createNoPrefixComponent(String message) {
+    private ComponentText createNoPrefixComponent(String rawMessage) {
+        String message = fitForRecipient(rawMessage);
         if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
             String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(message));
             return ComponentText.markup(C.mini(t));
@@ -263,59 +269,111 @@ public class VolmitSender implements CommandSender {
     }
 
     private ComponentText createNoPrefixComponentNoProcessing(String message) {
-        return ComponentText.markup(C.mini(message));
+        return ComponentText.markup(C.mini(fitForRecipient(message)));
     }
 
     private ComponentText createComponent(String message) {
         if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
-            String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(getTag() + message));
+            String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(taggedForRecipient(message)));
             return ComponentText.markup(C.mini(t));
         }
 
-        String t = C.translateAlternateColorCodes('&', getTag() + message);
+        String t = C.translateAlternateColorCodes('&', taggedForRecipient(message));
         String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
         return ComponentText.markup(a);
     }
 
     private ComponentText createComponentRaw(String message) {
         if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
-            String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(getTag() + message));
+            String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(taggedForRecipient(message)));
             return ComponentText.markup(C.mini(t));
         }
 
-        String t = C.translateAlternateColorCodes('&', getTag() + message);
+        String t = C.translateAlternateColorCodes('&', taggedForRecipient(message));
         return ComponentText.markup(C.mini(t));
     }
 
     @Override
     public void sendMessage(String message) {
         if ((!IrisSettings.get().getGeneral().isUseCustomColorsIngame() && s instanceof Player) || !IrisSettings.get().getGeneral().isUseConsoleCustomColors()) {
-            ComponentMessenger.sendSection(s, C.translateAlternateColorCodes('&', getTag() + message));
+            sendSection(C.translateAlternateColorCodes('&', taggedForRecipient(message)));
             return;
         }
 
         if (message.contains("<NOMINI>")) {
-            ComponentMessenger.sendSection(
-                    s,
-                    C.translateAlternateColorCodes('&', getTag() + message.replace("<NOMINI>", "")));
+            sendSection(C.translateAlternateColorCodes('&', taggedForRecipient(message).replace("<NOMINI>", "")));
             return;
         }
 
         deliver(createComponent(message));
     }
 
+    public void sendSuccess(String message) {
+        sendToned(ChatReport.Tone.SUCCESS, message);
+    }
+
+    public void sendInfo(String message) {
+        sendToned(ChatReport.Tone.INFO, message);
+    }
+
+    public void sendWarning(String message) {
+        sendToned(ChatReport.Tone.WARNING, message);
+    }
+
+    public void sendError(String message) {
+        sendToned(ChatReport.Tone.ERROR, message);
+    }
+
+    private void sendToned(ChatReport.Tone tone, String message) {
+        sendMessage(isPlayer() ? tone.paint(message) : tone.marked(tone.consolePaint(message)));
+    }
+
+    public void sendReport(ChatReport report) {
+        if (!isPlayer()) {
+            report.consoleLines().forEach(this::sendMessage);
+            return;
+        }
+        sendUntagged(ChatReport.SPACER);
+        sendMessage(report.titleLine().text());
+        for (ChatReport.Line line : report.bodyLines(true)) {
+            sendUntagged(line);
+        }
+    }
+
+    private void sendUntagged(ChatReport.Line line) {
+        if (!rendersMarkup()) {
+            sendSection(line.text());
+            return;
+        }
+        String text = line.clickable() && isPlayer() ? clickable(line) : line.text();
+        deliver(createNoPrefixComponent(text));
+    }
+
+    private String clickable(ChatReport.Line line) {
+        String command = line.command().replace("'", "\\'");
+        String hover = ChatReport.clean(IrisLanguage.plain(RuntimeUiMessages.REPORT_CLICK_TO_INSERT,
+                MessageArgument.untrusted("command", line.command()))).replace("'", "\\'");
+        return "<click:suggest_command:'" + command + "'><hover:show_text:'" + hover + "'>"
+                + line.text() + "</hover></click>";
+    }
+
+    private boolean rendersMarkup() {
+        boolean playerWithoutColors = !IrisSettings.get().getGeneral().isUseCustomColorsIngame() && s instanceof Player;
+        return !playerWithoutColors && IrisSettings.get().getGeneral().isUseConsoleCustomColors();
+    }
+
     public void sendMessageBasic(String message) {
-        ComponentMessenger.sendSection(s, C.translateAlternateColorCodes('&', getTag() + message));
+        sendSection(C.translateAlternateColorCodes('&', taggedForRecipient(message)));
     }
 
     public void sendMessageRaw(String message) {
         if ((!IrisSettings.get().getGeneral().isUseCustomColorsIngame() && s instanceof Player) || !IrisSettings.get().getGeneral().isUseConsoleCustomColors()) {
-            ComponentMessenger.sendSection(s, C.translateAlternateColorCodes('&', message));
+            sendSection(C.translateAlternateColorCodes('&', message));
             return;
         }
 
         if (message.contains("<NOMINI>")) {
-            ComponentMessenger.sendSection(s, message.replace("<NOMINI>", ""));
+            sendSection(message.replace("<NOMINI>", ""));
             return;
         }
 
@@ -324,6 +382,21 @@ public class VolmitSender implements CommandSender {
 
     public void sendComponent(Component component) {
         deliver(ComponentText.component(component));
+    }
+
+    private void sendSection(String text) {
+        ComponentMessenger.sendSection(s, fitForRecipient(text));
+    }
+
+    private String taggedForRecipient(String message) {
+        return fitForRecipient(getTag() + message);
+    }
+
+    private String fitForRecipient(String text) {
+        if (s instanceof Player) {
+            return text;
+        }
+        return ConsoleGlyphs.console().fit(text);
     }
 
     private void deliver(ComponentText message) {

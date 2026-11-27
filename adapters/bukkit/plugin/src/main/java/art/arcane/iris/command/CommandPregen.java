@@ -26,6 +26,7 @@ import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.math.Position2;
 import org.bukkit.World;
@@ -82,9 +83,13 @@ public class CommandPregen implements DirectorExecutor {
             } else {
                 IrisToolbelt.pregenerate(task, world);
             }
-            String msg = C.GREEN + "Pregen started in " + C.GOLD + world.getName() + C.GREEN + " of " + C.GOLD + (radius * 2) + C.GREEN + " by " + C.GOLD + (radius * 2) + C.GREEN + " blocks from " + C.GOLD + center.getX() + "," + center.getZ();
+            String msg = C.GRAY + "Pregen started in " + ChatReport.highlight(world.getName())
+                    + " over " + ChatReport.highlight((radius * 2) + "×" + (radius * 2)) + " blocks around "
+                    + ChatReport.highlight(center.getBlockX() + ", " + center.getBlockZ());
             sender().sendMessage(msg);
-            Iris.info(msg);
+            if (sender().isPlayer()) {
+                Iris.info(msg);
+            }
         } catch (Throwable e) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_PREGEN_FAILED_START_PREGENERATION_SEE_CONSOLE_DETAILS));
             Iris.reportError(e);
@@ -94,9 +99,11 @@ public class CommandPregen implements DirectorExecutor {
     @Director(description = "Stop the active pregeneration task", descriptionKey = "iris.director.commandpregen.director.stop_active_pregeneration_task", aliases = "x")
     public void stop() {
         if (PregeneratorJob.shutdownInstance()) {
-            String message = C.BLUE + "Pregen stop requested; finishing active work before cancellation.";
-            sender().sendMessage(message);
-            Iris.info(message);
+            String message = "Pregen stop requested; finishing active work before cancellation.";
+            sender().sendInfo(message);
+            if (sender().isPlayer()) {
+                Iris.info(message);
+            }
         } else {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_PREGEN_NO_ACTIVE_PREGENERATION_TASKS_STOP));
         }
@@ -120,8 +127,10 @@ public class CommandPregen implements DirectorExecutor {
         }
 
         String world = progress.worldName() == null ? "?" : progress.worldName();
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_PREGEN_PREGEN, MessageArgument.untrusted("world", world), MessageArgument.untrusted("value", Form.f(progress.generated())), MessageArgument.untrusted("value2", Form.f(progress.totalChunks())), MessageArgument.untrusted("value3", String.format("%.1f", progress.percent())), MessageArgument.untrusted("value4", (progress.paused() ? C.YELLOW + " PAUSED" : ""))));
-        sender().sendMessage(IrisLanguage.text(
+        ChatReport.Tone tone = progress.failed() > 0 ? ChatReport.Tone.WARNING
+                : progress.paused() ? ChatReport.Tone.INFO : ChatReport.Tone.SUCCESS;
+        String headline = IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_PREGEN_PREGEN, MessageArgument.untrusted("world", world), MessageArgument.untrusted("value", Form.f(progress.generated())), MessageArgument.untrusted("value2", Form.f(progress.totalChunks())), MessageArgument.untrusted("value3", String.format("%.1f", progress.percent())), MessageArgument.untrusted("value4", (progress.paused() ? " PAUSED" : "")));
+        sender().sendReport(ChatReport.of(tone, headline).item(IrisLanguage.text(
                 BukkitCommandMessagesExtended.COMMAND_PREGEN_SPEED_S_ETA_ELAPSED_METHOD,
                 MessageArgument.untrusted("overall", Form.f(progress.overallChunksPerSecond(), 1)),
                 MessageArgument.untrusted("tenSecond", Form.f(progress.chunksPerSecond(), 1)),
@@ -130,6 +139,6 @@ public class CommandPregen implements DirectorExecutor {
                 MessageArgument.untrusted("eta", Form.duration(progress.eta(), 2)),
                 MessageArgument.untrusted("elapsed", Form.duration(progress.elapsed(), 2)),
                 MessageArgument.untrusted("method", progress.method()),
-                MessageArgument.untrusted("failures", progress.failed() > 0 ? C.RED + " Failed: " + Form.f(progress.failed()) : "")));
+                MessageArgument.untrusted("failures", progress.failed() > 0 ? " Failed: " + Form.f(progress.failed()) : ""))).build());
     }
 }

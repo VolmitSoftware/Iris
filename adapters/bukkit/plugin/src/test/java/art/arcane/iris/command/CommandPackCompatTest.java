@@ -1,5 +1,6 @@
 package art.arcane.iris.command;
 
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.pack.validation.CompatAction;
 import art.arcane.iris.pack.validation.CompatFinding;
 import art.arcane.iris.pack.validation.CompatRegistry;
@@ -30,9 +31,13 @@ public class CommandPackCompatTest {
         return new PackValidationResult("overworld", List.of(), List.of(), 1L, findings, "26.1.2");
     }
 
+    private static List<String> plainCompatOutput(String pack, PackValidationResult result) {
+        return CommandPack.compatOutput(pack, result).stream().map(ChatReport::clean).toList();
+    }
+
     @Test
     public void unknownPackIsReportedWithoutAnyCompatLines() {
-        List<String> lines = CommandPack.compatOutput("nope", null);
+        List<String> lines = plainCompatOutput("nope", null);
 
         assertEquals(1, lines.size());
         assertTrue(lines.getFirst(), lines.getFirst().contains("No validation result for 'nope'"));
@@ -40,7 +45,7 @@ public class CommandPackCompatTest {
 
     @Test
     public void packWithoutFindingsSaysSoAndNamesTheVersion() {
-        List<String> lines = CommandPack.compatOutput("overworld", result(List.of()));
+        List<String> lines = plainCompatOutput("overworld", result(List.of()));
 
         assertEquals(1, lines.size());
         assertTrue(lines.getFirst(), lines.getFirst().contains("Pack 'overworld' uses no content"));
@@ -49,7 +54,7 @@ public class CommandPackCompatTest {
 
     @Test
     public void findingsArePrintedUncappedWithTheFallbackRemedy() {
-        List<String> lines = CommandPack.compatOutput("overworld", result(List.of(
+        List<String> lines = plainCompatOutput("overworld", result(List.of(
                 block(CompatAction.EXCLUDED, "cave/a"),
                 block(CompatAction.EXCLUDED, "cave/b"),
                 block(CompatAction.EXCLUDED, "cave/c"),

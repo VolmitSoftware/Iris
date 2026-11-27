@@ -10,6 +10,8 @@ import art.arcane.iris.structure.graph.StructureAssemblyResult;
 import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.iris.studio.generation.JigsawStudioGenerator;
+import art.arcane.iris.localization.C;
+import art.arcane.iris.localization.ChatReport;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
@@ -389,7 +391,16 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuA
 
     static void message(Player player, String text) {
         if (player != null) {
-            J.runEntity(player, () -> ComponentMessenger.sendLiteral(player, "[Iris Jigsaw Studio] " + text));
+            String line = jigsawTag() + C.GRAY + ChatReport.clean(text);
+            J.runEntity(player, () -> ComponentMessenger.sendSection(player, line));
+        }
+    }
+
+    private static String jigsawTag() {
+        try {
+            return BukkitPlatform.volmitPlugin().getTag("Jigsaw");
+        } catch (IllegalStateException unhosted) {
+            return "";
         }
     }
 

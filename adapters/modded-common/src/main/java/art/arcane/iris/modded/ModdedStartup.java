@@ -21,6 +21,7 @@ package art.arcane.iris.modded;
 import art.arcane.iris.pack.PackFingerprints;
 
 import art.arcane.iris.pack.BrokenPackException;
+import art.arcane.iris.pack.PackBootReporter;
 import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.iris.pack.PackDownloader;
 import art.arcane.iris.pack.PackValidationRegistry;
@@ -43,7 +44,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class ModdedStartup {
-    private static final int COMPAT_BOOT_KEY_CAP = 3;
     private static final AtomicBoolean PREPARED = new AtomicBoolean(false);
     private static final AtomicBoolean STARTED = new AtomicBoolean(false);
     private static final AtomicBoolean RESTORE_BEGUN = new AtomicBoolean(false);
@@ -142,22 +142,10 @@ public final class ModdedStartup {
             try {
                 PackValidationResult result = validatePack(packDir);
                 String minecraftVersion = IrisPlatforms.isBound() ? IrisPlatforms.get().minecraftVersion() : null;
-                String compatSummary = PackValidator.compatSummary(result, minecraftVersion);
-                String compatSuffix = compatSummary.isEmpty() ? "" : " " + compatSummary;
-                if (!result.isLoadable()) {
-                    ModdedIrisLog.error("Iris pack '{}' FAILED validation with {} blocking error(s); world/studio creation will be refused. First error: {}",
-                            result.getPackName(), result.getBlockingErrors().size(),
-                            result.getBlockingErrors().getFirst());
-                } else if (!result.getWarnings().isEmpty()) {
-                    ModdedIrisLog.info("Iris pack '{}' validated ({} warning(s)).{}", result.getPackName(), result.getWarnings().size(), compatSuffix);
-                    for (String warning : result.getWarnings()) {
-                        ModdedIrisLog.warn("  [{}] {}", result.getPackName(), warning);
-                    }
+                if (result.isLoadable()) {
+                    PackBootReporter.logValidated(result, minecraftVersion, true);
                 } else {
-                    ModdedIrisLog.info("Iris pack '{}' validated.{}", result.getPackName(), compatSuffix);
-                }
-                for (String line : PackValidator.compatBootLines(result, minecraftVersion, COMPAT_BOOT_KEY_CAP)) {
-                    ModdedIrisLog.warn("{}", line);
+                    PackBootReporter.logBroken(result, minecraftVersion);
                 }
             } catch (Throwable e) {
                 ModdedIrisLog.error("Iris pack validation failed for '{}'", packDir.getName(), e);

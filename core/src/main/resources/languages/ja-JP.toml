@@ -1122,6 +1122,8 @@ replace_installed_types = "インストール済みのパック: {value}"
 "export.invalid" = "データパックのエクスポート引数が無効です: {reason}"
 
 [iris.director.commanddeveloper]
+"director.stop_regen_running_world" = "ワールドで実行中の再生成を停止する"
+"param.world_regen_stop" = "再生成を停止するワールド"
 "director.iris_world_manager" = "Iris ワールドマネージャー"
 "director.get_loaded_tectonicplates_count" = "読み込み済み TectonicPlates の数を取得します"
 "director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "固定範囲で生成されたブロック出力をハッシュ化し、決定性と一致性を検証します"
@@ -1638,6 +1640,14 @@ progress = "§e{world} の置き換え: {stage} ({elapsed}秒経過)"
 "stage.cleanup" = "失敗した置き換えのデータを整理しています"
 
 [iris.runtime.chunk_job]
+"stage.stopping" = "停止中"
+"bossbar.stopped" = "§6{title} §e停止§7 §e{summary}"
+"action.stopped" = "{bar}§7 §e停止§7 | §f{summary}"
+stopped = "§6{title} を停止しました: {summary}"
+already_running = "{world} ではすでに {title} が実行中です: {applied}/{total} チャンク"
+stop_hint = "{command} で停止できます"
+stopping = "{world} の {title} を停止しています。処理中のチャンクは先に完了します"
+none_running = "{world} で実行中の {title} はありません"
 "title.regen" = "再生成"
 "title.delete" = "削除"
 "title.golden_hash" = "GoldenHash"
@@ -2129,3 +2139,7 @@ open = "開く: {url}"
 open-description = "アップロードした診断レポートを開きます。"
 copy-path = "ローカルパスをコピー"
 copy-path-description = "ローカルのレポートのパスをコピーします。"
+
+[iris.runtime.report]
+more = "他 {count} 件"
+click_to_insert = "クリックして {command} を入力"

@@ -43,7 +43,7 @@ public class CommandJigsawWorkcell implements DirectorExecutor {
     @Director(description = "Set the selected workcell's author-facing label", sync = true,
             origin = DirectorOrigin.PLAYER)
     public void label(
-            @Param(description = "Display label; quote labels containing spaces") String displayName
+            @Param(name = "display-name", description = "Display label; quote labels containing spaces") String displayName
     ) {
         CommandJigsaw.ActiveContext context = CommandJigsaw.active(player());
         if (context == null) {

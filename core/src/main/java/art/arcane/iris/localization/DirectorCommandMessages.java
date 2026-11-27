@@ -213,6 +213,14 @@ public final class DirectorCommandMessages {
             "iris.director.commanddeveloper.director.generate_chunks_into_buffers_no_world_writes_hash_blocks_biomes_captures_golden",
             "Generate chunks into buffers (no world writes) and hash blocks+biomes; captures a golden file or verifies against an existing one. Deletes the world's entire mantle - use on disposable test worlds."
     );
+    public static final TextKey COMMAND_DEVELOPER_DIRECTOR_STOP_REGEN_RUNNING_WORLD = TextKey.of(
+            "iris.director.commanddeveloper.director.stop_regen_running_world",
+            "Stop the regen running in a world"
+    );
+    public static final TextKey COMMAND_DEVELOPER_PARAM_WORLD_REGEN_STOP = TextKey.of(
+            "iris.director.commanddeveloper.param.world_regen_stop",
+            "The world whose regen to stop"
+    );
     public static final TextKey COMMAND_DEVELOPER_PARAM_WORLD_SCAN = TextKey.of(
             "iris.director.commanddeveloper.param.world_scan",
             "The world to scan"
@@ -992,6 +1000,8 @@ public final class DirectorCommandMessages {
             COMMAND_DEVELOPER_DIRECTOR_TEST_4,
             COMMAND_DEVELOPER_DIRECTOR_DELETE_REGENERATE_NEARBY_CHUNKS_PLACE_USING_IRIS_GENERATION,
             COMMAND_DEVELOPER_PARAM_RADIUS_NEARBY_CHUNKS,
+            COMMAND_DEVELOPER_DIRECTOR_STOP_REGEN_RUNNING_WORLD,
+            COMMAND_DEVELOPER_PARAM_WORLD_REGEN_STOP,
             COMMAND_DEVELOPER_DIRECTOR_GENERATE_CHUNKS_INTO_BUFFERS_NO_WORLD_WRITES_HASH_BLOCKS_BIOMES_CAPTURES_GOLDEN,
             COMMAND_DEVELOPER_PARAM_WORLD_SCAN,
             COMMAND_DEVELOPER_PARAM_RADIUS_CHUNKS_AROUND_CENTER_2,

@@ -478,7 +478,8 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     }
 
     public CNG getChildrenGenerator(PackRuntime runtime, long seed, double scale) {
-        return runtime.biome(this).childrenGenerator(seed, scale);
+        double childScale = getChildStyle().isSeeded() ? 1 : scale;
+        return runtime.biome(this).childrenGenerator(seed, childScale);
     }
 
     CNG createChildrenGenerator(long seed, double scale, PackRuntime runtime) {

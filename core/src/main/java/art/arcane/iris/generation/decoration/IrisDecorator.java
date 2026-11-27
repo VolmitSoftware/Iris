@@ -169,9 +169,15 @@ public class IrisDecorator {
         if (getBlockData(decoratorRuntime.packRuntime().data()).isEmpty()) {
             return false;
         }
-        double xx = x / style.getZoom();
-        double zz = z / style.getZoom();
+        double blocksPerSample = chanceBlocksPerSample();
+        double xx = x / blocksPerSample;
+        double zz = z / blocksPerSample;
         return decoratorRuntime.layerGenerator(rng.getSeed()).fitDouble(0D, 1D, xx, zz) <= chance;
+    }
+
+    /** A style without a seed divides by its zoom here on top of its own scale; a seeded one is read in plain blocks. */
+    private double chanceBlocksPerSample() {
+        return style.isSeeded() ? 1 : style.getZoom();
     }
 
     public NativeBlockState getBlockData(IrisBiome b, RNG rng, double x, double z, PackRuntime runtime) {
@@ -204,8 +210,9 @@ public class IrisDecorator {
             return getBlockData100(b, rng, x, y, z, runtime);
         }
 
-        double xx = x / style.getZoom();
-        double zz = z / style.getZoom();
+        double blocksPerSample = chanceBlocksPerSample();
+        double xx = x / blocksPerSample;
+        double zz = z / blocksPerSample;
 
         if (getGenerator(rng, runtime).fitDouble(0D, 1D, xx, zz) <= chance) { //Exclude y from here
             if (topPalette.size() == 1) {

@@ -85,7 +85,7 @@ public class IrisDimensionCarvingEntry {
     }
 
     public CNG createChildrenGenerator(long childrenGeneratorSeed, PackRuntime runtime) {
-        return getChildStyle().createScaledGenerator(deriveChildStyleSeed(childrenGeneratorSeed), runtime, childShrinkFactor());
+        return getChildStyle().createScaledGenerator(deriveChildStyleSeed(childrenGeneratorSeed), runtime, childScale());
     }
 
     long deriveChildrenGeneratorSeed(long worldSeed) {
@@ -96,7 +96,11 @@ public class IrisDimensionCarvingEntry {
         return new RNG(childrenGeneratorSeed).nextParallelRNG(CHILDREN_SEED_SALT);
     }
 
-    private double childShrinkFactor() {
+    private double childScale() {
+        if (getChildStyle().isSeeded()) {
+            return 1;
+        }
+
         return Math.max(MINIMUM_CHILD_SHRINK_FACTOR, getChildShrinkFactor());
     }
 

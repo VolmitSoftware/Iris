@@ -224,6 +224,22 @@ public final class TerrainBoundarySignatureStore {
         return load(activationId);
     }
 
+    synchronized void discardSnapshot(long activationId) throws IOException {
+        Path target = snapshotPath(activationId);
+        if (!Files.exists(directory, LinkOption.NOFOLLOW_LINKS)) {
+            return;
+        }
+        validateStorageAncestors();
+        try (GenerationPublicationLock ignored = GenerationPublicationLock.acquire(
+                directory,
+                ".activation-" + activationId + SNAPSHOT_FILE_SUFFIX + ".lock"
+        )) {
+            if (Files.deleteIfExists(target)) {
+                forceDirectory(directory);
+            }
+        }
+    }
+
     public Snapshot load(long activationId) throws IOException {
         requireActivation(activationId);
         validateStorageAncestors();

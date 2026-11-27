@@ -178,12 +178,12 @@ public class GenerationHistoryTest extends GenerationHistorySupport {
         stage(history, packB);
         history.promotePending(signaturesForChunks(chunks));
 
-        int moved = history.reclaimForActivePack(List.of(
+        int moved = history.releaseForRegeneration(List.of(
                 new GenerationBoundary.ChunkCoordinate(3, 4),
                 new GenerationBoundary.ChunkCoordinate(40, 40)));
 
         assertEquals(1, moved);
-        assertEquals(0, history.reclaimForActivePack(List.of(new GenerationBoundary.ChunkCoordinate(3, 4))));
+        assertEquals(0, history.releaseForRegeneration(List.of(new GenerationBoundary.ChunkCoordinate(3, 4))));
         TransitionGenerationPlan plan = history.transitionPlan(2L);
         assertFalse(plan.isHistoricalChunk(3, 4));
         assertTrue(plan.allowsNewDiscreteContentAt(3 * 16, 4 * 16));

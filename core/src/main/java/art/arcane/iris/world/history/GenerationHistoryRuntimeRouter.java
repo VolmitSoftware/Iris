@@ -139,16 +139,15 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
     }
 
     /**
-     * Hands historical chunks to the active pack, so they generate like new chunks. Regen uses it to rebuild chunks from
-     * before the last hotload with the current pack, objects and caves included.
+     * Hands chunks to the active pack, so they generate like new chunks. Regen uses it to rebuild chunks from before the
+     * last hotload with the current pack, objects and caves included.
      */
-    public int reclaimForActivePack(List<GenerationBoundary.ChunkCoordinate> chunks) throws IOException {
+    public int releaseForRegeneration(List<GenerationBoundary.ChunkCoordinate> chunks) throws IOException {
         try (GenerationTransitionGate.Participation ignored = engine.getGenerationSessions().transitionGate().enter()) {
-            int reclaimed = history.reclaimForActivePack(chunks);
-            if (reclaimed > 0) {
-                objectContinuations.clear();
-            }
-            return reclaimed;
+            int released = history.releaseForRegeneration(chunks);
+            biomes.invalidateQueries(chunks);
+            objectContinuations.clear();
+            return released;
         }
     }
 

@@ -64,7 +64,7 @@ public class VersionedGenerationSourceTest {
         List<GenerationBoundary.ChunkCoordinate> chunks = List.of(new GenerationBoundary.ChunkCoordinate(-72, -15));
         new VersionedGenerationSource(router).releaseForRegeneration(chunks);
 
-        verify(router).reclaimForActivePack(chunks);
+        verify(router).releaseForRegeneration(chunks);
     }
 
     @Test

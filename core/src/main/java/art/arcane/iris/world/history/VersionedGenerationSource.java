@@ -180,7 +180,7 @@ public final class VersionedGenerationSource implements GenerationSource {
     public void releaseForRegeneration(List<GenerationBoundary.ChunkCoordinate> chunks) throws IOException {
         GenerationHistoryRuntimeRouter attached = router;
         if (attached != null) {
-            attached.reclaimForActivePack(chunks);
+            attached.releaseForRegeneration(chunks);
         }
     }
 

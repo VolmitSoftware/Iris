@@ -259,8 +259,8 @@ final class EngineHotloader {
                     IrisSettings settings = IrisSettings.get();
                     int transitionWidth = settings.getStudio().isBlendChanges()
                             ? settings.getGenerator().getGenerationTransitionWidthBlocks() : 0;
-                    history.stageUpdate(update.source(), update.fingerprint(), update.dimensionContract(),
-                            update.registryContract(), transitionWidth);
+                    history.stageUpdateReplacingStalePending(update.source(), update.fingerprint(),
+                            update.dimensionContract(), update.registryContract(), transitionWidth);
                 }
                 long stagedAt = System.nanoTime();
                 cutover.promotePending();

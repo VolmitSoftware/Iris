@@ -8,6 +8,8 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -15,7 +17,8 @@ import static org.junit.Assert.assertTrue;
 
 public class PackValidatorMissingContentFailureTest {
     private static final String PACK = "overworld";
-    private static final List<String> REQUIRING_DIMENSION = List.of("overworld");
+    private static final Map<String, Set<String>> REQUIRING_DIMENSION =
+            Map.of("overworld", Set.of("overworld", "cave/sulfur", "desert", "desert/dunes", "a", "b", "c", "d", "e"));
 
     private static CompatFinding block(CompatAction action, String subjectKey) {
         return new CompatFinding(
@@ -27,7 +30,7 @@ public class PackValidatorMissingContentFailureTest {
                 CompatRegistry.ENTITY, "minecraft:camel", action, "Spawner", subjectKey, "spawns[0]");
     }
 
-    private static List<String> blockingErrors(List<String> requiringDimensions, List<CompatFinding> findings) {
+    private static List<String> blockingErrors(Map<String, Set<String>> requiringDimensions, List<CompatFinding> findings) {
         List<String> blockingErrors = new ArrayList<>();
         PackValidator.applyRequireAllContent(PACK, requiringDimensions, "26.1.2", findings, blockingErrors);
         return blockingErrors;
@@ -37,7 +40,7 @@ public class PackValidatorMissingContentFailureTest {
     public void requirementIsOffByDefaultAndMissingContentStaysNonBlocking() {
         assertFalse(new IrisDimension().isRequireAllContent());
 
-        List<String> errors = blockingErrors(List.of(),
+        List<String> errors = blockingErrors(Map.of(),
                 List.of(block(CompatAction.EXCLUDED, "cave/sulfur"), entity(CompatAction.DROPPED, "desert")));
 
         assertTrue(errors.toString(), errors.isEmpty());
@@ -60,6 +63,21 @@ public class PackValidatorMissingContentFailureTest {
         assertTrue(errors.getFirst(), errors.getFirst().endsWith(
                 ": minecraft:sulfur (block): excluded Biome cave/sulfur at layers[0].palette[1]"
                         + " | minecraft:camel (entity): dropped Spawner desert at spawns[0]"));
+    }
+
+    @Test
+    public void findingsTheDimensionNeverReachesAreLeftOut() {
+        List<String> errors = blockingErrors(Map.of("overworld", Set.of("overworld", "desert")), List.of(
+                block(CompatAction.EXCLUDED, "cave/sulfur"), entity(CompatAction.DROPPED, "desert")));
+
+        assertEquals(List.of("Dimension 'overworld' in pack 'overworld' uses requireAllContent and content is unavailable"
+                + " on Minecraft 26.1.2: minecraft:camel (entity): dropped Spawner desert at spawns[0]"), errors);
+    }
+
+    @Test
+    public void dimensionReachingNoRemovedContentIsLoadable() {
+        assertTrue(blockingErrors(Map.of("overworld", Set.of("overworld")),
+                List.of(block(CompatAction.EXCLUDED, "cave/sulfur"))).isEmpty());
     }
 
     @Test

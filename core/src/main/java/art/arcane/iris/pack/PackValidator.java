@@ -41,6 +41,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -208,7 +209,7 @@ public final class PackValidator {
             GatedDimensions dimensions = loadEverything(packFolder, data, dimensionFiles);
             List<CompatFinding> findings = data.getCompatReport().findings();
             applyCompatFindings(minecraftVersion, dimensions.anyExcluded(), findings, blockingErrors, warnings);
-            applyRequireAllContent(packFolder.getName(), dimensions.dimensionsRequiringAllContent(),
+            applyRequireAllContent(packFolder.getName(), dimensions.reachedByRequiringDimension(),
                     minecraftVersion, findings, blockingErrors);
             return findings;
         } catch (Throwable e) {
@@ -232,12 +233,13 @@ public final class PackValidator {
      * anything else resolves) and evaluates every placement reachable from the dimensions, regions and biomes, plus
      * every static object on each dimension.
      *
-     * @return whether any dimension in the pack cannot generate on this server, and which dimensions opted into
-     * requiring all content
+     * @return whether any dimension in the pack cannot generate on this server, and what each dimension that opted
+     * into requiring all content can reach
      */
     private static GatedDimensions loadEverything(File packFolder, IrisData data, File[] dimensionFiles) {
         boolean dimensionExcluded = false;
-        List<String> dimensionsRequiringAllContent = new ArrayList<>();
+        Map<String, Set<String>> reachedByRequiringDimension = new LinkedHashMap<>();
+        List<String> folders = data.getLoaders().values().stream().map(ResourceLoader::getFolderName).toList();
         File dimensionsFolder = new File(packFolder, DIMENSIONS_FOLDER);
         for (File dimensionFile : dimensionFiles) {
             IrisDimension dimension = data.getDimensionLoader().load(
@@ -249,7 +251,8 @@ public final class PackValidator {
                 dimensionExcluded = true;
             }
             if (dimension.isRequireAllContent()) {
-                dimensionsRequiringAllContent.add(dimension.getLoadKey());
+                reachedByRequiringDimension.put(dimension.getLoadKey(), PackContentReach.referencedFrom(
+                        packFolder, dimensionFile, dimension.getLoadKey(), folders));
             }
             // Static objects gate themselves (the walker never descends into them), so ask each one here.
             dimension.evaluateStaticObjectsCompat(data);
@@ -268,10 +271,10 @@ public final class PackValidator {
         for (IrisObjectPlacement placement : placements) {
             placement.evaluateCompat(data);
         }
-        return new GatedDimensions(dimensionExcluded, List.copyOf(dimensionsRequiringAllContent));
+        return new GatedDimensions(dimensionExcluded, reachedByRequiringDimension);
     }
 
-    private record GatedDimensions(boolean anyExcluded, List<String> dimensionsRequiringAllContent) {
+    private record GatedDimensions(boolean anyExcluded, Map<String, Set<String>> reachedByRequiringDimension) {
     }
 
     private static void collectPlacements(IrisRegistrant registrant, Set<IrisObjectPlacement> out) {
@@ -346,25 +349,29 @@ public final class PackValidator {
     }
 
     /**
-     * A dimension with {@code requireAllContent} refuses to load when the gate excluded or dropped anything in its pack;
-     * substitutions are declared fallbacks and never count.
+     * A dimension with {@code requireAllContent} refuses to load when the gate excluded or dropped anything it can
+     * reach; content no file of the dimension leads to is left out, and substitutions are declared fallbacks and never
+     * count.
      */
     static void applyRequireAllContent(
             String packName,
-            List<String> requiringDimensionKeys,
+            Map<String, Set<String>> reachedByRequiringDimension,
             String minecraftVersion,
             List<CompatFinding> findings,
             List<String> blockingErrors
     ) {
-        if (requiringDimensionKeys == null || requiringDimensionKeys.isEmpty()) {
+        if (reachedByRequiringDimension == null || reachedByRequiringDimension.isEmpty()) {
             return;
         }
         List<CompatFinding> removed = removedContent(findings);
-        if (removed.isEmpty()) {
-            return;
-        }
-        for (String dimensionKey : requiringDimensionKeys) {
-            addDistinct(blockingErrors, List.of(missingContentError(packName, dimensionKey, minecraftVersion, removed)));
+        for (Map.Entry<String, Set<String>> dimension : reachedByRequiringDimension.entrySet()) {
+            List<CompatFinding> reached = removed.stream()
+                    .filter(finding -> PackContentReach.reaches(dimension.getValue(), finding))
+                    .toList();
+            if (!reached.isEmpty()) {
+                addDistinct(blockingErrors,
+                        List.of(missingContentError(packName, dimension.getKey(), minecraftVersion, reached)));
+            }
         }
     }
 

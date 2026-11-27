@@ -70,6 +70,21 @@ public class MissingContentFailurePackValidationTest {
                         + " dropped region main at landBiomes[1] sulfur"));
     }
 
+    @Test
+    public void requiringDimensionIgnoresContentItNeverReaches() throws Exception {
+        File pack = temporaryFolder.newFolder(PACK);
+        write(pack, "dimensions/main.json", "{\"requireAllContent\":true,\"regions\":[\"main\"]}");
+        write(pack, "regions/main.json", "{\"landBiomes\":[\"plain\"]}");
+        write(pack, "biomes/plain.json", "{\"name\":\"Plain\"}");
+        write(pack, "biomes/stray.json",
+                "{\"name\":\"Stray\",\"layers\":[{\"palette\":[{\"block\":\"minecraft:sulfur\"}]}]}");
+
+        PackValidationResult result = PackValidator.validate(pack);
+
+        assertFalse(result.getCompatFindings().isEmpty());
+        assertFalse(result.getBlockingErrors().toString(), hasMissingContentError(result));
+    }
+
     private static void write(File root, String relative, String content) throws Exception {
         Path path = root.toPath().resolve(relative);
         Files.createDirectories(path.getParent());

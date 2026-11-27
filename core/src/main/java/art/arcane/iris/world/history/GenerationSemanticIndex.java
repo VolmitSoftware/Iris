@@ -31,6 +31,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -341,25 +342,68 @@ public final class GenerationSemanticIndex {
                 int regionZ = regionZ(regionKey);
                 RegionShard previous = loadRegionLocked(regionKey, regionX, regionZ);
                 RegionShard replacement = previous.retainingStoredClaims(stored, selected);
-                int count = previous.recordCount() - replacement.recordCount();
-                if (count == 0) {
-                    continue;
-                }
-                byte[] encoded = replacement.encode();
-                String hash = sha256(encoded);
-                publisher.publish(directory, regionX, regionZ, encoded);
-                pointerPublisher.publish(directory, regionX, regionZ, hash);
-                String previousHash = shardHashes.put(regionKey, hash);
-                regionRecordCounts.put(regionKey, replacement.recordCount());
-                cacheRegion(regionKey, replacement);
-                removed += count;
-                deleteUnreferencedShard(regionX, regionZ, previousHash, hash);
+                removed += replaceRegionLocked(regionKey, previous, replacement);
             }
             return removed;
         } finally {
             publicationLock.unlock();
             lock.writeLock().unlock();
         }
+    }
+
+    /**
+     * Drops the records of the given chunks that an activation other than the one now owning them claimed, so those
+     * chunks can be generated and recorded again by their owner.
+     *
+     * @return how many records were dropped
+     */
+    public int forgetEarlierClaims(Collection<GenerationBoundary.ChunkCoordinate> chunks, long owningActivationId)
+            throws IOException {
+        Map<Long, LongOpenHashSet> chunksByRegion = new LinkedHashMap<>();
+        for (GenerationBoundary.ChunkCoordinate chunk : chunks) {
+            chunksByRegion.computeIfAbsent(packRegion(chunk.chunkX() >> 5, chunk.chunkZ() >> 5),
+                    ignored -> new LongOpenHashSet()).add(ChunkGenerationOwnership.packChunk(chunk.chunkX(), chunk.chunkZ()));
+        }
+        if (chunksByRegion.isEmpty()) {
+            return 0;
+        }
+        lock.writeLock().lock();
+        publicationLock.lock();
+        try {
+            compactJournals();
+            int removed = 0;
+            for (Map.Entry<Long, LongOpenHashSet> region : chunksByRegion.entrySet()) {
+                long regionKey = region.getKey();
+                RegionShard previous = loadRegionLocked(regionKey, regionX(regionKey), regionZ(regionKey));
+                RegionShard replacement = previous.withoutEarlierClaims(region.getValue(), owningActivationId);
+                removed += replaceRegionLocked(regionKey, previous, replacement);
+            }
+            if (removed > 0) {
+                riverRevision.incrementAndGet();
+            }
+            return removed;
+        } finally {
+            publicationLock.unlock();
+            lock.writeLock().unlock();
+        }
+    }
+
+    private int replaceRegionLocked(long regionKey, RegionShard previous, RegionShard replacement) throws IOException {
+        int count = previous.recordCount() - replacement.recordCount();
+        if (count == 0) {
+            return 0;
+        }
+        int regionX = regionX(regionKey);
+        int regionZ = regionZ(regionKey);
+        byte[] encoded = replacement.encode();
+        String hash = sha256(encoded);
+        publisher.publish(directory, regionX, regionZ, encoded);
+        pointerPublisher.publish(directory, regionX, regionZ, hash);
+        String previousHash = shardHashes.put(regionKey, hash);
+        regionRecordCounts.put(regionKey, replacement.recordCount());
+        cacheRegion(regionKey, replacement);
+        deleteUnreferencedShard(regionX, regionZ, previousHash, hash);
+        return count;
     }
 
     public void compactJournals() throws IOException {
@@ -2589,6 +2633,23 @@ public final class GenerationSemanticIndex {
                 ChunkGenerationSemantics record = records[index];
                 if (record != null && (!activationIds.contains(record.activationId())
                         || stored.contains(record.chunkX(), record.chunkZ()))) {
+                    replacement.records[index] = record;
+                    replacement.recordCount++;
+                }
+            }
+            return replacement;
+        }
+
+        private RegionShard withoutEarlierClaims(LongOpenHashSet chunks, long owningActivationId) {
+            RegionShard replacement = new RegionShard(regionX, regionZ);
+            for (int index = 0; index < records.length; index++) {
+                ChunkGenerationSemantics record = records[index];
+                if (record == null) {
+                    continue;
+                }
+                boolean forgotten = record.activationId() != owningActivationId
+                        && chunks.contains(ChunkGenerationOwnership.packChunk(record.chunkX(), record.chunkZ()));
+                if (!forgotten) {
                     replacement.records[index] = record;
                     replacement.recordCount++;
                 }

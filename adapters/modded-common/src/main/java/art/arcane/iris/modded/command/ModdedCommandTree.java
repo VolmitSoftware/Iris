@@ -120,9 +120,6 @@ final class ModdedCommandTree {
         root.then(metricsTree("metrics"));
         root.then(metricsTree("measure"));
 
-        root.then(regenTree("regen"));
-        root.then(regenTree("rg"));
-
         root.then(pregenTree("pregen"));
         root.then(pregenTree("pregenerate"));
 
@@ -220,13 +217,6 @@ final class ModdedCommandTree {
     private static LiteralArgumentBuilder<NativeCommandSource> metricsTree(String name) {
         return NativeCommandRegistration.literal(name).requires(READ_ONLY)
                 .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> IrisModdedCommands.metrics(context.getSource())));
-    }
-
-    private static LiteralArgumentBuilder<NativeCommandSource> regenTree(String name) {
-        return NativeCommandRegistration.literal(name).requires(GATE)
-                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> IrisModdedCommands.regen(context.getSource(), 0)))
-                .then(NativeCommandRegistration.argument("radius", IntegerArgumentType.integer(0, 64))
-                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> IrisModdedCommands.regen(context.getSource(), IntegerArgumentType.getInteger(context, "radius")))));
     }
 
     private static LiteralArgumentBuilder<NativeCommandSource> gotoTree(String name) {

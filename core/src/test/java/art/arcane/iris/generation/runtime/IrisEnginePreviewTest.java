@@ -2,6 +2,7 @@ package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.world.history.SavedBiomeRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -37,6 +38,7 @@ public class IrisEnginePreviewTest {
         field.set(engine, router);
         when(engine.acquireGenerationLease("pregen_preview")).thenReturn(lease);
         when(router.biomes()).thenReturn(biomes);
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(biomes.readSurfaceBiome(eq(-24), eq(40), any())).thenAnswer(invocation -> {
             Function<Optional<BiomeEnvironment>, Color> reader = invocation.getArgument(2);
             Color color = reader.apply(Optional.of(environment));

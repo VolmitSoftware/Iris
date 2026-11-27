@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.world.history.FloatingBiomeOverlay;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
@@ -87,7 +88,7 @@ public final class EngineModeTerrainGenerationTest {
         assertEquals(256, customWrites.get());
         assertSame(custom, blocks.getRaw(0, 2, 0));
         assertEquals("itemsadder:rocks/ruby_ore", receipt.get().column(-16, -32).geometry().voxelAt(2).stateKey());
-        verify(fixture.engine, never()).openGenerationHistoryCoordinateScope(anyInt(), anyInt());
+        verify(fixture.engine, never()).openGenerationScope(anyInt(), anyInt());
         assertEquals(41L, fixture.lastSessionId);
         assertNull(IrisContext.get());
     }
@@ -200,6 +201,7 @@ public final class EngineModeTerrainGenerationTest {
             when(engine.getMinHeight()).thenReturn(0);
             when(engine.getMode()).thenReturn(mode);
             when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+            when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
             EnginePlatformHooks hooks = mock(EnginePlatformHooks.class);
             when(engine.getPlatformHooks()).thenReturn(hooks);
             when(hooks.shouldDisableChunkContextCache(engine)).thenReturn(true);

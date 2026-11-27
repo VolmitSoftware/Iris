@@ -1,5 +1,6 @@
 package art.arcane.iris.studio.render;
 
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.generation.hydrology.engine.HydrologyPlanPreview;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
@@ -64,6 +65,7 @@ public class IrisRendererTest {
         GenerationHistory history = mock(GenerationHistory.class);
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(history.riverRevision()).thenAnswer(invocation -> water.get());
         ChunkGenerationSemantics pool = ChunkGenerationSemantics.builder(1, 1, 1L)

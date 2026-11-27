@@ -1,5 +1,6 @@
 package art.arcane.iris.studio.map;
 
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.hydrology.engine.HydrologyPlanPreview;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
@@ -180,6 +181,7 @@ public class MapCavePoolRefreshTest {
             GenerationHistory history = mock(GenerationHistory.class);
             GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
             when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+            when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
             when(router.history()).thenReturn(history);
             when(history.riverRevision()).thenAnswer(invocation -> water.get());
             ChunkGenerationSemantics pool = ChunkGenerationSemantics.builder(1, 1, 1L)

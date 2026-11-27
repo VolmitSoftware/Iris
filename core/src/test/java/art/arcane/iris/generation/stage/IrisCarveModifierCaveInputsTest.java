@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.runtime.GenerationSource;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
@@ -153,7 +154,7 @@ public class IrisCarveModifierCaveInputsTest {
     public void unroutedWorkerCapturesColumnsLikeTheEngineIncludingSubterrainBiomes() {
         try (Fixture fixture = new Fixture()) {
             when(fixture.engine.hasGenerationRuntimeScope()).thenReturn(false);
-            when(fixture.engine.hasGenerationHistoryRouting()).thenReturn(false);
+            when(fixture.engine.getGenerationSource()).thenReturn(GenerationSource.singlePack());
             doReturn(SubterrainChunkCells.delegated(fixture.engine)).when(fixture.engine).subterrainChunkCells(anyInt(), anyInt());
             IrisBiome feature = biome("feature", 0);
             doReturn(feature).when(fixture.engine).getSubterrainBiome(-20, 33, 18);
@@ -176,7 +177,9 @@ public class IrisCarveModifierCaveInputsTest {
     public void routedOrBoundUnscopedEnginesKeepCoordinateDispatch() {
         try (Fixture fixture = new Fixture()) {
             when(fixture.engine.hasGenerationRuntimeScope()).thenReturn(false);
-            when(fixture.engine.hasGenerationHistoryRouting()).thenReturn(true);
+            GenerationSource versioned = mock(GenerationSource.class);
+            when(versioned.keepsPackVersions()).thenReturn(true);
+            when(fixture.engine.getGenerationSource()).thenReturn(versioned);
             IrisBiome historical = biome("historical", 0);
             when(fixture.engine.getCaveBiome(anyInt(), anyInt(), anyInt(), any(IrisDimensionCarvingResolver.State.class))).thenReturn(historical);
             assertSame(historical, IrisCarveModifier.CaveInputs.forTerrainChunk(fixture.engine, -2, 1).resolve(-20, 20, 18));

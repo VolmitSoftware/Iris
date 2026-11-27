@@ -83,6 +83,17 @@ public final class GenerationBoundary {
             int maximumX,
             int maximumZ
     ) {
+        return intersectsHistoricalBlocks(minimumX, minimumZ, maximumX, maximumZ, (chunkX, chunkZ) -> true);
+    }
+
+    /** Like {@link #intersectsHistoricalBlocks(int, int, int, int)}, counting only historical chunks the filter keeps. */
+    public boolean intersectsHistoricalBlocks(
+            int minimumX,
+            int minimumZ,
+            int maximumX,
+            int maximumZ,
+            ChunkFilter counted
+    ) {
         if (minimumX > maximumX || minimumZ > maximumZ) {
             throw new IllegalArgumentException("Generation footprint bounds are inverted");
         }
@@ -99,7 +110,7 @@ public final class GenerationBoundary {
         if (candidateCount <= historicalChunkCount) {
             for (long chunkX = minimumChunkX; chunkX <= maximumChunkX; chunkX++) {
                 for (long chunkZ = minimumChunkZ; chunkZ <= maximumChunkZ; chunkZ++) {
-                    if (isHistoricalChunk((int) chunkX, (int) chunkZ)) {
+                    if (isHistoricalChunk((int) chunkX, (int) chunkZ) && counted.test((int) chunkX, (int) chunkZ)) {
                         return true;
                     }
                 }
@@ -111,7 +122,8 @@ public final class GenerationBoundary {
             historicalChunks.forEach((chunkX, chunkZ) -> {
                 if (!found[0]
                         && chunkX >= minimumChunkX && chunkX <= maximumChunkX
-                        && chunkZ >= minimumChunkZ && chunkZ <= maximumChunkZ) {
+                        && chunkZ >= minimumChunkZ && chunkZ <= maximumChunkZ
+                        && counted.test(chunkX, chunkZ)) {
                     found[0] = true;
                 }
             });
@@ -396,6 +408,11 @@ public final class GenerationBoundary {
     @FunctionalInterface
     public interface ChunkConsumer {
         void accept(int chunkX, int chunkZ) throws IOException;
+    }
+
+    @FunctionalInterface
+    public interface ChunkFilter {
+        boolean test(int chunkX, int chunkZ);
     }
 
     @FunctionalInterface

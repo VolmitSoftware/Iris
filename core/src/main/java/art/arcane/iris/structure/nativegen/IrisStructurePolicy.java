@@ -6,7 +6,7 @@ import art.arcane.volmlib.nativelib.terrain.structure.StructureFingerprint;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureInjectionPolicy;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureReferencePolicy;
 import art.arcane.iris.generation.runtime.IrisEngine;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.runtime.GenerationScope;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -75,12 +75,12 @@ public record IrisStructurePolicy(Engine engine)
     }
 
     @Override
-    public GenerationHistoryRuntimeRouter.CoordinateScope openOriginScope(int chunkX, int chunkZ) {
+    public GenerationScope openOriginScope(int chunkX, int chunkZ) {
         if (!(engine instanceof IrisEngine irisEngine)) {
             return null;
         }
         try {
-            return irisEngine.openGenerationHistoryCoordinateScope(chunkX << 4, chunkZ << 4);
+            return irisEngine.openGenerationScope(chunkX << 4, chunkZ << 4);
         } catch (IOException failure) {
             throw new IllegalStateException("Unable to resolve native structure references for origin "
                     + chunkX + "," + chunkZ + " through generation history.", failure);

@@ -51,6 +51,7 @@ public final class GenerationHistory {
     private final Map<Long, GenerationBoundary> boundaryCache;
     private final Map<Long, TerrainBoundarySignatureStore.Snapshot> terrainSignatureCache;
     private final Map<Long, TransitionGenerationPlan> transitionPlanCache;
+    private final Long2ObjectOpenHashMap<ReclaimedChunks> reclaimedChunksByActivation = new Long2ObjectOpenHashMap<>();
     private final ArrayBlockingQueue<PendingSemanticClaim> pendingSemanticClaims =
             new ArrayBlockingQueue<>(MAXIMUM_PENDING_SEMANTIC_CLAIMS);
     private final AtomicBoolean semanticWriter = new AtomicBoolean();
@@ -343,6 +344,31 @@ public final class GenerationHistory {
         );
     }
 
+    /**
+     * Stages an update like {@link #stageUpdate(Path, String, GenerationEpoch.DimensionContract,
+     * GenerationRegistryContract, int)}, but first discards a pending activation for a different pack that never
+     * published its transition. A failed Studio hotload leaves such an activation behind, and the newer pack supersedes
+     * it.
+     */
+    public synchronized GenerationActivation stageUpdateReplacingStalePending(
+            Path packSource,
+            String packFingerprint,
+            GenerationEpoch.DimensionContract dimensionContract,
+            GenerationRegistryContract registryContract,
+            int transitionWidthBlocks
+    ) throws IOException {
+        return stageUpdate(
+                packSource,
+                packFingerprint,
+                GenerationPackFingerprint.CURRENT_VERSION,
+                dimensionContract,
+                registryContract,
+                transitionWidthBlocks,
+                kernels.current(),
+                StalePendingUpdate.REPLACE
+        );
+    }
+
     synchronized GenerationActivation stageUpdate(
             Path packSource,
             String packFingerprint,
@@ -358,7 +384,8 @@ public final class GenerationHistory {
                 dimensionContract,
                 registryContract,
                 transitionWidthBlocks,
-                version
+                version,
+                StalePendingUpdate.REJECT
         );
     }
 
@@ -369,7 +396,8 @@ public final class GenerationHistory {
             GenerationEpoch.DimensionContract dimensionContract,
             GenerationRegistryContract registryContract,
             int transitionWidthBlocks,
-            GenerationKernelRegistry.Version version
+            GenerationKernelRegistry.Version version,
+            StalePendingUpdate stalePending
     ) throws IOException {
         GenerationEpoch candidate = epoch(
                 packFingerprint,
@@ -393,17 +421,20 @@ public final class GenerationHistory {
         }
 
         Optional<GenerationActivation> pending = store.pendingActivation();
-        if (pending.isPresent()) {
-            GenerationActivation activation = pending.get();
-            if (!activation.epochId().equals(candidate.epochId())) {
+        if (pending.isPresent() && !pending.get().epochId().equals(candidate.epochId())) {
+            if (stalePending == StalePendingUpdate.REJECT) {
                 throw new IllegalStateException("A different generation activation is already pending.");
             }
+            discardStalePending(pending.get());
+            pending = Optional.empty();
+        }
+        if (pending.isPresent()) {
             packs.requireExactPack(
                     candidate.epochId(),
                     candidate.packFingerprint(),
                     candidate.packFingerprintVersion()
             );
-            return activation;
+            return pending.get();
         }
 
         if (store.activeEpoch().equals(candidate)) {
@@ -433,6 +464,29 @@ public final class GenerationHistory {
         );
         forceEpochPublication(paths, candidate.epochId());
         return store.preparePendingActivation(candidate, transitionWidthBlocks);
+    }
+
+    /**
+     * Snapshots go before the manifest entry: a snapshot left without its activation would block the next activation
+     * that reuses the ID, while an activation left without snapshots simply publishes them again.
+     */
+    private void discardStalePending(GenerationActivation stale) throws IOException {
+        if (stale.transition().isComplete()) {
+            throw new IllegalStateException("A different generation activation is already pending.");
+        }
+        long activationId = stale.activationId();
+        boundaries.discardSnapshot(activationId);
+        terrainSignatures.discardSnapshot(activationId);
+        boundaryCache.remove(activationId);
+        terrainSignatureCache.remove(activationId);
+        transitionPlanCache.remove(activationId);
+        reclaimedChunksByActivation.remove(activationId);
+        store.discardPendingActivation(activationId);
+    }
+
+    private enum StalePendingUpdate {
+        REJECT,
+        REPLACE
     }
 
     GenerationActivation promotePending(
@@ -604,7 +658,8 @@ public final class GenerationHistory {
                 active.dimensionContract(),
                 active.registryContract(),
                 transitionWidthBlocks,
-                kernels.current()
+                kernels.current(),
+                StalePendingUpdate.REJECT
         );
     }
 
@@ -992,10 +1047,81 @@ public final class GenerationHistory {
                         transition.terrainSignatureIdentity()
                 ),
                 boundary,
-                terrainSnapshot
+                terrainSnapshot,
+                reclaimedChunks(activationId, boundary)
         );
         transitionPlanCache.put(activationId, plan);
         return plan;
+    }
+
+    /**
+     * Hands the given chunks to the active activation so they regenerate like new chunks. Ownership, the boundary's
+     * reclaimed set, recorded semantics and saved biomes change together, so a later promotion still finds every
+     * record owned by the activation that claimed it. Records go first: a crash in between leaves chunks with an owner
+     * and no record, which generation recovers from, instead of records that contradict their owner.
+     *
+     * @return how many chunks changed owner
+     */
+    public synchronized int releaseForRegeneration(List<GenerationBoundary.ChunkCoordinate> chunks) throws IOException {
+        GenerationActivation active = store.activeActivation();
+        if (active.isInitial()) {
+            return 0;
+        }
+        long activationId = active.activationId();
+        GenerationBoundary boundary = boundary(activationId);
+        List<GenerationBoundary.ChunkCoordinate> released = chunksTheActivePackMayOwn(chunks, boundary, activationId);
+        semantics.forgetEarlierClaims(released, activationId);
+        savedBiomes.forgetEarlierClaims(released, activationId);
+        return reclaimBoundaryChunks(released, boundary, activationId);
+    }
+
+    private List<GenerationBoundary.ChunkCoordinate> chunksTheActivePackMayOwn(
+            List<GenerationBoundary.ChunkCoordinate> chunks, GenerationBoundary boundary, long activationId
+    ) {
+        List<GenerationBoundary.ChunkCoordinate> released = new ArrayList<>(chunks.size());
+        for (GenerationBoundary.ChunkCoordinate chunk : chunks) {
+            if (boundary.isHistoricalChunk(chunk.chunkX(), chunk.chunkZ())
+                    || resolveActivation(chunk.chunkX(), chunk.chunkZ()).activationId() == activationId) {
+                released.add(chunk);
+            }
+        }
+        return released;
+    }
+
+    private int reclaimBoundaryChunks(
+            List<GenerationBoundary.ChunkCoordinate> chunks, GenerationBoundary boundary, long activationId
+    ) throws IOException {
+        ReclaimedChunks reclaimed = reclaimedChunks(activationId, boundary);
+        int moved = 0;
+        for (GenerationBoundary.ChunkCoordinate chunk : chunks) {
+            if (!boundary.isHistoricalChunk(chunk.chunkX(), chunk.chunkZ())
+                    || reclaimed.contains(chunk.chunkX(), chunk.chunkZ())) {
+                continue;
+            }
+            ownership.reclaim(chunk.chunkX(), chunk.chunkZ(), activationId);
+            reclaimed.add(chunk.chunkX(), chunk.chunkZ());
+            moved++;
+        }
+        if (moved > 0) {
+            ownership.persist();
+        }
+        return moved;
+    }
+
+    /** Every plan of one activation shares this set, so a plan rebuilt after cache eviction still sees later reclaims. */
+    private ReclaimedChunks reclaimedChunks(long activationId, GenerationBoundary boundary) throws IOException {
+        ReclaimedChunks existing = reclaimedChunksByActivation.get(activationId);
+        if (existing != null) {
+            return existing;
+        }
+        ReclaimedChunks loaded = new ReclaimedChunks();
+        ownership.forEachAssignment((chunkX, chunkZ, owner) -> {
+            if (owner == activationId && boundary.isHistoricalChunk(chunkX, chunkZ)) {
+                loaded.add(chunkX, chunkZ);
+            }
+        });
+        reclaimedChunksByActivation.put(activationId, loaded);
+        return loaded;
     }
 
     public synchronized int explicitChunkCount() {

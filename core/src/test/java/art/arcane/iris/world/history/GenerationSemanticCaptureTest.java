@@ -453,6 +453,7 @@ public final class GenerationSemanticCaptureTest {
                 .addPointOfInterest(new ChunkGenerationSemantics.PointOfInterest("incomplete",
                         new ChunkGenerationSemantics.BlockPosition(-31, 0, 49))).build()));
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         EngineMantle engineMantle = mock(EngineMantle.class);
         Mantle<Matter> mantle = mock(Mantle.class);
         when(engine.getMantle()).thenReturn(engineMantle);

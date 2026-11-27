@@ -5,7 +5,6 @@ import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.structure.object.IrisStaticObjectLayer;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockPositionPredicate;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -22,8 +21,7 @@ public final class GenerationWritePolicy {
         if (activation <= 0 || !(engine instanceof IrisEngine irisEngine)) {
             return false;
         }
-        GenerationHistoryRuntimeRouter router = irisEngine.getGenerationHistoryRuntimeRouter().orElse(null);
-        return router != null && activation < router.history().activeActivation().activationId();
+        return irisEngine.getGenerationSource().predatesActivePack(activation);
     }
 
     public static StructureSeaSurface seaSurface(Engine engine) {

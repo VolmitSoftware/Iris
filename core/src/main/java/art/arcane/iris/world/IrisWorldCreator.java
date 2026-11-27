@@ -138,6 +138,9 @@ public class IrisWorldCreator {
             }
             return null;
         }
+        if (studio && generationHistory == null) {
+            return null;
+        }
         Path root = Objects.requireNonNull(dimensionRoot, "Dimension root").toPath().toAbsolutePath().normalize();
         try {
             if (generationHistory == null) {

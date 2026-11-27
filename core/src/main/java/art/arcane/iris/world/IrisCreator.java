@@ -139,6 +139,10 @@ public class IrisCreator {
         );
     }
 
+    private boolean usesSinglePackStudio() {
+        return studio && !IrisSettings.get().getStudio().isKeepPackVersions();
+    }
+
     public static int removeTransientStudioWorldsFromBukkitYml() throws IOException {
         return BukkitWorldConfiguration.removeMatching(
                 BUKKIT_YML,
@@ -267,7 +271,9 @@ public class IrisCreator {
             long packPreparationStart = System.nanoTime();
             GenerationHistory publishedHistory = null;
             IrisDimension installedDimension;
-            if (benchmark && !studio) {
+            if (usesSinglePackStudio()) {
+                installedDimension = resolvedDimension;
+            } else if (benchmark && !studio) {
                 installedDimension = studioService.installIntoTransientWorld(sender, resolvedDimension, dimensionRoot);
             } else {
                 StudioSVC.GenerationPublication publication = studioService.installIntoWorld(

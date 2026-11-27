@@ -22,6 +22,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -255,8 +256,18 @@ public final class SavedBiomeRuntime implements AutoCloseable {
     public void capture(SavedBiomeChunk chunk) throws IOException {
         requireOpen();
         store.claimAndPersist(chunk);
+        invalidateQuery(chunk.chunkX(), chunk.chunkZ());
+    }
+
+    void invalidateQueries(Collection<GenerationBoundary.ChunkCoordinate> chunks) {
+        for (GenerationBoundary.ChunkCoordinate chunk : chunks) {
+            invalidateQuery(chunk.chunkX(), chunk.chunkZ());
+        }
+    }
+
+    private void invalidateQuery(int chunkX, int chunkZ) {
         synchronized (queries) {
-            long key = key(chunk.chunkX(), chunk.chunkZ());
+            long key = key(chunkX, chunkZ);
             PreparedQuery removed = queries.remove(key);
             if (removed != null) {
                 queryBytes -= removed.estimatedBytes();

@@ -27,7 +27,6 @@ import art.arcane.iris.generation.mantle.ObjectContinuationPersistence;
 import art.arcane.iris.generation.stage.IrisDimensionStackActuator;
 import art.arcane.iris.generation.stage.IrisTransitionGeometryActuator;
 import art.arcane.iris.world.history.FloatingBiomeOverlay;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.world.history.SavedTerrainChunk;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -235,17 +234,9 @@ public interface EngineMode extends Staged {
         if (!(getEngine() instanceof IrisEngine irisEngine)) {
             return List.of();
         }
-        GenerationHistoryRuntimeRouter router = irisEngine.getGenerationHistoryRuntimeRouter().orElse(null);
-        if (router == null) {
-            return List.of();
-        }
-        List<GenerationHistoryRuntimeRouter.ObjectContinuation> fragments = router.objectContinuations(
-                getComplex().getTransitionGenerationPlan(), x >> 4, z >> 4);
-        if (fragments.isEmpty()) {
-            return List.of();
-        }
         try {
-            List<Matter> continuations = router.decodeObjectContinuations(fragments);
+            List<Matter> continuations = irisEngine.getGenerationSource().transitions().objectContinuations(
+                    getComplex().getTransitionGenerationPlan(), x >> 4, z >> 4);
             for (Matter continuation : continuations) {
                 if (continuation.getHeight() != getEngine().getHeight()) {
                     throw new IOException("Object continuation height does not match the world");
@@ -264,8 +255,8 @@ public interface EngineMode extends Staged {
         if (!(getEngine() instanceof IrisEngine irisEngine)) {
             return;
         }
-        GenerationHistoryRuntimeRouter router = irisEngine.getGenerationHistoryRuntimeRouter().orElse(null);
-        if (router == null) {
+        GenerationSource source = irisEngine.getGenerationSource();
+        if (!source.keepsPackVersions()) {
             return;
         }
         FloatingBiomeOverlay floating = context.getFloatingBiomes();
@@ -283,8 +274,7 @@ public interface EngineMode extends Staged {
         try {
             SavedTerrainChunk terrain = IrisTransitionGeometryActuator.capture(
                     x, z, blocks, biomes, getEngine().getMinHeight(), context, true);
-            router.recordNaturalTerrain(terrain);
-            router.recordFloatingBiomes(x >> 4, z >> 4, floating);
+            source.transitions().recordNaturalTerrain(terrain, floating);
         } catch (IOException failure) {
             throw new IllegalStateException("Unable to capture natural terrain at " + (x >> 4) + "," + (z >> 4), failure);
         }

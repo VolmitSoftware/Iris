@@ -183,6 +183,13 @@ public final class GenerationHistoryStore {
         return updated.pendingActivation().orElseThrow();
     }
 
+    public synchronized void discardPendingActivation(long expectedActivationId) throws IOException {
+        requireUsable();
+        GenerationManifest updated = manifest.discardPending(expectedActivationId);
+        writeUpdatedManifest(updated);
+        manifest = updated;
+    }
+
     public synchronized GenerationActivation completePendingTransition(
             long expectedActivationId,
             String boundaryIdentity,

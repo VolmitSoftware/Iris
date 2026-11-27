@@ -168,6 +168,38 @@ public class GenerationHistoryTest extends GenerationHistorySupport {
     }
 
     @Test
+    public void reclaimedChunksGenerateWithTheActivePackAcrossReload() throws Exception {
+        Path world = temporaryFolder.newFolder("reclaim-world").toPath();
+        Path packA = createPack("reclaim-pack-a", "alpha");
+        Path packB = createPack("reclaim-pack-b", "beta");
+        GenerationHistory history = createHistory(world, packA);
+        int[][] chunks = {{3, 4}, {5, 4}};
+        writeRegion(Files.createDirectories(world.resolve("region")).resolve("r.0.0.mca"), chunks);
+        stage(history, packB);
+        history.promotePending(signaturesForChunks(chunks));
+
+        int moved = history.releaseForRegeneration(List.of(
+                new GenerationBoundary.ChunkCoordinate(3, 4),
+                new GenerationBoundary.ChunkCoordinate(40, 40)));
+
+        assertEquals(1, moved);
+        assertEquals(0, history.releaseForRegeneration(List.of(new GenerationBoundary.ChunkCoordinate(3, 4))));
+        TransitionGenerationPlan plan = history.transitionPlan(2L);
+        assertFalse(plan.isHistoricalChunk(3, 4));
+        assertTrue(plan.allowsNewDiscreteContentAt(3 * 16, 4 * 16));
+        assertTrue(plan.isHistoricalChunk(5, 4));
+        assertTrue(plan.boundary().isHistoricalChunk(3, 4));
+        assertEquals(2L, history.resolveActivation(3, 4).activationId());
+        assertEquals(1L, history.resolveActivation(5, 4).activationId());
+
+        GenerationHistory reopened = GenerationHistory.open(world);
+        assertFalse(reopened.transitionPlan(2L).isHistoricalChunk(3, 4));
+        assertTrue(reopened.transitionPlan(2L).isHistoricalChunk(5, 4));
+        assertEquals(2L, reopened.resolveActivation(3, 4).activationId());
+        assertEquals(2, reopened.explicitChunkCount());
+    }
+
+    @Test
     public void promotionFreezesAllocatedChunksBeforePublishingTheNewActivation() throws Exception {
         Path world = temporaryFolder.newFolder("promotion-world").toPath();
         Path packA = createPack("promotion-pack-a", "alpha");

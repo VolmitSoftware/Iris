@@ -1,5 +1,6 @@
 package art.arcane.iris.platform.bukkit.nms;
 
+import art.arcane.iris.generation.runtime.GenerationScope;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.runtime.Engine;
@@ -76,9 +77,9 @@ public class BukkitBiomeLocateTest {
         when(complex.getShoreBiomeStream()).thenReturn(ProceduralStream.of(
                 (x, z) -> meadow, Interpolated.of(value -> 0D, value -> meadow)));
         when(complex.historicalPhysicalBiomeKeyAt(anyInt(), anyInt(), anyInt())).thenReturn(Optional.empty());
-        GenerationHistoryRuntimeRouter.CoordinateScope scope = mock(GenerationHistoryRuntimeRouter.CoordinateScope.class);
+        GenerationScope scope = mock(GenerationScope.class);
         IrisEngine engine = mock(IrisEngine.class);
-        when(engine.openGenerationHistoryCoordinateScope(anyInt(), anyInt())).thenReturn(scope);
+        when(engine.openGenerationScope(anyInt(), anyInt())).thenReturn(scope);
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getData()).thenReturn(data);
         when(engine.getComplex()).thenReturn(complex);
@@ -112,8 +113,8 @@ public class BukkitBiomeLocateTest {
 
         assertEquals(new NativeBiomeSourcePolicy.BiomeLocation<>(4096, 100, 0, "pack:mirage"), found);
         assertEquals(1, heightSamples.get());
-        verify(engine).openGenerationHistoryCoordinateScope(4096, 0);
-        verify(engine, times(1)).openGenerationHistoryCoordinateScope(anyInt(), anyInt());
+        verify(engine).openGenerationScope(4096, 0);
+        verify(engine, times(1)).openGenerationScope(anyInt(), anyInt());
         verify(scope).close();
     }
 

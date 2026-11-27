@@ -1,6 +1,5 @@
 package art.arcane.iris.world.history;
 
-import art.arcane.volmlib.nativelib.terrain.NativeGenerationRoute;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockPositionPredicate;
 
 import art.arcane.volmlib.nativelib.terrain.NativeGenerationScope;
@@ -10,6 +9,8 @@ import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.IrisEngineMantle;
 import art.arcane.iris.generation.runtime.EngineTarget;
 import art.arcane.iris.generation.runtime.GenerationClosedException;
+import art.arcane.iris.generation.runtime.GenerationRoute;
+import art.arcane.iris.generation.runtime.GenerationScope;
 import art.arcane.iris.generation.runtime.GenerationTransitionGate;
 import art.arcane.iris.generation.mantle.ObjectContinuationBundle;
 import art.arcane.iris.world.storage.matter.IrisMatterContext;
@@ -135,6 +136,19 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
     }
 
     public record ObjectContinuation(long activationId, ObjectContinuationBundle.Fragment fragment) {
+    }
+
+    /**
+     * Hands chunks to the active pack, so they generate like new chunks. Regen uses it to rebuild chunks from before the
+     * last hotload with the current pack, objects and caves included.
+     */
+    public int releaseForRegeneration(List<GenerationBoundary.ChunkCoordinate> chunks) throws IOException {
+        try (GenerationTransitionGate.Participation ignored = engine.getGenerationSessions().transitionGate().enter()) {
+            int released = history.releaseForRegeneration(chunks);
+            biomes.invalidateQueries(chunks);
+            objectContinuations.clear();
+            return released;
+        }
     }
 
     public boolean allowsObjectFootprint(TransitionGenerationPlan plan, ObjectContinuationBundle.Bounds bounds) {
@@ -1451,7 +1465,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         }
     }
 
-    public static final class RuntimeRoute implements NativeGenerationRoute {
+    public static final class RuntimeRoute implements GenerationRoute {
         private final GenerationHistoryRuntimeRouter router;
         private final GenerationHistory.GenerationStage stage;
         private final RuntimeLease lease;
@@ -1495,6 +1509,18 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
 
         public GenerationActivation activation() {
             return stage.activation();
+        }
+
+        @Override
+        public long activationId() {
+            return stage.activation().activationId();
+        }
+
+        @Override
+        public byte[] naturalTerrainReceipt() throws IOException {
+            SavedTerrainChunk terrain = naturalTerrain;
+            return terrain == null ? null
+                    : NativeTerrainReceipt.encode(terrain, activationId(), stage.epoch().epochId());
         }
 
         public GenerationEpoch epoch() {
@@ -1762,7 +1788,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         }
     }
 
-    public static final class CoordinateScope implements NativeGenerationScope {
+    public static final class CoordinateScope implements GenerationScope {
         private final int blockX;
         private final int blockZ;
         private final RuntimeRoute route;

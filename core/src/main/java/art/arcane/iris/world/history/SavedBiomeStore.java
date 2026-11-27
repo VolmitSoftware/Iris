@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -345,6 +346,48 @@ public final class SavedBiomeStore {
                         rewriteRegion(region, discarded);
                         removed = Math.addExact(removed, count);
                     }
+                }
+            }
+        }
+        return removed;
+    }
+
+    /**
+     * Drops the saved biomes of the given chunks that an activation other than the one now owning them captured, so
+     * their owner can capture them again.
+     *
+     * @return how many chunks were dropped
+     */
+    public int forgetEarlierClaims(Collection<GenerationBoundary.ChunkCoordinate> chunks, long owningActivationId)
+            throws IOException {
+        requireSafeAncestors();
+        if (chunks.isEmpty() || !Files.exists(directory, LinkOption.NOFOLLOW_LINKS)) {
+            return 0;
+        }
+        Map<Long, List<GenerationBoundary.ChunkCoordinate>> chunksByRegion = new LinkedHashMap<>();
+        for (GenerationBoundary.ChunkCoordinate chunk : chunks) {
+            chunksByRegion.computeIfAbsent(key(chunk.chunkX() >> 5, chunk.chunkZ() >> 5),
+                    ignored -> new ArrayList<>()).add(chunk);
+        }
+        int removed = 0;
+        for (List<GenerationBoundary.ChunkCoordinate> regionChunks : chunksByRegion.values()) {
+            GenerationBoundary.ChunkCoordinate anchor = regionChunks.getFirst();
+            synchronized (regionLock(anchor.chunkX(), anchor.chunkZ())) {
+                requireWritable();
+                RegionIndex region = region(anchor.chunkX(), anchor.chunkZ());
+                boolean[] discarded = new boolean[1024];
+                int count = 0;
+                for (GenerationBoundary.ChunkCoordinate chunk : regionChunks) {
+                    int slot = slot(chunk.chunkX(), chunk.chunkZ());
+                    if (!discarded[slot] && region.offsets[slot] != 0L
+                            && readRecord(region, slot).activationId() != owningActivationId) {
+                        discarded[slot] = true;
+                        count++;
+                    }
+                }
+                if (count != 0) {
+                    rewriteRegion(region, discarded);
+                    removed = Math.addExact(removed, count);
                 }
             }
         }

@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.locator;
 
+import art.arcane.iris.world.history.VersionedGenerationSource;
+import art.arcane.iris.generation.runtime.GenerationScope;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
 
@@ -527,6 +529,7 @@ public class HintedLocatorTest {
         GenerationHistory history = mock(GenerationHistory.class);
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         when(routedEngine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(routedEngine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(routedEngine.acquireGenerationLease(any(String.class))).thenReturn(GenerationSessionLease.noop());
         when(router.history()).thenReturn(history);
         when(history.hasHistoricalFallbackInSquare(anyInt(), anyInt(), anyInt())).thenReturn(false);
@@ -664,6 +667,7 @@ public class HintedLocatorTest {
 
         when(routedEngine.getComplex()).thenReturn(routedComplex);
         when(routedEngine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(routedEngine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(history.semantics(anyInt(), anyInt())).thenAnswer(invocation -> switch (
                 invocation.<Integer>getArgument(0)
@@ -680,9 +684,9 @@ public class HintedLocatorTest {
                 invocation.<Integer>getArgument(0) == 3);
         when(routedComplex.allowsNewGenerationChunk(anyInt(), anyInt())).thenAnswer(invocation ->
                 invocation.<Integer>getArgument(0) == 3);
-        when(routedEngine.openGenerationHistoryCoordinateScope(anyInt(), anyInt())).thenAnswer(invocation -> {
-            GenerationHistoryRuntimeRouter.CoordinateScope scope =
-                    mock(GenerationHistoryRuntimeRouter.CoordinateScope.class);
+        when(routedEngine.openGenerationScope(anyInt(), anyInt())).thenAnswer(invocation -> {
+            GenerationScope scope =
+                    mock(GenerationScope.class);
             scopeDepth.incrementAndGet();
             doAnswer(close -> {
                 scopeDepth.decrementAndGet();
@@ -722,6 +726,7 @@ public class HintedLocatorTest {
 
         when(routedEngine.getComplex()).thenReturn(routedComplex);
         when(routedEngine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(routedEngine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(routedEngine.isClosed()).thenReturn(false);
         when(routedEngine.acquireGenerationLease(any(String.class))).thenReturn(GenerationSessionLease.noop());
         when(router.history()).thenReturn(history);
@@ -735,9 +740,9 @@ public class HintedLocatorTest {
                         && Math.abs((long) invocation.<Integer>getArgument(1)) <= invocation.<Integer>getArgument(2));
         when(history.isActiveUnowned(anyInt(), anyInt())).thenReturn(false);
         when(routedComplex.allowsNewGenerationChunk(anyInt(), anyInt())).thenReturn(false);
-        when(routedEngine.openGenerationHistoryCoordinateScope(anyInt(), anyInt())).thenAnswer(invocation -> {
-            GenerationHistoryRuntimeRouter.CoordinateScope scope =
-                    mock(GenerationHistoryRuntimeRouter.CoordinateScope.class);
+        when(routedEngine.openGenerationScope(anyInt(), anyInt())).thenAnswer(invocation -> {
+            GenerationScope scope =
+                    mock(GenerationScope.class);
             scopeDepth.incrementAndGet();
             doAnswer(close -> {
                 scopeDepth.decrementAndGet();

@@ -37,7 +37,8 @@ import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.GenerationSessionException;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.runtime.GenerationScope;
+import art.arcane.iris.generation.runtime.GenerationSource;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -271,7 +272,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         if (engine == null) {
             return access.serializedNoise(quartX, quartY, quartZ, sampler);
         }
-        GenerationHistoryRuntimeRouter.CoordinateScope historyScope = openHistoryCoordinateScope(
+        GenerationScope historyScope = openHistoryCoordinateScope(
                 engine, quartX << 2, quartZ << 2, "modded_structure_biome");
         try (historyScope) {
             GenerationSessionLease lease = tryAcquireGenerationLease(engine, "modded_structure_biome");
@@ -334,7 +335,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
     }
 
     private H locateVisibleBiome(Engine engine, int quartX, int quartY, int quartZ, S sampler) {
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored = openHistoryCoordinateScope(
+        try (GenerationScope ignored = openHistoryCoordinateScope(
                 engine, quartX << 2, quartZ << 2, "modded_locate_visible_biome")) {
             return resolveVisibleBiome(engine, quartX, quartY, quartZ, sampler, null);
         }
@@ -426,7 +427,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         if (engine == null) {
             return access.serializedNoise(quartX, quartY, quartZ, sampler);
         }
-        GenerationHistoryRuntimeRouter.CoordinateScope historyScope = openHistoryCoordinateScope(
+        GenerationScope historyScope = openHistoryCoordinateScope(
                 engine, quartX << 2, quartZ << 2, "modded_visible_biome");
         try (historyScope) {
             GenerationSessionLease lease = tryAcquireGenerationLease(engine, "modded_visible_biome");
@@ -482,7 +483,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         if (engine == null) {
             return null;
         }
-        GenerationHistoryRuntimeRouter.CoordinateScope historyScope = openHistoryCoordinateScope(
+        GenerationScope historyScope = openHistoryCoordinateScope(
                 engine, blockX, blockZ, "modded_surface_spawn_biome");
         try (historyScope) {
             GenerationSessionLease lease = tryAcquireGenerationLease(engine, "modded_surface_spawn_biome");
@@ -571,7 +572,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         }
         boolean surfaceQuery;
         try (lease) {
-            try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope = openHistoryCoordinateScope(
+            try (GenerationScope historyScope = openHistoryCoordinateScope(
                          engine, x, z, "modded_biomes_within");
                  IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
                 if (!isReady(engine)) {
@@ -592,7 +593,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
             Set<H> biomes = new HashSet<>(columns);
             for (int quartZ = minQuartZ; quartZ <= maxQuartZ; quartZ++) {
                 for (int quartX = minQuartX; quartX <= maxQuartX; quartX++) {
-                    try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope = openHistoryCoordinateScope(
+                    try (GenerationScope historyScope = openHistoryCoordinateScope(
                                  engine, quartX << 2, quartZ << 2, "modded_biomes_within");
                          IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
                         biomes.add(getSurfaceStructureBiome(engine, quartX, quartZ, sampler));
@@ -855,7 +856,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
             throw new IllegalStateException("Iris structure biome source is not bound to its generator");
         }
         Engine engine = current.awaitEngine().get();
-        GenerationHistoryRuntimeRouter.CoordinateScope historyScope = openHistoryCoordinateScope(
+        GenerationScope historyScope = openHistoryCoordinateScope(
                 engine, quartX << 2, quartZ << 2, "modded_structure_state_biome");
         try (historyScope) {
             GenerationSessionLease lease = tryAcquireGenerationLease(engine, "modded_structure_state_biome");
@@ -957,7 +958,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         return current == null ? null : current.currentEngine().get();
     }
 
-    private GenerationHistoryRuntimeRouter.CoordinateScope openHistoryCoordinateScope(
+    private GenerationScope openHistoryCoordinateScope(
             Engine engine,
             int blockX,
             int blockZ,
@@ -970,11 +971,13 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         if (!(engine instanceof IrisEngine irisEngine)) {
             throw new IllegalStateException("Iris " + operation + " requires an IrisEngine runtime.");
         }
-        GenerationHistoryRuntimeRouter router = irisEngine.getGenerationHistoryRuntimeRouter().orElseThrow(() ->
-                new IllegalStateException("Iris " + operation
-                        + " requires an attached generation-history runtime router."));
+        GenerationSource source = irisEngine.getGenerationSource();
+        if (!source.keepsPackVersions()) {
+            throw new IllegalStateException("Iris " + operation
+                    + " requires an attached generation-history runtime router.");
+        }
         try {
-            return router.openCoordinateScope(blockX, blockZ);
+            return source.openGenerationScope(blockX, blockZ);
         } catch (IOException failure) {
             throw new IllegalStateException("Iris " + operation + " could not route block "
                     + blockX + "," + blockZ + " through generation history.", failure);

@@ -82,6 +82,9 @@ import art.arcane.iris.structure.nativegen.NativeFeatureGenerationPolicy;
 import art.arcane.iris.structure.nativegen.NativeStructureStartPlan;
 import art.arcane.iris.world.history.GenerationEpoch;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.runtime.GenerationRoute;
+import art.arcane.iris.generation.runtime.GenerationScope;
+import art.arcane.iris.generation.runtime.GenerationSource;
 import art.arcane.iris.world.history.GenerationRegistryContract;
 import art.arcane.iris.world.history.GenerationRegistryContractFactory;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -902,7 +905,7 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
         importedFeatures.evictRuntime(runtimeIdentity);
     }
 
-    private GenerationHistoryRuntimeRouter.RuntimeRoute openHistoryRoute(
+    private GenerationRoute openHistoryRoute(
             Engine current,
             int chunkX,
             int chunkZ,
@@ -911,16 +914,16 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
         if (allowsGenerationHistoryBypass(current)) {
             return null;
         }
-        GenerationHistoryRuntimeRouter router = requireHistoryRouter(current, operation);
+        GenerationSource source = requireVersionedSource(current, operation);
         try {
-            return router.openRoute(chunkX, chunkZ);
+            return source.openRoute(chunkX, chunkZ);
         } catch (IOException failure) {
             throw new IllegalStateException("Iris " + operation + " could not route chunk "
                     + chunkX + "," + chunkZ + " through generation history.", failure);
         }
     }
 
-    private GenerationHistoryRuntimeRouter.CoordinateScope openHistoryCoordinateScope(
+    private GenerationScope openHistoryCoordinateScope(
             Engine current,
             int blockX,
             int blockZ,
@@ -929,13 +932,25 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
         if (allowsGenerationHistoryBypass(current)) {
             return null;
         }
-        GenerationHistoryRuntimeRouter router = requireHistoryRouter(current, operation);
+        GenerationSource source = requireVersionedSource(current, operation);
         try {
-            return router.openCoordinateScope(blockX, blockZ);
+            return source.openGenerationScope(blockX, blockZ);
         } catch (IOException failure) {
             throw new IllegalStateException("Iris " + operation + " could not route block "
                     + blockX + "," + blockZ + " through generation history.", failure);
         }
+    }
+
+    private GenerationSource requireVersionedSource(Engine current, String operation) {
+        if (!(current instanceof IrisEngine irisEngine)) {
+            throw new IllegalStateException("Iris " + operation + " requires an IrisEngine runtime.");
+        }
+        GenerationSource source = irisEngine.getGenerationSource();
+        if (!source.keepsPackVersions()) {
+            throw new IllegalStateException("Iris " + operation
+                    + " requires an attached generation-history runtime router.");
+        }
+        return source;
     }
 
     private GenerationHistoryRuntimeRouter requireHistoryRouter(Engine current, String operation) {
@@ -964,12 +979,6 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
         }
         throw new IllegalStateException("Only an explicitly transient Iris Studio engine may bypass "
                 + "generation-history routing.");
-    }
-
-    private static GenerationHistoryRuntimeRouter.RuntimeRoute.RuntimeScope openHistoryRuntimeScope(
-            GenerationHistoryRuntimeRouter.RuntimeRoute route
-    ) {
-        return route == null ? null : route.openRuntimeScope();
     }
 
     GenerationSessionLease requireGenerationLease(Engine current, String operation) {
@@ -1150,13 +1159,12 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
 
     @Override
     public byte[] terrainReceipt(NativeGenerationRoute nativeRoute) throws IOException {
-        GenerationHistoryRuntimeRouter.RuntimeRoute route = (GenerationHistoryRuntimeRouter.RuntimeRoute) nativeRoute;
-        return ModdedNativeTerrainReceipts.encode(route);
+        return nativeRoute == null ? null : ((GenerationRoute) nativeRoute).naturalTerrainReceipt();
     }
 
     @Override
     public long structureActivation(NativeGenerationRoute route) {
-        return ((GenerationHistoryRuntimeRouter.RuntimeRoute) route).activation().activationId();
+        return ((GenerationRoute) route).activationId();
     }
 
     @Override

@@ -1,5 +1,6 @@
 package art.arcane.iris.platform.bukkit.nms.v26_3_R1;
 
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.platform.bukkit.nms.BukkitGeneratorContext;
 import org.bukkit.World;
 import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeChunkGenerator;
@@ -122,13 +123,14 @@ public class IrisChunkGeneratorSpawnAdmissionTest {
             setField(generator, "runtimeLevel", level);
             when(engine.getGenerationSessions()).thenReturn(sessions);
             when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+            when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
             when(router.biomes()).thenReturn(saved);
             when(saved.nativeSpawnSelection(0, 64, 0, "")).thenAnswer(invocation -> {
                 assertAdmitted();
                 savedReads.incrementAndGet();
                 return new NativeBiomeSpawnSelection(NativeBiomeSpawnSelection.Mode.RETAINED, "minecraft:plains");
             });
-            when(engine.openGenerationHistoryCoordinateScope(0, 0)).thenAnswer(invocation -> {
+            when(engine.openGenerationScope(0, 0)).thenAnswer(invocation -> {
                 assertAdmitted();
                 routes.incrementAndGet();
                 return null;

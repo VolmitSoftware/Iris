@@ -7,7 +7,8 @@ import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.runtime.GenerationScope;
+import art.arcane.iris.generation.runtime.GenerationSource;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.collection.KList;
 
@@ -168,11 +169,7 @@ public final class NativeStructureVolumeIndex {
         if (!(engine instanceof IrisEngine irisEngine) || !irisEngine.hasGenerationRuntimeScope()) {
             return null;
         }
-        GenerationHistoryRuntimeRouter router = irisEngine.getGenerationHistoryRuntimeRouter().orElse(null);
-        if (router == null) {
-            return null;
-        }
-        GenerationHistoryRuntimeRouter.RuntimeOwnership ownership = router.currentRuntimeOwnership().orElse(null);
+        GenerationSource.RouteOwnership ownership = irisEngine.getGenerationSource().currentRouteOwnership().orElse(null);
         int runtimeId = runtimeId(engine);
         return ownership != null && ownership.binding().runtimeId() == runtimeId ? runtimeId : null;
     }
@@ -191,8 +188,7 @@ public final class NativeStructureVolumeIndex {
     }
 
     KList<NativeStructureVolume> originVolumes(Engine engine, int chunkX, int chunkZ) {
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openHistoryCoordinateScope(engine, chunkX, chunkZ)) {
+        try (GenerationScope ignored = openGenerationScope(engine, chunkX, chunkZ)) {
             int runtimeId = runtimeId(engine);
             return cached(
                     originCache,
@@ -258,16 +254,12 @@ public final class NativeStructureVolumeIndex {
         return ((long) chunkX << 32) ^ (chunkZ & 0xffffffffL);
     }
 
-    private static GenerationHistoryRuntimeRouter.CoordinateScope openHistoryCoordinateScope(
-            Engine engine,
-            int chunkX,
-            int chunkZ
-    ) {
+    private static GenerationScope openGenerationScope(Engine engine, int chunkX, int chunkZ) {
         if (!(engine instanceof IrisEngine irisEngine)) {
             return null;
         }
         try {
-            return irisEngine.openGenerationHistoryCoordinateScope(chunkX << 4, chunkZ << 4);
+            return irisEngine.openGenerationScope(chunkX << 4, chunkZ << 4);
         } catch (IOException failure) {
             throw new IllegalStateException("Unable to route native structure origin "
                     + chunkX + "," + chunkZ + " through generation history.", failure);

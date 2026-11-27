@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.world.IrisWorld;
@@ -29,6 +30,7 @@ public class IrisEngineGenerationHistorySyncTest {
     public void syncWithoutAnAttachedHistoryDoesNothing() {
         IrisEngine engine = mock(IrisEngine.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+        when(engine.getGenerationSource()).thenReturn(GenerationSource.singlePack());
         doCallRealMethod().when(engine).syncGenerationHistory();
         engine.syncGenerationHistory();
     }
@@ -48,6 +50,7 @@ public class IrisEngineGenerationHistorySyncTest {
         when(router.history()).thenReturn(history);
         IrisEngine engine = mock(IrisEngine.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         doCallRealMethod().when(engine).syncGenerationHistory();
         return engine;
     }

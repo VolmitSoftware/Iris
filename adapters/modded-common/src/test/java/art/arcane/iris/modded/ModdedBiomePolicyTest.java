@@ -1,5 +1,6 @@
 package art.arcane.iris.modded;
 
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
@@ -206,6 +207,7 @@ public class ModdedBiomePolicyTest {
         when(router.openCoordinateScope(anyInt(), anyInt())).thenReturn(scope);
         IrisEngine engine = mock(IrisEngine.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getData()).thenReturn(data);
         when(engine.getComplex()).thenReturn(complex);

@@ -1,5 +1,7 @@
 package art.arcane.iris.world;
 
+import art.arcane.iris.generation.runtime.GenerationSource;
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.Iris;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -47,6 +49,7 @@ public class BukkitWorldReconcilerRuntimeTest {
                 fixture.backend().validateLoadedRuntime(fixture.world(), fixture.key(), "overworld", 1337L));
         when(fixture.generator().getStartupReady()).thenReturn(CompletableFuture.completedFuture(null));
         when(fixture.engine().getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+        when(fixture.engine().getGenerationSource()).thenReturn(GenerationSource.singlePack());
         assertEquals(BukkitWorldReconciler.LoadedRuntimeStatus.UNAVAILABLE,
                 fixture.backend().validateLoadedRuntime(fixture.world(), fixture.key(), "overworld", 1337L));
     }
@@ -152,6 +155,7 @@ public class BukkitWorldReconcilerRuntimeTest {
         when(generator.getGenerationHistory()).thenReturn(history);
         when(generator.getDimensionKey()).thenReturn("overworld");
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(history.paths()).thenReturn(GenerationHistoryPaths.forDimension(root));
         when(history.activeEpoch()).thenReturn(epoch);

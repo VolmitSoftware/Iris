@@ -1,5 +1,6 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.generation.runtime.GenerationSource;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.IrisEngine;
@@ -52,6 +53,7 @@ public final class GenerationSemanticQueriesTest {
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         when(engine.getComplex()).thenReturn(complex);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(complex.allowsNewGenerationChunk(anyInt(), anyInt())).thenReturn(true);
         when(complex.allowsNewGenerationChunk(1, 0)).thenReturn(false);
@@ -106,6 +108,7 @@ public final class GenerationSemanticQueriesTest {
         GenerationHistory history = mock(GenerationHistory.class);
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         GenerationSemanticIndex.Match recorded = new GenerationSemanticIndex.Match(
                 GenerationSemanticIndex.SemanticKind.STRUCTURE, "Structures/Tower+",
@@ -132,6 +135,7 @@ public final class GenerationSemanticQueriesTest {
         GenerationHistory history = mock(GenerationHistory.class);
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         IrisStructureLocator.LocateResult limit = new IrisStructureLocator.LocateResult(
                 IrisStructureLocator.LocateStatus.SEARCH_LIMIT_REACHED, 0, 0, 0);
@@ -173,6 +177,7 @@ public final class GenerationSemanticQueriesTest {
         when(engine.getComplex()).thenReturn(complex);
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(complex.getHydrologyRuntime()).thenReturn(runtime);
         when(runtime.enabled()).thenReturn(true);
         when(complex.getTransitionDisplacement()).thenReturn(displacement);
@@ -223,6 +228,7 @@ public final class GenerationSemanticQueriesTest {
         when(engine.getComplex()).thenReturn(complex);
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+        when(engine.getGenerationSource()).thenReturn(GenerationSource.singlePack());
         when(complex.getHydrologyRuntime()).thenReturn(runtime);
         when(runtime.enabled()).thenReturn(true);
         when(complex.getTransitionDisplacement()).thenReturn(displacement);
@@ -269,6 +275,7 @@ public final class GenerationSemanticQueriesTest {
         when(complex.getHydrologyRuntime()).thenReturn(runtime);
         when(runtime.unavailable(any())).thenReturn(Optional.of("hydrology is off"));
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(history.findRecordedRiver(any())).thenReturn(Optional.of(
                 new GenerationSemanticIndex.RiverMatch(
@@ -302,6 +309,7 @@ public final class GenerationSemanticQueriesTest {
         when(runtime.unavailable(HydrologyFeatureType.DAM)).thenReturn(Optional.of("hydrology.ponds.dams is disabled"));
         when(runtime.unavailable(HydrologyFeatureType.CAVE_POOL)).thenReturn(Optional.of("hydrology.underground.cavePools is disabled"));
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(history.findRecordedRiver(any())).thenReturn(Optional.empty());
 
@@ -340,6 +348,7 @@ public final class GenerationSemanticQueriesTest {
         when(runtime.nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any()))
                 .thenThrow(new HydrologySearchTimeoutException(Duration.ofSeconds(30L), null));
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+        when(engine.getGenerationSource()).thenReturn(GenerationSource.singlePack());
 
         assertEquals(new GenerationSemanticQueries.RiverSearch.Stopped(Optional.empty(),
                         "Stopped searching for the nearest river after 30 seconds without finding one."),
@@ -348,6 +357,7 @@ public final class GenerationSemanticQueriesTest {
         ChunkGenerationSemantics.RiverFeatureOccurrence occurrence = new ChunkGenerationSemantics.RiverFeatureOccurrence(
                 "water", HydrologyFeatureType.RIVER, 8L, new ChunkGenerationSemantics.BlockPosition(60, 70, 0));
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(history.activeActivation()).thenReturn(activation);
         when(activation.activationId()).thenReturn(2L);
@@ -388,6 +398,7 @@ public final class GenerationSemanticQueriesTest {
         when(dimension.getMinHeight()).thenReturn(-64);
         when(complex.getHydrologyRuntime()).thenReturn(runtime);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(history.activeActivation()).thenReturn(activation);
         when(activation.activationId()).thenReturn(2L);
@@ -418,6 +429,7 @@ public final class GenerationSemanticQueriesTest {
         HydrologyRuntime runtime = mock(HydrologyRuntime.class);
         when(engine.getComplex()).thenReturn(complex);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+        when(engine.getGenerationSource()).thenReturn(GenerationSource.singlePack());
         when(complex.getHydrologyRuntime()).thenReturn(runtime);
         when(runtime.enabled()).thenReturn(true);
         when(runtime.nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any())).thenReturn(Optional.empty());
@@ -451,6 +463,7 @@ public final class GenerationSemanticQueriesTest {
         HydrologyRuntime runtime = mock(HydrologyRuntime.class);
         when(engine.getComplex()).thenReturn(complex);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+        when(engine.getGenerationSource()).thenReturn(GenerationSource.singlePack());
         when(complex.getHydrologyRuntime()).thenReturn(runtime);
         when(runtime.enabled()).thenReturn(true);
         UUID player = UUID.randomUUID();
@@ -496,6 +509,7 @@ public final class GenerationSemanticQueriesTest {
         when(complex.getHydrologyRuntime()).thenReturn(runtime);
         when(runtime.enabled()).thenReturn(true);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(history.findRecordedRiver(any())).thenReturn(Optional.of(
                 new GenerationSemanticIndex.RiverMatch(occurrence, new GenerationSemanticIndex.ChunkReference(2, 0, 1L))));
@@ -521,6 +535,7 @@ public final class GenerationSemanticQueriesTest {
         GenerationHistory history = mock(GenerationHistory.class);
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(history.semantics(anyInt(), anyInt())).thenReturn(Optional.empty());
         when(history.semantics(1, 0)).thenReturn(Optional.of(ChunkGenerationSemantics.builder(1, 0, 1L)
@@ -541,6 +556,7 @@ public final class GenerationSemanticQueriesTest {
         IllegalStateException failure = new IllegalStateException("window planner exploded");
         when(engine.getComplex()).thenReturn(complex);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+        when(engine.getGenerationSource()).thenReturn(GenerationSource.singlePack());
         when(complex.getHydrologyRuntime()).thenReturn(runtime);
         when(runtime.enabled()).thenReturn(true);
         when(runtime.nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any())).thenThrow(failure);

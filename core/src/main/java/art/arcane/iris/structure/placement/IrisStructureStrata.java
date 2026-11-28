@@ -1,7 +1,9 @@
 package art.arcane.iris.structure.placement;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.decoration.IrisOreBands;
+import art.arcane.iris.generation.decoration.OreBandsRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.stage.IrisTerrainNormalActuator;
@@ -25,6 +27,7 @@ public final class IrisStructureStrata implements StructureStrata {
     private final IrisComplex complex;
     private final IrisDimension dimension;
     private final IrisData data;
+    private final PackRuntime runtime;
     private final RNG rng;
     private final int offsetY;
     private final int bedrockFloor;
@@ -34,6 +37,7 @@ public final class IrisStructureStrata implements StructureStrata {
         complex = Objects.requireNonNull(engine.getComplex(), "Structure strata require a terrain complex");
         dimension = engine.getDimension();
         data = engine.getData();
+        runtime = PackRuntime.of(engine, data);
         rng = new RNG(engine.getSeedManager().getTerrain());
         offsetY = engine.getMinHeight();
         bedrockFloor = dimension.isBedrock() ? 1 : 0;
@@ -57,7 +61,7 @@ public final class IrisStructureStrata implements StructureStrata {
         }
         int surface = surfaceY - offsetY;
         KList<NativeBlockState> layers = biome.generateLayersWithSlope(dimension, x, z, rng,
-                surface + 1 - bedrockFloor, surface, data, FLAT_GROUND);
+                surface + 1 - bedrockFloor, surface, runtime, FLAT_GROUND);
         return new StrataColumn(x, z, surface, submerged, layers, mapped, rock, biome, region);
     }
 
@@ -69,12 +73,12 @@ public final class IrisStructureStrata implements StructureStrata {
         private final KList<NativeBlockState> layers;
         private final NativeBlockState mapped;
         private final NativeBlockState rock;
-        private final IrisOreBands biomeSurface;
-        private final IrisOreBands regionSurface;
-        private final IrisOreBands dimensionSurface;
-        private final IrisOreBands biomeUnderground;
-        private final IrisOreBands regionUnderground;
-        private final IrisOreBands dimensionUnderground;
+        private final OreBandsRuntime biomeSurface;
+        private final OreBandsRuntime regionSurface;
+        private final OreBandsRuntime dimensionSurface;
+        private final OreBandsRuntime biomeUnderground;
+        private final OreBandsRuntime regionUnderground;
+        private final OreBandsRuntime dimensionUnderground;
 
         private StrataColumn(int x, int z, int surface, boolean submerged, KList<NativeBlockState> layers,
                              NativeBlockState mapped, NativeBlockState rock, IrisBiome biome, IrisRegion region) {
@@ -85,12 +89,12 @@ public final class IrisStructureStrata implements StructureStrata {
             this.layers = layers;
             this.mapped = mapped;
             this.rock = rock;
-            biomeSurface = hideOres ? IrisOreBands.EMPTY : biome.getSurfaceOreBands();
-            regionSurface = hideOres ? IrisOreBands.EMPTY : region.getSurfaceOreBands();
-            dimensionSurface = hideOres ? IrisOreBands.EMPTY : dimension.getSurfaceOreBands();
-            biomeUnderground = hideOres ? IrisOreBands.EMPTY : biome.getUndergroundOreBands();
-            regionUnderground = hideOres ? IrisOreBands.EMPTY : region.getUndergroundOreBands();
-            dimensionUnderground = hideOres ? IrisOreBands.EMPTY : dimension.getUndergroundOreBands();
+            biomeSurface = ores(biome.getSurfaceOreBands());
+            regionSurface = ores(region.getSurfaceOreBands());
+            dimensionSurface = ores(dimension.getSurfaceOreBands());
+            biomeUnderground = ores(biome.getUndergroundOreBands());
+            regionUnderground = ores(region.getUndergroundOreBands());
+            dimensionUnderground = ores(dimension.getUndergroundOreBands());
         }
 
         @Override
@@ -117,16 +121,20 @@ public final class IrisStructureStrata implements StructureStrata {
             return layers.size();
         }
 
-        private NativeBlockState ore(IrisOreBands first, IrisOreBands second, IrisOreBands third, int internalY) {
+        private OreBandsRuntime ores(IrisOreBands bands) {
+            return runtime.oreBands(hideOres ? IrisOreBands.EMPTY : bands, rng.getSeed());
+        }
+
+        private NativeBlockState ore(OreBandsRuntime first, OreBandsRuntime second, OreBandsRuntime third, int internalY) {
             NativeBlockState ore = null;
             if (first.contains(internalY)) {
-                ore = first.generate(x, internalY, z, rng, data, data == null ? null : data.getEngine());
+                ore = first.generate(x, internalY, z, rng);
             }
             if (ore == null && second.contains(internalY)) {
-                ore = second.generate(x, internalY, z, rng, data, data == null ? null : data.getEngine());
+                ore = second.generate(x, internalY, z, rng);
             }
             if (ore == null && third.contains(internalY)) {
-                ore = third.generate(x, internalY, z, rng, data, data == null ? null : data.getEngine());
+                ore = third.generate(x, internalY, z, rng);
             }
             return ore;
         }

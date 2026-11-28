@@ -7,16 +7,16 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.volmlib.util.collection.KList;
 
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 public final class StructurePlacementScope {
-    private static final List<CachedScopeIndex> SCOPE_INDEXES = new ArrayList<>();
+    /** Scope indexes of live engines; each engine invalidates its own entry when it closes. */
+    private static final Map<Engine, CachedScopeIndex> SCOPE_INDEXES = new IdentityHashMap<>();
 
     private StructurePlacementScope() {
     }
@@ -63,26 +63,30 @@ public final class StructurePlacementScope {
         return false;
     }
 
+    public static void invalidate(Engine engine) {
+        synchronized (SCOPE_INDEXES) {
+            SCOPE_INDEXES.remove(engine);
+        }
+    }
+
+    static boolean isIndexed(Engine engine) {
+        synchronized (SCOPE_INDEXES) {
+            return SCOPE_INDEXES.containsKey(engine);
+        }
+    }
+
     private static ScopeIndex scopeIndex(Engine engine) {
+        if (engine.isClosed()) {
+            return buildScopeIndex(engine);
+        }
         int revision = engine.getCacheID();
         synchronized (SCOPE_INDEXES) {
-            for (int i = SCOPE_INDEXES.size() - 1; i >= 0; i--) {
-                CachedScopeIndex cached = SCOPE_INDEXES.get(i);
-                Engine indexedEngine = cached.engine().get();
-                if (indexedEngine == null) {
-                    SCOPE_INDEXES.remove(i);
-                    continue;
-                }
-                if (indexedEngine == engine) {
-                    if (cached.revision() == revision) {
-                        return cached.index();
-                    }
-                    SCOPE_INDEXES.remove(i);
-                    break;
-                }
+            CachedScopeIndex cached = SCOPE_INDEXES.get(engine);
+            if (cached != null && cached.revision() == revision) {
+                return cached.index();
             }
             ScopeIndex index = buildScopeIndex(engine);
-            SCOPE_INDEXES.add(new CachedScopeIndex(new WeakReference<>(engine), revision, index));
+            SCOPE_INDEXES.put(engine, new CachedScopeIndex(revision, index));
             return index;
         }
     }
@@ -155,7 +159,7 @@ public final class StructurePlacementScope {
         }
     }
 
-    private record CachedScopeIndex(WeakReference<Engine> engine, int revision, ScopeIndex index) {
+    private record CachedScopeIndex(int revision, ScopeIndex index) {
     }
 
     private record ScopeIndex(boolean biome, boolean caveBiome, boolean region, boolean dimension) {

@@ -3,6 +3,7 @@ package art.arcane.iris.generation.bake;
 import art.arcane.iris.generation.noise.GeneratorProgram;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.TerrainBatchScratch;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.math.M;
 
 import java.util.Arrays;
@@ -12,26 +13,28 @@ public final class TerrainProgram {
     private static final int CONSTANT = 1;
     private static final int ACTIVE = 2;
 
+    private final PackRuntime runtime;
     private final IrisGenerator[][] generators;
     private final GeneratorProgram[][] programs;
     private final long heightSeed;
 
-    private TerrainProgram(IrisGenerator[][] generators, GeneratorProgram[][] programs, long heightSeed) {
+    private TerrainProgram(PackRuntime runtime, IrisGenerator[][] generators, GeneratorProgram[][] programs, long heightSeed) {
+        this.runtime = runtime;
         this.generators = generators;
         this.programs = programs;
         this.heightSeed = heightSeed;
     }
 
-    public static TerrainProgram compile(IrisGenerator[][] generators, long heightSeed) {
+    public static TerrainProgram compile(PackRuntime runtime, IrisGenerator[][] generators, long heightSeed) {
         GeneratorProgram[][] programs = new GeneratorProgram[generators.length][];
         for (int group = 0; group < generators.length; group++) {
             programs[group] = new GeneratorProgram[generators[group].length];
             for (int index = 0; index < generators[group].length; index++) {
                 IrisGenerator generator = generators[group][index];
-                programs[group][index] = generator.supportsBatch() ? generator.compileProgram(heightSeed) : null;
+                programs[group][index] = generator.supportsBatch() ? generator.compileProgram(runtime, heightSeed) : null;
             }
         }
-        return new TerrainProgram(generators, programs, heightSeed);
+        return new TerrainProgram(runtime, generators, programs, heightSeed);
     }
 
     public long heightSeed() {
@@ -58,7 +61,7 @@ public final class TerrainProgram {
         GeneratorProgram[] compiled = programs[group];
         for (int member = 0; member < members.length; member++) {
             GeneratorProgram program = compiled[member];
-            double noise = program != null ? program.height(scratch, x, z) : members[member].getHeight(x, z, heightSeed);
+            double noise = program != null ? program.height(scratch, x, z) : members[member].getHeight(runtime, x, z, heightSeed);
             if (!Double.isFinite(noise)) {
                 throw new IllegalStateException("Terrain generator noise was not finite at " + x + "," + z
                         + " (generator=" + members[member].getLoadKey() + ", noise=" + noise
@@ -148,7 +151,7 @@ public final class TerrainProgram {
                 program.heights(scratch, activeX, activeZ, activeCount, noise);
             } else {
                 for (int index = 0; index < activeCount; index++) {
-                    noise[index] = members[member].getHeight(activeX[index], activeZ[index], heightSeed);
+                    noise[index] = members[member].getHeight(runtime, activeX[index], activeZ[index], heightSeed);
                 }
             }
             for (int index = 0; index < activeCount; index++) {

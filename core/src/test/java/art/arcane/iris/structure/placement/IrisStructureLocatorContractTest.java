@@ -18,6 +18,7 @@
 
 package art.arcane.iris.structure.placement;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.volmlib.util.structure.StructureTerrainMode;
 
 import art.arcane.volmlib.util.structure.StructureCarveShape;
@@ -114,7 +115,7 @@ public class IrisStructureLocatorContractTest {
 
     @Test
     public void locatableIndexIncludesAliasesAndSeparatesEditableFromNativePlacements() {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisStructure structure = new IrisStructure();
         structure.setLoadKey("test:city");
         structure.setVanillaSource("source:city");
@@ -156,7 +157,7 @@ public class IrisStructureLocatorContractTest {
 
     @Test
     public void nativeStructureReplacementSuppressesOnlyItsRegisteredSource() {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         Engine engine = mock(Engine.class);
         IrisDimension dimension = mock(IrisDimension.class);
         IrisStructurePlacement placement = new IrisStructurePlacement()
@@ -185,7 +186,7 @@ public class IrisStructureLocatorContractTest {
 
     @Test
     public void vanillaSourceRequiresExplicitDimensionSuppression() {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisStructure structure = new IrisStructure();
         structure.setLoadKey("test:city");
         structure.setVanillaSource("minecraft:ancient_city");
@@ -214,7 +215,7 @@ public class IrisStructureLocatorContractTest {
 
     @Test
     public void regionReplacementFailsInsteadOfFallingBackToNative() {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisStructure structure = new IrisStructure();
         structure.setLoadKey("test:city");
         structure.setVanillaSource("minecraft:ancient_city");
@@ -242,7 +243,7 @@ public class IrisStructureLocatorContractTest {
 
     @Test
     public void geometryFailureFailsInsteadOfFallingBackToNative() {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisStructure structure = new IrisStructure()
                 .setStartPool("test:start")
                 .setMaxDepth(1)
@@ -304,7 +305,7 @@ public class IrisStructureLocatorContractTest {
 
     @Test
     public void missingVanillaSourceFailsInsteadOfFallingBackToNative() {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisStructure structure = new IrisStructure();
         structure.setLoadKey("test:city");
         when(data.load(IrisStructure.class, "test:city", false)).thenReturn(structure);
@@ -327,7 +328,7 @@ public class IrisStructureLocatorContractTest {
 
     @Test
     public void missingNonReplacementStructureFailsInsteadOfBeingSkipped() {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisStructurePlacement placement = new IrisStructurePlacement();
         placement.getStructures().add("test:missing");
         IrisDimension dimension = mock(IrisDimension.class);
@@ -752,7 +753,7 @@ public class IrisStructureLocatorContractTest {
 
     @Test
     public void placementIndexIsScopedAndInvalidatedPerEngine() {
-        IrisData sharedData = mock(IrisData.class);
+        IrisData sharedData = MockPackData.create();
         Engine firstEngine = emptyEngine(sharedData);
         Engine secondEngine = emptyEngine(sharedData);
         Set<String> firstIndex = IrisStructureLocator.placedKeys(firstEngine);
@@ -1089,7 +1090,7 @@ public class IrisStructureLocatorContractTest {
 
     private Engine densityEngine(double density, boolean underground, int worldMin, int worldHeight,
                                  int placementMin, int placementMax) {
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisStructure structure = new IrisStructure();
         structure.setLoadKey("test:density");
         when(data.load(IrisStructure.class, "test:density", false)).thenReturn(structure);

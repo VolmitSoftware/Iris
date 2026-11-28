@@ -81,9 +81,9 @@ public final class IrisStructureLocator {
     private static final long CAVE_ANCHOR_DOMAIN = 0x43415645414E4348L;
     private static final Pattern NAMESPACED_RESOURCE_KEY = Pattern.compile("[a-z0-9_.-]+:[a-z0-9/._-]+");
 
-    private static final Cache<Engine, PlacementIndex> INDEX_CACHE = Caffeine.newBuilder().weakKeys().build();
-    private static final Cache<Engine, LocatableIndex> LOCATABLE_INDEX_CACHE =
-            Caffeine.newBuilder().weakKeys().build();
+    /** Indexes of live engines; each engine invalidates its own entries when it closes. */
+    private static final Cache<Engine, PlacementIndex> INDEX_CACHE = Caffeine.newBuilder().build();
+    private static final Cache<Engine, LocatableIndex> LOCATABLE_INDEX_CACHE = Caffeine.newBuilder().build();
     private static final PlacementIndex EMPTY_INDEX = new PlacementIndex(
             Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
             Collections.emptySet(), Collections.emptyList());
@@ -1143,12 +1143,18 @@ public final class IrisStructureLocator {
         if (engine.getData() == null || engine.getDimension() == null) {
             throw new IllegalStateException("Iris structure index requires a fully bound engine and dimension");
         }
+        if (engine.isClosed()) {
+            return build(engine);
+        }
         return INDEX_CACHE.get(engine, ignored -> build(engine));
     }
 
     private static LocatableIndex locatableIndex(Engine engine) {
         if (engine == null) {
             return EMPTY_LOCATABLE_INDEX;
+        }
+        if (engine.isClosed()) {
+            return buildLocatableIndex(engine);
         }
         return LOCATABLE_INDEX_CACHE.get(engine, ignored -> buildLocatableIndex(engine));
     }

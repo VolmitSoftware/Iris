@@ -147,7 +147,7 @@ public class IrisDepositModifierPoolGuardTest {
                 clump.getBlocks().put(new IrisBlockVector(x, 0, z), gravel);
             }
         }
-        when(generator.getClump(any(), any(), any())).thenReturn(clump);
+        when(generator.getClump(any(), any())).thenReturn(clump);
         return generator;
     }
 }

@@ -19,6 +19,7 @@
 package art.arcane.iris.generation.mantle;
 
 
+import art.arcane.iris.generation.runtime.ThreadSlots;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.iris.world.storage.matter.TileWrapper;
@@ -84,14 +85,14 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     @Setter(AccessLevel.NONE)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private final ThreadLocal<Integer> activeComponentPriority = new ThreadLocal<>();
+    private final ThreadSlots<Integer> activeComponentPriority = ThreadSlots.bindings();
     @Getter(AccessLevel.NONE)
-    private final ThreadLocal<ObjectPlacementCapture> objectPlacementCapture = new ThreadLocal<>();
+    private final ThreadSlots<ObjectPlacementCapture> objectPlacementCapture = ThreadSlots.bindings();
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private final ThreadLocal<ObjectWater> objectWater = new ThreadLocal<>();
+    private final ThreadSlots<ObjectWater> objectWater = ThreadSlots.bindings();
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     @EqualsAndHashCode.Exclude

@@ -1,5 +1,6 @@
 package art.arcane.iris.pack.datapack.export.compile.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.datapack.export.ExportTestPacks;
@@ -461,7 +462,7 @@ public class DecorationStageTest {
 
     private static GatePattern irisPattern(String styleJson, double chance) {
         IrisGeneratorStyle style = new Gson().fromJson(styleJson, IrisGeneratorStyle.class);
-        CNG generator = style.create(new RNG(4242L), null);
+        CNG generator = style.create(new RNG(4242L), PackRuntime.standalone(null));
         double zoom = style.getZoom();
         return pattern((x, z) -> generator.fitDouble(0.0, 1.0, x / zoom, z / zoom) <= chance);
     }

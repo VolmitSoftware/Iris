@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.nativegen;
 
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import com.github.benmanes.caffeine.cache.Cache;
 import java.lang.reflect.Field;
 import art.arcane.iris.generation.runtime.PackRuntime;
@@ -463,6 +464,7 @@ public class NativeStructureOwnershipStoreTest {
         AtomicReference<EngineMantle> currentMantle = new AtomicReference<>(mantleA.engineMantle());
         AtomicInteger currentRuntime = new AtomicInteger(11);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.currentRuntimeOwnership()).thenAnswer(ignored -> Optional.of(ownership.get()));
         when(engine.getMantle()).thenAnswer(ignored -> currentMantle.get());
         when(engine.getCacheID()).thenAnswer(ignored -> currentRuntime.get());
@@ -496,6 +498,7 @@ public class NativeStructureOwnershipStoreTest {
         AtomicReference<EngineMantle> currentMantle = new AtomicReference<>(mantleA.engineMantle());
         AtomicInteger currentRuntime = new AtomicInteger(21);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.currentRuntimeOwnership()).thenAnswer(ignored -> Optional.of(ownership.get()));
         when(engine.getMantle()).thenAnswer(ignored -> currentMantle.get());
         when(engine.getCacheID()).thenAnswer(ignored -> currentRuntime.get());

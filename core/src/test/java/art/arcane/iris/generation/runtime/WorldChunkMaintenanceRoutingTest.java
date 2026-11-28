@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter.SavedChunkMantle;
@@ -284,6 +285,7 @@ public class WorldChunkMaintenanceRoutingTest {
             field.set(manager, spawner);
             when(manager.getEngine()).thenReturn(engine);
             when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+            when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
             when(manager.getMantle()).thenReturn(currentMantle);
             when(engine.getMantle()).thenReturn(currentEngineMantle);
             when(currentEngineMantle.getMantle()).thenReturn(currentMantle);

@@ -258,11 +258,9 @@ final class EngineHotloader {
                         throw new IllegalStateException("Studio engine changed while its generation cutover was draining.");
                     }
                     engine.prepareRuntimeHotload();
-                    IrisSettings settings = IrisSettings.get();
-                    int transitionWidth = settings.getStudio().isBlendChanges()
-                            ? settings.getGenerator().getGenerationTransitionWidthBlocks() : 0;
-                    history.stageUpdate(update.source(), update.fingerprint(), update.dimensionContract(),
-                            update.registryContract(), transitionWidth);
+                    int transitionWidth = IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks();
+                    history.stageUpdateReplacingStalePending(update.source(), update.fingerprint(),
+                            update.dimensionContract(), update.registryContract(), transitionWidth);
                 }
                 long stagedAt = System.nanoTime();
                 cutover.promotePending();

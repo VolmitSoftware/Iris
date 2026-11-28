@@ -295,6 +295,7 @@ public class WorldBlockDropRouterTest {
             when(engine.getWorld()).thenReturn(irisWorld);
             when(irisWorld.minHeight()).thenReturn(-64);
             when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+            when(engine.getGenerationSource()).thenReturn(GenerationSource.singlePack());
             when(engine.getBiomeEnvironmentAsync(16, 136, 32)).thenAnswer(invocation -> environment);
             when(engine.openBiomeEnvironmentScope(any(BiomeEnvironment.class))).thenReturn(() -> {});
             binding.when(() -> BukkitWorldBinding.world(irisWorld)).thenReturn(world);

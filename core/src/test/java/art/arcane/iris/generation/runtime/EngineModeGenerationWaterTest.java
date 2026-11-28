@@ -134,7 +134,7 @@ public class EngineModeGenerationWaterTest {
     private static IrisEngine matterEngine(IrisComplex complex, EngineMantle mantle) throws Exception {
         IrisEngine engine = mock(IrisEngine.class);
         doNothing().when(engine).awaitGenerationCacheWarm();
-        doReturn(mock(GenerationHistoryRuntimeRouter.CoordinateScope.class)).when(engine).openGenerationHistoryCoordinateScope(anyInt(), anyInt());
+        doReturn(mock(GenerationScope.class)).when(engine).openGenerationScope(anyInt(), anyInt());
         doReturn(mock(GenerationSessionLease.class)).when(engine).acquireGenerationLease(anyString());
         doReturn(complex).when(engine).getComplex();
         doReturn(mantle).when(engine).getMantle();

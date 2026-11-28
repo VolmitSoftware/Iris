@@ -42,6 +42,22 @@ public final class RegionGenerationOwnershipTest {
     }
 
     @Test
+    public void reclaimMovesAnOwnedChunkOnlyToANewerActivation() throws Exception {
+        Path directory = temporaryFolder.newFolder("reclaim").toPath();
+        RegionGenerationOwnership ownership = new RegionGenerationOwnership(0, 0);
+        assertTrue(ownership.assign(3, 4, 1L));
+
+        assertThrows(IllegalStateException.class, () -> ownership.reclaim(5, 5, 2L));
+        assertThrows(IllegalStateException.class, () -> ownership.reclaim(3, 4, 1L));
+        assertTrue(ownership.reclaim(3, 4, 2L));
+        assertTrue(ownership.persist(directory));
+
+        RegionGenerationOwnership loaded = RegionGenerationOwnership.read(directory.resolve(RegionGenerationOwnership.fileName(0, 0)));
+        assertEquals(1, loaded.assignmentCount());
+        assertEquals(2L, loaded.resolve(3, 4, 3L));
+    }
+
+    @Test
     public void everyPaletteWidthRoundTripsWithoutBitBoundaryLoss() throws Exception {
         Path directory = temporaryFolder.newFolder("wide-palette").toPath();
         RegionGenerationOwnership ownership = new RegionGenerationOwnership(0, 0);

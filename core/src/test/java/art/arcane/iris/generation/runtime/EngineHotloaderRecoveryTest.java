@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.platform.bukkit.nms.BukkitGenerationPolicy;
 import art.arcane.iris.world.IrisWorld;
@@ -110,6 +111,7 @@ public class EngineHotloaderRecoveryTest {
             when(engine.acquireGenerationLease(anyString())).thenAnswer(invocation ->
                     sessions.acquireForEngine(engine, invocation.getArgument(0, String.class)));
             when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+            when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
             when(router.history()).thenReturn(history);
             when(router.beginStudioCutover(anyLong())).thenReturn(cutover);
             when(background.drainBackgroundTasks(anyString())).thenReturn(

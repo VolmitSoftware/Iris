@@ -1,5 +1,6 @@
 package art.arcane.iris.nativegen.v26_3_R1;
 
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.structure.nativegen.GenerationWritePolicy;
 
 import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeGenerationWriteGuard;
@@ -86,6 +87,7 @@ public final class NativeGenerationWriteGuardTest {
         GenerationHistory history = mock(GenerationHistory.class);
         GenerationActivation active = mock(GenerationActivation.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(history.activeActivation()).thenReturn(active);
         when(active.activationId()).thenReturn(4L);

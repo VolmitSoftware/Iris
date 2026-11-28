@@ -1421,7 +1421,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                     && context != null && context.getChunkContext() != null
                     && context.getChunkContext().getComplex() == complex;
             boolean natural = generating && context.getChunkContext().isNaturalTerrain();
-            boolean unrouted = !bound && worker && !irisEngine.hasGenerationHistoryRouting();
+            boolean unrouted = !bound && worker && !irisEngine.getGenerationSource().keepsPackVersions();
             boolean scoped = natural || generating && contentChunk || unrouted;
             this.subterrainFirst = unrouted;
             this.chunkLimited = !natural && !unrouted;

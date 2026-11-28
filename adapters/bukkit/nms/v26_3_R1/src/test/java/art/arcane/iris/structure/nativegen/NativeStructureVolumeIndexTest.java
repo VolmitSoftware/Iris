@@ -1,5 +1,7 @@
 package art.arcane.iris.structure.nativegen;
 
+import art.arcane.iris.generation.runtime.GenerationSource;
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.structure.nativegen.IrisStructureVolumePolicy;
 
 import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureVolumeSource;
@@ -165,6 +167,7 @@ public class NativeStructureVolumeIndexTest {
     public void absentOrMismatchedRuntimeOwnershipKeepsCoordinateRouting() throws Exception {
         ScopedEngine detached = scopedEngine(true, 1);
         when(detached.engine().getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+        when(detached.engine().getGenerationSource()).thenReturn(GenerationSource.singlePack());
         for (ScopedEngine scoped : List.of(scopedEngine(false, 1), scopedEngine(true, 0),
                 scopedEngine(true, 2), detached)) {
             NativeStructureVolumeIndex index = NativeStructureVolumeIndex.forTesting(new CountingResolver(0, 0));
@@ -472,6 +475,7 @@ public class NativeStructureVolumeIndexTest {
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         when(engine.hasGenerationRuntimeScope()).thenReturn(scoped);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(engine.getCacheID()).thenReturn(1);
         if (ownerRuntimeId != 0) {
             IrisEngine.GenerationRuntimeBinding binding = mock(IrisEngine.GenerationRuntimeBinding.class);
@@ -480,7 +484,7 @@ public class NativeStructureVolumeIndexTest {
                     new GenerationHistoryRuntimeRouter.RuntimeOwnership(1L, binding)));
         }
         AtomicInteger scopes = new AtomicInteger();
-        when(engine.openGenerationHistoryCoordinateScope(anyInt(), anyInt())).thenAnswer(invocation -> {
+        when(engine.openGenerationScope(anyInt(), anyInt())).thenAnswer(invocation -> {
             scopes.incrementAndGet();
             return null;
         });

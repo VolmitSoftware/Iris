@@ -7,7 +7,7 @@ import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.platform.generation.BukkitChunkGenerator;
 import art.arcane.iris.studio.generation.JigsawStudioGenerator;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.runtime.GenerationScope;
 import art.arcane.iris.world.history.TerrainNativeBlockKeys;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockColumn;
 import art.arcane.volmlib.nativelib.terrain.NativeTerrainColumnPolicy;
@@ -51,12 +51,12 @@ public final class BukkitTerrainColumnPolicy implements NativeTerrainColumnPolic
         return TerrainNativeBlockKeys.placementKey(stateKey);
     }
 
-    private GenerationHistoryRuntimeRouter.CoordinateScope openHistory(Query query) {
+    private GenerationScope openHistory(Query query) {
         if (!(engine instanceof IrisEngine irisEngine)) {
             return null;
         }
         try {
-            return irisEngine.openGenerationHistoryCoordinateScope(query.blockX(), query.blockZ());
+            return irisEngine.openGenerationScope(query.blockX(), query.blockZ());
         } catch (IOException failure) {
             throw new IllegalStateException("Iris " + query.operation() + " could not route generation history at "
                     + query.blockX() + "," + query.blockZ() + ".", failure);
@@ -65,7 +65,7 @@ public final class BukkitTerrainColumnPolicy implements NativeTerrainColumnPolic
 
     private final class Session implements ColumnSession {
         private final Query query;
-        private final GenerationHistoryRuntimeRouter.CoordinateScope history;
+        private final GenerationScope history;
         private final GenerationSessionLease lease;
         private final IrisContext.Scope context;
 

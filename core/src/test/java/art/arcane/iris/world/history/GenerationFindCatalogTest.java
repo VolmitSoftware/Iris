@@ -148,6 +148,7 @@ public class GenerationFindCatalogTest {
             GenerationManifest manifest = mock(GenerationManifest.class);
             GenerationActivation active = mock(GenerationActivation.class);
             when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+            when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
             when(router.history()).thenReturn(history);
             when(history.manifest()).thenReturn(manifest);
             when(manifest.activeActivation()).thenReturn(active);

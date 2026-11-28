@@ -6,6 +6,7 @@ import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.world.history.SavedBiomeRuntime;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import org.junit.Test;
@@ -125,6 +126,7 @@ public class IrisEngineBiomeEnvironmentAsyncTest {
             field.setAccessible(true);
             field.set(engine, router);
             when(router.biomes()).thenReturn(biomes);
+            when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
             when(engine.getWorld()).thenReturn(IrisWorld.builder().name("test").minHeight(-64).maxHeight(320).build());
             doCallRealMethod().when(engine).getBiomeEnvironmentAsync(anyInt(), anyInt(), anyInt());
         }

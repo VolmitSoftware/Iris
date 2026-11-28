@@ -159,6 +159,8 @@ public final class ModdedStudioCommands {
                 .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> hotload(context.getSource()))));
         root.then(NativeCommandRegistration.literal("refresh")
                 .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> hotload(context.getSource()))));
+        root.then(regenTree("regen"));
+        root.then(regenTree("rg"));
         root.then(workspaceTree("vscode", true));
         root.then(workspaceTree("vsc", true));
         root.then(workspaceTree("update", false));
@@ -208,6 +210,13 @@ public final class ModdedStudioCommands {
     public static void clear() {
         TRANSITIONS.clear();
         STUDIOS.clear();
+    }
+
+    private static LiteralArgumentBuilder<NativeCommandSource> regenTree(String name) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> IrisModdedCommands.regen(context.getSource(), 0)))
+                .then(NativeCommandRegistration.argument("radius", IntegerArgumentType.integer(0, 64))
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> IrisModdedCommands.regen(context.getSource(), IntegerArgumentType.getInteger(context, "radius")))));
     }
 
     private static LiteralArgumentBuilder<NativeCommandSource> openTree(String name) {

@@ -155,6 +155,32 @@ public final class GenerationManifest {
         ));
     }
 
+    GenerationManifest discardPending(long expectedActivationId) {
+        GenerationActivation pending = pendingActivation()
+                .orElseThrow(() -> new IllegalStateException("No generation activation is pending."));
+        if (pending.activationId() != expectedActivationId) {
+            throw new IllegalStateException("Pending activation changed before it was discarded.");
+        }
+        if (pending.transition().isComplete()) {
+            throw new IllegalStateException("A pending activation that published its transition cannot be discarded.");
+        }
+        TreeMap<Long, GenerationActivation> nextActivations = new TreeMap<>(activations);
+        nextActivations.remove(pending.activationId());
+        TreeMap<String, GenerationEpoch> nextEpochs = new TreeMap<>(epochs);
+        boolean epochStillReferenced = nextActivations.values().stream()
+                .anyMatch(activation -> activation.epochId().equals(pending.epochId()));
+        if (!epochStillReferenced) {
+            nextEpochs.remove(pending.epochId());
+        }
+        return new GenerationManifest(new State(
+                schemaVersion,
+                nextEpochs,
+                nextActivations,
+                activeActivationId,
+                null
+        ));
+    }
+
     GenerationManifest completePendingTransition(
             long expectedActivationId,
             String boundaryIdentity,

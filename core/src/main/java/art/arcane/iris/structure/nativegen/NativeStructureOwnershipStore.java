@@ -4,7 +4,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.GenerationClosedException;
 
 import art.arcane.iris.generation.runtime.IrisEngine;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.runtime.GenerationSource;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -19,7 +19,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -419,12 +418,11 @@ public final class NativeStructureOwnershipStore {
             if (!(active instanceof IrisEngine irisEngine)) {
                 return new RuntimeMantleOwner(0L, runtimeId, null, mantle);
             }
-            Optional<GenerationHistoryRuntimeRouter> attached = irisEngine.getGenerationHistoryRuntimeRouter();
-            if (attached.isEmpty()) {
+            GenerationSource source = irisEngine.getGenerationSource();
+            if (!source.keepsPackVersions()) {
                 return new RuntimeMantleOwner(0L, runtimeId, null, mantle);
             }
-            GenerationHistoryRuntimeRouter.RuntimeOwnership routed = attached.get()
-                    .currentRuntimeOwnership()
+            GenerationSource.RouteOwnership routed = source.currentRouteOwnership()
                     .orElseThrow(() -> new IllegalStateException(
                             "Native structure ownership requires an active generation-history runtime route."));
             if (routed.binding().runtimeId() != runtimeId) {

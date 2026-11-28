@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
@@ -46,6 +47,7 @@ public class EngineHotloaderRetirementTest {
         GenerationHistory history = mock(GenerationHistory.class);
         when(router.history()).thenReturn(history);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(engine.isStudio()).thenReturn(true);
         IrisWorld world = mock(IrisWorld.class);
         when(world.name()).thenReturn("studio");

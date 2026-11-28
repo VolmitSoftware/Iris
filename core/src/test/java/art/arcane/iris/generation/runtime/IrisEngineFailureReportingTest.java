@@ -22,7 +22,7 @@ public class IrisEngineFailureReportingTest {
         Field platformHooks = IrisEngine.class.getDeclaredField("platformHooks");
         platformHooks.setAccessible(true);
         platformHooks.set(engine, mock(EnginePlatformHooks.class));
-        doThrow(failure).when(engine).openGenerationHistoryCoordinateScope(-352, -144);
+        doThrow(failure).when(engine).openGenerationScope(-352, -144);
         doCallRealMethod().when(engine).generate(-352, -144, null, null, false);
         doCallRealMethod().when(engine).fail("Failed to generate -352, -144", failure);
         doCallRealMethod().when(engine).hasFailed();

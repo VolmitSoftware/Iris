@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.locator;
 
+import art.arcane.iris.generation.runtime.GenerationSource;
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
@@ -46,6 +48,7 @@ public class BiomeLocatorTest {
         GenerationHistory history = mock(GenerationHistory.class);
         SavedBiomeRuntime saved = mock(SavedBiomeRuntime.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         when(router.biomes()).thenReturn(saved);
         when(history.isActiveUnowned(0, 0)).thenReturn(true);
@@ -64,7 +67,9 @@ public class BiomeLocatorTest {
         SavedBiomeRuntime saved = mock(SavedBiomeRuntime.class);
         BiomeEnvironment environment = mock(BiomeEnvironment.class);
         when(retained.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
-        when(router.history()).thenReturn(mock(GenerationHistory.class));
+        when(retained.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
+        GenerationHistory history = historyOwning(0, 0);
+        when(router.history()).thenReturn(history);
         when(router.biomes()).thenReturn(saved);
         when(environment.biome()).thenReturn(biome("deep"));
         when(saved.resolve(8, -20, 8, false)).thenReturn(Optional.of(environment));
@@ -82,6 +87,7 @@ public class BiomeLocatorTest {
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         GenerationHistory history = mock(GenerationHistory.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(history);
         Position2 near = new Position2(1, 0);
         Position2 far = new Position2(4, 0);
@@ -131,7 +137,9 @@ public class BiomeLocatorTest {
         BiomeEnvironment environment = mock(BiomeEnvironment.class);
         when(environment.biome()).thenReturn(biome("deep"));
         when(retained.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
-        when(router.history()).thenReturn(mock(GenerationHistory.class));
+        when(retained.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
+        GenerationHistory history = historyOwning(0, 0);
+        when(router.history()).thenReturn(history);
         when(router.biomes()).thenReturn(saved);
         when(saved.readChunkAsync(0, 0)).thenReturn(CompletableFuture.completedFuture(read));
         when(read.resolve(0, -20, 0, false)).thenReturn(Optional.of(environment));
@@ -146,8 +154,10 @@ public class BiomeLocatorTest {
         when(retained.getData().getBiomeLoader().load("deep")).thenReturn(biome("deep"));
         when(retained.getCaveBiome(8, 8)).thenReturn(biome("other"));
         when(retained.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+        when(retained.getGenerationSource()).thenReturn(GenerationSource.singlePack());
         BiomeLocator locator = (BiomeLocator) BiomeLocator.forBiome(retained, "deep", 59);
         when(retained.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(retained.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         assertEquals(new SubterrainPosition(0, -20, 0), locator.position(retained, new Position2(0, 0)));
         verify(read).resolve(0, -20, 0, false);
     }
@@ -160,6 +170,7 @@ public class BiomeLocatorTest {
         SavedBiomeRuntime saved = mock(SavedBiomeRuntime.class);
         BiomeEnvironment environment = mock(BiomeEnvironment.class);
         when(retained.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(retained.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         when(router.history()).thenReturn(mock(GenerationHistory.class));
         when(router.biomes()).thenReturn(saved);
         when(environment.biome()).thenReturn(biome("deep"));
@@ -195,6 +206,12 @@ public class BiomeLocatorTest {
         BiomeLocator locator = (BiomeLocator) BiomeLocator.forBiome(engine, "shared", 80);
         assertTrue(locator.matches(engine, new Position2(0, 0)));
         assertEquals(new SubterrainPosition(8, 102, 8), locator.position(engine, new Position2(0, 0)));
+    }
+
+    private static GenerationHistory historyOwning(int chunkX, int chunkZ) {
+        GenerationHistory history = mock(GenerationHistory.class);
+        when(history.isHistoricallyOwned(chunkX, chunkZ)).thenReturn(true);
+        return history;
     }
 
     private static Engine catalogEngine() {

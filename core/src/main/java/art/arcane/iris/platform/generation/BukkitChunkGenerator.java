@@ -41,6 +41,8 @@ import art.arcane.iris.studio.jigsaw.JigsawStudioSession;
 import art.arcane.iris.studio.StudioSVC;
 import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.GenerationScope;
+import art.arcane.iris.generation.runtime.GenerationSource;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.IrisWorldManager;
 import art.arcane.volmlib.util.cache.AtomicCache;
@@ -1094,9 +1096,21 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
         withExclusiveControl(() -> {
             if (!studioUpdatesPaused && !closing) {
-                getEngine().hotload();
+                hotloadEngine();
             }
         });
+    }
+
+    private void hotloadEngine() {
+        Engine activeEngine = getEngine();
+        long started = M.ms();
+        activeEngine.hotload();
+        IrisLogging.info("Hotloaded " + packKeyOf(activeEngine) + " in " + (M.ms() - started) + "ms");
+    }
+
+    private static String packKeyOf(Engine activeEngine) {
+        IrisDimension dimension = activeEngine.getDimension();
+        return dimension == null ? "unknown pack" : dimension.getLoadKey();
     }
 
     @Override
@@ -1108,7 +1122,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             if (!canHotloadStudio()) {
                 throw new IllegalStateException("Studio is not ready for hotload.");
             }
-            getEngine().hotload();
+            hotloadEngine();
         });
     }
 
@@ -1133,7 +1147,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                     if (!initialEntryPending && !studioUpdatesPaused && shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
                         IrisLogging.debug("Studio update admission: world=%s wait=%dms",
                                 getTarget().getWorld().name(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - queuedAt));
-                        getEngine().hotload();
+                        hotloadEngine();
                     }
                 }, pending));
             }
@@ -1357,16 +1371,13 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             } else {
                 SectionBuffer blocks = new SectionBuffer(d.getMaxHeight() - d.getMinHeight());
                 Hunk<NativeBiome> biomes = new ColumnBiomeHunk(d.getMaxHeight() - d.getMinHeight(), () -> BukkitBiome.of(Biome.PLAINS));
-                try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope =
-                             openGenerationHistoryCoordinateScope(engine, x << 4, z << 4);
+                try (GenerationScope historyScope = openGenerationScope(engine, x << 4, z << 4);
                      GenerationSessionLease lease = engine.acquireGenerationLease("bukkit_terrain_stage");
                     IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
                     engine.generate(x << 4, z << 4, blocks, biomes,
                             initialEntryPending || studioEntryBootstrapActive.get() || engine.shouldGenerateMulticore());
                     ChunkDataOutput.apply(d, blocks);
-                    if (historyScope != null) {
-                        historyScope.claimGeneratedSemantics();
-                    }
+                    historyScope.claimGeneratedSemantics();
                 }
             }
 
@@ -1390,21 +1401,22 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         }
     }
 
-    private @Nullable GenerationHistoryRuntimeRouter.CoordinateScope openGenerationHistoryCoordinateScope(
-            Engine currentEngine,
-            int blockX,
-            int blockZ
-    ) throws IOException {
-        if (generationHistory == null) {
-            return null;
-        }
+    private GenerationScope openGenerationScope(Engine currentEngine, int blockX, int blockZ) throws IOException {
+        return requireGenerationSource(currentEngine).openGenerationScope(blockX, blockZ);
+    }
+
+    private GenerationSource requireGenerationSource(Engine currentEngine) {
         if (!(currentEngine instanceof IrisEngine irisEngine)) {
-            throw new IllegalStateException("Persistent Iris generation requires an IrisEngine runtime.");
+            if (generationHistory != null) {
+                throw new IllegalStateException("Persistent Iris generation requires an IrisEngine runtime.");
+            }
+            return GenerationSource.singlePack();
         }
-        GenerationHistoryRuntimeRouter router = irisEngine.getGenerationHistoryRuntimeRouter()
-                .orElseThrow(() -> new IllegalStateException(
-                        "Persistent Iris generation has no generation-history runtime router."));
-        return router.openCoordinateScope(blockX, blockZ);
+        GenerationSource source = irisEngine.getGenerationSource();
+        if (generationHistory != null && !source.keepsPackVersions()) {
+            throw new IllegalStateException("Persistent Iris generation has no generation-history runtime router.");
+        }
+        return source;
     }
 
     private boolean isExpectedTeardown(Engine currentEngine, Throwable throwable) {
@@ -1454,8 +1466,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             default -> false;
         };
 
-        try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope =
-                     openGenerationHistoryCoordinateScope(currentEngine, x, z);
+        try (GenerationScope historyScope = openGenerationScope(currentEngine, x, z);
              GenerationSessionLease lease = currentEngine.acquireGenerationLease("bukkit_base_height");
              IrisContext.Scope ignored = IrisContext.open(currentEngine, lease.sessionId(), null)) {
             return currentEngine.getMinHeight() + currentEngine.getHeight(x, z, ignoreFluid) + 1;

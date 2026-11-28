@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 import art.arcane.iris.world.history.GenerationKernelRegistry;
 import art.arcane.iris.structure.nativegen.NativeStructureVolumeMemo;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.world.history.VersionedGenerationSource;
 import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.GenerationAdmission;
 import art.arcane.iris.generation.mantle.EngineMantle;
@@ -229,6 +230,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         when(router.biomes()).thenReturn(mock(SavedBiomeRuntime.class));
         setField(engine, "generationHistoryRuntimeRouter", router);
+        setField(engine, "generationSource", new VersionedGenerationSource(router));
         doReturn(null).when(engine).getDimensionStackContext();
         doReturn(false).when(engine).answersFromNaturalTerrain(anyInt(), anyInt());
         doCallRealMethod().when(selected.complex).isNaturalTerrainContext();
@@ -273,6 +275,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         when(router.biomes()).thenReturn(mock(SavedBiomeRuntime.class));
         setField(engine, "generationHistoryRuntimeRouter", router);
+        setField(engine, "generationSource", new VersionedGenerationSource(router));
         ProceduralStream<IrisBiome> caves = mock(ProceduralStream.class);
         IrisBiome cave = mock(IrisBiome.class);
         when(cave.getLoadKey()).thenReturn("cave");
@@ -307,6 +310,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         SavedBiomeRuntime saved = mock(SavedBiomeRuntime.class);
         when(router.biomes()).thenReturn(saved);
         setField(engine, "generationHistoryRuntimeRouter", router);
+        setField(engine, "generationSource", new VersionedGenerationSource(router));
         doReturn(null).when(engine).getDimensionStackContext();
         doReturn(false).when(engine).answersFromNaturalTerrain(anyInt(), anyInt());
         ChunkContext context = mock(ChunkContext.class);
@@ -328,7 +332,8 @@ public class IrisEngineGenerationRuntimeScopeTest {
         when(router.openReadScope(19, -3)).thenAnswer(invocation -> {
             assertSame(active.complex, engine.getComplex());
             IrisEngine.GenerationRuntimeScope runtimeScope = engine.openGenerationRuntimeScope(binding);
-            GenerationHistoryRuntimeRouter.CoordinateScope coordinateScope = mock(GenerationHistoryRuntimeRouter.CoordinateScope.class);
+            GenerationHistoryRuntimeRouter.CoordinateScope coordinateScope =
+                    mock(GenerationHistoryRuntimeRouter.CoordinateScope.class);
             doAnswer(close -> {
                 runtimeScope.close();
                 return null;
@@ -357,6 +362,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         SavedBiomeRuntime saved = mock(SavedBiomeRuntime.class);
         when(router.biomes()).thenReturn(saved);
         setField(engine, "generationHistoryRuntimeRouter", router);
+        setField(engine, "generationSource", new VersionedGenerationSource(router));
         BiomeEnvironment environment = new BiomeEnvironment(4L, mock(IrisBiome.class),
                 mock(IrisRegion.class), mock(IrisDimension.class), mock(IrisData.class));
         when(saved.resolve(19, -64, -3, true)).thenReturn(Optional.of(environment));
@@ -707,12 +713,12 @@ public class IrisEngineGenerationRuntimeScopeTest {
     public void detachedHistoryCannotFallBackToTheDefaultGenerationRuntime() throws Exception {
         RuntimeFixture active = runtime(1, 1D, 1D, 1D);
         IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
-        assertNull(engine.openGenerationHistoryCoordinateScope(0, 0));
+        assertFalse(engine.getGenerationSource().keepsPackVersions());
         GenerationHistoryRuntimeRouter router = historyRouter(engine);
         engine.attachGenerationHistoryRuntimeRouter(router);
         engine.detachGenerationHistoryRuntimeRouter(router);
 
-        assertThrows(IllegalStateException.class, () -> engine.openGenerationHistoryCoordinateScope(0, 0));
+        assertThrows(IllegalStateException.class, () -> engine.openGenerationScope(0, 0));
         assertThrows(IllegalStateException.class, () -> engine.getHeight(0, 0));
     }
 
@@ -744,8 +750,8 @@ public class IrisEngineGenerationRuntimeScopeTest {
         engine.attachGenerationHistoryRuntimeRouter(router);
         GenerationHistoryRuntimeRouter.CoordinateScope scope = mock(GenerationHistoryRuntimeRouter.CoordinateScope.class);
         when(router.openCoordinateScope(-17, 32)).thenReturn(scope);
-        FutureTask<GenerationHistoryRuntimeRouter.CoordinateScope> read =
-                new FutureTask<>(() -> engine.openGenerationHistoryCoordinateScope(-17, 32));
+        FutureTask<GenerationScope> read =
+                new FutureTask<>(() -> engine.openGenerationScope(-17, 32));
         Thread reader = new Thread(read, "History coordinate read");
 
         try {
@@ -767,8 +773,8 @@ public class IrisEngineGenerationRuntimeScopeTest {
         ExecutorService reader = Executors.newSingleThreadExecutor();
         try {
             synchronized (engine.generationHistoryRuntimeRouterLock) {
-                assertNull(reader.submit(() -> engine.openGenerationHistoryCoordinateScope(-17, 32))
-                        .get(5, TimeUnit.SECONDS));
+                assertFalse(reader.submit(() -> engine.openGenerationScope(-17, 32))
+                        .get(5, TimeUnit.SECONDS).claimGeneratedSemantics());
                 assertTrue(reader.submit(engine::getGenerationHistoryRuntimeRouter).get(5, TimeUnit.SECONDS).isEmpty());
             }
         } finally {
@@ -788,7 +794,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         try {
             synchronized (engine.generationHistoryRuntimeRouterLock) {
                 ExecutionException failure = assertThrows(ExecutionException.class, () -> reader.submit(
-                        () -> engine.openGenerationHistoryCoordinateScope(-17, 32)).get(5, TimeUnit.SECONDS));
+                        () -> engine.openGenerationScope(-17, 32)).get(5, TimeUnit.SECONDS));
                 assertTrue(failure.getCause() instanceof IllegalStateException);
                 assertEquals("Iris generation-history runtime router is detached.", failure.getCause().getMessage());
             }
@@ -885,6 +891,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         SavedBiomeRuntime saved = mock(SavedBiomeRuntime.class);
         when(router.biomes()).thenReturn(saved);
         setField(engine, "generationHistoryRuntimeRouter", router);
+        setField(engine, "generationSource", new VersionedGenerationSource(router));
         BiomeEnvironment environment = new BiomeEnvironment(4L, mock(IrisBiome.class),
                 mock(IrisRegion.class), mock(IrisDimension.class), mock(IrisData.class));
         when(saved.resolve(19, -44, -3, false)).thenReturn(Optional.of(environment));
@@ -913,6 +920,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         SavedBiomeRuntime saved = mock(SavedBiomeRuntime.class);
         when(router.biomes()).thenReturn(saved);
         setField(engine, "generationHistoryRuntimeRouter", router);
+        setField(engine, "generationSource", new VersionedGenerationSource(router));
         SavedBiomeUnavailableException failure = new SavedBiomeUnavailableException("Missing historical biome", false);
         when(saved.resolve(19, 20, -3, false)).thenThrow(failure);
 
@@ -980,6 +988,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         IrisEngine engine = mock(IrisEngine.class, CALLS_REAL_METHODS);
         setField(engine, "lifecycleLock", new Object());
         setField(engine, "generationHistoryRuntimeRouterLock", new Object());
+        setField(engine, "generationSource", GenerationSource.singlePack());
         setField(engine, "threadState", new EngineThreadState());
         Set<GenerationRuntime> detached = Collections.synchronizedSet(
                 Collections.newSetFromMap(new IdentityHashMap<GenerationRuntime, Boolean>()));

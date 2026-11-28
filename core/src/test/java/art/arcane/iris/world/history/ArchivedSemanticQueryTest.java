@@ -57,7 +57,7 @@ public final class ArchivedSemanticQueryTest {
         assertEquals(Set.of("iris:removed_object"), engine.getObjectsAt(-2, 3));
         assertEquals(Set.of(new ChunkGenerationSemantics.PointOfInterest("buried_treasure", new ChunkGenerationSemantics.BlockPosition(-30, 70, 51))), engine.getPOIsAt(-2, 3));
         verify(engine, never()).getMantle();
-        verify(engine, never()).openGenerationHistoryCoordinateScope(anyInt(), anyInt());
+        verify(engine, never()).openGenerationScope(anyInt(), anyInt());
     }
 
     @Test
@@ -69,7 +69,7 @@ public final class ArchivedSemanticQueryTest {
         assertTrue(engine.getObjectsAt(1, 2).isEmpty());
         assertTrue(engine.getPOIsAt(1, 2).isEmpty());
         verify(engine, never()).getMantle();
-        verify(engine, never()).openGenerationHistoryCoordinateScope(anyInt(), anyInt());
+        verify(engine, never()).openGenerationScope(anyInt(), anyInt());
     }
 
     private static IrisEngine engine(GenerationHistory history) {
@@ -77,6 +77,7 @@ public final class ArchivedSemanticQueryTest {
         when(router.history()).thenReturn(history);
         IrisEngine engine = mock(IrisEngine.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getGenerationSource()).thenReturn(new VersionedGenerationSource(router));
         doCallRealMethod().when(engine).getObjectsAt(anyInt(), anyInt());
         doCallRealMethod().when(engine).getPOIsAt(anyInt(), anyInt());
         return engine;

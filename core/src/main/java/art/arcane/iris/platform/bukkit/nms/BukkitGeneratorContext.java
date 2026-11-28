@@ -12,7 +12,7 @@ import art.arcane.iris.structure.nativegen.IrisStructureVolumePolicy;
 import art.arcane.iris.structure.nativegen.NativeStructureOwnershipRecord;
 import art.arcane.iris.structure.nativegen.NativeStructureStartPlan;
 import art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.runtime.GenerationRoute;
 import art.arcane.iris.world.history.NativeBiomeSpawnSelection;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.terrain.NativeBukkitGeneratorContext;
@@ -31,7 +31,7 @@ import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 public final class BukkitGeneratorContext extends BukkitGenerationPolicy implements NativeBukkitGeneratorContext<
-        Engine, IrisDimension, NativeStructureStartPlan, NativeStructureOwnershipRecord, GenerationHistoryRuntimeRouter.RuntimeRoute> {
+        Engine, IrisDimension, NativeStructureStartPlan, NativeStructureOwnershipRecord, GenerationRoute> {
     private static final NamespacedKey STRUCTURE_ACTIVATION = new NamespacedKey("iris", "structure_activation");
     private final Options options;
     private final BukkitChunkGenerator generator;
@@ -118,7 +118,7 @@ public final class BukkitGeneratorContext extends BukkitGenerationPolicy impleme
     public NativeGenerationScope openCoordinateScope(int blockX, int blockZ, String operation) {
         if (!(current() instanceof IrisEngine irisEngine)) { return null; }
         try {
-            return irisEngine.openGenerationHistoryCoordinateScope(blockX, blockZ);
+            return irisEngine.openGenerationScope(blockX, blockZ);
         } catch (IOException failure) {
             throw new IllegalStateException("Iris " + operation + " could not route generation history at "
                     + blockX + "," + blockZ + ".", failure);
@@ -139,7 +139,7 @@ public final class BukkitGeneratorContext extends BukkitGenerationPolicy impleme
     public NamespacedKey structureActivationKey() { return STRUCTURE_ACTIVATION; }
 
     @Override
-    public long activationId(GenerationHistoryRuntimeRouter.RuntimeRoute route) { return route.activation().activationId(); }
+    public long activationId(GenerationRoute route) { return route.activationId(); }
 
     @Override
     public void failed(String operation, Throwable failure) { IrisLogging.reportError(operation, failure); }

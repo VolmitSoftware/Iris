@@ -152,7 +152,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
 
     private void generateLayer(MantleWriter writer, int x, int z, ChunkContext context, BlendScratch blendScratch) {
         IrisComplex complex = context.getComplex();
-        IrisDimensionCarvingResolver.State resolverState = blendScratch.resolverState;
+        IrisDimensionCarvingResolver.State resolverState = IrisDimensionCarvingResolver.threadState(getEngineMantle().getEngine());
         int[] chunkSurfaceHeights = prepareChunkSurfaceHeights(x, z, context, blendScratch.chunkSurfaceHeights);
         PrecisionStopwatch resolveStopwatch = PrecisionStopwatch.start();
         List<WeightedProfile> weightedProfiles = resolveWeightedProfiles(x, z, complex, resolverState);
@@ -766,7 +766,6 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         private final double[][] neighbourHeights = new double[NEIGHBOURS][CHUNK_AREA];
         private final Object[][] neighbourObjects = new Object[NEIGHBOURS][CHUNK_AREA];
         private final long[][] neighbourSubmerged = new long[NEIGHBOURS][4];
-        private final IrisDimensionCarvingResolver.State resolverState = new IrisDimensionCarvingResolver.State();
         private int nextWeightBuffer;
         private boolean inUse;
 

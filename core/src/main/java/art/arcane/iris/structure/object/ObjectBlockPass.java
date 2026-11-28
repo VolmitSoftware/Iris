@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.BlockDataMergeSupport;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
@@ -43,7 +44,7 @@ final class ObjectBlockPass {
     void process() {
         boolean warped = !state.config.getWarp().isFlat();
         boolean hasEdits = !state.config.getEdit().isEmpty();
-        CNG surfaceWarp = warped ? state.config.getSurfaceWarp(context.rng, context.self.getLoader()) : null;
+        CNG surfaceWarp = warped ? state.config.getSurfaceWarp(context.rng, context.runtime.scopeFor(context.self.getLoader())) : null;
         double warpHalf = warped ? state.config.getWarp().getMultiplier() / 2D : 0D;
         boolean waterlogCandidate = state.config.isWaterloggable() || state.config.isUnderwater();
         double[] exact = warped || hasEdits ? bake.exact(context.self, state.spin) : null;
@@ -141,8 +142,9 @@ final class ObjectBlockPass {
 
     private boolean handleCustomData(NativeBlockState data, boolean air, TileData tile, String marker, int xx, int yy, int zz) {
         // Short-circuit order matters for cost only: the mantle read is paid solely
-        // for vine blocks. Both operands are pure, so the value is unchanged.
-        boolean wouldReplace = !is(ObjectPlaceMode.STRUCTURE_PIECE) && B.isVineBlock(data) && B.isSolid(state.placer.get(xx, yy, zz));
+        // for vine blocks and leaves. Both operands are pure, so the value is unchanged.
+        boolean wouldReplace = !is(ObjectPlaceMode.STRUCTURE_PIECE) && readsExistingBlock(data)
+                && keepsExisting(data, state.placer.get(xx, yy, zz));
         boolean place = shouldPlaceObjectBlock(is(ObjectPlaceMode.STRUCTURE_PIECE), air, wouldReplace);
         if (data.isCustom() || place) {
             state.placer.set(xx, yy, zz, data);
@@ -160,6 +162,15 @@ final class ObjectBlockPass {
         return false;
     }
 
+    private static boolean readsExistingBlock(NativeBlockState data) {
+        return B.isVineBlock(data) || B.isLeaves(data);
+    }
+
+    /** Vines never replace solid blocks, and leaves never cut a log: the trunk above the cut would float. */
+    static boolean keepsExisting(NativeBlockState data, NativeBlockState existing) {
+        return B.isVineBlock(data) ? B.isSolid(existing) : B.isLeaves(data) && B.isLog(existing);
+    }
+
     private EditResult applyEdits(double[] exact, int index, NativeBlockState data, TileData tile) {
         double exactX = exact[index * 3];
         double exactY = exact[index * 3 + 1];
@@ -169,7 +180,7 @@ final class ObjectBlockPass {
             if (context.rng.chance(j.getChance())) {
                 for (NativeBlockState k : j.getFind(context.rdata)) {
                     if (j.isExact() ? k.matches(data) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(data))) {
-                        NativeBlockState newData = j.getReplace(context.rng, exactX + context.x, exactY + state.y, exactZ + context.z, context.rdata);
+                        NativeBlockState newData = j.getReplace(context.rng, exactX + context.x, exactY + state.y, exactZ + context.z, context.runtime);
 
                         boolean sameMaterial = IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(data));
                         if (sameMaterial && !(newData.isCustom() || data.isCustom()))

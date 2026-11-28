@@ -85,6 +85,9 @@ import java.util.stream.Collectors;
 public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, Hotloadable {
     IrisComplex getComplex();
 
+    /** The runtime objects this engine derived from its pack, or null while no runtime is active. */
+    PackRuntime getPackRuntime();
+
     default BiomeEnvironment getBiomeEnvironment(int x, int y, int z) {
         return new BiomeEnvironment(0L, getBiome(x, y, z), getRegion(x, y, z), getDimension(), getData());
     }

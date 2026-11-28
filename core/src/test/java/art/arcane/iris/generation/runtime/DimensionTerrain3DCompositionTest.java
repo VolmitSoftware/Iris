@@ -10,6 +10,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.biome.IrisBiomePaletteLayer;
+import art.arcane.iris.generation.biome.PaletteLayerRuntime;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
@@ -425,7 +426,7 @@ public class DimensionTerrain3DCompositionTest {
             when(layer.getSlopeCondition()).thenReturn(slope);
             when(layer.getHeightGenerator(any(), any())).thenReturn(height);
             when(height.fit(anyInt(), anyInt(), anyDouble(), anyDouble())).thenReturn(1);
-            when(layer.get(any(), anyInt(), anyDouble(), anyDouble(), anyDouble(), any())).thenReturn(block);
+            when(layer.get(any(), anyInt(), anyDouble(), anyDouble(), anyDouble(), any(PaletteLayerRuntime.class))).thenReturn(block);
             layers.add(layer);
         }
         return new IrisBiome().setLockLayers(locked).setLayers(layers);

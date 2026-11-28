@@ -209,6 +209,16 @@ public class IrisDepositModifierOrderingTest {
         }
 
         @Override
+        public boolean isLog() {
+            return false;
+        }
+
+        @Override
+        public boolean isLeaves() {
+            return false;
+        }
+
+        @Override
         public boolean isFoliagePlantable() {
             return false;
         }
@@ -349,7 +359,7 @@ public class IrisDepositModifierOrderingTest {
                     clump.getBlocks().put(new IrisBlockVector(x, 0, z), replacement);
                 }
             }
-            when(generator.getClump(any(), any(), any())).thenAnswer(invocation -> {
+            when(generator.getClump(any(), any())).thenAnswer(invocation -> {
                 if (reverse && name.equals("dimension")) {
                     assertTrue(regionReady.await(10, TimeUnit.SECONDS));
                 } else if (reverse && name.equals("region")) {

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.structure.object.IrisObject;
@@ -62,12 +63,10 @@ public class IrisDepositGenerator {
     private static final long FNV_OFFSET_BASIS = 0xcbf29ce484222325L;
     private static final long FNV_PRIME = 0x100000001b3L;
 
-    private final transient ConcurrentMap<ClumpCacheKey, KList<IrisObject>> objects = new ConcurrentHashMap<>();
     private final transient AtomicCache<KList<NativeBlockState>> blockData = new AtomicCache<>();
     private final transient AtomicCache<Boolean> ore = new AtomicCache<>();
     private final transient AtomicCache<KSet<String>> replaceableBlockData = new AtomicCache<>();
     private final transient AtomicCache<KSet<String>> surfaceReplaceableBlockData = new AtomicCache<>();
-    private final transient ConcurrentMap<ClumpCacheKey, KList<IrisObject>> scaledObjects = new ConcurrentHashMap<>();
     @Required
     @MinNumber(-8192)
     @MaxNumber(8192)
@@ -145,52 +144,45 @@ public class IrisDepositGenerator {
     @Description("If set to true, this deposit will replace bedrock")
     private boolean replaceBedrock = false;
 
-    public IrisObject getClump(Engine engine, RNG rng, IrisData rdata) {
+    public IrisObject getClump(PackRuntime runtime, RNG rng) {
         if (shape != IrisDepositShape.IRIS) {
-            return generateConfiguredClumpObject(rng, rdata, minSize, maxSize);
+            return generateConfiguredClumpObject(rng, runtime.data(), minSize, maxSize);
         }
 
-        ClumpCacheKey cacheKey = new ClumpCacheKey(engine.getSeedManager().getDeposit(), minSize, maxSize);
-        KList<IrisObject> objects = this.objects.computeIfAbsent(cacheKey, key -> {
-            RNG rngv = new RNG(key.depositSeed() + stableClumpSalt(rdata));
-            KList<IrisObject> objectsf = new KList<>();
-
-            for (int i = 0; i < varience; i++) {
-                objectsf.add(generateClumpObject(
-                        rngv.nextParallelRNG(2349 * i + 3598), rdata, key.minSize(), key.maxSize()));
-            }
-
-            return objectsf;
-        });
+        KList<IrisObject> objects = runtime.deposit(this).clumps();
         return objects.get(rng.i(0, objects.size()));
     }
 
-    public IrisObject getClump(Engine engine, RNG rng, IrisData rdata, double sizeMultiplier) {
+    public IrisObject getClump(PackRuntime runtime, RNG rng, double sizeMultiplier) {
         if (sizeMultiplier == 1D) {
-            return getClump(engine, rng, rdata);
+            return getClump(runtime, rng);
         }
 
         int scaledMinSize = scaledDepositSize(minSize, sizeMultiplier);
         int scaledMaxSize = scaledDepositSize(maxSize, sizeMultiplier);
         if (shape != IrisDepositShape.IRIS) {
-            return generateConfiguredClumpObject(rng, rdata, scaledMinSize, scaledMaxSize);
+            return generateConfiguredClumpObject(rng, runtime.data(), scaledMinSize, scaledMaxSize);
         }
 
-        ClumpCacheKey cacheKey = new ClumpCacheKey(
-                engine.getSeedManager().getDeposit(), scaledMinSize, scaledMaxSize);
-        KList<IrisObject> objects = scaledObjects.computeIfAbsent(cacheKey, key -> {
-            long sizeSeed = ((long) key.minSize() << 32) ^ (key.maxSize() & 0xffffffffL);
-            RNG rngv = new RNG(key.depositSeed() + stableClumpSalt(rdata) + sizeSeed);
-            KList<IrisObject> generated = new KList<>();
-
-            for (int i = 0; i < varience; i++) {
-                generated.add(generateClumpObject(
-                        rngv.nextParallelRNG(2349 * i + 3598), rdata, key.minSize(), key.maxSize()));
-            }
-
-            return generated;
-        });
+        KList<IrisObject> objects = runtime.deposit(this).scaledClumps(scaledMinSize, scaledMaxSize);
         return objects.get(rng.i(0, objects.size()));
+    }
+
+    public KList<IrisObject> createClumps(long depositSeed, IrisData rdata) {
+        return createClumpVariants(new RNG(depositSeed + stableClumpSalt(rdata)), rdata, minSize, maxSize);
+    }
+
+    public KList<IrisObject> createScaledClumps(long depositSeed, int scaledMinSize, int scaledMaxSize, IrisData rdata) {
+        long sizeSeed = ((long) scaledMinSize << 32) ^ (scaledMaxSize & 0xffffffffL);
+        return createClumpVariants(new RNG(depositSeed + stableClumpSalt(rdata) + sizeSeed), rdata, scaledMinSize, scaledMaxSize);
+    }
+
+    private KList<IrisObject> createClumpVariants(RNG rngv, IrisData rdata, int clumpMinSize, int clumpMaxSize) {
+        KList<IrisObject> variants = new KList<>();
+        for (int i = 0; i < varience; i++) {
+            variants.add(generateClumpObject(rngv.nextParallelRNG(2349 * i + 3598), rdata, clumpMinSize, clumpMaxSize));
+        }
+        return variants;
     }
 
     public int getMaxDimension() {
@@ -279,7 +271,7 @@ public class IrisDepositGenerator {
     }
 
     /**
-     * Advances {@code rng} exactly as {@link #getClump(Engine, RNG, IrisData)} would and reports the clump's width
+     * Advances {@code rng} exactly as {@link #getClump(PackRuntime, RNG)} would and reports the clump's width
      * and lowest block offset without building it, so a caller can reject the clump first and replay the build
      * only for clumps it keeps. Returns null without drawing when the shape has no footprint path.
      */
@@ -680,9 +672,6 @@ public class IrisDepositGenerator {
             }
         }
         return false;
-    }
-
-    record ClumpCacheKey(long depositSeed, int minSize, int maxSize) {
     }
 
     @FunctionalInterface

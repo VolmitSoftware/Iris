@@ -1,5 +1,6 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.generation.runtime.ThreadSlots;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrays;
 
@@ -619,7 +620,7 @@ public final class GenerationBoundaryStore {
         private final long[] regionKeys;
         private final Long2ObjectOpenHashMap<String> shardHashes;
         private final LinkedHashMap<Long, byte[]> masks;
-        private final ThreadLocal<RegionMask> lastRegion = new ThreadLocal<>();
+        private final ThreadSlots<RegionMask> lastRegion = ThreadSlots.bindings();
 
         private MaskSource(
                 Path directory,

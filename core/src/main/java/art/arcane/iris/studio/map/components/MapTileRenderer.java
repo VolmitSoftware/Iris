@@ -236,12 +236,11 @@ public final class MapTileRenderer {
     // The biome view shows each spot's base biome, which its own region picks from the biome list of the spot's type.
     private static NoiseField baseBiomePickNoise(IrisComplex complex) {
         ProceduralStream<IrisRegion> regions = complex.getRegionStream();
-        ProceduralStream<InferredType> types = complex.getBridgeStream();
         Map<IrisRegion, Map<InferredType, ProceduralStream<Double>>> noiseByRegion = new IdentityHashMap<>();
         return (gridIndex, x, z) -> {
             IrisRegion region = regions.get(x, z);
             return noiseByRegion.computeIfAbsent(region, subject -> new EnumMap<>(InferredType.class))
-                    .computeIfAbsent(types.get(x, z), type -> complex.biomePickNoiseStream(region, type))
+                    .computeIfAbsent(complex.baseTypeIn(region, x, z), type -> complex.biomePickNoiseStream(region, type))
                     .get(x, z);
         };
     }

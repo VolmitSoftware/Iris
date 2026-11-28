@@ -9,6 +9,7 @@ public final class NoiseLayerProgram {
     private final boolean enabled;
     private final double offsetY;
     private final NoiseProgram program;
+    private final NoiseProgram zAxisProgram;
     private final double zoom;
     private final double opacity;
     private final double offsetX;
@@ -21,10 +22,12 @@ public final class NoiseLayerProgram {
     private final NoiseLayerProgram[] children;
     private final double[] childOffsets;
 
-    private NoiseLayerProgram(IrisNoiseGenerator layer, NoiseProgram program, NoiseLayerProgram[] children, double[] childOffsets) {
+    private NoiseLayerProgram(IrisNoiseGenerator layer, NoiseProgram program, NoiseProgram zAxisProgram,
+                              NoiseLayerProgram[] children, double[] childOffsets) {
         this.enabled = program != null;
         this.offsetY = layer.getOffsetY();
         this.program = program;
+        this.zAxisProgram = zAxisProgram;
         this.zoom = layer.getZoom();
         this.opacity = layer.getOpacity();
         this.offsetX = layer.getOffsetX();
@@ -39,11 +42,16 @@ public final class NoiseLayerProgram {
     }
 
     static NoiseLayerProgram disabled(IrisNoiseGenerator layer) {
-        return new NoiseLayerProgram(layer, null, new NoiseLayerProgram[0], new double[0]);
+        return new NoiseLayerProgram(layer, null, null, new NoiseLayerProgram[0], new double[0]);
     }
 
-    static NoiseLayerProgram of(IrisNoiseGenerator layer, NoiseProgram program, NoiseLayerProgram[] children, double[] childOffsets) {
-        return new NoiseLayerProgram(layer, program, children, childOffsets);
+    /**
+     * zAxisProgram is the layer's generator reseeded for the z axis; only a layer read as a fracture needs it, and the
+     * root layer passes null.
+     */
+    static NoiseLayerProgram of(IrisNoiseGenerator layer, NoiseProgram program, NoiseProgram zAxisProgram,
+                                NoiseLayerProgram[] children, double[] childOffsets) {
+        return new NoiseLayerProgram(layer, program, zAxisProgram, children, childOffsets);
     }
 
     public void evaluate(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] out) {
@@ -53,89 +61,56 @@ public final class NoiseLayerProgram {
         }
         int mark = scratch.mark();
         try {
-            fill(scratch, xs, zs, count, out);
+            double[] sampleX = scratch.buffer(count);
+            double[] sampleZ = scratch.buffer(count);
+            warpedSampleCoordinates(scratch, xs, zs, count, sampleX, sampleZ);
+            program.fill2D(scratch.noise(), sampleX, sampleZ, count, out);
+            applyPost(out, count);
         } finally {
             scratch.reset(mark);
         }
     }
 
-    private void fill(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] out) {
-        double[] sampleX = scratch.buffer(count);
-        double[] sampleZ = scratch.buffer(count);
-        if (children.length == 0) {
-            for (int index = 0; index < count; index++) {
-                sampleX[index] = (xs[index] / zoom) + offsetX;
-                sampleZ[index] = (zs[index] / zoom) + offsetZ;
-            }
-        } else {
-            System.arraycopy(xs, 0, sampleX, 0, count);
-            System.arraycopy(zs, 0, sampleZ, 0, count);
-            double[] forward = scratch.buffer(count);
-            double[] reverse = scratch.buffer(count);
-            for (int child = 0; child < children.length; child++) {
-                children[child].evaluatePair(scratch, xs, zs, count, forward, reverse);
-                double offset = childOffsets[child];
-                for (int index = 0; index < count; index++) {
-                    sampleX[index] += forward[index] - offset;
-                    sampleZ[index] += reverse[index] - offset;
-                }
-            }
-            for (int index = 0; index < count; index++) {
-                sampleX[index] = (sampleX[index] / zoom) + offsetX;
-                sampleZ[index] = (sampleZ[index] / zoom) + offsetZ;
-            }
-        }
-        program.fill2D(scratch.noise(), sampleX, sampleZ, count, out);
-        for (int index = 0; index < count; index++) {
-            out[index] = post(out[index]);
-        }
-    }
-
-    void evaluatePair(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] forward, double[] reverse) {
+    /** Fills this layer read as a fracture: the x warp from its generator, the z warp from its z-axis generator. */
+    void evaluateAxes(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] xWarp, double[] zWarp) {
         if (!enabled) {
-            Arrays.fill(forward, 0, count, offsetY);
-            Arrays.fill(reverse, 0, count, offsetY);
+            Arrays.fill(xWarp, 0, count, offsetY);
+            Arrays.fill(zWarp, 0, count, offsetY);
             return;
         }
         int mark = scratch.mark();
         try {
-            fillPair(scratch, xs, zs, count, forward, reverse);
+            double[] sampleX = scratch.buffer(count);
+            double[] sampleZ = scratch.buffer(count);
+            warpedSampleCoordinates(scratch, xs, zs, count, sampleX, sampleZ);
+            program.fill2D(scratch.noise(), sampleX, sampleZ, count, xWarp);
+            zAxisProgram.fill2D(scratch.noise(), sampleX, sampleZ, count, zWarp);
+            applyPost(xWarp, count);
+            applyPost(zWarp, count);
         } finally {
             scratch.reset(mark);
         }
     }
 
-    private void fillPair(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] forward, double[] reverse) {
-        int pairs = count * 2;
-        double[] sampleX = scratch.buffer(pairs);
-        double[] sampleZ = scratch.buffer(pairs);
+    private void warpedSampleCoordinates(TerrainBatchScratch scratch, double[] xs, double[] zs, int count,
+                                         double[] sampleX, double[] sampleZ) {
         System.arraycopy(xs, 0, sampleX, 0, count);
         System.arraycopy(zs, 0, sampleZ, 0, count);
-        System.arraycopy(zs, 0, sampleX, count, count);
-        System.arraycopy(xs, 0, sampleZ, count, count);
         if (children.length > 0) {
-            double[] childForward = scratch.buffer(count);
-            double[] childReverse = scratch.buffer(count);
+            double[] childX = scratch.buffer(count);
+            double[] childZ = scratch.buffer(count);
             for (int child = 0; child < children.length; child++) {
-                children[child].evaluatePair(scratch, xs, zs, count, childForward, childReverse);
+                children[child].evaluateAxes(scratch, xs, zs, count, childX, childZ);
                 double offset = childOffsets[child];
                 for (int index = 0; index < count; index++) {
-                    sampleX[index] += childForward[index] - offset;
-                    sampleZ[index] += childReverse[index] - offset;
-                    sampleX[count + index] += childReverse[index] - offset;
-                    sampleZ[count + index] += childForward[index] - offset;
+                    sampleX[index] += childX[index] - offset;
+                    sampleZ[index] += childZ[index] - offset;
                 }
             }
         }
-        for (int index = 0; index < pairs; index++) {
+        for (int index = 0; index < count; index++) {
             sampleX[index] = (sampleX[index] / zoom) + offsetX;
             sampleZ[index] = (sampleZ[index] / zoom) + offsetZ;
-        }
-        double[] values = scratch.buffer(pairs);
-        program.fill2D(scratch.noise(), sampleX, sampleZ, pairs, values);
-        for (int index = 0; index < count; index++) {
-            forward[index] = post(values[index]);
-            reverse[index] = post(values[count + index]);
         }
     }
 
@@ -143,53 +118,53 @@ public final class NoiseLayerProgram {
         if (!enabled) {
             return offsetY;
         }
-        double sampleX = x;
-        double sampleZ = z;
-        if (children.length > 0) {
-            int mark = scratch.mark();
-            try {
-                double[] pair = scratch.buffer(2);
-                for (int child = 0; child < children.length; child++) {
-                    children[child].samplePair(scratch, x, z, pair);
-                    double offset = childOffsets[child];
-                    sampleX += pair[0] - offset;
-                    sampleZ += pair[1] - offset;
-                }
-            } finally {
-                scratch.reset(mark);
-            }
+        int mark = scratch.mark();
+        try {
+            double[] sampleCoordinates = scratch.buffer(2);
+            warpedSampleCoordinate(scratch, x, z, sampleCoordinates);
+            return post(program.sample2D(sampleCoordinates[0], sampleCoordinates[1]));
+        } finally {
+            scratch.reset(mark);
         }
-        return post(program.sample2D((sampleX / zoom) + offsetX, (sampleZ / zoom) + offsetZ));
     }
 
-    private void samplePair(TerrainBatchScratch scratch, double x, double z, double[] out) {
+    private void sampleAxes(TerrainBatchScratch scratch, double x, double z, double[] out) {
         if (!enabled) {
             out[0] = offsetY;
             out[1] = offsetY;
             return;
         }
-        double forwardX = x;
-        double forwardZ = z;
-        double reverseX = z;
-        double reverseZ = x;
+        int mark = scratch.mark();
+        try {
+            double[] sampleCoordinates = scratch.buffer(2);
+            warpedSampleCoordinate(scratch, x, z, sampleCoordinates);
+            out[0] = post(program.sample2D(sampleCoordinates[0], sampleCoordinates[1]));
+            out[1] = post(zAxisProgram.sample2D(sampleCoordinates[0], sampleCoordinates[1]));
+        } finally {
+            scratch.reset(mark);
+        }
+    }
+
+    private void warpedSampleCoordinate(TerrainBatchScratch scratch, double x, double z, double[] out) {
+        double sampleX = x;
+        double sampleZ = z;
         if (children.length > 0) {
-            int mark = scratch.mark();
-            try {
-                double[] pair = scratch.buffer(2);
-                for (int child = 0; child < children.length; child++) {
-                    children[child].samplePair(scratch, x, z, pair);
-                    double offset = childOffsets[child];
-                    forwardX += pair[0] - offset;
-                    forwardZ += pair[1] - offset;
-                    reverseX += pair[1] - offset;
-                    reverseZ += pair[0] - offset;
-                }
-            } finally {
-                scratch.reset(mark);
+            double[] warp = scratch.buffer(2);
+            for (int child = 0; child < children.length; child++) {
+                children[child].sampleAxes(scratch, x, z, warp);
+                double offset = childOffsets[child];
+                sampleX += warp[0] - offset;
+                sampleZ += warp[1] - offset;
             }
         }
-        out[0] = post(program.sample2D((forwardX / zoom) + offsetX, (forwardZ / zoom) + offsetZ));
-        out[1] = post(program.sample2D((reverseX / zoom) + offsetX, (reverseZ / zoom) + offsetZ));
+        out[0] = (sampleX / zoom) + offsetX;
+        out[1] = (sampleZ / zoom) + offsetZ;
+    }
+
+    private void applyPost(double[] values, int count) {
+        for (int index = 0; index < count; index++) {
+            values[index] = post(values[index]);
+        }
     }
 
     private double post(double raw) {

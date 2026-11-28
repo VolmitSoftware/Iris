@@ -38,6 +38,7 @@ record GenerationRuntime(
         SeedManager seedManager,
         TransitionGenerationPlan transitionPlan,
         IrisComplex complex,
+        PackRuntime packRuntime,
         UpperDimensionContext upperContext,
         DimensionStackContext dimensionStackContext,
         EngineMode mode,
@@ -57,6 +58,7 @@ record GenerationRuntime(
             throw new IllegalArgumentException("Generation kernel version does not match its executable runtime.");
         }
         Objects.requireNonNull(complex, "generation complex");
+        Objects.requireNonNull(packRuntime, "generation pack runtime");
         Objects.requireNonNull(mode, "generation mode");
         Objects.requireNonNull(mantle, "generation mantle");
         mantleStorageDirectory = IrisEngineMantle.normalizeStorageDirectory(mantleStorageDirectory);
@@ -70,6 +72,7 @@ record GenerationRuntime(
     GenerationRuntime withComplex(
             int nextCacheId,
             IrisComplex nextComplex,
+            PackRuntime nextPackRuntime,
             UpperDimensionContext nextUpperContext,
             DimensionStackContext nextDimensionStackContext,
             BiomeMaxes nextBiomeMaxes
@@ -84,6 +87,7 @@ record GenerationRuntime(
                 seedManager,
                 transitionPlan,
                 nextComplex,
+                nextPackRuntime,
                 nextUpperContext,
                 nextDimensionStackContext,
                 mode,

@@ -1,5 +1,6 @@
 package art.arcane.iris.pack.datapack.export.compile.subterrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.subterrain.IrisSubterrainFeature;
 import art.arcane.iris.generation.subterrain.SubterrainBounds;
@@ -47,6 +48,7 @@ public final class SubterrainBaker {
 
     private final long seed;
     private final IrisData data;
+    private final PackRuntime runtime;
     private final IrisDimension dimension;
     private final BlockStateResolver blocks;
     private final List<ExportDiagnostic> diagnostics;
@@ -57,6 +59,7 @@ public final class SubterrainBaker {
     public SubterrainBaker(PackCompileContext context, long seed) {
         this.seed = seed;
         data = context.data();
+        runtime = data.standalonePackRuntime();
         dimension = context.dimension();
         blocks = BlockStateResolver.forContext(context);
         diagnostics = context.diagnostics();
@@ -135,9 +138,9 @@ public final class SubterrainBaker {
         }
         int height = y - dimension.getMinHeight();
         NativeBlockState candidate = switch (surface) {
-            case WALL -> biome.getWall().get(random, x, height, z, data);
-            case FLOOR -> first(biome.generateLayersWithSlope(dimension, x, z, random, 1, height + 1, data, FLAT_SLOPE));
-            case CEILING -> first(biome.generateCeilingLayers(dimension, x, z, random, 1, height - 1, data, null));
+            case WALL -> biome.getWall().get(random, x, height, z, runtime);
+            case FLOOR -> first(biome.generateLayersWithSlope(dimension, x, z, random, 1, height + 1, runtime, FLAT_SLOPE));
+            case CEILING -> first(biome.generateCeilingLayers(dimension, x, z, random, 1, height - 1, runtime, null));
             case INTERIOR -> null;
         };
         return SubterrainRasterizer.isRetainedSolid(candidate) ? candidate : null;
@@ -171,7 +174,7 @@ public final class SubterrainBaker {
             this.random = random;
             this.resource = resource;
             plans = List.of(plan);
-            surfaces = new SubterrainSurfaceMaterials(planner, plans, dimension, null, data, random, dimension.getMinHeight());
+            surfaces = new SubterrainSurfaceMaterials(planner, plans, dimension, null, runtime, random, dimension.getMinHeight());
         }
 
         private BakedRoom room() {

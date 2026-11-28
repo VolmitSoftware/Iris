@@ -19,7 +19,7 @@
 package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -39,12 +39,12 @@ final class ObjectSeparation {
     private static final int CHUNK_SHIFT = 4;
 
     private final long seed;
-    private final IrisData data;
+    private final PackRuntime runtime;
     private final SurfacePlacements surfacePlacements;
 
-    ObjectSeparation(long seed, IrisData data, SurfacePlacements surfacePlacements) {
+    ObjectSeparation(long seed, PackRuntime runtime, SurfacePlacements surfacePlacements) {
         this.seed = seed;
-        this.data = data;
+        this.runtime = runtime;
         this.surfacePlacements = surfacePlacements;
     }
 
@@ -69,7 +69,7 @@ final class ObjectSeparation {
         if (style == null) {
             return placement.getChance();
         }
-        return placement.getChance() * style.create(seed, data).fitDouble(0D, 1D, x, z);
+        return placement.getChance() * style.create(seed, runtime).fitDouble(0D, 1D, x, z);
     }
 
     /**

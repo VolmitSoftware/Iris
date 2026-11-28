@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.world.history.TransitionDisplacementField;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
@@ -671,7 +672,7 @@ public class IrisComplexTransitionTest {
 
         private Hunk<NativeBlockState> paint(int chunkX) {
             Engine engine = mock(Engine.class);
-            IrisData data = mock(IrisData.class);
+            IrisData data = MockPackData.create();
             IrisBiome biome = mock(IrisBiome.class);
             IrisRegion region = new IrisRegion();
             IrisDimension dimension = new IrisDimension().setBedrock(false).setHideOresForHiddenOre(true);
@@ -679,9 +680,9 @@ public class IrisComplexTransitionTest {
             when(engine.getComplex()).thenReturn(complex);
             when(engine.getData()).thenReturn(data);
             when(engine.getSeedManager()).thenReturn(mock(SeedManager.class));
-            when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class), anyInt(), anyInt(), eq(data), same(complex)))
+            when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class), anyInt(), anyInt(), MockPackData.runtimeOf(data), same(complex)))
                     .thenAnswer(invocation -> new KList<>(List.of(stone)));
-            when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), eq(data)))
+            when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), MockPackData.runtimeOf(data)))
                     .thenAnswer(invocation -> new KList<>(Collections.nCopies(seaLayers, ice)));
             int[] grounds = grounds(chunkX);
             ChunkContext context = mock(ChunkContext.class);

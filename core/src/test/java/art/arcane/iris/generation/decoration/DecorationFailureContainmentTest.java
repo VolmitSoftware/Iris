@@ -8,7 +8,7 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformRegistries;
@@ -89,7 +89,7 @@ public class DecorationFailureContainmentTest {
         doReturn("minecraft:vine").when(vine).materialKey();
 
         IrisDecorator decorator = mock(IrisDecorator.class);
-        doReturn(true).when(decorator).passesChanceGate(any(), anyDouble(), anyDouble(), any());
+        doReturn(true).when(decorator).passesChanceGate(any(), anyDouble(), anyDouble(), any(DecoratorRuntime.class));
         doReturn(true).when(decorator).isForcePlace();
         doReturn(vine).when(decorator).pickBlockData(any(), any(), anyDouble(), anyDouble());
         doReturn(new NativeBlockState[]{vine}).when(decorator).getBlockDataArray(any());
@@ -121,7 +121,7 @@ public class DecorationFailureContainmentTest {
     private static Engine engine() {
         Engine engine = mock(Engine.class);
         doReturn(mock(SeedManager.class)).when(engine).getSeedManager();
-        doReturn(mock(IrisData.class)).when(engine).getData();
+        doReturn(MockPackData.create()).when(engine).getData();
         IrisDimension dimension = mock(IrisDimension.class);
         doReturn(63).when(dimension).getFluidHeight();
         doReturn(dimension).when(engine).getDimension();

@@ -138,6 +138,68 @@ public class IrisLoggingTest {
         assertEquals(List.of(LogLevel.WARN), levels);
     }
 
+    @Test
+    public void forgettingAPrefixReleasesOnlyTheKeysUnderIt() {
+        String scope = uniqueKey() + "|";
+        String otherScope = uniqueKey() + "|";
+        assertTrue(IrisLogging.warnOnce(scope + "a", "a"));
+        assertTrue(IrisLogging.warnOnce(scope + "b", "b"));
+        assertTrue(IrisLogging.warnOnce(otherScope + "a", "other"));
+        levels.clear();
+
+        IrisLogging.forgetOnceKeys(scope);
+
+        assertTrue(IrisLogging.warnOnce(scope + "a", "a"));
+        assertTrue(IrisLogging.warnOnce(scope + "b", "b"));
+        assertFalse(IrisLogging.warnOnce(otherScope + "a", "other"));
+        assertEquals(List.of(LogLevel.WARN, LogLevel.WARN, LogLevel.DEBUG), levels);
+    }
+
+    @Test
+    public void forgettingANullOrEmptyPrefixKeepsEveryKeyClaimed() {
+        String key = uniqueKey();
+        assertTrue(IrisLogging.warnOnce(key, "claimed"));
+
+        IrisLogging.forgetOnceKeys(null);
+        IrisLogging.forgetOnceKeys("");
+
+        assertFalse(IrisLogging.warnOnce(key, "claimed"));
+    }
+
+    @Test
+    public void pastTheCapTheLeastRecentlySeenKeyIsDroppedAndWarnsAgain() {
+        String stale = uniqueKey();
+        String recurring = uniqueKey();
+        assertTrue(IrisLogging.warnOnce(stale, "stale"));
+        assertTrue(IrisLogging.warnOnce(recurring, "recurring"));
+        for (int filler = 2; filler < IrisLogging.MAX_ONCE_KEYS; filler++) {
+            IrisLogging.warnOnce(uniqueKey(), "filler");
+        }
+        assertFalse(IrisLogging.warnOnce(recurring, "recurring"));
+        String newer = uniqueKey();
+        levels.clear();
+
+        assertTrue(IrisLogging.warnOnce(newer, "new condition"));
+        assertFalse(IrisLogging.warnOnce(newer, "new condition"));
+        assertFalse(IrisLogging.warnOnce(recurring, "recurring"));
+        assertTrue(IrisLogging.warnOnce(stale, "stale"));
+
+        assertEquals(List.of(LogLevel.WARN, LogLevel.DEBUG, LogLevel.DEBUG, LogLevel.WARN), levels);
+    }
+
+    @Test
+    public void aSuppliedMessageIsOnlyBuiltWhenStated() {
+        String key = uniqueKey();
+        int[] built = {0};
+
+        assertTrue(IrisLogging.warnOnce(key, () -> "built " + ++built[0]));
+        assertFalse(IrisLogging.warnOnce(key, () -> "built " + ++built[0]));
+
+        assertEquals(1, built[0]);
+        assertEquals(List.of(LogLevel.WARN), levels);
+        assertEquals(List.of("built 1"), messages);
+    }
+
     private void bindCapturingPlatform() {
         IrisPlatform platform = mock(IrisPlatform.class);
         capturingPlatform = platform;

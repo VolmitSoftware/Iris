@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.decoration.IrisStiltSettings;
 import art.arcane.iris.generation.decoration.IrisVacuumSettings;
@@ -78,9 +79,9 @@ public class PlacementReachTest {
         when(engine.getHeight()).thenReturn(256);
         when(engine.getMinHeight()).thenReturn(0);
         when(engine.getComplex()).thenReturn(complex);
-        data = mock(IrisData.class, withSettings().stubOnly());
+        data = MockPackData.stubOnly();
         when(data.getEngine()).thenReturn(engine);
-        objectData = mock(IrisData.class, withSettings().stubOnly());
+        objectData = MockPackData.stubOnly();
     }
 
     @After

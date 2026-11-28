@@ -18,7 +18,7 @@
 
 package art.arcane.iris.generation.noise;
 
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.volmlib.util.math.M;
@@ -46,7 +46,7 @@ public class IrisStyledRange {
     @Description("The style to pick the range")
     private IrisGeneratorStyle style = new IrisGeneratorStyle(NoiseStyle.STATIC);
 
-    public double get(RNG rng, double x, double z, IrisData data) {
+    public double get(RNG rng, double x, double z, PackRuntime runtime) {
         if (min == max) {
             return min;
         }
@@ -55,11 +55,11 @@ public class IrisStyledRange {
             return M.lerp(min, max, 0.5);
         }
 
-        return style.create(rng, data).fitDouble(min, max, x, z);
+        return style.create(rng, runtime).fitDouble(min, max, x, z);
     }
 
-    public ProceduralStream<Double> stream(RNG rng, IrisData data) {
-        return ProceduralStream.of((x, z) -> get(rng, x, z, data), Interpolated.DOUBLE);
+    public ProceduralStream<Double> stream(RNG rng, PackRuntime runtime) {
+        return ProceduralStream.of((x, z) -> get(rng, x, z, runtime), Interpolated.DOUBLE);
     }
 
     public boolean isFlat() {

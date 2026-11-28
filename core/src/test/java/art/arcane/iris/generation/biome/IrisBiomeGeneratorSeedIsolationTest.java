@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.biome;
 
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.testsupport.MockPackData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.volmlib.util.noise.CNG;
@@ -11,7 +12,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -26,48 +26,47 @@ public class IrisBiomeGeneratorSeedIsolationTest {
 
     @Test
     public void engineSeedMakesPaperStyleFirstCallOrderIrrelevant() {
-        IrisData data = dataWithActiveEngine(new AtomicReference<>(engine(1337L)));
-        IrisBiome paperFirst = biome(data);
-        IrisBiome moddedFirst = biome(data);
+        Engine engine = engine(1337L);
+        IrisBiome paperFirst = biome();
+        IrisBiome moddedFirst = biome();
 
-        CNG paperGenerator = paperFirst.getBiomeGenerator(new RNG(8457289L));
-        CNG moddedGenerator = moddedFirst.getBiomeGenerator(new RNG(-991245L));
+        CNG paperGenerator = paperFirst.getBiomeGenerator(new RNG(8457289L), engine);
+        CNG moddedGenerator = moddedFirst.getBiomeGenerator(new RNG(-991245L), engine);
 
         assertEquals(paperGenerator.noise(SAMPLE_X, SAMPLE_Z), moddedGenerator.noise(SAMPLE_X, SAMPLE_Z), 0D);
     }
 
     @Test
     public void distinctEnginesKeepDistinctBiomeGenerators() {
-        Engine firstEngine = engine(1337L);
-        Engine secondEngine = engine(7331L);
-        IrisBiome biome = biome(dataWithActiveEngine(new AtomicReference<>(secondEngine)));
+        IrisBiome biome = biome();
 
-        CNG first = biome.getBiomeGenerator(new RNG(1L), firstEngine);
-        CNG second = biome.getBiomeGenerator(new RNG(1L), secondEngine);
+        CNG first = biome.getBiomeGenerator(new RNG(1L), engine(1337L));
+        CNG second = biome.getBiomeGenerator(new RNG(1L), engine(7331L));
 
         assertNotSame(first, second);
         assertNotEquals(first.noise(SAMPLE_X, SAMPLE_Z), second.noise(SAMPLE_X, SAMPLE_Z), 0D);
     }
 
     @Test
-    public void sameSeedEnginesSharingBiomeReuseBiomeGenerator() {
+    public void sameSeedEnginesBuildEqualButOwnBiomeGenerators() {
+        IrisBiome biome = biome();
         Engine firstEngine = engine(1337L);
-        Engine secondEngine = engine(1337L);
-        IrisBiome biome = biome(dataWithActiveEngine(new AtomicReference<>(secondEngine)));
 
         CNG first = biome.getBiomeGenerator(new RNG(11L), firstEngine);
-        CNG second = biome.getBiomeGenerator(new RNG(99L), secondEngine);
+        CNG second = biome.getBiomeGenerator(new RNG(99L), engine(1337L));
 
-        assertSame(first, second);
+        assertSame(first, biome.getBiomeGenerator(new RNG(99L), firstEngine));
+        assertNotSame(first, second);
+        assertEquals(first.noise(SAMPLE_X, SAMPLE_Z), second.noise(SAMPLE_X, SAMPLE_Z), 0D);
     }
 
     @Test
     public void engineLessToolingUsesSuppliedRngSeed() {
-        IrisBiome biome = biome(null);
+        IrisBiome biome = biome();
 
-        CNG first = biome.getBiomeGenerator(new RNG(11L));
-        CNG sameSeed = biome.getBiomeGenerator(new RNG(11L));
-        CNG second = biome.getBiomeGenerator(new RNG(99L));
+        CNG first = biome.getBiomeGenerator(new RNG(11L), null);
+        CNG sameSeed = biome.getBiomeGenerator(new RNG(11L), null);
+        CNG second = biome.getBiomeGenerator(new RNG(99L), null);
 
         assertSame(first, sameSeed);
         assertNotSame(first, second);
@@ -75,10 +74,10 @@ public class IrisBiomeGeneratorSeedIsolationTest {
     }
 
     @Test
-    public void concurrentExactEnginesIgnoreLoaderEngine() throws Exception {
+    public void concurrentEnginesKeepTheirOwnGenerators() throws Exception {
         Engine firstEngine = engine(1337L);
         Engine secondEngine = engine(7331L);
-        IrisBiome biome = biome(dataWithActiveEngine(new AtomicReference<>(secondEngine)));
+        IrisBiome biome = biome();
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
@@ -98,26 +97,20 @@ public class IrisBiomeGeneratorSeedIsolationTest {
 
     @Test
     public void biomeGeneratorCacheEvictsOldSeeds() {
-        IrisBiome biome = biome(null);
-        CNG first = biome.getBiomeGenerator(new RNG(0L));
+        IrisBiome biome = biome();
+        CNG first = biome.getBiomeGenerator(new RNG(0L), null);
 
         for (long seed = 1L; seed <= 8L; seed++) {
-            biome.getBiomeGenerator(new RNG(seed));
+            biome.getBiomeGenerator(new RNG(seed), null);
         }
 
-        assertNotSame(first, biome.getBiomeGenerator(new RNG(0L)));
+        assertNotSame(first, biome.getBiomeGenerator(new RNG(0L), null));
     }
 
-    private IrisBiome biome(IrisData data) {
+    private IrisBiome biome() {
         IrisBiome biome = new IrisBiome().setName("Scatter Test");
-        biome.setLoader(data);
+        biome.setLoader(MockPackData.create());
         return biome;
-    }
-
-    private IrisData dataWithActiveEngine(AtomicReference<Engine> activeEngine) {
-        IrisData data = mock(IrisData.class);
-        when(data.getEngine()).thenAnswer(ignored -> activeEngine.get());
-        return data;
     }
 
     private Engine engine(long biomeSeed) {
@@ -125,6 +118,8 @@ public class IrisBiomeGeneratorSeedIsolationTest {
         when(seedManager.getBiome()).thenReturn(biomeSeed);
         Engine engine = mock(Engine.class);
         when(engine.getSeedManager()).thenReturn(seedManager);
+        PackRuntime runtime = PackRuntime.forEngine(engine, null);
+        when(engine.getPackRuntime()).thenReturn(runtime);
         return engine;
     }
 

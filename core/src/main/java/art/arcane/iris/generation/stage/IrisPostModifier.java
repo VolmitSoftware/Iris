@@ -212,7 +212,7 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
                     int max = Math.abs(Math.max(h - ha, Math.max(h - hb, Math.max(h - hc, h - hd))));
 
                     for (int i = h; i > h - max; i--) {
-                        NativeBlockState d = biome.getWall().get(rng, x + i, i + h, z + i, getData());
+                        NativeBlockState d = biome.getWall().get(rng, x + i, i + h, z + i, getComplex().getPackRuntime());
 
                         if (d != null) {
                             if (isAirOrWater(x, i, z, originX, originZ, currentData)) {
@@ -241,7 +241,7 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
             //@done
             {
                 IrisSlopeClip sc = biome.getSlab().getSlopeCondition();
-                NativeBlockState d = sc.isValid(getComplex().getSlopeStream().get(x, z)) ? biome.getSlab().get(rng, x, h, z, getData()) : null;
+                NativeBlockState d = sc.isValid(getComplex().getSlopeStream().get(x, z)) ? biome.getSlab().get(rng, x, h, z, getComplex().getPackRuntime()) : null;
 
                 if (d != null) {
                     boolean cancel = B.isAir(d);

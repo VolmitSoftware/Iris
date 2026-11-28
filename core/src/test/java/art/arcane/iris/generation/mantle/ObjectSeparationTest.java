@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
@@ -122,7 +123,7 @@ public class ObjectSeparationTest {
     }
 
     private static ObjectSeparation separation(ObjectSeparation.SurfacePlacements surfacePlacements) {
-        return new ObjectSeparation(SEED, null, surfacePlacements);
+        return new ObjectSeparation(SEED, PackRuntime.standalone(null), surfacePlacements);
     }
 
     private static IrisObjectPlacement separated(double chance, int separationBlocks, String... objects) {

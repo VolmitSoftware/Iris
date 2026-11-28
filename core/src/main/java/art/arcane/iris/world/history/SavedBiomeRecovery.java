@@ -46,17 +46,17 @@ public final class SavedBiomeRecovery {
                 || !dimension.getCarving().isEmpty()
                 || !optionalKey(dimension.getFocus(), biomeKey)
                 || !optionalKey(dimension.getFocusRegion(), regionKey)
-                || !singleChoice(dimension.getRegions(), regionKey)) {
+                || !singleChoice(dimension.getRegionKeys(), regionKey)) {
             return Optional.empty();
         }
         IrisRegion region = input.data().getRegionLoader().load(regionKey);
         IrisBiome biome = input.data().getBiomeLoader().load(biomeKey);
         if (region == null || biome == null
                 || !regionKey.equals(region.getLoadKey()) || !biomeKey.equals(biome.getLoadKey())
-                || !singleChoice(region.getLandBiomes(), biomeKey)
-                || !singleChoice(region.getSeaBiomes(), biomeKey)
-                || !singleChoice(region.getShoreBiomes(), biomeKey)
-                || !singleChoice(region.getCaveBiomes(), biomeKey)
+                || !singleChoice(region.getLandBiomeKeys(), biomeKey)
+                || !singleChoice(region.getSeaBiomeKeys(), biomeKey)
+                || !singleChoice(region.getShoreBiomeKeys(), biomeKey)
+                || !singleChoice(region.getCaveBiomeKeys(), biomeKey)
                 || !biome.getChildren().isEmpty() || !biome.getFloatingChildBiomes().isEmpty()
                 || !optionalKey(biome.getCarvingBiome(), biomeKey)
                 || !sameShoreBiomes(dimension.getHydrologyPolicy(), biomeKey)

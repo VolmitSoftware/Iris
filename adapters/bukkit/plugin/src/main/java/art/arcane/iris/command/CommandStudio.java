@@ -365,7 +365,7 @@ public class CommandStudio implements DirectorExecutor {
                     boolean progressShown = false;
                     int c = -1;
                     try {
-                    engine.getDimension().getRegions().forEach(key -> data.put(key, new AtomicInteger(0)));
+                    engine.getDimension().getRegionKeys().forEach(key -> data.put(key, new AtomicInteger(0)));
                     multiBurst = new MultiBurst("Region Sampler");
                     var executor = multiBurst.burst(Math.min(radius * radius, 1 << 20));
                     sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_GENERATING_DATA));

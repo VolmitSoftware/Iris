@@ -18,9 +18,11 @@
 
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.world.entity.IrisSpawnGroup;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.biome.IrisCustomBiomeAliasResolver;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
 import art.arcane.iris.generation.biome.IrisSurfaceLayerFallback;
@@ -42,6 +44,8 @@ import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.transform.IrisTerrainTransform;
 import art.arcane.iris.pack.validation.CompatPools;
 import art.arcane.iris.pack.value.IrisRange;
+import art.arcane.iris.pack.value.Weighted;
+import art.arcane.iris.pack.value.WeightedReference;
 import art.arcane.iris.structure.nativegen.IrisImportedFeatureControl;
 import art.arcane.iris.structure.nativegen.IrisImportedStructureControl;
 import art.arcane.iris.structure.object.IrisObjectScale;
@@ -68,7 +72,6 @@ import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.datapack.IDataFixer;
 import art.arcane.iris.pack.datapack.IDataFixer.Dimension;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.world.history.GenerationRegistryContractFactory;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
@@ -88,7 +91,6 @@ import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
-import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
 import lombok.Data;
@@ -133,21 +135,11 @@ import java.util.regex.Pattern;
 public class IrisDimension extends IrisRegistrant {
     private static final Pattern RESOURCE_KEY_PATTERN = Pattern.compile("[a-z0-9_.-]+:[a-z0-9/._-]+");
 
-    private final transient AtomicCache<Position2> parallaxSize = new AtomicCache<>();
     private final transient AtomicCache<IrisStaticObjectLayer> staticObjectLayer = new AtomicCache<>();
-    private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
-    private final transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient LazyBoundedCache<Long, CNG> coordinateFractures = new LazyBoundedCache<>(8);
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private transient volatile CachedCoordinateFracture recentCoordinateFracture;
     private final transient AtomicCache<Double> sinr = new AtomicCache<>();
     private final transient AtomicCache<Double> cosr = new AtomicCache<>();
     private final transient AtomicCache<Double> rad = new AtomicCache<>();
     private final transient AtomicCache<Boolean> undergroundSpawnTables = new AtomicCache<>();
-    private final transient AtomicCache<Boolean> featuresUsed = new AtomicCache<>();
     private final transient AtomicCache<Map<String, IrisDimensionCarvingEntry>> carvingEntryIndex = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> surfaceOreCache = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> undergroundOreCache = new AtomicCache<>();
@@ -188,6 +180,8 @@ public class IrisDimension extends IrisRegistrant {
     private int version = 1;
     @Description("When a block key does not exist on the running Minecraft version, generate this block state instead. Keys are base block keys such as minecraft:sulfur; values are full block states. Applies to every palette, decorator, deposit, replace rule and object in this pack. Content that uses a missing block with no fallback here (and no per-entry backup) is excluded from generation on that version and listed at startup.")
     private KMap<String, String> blockFallbacks = new KMap<>();
+    @Description("When true, the pack refuses to load if this Minecraft version lacks content it uses and no fallback covers it, instead of generating without that content. Declared fallbacks (blockFallbacks, block backup) still apply.")
+    private boolean requireAllContent = false;
     @ArrayType(min = 1, type = IrisBlockDrops.class)
     @Description("Define custom block drops for this dimension")
     private KList<IrisBlockDrops> blockDrops = new KList<>();
@@ -249,11 +243,10 @@ public class IrisDimension extends IrisRegistrant {
     private double allObjectScaleFactor = 1D;
     @Description("The world environment")
     private IrisEnvironment environment = IrisEnvironment.NORMAL;
-    @RegistryListResource(IrisRegion.class)
     @Required
-    @ArrayType(min = 1, type = String.class)
-    @Description("Define all of the regions to include in this dimension. Dimensions -> Regions -> Biomes -> Objects etc")
-    private KList<String> regions = new KList<>();
+    @ArrayType(min = 1, type = IrisRegionEntry.class)
+    @Description("Define all of the regions to include in this dimension, each as a region name or an object with a region and a weight. Dimensions -> Regions -> Biomes -> Objects etc")
+    private KList<IrisRegionEntry> regions = new KList<>();
     @Required
     @MinNumber(0)
     @MaxNumber(1024)
@@ -464,17 +457,17 @@ public class IrisDimension extends IrisRegistrant {
         carvingEntryIndex.reset();
     }
 
-    public NativeBlockState generateOres(int x, int y, int z, RNG rng, IrisData data, boolean surface) {
+    public NativeBlockState generateOres(int x, int y, int z, RNG rng, PackRuntime runtime, boolean surface) {
         KList<IrisOreGenerator> localOres = surface ? getSurfaceOres() : getUndergroundOres();
-        return generateOres(localOres, x, y, z, rng, data);
+        return generateOres(localOres, x, y, z, rng, runtime);
     }
 
-    public NativeBlockState generateSurfaceOres(int x, int y, int z, RNG rng, IrisData data) {
-        return generateOres(getSurfaceOres(), x, y, z, rng, data);
+    public NativeBlockState generateSurfaceOres(int x, int y, int z, RNG rng, PackRuntime runtime) {
+        return generateOres(getSurfaceOres(), x, y, z, rng, runtime);
     }
 
-    public NativeBlockState generateUndergroundOres(int x, int y, int z, RNG rng, IrisData data) {
-        return generateOres(getUndergroundOres(), x, y, z, rng, data);
+    public NativeBlockState generateUndergroundOres(int x, int y, int z, RNG rng, PackRuntime runtime) {
+        return generateOres(getUndergroundOres(), x, y, z, rng, runtime);
     }
 
     public boolean hasSurfaceOres() {
@@ -485,7 +478,7 @@ public class IrisDimension extends IrisRegistrant {
         return !getUndergroundOres().isEmpty();
     }
 
-    private NativeBlockState generateOres(KList<IrisOreGenerator> localOres, int x, int y, int z, RNG rng, IrisData data) {
+    private NativeBlockState generateOres(KList<IrisOreGenerator> localOres, int x, int y, int z, RNG rng, PackRuntime runtime) {
         if (localOres.isEmpty()) {
             return null;
         }
@@ -493,7 +486,7 @@ public class IrisDimension extends IrisRegistrant {
         int oreCount = localOres.size();
         for (int oreIndex = 0; oreIndex < oreCount; oreIndex++) {
             IrisOreGenerator oreGenerator = localOres.get(oreIndex);
-            NativeBlockState ore = oreGenerator.generate(x, y, z, rng, data);
+            NativeBlockState ore = oreGenerator.generate(x, y, z, rng, runtime);
             if (ore != null) {
                 return ore;
             }
@@ -554,18 +547,6 @@ public class IrisDimension extends IrisRegistrant {
         return fluidHeight - (int) dimensionHeight.getMin();
     }
 
-    public CNG getCoordFracture(RNG rng, int signature) {
-        long seed = rng.getSeed() + signature;
-        CachedCoordinateFracture recent = recentCoordinateFracture;
-        if (recent != null && recent.seed == seed) {
-            return recent.generator;
-        }
-        CNG generator = coordinateFractures.computeIfAbsent(seed, ignored ->
-                CNG.signature(new RNG(seed)).scale(0.012 / coordFractureZoom));
-        recentCoordinateFracture = new CachedCoordinateFracture(seed, generator);
-        return generator;
-    }
-
     public double getDimensionAngle() {
         return rad.aquire(() -> Math.toRadians(dimensionAngleDeg));
     }
@@ -598,9 +579,9 @@ public class IrisDimension extends IrisRegistrant {
                 .getBytes(StandardCharsets.UTF_8));
         IrisData data = provider.getData();
         IrisRegion region = new IrisRegion();
-        region.getLandBiomes().add(biomeKey);
-        region.getSeaBiomes().add(biomeKey);
-        region.getShoreBiomes().add(biomeKey);
+        region.getLandBiomes().add(IrisBiomeEntry.plain(biomeKey));
+        region.getSeaBiomes().add(IrisBiomeEntry.plain(biomeKey));
+        region.getShoreBiomes().add(IrisBiomeEntry.plain(biomeKey));
         region.setLoadKey(key);
         region.setLoader(data);
         region.setLoadFile(new File(data.getDataFolder(), data.getRegionLoader().getFolderName() + "/" + key + ".json"));
@@ -626,8 +607,9 @@ public class IrisDimension extends IrisRegistrant {
             return regions.v();
         }
 
-        for (int index = 0; index < getRegions().size(); index++) {
-            String key = getRegions().get(index);
+        KList<String> regionKeys = getRegionKeys();
+        for (int index = 0; index < regionKeys.size(); index++) {
+            String key = regionKeys.get(index);
             IrisRegion region = data.getRegionLoader().load(key);
             if (region == null) {
                 continue;
@@ -667,7 +649,7 @@ public class IrisDimension extends IrisRegistrant {
     public KList<IrisRegion> getAllAnyRegions() {
         KList<IrisRegion> r = new KList<>();
 
-        for (String i : getRegions()) {
+        for (String i : getRegionKeys()) {
             r.add(IrisData.loadAnyRegion(i, getLoader()));
         }
 
@@ -748,7 +730,7 @@ public class IrisDimension extends IrisRegistrant {
 
             visited.add(loadKey);
             biomes.put(loadKey, biome);
-            addReachableBiomeKeys(pending, biome.getChildren());
+            addReachableBiomeKeys(pending, biome.getChildKeys());
             addReachableBiomeKey(pending, biome.getCarvingBiome());
 
             KList<IrisFloatingChildBiomes> floatingChildren = biome.getFloatingChildBiomes();
@@ -1310,8 +1292,20 @@ public class IrisDimension extends IrisRegistrant {
 
     /** The declared region pool with unloadable and gate-excluded regions removed; drops are reported once. */
     private KList<IrisRegion> resolveRegionPool(IrisData data, List<CompatFinding> sink) {
-        return CompatPools.load(data == null ? null : data.getRegionLoader(), getRegions(), data,
+        return CompatPools.load(data == null ? null : data.getRegionLoader(), getRegionKeys(), data,
                 "dimension", getLoadKey(), "regions", sink);
+    }
+
+    public KList<String> getRegionKeys() {
+        return WeightedReference.keys(regions);
+    }
+
+    public boolean hasWeightedRegions() {
+        return WeightedReference.anyWrittenAsObject(regions);
+    }
+
+    public KList<Weighted<IrisRegion>> getWeightedRegions(IrisData data) {
+        return CompatPools.loadWeighted(data.getRegionLoader(), regions, data, "dimension", getLoadKey(), "regions", null);
     }
 
     /**
@@ -1399,8 +1393,5 @@ public class IrisDimension extends IrisRegistrant {
             dimTypeVanilla.getParentFile().mkdirs();
             IO.writeAll(dimTypeVanilla, json);
         }
-    }
-
-    private record CachedCoordinateFracture(long seed, CNG generator) {
     }
 }

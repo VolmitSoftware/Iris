@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 
 import art.arcane.iris.pack.loading.IrisData;
@@ -29,17 +30,17 @@ public final class IrisMaterialPaletteGeneratorCacheTest {
     public void callerSeedsDoNotShareAFirstWinnerGenerator() {
         GeneratorFixture fixture = new GeneratorFixture();
 
-        assertSame(fixture.firstGenerator, fixture.palette.getLayerGenerator(new RNG(11L), fixture.data));
-        assertSame(fixture.secondGenerator, fixture.palette.getLayerGenerator(new RNG(29L), fixture.data));
-        assertSame(fixture.firstGenerator, fixture.palette.getLayerGenerator(new RNG(11L), fixture.data));
+        assertSame(fixture.firstGenerator, fixture.palette.getLayerGenerator(new RNG(11L), fixture.runtime));
+        assertSame(fixture.secondGenerator, fixture.palette.getLayerGenerator(new RNG(29L), fixture.runtime));
+        assertSame(fixture.firstGenerator, fixture.palette.getLayerGenerator(new RNG(11L), fixture.runtime));
     }
 
     @Test
     public void reverseInitializationOrderKeepsSeedAssignments() {
         GeneratorFixture fixture = new GeneratorFixture();
 
-        assertSame(fixture.secondGenerator, fixture.palette.getLayerGenerator(new RNG(29L), fixture.data));
-        assertSame(fixture.firstGenerator, fixture.palette.getLayerGenerator(new RNG(11L), fixture.data));
+        assertSame(fixture.secondGenerator, fixture.palette.getLayerGenerator(new RNG(29L), fixture.runtime));
+        assertSame(fixture.firstGenerator, fixture.palette.getLayerGenerator(new RNG(11L), fixture.runtime));
     }
 
     @Test
@@ -50,11 +51,11 @@ public final class IrisMaterialPaletteGeneratorCacheTest {
         try {
             Future<CNG> first = executor.submit(() -> {
                 assertTrue(start.await(5L, TimeUnit.SECONDS));
-                return fixture.palette.getLayerGenerator(new RNG(11L), fixture.data);
+                return fixture.palette.getLayerGenerator(new RNG(11L), fixture.runtime);
             });
             Future<CNG> second = executor.submit(() -> {
                 assertTrue(start.await(5L, TimeUnit.SECONDS));
-                return fixture.palette.getLayerGenerator(new RNG(29L), fixture.data);
+                return fixture.palette.getLayerGenerator(new RNG(29L), fixture.runtime);
             });
             start.countDown();
 
@@ -67,19 +68,18 @@ public final class IrisMaterialPaletteGeneratorCacheTest {
 
     private static final class GeneratorFixture {
         private final IrisData data = mock(IrisData.class);
-        private final Engine engine = mock(Engine.class);
+        private final PackRuntime runtime = PackRuntime.forEngine(mock(Engine.class), data);
         private final IrisGeneratorStyle style = mock(IrisGeneratorStyle.class);
         private final CNG firstGenerator = mock(CNG.class);
         private final CNG secondGenerator = mock(CNG.class);
         private final IrisMaterialPalette palette = new IrisMaterialPalette().qclear().setStyle(style);
 
         private GeneratorFixture() {
-            when(data.getEngine()).thenReturn(engine);
             Map<Long, CNG> generators = Map.of(
                     11L + GENERATOR_SALT, firstGenerator,
                     29L + GENERATOR_SALT, secondGenerator
             );
-            when(style.create(any(RNG.class), same(data), same(engine))).thenAnswer(invocation -> {
+            when(style.createNoCache(any(RNG.class), any())).thenAnswer(invocation -> {
                 RNG rng = invocation.getArgument(0);
                 return generators.get(rng.getSeed());
             });

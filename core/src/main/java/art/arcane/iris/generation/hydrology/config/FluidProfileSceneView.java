@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.hydrology.config;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.scene.SceneBlocks;
@@ -67,7 +68,7 @@ public final class FluidProfileSceneView implements SceneView {
 
     @Override
     public SceneBlocks scene(Engine engine, SceneRequest request) {
-        IrisData data = engine.getData();
+        PackRuntime runtime = PackRuntime.of(engine);
         IrisFluidProfile fluid = fluidOf(engine, request.key());
         IrisFluidProfile seam = fluid.getSeam() == null ? null : fluidOf(engine, fluid.getSeam());
         int size = request.size();
@@ -81,7 +82,7 @@ public final class FluidProfileSceneView implements SceneView {
                 boolean seamRing = seam != null && (x == 1 || z == 1 || x == size - 2 || z == size - 2);
                 for (int y = 1; y <= DEPTH_BLOCKS; y++) {
                     IrisFluidProfile filling = seamRing ? seam : fluid;
-                    scene.add(x, y, z, wall ? BASIN_BLOCK : filling.getPalette().get(rng, x + offset, y, z, data).key());
+                    scene.add(x, y, z, wall ? BASIN_BLOCK : filling.getPalette().get(rng, x + offset, y, z, runtime).key());
                 }
             }
         }

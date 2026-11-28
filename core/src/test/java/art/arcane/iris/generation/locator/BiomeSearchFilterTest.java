@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.locator;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
@@ -71,9 +72,9 @@ public class BiomeSearchFilterTest {
     @Test
     public void surfaceTargetIsAdmittedOnlyInsideItsHostRegionWithoutTerrainHeight() {
         IrisRegion host = region("host");
-        host.setLandBiomes(keys("land_root"));
+        host.setLandBiomes(IrisBiomeEntry.plainList("land_root"));
         IrisBiome root = biome("land_root");
-        root.setChildren(keys("target"));
+        root.setChildren(IrisBiomeEntry.plainList("target"));
         stubBiome(root);
         stubBiome(biome("target"));
         stubRegions(host);
@@ -95,7 +96,7 @@ public class BiomeSearchFilterTest {
     @Test
     public void caveTargetIsAdmittedOnlyBelowTheCaveSwitch() {
         IrisRegion host = region("host");
-        host.setCaveBiomes(keys("cavey"));
+        host.setCaveBiomes(IrisBiomeEntry.plainList("cavey"));
         stubBiome(biome("cavey"));
         stubRegions(host);
         when(complex.getRegionStream()).thenReturn(constantStream(host));
@@ -112,7 +113,7 @@ public class BiomeSearchFilterTest {
     @Test
     public void imageMappedSurfaceDecidesTheSurfaceBiome() {
         IrisRegion host = region("host");
-        host.setLandBiomes(keys("land_root"));
+        host.setLandBiomes(IrisBiomeEntry.plainList("land_root"));
         stubBiome(biome("land_root"));
         stubRegions(host);
         when(complex.getRegionStream()).thenReturn(constantStream(host));
@@ -134,7 +135,7 @@ public class BiomeSearchFilterTest {
     @Test
     public void hydrologyColumnsAreAdmittedForShoreBiomesThePolicyPlaces() {
         IrisRegion host = region("host");
-        host.setLandBiomes(keys("land_root"));
+        host.setLandBiomes(IrisBiomeEntry.plainList("land_root"));
         stubBiome(biome("land_root"));
         stubRegions(host);
         when(complex.getRegionStream()).thenReturn(constantStream(host));
@@ -143,7 +144,7 @@ public class BiomeSearchFilterTest {
         when(dimension.getHydrology()).thenReturn(new IrisHydrology().setEnabled(true));
         when(dimension.getHydrologyPolicy()).thenReturn(new IrisHydrologyPolicy().setShoreBiomes(keys("river_root")).setShoreBiomeWidth(4));
         IrisBiome river = biome("river_root");
-        river.setChildren(keys("target"));
+        river.setChildren(IrisBiomeEntry.plainList("target"));
         stubBiome(river);
         when(engine.answersFromNaturalTerrain(32, 32)).thenReturn(false);
 
@@ -156,7 +157,7 @@ public class BiomeSearchFilterTest {
     @Test
     public void hydrologyIsNotConsultedForBiomesNoHydrologyPolicyPlaces() {
         IrisRegion host = region("host");
-        host.setLandBiomes(keys("land_root"));
+        host.setLandBiomes(IrisBiomeEntry.plainList("land_root"));
         stubBiome(biome("land_root"));
         stubRegions(host);
         when(complex.getRegionStream()).thenReturn(constantStream(host));
@@ -176,7 +177,7 @@ public class BiomeSearchFilterTest {
     @Test
     public void disabledHydrologyIsNeverConsultedForPolicyShoreBiomes() {
         IrisRegion host = region("host");
-        host.setLandBiomes(keys("land_root"));
+        host.setLandBiomes(IrisBiomeEntry.plainList("land_root"));
         stubBiome(biome("land_root"));
         stubRegions(host);
         when(complex.getRegionStream()).thenReturn(constantStream(host));

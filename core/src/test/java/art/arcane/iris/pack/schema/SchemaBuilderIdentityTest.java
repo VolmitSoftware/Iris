@@ -84,7 +84,7 @@ public class SchemaBuilderIdentityTest {
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
 
-    private static final String EXPECTED_SCHEMA_DIGEST = "89641e077a85bec8a27681f2ce6166150cc37277bc6f58793081b669432782f2";
+    private static final String EXPECTED_SCHEMA_DIGEST = "2dcc9ffedd62362b03eafaec20dfb4e7341f581a4a2ad1852dc7d8f556aab459";
 
     private static final List<Class<?>> SCHEMA_ROOTS = List.of(
             IrisDimension.class,
@@ -189,6 +189,32 @@ public class SchemaBuilderIdentityTest {
         assertEquals(32, properties.getJSONObject("fluidDepth").getInt("maximum"));
         assertEquals(0D, properties.getJSONObject("shapeWarp").getDouble("minimum"), 0D);
         assertEquals(1D, properties.getJSONObject("shapeWarp").getDouble("maximum"), 0D);
+    }
+
+    @Test
+    public void weightedReferenceListsAcceptNamesAndWeightedObjects() {
+        assertAcceptsNamesAndWeightedObjects(IrisRegion.class, "landBiomes", "biome");
+        assertAcceptsNamesAndWeightedObjects(IrisRegion.class, "caveBiomes", "biome");
+        assertAcceptsNamesAndWeightedObjects(IrisBiome.class, "children", "biome");
+        assertAcceptsNamesAndWeightedObjects(IrisDimension.class, "regions", "region");
+    }
+
+    private static void assertAcceptsNamesAndWeightedObjects(Class<?> root, String list, String keyField) {
+        JSONObject schema = new SchemaBuilder(root, schemaData()).construct();
+        JSONObject property = schema.getJSONObject("properties").getJSONObject(list);
+        assertEquals("array", property.getString("type"));
+        JSONArray alternatives = property.getJSONObject("items").getJSONArray("anyOf");
+        assertEquals(2, alternatives.length());
+        assertEquals("string", alternatives.getJSONObject(0).getString("type"));
+        String reference = alternatives.getJSONObject(1).getString("$ref");
+        JSONObject entry = schema.getJSONObject("definitions").getJSONObject(reference.substring("#/definitions/".length()));
+        assertEquals("object", entry.getString("type"));
+        assertEquals(keyField, entry.getJSONArray("required").getString(0));
+        JSONObject properties = entry.getJSONObject("properties");
+        assertEquals("string", properties.getJSONObject(keyField).getString("type"));
+        assertEquals(1, properties.getJSONObject("weight").getInt("minimum"));
+        assertEquals(1000, properties.getJSONObject("weight").getInt("maximum"));
+        assertEquals(2, properties.length());
     }
 
     private static String digest(String value) {

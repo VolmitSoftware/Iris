@@ -293,13 +293,13 @@ public final class IrisImageMapRuntime {
             if (region == null) {
                 continue;
             }
-            if (region.getLandBiomes().contains(biomeKey)) {
+            if (region.getLandBiomeKeys().contains(biomeKey)) {
                 types.add(InferredType.LAND);
             }
-            if (region.getSeaBiomes().contains(biomeKey)) {
+            if (region.getSeaBiomeKeys().contains(biomeKey)) {
                 types.add(InferredType.SEA);
             }
-            if (region.getShoreBiomes().contains(biomeKey)) {
+            if (region.getShoreBiomeKeys().contains(biomeKey)) {
                 types.add(InferredType.SHORE);
             }
         }

@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
@@ -36,7 +37,7 @@ public class IrisOreSeedCohesionTest {
         for (int i = SEEDS.length - 1; i >= 0; i--) {
             IrisOreGenerator cold = generator();
             long[] expected = sample(cold, new RNG(SEEDS[i]), data, false);
-            shared.warm(new RNG(SEEDS[(i + 1) % SEEDS.length]), data);
+            shared.warm(new RNG(SEEDS[(i + 1) % SEEDS.length]), PackRuntime.of(data.getEngine(), data));
             assertArrayEquals(expected, sample(shared, new RNG(SEEDS[i]), data, true));
             RNG consumed = new RNG(SEEDS[i]);
             for (int draw = 0; draw < 128; draw++) {
@@ -93,7 +94,7 @@ public class IrisOreSeedCohesionTest {
         for (int index = 0; index < SAMPLES; index++) {
             int sample = reverse ? SAMPLES - index - 1 : index;
             NativeBlockState block = generator.generate(sample * 13 - 901,
-                    sample % 257, sample * 7 - 713, rng, data);
+                    sample % 257, sample * 7 - 713, rng, PackRuntime.of(data.getEngine(), data));
             output[sample] = block == null ? 0L : block.key().hashCode();
         }
         return output;

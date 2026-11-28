@@ -4,6 +4,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
 import art.arcane.iris.generation.image.IrisImageMapApplication;
 import art.arcane.iris.generation.stream.RarityStream;
+import art.arcane.iris.generation.stream.WeightedStream;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.generation.BiomeBuffetLayout;
 import art.arcane.volmlib.util.collection.KList;
@@ -19,13 +20,9 @@ public final class RegionSelection {
         if (options.focused() != null) {
             return options.focused();
         }
-        KList<IrisRegion> regions = new KList<>();
-        for (IrisRegion region : options.data().getRegionLoader().loadAll(options.dimension().getRegions())) {
-            if (!region.isCompatExcluded()) {
-                regions.add(region);
-            }
-        }
-        ProceduralStream<IrisRegion> selected = new RarityStream<>(options.style(), regions);
+        ProceduralStream<IrisRegion> selected = options.dimension().hasWeightedRegions()
+                ? new WeightedStream<>(options.style(), options.dimension().getWeightedRegions(options.data()))
+                : new RarityStream<>(options.style(), rarityRegions(options));
         if (!options.imageMaps().has(IrisImageMapApplication.REGION)) {
             return selected;
         }
@@ -33,6 +30,16 @@ public final class RegionSelection {
             IrisRegion mapped = options.imageMaps().sampleRegion(x, z);
             return mapped == null ? region : mapped;
         });
+    }
+
+    private static KList<IrisRegion> rarityRegions(Options options) {
+        KList<IrisRegion> regions = new KList<>();
+        for (IrisRegion region : options.data().getRegionLoader().loadAll(options.dimension().getRegionKeys())) {
+            if (!region.isCompatExcluded()) {
+                regions.add(region);
+            }
+        }
+        return regions;
     }
 
     public static ProceduralStream<IrisRegion> restore(Snapshot snapshot) {
@@ -53,7 +60,7 @@ public final class RegionSelection {
             }
         }
         return select(new Options(dimension, data,
-                dimension.getRegionStyle().create(new RNG(snapshot.complexSeed()).nextParallelRNG(883), data)
+                dimension.getRegionStyle().create(new RNG(snapshot.complexSeed()).nextParallelRNG(883), data.standalonePackRuntime())
                         .stream().zoom(dimension.getRegionZoom()),
                 IrisImageMapRuntime.compile(data, dimension, dimension.getMinHeight()), focused));
     }

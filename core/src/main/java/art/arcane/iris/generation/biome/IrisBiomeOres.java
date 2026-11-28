@@ -22,7 +22,7 @@ import art.arcane.iris.generation.decoration.IrisOreGenerator;
 import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
@@ -39,17 +39,17 @@ final class IrisBiomeOres {
     private IrisBiomeOres() {
     }
 
-    static NativeBlockState generateOres(IrisBiome biome, int x, int y, int z, RNG rng, IrisData data, boolean surface) {
+    static NativeBlockState generateOres(IrisBiome biome, int x, int y, int z, RNG rng, PackRuntime runtime, boolean surface) {
         KList<IrisOreGenerator> localOres = surface ? getSurfaceOres(biome) : getUndergroundOres(biome);
-        return generateOres(localOres, x, y, z, rng, data);
+        return generateOres(localOres, x, y, z, rng, runtime);
     }
 
-    static NativeBlockState generateSurfaceOres(IrisBiome biome, int x, int y, int z, RNG rng, IrisData data) {
-        return generateOres(getSurfaceOres(biome), x, y, z, rng, data);
+    static NativeBlockState generateSurfaceOres(IrisBiome biome, int x, int y, int z, RNG rng, PackRuntime runtime) {
+        return generateOres(getSurfaceOres(biome), x, y, z, rng, runtime);
     }
 
-    static NativeBlockState generateUndergroundOres(IrisBiome biome, int x, int y, int z, RNG rng, IrisData data) {
-        return generateOres(getUndergroundOres(biome), x, y, z, rng, data);
+    static NativeBlockState generateUndergroundOres(IrisBiome biome, int x, int y, int z, RNG rng, PackRuntime runtime) {
+        return generateOres(getUndergroundOres(biome), x, y, z, rng, runtime);
     }
 
     static boolean hasSurfaceOres(IrisBiome biome) {
@@ -122,7 +122,7 @@ final class IrisBiomeOres {
         });
     }
 
-    private static NativeBlockState generateOres(KList<IrisOreGenerator> localOres, int x, int y, int z, RNG rng, IrisData data) {
+    private static NativeBlockState generateOres(KList<IrisOreGenerator> localOres, int x, int y, int z, RNG rng, PackRuntime runtime) {
         if (localOres.isEmpty()) {
             return null;
         }
@@ -130,7 +130,7 @@ final class IrisBiomeOres {
         int oreCount = localOres.size();
         for (int oreIndex = 0; oreIndex < oreCount; oreIndex++) {
             IrisOreGenerator oreGenerator = localOres.get(oreIndex);
-            NativeBlockState ore = oreGenerator.generate(x, y, z, rng, data);
+            NativeBlockState ore = oreGenerator.generate(x, y, z, rng, runtime);
             if (ore != null) {
                 return ore;
             }

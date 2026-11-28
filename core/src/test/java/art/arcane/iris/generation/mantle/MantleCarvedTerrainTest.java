@@ -1,7 +1,9 @@
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.terrain.transform.IrisTerrainTransform;
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
@@ -221,8 +223,8 @@ public class MantleCarvedTerrainTest {
 
     @Test
     public void caveBiomesTakeNoFluidFromBiomesThatListThemAsChildren() {
-        IrisBiome volcanic = biome("tropical/volcanic-plains", 0, "lava").setChildren(new KList<>("carving/hollow"));
-        IrisBiome magma = biome("carving/magma", 0, "lava").setChildren(new KList<>("carving/hollow"));
+        IrisBiome volcanic = biome("tropical/volcanic-plains", 0, "lava").setChildren(IrisBiomeEntry.plainList("carving/hollow"));
+        IrisBiome magma = biome("carving/magma", 0, "lava").setChildren(IrisBiomeEntry.plainList("carving/hollow"));
         IrisBiome hollow = biome("carving/hollow", 0, null);
 
         assertEquals("a cave biome under a surface parent that names lava", Set.of("water"),
@@ -366,6 +368,7 @@ public class MantleCarvedTerrainTest {
                         case "getWorld" -> world;
                         case "getPlatformHooks" -> hooks;
                         case "getData" -> null;
+                        case "getPackRuntime" -> null;
                         default -> InvocationHandler.invokeDefault(proxy, method, arguments);
                     });
         }

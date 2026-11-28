@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.subterrain.SubterrainCell;
 import art.arcane.iris.generation.subterrain.SubterrainPlanner;
@@ -42,6 +43,7 @@ import art.arcane.iris.generation.mantle.TerrainMatterView;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomePaletteLayer;
+import art.arcane.iris.generation.biome.PaletteLayerRuntime;
 import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
@@ -230,6 +232,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         } finally {
             getEngine().getMetrics().getCave().put(caveStopwatch.getMilliseconds());
             mantleChunk.release();
+            scratch.releaseReferences();
         }
     }
 
@@ -340,7 +343,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         int blockZ = chunkZ << 4;
         return new SubterrainSurfaceMaterials(planner,
                 planner.plansForBounds(blockX - 1, blockZ - 1, blockX + 16, blockZ + 16),
-                getEngine().getDimension(), getComplex(), getData(), rng, getEngine().getWorld().minHeight());
+                getEngine().getDimension(), getComplex(), PackRuntime.of(getEngine()), rng, getEngine().getWorld().minHeight());
     }
 
     static boolean hasExplicitCarveIntent(MatterCavern cavern) {
@@ -606,6 +609,9 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         private final IrisData data;
         private final int chunkBlockX;
         private final int chunkBlockZ;
+        private final PackRuntime wallRuntime;
+        private IrisBiomePaletteLayer lastWall;
+        private PaletteLayerRuntime lastWallRuntime;
 
         private WallPainter(Hunk<NativeBlockState> output, CaveTerrainSnapshot terrain, CaveInputs inputs,
                             Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, Map<String, IrisBiome> customBiomeCache,
@@ -619,6 +625,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             this.data = data;
             this.chunkBlockX = chunkBlockX;
             this.chunkBlockZ = chunkBlockZ;
+            this.wallRuntime = inputs.runtime.scopeFor(data);
         }
 
         @Override
@@ -637,10 +644,19 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             if (biome == null) {
                 return;
             }
-            NativeBlockState wall = biome.getWall().get(rng, worldX, yy, worldZ, data);
+            IrisBiomePaletteLayer wallLayer = biome.getWall();
+            NativeBlockState wall = wallLayer.get(rng, 0, worldX, yy, worldZ, wallLayerRuntime(wallLayer));
             if (wall != null) {
                 output.setRaw(rx, yy, rz, wall);
             }
+        }
+
+        private PaletteLayerRuntime wallLayerRuntime(IrisBiomePaletteLayer wallLayer) {
+            if (wallLayer != lastWall) {
+                lastWall = wallLayer;
+                lastWallRuntime = wallRuntime.paletteLayer(wallLayer);
+            }
+            return lastWallRuntime;
         }
     }
 
@@ -1016,13 +1032,13 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
     private KList<NativeBlockState> floorLayers(CaveLayerMemo layers, IrisBiome biome, int worldX, int worldZ, int floorY,
                                                 CaveInputs inputs) {
         if (!hasHeightFreeFloorLayers(biome)) {
-            return biome.generateLayers(inputs.dimension, worldX, worldZ, rng, 3, floorY, inputs.data, inputs.complex);
+            return biome.generateLayers(inputs.dimension, worldX, worldZ, rng, 3, floorY, inputs.runtime, inputs.complex);
         }
         KList<NativeBlockState> remembered = layers.floor(biome);
         if (remembered != null) {
             return remembered;
         }
-        KList<NativeBlockState> blocks = biome.generateLayers(inputs.dimension, worldX, worldZ, rng, 3, floorY, inputs.data, inputs.complex);
+        KList<NativeBlockState> blocks = biome.generateLayers(inputs.dimension, worldX, worldZ, rng, 3, floorY, inputs.runtime, inputs.complex);
         layers.rememberFloor(biome, blocks);
         return blocks;
     }
@@ -1033,7 +1049,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         if (remembered != null) {
             return remembered;
         }
-        KList<NativeBlockState> blocks = biome.generateCeilingLayers(inputs.dimension, worldX, worldZ, rng, 3, ceilingY, inputs.data, inputs.complex);
+        KList<NativeBlockState> blocks = biome.generateCeilingLayers(inputs.dimension, worldX, worldZ, rng, 3, ceilingY, inputs.runtime, inputs.complex);
         layers.rememberCeiling(biome, blocks);
         return blocks;
     }
@@ -1356,6 +1372,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         private final IrisComplex complex;
         private final IrisDimension dimension;
         private final IrisData data;
+        private final PackRuntime runtime;
         private final int height;
         private final IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
         private final IrisDimensionCarvingResolver.Snapshot snapshot;
@@ -1393,6 +1410,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             complex = engine.getComplex();
             dimension = engine.getDimension();
             data = engine.getData();
+            runtime = PackRuntime.of(engine, data);
             height = engine.getHeight();
             cells = SubterrainChunkCells.of(engine, chunkX, chunkZ);
             IrisContext context = IrisContext.get();

@@ -2,6 +2,7 @@ package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
@@ -101,12 +102,12 @@ public class IrisComplexSelfSelectionTest {
         private final CountingNoise noise = new CountingNoise();
 
         private CountingBiome() {
-            setChildren(new KList<>("child"));
+            setChildren(IrisBiomeEntry.plainList("child"));
             setInferredType(InferredType.LAND);
         }
 
         @Override
-        public CNG getChildrenGenerator(long seed, double scale) {
+        public CNG getChildrenGenerator(PackRuntime runtime, long seed, double scale) {
             return noise;
         }
     }

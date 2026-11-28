@@ -70,6 +70,20 @@ final class IngestJson {
         return values;
     }
 
+    static List<String> referenceKeys(JsonElement element, String keyField) {
+        List<String> keys = new ArrayList<>();
+        if (element == null || !element.isJsonArray()) {
+            return keys;
+        }
+        for (JsonElement reference : element.getAsJsonArray()) {
+            JsonElement key = reference.isJsonObject() ? reference.getAsJsonObject().get(keyField) : reference;
+            if (key != null && key.isJsonPrimitive() && key.getAsJsonPrimitive().isString()) {
+                keys.add(key.getAsString());
+            }
+        }
+        return keys;
+    }
+
     static JsonObject read(Path file) throws IOException {
         try {
             JsonElement element = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8));

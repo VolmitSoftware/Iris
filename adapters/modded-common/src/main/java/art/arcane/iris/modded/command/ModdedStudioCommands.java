@@ -1140,7 +1140,7 @@ public final class ModdedStudioCommands {
                 int diameter = radius * 2;
                 int totalTasks = diameter * diameter;
                 KMap<String, AtomicInteger> counts = new KMap<>();
-                engine.getDimension().getRegions().forEach((String key) -> counts.put(key, new AtomicInteger(0)));
+                engine.getDimension().getRegionKeys().forEach((String key) -> counts.put(key, new AtomicInteger(0)));
                 // finally-scoped: a throw mid-scan previously leaked the sampler's whole
                 // ForkJoinPool (close() is the only thing that shuts it down).
                 MultiBurst burst = new MultiBurst("Region Sampler");

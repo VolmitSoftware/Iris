@@ -21,6 +21,8 @@ package art.arcane.iris.pack.validation;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.IrisRegistrant;
 import art.arcane.iris.pack.loading.ResourceLoader;
+import art.arcane.iris.pack.value.Weighted;
+import art.arcane.iris.pack.value.WeightedReference;
 import art.arcane.volmlib.util.collection.KList;
 
 import java.util.ArrayList;
@@ -75,6 +77,39 @@ public final class CompatPools {
             }
 
             kept.add(loaded);
+        }
+
+        return kept;
+    }
+
+    /** {@link #load} for weighted references: every survivor keeps the weight its entry was written with. */
+    public static <T extends IrisRegistrant> KList<Weighted<T>> loadWeighted(ResourceLoader<T> loader,
+                                                                           List<? extends WeightedReference> entries,
+                                                                           IrisData data,
+                                                                           String subjectType,
+                                                                           String subjectKey,
+                                                                           String field,
+                                                                           List<CompatFinding> sink) {
+        KList<Weighted<T>> kept = new KList<>();
+
+        if (loader == null || entries == null) {
+            return kept;
+        }
+
+        for (int index = 0; index < entries.size(); index++) {
+            WeightedReference entry = entries.get(index);
+            T loaded = entry == null ? null : loader.load(entry.getReferenceKey());
+
+            if (loaded == null) {
+                continue;
+            }
+
+            if (loaded.isCompatExcluded()) {
+                drop(data, loaded, subjectType, subjectKey, field + "[" + index + "] " + entry.getReferenceKey(), sink);
+                continue;
+            }
+
+            kept.add(new Weighted<>(loaded, entry.getWeight()));
         }
 
         return kept;

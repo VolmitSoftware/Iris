@@ -1,5 +1,6 @@
 package art.arcane.iris.platform.bukkit.nms;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureCachePolicy;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureStagePolicy;
@@ -147,7 +148,7 @@ public final class BukkitStructureStagePolicy implements StructureStagePolicy<
 
     @Override
     public NativeBlockState paletteBlock(StructurePalette source, RNG rng, int x, int y, int z) {
-        return ((IrisMaterialPalette) source).get(rng, x, y, z, engine.getData());
+        return ((IrisMaterialPalette) source).get(rng, x, y, z, PackRuntime.of(engine));
     }
 
     @Override

@@ -19,6 +19,7 @@
 package art.arcane.iris.pack;
 
 import art.arcane.iris.generation.terrain.IrisDimensionType;
+import art.arcane.iris.pack.loading.SnippetFolder;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.structure.object.IrisObjectScale;
 import art.arcane.iris.world.IrisWorldBoundary;
@@ -35,7 +36,11 @@ import java.util.regex.Pattern;
 
 final class PackDimensionValidator {
     private static final String BORROWED_DIMENSION_TYPE = "borrowedDimensionType";
+    private static final String STYLE_SNIPPET_TYPE = "style";
+    private static final String RANGE_SNIPPET_TYPE = "range";
     private static final Pattern RESOURCE_KEY = Pattern.compile("[a-z0-9_.-]+:[a-z0-9/._-]+");
+    private static final int VANILLA_OVERWORLD_MIN_Y = -64;
+    private static final int VANILLA_OVERWORLD_MAX_Y = 320;
 
     private PackDimensionValidator() {
     }
@@ -60,6 +65,7 @@ final class PackDimensionValidator {
             }
 
             validateImportedStructurePolicy(dimensionKey, dimJson, blockingErrors, warnings);
+            validateImportedFeatureHeight(packFolder, dimensionKey, dimJson, warnings);
             validateDimensionHeights(packFolder, dimensionKey, dimJson, blockingErrors);
             validateBorrowedDimensionType(dimensionKey, dimJson, borrowedDimensionTypesSupported(), blockingErrors);
             validateSamplingStep(dimensionKey, dimJson, "terrainSamplingStep", 1, blockingErrors);
@@ -79,7 +85,7 @@ final class PackDimensionValidator {
 
             int resolvedRegions = 0;
             for (int i = 0; i < regionsArray.length(); i++) {
-                String regionKey = regionsArray.optString(i, null);
+                String regionKey = PackValidationIo.referenceKey(regionsArray, i, "region");
                 if (regionKey == null || regionKey.isBlank()) {
                     warnings.add("Dimension '" + dimensionKey + "' has a blank region entry at index " + i + ".");
                     continue;
@@ -98,12 +104,13 @@ final class PackDimensionValidator {
                     continue;
                 }
 
-                int anyBiome = countBiomeRefs(regionJson, "landBiomes", biomesFolder, regionKey, warnings)
-                        + countBiomeRefs(regionJson, "seaBiomes", biomesFolder, regionKey, warnings)
-                        + countBiomeRefs(regionJson, "shoreBiomes", biomesFolder, regionKey, warnings)
-                        + countBiomeRefs(regionJson, "caveBiomes", biomesFolder, regionKey, warnings);
-                if (anyBiome == 0) {
-                    blockingErrors.add("Region '" + regionKey + "' has no resolvable biomes.");
+                // Sea, shore and cave lists may be empty; land is what every other list falls back to.
+                int landBiomes = countBiomeRefs(regionJson, "landBiomes", biomesFolder, regionKey, warnings);
+                countBiomeRefs(regionJson, "seaBiomes", biomesFolder, regionKey, warnings);
+                countBiomeRefs(regionJson, "shoreBiomes", biomesFolder, regionKey, warnings);
+                countBiomeRefs(regionJson, "caveBiomes", biomesFolder, regionKey, warnings);
+                if (landBiomes == 0) {
+                    blockingErrors.add("Region '" + regionKey + "' has no landBiomes; every region needs at least one land biome.");
                 }
                 resolvedRegions++;
             }
@@ -248,7 +255,7 @@ final class PackDimensionValidator {
             Object rawStyle = blend.opt("style");
             boolean styleObject = rawStyle instanceof JSONObject;
             boolean styleSnippet = rawStyle instanceof String reference
-                    && reference.startsWith("snippet/style/");
+                    && new SnippetFolder(STYLE_SNIPPET_TYPE).holds(reference);
             if (!styleObject && !styleSnippet) {
                 blockingErrors.add(context + ".blend.style must be an object or style snippet reference.");
                 return;
@@ -263,17 +270,34 @@ final class PackDimensionValidator {
     private static void validateDimensionStackStyleSnippet(File packFolder, String context, String reference,
                                                            List<String> blockingErrors) {
         try {
-            File snippetRoot = new File(packFolder, "snippet/style").getCanonicalFile();
-            File snippetFile = new File(packFolder, reference + ".json").getCanonicalFile();
-            if (!snippetFile.toPath().startsWith(snippetRoot.toPath()) || !snippetFile.isFile()) {
+            SnippetFolder.Lookup snippet = new SnippetFolder(STYLE_SNIPPET_TYPE).find(packFolder, reference);
+            if (!snippet.found()) {
                 blockingErrors.add(context + " references missing style snippet '" + reference + "'.");
                 return;
             }
-            new JSONObject(Files.readString(snippetFile.toPath(), StandardCharsets.UTF_8));
+            new JSONObject(Files.readString(snippet.file().toPath(), StandardCharsets.UTF_8));
         } catch (Throwable error) {
             blockingErrors.add(context + " references invalid style snippet '" + reference + "': "
                     + error.getMessage());
         }
+    }
+
+    static void validateImportedFeatureHeight(File packFolder, String dimensionKey, JSONObject dimension,
+                                              List<String> warnings) {
+        JSONObject importedFeatures = dimension.optJSONObject("importedFeatures");
+        if (importedFeatures == null || !importedFeatures.optBoolean("enabled", false)) {
+            return;
+        }
+        JSONObject height = resolveDimensionHeight(packFolder, dimension);
+        int minY = height == null ? VANILLA_OVERWORLD_MIN_Y : (int) height.optDouble("min", 16D);
+        int maxY = height == null ? VANILLA_OVERWORLD_MAX_Y : (int) height.optDouble("max", 32D);
+        // Vanilla anchors ore bands to the world bottom and top, so any height other than -64..320 moves them.
+        if (minY == VANILLA_OVERWORLD_MIN_Y && maxY == VANILLA_OVERWORLD_MAX_Y) {
+            return;
+        }
+        warnings.add("Dimension '" + dimensionKey + "' runs importedFeatures in a " + minY + ".." + maxY
+                + " world. Vanilla ores shift with the height; remove them with importedFeatures.disabled"
+                + " (minecraft:ore) or disabledSteps (UNDERGROUND_ORES).");
     }
 
     static void validateStaticObjects(File packFolder, String dimensionKey, JSONObject dimension,
@@ -411,7 +435,7 @@ final class PackDimensionValidator {
         }
         int resolved = 0;
         for (int i = 0; i < arr.length(); i++) {
-            String biomeKey = arr.optString(i, null);
+            String biomeKey = PackValidationIo.referenceKey(arr, i, "biome");
             if (biomeKey == null || biomeKey.isBlank()) {
                 continue;
             }
@@ -609,17 +633,12 @@ final class PackDimensionValidator {
         if (reference == null || !reference.startsWith("snippet/")) {
             return null;
         }
-        // Mirror IrisData's snippet adapter: canonical snippet/range/... is used verbatim; any other
-        // snippet/... reference is re-rooted under this field's snippet folder.
-        if (!reference.startsWith("snippet/range/")) {
-            reference = "snippet/range/" + reference.substring("snippet/".length());
-        }
-        File snippet = new File(packFolder, reference + ".json");
-        if (!snippet.isFile()) {
+        SnippetFolder.Lookup snippet = new SnippetFolder(RANGE_SNIPPET_TYPE).find(packFolder, reference);
+        if (!snippet.found()) {
             return null;
         }
         try {
-            return new JSONObject(Files.readString(snippet.toPath(), StandardCharsets.UTF_8));
+            return new JSONObject(Files.readString(snippet.file().toPath(), StandardCharsets.UTF_8));
         } catch (Throwable e) {
             return null;
         }

@@ -71,16 +71,16 @@ public final class BiomeLocator implements Locator<IrisBiome> {
         Set<String> caveHosts = new HashSet<>();
         boolean surfaceAllowed = GenerationFindCatalog.hasRetainedSurfaceBiome(engine, key);
         for (IrisRegion region : engine.getDimension().getAllRegions(engine)) {
-            for (String root : region.getLandBiomes()) {
+            for (String root : region.getLandBiomeKeys()) {
                 surfaceAllowed |= caveBranch(engine, root).contains(key);
             }
-            for (String root : region.getSeaBiomes()) {
+            for (String root : region.getSeaBiomeKeys()) {
                 surfaceAllowed |= caveBranch(engine, root).contains(key);
             }
-            for (String root : region.getShoreBiomes()) {
+            for (String root : region.getShoreBiomeKeys()) {
                 surfaceAllowed |= caveBranch(engine, root).contains(key);
             }
-            for (String root : region.getCaveBiomes()) {
+            for (String root : region.getCaveBiomeKeys()) {
                 Set<String> branch = caveBranch(engine, root);
                 if (branch.contains(key)) {
                     caveHosts.addAll(branch);
@@ -122,7 +122,7 @@ public final class BiomeLocator implements Locator<IrisBiome> {
             }
             IrisBiome biome = engine.getData().getBiomeLoader().load(candidate);
             if (biome != null) {
-                pending.addAll(biome.getChildren());
+                pending.addAll(biome.getChildKeys());
             }
         }
         return visited;

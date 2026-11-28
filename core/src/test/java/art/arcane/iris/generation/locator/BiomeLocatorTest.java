@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.locator;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeEntry;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisEngine;
@@ -138,7 +139,7 @@ public class BiomeLocatorTest {
         when(retained.getHeight()).thenReturn(384);
         IrisDimension dimension = mock(IrisDimension.class);
         when(retained.getDimension()).thenReturn(dimension);
-        when(dimension.getAllRegions(retained)).thenReturn(new KList<>(new IrisRegion().setCaveBiomes(new KList<>("deep"))));
+        when(dimension.getAllRegions(retained)).thenReturn(new KList<>(new IrisRegion().setCaveBiomes(IrisBiomeEntry.plainList("deep"))));
         when(dimension.getCarving()).thenReturn(new KList<>());
         when(dimension.getSubterrainFeatures()).thenReturn(new KList<>());
         when(retained.getAllBiomes()).thenReturn(new KList<>());
@@ -186,7 +187,7 @@ public class BiomeLocatorTest {
     @Test
     public void sharedSurfaceAndCaveKeyStillReturnsSurfacePosition() {
         Engine engine = catalogEngine();
-        IrisRegion region = new IrisRegion().setLandBiomes(new KList<>("shared")).setCaveBiomes(new KList<>("shared"));
+        IrisRegion region = new IrisRegion().setLandBiomes(IrisBiomeEntry.plainList("shared")).setCaveBiomes(IrisBiomeEntry.plainList("shared"));
         when(engine.getDimension().getAllRegions(engine)).thenReturn(new KList<>(region));
         IrisBiome shared = biome("shared");
         when(engine.getData().getBiomeLoader().load("shared")).thenReturn(shared);

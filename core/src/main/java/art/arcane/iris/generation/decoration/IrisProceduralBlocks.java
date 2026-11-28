@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.structure.object.IrisObject;
 
@@ -59,7 +60,7 @@ public final class IrisProceduralBlocks {
 
     public static NativeBlockState resolve(String block, IrisMaterialPalette palette, IrisData data, int x, int y, int z, RNG paletteRng) {
         if (paletteSet(palette)) {
-            return palette.get(paletteRng, x, y, z, data);
+            return palette.get(paletteRng, x, y, z, PackRuntime.forPack(data));
         }
         if (block != null && !block.isEmpty()) {
             return B.getStateOrNull(block, false);

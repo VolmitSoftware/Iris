@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.image.IrisImage;
 import art.arcane.iris.generation.image.IrisImageMap;
 import art.arcane.iris.generation.image.IrisImageMapOutOfBounds;
@@ -41,13 +42,14 @@ public class IrisGeneratorStyleOverrideTest {
         IrisGeneratorStyle style = new IrisGeneratorStyle(NoiseStyle.FLAT).setExpression("height");
         IrisStyledRange range = new IrisStyledRange().setMin(2D).setMax(14D).setStyle(style);
         RNG rng = new RNG(78264193L);
-        double first = style.create(rng, data).fitDouble(2D, 14D, 0D, 0D);
-        double second = style.create(rng, data).fitDouble(2D, 14D, 1D, 0D);
+        PackRuntime runtime = PackRuntime.standalone(data);
+        double first = style.create(rng, runtime).fitDouble(2D, 14D, 0D, 0D);
+        double second = style.create(rng, runtime).fitDouble(2D, 14D, 1D, 0D);
 
         assertNotEquals(8D, first, 0D);
         assertNotEquals(first, second, 0D);
-        assertEquals(first, range.get(rng, 0D, 0D, data), 0D);
-        assertEquals(second, range.get(rng, 1D, 0D, data), 0D);
+        assertEquals(first, range.get(rng, 0D, 0D, runtime), 0D);
+        assertEquals(second, range.get(rng, 1D, 0D, runtime), 0D);
     }
 
     @Test
@@ -66,7 +68,8 @@ public class IrisGeneratorStyleOverrideTest {
         IrisStyledRange range = new IrisStyledRange().setMin(2D).setMax(14D).setStyle(style);
         RNG rng = new RNG(78264193L);
 
-        assertEquals(2D, range.get(rng, 0D, 0D, data), 0D);
-        assertEquals(14D, range.get(rng, 1D, 0D, data), 0D);
+        PackRuntime runtime = PackRuntime.standalone(data);
+        assertEquals(2D, range.get(rng, 0D, 0D, runtime), 0D);
+        assertEquals(14D, range.get(rng, 1D, 0D, runtime), 0D);
     }
 }

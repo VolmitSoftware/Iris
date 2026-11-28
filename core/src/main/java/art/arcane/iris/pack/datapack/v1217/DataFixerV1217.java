@@ -143,7 +143,7 @@ public class DataFixerV1217 extends DataFixerV1213 {
             attributes.put("minecraft:gameplay/bed_rule", new JSONObject()
                     .put("can_set_spawn", "never")
                     .put("can_sleep", "never")
-                    .put("explodes", true));
+                    .put("destroy_on_use", true));
         }
 
         attributes.put("minecraft:gameplay/respawn_anchor_works", json.remove("respawn_anchor_works"));

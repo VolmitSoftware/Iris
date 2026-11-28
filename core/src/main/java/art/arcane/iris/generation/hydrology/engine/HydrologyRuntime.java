@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.hydrology.engine;
 
+import art.arcane.iris.generation.runtime.ThreadSlots;
 import art.arcane.iris.generation.runtime.HydrologyPlanException;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.concurrent.MultiBurst;
@@ -78,7 +79,7 @@ public final class HydrologyRuntime {
     private final NaturalHeights naturalHeight;
     private final BooleanSupplier mainThread;
     private final RasterLru rasters;
-    private final ThreadLocal<LastRaster> last;
+    private final ThreadSlots<LastRaster> last;
     private final Set<Long> queued;
     private final ConcurrentHashMap<Long, CompletableFuture<ChunkWaterRaster>> building;
     private final RasterFailures failures;
@@ -132,7 +133,7 @@ public final class HydrologyRuntime {
         this.naturalHeight = Objects.requireNonNull(naturalHeight, "naturalHeight");
         this.mainThread = Objects.requireNonNull(mainThread, "mainThread");
         this.rasters = new RasterLru();
-        this.last = ThreadLocal.withInitial(LastRaster::new);
+        this.last = new ThreadSlots<>(LastRaster::new);
         this.queued = ConcurrentHashMap.newKeySet();
         this.building = new ConcurrentHashMap<>();
         this.failures = new RasterFailures(ticker);

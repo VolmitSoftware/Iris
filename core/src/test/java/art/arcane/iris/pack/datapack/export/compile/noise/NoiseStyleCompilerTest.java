@@ -1,5 +1,6 @@
 package art.arcane.iris.pack.datapack.export.compile.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.IrisNoiseGenerator;
@@ -245,7 +246,7 @@ public final class NoiseStyleCompilerTest {
         NoiseRegistry registry = new NoiseRegistry("iris_export");
         Field field = SMOOTH.compileLayer(layer, SEED, registry, CAPABILITIES);
         for (int x = -20; x <= 20; x += 10) {
-            assertEquals(layer.getNoise(SUPER_SEED, x, -x, null), sample(field, registry, x, -x), tolerance);
+            assertEquals(layer.getNoise(SUPER_SEED, x, -x, PackRuntime.standalone(null)), sample(field, registry, x, -x), tolerance);
         }
     }
 
@@ -253,7 +254,7 @@ public final class NoiseStyleCompilerTest {
         NoiseRegistry registry = new NoiseRegistry("iris_export");
         Field field = SMOOTH.compileComposite(generator, SEED, registry, CAPABILITIES);
         for (int x = -30; x <= 30; x += 15) {
-            assertEquals(generator.getHeight(x, 2 * x, SUPER_SEED), sample(field, registry, x, 2 * x), FLOAT_TOLERANCE);
+            assertEquals(generator.getHeight(PackRuntime.standalone(null), x, 2 * x, SUPER_SEED), sample(field, registry, x, 2 * x), FLOAT_TOLERANCE);
         }
     }
 

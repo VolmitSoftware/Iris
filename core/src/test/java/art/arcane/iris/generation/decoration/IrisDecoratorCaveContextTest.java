@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.runtime.Engine;
@@ -63,7 +64,7 @@ public class IrisDecoratorCaveContextTest {
         Engine engine = mock(Engine.class);
         SeedManager seedManager = mock(SeedManager.class);
         doReturn(seedManager).when(engine).getSeedManager();
-        doReturn(mock(IrisData.class)).when(engine).getData();
+        doReturn(MockPackData.create()).when(engine).getData();
         IrisDimension dimension = mock(IrisDimension.class);
         doReturn(63).when(dimension).getFluidHeight();
         doReturn(dimension).when(engine).getDimension();
@@ -74,7 +75,7 @@ public class IrisDecoratorCaveContextTest {
         doReturn(63).when(mantle).getFluidHeight(anyInt(), anyInt());
 
         IrisDecorator decorator = mock(IrisDecorator.class);
-        doReturn(true).when(decorator).passesChanceGate(any(), anyDouble(), anyDouble(), any());
+        doReturn(true).when(decorator).passesChanceGate(any(), anyDouble(), anyDouble(), any(DecoratorRuntime.class));
         doReturn(true).when(decorator).isStacking();
         doReturn(true).when(decorator).isForcePlace();
         doReturn(1).when(decorator).getHeight(any(), anyDouble(), anyDouble(), any());
@@ -113,7 +114,7 @@ public class IrisDecoratorCaveContextTest {
     public void dryBlendedSurfaceRunsBiomeDecoratorDespiteHigherModeledWater() {
         Engine engine = mock(Engine.class);
         doReturn(mock(SeedManager.class)).when(engine).getSeedManager();
-        doReturn(mock(IrisData.class)).when(engine).getData();
+        doReturn(MockPackData.create()).when(engine).getData();
         doReturn(7L).when(engine).getGenerationSessionId();
         IrisDimension dimension = mock(IrisDimension.class);
         doReturn(dimension).when(engine).getDimension();
@@ -122,7 +123,7 @@ public class IrisDecoratorCaveContextTest {
         doReturn(63).when(mantle).getFluidHeight(anyInt(), anyInt());
 
         IrisDecorator decorator = mock(IrisDecorator.class);
-        doReturn(true).when(decorator).passesChanceGate(any(), anyDouble(), anyDouble(), any());
+        doReturn(true).when(decorator).passesChanceGate(any(), anyDouble(), anyDouble(), any(DecoratorRuntime.class));
         doReturn(true).when(decorator).isStacking();
         doReturn(true).when(decorator).isForcePlace();
         doReturn(1).when(decorator).getHeight(any(), anyDouble(), anyDouble(), any());
@@ -143,7 +144,7 @@ public class IrisDecoratorCaveContextTest {
             assertEquals(63, surface.surfaceFluidHeight(16, 0));
         }
 
-        verify(decorator).passesChanceGate(any(), anyDouble(), anyDouble(), any());
+        verify(decorator).passesChanceGate(any(), anyDouble(), anyDouble(), any(DecoratorRuntime.class));
         assertFalse(DecoratorCore.SCRATCH_OPTS.get().underwater);
         assertEquals(63, surface.surfaceFluidHeight(0, 0));
         try (IrisContext.Scope scope = IrisContext.open(engine, 8L, chunk)) {

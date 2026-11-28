@@ -31,7 +31,7 @@ import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.volmlib.util.scheduling.ChronoLatch;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.platform.registry.RegistryUtil;
 import art.arcane.iris.world.task.J;
 import lombok.AllArgsConstructor;
@@ -66,7 +66,6 @@ public class IrisEffect {
     private static final Set<String> UNKNOWN_SOUND_CATEGORIES = ConcurrentHashMap.newKeySet();
 
     private final transient AtomicCache<PotionEffectType> pt = new AtomicCache<>();
-    private final transient AtomicCache<ChronoLatch> latch = new AtomicCache<>();
     private final transient AtomicCache<Particle> particleEffectResolved = new AtomicCache<>();
     private final transient AtomicCache<Sound> soundResolved = new AtomicCache<>();
     @RegistryListPotionEffect
@@ -176,12 +175,12 @@ public class IrisEffect {
     private IrisCommandRegistry commandRegistry = null;
 
 
-    public boolean canTick() {
-        return latch.aquire(() -> new ChronoLatch(interval)).flip();
+    public boolean canTick(PackRuntime runtime) {
+        return runtime.effectLatch(this).flip();
     }
 
-    public boolean shouldApplyNow() {
-        return canTick() && RNG.r.nextInt(chance) == 0;
+    public boolean shouldApplyNow(PackRuntime runtime) {
+        return canTick(runtime) && RNG.r.nextInt(chance) == 0;
     }
 
     public String getParticleEffectKey() {
@@ -272,7 +271,7 @@ public class IrisEffect {
     }
 
     public void apply(Player p, Engine g) {
-        if (!shouldApplyNow()) {
+        if (!shouldApplyNow(PackRuntime.of(g))) {
             return;
         }
 
@@ -349,8 +348,8 @@ public class IrisEffect {
         }
     }
 
-    public void apply(Entity p) {
-        if (!shouldApplyNow()) {
+    public void apply(Entity p, PackRuntime runtime) {
+        if (!shouldApplyNow(runtime)) {
             return;
         }
 

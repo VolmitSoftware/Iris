@@ -21,6 +21,7 @@ package art.arcane.iris.studio.map;
 
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -38,14 +39,16 @@ final class BiomeTintField {
 
     private final IrisBiome biome;
     private final RNG biomeRandom;
+    private final Engine engine;
     private final MinecraftBiomeColors minecraftColors;
     private final BiomeTintColors sameColorsEverywhere;
     private final Map<IrisBiomeCustom, BiomeTintColors> colorsByCustomBiome = new ConcurrentHashMap<>();
     private final BlendedTint[] blendedTintCache = new BlendedTint[BLENDED_TINT_CACHE_SIZE];
     private final ChunkColors[] chunkColorsCache = new ChunkColors[CHUNK_COLORS_CACHE_SIZE];
 
-    BiomeTintField(IrisBiome biome, RNG biomeRandom, MinecraftBiomeColors minecraftColors) {
+    BiomeTintField(IrisBiome biome, Engine engine, RNG biomeRandom, MinecraftBiomeColors minecraftColors) {
         this.biome = biome;
+        this.engine = engine;
         this.biomeRandom = biomeRandom;
         this.minecraftColors = minecraftColors;
         BiomeTintColors onlyColors = onlyPossibleColors();
@@ -95,9 +98,9 @@ final class BiomeTintField {
 
     private BiomeTintColors colorsForChunkAt(int originX, int originZ) {
         if (biome.isCustom()) {
-            return customColors(biome.getCustomBiome(biomeRandom, originX, 0, originZ));
+            return customColors(biome.getCustomBiome(biomeRandom, engine, originX, 0, originZ));
         }
-        return vanillaColors(biome.getSkyBiomeKey(biomeRandom, originX, 0, originZ));
+        return vanillaColors(biome.getSkyBiomeKey(biomeRandom, engine, originX, 0, originZ));
     }
 
     // Follows the same choices as IrisBiome#getSkyBiomeKey and #getCustomBiome, returning null when chunks can differ.

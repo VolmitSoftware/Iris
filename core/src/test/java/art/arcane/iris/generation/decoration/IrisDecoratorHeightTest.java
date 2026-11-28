@@ -1,6 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
@@ -18,13 +18,13 @@ public class IrisDecoratorHeightTest {
         when(generator.fit(eq(1), eq(2), anyDouble(), anyDouble())).thenReturn(2);
         IrisDecorator decorator = new IrisDecorator() {
             @Override
-            public CNG getHeightGenerator(RNG rng, IrisData data) {
+            public CNG getHeightGenerator(RNG rng, PackRuntime runtime) {
                 return generator;
             }
         };
         decorator.setStackMin(1);
         decorator.setStackMax(2);
 
-        assertEquals(2, decorator.getHeight(new RNG(1L), 0, 0, mock(IrisData.class)));
+        assertEquals(2, decorator.getHeight(new RNG(1L), 0, 0, PackRuntime.standalone(null)));
     }
 }

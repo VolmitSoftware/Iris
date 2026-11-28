@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
@@ -173,17 +174,17 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
     @ArrayType(type = IrisOreGenerator.class, min = 1)
     private KList<IrisOreGenerator> ores = new KList<>();
 
-    public NativeBlockState generateOres(int x, int y, int z, RNG rng, IrisData data, boolean surface) {
+    public NativeBlockState generateOres(int x, int y, int z, RNG rng, PackRuntime runtime, boolean surface) {
         KList<IrisOreGenerator> localOres = surface ? getSurfaceOres() : getUndergroundOres();
-        return generateOres(localOres, x, y, z, rng, data);
+        return generateOres(localOres, x, y, z, rng, runtime);
     }
 
-    public NativeBlockState generateSurfaceOres(int x, int y, int z, RNG rng, IrisData data) {
-        return generateOres(getSurfaceOres(), x, y, z, rng, data);
+    public NativeBlockState generateSurfaceOres(int x, int y, int z, RNG rng, PackRuntime runtime) {
+        return generateOres(getSurfaceOres(), x, y, z, rng, runtime);
     }
 
-    public NativeBlockState generateUndergroundOres(int x, int y, int z, RNG rng, IrisData data) {
-        return generateOres(getUndergroundOres(), x, y, z, rng, data);
+    public NativeBlockState generateUndergroundOres(int x, int y, int z, RNG rng, PackRuntime runtime) {
+        return generateOres(getUndergroundOres(), x, y, z, rng, runtime);
     }
 
     public boolean hasSurfaceOres() {
@@ -194,7 +195,7 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
         return !getUndergroundOres().isEmpty();
     }
 
-    private NativeBlockState generateOres(KList<IrisOreGenerator> localOres, int x, int y, int z, RNG rng, IrisData data) {
+    private NativeBlockState generateOres(KList<IrisOreGenerator> localOres, int x, int y, int z, RNG rng, PackRuntime runtime) {
         if (localOres.isEmpty()) {
             return null;
         }
@@ -202,7 +203,7 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
         int oreCount = localOres.size();
         for (int oreIndex = 0; oreIndex < oreCount; oreIndex++) {
             IrisOreGenerator oreGenerator = localOres.get(oreIndex);
-            NativeBlockState ore = oreGenerator.generate(x, y, z, rng, data);
+            NativeBlockState ore = oreGenerator.generate(x, y, z, rng, runtime);
             if (ore != null) {
                 return ore;
             }

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.cave.IrisCaveProfileSampler;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -33,10 +34,6 @@ import art.arcane.volmlib.util.math.Rarity;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.generation.cache.LazyBoundedCache;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
@@ -62,97 +59,72 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisFloatingChildBiomes implements Rarity {
     private final transient AtomicCache<IrisBiome> resolvedBiome = new AtomicCache<>();
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient LazyBoundedCache<RuntimeKey, FloatingIslandEdgeProfile> edgeTaperProfiles = new LazyBoundedCache<>(8);
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private transient volatile CachedEdgeProfile recentEdgeProfile;
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient LazyBoundedCache<RuntimeKey, IrisCaveProfileSampler> carvingProfileSamplers = new LazyBoundedCache<>(8);
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private transient volatile CachedCarvingProfile recentCarvingProfile;
     private final transient AtomicCache<IrisObjectScale> shrinkScaleCache = new AtomicCache<>();
 
-    public CNG getFootprintCng(long baseSeed, IrisData data) {
-        return getFootprintStyle().create(baseSeed ^ 0xF007B17DL, data);
+    public CNG getFootprintCng(long baseSeed, PackRuntime runtime) {
+        return getFootprintStyle().create(baseSeed ^ 0xF007B17DL, runtime);
     }
 
-    public FloatingIslandEdgeProfile getEdgeTaperProfile(long baseSeed, IrisData data) {
-        Engine engine = data == null ? null : data.getEngine();
-        CachedEdgeProfile recent = recentEdgeProfile;
-        if (recent != null && recent.key.matches(baseSeed, data, engine)) {
-            return recent.profile;
-        }
-        RuntimeKey key = new RuntimeKey(baseSeed, data, engine);
-        FloatingIslandEdgeProfile profile = edgeTaperProfiles.computeIfAbsent(key, ignored -> {
-            int width = FloatingIslandEdgeProfile.clampWidth(getEdgeTaperWidth());
-            double amplitude = FloatingIslandEdgeProfile.clampVariationAmplitude(
-                    getEdgeTaperVariationAmplitude(), width);
-            IrisGeneratorStyle style = getEdgeTaperVariationStyle();
-            CNG variation = amplitude > 0.0D && style != null
-                    ? style.create(baseSeed ^ 0xED6E7A9E5L, data)
-                    : null;
-            return new FloatingIslandEdgeProfile(width, getEdgeTaperExponent(), amplitude, variation);
-        });
-        recentEdgeProfile = new CachedEdgeProfile(key, profile);
-        return profile;
+    public FloatingIslandEdgeProfile getEdgeTaperProfile(long baseSeed, PackRuntime runtime) {
+        return runtime.floatingChild(this).edgeTaperProfile(baseSeed);
     }
 
-    public CNG getPickerCng(long baseSeed, IrisData data) {
-        return getPickerStyle().create(baseSeed ^ 0x91C4E72DL, data);
+    FloatingIslandEdgeProfile createEdgeTaperProfile(long baseSeed, PackRuntime runtime) {
+        int width = FloatingIslandEdgeProfile.clampWidth(getEdgeTaperWidth());
+        double amplitude = FloatingIslandEdgeProfile.clampVariationAmplitude(getEdgeTaperVariationAmplitude(), width);
+        IrisGeneratorStyle style = getEdgeTaperVariationStyle();
+        CNG variation = amplitude > 0.0D && style != null
+                ? style.create(baseSeed ^ 0xED6E7A9E5L, runtime)
+                : null;
+        return new FloatingIslandEdgeProfile(width, getEdgeTaperExponent(), amplitude, variation);
     }
 
-    public CNG getAltitudeCng(long baseSeed, IrisData data) {
-        return getAltitudeStyle().create(baseSeed ^ 0xA17DEBBL, data);
+    public CNG getPickerCng(long baseSeed, PackRuntime runtime) {
+        return getPickerStyle().create(baseSeed ^ 0x91C4E72DL, runtime);
     }
 
-    public CNG getTopShapeCng(long baseSeed, IrisData data) {
-        return getTopShapeStyle().create(baseSeed ^ 0x70970601DEFL, data);
+    public CNG getAltitudeCng(long baseSeed, PackRuntime runtime) {
+        return getAltitudeStyle().create(baseSeed ^ 0xA17DEBBL, runtime);
     }
 
-    public CNG getBottomCng(long baseSeed, IrisData data) {
-        return getBottomStyle().create(baseSeed ^ 0xB0770075CAFEL, data);
+    public CNG getTopShapeCng(long baseSeed, PackRuntime runtime) {
+        return getTopShapeStyle().create(baseSeed ^ 0x70970601DEFL, runtime);
     }
 
-    public CNG getWallWarpCng(long baseSeed, IrisData data) {
+    public CNG getBottomCng(long baseSeed, PackRuntime runtime) {
+        return getBottomStyle().create(baseSeed ^ 0xB0770075CAFEL, runtime);
+    }
+
+    public CNG getWallWarpCng(long baseSeed, PackRuntime runtime) {
         IrisGeneratorStyle style = getWallWarpStyle();
         if (style == null) {
             return null;
         }
-        return style.create(baseSeed ^ 0xA117BA17E0FL, data);
+        return style.create(baseSeed ^ 0xA117BA17E0FL, runtime);
     }
 
-    public CNG getCarveCng(long baseSeed, IrisData data) {
+    public CNG getCarveCng(long baseSeed, PackRuntime runtime) {
         IrisGeneratorStyle style = getCarveStyle();
         if (style == null) {
             return null;
         }
-        return style.create(baseSeed ^ 0xCA5EC1EE5EL, data);
+        return style.create(baseSeed ^ 0xCA5EC1EE5EL, runtime);
     }
 
-    public IrisCaveProfileSampler getCarvingProfileSampler(Engine engine, IrisData data) {
+    public IrisCaveProfileSampler getCarvingProfileSampler(PackRuntime runtime) {
         if (!hasCarvingReference()) {
             return null;
         }
+        return runtime.floatingChild(this).carvingProfileSampler();
+    }
 
-        CachedCarvingProfile recent = recentCarvingProfile;
-        if (recent != null && recent.key.matches(0L, data, engine)) {
-            return recent.sampler;
+    IrisCaveProfileSampler createCarvingProfileSampler(PackRuntime runtime) {
+        Engine engine = runtime.engine();
+        IrisBiome resolved = resolveCarvingBiome(carving, engine, runtime.data());
+        if (resolved == null || resolved.getCaveProfile() == null || !resolved.getCaveProfile().isEnabled()) {
+            return null;
         }
-        RuntimeKey key = new RuntimeKey(0L, data, engine);
-        IrisCaveProfileSampler sampler = carvingProfileSamplers.computeIfAbsent(key, ignored -> {
-            IrisBiome resolved = resolveCarvingBiome(carving, engine, data);
-            if (resolved == null || resolved.getCaveProfile() == null || !resolved.getCaveProfile().isEnabled()) {
-                return null;
-            }
-
-            return new IrisCaveProfileSampler(engine, resolved.getCaveProfile());
-        });
-        recentCarvingProfile = new CachedCarvingProfile(key, sampler);
-        return sampler;
+        return new IrisCaveProfileSampler(engine, resolved.getCaveProfile());
     }
 
     public boolean hasCarvingReference() {
@@ -399,29 +371,5 @@ public class IrisFloatingChildBiomes implements Rarity {
 
             return loaded;
         });
-    }
-
-    private record RuntimeKey(long seed, IrisData data, Engine engine) {
-        private boolean matches(long seed, IrisData data, Engine engine) {
-            return this.seed == seed && this.data == data && this.engine == engine;
-        }
-
-        @Override
-        public boolean equals(Object object) {
-            return object instanceof RuntimeKey other && matches(other.seed, other.data, other.engine);
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = Long.hashCode(seed);
-            hash = 31 * hash + System.identityHashCode(data);
-            return 31 * hash + System.identityHashCode(engine);
-        }
-    }
-
-    private record CachedEdgeProfile(RuntimeKey key, FloatingIslandEdgeProfile profile) {
-    }
-
-    private record CachedCarvingProfile(RuntimeKey key, IrisCaveProfileSampler sampler) {
     }
 }

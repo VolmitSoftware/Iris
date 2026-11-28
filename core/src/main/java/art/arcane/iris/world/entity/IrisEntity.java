@@ -18,6 +18,7 @@
 
 package art.arcane.iris.world.entity;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.nativelib.entity.NativeEntityOptions;
 import art.arcane.volmlib.nativelib.entity.NativeEntityType;
 import art.arcane.iris.spi.IrisPlatform;
@@ -409,7 +410,7 @@ public class IrisEntity extends IrisRegistrant implements NativeEntityOptions {
         }
 
         if (spawnEffect != null) {
-            spawnEffect.apply(e);
+            spawnEffect.apply(e, PackRuntime.of(gen));
         }
 
         if (rawCommands.isNotEmpty()) {

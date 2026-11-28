@@ -20,27 +20,21 @@ package art.arcane.iris.generation.noise;
 
 import art.arcane.iris.spi.IrisLogging;
 import com.dfsek.paralithic.Expression;
+import com.dfsek.paralithic.functions.dynamic.DynamicFunction;
 import com.dfsek.paralithic.eval.parser.Parser;
 import com.dfsek.paralithic.eval.parser.Scope;
 import art.arcane.iris.pack.loading.IrisRegistrant;
-import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.generation.cache.LazyBoundedCache;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
-import art.arcane.iris.generation.noise.IrisExpressionFunction.FunctionContext;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.math.RNG;
-import art.arcane.volmlib.util.stream.ProceduralStream;
-import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+
+import java.util.function.Function;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -49,9 +43,6 @@ import lombok.experimental.Accessors;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisExpression extends IrisRegistrant {
-    private static final int MAX_RETAINED_EVALUATION_DEPTH = 8;
-    private static final int MAX_RETAINED_ARGUMENTS = 256;
-
     @ArrayType(type = IrisExpressionLoad.class, min = 1)
     @Description("Variables to use in this expression")
     private KList<IrisExpressionLoad> variables = new KList<>();
@@ -64,88 +55,38 @@ public class IrisExpression extends IrisRegistrant {
     @Description("The expression. Inherited variables are x, y and z. Avoid using those variable names.")
     private String expression;
 
-    private transient AtomicCache<Expression> expressionCache = new AtomicCache<>();
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient LazyBoundedCache<Long, ProceduralStream<Double>> streams = new LazyBoundedCache<>(8);
+    /**
+     * Parses this expression with each valid function bound to the runtime object the caller built for it.
+     * Returns null when the expression does not parse; the failure is reported.
+     */
+    public Expression parse(Function<IrisExpressionFunction, DynamicFunction> functionRuntime) {
+        Scope scope = new Scope(); // Create variable scope. This scope can hold both constants and invocation variables.
+        Parser parser = new Parser();
 
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient ThreadLocal<EvaluationScratch> evaluationScratch = ThreadLocal.withInitial(EvaluationScratch::new);
-
-    private Expression expression() {
-        return expressionCache.aquire(() -> {
-            Scope scope = new Scope(); // Create variable scope. This scope can hold both constants and invocation variables.
-            Parser parser = new Parser();
-
-            try {
-                for (IrisExpressionLoad i : variables) {
-                    scope.addInvocationVariable(i.getName());
-                }
-
-                scope.addInvocationVariable("x");
-                scope.addInvocationVariable("y");
-                scope.addInvocationVariable("z");
-            } catch (Throwable e) {
-                IrisLogging.reportError("Script variable load failed in " + getLoadFile().getPath() + ".", e);
-            }
-
-            for (IrisExpressionFunction f : functions) {
-                if (!f.isValid()) continue;
-                f.setData(getLoader());
-                parser.registerFunction(f.getName(), f);
-            }
-
-            try {
-                return parser.parse(getExpression(), scope);
-            } catch (Throwable e) {
-                IrisLogging.reportError("Script load failed in " + getLoadFile().getPath() + ".", e);
-            }
-
-            return null;
-        });
-    }
-
-    public ProceduralStream<Double> stream(RNG rng) {
-        return streams.computeIfAbsent(rng.getSeed(), seed -> {
-            RNG streamRng = new RNG(seed);
-            return ProceduralStream.of((x, z) -> evaluate(streamRng, x, z),
-                    (x, y, z) -> evaluate(streamRng, x, y, z), Interpolated.DOUBLE);
-        });
-    }
-
-    public double evaluate(RNG rng, double x, double z) {
-        EvaluationScratch scratch = evaluationScratch.get();
-        double[] arguments = scratch.acquire(3 + getVariables().size());
         try {
-            int index = 0;
-            for (IrisExpressionLoad variable : getVariables()) {
-                arguments[index++] = variable.getValue(rng, getLoader(), x, z);
+            for (IrisExpressionLoad i : variables) {
+                scope.addInvocationVariable(i.getName());
             }
-            arguments[index++] = x;
-            arguments[index++] = z;
-            arguments[index] = -1;
-            return expression().evaluate(new FunctionContext(rng), arguments);
-        } finally {
-            scratch.release();
-        }
-    }
 
-    public double evaluate(RNG rng, double x, double y, double z) {
-        EvaluationScratch scratch = evaluationScratch.get();
-        double[] arguments = scratch.acquire(3 + getVariables().size());
-        try {
-            int index = 0;
-            for (IrisExpressionLoad variable : getVariables()) {
-                arguments[index++] = variable.getValue(rng, getLoader(), x, y, z);
-            }
-            arguments[index++] = x;
-            arguments[index++] = y;
-            arguments[index] = z;
-            return expression().evaluate(new FunctionContext(rng), arguments);
-        } finally {
-            scratch.release();
+            scope.addInvocationVariable("x");
+            scope.addInvocationVariable("y");
+            scope.addInvocationVariable("z");
+        } catch (Throwable e) {
+            IrisLogging.reportError("Script variable load failed in " + getLoadFile().getPath() + ".", e);
         }
+
+        for (IrisExpressionFunction f : functions) {
+            if (!f.isValid()) continue;
+            parser.registerFunction(f.getName(), functionRuntime.apply(f));
+        }
+
+        try {
+            return parser.parse(getExpression(), scope);
+        } catch (Throwable e) {
+            IrisLogging.reportError("Script load failed in " + getLoadFile().getPath() + ".", e);
+        }
+
+        return null;
     }
 
     @Override
@@ -156,29 +97,5 @@ public class IrisExpression extends IrisRegistrant {
     @Override
     public String getTypeName() {
         return "Expression";
-    }
-
-    private static final class EvaluationScratch {
-        private final double[][] retained = new double[MAX_RETAINED_EVALUATION_DEPTH][];
-        private int depth;
-
-        private double[] acquire(int length) {
-            double[] arguments;
-            if (depth >= retained.length || length > MAX_RETAINED_ARGUMENTS) {
-                arguments = new double[length];
-            } else {
-                arguments = retained[depth];
-                if (arguments == null || arguments.length != length) {
-                    arguments = new double[length];
-                    retained[depth] = arguments;
-                }
-            }
-            depth++;
-            return arguments;
-        }
-
-        private void release() {
-            depth--;
-        }
     }
 }

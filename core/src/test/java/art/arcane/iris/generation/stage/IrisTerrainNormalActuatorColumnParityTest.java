@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.block.IrisBlockData;
@@ -41,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import static org.mockito.ArgumentMatchers.same;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -110,7 +113,7 @@ public class IrisTerrainNormalActuatorColumnParityTest {
         private final Engine engine = mock(Engine.class);
         private final ChunkContext context = mock(ChunkContext.class);
         private final IrisComplex complex = mock(IrisComplex.class);
-        private final IrisData data = mock(IrisData.class);
+        private final IrisData data = MockPackData.create();
         private final IrisBiome biome = mock(IrisBiome.class);
         private final IrisRegion region = new IrisRegion();
         private final IrisDimension dimension;
@@ -203,11 +206,11 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             when(context.getFluid()).thenReturn(new ChunkedDataCache<>(
                     ProceduralStream.of((x, z) -> fluid, Interpolated.of(value -> 0D, value -> fluid)), X, Z, false));
             when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
-                    anyInt(), anyInt(), eq(data), eq(complex))).thenAnswer(invocation -> layers(gravityLayers ? "sand" : "layer", layerCount));
-            when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), eq(data)))
+                    anyInt(), anyInt(), MockPackData.runtimeOf(data), eq(complex))).thenAnswer(invocation -> layers(gravityLayers ? "sand" : "layer", layerCount));
+            when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), MockPackData.runtimeOf(data)))
                     .thenAnswer(invocation -> layers("sea", seaCount));
             when(biome.generateCeilingLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
-                    anyInt(), anyInt(), eq(data), eq(complex))).thenAnswer(invocation -> layers("ceiling", ceilingCount));
+                    anyInt(), anyInt(), MockPackData.runtimeOf(data), eq(complex))).thenAnswer(invocation -> layers("ceiling", ceilingCount));
             when(biome.getSurfaceOreBands()).thenReturn(IrisOreBands.of(biomeSurface));
             when(biome.getUndergroundOreBands()).thenReturn(IrisOreBands.of(biomeUnderground));
             description = "he=" + he + " fluid=" + surfaceFluid + " bedrock=" + bedrock + " mapped=" + (mapped != null)
@@ -306,7 +309,7 @@ public class IrisTerrainNormalActuatorColumnParityTest {
                 if (i > he && i <= hf) {
                     int fdepth = hf - i;
                     if (seaFloor && fblocks == null) {
-                        fblocks = biome.generateSeaLayers(realX, realZ, rng, hf - he, data);
+                        fblocks = biome.generateSeaLayers(realX, realZ, rng, hf - he, data.standalonePackRuntime());
                     }
                     h.setRaw(xf, i, zf, HydrologyFluidLayerSelector.select(fblocks, fdepth, columnFluid, !seaFloor || openUnderFall));
                     continue;
@@ -319,11 +322,11 @@ public class IrisTerrainNormalActuatorColumnParityTest {
                     }
                     if (blocks == null) {
                         blocks = biome.generateLayers(dimension, realX, realZ, rng,
-                                layerSurfaceY, layerSurfaceY, data, complex);
+                                layerSurfaceY, layerSurfaceY, data.standalonePackRuntime(), complex);
                     }
                     if (layerCeilingY > 0 && depth >= 2 && i - layerCeilingY < 2) {
                         if (ceilingBlocks == null) {
-                            ceilingBlocks = biome.generateCeilingLayers(dimension, realX, realZ, rng, 2, layerCeilingY, data, complex);
+                            ceilingBlocks = biome.generateCeilingLayers(dimension, realX, realZ, rng, 2, layerCeilingY, data.standalonePackRuntime(), complex);
                         }
                         int ceilingDepth = i - layerCeilingY;
                         h.setRaw(xf, i, zf, ceilingBlocks.hasIndex(ceilingDepth) ? ceilingBlocks.get(ceilingDepth) : rock);
@@ -356,7 +359,7 @@ public class IrisTerrainNormalActuatorColumnParityTest {
 
         private NativeBlockState scan(KList<IrisOreGenerator> ores, int x, int y, int z) {
             for (IrisOreGenerator ore : ores) {
-                NativeBlockState state = ore.generate(x, y, z, rng, data);
+                NativeBlockState state = ore.generate(x, y, z, rng, PackRuntime.standalone(data));
                 if (state != null) {
                     return state;
                 }
@@ -376,7 +379,7 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
             NativeBlockState block = state(name);
             palettes.put(name, block);
-            when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), eq(data))).thenReturn(block);
+            when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), MockPackData.runtimeOf(data))).thenReturn(block);
             return palette;
         }
 

@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.block.BlockDataMergeSupport;
 import art.arcane.iris.generation.block.IrisBlockData;
@@ -121,10 +122,10 @@ public class ObjectPlacementGoldenTest {
         when(engine.getDimension()).thenReturn(dimension);
         ContentGate gate = mock(ContentGate.class, withSettings().stubOnly());
         when(gate.ready()).thenReturn(false);
-        data = mock(IrisData.class, withSettings().stubOnly());
+        data = MockPackData.stubOnly();
         when(data.getEngine()).thenReturn(engine);
         when(data.getContentGate()).thenReturn(gate);
-        objectData = mock(IrisData.class, withSettings().stubOnly());
+        objectData = MockPackData.stubOnly();
         when(objectData.getContentGate()).thenReturn(gate);
     }
 

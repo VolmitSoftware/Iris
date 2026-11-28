@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -42,27 +43,28 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator {
             return;
         }
         RNG rng = getRNG(realX, realZ);
-        IrisDecorator decorator = DecoratorCore.pickDecorator(biome, getPart(), partRNG, rng, getData(), realX, realZ);
+        PackRuntime runtime = PackRuntime.of(getEngine(), getData());
+        IrisDecorator decorator = DecoratorCore.pickDecorator(biome, getPart(), partRNG, rng, runtime, realX, realZ);
 
         if (decorator == null) {
             return;
         }
 
         try {
-            place(decorator, x, z, realX, realZ, data, biome, height, max, limit);
+            place(decorator, x, z, realX, realZ, data, biome, height, max, limit, runtime);
         } catch (Throwable e) {
             DecoratorCore.skip(e, decorator, getData(), realX, height, realZ, biome);
         }
     }
 
     private void place(IrisDecorator decorator, int x, int z, int realX, int realZ, Hunk<NativeBlockState> data,
-                       IrisBiome biome, int height, int max, int limit) {
+                       IrisBiome biome, int height, int max, int limit, PackRuntime runtime) {
         if (!decorator.isStacking()) {
             if (!decorator.isForcePlace() && !decorator.getSlopeCondition().isDefault()
                     && !decorator.getSlopeCondition().isValid(getComplex().getSlopeStream().get(realX, realZ))) {
                 return;
             }
-            NativeBlockState block = decorator.getBlockData100(biome, partRNG, realX, height, realZ, getData());
+            NativeBlockState block = decorator.getBlockData100(biome, partRNG, realX, height, realZ, runtime);
             if (block != null) {
                 data.set(x, height, z, block);
             }
@@ -70,13 +72,13 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator {
         }
 
         int stack = Math.min(limit - height,
-                DecoratorCore.computeStack(decorator, partRNG, realX, realZ, getData(), max - height));
+                DecoratorCore.computeStack(decorator, partRNG, realX, realZ, runtime, max - height));
         for (int i = 0; i < stack; i++) {
             int h = height + i;
             double threshold = stack == 1 ? 1.0 : ((double) i) / (stack - 1);
             NativeBlockState block = threshold >= decorator.getTopThreshold()
-                    ? decorator.getBlockDataForTop(biome, partRNG, realX, h, realZ, getData())
-                    : decorator.getBlockData100(biome, partRNG, realX, h, realZ, getData());
+                    ? decorator.getBlockDataForTop(biome, partRNG, realX, h, realZ, runtime)
+                    : decorator.getBlockData100(biome, partRNG, realX, h, realZ, runtime);
             if (block == null) {
                 break;
             }

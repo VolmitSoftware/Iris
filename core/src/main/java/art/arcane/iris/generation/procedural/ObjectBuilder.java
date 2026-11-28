@@ -20,6 +20,7 @@ package art.arcane.iris.generation.procedural;
 
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.object.IrisObject;
@@ -32,10 +33,12 @@ import java.util.Map;
 /** Builds objects block by block for the procedural objects, with blocks as the platform has them. */
 public final class ObjectBuilder {
     private final IrisData data;
+    private final PackRuntime runtime;
     private final Map<Long, RNG> paletteRngs = new HashMap<>();
 
     public ObjectBuilder(IrisData data) {
         this.data = data;
+        this.runtime = PackRuntime.forPack(data);
     }
 
     /** The platform's state for {@code key}; null when the platform has no such block. */
@@ -45,7 +48,7 @@ public final class ObjectBuilder {
 
     /** The block {@code palette} gives at the position when its noise is seeded with {@code seed}. */
     public NativeBlockState pick(IrisMaterialPalette palette, long seed, int x, int y, int z) {
-        return palette.get(paletteRngs.computeIfAbsent(seed, RNG::new), x, y, z, data);
+        return palette.get(paletteRngs.computeIfAbsent(seed, RNG::new), x, y, z, runtime);
     }
 
     public boolean isAir(NativeBlockState state) {

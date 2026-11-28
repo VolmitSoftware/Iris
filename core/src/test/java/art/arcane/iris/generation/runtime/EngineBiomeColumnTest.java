@@ -143,6 +143,7 @@ public class EngineBiomeColumnTest {
                     case "getData" -> data;
                     case "getDimension" -> dimension;
                     case "getWorld" -> world;
+                    case "getPackRuntime" -> null;
                     default -> InvocationHandler.invokeDefault(proxy, method, arguments);
                 });
     }

@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.subterrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomePaletteLayer;
 import art.arcane.iris.generation.decoration.IrisDecorationPart;
@@ -37,6 +39,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.same;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -235,7 +238,7 @@ public class SubterrainSurfaceMaterialsTest {
         private final NativeBlockState wall = solid("minecraft:andesite");
         private final IrisDimension dimension = new IrisDimension();
         private final IrisComplex complex = mock(IrisComplex.class);
-        private final IrisData data = mock(IrisData.class);
+        private final IrisData data = MockPackData.create();
         private final IrisBiome biome = mock(IrisBiome.class);
         private final RNG random = new RNG(44339L);
         private final SubterrainPlanner planner;
@@ -261,8 +264,8 @@ public class SubterrainSurfaceMaterialsTest {
             when(biome.getDecoratorBucket(IrisDecorationPart.NONE)).thenReturn(new IrisDecorator[0]);
             IrisBiomePaletteLayer wallPalette = mock(IrisBiomePaletteLayer.class);
             when(biome.getWall()).thenReturn(wallPalette);
-            when(wallPalette.get(eq(random), anyDouble(), anyDouble(), anyDouble(), eq(data))).thenReturn(wall);
-            when(biome.generateCeilingLayers(eq(dimension), anyDouble(), anyDouble(), eq(random), eq(1), anyInt(), eq(data), eq(complex)))
+            when(wallPalette.get(eq(random), anyDouble(), anyDouble(), anyDouble(), MockPackData.runtimeOf(data))).thenReturn(wall);
+            when(biome.generateCeilingLayers(eq(dimension), anyDouble(), anyDouble(), eq(random), eq(1), anyInt(), MockPackData.runtimeOf(data), eq(complex)))
                     .thenReturn(new KList<>(ceiling));
             floorPalette(floor);
             NativeBlockState air = mock(NativeBlockState.class);
@@ -335,12 +338,12 @@ public class SubterrainSurfaceMaterialsTest {
         }
 
         private void floorPalette(NativeBlockState state) {
-            when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), eq(random), eq(1), anyInt(), eq(data), eq(complex)))
+            when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), eq(random), eq(1), anyInt(), MockPackData.runtimeOf(data), eq(complex)))
                     .thenReturn(state == null ? new KList<>() : new KList<>(state));
         }
 
         private SubterrainSurfaceMaterials materials(List<SubterrainPlan> candidates) {
-            return new SubterrainSurfaceMaterials(planner, candidates, dimension, complex, data, random, -64);
+            return new SubterrainSurfaceMaterials(planner, candidates, dimension, complex, data.standalonePackRuntime(), random, -64);
         }
 
         private SubterrainCell cell(SubterrainPosition position) {

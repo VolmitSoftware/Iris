@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -113,6 +114,8 @@ public class IrisDecoratorSeedCohesionTest {
 
         private Fixture(long seed, IrisDecorator decorator, IrisData data) {
             when(engine.getData()).thenReturn(data);
+            PackRuntime runtime = PackRuntime.forEngine(engine, data);
+            when(engine.getPackRuntime()).thenReturn(runtime);
             when(engine.getHeight()).thenReturn(32);
             when(engine.getSeedManager().getComponent()).thenReturn(seed);
             when(engine.getAllBiomes()).thenReturn(new KList<>(biome));

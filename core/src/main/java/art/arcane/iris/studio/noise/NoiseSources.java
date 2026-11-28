@@ -18,6 +18,7 @@
 
 package art.arcane.iris.studio.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisShapedGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -110,7 +111,8 @@ public final class NoiseSources {
                     throw new NoSuchElementException("No pack generator " + key);
                 }
                 long mixedSeed = new RNG(seed).nextParallelRNG(GENERATOR_SEED_SALT).lmax();
-                return (x, z) -> generator.getHeight(x, z, mixedSeed);
+                PackRuntime runtime = data.standalonePackRuntime();
+                return (x, z) -> generator.getHeight(runtime, x, z, mixedSeed);
             }));
         }
     }

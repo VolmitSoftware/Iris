@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.pack.value.IrisRange;
@@ -22,8 +23,6 @@ import java.util.Map;
 public final class IrisDimensionCarvingResolver {
     private static final int MAX_CHILD_DEPTH = 32;
     private static final long CHILD_SEED_SALT = 0x9E3779B97F4A7C15L;
-    private static final ThreadLocal<WeakReference<State>> THREAD_STATE =
-            ThreadLocal.withInitial(() -> new WeakReference<>(null));
 
     private IrisDimensionCarvingResolver() {
 
@@ -34,7 +33,7 @@ public final class IrisDimensionCarvingResolver {
     }
 
     public static IrisBiome resolveBiome(Engine engine, int worldX, int worldY, int worldZ, State state) {
-        State resolvedState = state == null ? threadState() : state;
+        State resolvedState = state == null ? threadState(engine) : state;
         IrisData data = resolvedState.bind(engine);
         IrisDimensionCarvingEntry root = resolveBoundRootEntry(engine, worldY, data, resolvedState);
         if (root == null) {
@@ -45,21 +44,21 @@ public final class IrisDimensionCarvingResolver {
     }
 
     public static IrisDimensionCarvingEntry resolveRootEntry(Engine engine, int worldY) {
-        return resolveRootEntry(engine, worldY, threadState());
+        return resolveRootEntry(engine, worldY, threadState(engine));
     }
 
     public static IrisDimensionCarvingEntry resolveRootEntry(Engine engine, int worldY, State state) {
-        State resolvedState = state == null ? threadState() : state;
+        State resolvedState = state == null ? threadState(engine) : state;
         IrisData data = resolvedState.bind(engine);
         return resolveBoundRootEntry(engine, worldY, data, resolvedState);
     }
 
     public static IrisDimensionCarvingEntry resolveFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldY, int worldZ) {
-        return resolveFromRoot(engine, rootEntry, worldX, worldY, worldZ, threadState());
+        return resolveFromRoot(engine, rootEntry, worldX, worldY, worldZ, threadState(engine));
     }
 
     public static IrisDimensionCarvingEntry resolveFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldY, int worldZ, State state) {
-        State resolvedState = state == null ? threadState() : state;
+        State resolvedState = state == null ? threadState(engine) : state;
         IrisData data = resolvedState.bind(engine);
         return resolveBoundFromRoot(engine, rootEntry, worldX, worldY, worldZ, data, resolvedState);
     }
@@ -237,7 +236,7 @@ public final class IrisDimensionCarvingResolver {
         }
 
         long seed = resolveChildSeed(engine, state);
-        CNG childGenerator = parent.getChildrenGenerator(seed, data);
+        CNG childGenerator = parent.getChildrenGenerator(seed, PackRuntime.of(engine, data));
         double sample = childGenerator.noiseFast2D(worldX, worldZ);
         CarvingChoice selected = selectionPlan.select(sample);
         if (selected == null || selected.entry == null) {
@@ -313,15 +312,10 @@ public final class IrisDimensionCarvingResolver {
         return state.childSeed;
     }
 
-    private static State threadState() {
-        WeakReference<State> reference = THREAD_STATE.get();
-        State state = reference.get();
-        if (state != null) {
-            return state;
-        }
-        State replacement = new State();
-        THREAD_STATE.set(new WeakReference<>(replacement));
-        return replacement;
+    /** The calling thread's resolver state for this engine; engines without a pack runtime resolve unmemoized. */
+    public static State threadState(Engine engine) {
+        PackRuntime runtime = engine.getPackRuntime();
+        return runtime == null ? new State() : runtime.carvingResolverState();
     }
 
     public static final class Snapshot {

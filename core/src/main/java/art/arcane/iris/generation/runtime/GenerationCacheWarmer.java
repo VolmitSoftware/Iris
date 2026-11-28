@@ -39,31 +39,32 @@ public final class GenerationCacheWarmer {
     public static void warm(Engine engine) {
         long start = M.ms();
         IrisData data = engine.getData();
+        PackRuntime runtime = PackRuntime.of(engine, data);
         RNG root = new RNG(engine.getSeedManager().getComponent() + 7777L);
         int[] counter = {0};
 
         KList<IrisBiome> biomes = engine.getAllBiomes();
         biomes.sort(Comparator.comparing(IrisBiome::getLoadKey));
         for (IrisBiome biome : biomes) {
-            warmPlacements(biome.getObjects(), root, counter, data, engine);
-            warmDecorators(biome.getDecorators(), engine.getSeedManager().getComponent(), counter, data);
-            warmOres(biome.getOres(), engine.getSeedManager().getTerrain(), counter, data);
+            warmPlacements(biome.getObjects(), root, counter, runtime);
+            warmDecorators(biome.getDecorators(), engine.getSeedManager().getComponent(), counter, runtime);
+            warmOres(biome.getOres(), engine.getSeedManager().getTerrain(), counter, runtime);
         }
 
         KList<IrisRegion> regions = engine.getDimension().getAllRegions(engine);
         regions.sort(Comparator.comparing(IrisRegion::getLoadKey));
         for (IrisRegion region : regions) {
-            warmPlacements(region.getObjects(), root, counter, data, engine);
-            warmOres(region.getOres(), engine.getSeedManager().getTerrain(), counter, data);
+            warmPlacements(region.getObjects(), root, counter, runtime);
+            warmOres(region.getOres(), engine.getSeedManager().getTerrain(), counter, runtime);
         }
 
-        warmOres(engine.getDimension().getOres(), engine.getSeedManager().getTerrain(), counter, data);
+        warmOres(engine.getDimension().getOres(), engine.getSeedManager().getTerrain(), counter, runtime);
 
         IrisLogging.debug("[IrisEngine timing] cache warm " + counter[0] + " configs=" + (M.ms() - start) + "ms");
     }
 
     private static void warmPlacements(KList<IrisObjectPlacement> placements, RNG root, int[] counter,
-                                       IrisData data, Engine engine) {
+                                       PackRuntime runtime) {
         if (placements == null) {
             return;
         }
@@ -72,12 +73,12 @@ public final class GenerationCacheWarmer {
                 continue;
             }
             RNG rng = root.nextParallelRNG(counter[0]++);
-            placement.getSurfaceWarp(rng, data, engine);
-            placement.getDensity(rng, 0, 0, data);
+            placement.getSurfaceWarp(rng, runtime);
+            placement.getDensity(rng, 0, 0, runtime);
         }
     }
 
-    private static void warmDecorators(KList<IrisDecorator> decorators, long componentSeed, int[] counter, IrisData data) {
+    private static void warmDecorators(KList<IrisDecorator> decorators, long componentSeed, int[] counter, PackRuntime runtime) {
         if (decorators == null) {
             return;
         }
@@ -87,13 +88,13 @@ public final class GenerationCacheWarmer {
             }
             counter[0]++;
             RNG rng = new RNG(IrisEngineDecorator.seedForPart(componentSeed, decorator.getPartOf()));
-            decorator.getHeightGenerator(rng, data);
-            decorator.getGenerator(rng, data);
-            decorator.getVarianceGenerator(rng, data);
+            decorator.getHeightGenerator(rng, runtime);
+            decorator.getGenerator(rng, runtime);
+            decorator.getVarianceGenerator(rng, runtime);
         }
     }
 
-    private static void warmOres(KList<IrisOreGenerator> ores, long terrainSeed, int[] counter, IrisData data) {
+    private static void warmOres(KList<IrisOreGenerator> ores, long terrainSeed, int[] counter, PackRuntime runtime) {
         if (ores == null) {
             return;
         }
@@ -102,7 +103,7 @@ public final class GenerationCacheWarmer {
                 continue;
             }
             counter[0]++;
-            ore.warm(new RNG(terrainSeed), data);
+            ore.warm(new RNG(terrainSeed), runtime);
         }
     }
 }

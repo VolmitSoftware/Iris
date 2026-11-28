@@ -101,6 +101,9 @@ public final class GeneratorCompiler {
     }
 
     public Field style(IrisGeneratorStyle style, double zoom, String path) {
+        if (style != null && style.isSeeded()) {
+            report(path, "Noise style seed " + style.getSeed() + " is not exported; the style uses its exported salt instead");
+        }
         return styles.compile(zoomed(style, zoom), salt(path), registry, capabilities);
     }
 
@@ -118,6 +121,9 @@ public final class GeneratorCompiler {
         Field value = combine(generator, root, path, resource, name);
         if (generator.hasCliffs()) {
             value = new Field.Round(Field.RoundMode.ROUND, value, cliffStep(generator, root, path, resource, name));
+        }
+        if (generator.getExponent() != 1.0) {
+            report(resource, "Generator exponent " + generator.getExponent() + " is not exported; the uncurved height is used");
         }
         if (generator.getCellFractureHeight() != 0.0) {
             report(resource, "Generator cell fracture is not exported; the unfractured height is used");

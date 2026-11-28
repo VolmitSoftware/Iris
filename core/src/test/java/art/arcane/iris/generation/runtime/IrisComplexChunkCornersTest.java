@@ -171,7 +171,7 @@ public class IrisComplexChunkCornersTest {
         Class<?> cacheClass = Class.forName("art.arcane.iris.generation.runtime.IrisComplex$GridBoundsCache");
         Constructor<?> cacheConstructor = cacheClass.getDeclaredConstructor();
         cacheConstructor.setAccessible(true);
-        setField(complex, "gridBoundsCache", ThreadLocal.withInitial(() -> newCache(cacheConstructor)));
+        setField(complex, "gridBoundsCache", new ThreadSlots<>(() -> newCache(cacheConstructor)));
         return complex;
     }
 
@@ -257,7 +257,7 @@ public class IrisComplexChunkCornersTest {
         private boolean nested;
 
         @Override
-        public double getHeight(double x, double z, long seed) {
+        public double getHeight(PackRuntime runtime, double x, double z, long seed) {
             if (nested) {
                 return Math.cos(x * 0.13D) * 0.5D;
             }
@@ -281,7 +281,7 @@ public class IrisComplexChunkCornersTest {
         }
 
         @Override
-        public double getHeight(double x, double z, long seed) {
+        public double getHeight(PackRuntime runtime, double x, double z, long seed) {
             invocations++;
             return Math.sin(x * 0.37D + seed) * Math.cos(z * 0.21D) * amplitude;
         }

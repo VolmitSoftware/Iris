@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.runtime.EngineBackgroundTasks.BackgroundTaskDrain;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.decoration.IrisOreGenerator;
@@ -75,7 +76,7 @@ public class IrisEngineGenerationCacheWarmTest {
         Fixture fixture = fixture();
         AtomicReference<Callable<Void>> queued = new AtomicReference<>();
         IllegalStateException expected = new IllegalStateException("cache warm failed");
-        IrisData data = mock(IrisData.class);
+        IrisData data = MockPackData.create();
         IrisOreGenerator ore = mock(IrisOreGenerator.class);
         IrisBiome biome = new IrisBiome();
         biome.setLoadKey("failing-ore");
@@ -83,7 +84,7 @@ public class IrisEngineGenerationCacheWarmTest {
         when(fixture.engine().getData()).thenReturn(data);
         when(fixture.engine().getSeedManager()).thenReturn(mock(SeedManager.class));
         when(fixture.engine().getAllBiomes()).thenReturn(new KList<>(biome));
-        doThrow(expected).when(ore).warm(any(RNG.class), same(data));
+        doThrow(expected).when(ore).warm(any(RNG.class), MockPackData.runtimeOf(data));
         try (MockedStatic<J> scheduling = scheduler(queued);
              MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
             fixture.engine().prepareGenerationCaches(IrisEngine.InitializationMode.WORLD_CREATION, System.nanoTime());

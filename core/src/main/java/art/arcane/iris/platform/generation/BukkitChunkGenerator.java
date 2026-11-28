@@ -275,6 +275,13 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         }
     }
 
+    private void closeCachedWorldPacks() {
+        if (world == null) {
+            return;
+        }
+        IrisData.closeLoadedUnder(world.worldFolder());
+    }
+
     private void closeStartupTarget() {
         EngineTarget target = startupTarget;
         startupTarget = null;
@@ -954,6 +961,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                     folder.clear();
                     populators.clear();
                     closeStartupTarget();
+                    closeCachedWorldPacks();
                     startupReady.completeExceptionally(new IllegalStateException("Iris generator closed during startup."));
                 });
                 dispatchAccepted.set(true);

@@ -1,5 +1,7 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.testsupport.MockPackData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.iris.generation.decoration.IrisStiltSettings;
@@ -85,7 +87,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         engine = mock(Engine.class);
         when(engine.getHeight()).thenReturn(256);
-        data = mock(IrisData.class);
+        data = MockPackData.create();
         when(data.getEngine()).thenReturn(engine);
         solid = state("minecraft:stone", true);
         schematicAir = state("minecraft:air", false);
@@ -262,7 +264,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         IrisObjectReplace edit = mock(IrisObjectReplace.class);
         when(edit.getChance()).thenReturn(0.45F);
         when(edit.getFind(data)).thenReturn(new KList<>(solid));
-        when(edit.getReplace(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+        when(edit.getReplace(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(PackRuntime.class)))
                 .thenReturn(replacement);
         IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
         when(palette.getTile(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
@@ -351,7 +353,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
         when(edit.getChance()).thenReturn(1F);
         when(edit.getFind(data)).thenReturn(new KList<>(chest));
-        when(edit.getReplace(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+        when(edit.getReplace(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(PackRuntime.class)))
                 .thenReturn(solid);
         when(edit.getReplace()).thenReturn(palette);
         when(palette.getTile(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
@@ -534,7 +536,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         NativeBlockState calcite = state("minecraft:calcite", true);
         NativeBlockState cobblestone = state("minecraft:cobblestone", true);
         IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
-        when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+        when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(PackRuntime.class)))
                 .thenReturn(cobblestone);
         IrisObject object = lineObject(3);
         object.setUnsigned(2, 0, 0, calcite);
@@ -561,7 +563,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         object.setUnsigned(0, 0, 0, ice);
         object.setUnsigned(2, 0, 0, cluster);
         IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
-        when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+        when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(PackRuntime.class)))
                 .thenReturn(solid);
         RecordingPlacer placer = new RecordingPlacer(null);
         IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.CENTER_STILT)
@@ -582,10 +584,10 @@ public class IrisObjectPlacementRunnerRegressionTest {
         NativeBlockState packedIce = state("minecraft:packed_ice", true);
         IrisMaterialPalette body = mock(IrisMaterialPalette.class);
         when(body.getPalette()).thenReturn(new KList<>(new IrisBlockData("minecraft:ice")));
-        when(body.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+        when(body.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(PackRuntime.class)))
                 .thenReturn(ice);
         IrisMaterialPalette roots = mock(IrisMaterialPalette.class);
-        when(roots.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+        when(roots.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(PackRuntime.class)))
                 .thenReturn(packedIce);
         IrisFormation formation = new IrisFormation().setForm(IrisFormationForm.OVERHANG)
                 .setHeightMin(16).setHeightMax(25).setBaseWidthMin(5).setBaseWidthMax(8)
@@ -726,7 +728,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         when(barrel.isStorage()).thenReturn(true);
         for (NativeBlockState replacement : List.of(calcite, barrel)) {
             IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
-            when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+            when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(PackRuntime.class)))
                     .thenReturn(replacement);
             RecordingPlacer placer = new RecordingPlacer(null);
             IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.CENTER_STILT)
@@ -750,7 +752,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
             IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
             when(edit.getChance()).thenReturn(1F);
             when(edit.getFind(data)).thenReturn(new KList<>(solid));
-            when(edit.getReplace(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+            when(edit.getReplace(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(PackRuntime.class)))
                     .thenReturn(replacement);
             when(edit.getReplace()).thenReturn(palette);
             when(palette.getTile(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))

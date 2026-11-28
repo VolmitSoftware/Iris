@@ -18,6 +18,7 @@
 
 package art.arcane.iris.studio.map;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import com.formdev.flatlaf.FlatClientProperties;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.configuration.IrisSettings;
@@ -570,7 +571,8 @@ public final class NoiseExplorerGUI extends JPanel {
         }
         long mixedSeed = new RNG(sourceSeed).nextParallelRNG(3245).lmax();
         IrisGenerator selectedGenerator = generator;
-        return (x, z) -> selectedGenerator.getHeight(x, z, mixedSeed);
+        PackRuntime runtime = PackRuntime.of(engine, selectedGenerator.getLoader());
+        return (x, z) -> selectedGenerator.getHeight(runtime, x, z, mixedSeed);
     }
 
     private List<SourceItem> loadPackSources(Engine engine) {
@@ -608,7 +610,8 @@ public final class NoiseExplorerGUI extends JPanel {
                             throw new IllegalStateException("Pack generator not found: " + key);
                         }
                         long mixedSeed = new RNG(sourceSeed).nextParallelRNG(3245).lmax();
-                        return LoadedSource.of((x, z) -> generator.getHeight(x, z, mixedSeed));
+                        PackRuntime runtime = data.standalonePackRuntime();
+                        return LoadedSource.of((x, z) -> generator.getHeight(runtime, x, z, mixedSeed));
                     }
             ));
         }

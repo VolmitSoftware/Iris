@@ -30,6 +30,7 @@ import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.platform.bukkit.plugin.IrisService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
@@ -191,6 +192,26 @@ public class ExternalDataSVC implements IrisService {
             }
         }
         return blockData;
+    }
+
+    /** The block made to never decay by the provider it belongs to, or {@code data} itself. */
+    public BlockData withoutDecay(BlockData data) {
+        for (ExternalDataProvider provider : activeProviders) {
+            BlockData kept = provider.withoutDecay(data);
+            if (kept == data) {
+                continue;
+            }
+            if (kept instanceof IrisCustomData custom && data instanceof IrisCustomData) {
+                return IrisCustomData.of(custom.getBase(), qualifyBlockId(provider, custom.getCustom()));
+            }
+            return kept;
+        }
+        return data;
+    }
+
+    /** Whether {@code data} is a provider's block carrying {@code tag}. */
+    public boolean hasBlockTag(BlockData data, NamespacedKey tag) {
+        return activeProviders.stream().anyMatch(provider -> provider.hasBlockTag(data, tag));
     }
 
     public Optional<BlockData> getBlockData(final Identifier key) {

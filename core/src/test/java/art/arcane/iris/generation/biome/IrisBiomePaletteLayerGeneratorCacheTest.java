@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 
 import art.arcane.iris.pack.loading.IrisData;
@@ -31,11 +33,11 @@ public final class IrisBiomePaletteLayerGeneratorCacheTest {
         GeneratorFixture fixture = new GeneratorFixture();
 
         assertSame(fixture.carveGenerator,
-                fixture.layer.getLayerGenerator(new RNG(11L), SIGNATURE, fixture.data));
+                fixture.layer.getLayerGenerator(new RNG(11L), SIGNATURE, fixture.data.standalonePackRuntime()));
         assertSame(fixture.postGenerator,
-                fixture.layer.getLayerGenerator(new RNG(29L), SIGNATURE, fixture.data));
+                fixture.layer.getLayerGenerator(new RNG(29L), SIGNATURE, fixture.data.standalonePackRuntime()));
         assertSame(fixture.carveGenerator,
-                fixture.layer.getLayerGenerator(new RNG(11L), SIGNATURE, fixture.data));
+                fixture.layer.getLayerGenerator(new RNG(11L), SIGNATURE, fixture.data.standalonePackRuntime()));
     }
 
     @Test
@@ -43,9 +45,9 @@ public final class IrisBiomePaletteLayerGeneratorCacheTest {
         GeneratorFixture fixture = new GeneratorFixture();
 
         assertSame(fixture.postGenerator,
-                fixture.layer.getLayerGenerator(new RNG(29L), SIGNATURE, fixture.data));
+                fixture.layer.getLayerGenerator(new RNG(29L), SIGNATURE, fixture.data.standalonePackRuntime()));
         assertSame(fixture.carveGenerator,
-                fixture.layer.getLayerGenerator(new RNG(11L), SIGNATURE, fixture.data));
+                fixture.layer.getLayerGenerator(new RNG(11L), SIGNATURE, fixture.data.standalonePackRuntime()));
     }
 
     @Test
@@ -56,11 +58,11 @@ public final class IrisBiomePaletteLayerGeneratorCacheTest {
         try {
             Future<CNG> carve = executor.submit(() -> {
                 assertTrue(start.await(5L, TimeUnit.SECONDS));
-                return fixture.layer.getLayerGenerator(new RNG(11L), SIGNATURE, fixture.data);
+                return fixture.layer.getLayerGenerator(new RNG(11L), SIGNATURE, fixture.data.standalonePackRuntime());
             });
             Future<CNG> post = executor.submit(() -> {
                 assertTrue(start.await(5L, TimeUnit.SECONDS));
-                return fixture.layer.getLayerGenerator(new RNG(29L), SIGNATURE, fixture.data);
+                return fixture.layer.getLayerGenerator(new RNG(29L), SIGNATURE, fixture.data.standalonePackRuntime());
             });
             start.countDown();
 
@@ -72,7 +74,7 @@ public final class IrisBiomePaletteLayerGeneratorCacheTest {
     }
 
     private static final class GeneratorFixture {
-        private final IrisData data = mock(IrisData.class);
+        private final IrisData data = MockPackData.create();
         private final Engine engine = mock(Engine.class);
         private final IrisGeneratorStyle style = mock(IrisGeneratorStyle.class);
         private final CNG carveGenerator = mock(CNG.class);
@@ -85,7 +87,7 @@ public final class IrisBiomePaletteLayerGeneratorCacheTest {
                     11L + SIGNATURE + LAYER_SIGNATURE, carveGenerator,
                     29L + SIGNATURE + LAYER_SIGNATURE, postGenerator
             );
-            when(style.create(any(RNG.class), same(data), same(engine))).thenAnswer(invocation -> {
+            when(style.createNoCache(any(RNG.class), any())).thenAnswer(invocation -> {
                 RNG rng = invocation.getArgument(0);
                 return generators.get(rng.getSeed());
             });

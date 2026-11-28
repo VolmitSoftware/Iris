@@ -76,6 +76,7 @@ final class EngineHotloader {
                 engine.sealForTransition("complex hotload", false);
                 engine.prepareRuntimeHotload();
                 assembly = new RuntimeAssembly(
+                        engine,
                         RuntimeAssembly.nextRuntimeId(),
                         previousGeneration.target(),
                         previousGeneration.mantleStorageDirectory(),
@@ -94,6 +95,7 @@ final class EngineHotloader {
                     GenerationRuntime nextGeneration = previousGeneration.withComplex(
                             assembly.cacheId,
                             assembly.complex,
+                            assembly.packRuntime,
                             assembly.upperContext,
                             assembly.dimensionStackContext,
                             biomeMaxes);

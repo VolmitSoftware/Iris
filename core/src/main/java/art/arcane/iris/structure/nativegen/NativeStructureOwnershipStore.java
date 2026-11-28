@@ -13,7 +13,6 @@ import art.arcane.volmlib.util.matter.MatterSlice;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -28,7 +27,8 @@ import java.util.function.IntConsumer;
 
 public final class NativeStructureOwnershipStore {
     private static final int MAX_CACHED_AUTHORITIES = 65_536;
-    private static final Cache<Engine, State> STATES = Caffeine.newBuilder().weakKeys().build();
+    /** Stores of live engines; each engine closes its store, then releases it once the engine is closed. */
+    private static final Cache<Engine, State> STATES = Caffeine.newBuilder().build();
 
     private NativeStructureOwnershipStore() {
     }
@@ -67,14 +67,25 @@ public final class NativeStructureOwnershipStore {
         state.close();
     }
 
+    /** Drops a closed engine's store; a closed engine cannot open a new one. */
+    public static void release(Engine engine) {
+        STATES.invalidate(Objects.requireNonNull(engine, "Native structure ownership store requires an engine"));
+    }
+
     private static State state(Engine engine) {
         Engine resolved = Objects.requireNonNull(engine,
                 "Native structure ownership store requires an engine");
+        State state = STATES.getIfPresent(resolved);
+        if (state != null) {
+            return state;
+        }
+        if (resolved.isClosed()) {
+            throw new IllegalStateException("Native structure ownership store is closed for this engine.");
+        }
         return STATES.get(resolved, State::new);
     }
 
     static final class State {
-        private final WeakReference<Engine> engine;
         private final Storage storage;
         private final Cache<NativeStructureOwnershipRecord.OwnershipKey, Authority> authorities;
         private final ReentrantReadWriteLock lifecycleLock;
@@ -86,8 +97,7 @@ public final class NativeStructureOwnershipStore {
         }
 
         State(Engine engine, Storage storage) {
-            this.engine = new WeakReference<>(Objects.requireNonNull(engine,
-                    "Native structure ownership store requires an engine"));
+            Objects.requireNonNull(engine, "Native structure ownership store requires an engine");
             this.storage = Objects.requireNonNull(storage,
                     "Native structure ownership storage must not be null");
             this.authorities = Caffeine.newBuilder().maximumSize(MAX_CACHED_AUTHORITIES).build();
@@ -212,18 +222,9 @@ public final class NativeStructureOwnershipStore {
         }
 
         private void requireOpen() {
-            engine();
             if (closed) {
                 throw new GenerationClosedException("Native structure ownership store is closed");
             }
-        }
-
-        private Engine engine() {
-            Engine active = engine.get();
-            if (active == null) {
-                throw new IllegalStateException("Native structure ownership engine is unavailable");
-            }
-            return active;
         }
     }
 
@@ -241,18 +242,18 @@ public final class NativeStructureOwnershipStore {
     }
 
     static final class MantleStorage implements Storage {
-        private final WeakReference<Engine> engine;
+        private final Engine engine;
         private final Map<PendingTarget, NativeStructureOwnershipBundle> pendingBundles;
-        private final WeakReference<IrisEngine> retirementEngine;
+        private final IrisEngine retirementEngine;
         private final IntConsumer retirementListener;
 
         MantleStorage(Engine engine) {
             Engine required = Objects.requireNonNull(engine,
                     "Native structure ownership store requires an engine");
-            this.engine = new WeakReference<>(required);
+            this.engine = required;
             this.pendingBundles = new ConcurrentHashMap<>();
             if (required instanceof IrisEngine irisEngine) {
-                this.retirementEngine = new WeakReference<>(irisEngine);
+                this.retirementEngine = irisEngine;
                 this.retirementListener = this::flushRuntime;
                 irisEngine.addGenerationRuntimeRetirementListener(retirementListener);
             } else {
@@ -336,7 +337,7 @@ public final class NativeStructureOwnershipStore {
 
         @Override
         public void close() {
-            IrisEngine activeRetirementEngine = retirementEngine == null ? null : retirementEngine.get();
+            IrisEngine activeRetirementEngine = retirementEngine;
             if (activeRetirementEngine != null) {
                 activeRetirementEngine.removeGenerationRuntimeRetirementListener(retirementListener);
             }
@@ -411,10 +412,7 @@ public final class NativeStructureOwnershipStore {
         }
 
         private RuntimeMantleOwner owner() {
-            Engine active = engine.get();
-            if (active == null) {
-                throw new IllegalStateException("Native structure ownership engine is unavailable");
-            }
+            Engine active = engine;
             EngineMantle mantle = active.getMantle();
             int runtimeId = active.getCacheID();
             if (!(active instanceof IrisEngine irisEngine)) {

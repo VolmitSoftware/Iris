@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.placement;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -19,6 +20,31 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class StructurePlacementScopeTest {
+    @Test
+    public void scopeIndexIsHeldOnlyUntilTheEngineInvalidatesIt() {
+        Engine liveEngine = engineWithoutStructures();
+        Engine closedEngine = engineWithoutStructures();
+        when(closedEngine.isClosed()).thenReturn(true);
+
+        StructurePlacementScope.placementsAt(liveEngine, 0, 0);
+        StructurePlacementScope.placementsAt(closedEngine, 0, 0);
+
+        assertTrue(StructurePlacementScope.isIndexed(liveEngine));
+        assertFalse(StructurePlacementScope.isIndexed(closedEngine));
+        StructurePlacementScope.invalidate(liveEngine);
+        assertFalse(StructurePlacementScope.isIndexed(liveEngine));
+    }
+
+    private static Engine engineWithoutStructures() {
+        Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
+        IrisDimension dimension = mock(IrisDimension.class);
+        when(engine.getDimension()).thenReturn(dimension);
+        when(engine.getAllBiomes()).thenReturn(new KList<>());
+        when(dimension.getStructures()).thenReturn(new KList<>());
+        when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
+        return engine;
+    }
+
     @Test
     public void caveBiomeContributesOnlyCaveAnchoredPlacements() {
         IrisStructurePlacement surfacePlacement = new IrisStructurePlacement();

@@ -30,6 +30,7 @@ import art.arcane.iris.world.loot.IrisLootTable;
 import art.arcane.iris.structure.object.IrisObjectLoot;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.structure.object.IrisObjectVanillaLoot;
+import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -40,6 +41,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class ModdedLootApplier {
+    private static final String LOOT_TABLE_KEY_KIND = "missing-loot-table";
+    private static final String VANILLA_LOOT_TABLE_KEY_KIND = "missing-vanilla-loot-table";
+
     private ModdedLootApplier() {
     }
 
@@ -117,7 +121,8 @@ public final class ModdedLootApplier {
             }
             IrisLootTable table = engine.getData().getLootLoader().load(loot.getName());
             if (table == null) {
-                IrisLogging.warn("Couldn't find loot table " + loot.getName());
+                IrisLogging.warnOnce(IrisData.onceKey(engine.getData(), LOOT_TABLE_KEY_KIND, loot.getName()),
+                        "Couldn't find loot table " + loot.getName());
                 continue;
             }
             bucket(engine, loot, new Candidate(new IrisLootSource(table), loot.getWeight()), access, exact, basic, global);
@@ -129,7 +134,8 @@ public final class ModdedLootApplier {
             }
             NativeContainerLoot.Table table = access.table(loot.getName());
             if (table == null) {
-                IrisLogging.warn("Couldn't find vanilla loot table " + loot.getName());
+                IrisLogging.warnOnce(IrisData.onceKey(engine.getData(), VANILLA_LOOT_TABLE_KEY_KIND, loot.getName()),
+                        "Couldn't find vanilla loot table " + loot.getName());
                 continue;
             }
             bucket(engine, loot, new Candidate(new NativeLootSource(table), loot.getWeight()), access, exact, basic, global);

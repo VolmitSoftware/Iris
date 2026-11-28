@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.pack.loading.IrisData;
@@ -26,6 +28,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class IrisBiomeLayerHeightCacheTest {
+    private static final PackRuntime RUNTIME = PackRuntime.standalone(null);
+
     private static final long TERRAIN_SEED = 7191L;
     private static final long CARVE_SEED = -872315L;
     private static final long FLOATING_SEED = (TERRAIN_SEED ^ 0x7EB0A73F1DCE514DL)
@@ -34,15 +38,15 @@ public class IrisBiomeLayerHeightCacheTest {
     @Test
     public void layerHeightUsesEachCallerSeedInEitherOrder() {
         IrisBiomePaletteLayer layer = layer();
-        assertNoise(layer().getHeightGenerator(new RNG(CARVE_SEED), null),
-                layer.getHeightGenerator(new RNG(CARVE_SEED), null));
-        assertNoise(layer().getHeightGenerator(new RNG(FLOATING_SEED), null),
-                layer.getHeightGenerator(new RNG(FLOATING_SEED), null));
+        assertNoise(layer().getHeightGenerator(new RNG(CARVE_SEED), RUNTIME),
+                layer.getHeightGenerator(new RNG(CARVE_SEED), RUNTIME));
+        assertNoise(layer().getHeightGenerator(new RNG(FLOATING_SEED), RUNTIME),
+                layer.getHeightGenerator(new RNG(FLOATING_SEED), RUNTIME));
         IrisBiomePaletteLayer reversed = layer();
-        assertNoise(layer.getHeightGenerator(new RNG(FLOATING_SEED), null),
-                reversed.getHeightGenerator(new RNG(FLOATING_SEED), null));
-        assertNoise(layer.getHeightGenerator(new RNG(CARVE_SEED), null),
-                reversed.getHeightGenerator(new RNG(CARVE_SEED), null));
+        assertNoise(layer.getHeightGenerator(new RNG(FLOATING_SEED), RUNTIME),
+                reversed.getHeightGenerator(new RNG(FLOATING_SEED), RUNTIME));
+        assertNoise(layer.getHeightGenerator(new RNG(CARVE_SEED), RUNTIME),
+                reversed.getHeightGenerator(new RNG(CARVE_SEED), RUNTIME));
     }
 
     @Test
@@ -50,16 +54,16 @@ public class IrisBiomeLayerHeightCacheTest {
         IrisBiome biome = biome();
         long[] seeds = {FLOATING_SEED, CARVE_SEED, TERRAIN_SEED, FLOATING_SEED + 733L};
         for (long seed : seeds) {
-            assertGenerators(biome().getLayerHeightGenerators(new RNG(seed), null),
-                    biome.getLayerHeightGenerators(new RNG(seed), null));
+            assertGenerators(biome().getLayerHeightGenerators(new RNG(seed), RUNTIME),
+                    biome.getLayerHeightGenerators(new RNG(seed), RUNTIME));
         }
         IrisBiome reversed = biome();
         for (int i = seeds.length - 1; i >= 0; i--) {
-            assertGenerators(biome.getLayerHeightGenerators(new RNG(seeds[i]), null),
-                    reversed.getLayerHeightGenerators(new RNG(seeds[i]), null));
+            assertGenerators(biome.getLayerHeightGenerators(new RNG(seeds[i]), RUNTIME),
+                    reversed.getLayerHeightGenerators(new RNG(seeds[i]), RUNTIME));
         }
-        assertNotEquals(biome.getLayerHeightGenerators(new RNG(TERRAIN_SEED), null).get(0).noise(13, -29),
-                biome.getLayerHeightGenerators(new RNG(FLOATING_SEED), null).get(0).noise(13, -29), 0D);
+        assertNotEquals(biome.getLayerHeightGenerators(new RNG(TERRAIN_SEED), RUNTIME).get(0).noise(13, -29),
+                biome.getLayerHeightGenerators(new RNG(FLOATING_SEED), RUNTIME).get(0).noise(13, -29), 0D);
     }
 
     @Test
@@ -72,11 +76,11 @@ public class IrisBiomeLayerHeightCacheTest {
         try {
             for (int worker = 0; worker < 8; worker++) {
                 long seed = seeds[worker % seeds.length];
-                KList<CNG> expected = biome().getLayerHeightGenerators(new RNG(seed), null);
+                KList<CNG> expected = biome().getLayerHeightGenerators(new RNG(seed), RUNTIME);
                 tasks.add(executor.submit(() -> {
                     assertTrue(start.await(5, TimeUnit.SECONDS));
                     for (int sample = 0; sample < 30; sample++) {
-                        assertGenerators(expected, shared.getLayerHeightGenerators(new RNG(seed), null));
+                        assertGenerators(expected, shared.getLayerHeightGenerators(new RNG(seed), RUNTIME));
                     }
                     return null;
                 }));
@@ -91,28 +95,22 @@ public class IrisBiomeLayerHeightCacheTest {
     }
 
     @Test
-    public void runtimeAndDataIdentitiesDoNotReuseHeightGenerators() {
+    public void runtimeIdentitiesDoNotReuseHeightGenerators() {
         IrisBiome biome = biome();
-        IrisData data = mock(IrisData.class);
-        IrisData otherData = mock(IrisData.class);
-        Engine first = mock(Engine.class);
-        Engine second = mock(Engine.class);
-        when(data.getEngine()).thenReturn(first);
-        when(otherData.getEngine()).thenReturn(first);
+        IrisData data = MockPackData.create();
+        PackRuntime standalone = data.standalonePackRuntime();
+        PackRuntime otherData = MockPackData.create().standalonePackRuntime();
+        PackRuntime engineScope = PackRuntime.forEngine(mock(Engine.class), data);
         RNG rng = new RNG(TERRAIN_SEED);
-        KList<CNG> original = biome.getLayerHeightGenerators(rng, data);
-        assertSame(original, biome.getLayerHeightGenerators(rng, data));
-        KList<CNG> other = biome.getLayerHeightGenerators(rng, otherData);
-        assertNotSame(original, other);
-        assertNotSame(original.get(0), other.get(0));
-        assertGenerators(original, other);
-        when(data.getEngine()).thenReturn(second);
-        KList<CNG> replacement = biome.getLayerHeightGenerators(rng, data);
-        assertNotSame(original, replacement);
-        assertNotSame(original.get(0), replacement.get(0));
-        assertGenerators(original, replacement);
-        when(data.getEngine()).thenReturn(first);
-        assertSame(original, biome.getLayerHeightGenerators(rng, data));
+        KList<CNG> original = biome.getLayerHeightGenerators(rng, standalone);
+        assertSame(original, biome.getLayerHeightGenerators(rng, standalone));
+        for (PackRuntime other : new PackRuntime[]{otherData, engineScope}) {
+            KList<CNG> separate = biome.getLayerHeightGenerators(rng, other);
+            assertNotSame(original, separate);
+            assertNotSame(original.get(0), separate.get(0));
+            assertGenerators(original, separate);
+        }
+        assertSame(original, biome.getLayerHeightGenerators(rng, standalone));
     }
 
     @Test
@@ -126,12 +124,12 @@ public class IrisBiomeLayerHeightCacheTest {
             IrisBiome isolated = materialBiome(first, second);
             RNG rng = new RNG(seed);
             for (int x = -65; x <= 65; x += 7) {
-                assertEquals(isolated.generateLayers(dimension, x, -x, rng, 64, 120, null, null),
-                        shared.generateLayers(dimension, x, -x, rng, 64, 120, null, null));
-                assertEquals(isolated.generateCeilingLayers(dimension, x, -x, rng, 64, 120, null, null),
-                        shared.generateCeilingLayers(dimension, x, -x, rng, 64, 120, null, null));
-                assertEquals(isolated.generateSeaLayers(x, -x, rng, 64, null),
-                        shared.generateSeaLayers(x, -x, rng, 64, null));
+                assertEquals(isolated.generateLayers(dimension, x, -x, rng, 64, 120, RUNTIME, null),
+                        shared.generateLayers(dimension, x, -x, rng, 64, 120, RUNTIME, null));
+                assertEquals(isolated.generateCeilingLayers(dimension, x, -x, rng, 64, 120, RUNTIME, null),
+                        shared.generateCeilingLayers(dimension, x, -x, rng, 64, 120, RUNTIME, null));
+                assertEquals(isolated.generateSeaLayers(x, -x, rng, 64, RUNTIME),
+                        shared.generateSeaLayers(x, -x, rng, 64, RUNTIME));
             }
         }
     }
@@ -139,11 +137,11 @@ public class IrisBiomeLayerHeightCacheTest {
     @Test
     public void evictionRecomputesTheSameNoise() {
         IrisBiome biome = biome();
-        KList<CNG> original = biome.getLayerHeightGenerators(new RNG(TERRAIN_SEED), null);
+        KList<CNG> original = biome.getLayerHeightGenerators(new RNG(TERRAIN_SEED), RUNTIME);
         for (int seed = 0; seed < 96; seed++) {
-            biome.getLayerHeightGenerators(new RNG(seed), null);
+            biome.getLayerHeightGenerators(new RNG(seed), RUNTIME);
         }
-        KList<CNG> recomputed = biome.getLayerHeightGenerators(new RNG(TERRAIN_SEED), null);
+        KList<CNG> recomputed = biome.getLayerHeightGenerators(new RNG(TERRAIN_SEED), RUNTIME);
         assertNotSame(original, recomputed);
         assertNotSame(original.get(0), recomputed.get(0));
         assertGenerators(original, recomputed);

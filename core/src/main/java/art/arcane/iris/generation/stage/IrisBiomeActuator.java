@@ -61,6 +61,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
         ChunkedDataCache<IrisBiome> biomeCache = context.getBiome();
         IrisComplex complex = context.getComplex();
         DimensionStackContext dimensionStackContext = engine.getDimensionStackContext();
+        IrisDimension dimension = getDimension();
 
         for (int xf = 0; xf < width; xf++) {
             for (int zf = 0; zf < depth; zf++) {
@@ -69,7 +70,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
                 IrisBiome biome = biomeCache.get(xf, zf);
                 NativeBiome platformBiome = resolve(biomeKey(
                         biome,
-                        getDimension(),
+                        dimension,
                         engine,
                         worldX,
                         0,

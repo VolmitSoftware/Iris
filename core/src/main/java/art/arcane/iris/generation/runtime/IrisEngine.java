@@ -1402,6 +1402,17 @@ public class IrisEngine implements Engine {
         return complexIn(threadState.current());
     }
 
+    @Override
+    public PackRuntime getPackRuntime() {
+        EngineThreadState.Frame frame = threadState.current();
+        RuntimeAssembly assembly = frame == null ? null : frame.assembly;
+        if (assembly != null) {
+            return assembly.packRuntime;
+        }
+        GenerationRuntime current = selectedGenerationRuntime(frame);
+        return current == null ? null : current.packRuntime();
+    }
+
     private IrisComplex complexIn(EngineThreadState.Frame frame) {
         RuntimeAssembly assembly = frame == null ? null : frame.assembly;
         if (assembly != null && assembly.complex != null) {

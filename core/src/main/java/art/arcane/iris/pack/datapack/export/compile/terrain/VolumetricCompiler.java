@@ -101,7 +101,7 @@ public final class VolumetricCompiler {
     }
 
     private static List<Field.Knot> fit(Marginal marginal, Field unit, Sampling sampling) {
-        CNG iris = marginal.style().createNoCache(new RNG(MARGINAL_SEED), sampling.data());
+        CNG iris = marginal.style().createNoCache(new RNG(MARGINAL_SEED), sampling.data().standalonePackRuntime());
         Map<String, NoiseDef> noises = sampling.registry().byReference();
         double frequency = STYLE_SCALE / marginal.horizontalScale();
         SplittableRandom random = new SplittableRandom(MARGINAL_SEED);

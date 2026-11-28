@@ -184,7 +184,7 @@ final class VariantPlanner {
             return warps;
         }
         String key = ContentIds.hash(GSON.toJson(style));
-        CNG generator = style.create(new RNG(ContentIds.seed(key)), data);
+        CNG generator = style.create(new RNG(ContentIds.seed(key)), data.standalonePackRuntime());
         double half = style.getMultiplier() / 2;
         WarpField field = (x, y, z) -> generator.fitDouble(-half, half, x, y, z);
         for (int index = 0; index < WARP_VARIANTS; index++) {

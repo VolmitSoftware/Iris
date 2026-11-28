@@ -1,5 +1,6 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.generation.runtime.ThreadSlots;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -21,7 +22,7 @@ final class TransitionBoundarySampler {
     private final TerrainBoundarySignatureStore.Snapshot signatures;
     private final LinkedHashMap<Long, CandidateIndex> chunkCandidates;
     private final Map<Long, CompletableFuture<CandidateIndex>> pendingCandidates = new HashMap<>();
-    private final ThreadLocal<ChunkCache> cache;
+    private final ThreadSlots<ChunkCache> cache;
     private int cachedCandidates;
     private long candidateBuildCount;
 
@@ -36,7 +37,7 @@ final class TransitionBoundarySampler {
         this.searchWidth = terrainWidth;
         this.signatures = Objects.requireNonNull(signatures, "Terrain boundary signatures");
         this.chunkCandidates = new LinkedHashMap<>(MAXIMUM_CACHED_CHUNKS, 0.75F, true);
-        this.cache = ThreadLocal.withInitial(ChunkCache::new);
+        this.cache = new ThreadSlots<>(ChunkCache::new);
     }
 
     TransitionGenerationPlan.TerrainSample sample(int blockX, int blockZ) {

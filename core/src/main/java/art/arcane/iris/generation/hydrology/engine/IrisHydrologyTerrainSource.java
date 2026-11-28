@@ -60,7 +60,7 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
         this.focus = complex.getFocusBiome();
         this.binding = Objects.requireNonNull(binding, "binding");
         this.climate = settings.climate();
-        this.wetness = climate.enabled() ? climate.style().create(settings.seed() ^ SALT_CLIMATE, complex.getData()) : null;
+        this.wetness = climate.enabled() ? climate.style().create(settings.seed() ^ SALT_CLIMATE, complex.getPackRuntime()) : null;
     }
 
     @Override

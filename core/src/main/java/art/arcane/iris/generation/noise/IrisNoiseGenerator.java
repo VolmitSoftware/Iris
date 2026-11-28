@@ -18,9 +18,7 @@
 
 package art.arcane.iris.generation.noise;
 
-import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.LazyBoundedCache;
-import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
@@ -40,16 +38,12 @@ import art.arcane.volmlib.util.noise.OffsetNoiseGenerator;
 import art.arcane.volmlib.util.noise.PerlinNoise;
 import art.arcane.volmlib.util.noise.SimplexNoise;
 import art.arcane.volmlib.util.noise.program.NoiseProgram;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Snippet("generator")
 @Accessors(chain = true)
@@ -58,7 +52,6 @@ import java.util.concurrent.atomic.AtomicReference;
 @Description("A noise generator")
 @Data
 public class IrisNoiseGenerator {
-    private static final int GENERATOR_CACHE_SIZE = 32;
     private static final long GENERATOR_SEED_SALT = 33_955_677L;
     private static final int MINIMUM_FRACTURE_DEPTH = 4;
     private static final int MAXIMUM_FRACTURE_NODES = 32;
@@ -67,13 +60,6 @@ public class IrisNoiseGenerator {
     static final int Z_AXIS = 1;
     private static final ThreadLocal<FractureSamples> FRACTURE_SAMPLES = ThreadLocal.withInitial(FractureSamples::new);
 
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient LazyBoundedCache<GeneratorKey, CNG> generators =
-            new LazyBoundedCache<>(GENERATOR_CACHE_SIZE);
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient AtomicReference<CachedGenerator> recentGenerator = new AtomicReference<>();
     @MinNumber(0.0001)
     @Description("The coordinate input zoom")
     private double zoom = 1;
@@ -118,43 +104,28 @@ public class IrisNoiseGenerator {
         this.enabled = enabled;
     }
 
-    CNG getGenerator(long superSeed, IrisData data, Engine engine) {
-        long generatorSeed = superSeed + GENERATOR_SEED_SALT - seed;
-        CachedGenerator recent = recentGenerator.get();
-        if (recent != null && recent.key.matches(data, engine, generatorSeed)) {
-            return recent.generator;
-        }
+    CNG getGenerator(long superSeed, PackRuntime runtime) {
+        return runtime.noiseLayerGenerator(this, superSeed + GENERATOR_SEED_SALT - seed);
+    }
 
-        GeneratorKey key = new GeneratorKey(data, engine, generatorSeed);
-        CNG generator = generators.computeIfAbsent(key,
-                ignored -> style.createForLayer(new RNG(generatorSeed), data, octaves, engine));
-        if (generator != null) {
-            recentGenerator.set(new CachedGenerator(key, generator));
-        }
-        return generator;
+    /** Builds this layer's generator for one derived seed; {@link PackRuntime} shares the result. */
+    public CNG buildGenerator(long generatorSeed, PackRuntime runtime) {
+        return style.createForLayer(new RNG(generatorSeed), runtime, octaves);
     }
 
     public double getMax() {
         return getOffsetY() + opacity;
     }
 
-    public double getNoise(long superSeed, double xv, double zv, IrisData data) {
-        if (!enabled) {
-            return offsetY;
-        }
-
-        return getNoise(superSeed, xv, zv, data, data == null ? null : data.getEngine());
-    }
-
-    double getNoise(long superSeed, double xv, double zv, IrisData data, Engine engine) {
-        return getNoiseForAxis(superSeed, xv, zv, data, engine, X_AXIS);
+    public double getNoise(long superSeed, double xv, double zv, PackRuntime runtime) {
+        return getNoiseForAxis(superSeed, xv, zv, runtime, X_AXIS);
     }
 
     /**
      * This layer read as the fracture of one axis. Each axis samples this layer's generator reseeded for that axis at
      * the same coordinates, so the x and z warps are uncorrelated instead of mirror images of each other.
      */
-    private double getNoiseForAxis(long superSeed, double xv, double zv, IrisData data, Engine engine, int axis) {
+    private double getNoiseForAxis(long superSeed, double xv, double zv, PackRuntime runtime, int axis) {
         if (!enabled) {
             return offsetY;
         }
@@ -164,7 +135,7 @@ public class IrisNoiseGenerator {
             if (!samples.active) {
                 samples.active = true;
                 try {
-                    if (samples.prepare(this, superSeed, data, engine)) {
+                    if (samples.prepare(this, superSeed, runtime)) {
                         return samples.sample(xv, zv, axis);
                     }
                 } finally {
@@ -180,13 +151,13 @@ public class IrisNoiseGenerator {
         for (IrisNoiseGenerator i : fracture) {
             if (i.isEnabled()) {
                 double fractureOffset = i.getOpacity() / 2D;
-                x += i.getNoiseForAxis(superSeed + seed + g, xv, zv, data, engine, X_AXIS) - fractureOffset;
-                z += i.getNoiseForAxis(superSeed + seed + g, xv, zv, data, engine, Z_AXIS) - fractureOffset;
+                x += i.getNoiseForAxis(superSeed + seed + g, xv, zv, runtime, X_AXIS) - fractureOffset;
+                z += i.getNoiseForAxis(superSeed + seed + g, xv, zv, runtime, Z_AXIS) - fractureOffset;
             }
             g += 819;
         }
 
-        return sample(getGenerator(superSeed, data, engine).reseededForAxis(axis), x, z);
+        return sample(getGenerator(superSeed, runtime).reseededForAxis(axis), x, z);
     }
 
     boolean supportsBatch() {
@@ -210,11 +181,11 @@ public class IrisNoiseGenerator {
         return true;
     }
 
-    NoiseLayerProgram compileProgram(long superSeed, IrisData data, Engine engine) {
-        return compileProgram(superSeed, data, engine, false);
+    NoiseLayerProgram compileProgram(long superSeed, PackRuntime runtime) {
+        return compileProgram(superSeed, runtime, false);
     }
 
-    private NoiseLayerProgram compileProgram(long superSeed, IrisData data, Engine engine, boolean readAsFracture) {
+    private NoiseLayerProgram compileProgram(long superSeed, PackRuntime runtime, boolean readAsFracture) {
         if (!enabled) {
             return NoiseLayerProgram.disabled(this);
         }
@@ -230,12 +201,12 @@ public class IrisNoiseGenerator {
         int compiled = 0;
         for (IrisNoiseGenerator child : fracture) {
             if (child.isEnabled()) {
-                children[compiled] = child.compileProgram(superSeed + seed + salt, data, engine, true);
+                children[compiled] = child.compileProgram(superSeed + seed + salt, runtime, true);
                 offsets[compiled++] = child.getOpacity() / 2D;
             }
             salt += 819;
         }
-        CNG generator = Objects.requireNonNull(getGenerator(superSeed, data, engine), "Noise layer generator");
+        CNG generator = Objects.requireNonNull(getGenerator(superSeed, runtime), "Noise layer generator");
         NoiseProgram zAxisProgram = readAsFracture ? NoiseProgram.compile2D(generator.reseededForAxis(Z_AXIS)) : null;
         return NoiseLayerProgram.of(this, NoiseProgram.compile2D(generator), zAxisProgram, children, offsets);
     }
@@ -311,54 +282,19 @@ public class IrisNoiseGenerator {
         return false;
     }
 
-    private static final class GeneratorKey {
-        private final IrisData data;
-        private final Engine engine;
-        private final long seed;
-
-        private GeneratorKey(IrisData data, Engine engine, long seed) {
-            this.data = data;
-            this.engine = engine;
-            this.seed = seed;
-        }
-
-        private boolean matches(IrisData data, Engine engine, long seed) {
-            return this.data == data && this.engine == engine && this.seed == seed;
-        }
-
-        @Override
-        public boolean equals(Object object) {
-            if (this == object) {
-                return true;
-            }
-            if (!(object instanceof GeneratorKey other)) {
-                return false;
-            }
-            return data == other.data && engine == other.engine && seed == other.seed;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = System.identityHashCode(data);
-            result = 31 * result + System.identityHashCode(engine);
-            result = 31 * result + Long.hashCode(seed);
-            return result;
-        }
-    }
-
     private static final class FractureSamples {
         private final IrisNoiseGenerator[] nodes = new IrisNoiseGenerator[MAXIMUM_FRACTURE_NODES];
         private final CNG[] generators = new CNG[MAXIMUM_FRACTURE_NODES];
         private int size;
         private boolean active;
 
-        private boolean prepare(IrisNoiseGenerator node, long superSeed, IrisData data, Engine engine) {
+        private boolean prepare(IrisNoiseGenerator node, long superSeed, PackRuntime runtime) {
             while (size < MAXIMUM_FRACTURE_NODES) {
                 if (node.getClass() != IrisNoiseGenerator.class || !node.enabled || !node.hasPureStyle()
                         || node.fracture.size() > 1) {
                     return false;
                 }
-                CNG generator = node.getGenerator(superSeed, data, engine);
+                CNG generator = node.getGenerator(superSeed, runtime);
                 if (!isPureGenerator(generator)) {
                     return false;
                 }
@@ -402,16 +338,6 @@ public class IrisNoiseGenerator {
             }
             size = 0;
             active = false;
-        }
-    }
-
-    private static final class CachedGenerator {
-        private final GeneratorKey key;
-        private final CNG generator;
-
-        private CachedGenerator(GeneratorKey key, CNG generator) {
-            this.key = key;
-            this.generator = generator;
         }
     }
 }

@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -21,6 +22,7 @@ public class IrisDecoratorPaletteSelectionTest {
     @Test
     public void multipleTopEntriesVaryEvenWhenTheBodyPaletteIsASingleBlock() {
         IrisData data = mock(IrisData.class);
+        PackRuntime runtime = PackRuntime.standalone(data);
         IrisBiome biome = mock(IrisBiome.class);
         IrisDecorator decorator = spy(new IrisDecorator().setChance(1D));
         NativeBlockState body = mock(NativeBlockState.class);
@@ -32,13 +34,13 @@ public class IrisDecoratorPaletteSelectionTest {
         RNG rng = new RNG(37L);
         doReturn(new KList<>(body)).when(decorator).getBlockData(data);
         doReturn(tops).when(decorator).getBlockDataTops(data);
-        doReturn(chance).when(decorator).getGenerator(rng, data);
-        doReturn(variance).when(decorator).getVarianceGenerator(rng, data);
+        doReturn(chance).when(decorator).getGenerator(rng, runtime);
+        doReturn(variance).when(decorator).getVarianceGenerator(rng, runtime);
         doReturn(second).when(variance).fit(tops, 23D, 9D, 17D);
         doReturn(first).when(variance).fit(tops, 24D, 9D, 17D);
 
-        assertSame(second, decorator.getBlockDataForTop(biome, rng, 17D, 9D, 23D, data));
-        assertSame(first, decorator.getBlockDataForTop(biome, rng, 17D, 9D, 24D, data));
+        assertSame(second, decorator.getBlockDataForTop(biome, rng, 17D, 9D, 23D, runtime));
+        assertSame(first, decorator.getBlockDataForTop(biome, rng, 17D, 9D, 24D, runtime));
         verify(variance).fit(tops, 23D, 9D, 17D);
         verify(variance).fit(tops, 24D, 9D, 17D);
     }
@@ -46,6 +48,7 @@ public class IrisDecoratorPaletteSelectionTest {
     @Test
     public void aSingleTopEntryDoesNotBuildOrSampleTheVarianceGenerator() {
         IrisData data = mock(IrisData.class);
+        PackRuntime runtime = PackRuntime.standalone(data);
         IrisBiome biome = mock(IrisBiome.class);
         IrisDecorator decorator = spy(new IrisDecorator().setChance(1D));
         NativeBlockState firstBody = mock(NativeBlockState.class);
@@ -54,16 +57,17 @@ public class IrisDecoratorPaletteSelectionTest {
         RNG rng = new RNG(37L);
         doReturn(new KList<>(firstBody, secondBody)).when(decorator).getBlockData(data);
         doReturn(new KList<>(top)).when(decorator).getBlockDataTops(data);
-        doReturn(mock(CNG.class)).when(decorator).getGenerator(rng, data);
+        doReturn(mock(CNG.class)).when(decorator).getGenerator(rng, runtime);
 
-        assertSame(top, decorator.getBlockDataForTop(biome, rng, 17D, 9D, 23D, data));
-        verify(decorator, never()).getVarianceGenerator(rng, data);
+        assertSame(top, decorator.getBlockDataForTop(biome, rng, 17D, 9D, 23D, runtime));
+        verify(decorator, never()).getVarianceGenerator(rng, runtime);
         verify(decorator, times(1)).getBlockDataTops(data);
     }
 
     @Test
     public void bodySamplingResolvesPaletteOnceAndPreservesCoordinatesAndRngConsumption() {
         IrisData data = mock(IrisData.class);
+        PackRuntime runtime = PackRuntime.standalone(data);
         IrisBiome biome = mock(IrisBiome.class);
         IrisDecorator decorator = spy(new IrisDecorator());
         NativeBlockState first = mock(NativeBlockState.class);
@@ -73,13 +77,13 @@ public class IrisDecoratorPaletteSelectionTest {
         RNG rng = new RNG(37L);
         RNG control = new RNG(37L);
         doReturn(palette).when(decorator).getBlockData(data);
-        doReturn(variance).when(decorator).getVarianceGenerator(rng, data);
+        doReturn(variance).when(decorator).getVarianceGenerator(rng, runtime);
 
         for (int x = -8; x < 8; x++) {
             for (int y = 0; y < 4; y++) {
                 double z = x * 3D - 2D;
                 NativeBlockState expected = variance.fit(palette, z, y, x);
-                assertSame(expected, decorator.getBlockData100(biome, rng, x, y, z, data));
+                assertSame(expected, decorator.getBlockData100(biome, rng, x, y, z, runtime));
             }
         }
         verify(decorator, times(64)).getBlockData(data);

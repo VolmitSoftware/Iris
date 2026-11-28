@@ -19,6 +19,7 @@
 package art.arcane.iris.studio.map;
 
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.studio.map.components.MapLayer;
@@ -43,12 +44,17 @@ final class PackFileOpener {
         File file = switch (layer.type()) {
             case BIOME, HEIGHT, RIVER, OBJECT_LOAD, DECORATOR_LOAD, LAYER_LOAD -> complex.getTrueBiomeStream().get(worldX, worldZ).openInVSCode();
             case BIOME_LAND -> complex.getLandBiomeStream().get(worldX, worldZ).openInVSCode();
-            case BIOME_SEA -> complex.getSeaBiomeStream().get(worldX, worldZ).openInVSCode();
+            case BIOME_SEA -> openBiome(complex.getSeaBiomeStream().get(worldX, worldZ));
             case REGION -> complex.getRegionStream().get(worldX, worldZ).openInVSCode();
             case REGION_PREVIEW -> openPreviewedBiome(engine, layer.previewRegionKey(), worldX, worldZ);
             case CAVE_LAND -> complex.getCaveBiomeStream().get(worldX, worldZ).openInVSCode();
         };
         return Optional.ofNullable(file).map(File::getName);
+    }
+
+    /** A region without sea biomes has none to open. */
+    private static File openBiome(IrisBiome biome) {
+        return biome == null ? null : biome.openInVSCode();
     }
 
     private static File openPreviewedBiome(Engine engine, String regionKey, double worldX, double worldZ) {

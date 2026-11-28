@@ -340,6 +340,96 @@ public class IrisComplexSurfaceBiomeTest {
     }
 
     @Test
+    public void shorelineWithoutShoreBiomesKeepsTheBaseBiome() {
+        IrisBiome base = mock(IrisBiome.class);
+        IrisRegion region = mock(IrisRegion.class);
+        doReturn(false).when(base).isShore();
+        doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(1D).when(region).getShoreHeightMin();
+        doReturn(5D).when(region).getShoreHeightMax();
+
+        IrisBiome resolved = IrisComplex.resolveSurfaceBiome(
+                63D,
+                base,
+                region,
+                12D,
+                18D,
+                63D,
+                constant(base),
+                constant(base),
+                IrisComplex.NO_BIOMES,
+                constantSlope(0D)
+        );
+
+        assertSame(base, resolved);
+    }
+
+    @Test
+    public void belowFluidWithoutSeaBiomesKeepsTheBaseBiome() {
+        IrisBiome base = mock(IrisBiome.class);
+        IrisRegion region = mock(IrisRegion.class);
+        doReturn(false).when(base).isShore();
+        doReturn(true).when(base).isLand();
+        doReturn(false).when(base).isAquatic();
+        doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(1D).when(region).getShoreHeightMin();
+        doReturn(5D).when(region).getShoreHeightMax();
+
+        IrisBiome resolved = IrisComplex.resolveSurfaceBiome(
+                50D,
+                base,
+                region,
+                12D,
+                18D,
+                63D,
+                constant(base),
+                IrisComplex.NO_BIOMES,
+                IrisComplex.NO_BIOMES,
+                constantSlope(0D)
+        );
+
+        assertSame(base, resolved);
+    }
+
+    @Test
+    public void continentSeaInARegionWithoutSeaBiomesPicksFromLand() {
+        IrisRegion sealess = mock(IrisRegion.class);
+        IrisRegion coastal = mock(IrisRegion.class);
+        IrisBiome sea = mock(IrisBiome.class);
+        java.util.Map<IrisRegion, java.util.Map<InferredType, ProceduralStream<IrisBiome>>> streams =
+                IrisComplex.compileInferredBiomeStreams(List.of(sealess, coastal),
+                        (IrisRegion region, InferredType type) -> region == sealess && type == InferredType.SEA
+                                ? IrisComplex.NO_BIOMES : constant(sea));
+
+        assertEquals(InferredType.LAND, IrisComplex.baseType(streams, sealess, InferredType.SEA));
+        assertEquals(InferredType.LAND, IrisComplex.baseType(streams, sealess, InferredType.LAND));
+        assertEquals(InferredType.SEA, IrisComplex.baseType(streams, coastal, InferredType.SEA));
+        assertTrue(IrisComplex.lacks(streams, InferredType.SEA));
+        assertFalse(IrisComplex.lacks(IrisComplex.compileInferredBiomeStreams(List.of(coastal),
+                (IrisRegion region, InferredType type) -> constant(sea)), InferredType.SEA));
+    }
+
+    @Test
+    public void regionWithoutUsableLandBiomesFailsNamingIt() {
+        IrisRegion listed = new IrisRegion();
+        listed.setLoadKey("void");
+        listed.setLandBiomes(new KList<>("gone"));
+        IrisRegion unlisted = new IrisRegion();
+        unlisted.setLoadKey("bare");
+
+        IllegalStateException excluded = assertThrows(IllegalStateException.class,
+                () -> IrisComplex.requireLandBiomes(listed, new KList<>()));
+        IllegalStateException empty = assertThrows(IllegalStateException.class,
+                () -> IrisComplex.requireLandBiomes(unlisted, new KList<>()));
+        KList<IrisBiome> land = new KList<>(new IrisBiome());
+
+        assertTrue(excluded.getMessage(), excluded.getMessage().contains("Region 'void'"));
+        assertTrue(excluded.getMessage(), excluded.getMessage().contains("Minecraft version"));
+        assertTrue(empty.getMessage(), empty.getMessage().contains("Region 'bare'"));
+        assertSame(land, IrisComplex.requireLandBiomes(unlisted, land));
+    }
+
+    @Test
     public void raisedAquaticBiomeReturnsToLand() {
         IrisBiome aquatic = mock(IrisBiome.class);
         IrisBiome land = mock(IrisBiome.class);

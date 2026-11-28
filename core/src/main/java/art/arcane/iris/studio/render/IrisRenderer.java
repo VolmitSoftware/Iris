@@ -176,6 +176,8 @@ public final class IrisRenderer {
         return Math.max(1, Math.min(resolution, (int) Math.floor(16D / absoluteStep)));
     }
 
+    private static final int NO_BIOME_COLOR = 0xFF000000;
+
     private PixelShader shader(RenderType currentType) {
         IrisComplex complex = renderer.getComplex();
         return switch (currentType) {
@@ -193,6 +195,9 @@ public final class IrisRenderer {
         IdentityHashMap<IrisBiome, Integer> colors = new IdentityHashMap<>();
         return (double x, double z) -> {
             IrisBiome biome = stream.get(x, z);
+            if (biome == null) {
+                return NO_BIOME_COLOR;
+            }
             Integer color = colors.get(biome);
             if (color == null) {
                 color = biome.getColor(renderer, currentType).getRGB();

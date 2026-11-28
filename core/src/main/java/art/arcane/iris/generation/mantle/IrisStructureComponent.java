@@ -26,7 +26,7 @@ import art.arcane.volmlib.util.structure.StructureCarveEnvelope;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureWaterRules;
 
 import art.arcane.iris.configuration.IrisSettings;
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.GenerationFailures;
@@ -197,6 +197,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
                 settings.getPalette(), "Structure stilt palette must not be null");
         int mantleOffset = getEngineMantle().getEngine().getMinHeight();
         int maxDepth = Math.max(1, settings.getMaxDepth());
+        PackRuntime runtime = PackRuntime.of(getEngineMantle().getEngine(), getData());
         for (Long2IntMap.Entry column : columns.long2IntEntrySet()) {
             int worldX = StructureFoundationPlanner.unpackX(column.getLongKey());
             int worldZ = StructureFoundationPlanner.unpackZ(column.getLongKey());
@@ -225,16 +226,16 @@ public class IrisStructureComponent extends IrisMantleComponent {
             }
             StructureFoundationPlanner.fillSupportColumn(foundationY, groundY, y -> {
                 writeFoundationSupport(
-                        writer, palette, rng, getData(), worldX, y, worldZ, mantleOffset);
+                        writer, palette, rng, runtime, worldX, y, worldZ, mantleOffset);
             });
         }
     }
 
     static void writeFoundationSupport(MantleWriter writer, IrisMaterialPalette palette, RNG rng,
-                                       IrisData data, int worldX, int mantleY, int worldZ,
+                                       PackRuntime runtime, int worldX, int mantleY, int worldZ,
                                        int mantleOffset) {
         int worldY = mantleY + mantleOffset;
-        NativeBlockState support = palette.get(rng, worldX, worldY, worldZ, data);
+        NativeBlockState support = palette.get(rng, worldX, worldY, worldZ, runtime);
         if (support == null) {
             throw new IllegalStateException("Structure stilt palette resolved no block at "
                     + worldX + "," + worldY + "," + worldZ);

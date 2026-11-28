@@ -58,11 +58,11 @@ public final class SelectorCompiler {
         IrisGeneratorStyle exported = exportable(key.style());
         RNG seed = new RNG(CALIBRATION_SEED).nextParallelRNG(key.salt());
         if (key.scaled()) {
-            CNG iris = exported.createScaledGenerator(seed, data, key.factor());
+            CNG iris = exported.createScaledGenerator(seed, data.standalonePackRuntime(), key.factor());
             IrisGeneratorStyle compiled = scaledCopy(exported, key.factor());
             return compile(compiled, key.salt(), iris::noiseFast2D, COHERENT_BLOCKS * compiled.getZoom());
         }
-        CNG iris = exported.create(seed, data);
+        CNG iris = exported.create(seed, data.standalonePackRuntime());
         double zoom = key.factor();
         IrisGeneratorStyle compiled = copy(exported);
         compiled.setZoom(exported.getZoom() * zoom);

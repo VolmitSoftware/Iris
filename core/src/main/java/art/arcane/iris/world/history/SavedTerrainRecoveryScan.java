@@ -3,6 +3,7 @@ package art.arcane.iris.world.history;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Optional;
@@ -20,10 +21,16 @@ final class SavedTerrainRecoveryScan implements AutoCloseable {
     private final int regionByteLimit;
     private final SavedTerrainChunkReader.StatusReader[] readers;
     private final ExecutorService executor;
+    private final SavedTerrainStatusCache cache;
     private byte[] regionBuffer = new byte[0];
 
     SavedTerrainRecoveryScan(Path world, Limits limits) {
+        this(world, limits, null);
+    }
+
+    SavedTerrainRecoveryScan(Path world, Limits limits, SavedTerrainStatusCache cache) {
         this.world = world;
+        this.cache = cache;
         regionByteLimit = limits.regionBytes();
         readers = new SavedTerrainChunkReader.StatusReader[limits.workers()];
         for (int index = 0; index < readers.length; index++) {
@@ -35,11 +42,26 @@ final class SavedTerrainRecoveryScan implements AutoCloseable {
 
     static WorldChunkInventory scan(Path world, WorldChunkInventory inventory,
             WorldChunkInventory.ChunkPredicate retained) throws IOException {
+        return scan(world, inventory, retained, null);
+    }
+
+    /**
+     * Scans with the status cache at {@code cacheFile}, or without a cache when it is null. The cache is
+     * written once, after the whole scan succeeded.
+     */
+    static WorldChunkInventory scan(Path world, WorldChunkInventory inventory,
+            WorldChunkInventory.ChunkPredicate retained, Path cacheFile) throws IOException {
         Runtime runtime = Runtime.getRuntime();
+        SavedTerrainStatusCache cache = cacheFile == null ? null : SavedTerrainStatusCache.load(cacheFile, world);
+        WorldChunkInventory result;
         try (SavedTerrainRecoveryScan scan = new SavedTerrainRecoveryScan(world,
-                Limits.forRuntime(runtime.availableProcessors(), runtime.maxMemory()))) {
-            return scan.filter(inventory, retained);
+                Limits.forRuntime(runtime.availableProcessors(), runtime.maxMemory()), cache)) {
+            result = scan.filter(inventory, retained);
         }
+        if (cache != null) {
+            cache.save();
+        }
+        return result;
     }
 
     WorldChunkInventory filter(WorldChunkInventory inventory, WorldChunkInventory.ChunkPredicate retained)
@@ -81,17 +103,38 @@ final class SavedTerrainRecoveryScan implements AutoCloseable {
             }
         }
         if (pending.isEmpty()) {
+            if (cache != null) {
+                cache.carry(region.x(), region.z());
+            }
             return accepted;
         }
         Path file = world.resolve("region/r." + region.x() + "." + region.z() + ".mca");
+        SavedTerrainStatusCache.Header header = cache == null ? null : readHeader(file);
+        SavedTerrainStatusCache.Update update = null;
+        if (header != null) {
+            update = cache.begin(region.x(), region.z(), header, pending, accepted);
+            if (pending.isEmpty()) {
+                update.commit();
+                return accepted;
+            }
+        }
         int snapshotLimit = Math.min(regionByteLimit, pending.cardinality() * 64 * 1024);
         Optional<SavedTerrainRegionSnapshot> captured = SavedTerrainRegionSnapshot.read(file, snapshotLimit, regionBuffer);
         if (captured.isEmpty()) {
+            BitSet terrain = new BitSet(1024);
             for (int slot = pending.nextSetBit(0); slot >= 0; slot = pending.nextSetBit(slot + 1)) {
                 requireNotInterrupted();
                 if (SavedTerrainChunk.hasTerrain(readers[0].readStatus(region.chunkX(slot), region.chunkZ(slot)))) {
-                    accepted.set(slot);
+                    terrain.set(slot);
                 }
+            }
+            accepted.or(terrain);
+            if (update != null) {
+                SavedTerrainStatusCache.Header after = readHeader(file);
+                if (after != null && header.sameHeader(after)) {
+                    record(update, region, header, pending, terrain);
+                }
+                update.commit();
             }
             return accepted;
         }
@@ -106,8 +149,9 @@ final class SavedTerrainRecoveryScan implements AutoCloseable {
                 pending.clear(slot);
             }
         }
+        BitSet terrain;
         if (executor == null || pending.cardinality() < MIN_PARALLEL_CHUNKS) {
-            accepted.or(decode(new DecodeRegion(region, pending, snapshot), 0, 1));
+            terrain = decode(new DecodeRegion(region, pending, snapshot), 0, 1);
         } else {
             List<Future<BitSet>> tasks = new ArrayList<>(readers.length);
             DecodeRegion input = new DecodeRegion(region, pending, snapshot);
@@ -115,10 +159,34 @@ final class SavedTerrainRecoveryScan implements AutoCloseable {
                 int worker = index;
                 tasks.add(executor.submit(() -> decode(input, worker, readers.length)));
             }
-            accepted.or(await(tasks));
+            terrain = await(tasks);
         }
+        accepted.or(terrain);
         snapshot.validateUnchanged();
+        if (update != null) {
+            record(update, region, new SavedTerrainStatusCache.Header(header.fileKey(), header.size(),
+                    Arrays.copyOf(snapshot.bytes(), SavedTerrainStatusCache.Header.BYTES)), pending, terrain);
+            update.commit();
+        }
         return accepted;
+    }
+
+    private void record(SavedTerrainStatusCache.Update update, Region region, SavedTerrainStatusCache.Header header,
+            BitSet decoded, BitSet terrain) {
+        for (int slot = decoded.nextSetBit(0); slot >= 0; slot = decoded.nextSetBit(slot + 1)) {
+            if (!cache.isExternal(region.chunkX(slot), region.chunkZ(slot))) {
+                update.record(slot, header.location(slot), header.timestamp(slot), terrain.get(slot));
+            }
+        }
+    }
+
+    private static SavedTerrainStatusCache.Header readHeader(Path file) {
+        try {
+            return SavedTerrainStatusCache.Header.read(file);
+        } catch (IOException ignored) {
+            // The uncached read reports the real problem with this region.
+            return null;
+        }
     }
 
     private BitSet decode(DecodeRegion input, int worker, int stride) throws IOException {

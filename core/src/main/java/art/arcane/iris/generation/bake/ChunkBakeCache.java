@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.bake;
 
+import art.arcane.iris.generation.runtime.ThreadSlots;
 import art.arcane.iris.generation.cache.ConcurrentClockCache;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
 
@@ -16,7 +17,7 @@ public final class ChunkBakeCache {
 
     private final PlaneSource source;
     private final ConcurrentClockCache<ChunkPlanes> entries;
-    private final ThreadLocal<Recent> recent = ThreadLocal.withInitial(Recent::new);
+    private final ThreadSlots<Recent> recent = new ThreadSlots<>(Recent::new);
     private volatile int generation;
 
     public ChunkBakeCache(PlaneSource source, int capacityChunks) {

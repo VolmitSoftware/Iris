@@ -60,7 +60,7 @@ public class IrisComplexGeneratorOrderingTest {
             );
             double output = 0D;
             for (IrisComplex.GeneratorGroup group : groups) {
-                output += IrisComplex.averageGeneratorHeights(
+                output += IrisComplex.averageGeneratorHeights(PackRuntime.standalone(null),
                         group.generators(),
                         0D,
                         1D,
@@ -78,7 +78,7 @@ public class IrisComplexGeneratorOrderingTest {
         Map<IrisInterpolator, Set<IrisGenerator>> generators = Map.of();
 
         assertEquals(0, IrisComplex.freezeGeneratorGroups(generators).length);
-        assertEquals(0D, IrisComplex.averageGeneratorHeights(
+        assertEquals(0D, IrisComplex.averageGeneratorHeights(PackRuntime.standalone(null),
                 new IrisGenerator[0],
                 -1D,
                 1D,
@@ -141,7 +141,7 @@ public class IrisComplexGeneratorOrderingTest {
         }
 
         @Override
-        public double getHeight(double x, double z, long seed) {
+        public double getHeight(PackRuntime runtime, double x, double z, long seed) {
             return height;
         }
     }

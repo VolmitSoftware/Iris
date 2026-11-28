@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.noise.NoiseGenerator;
 import org.junit.Test;
@@ -7,6 +8,8 @@ import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 
 public final class IrisNoiseGeneratorFractureMirrorTest {
+    private static final PackRuntime RUNTIME = PackRuntime.standalone(null);
+
     private static final long SEED = 71L;
     private static final int GRID_SIZE = 40;
     private static final double GRID_STEP = 7.3D;
@@ -31,7 +34,7 @@ public final class IrisNoiseGeneratorFractureMirrorTest {
             for (int j = i + 1; j < GRID_SIZE; j++) {
                 double a = i * GRID_STEP;
                 double b = j * GRID_STEP + 0.5D;
-                if (Math.abs(noise.getNoise(SEED, a, b, null) - noise.getNoise(SEED, b, a, null)) < MIRRORED) {
+                if (Math.abs(noise.getNoise(SEED, a, b, RUNTIME) - noise.getNoise(SEED, b, a, RUNTIME)) < MIRRORED) {
                     mirroredSamples++;
                 }
             }
@@ -41,7 +44,7 @@ public final class IrisNoiseGeneratorFractureMirrorTest {
 
     private static IrisNoiseGenerator diagonalSymmetricRoot() {
         IrisNoiseGenerator root = new IrisNoiseGenerator().setStyle(NoiseStyle.SIMPLEX.style()).setSeed(5L);
-        root.getGenerator(SEED, null, null).setGenerator(new DiagonalSymmetricGenerator());
+        root.getGenerator(SEED, RUNTIME).setGenerator(new DiagonalSymmetricGenerator());
         return root;
     }
 

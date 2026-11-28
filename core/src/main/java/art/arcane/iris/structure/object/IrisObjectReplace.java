@@ -18,6 +18,7 @@
 
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 
@@ -49,7 +50,6 @@ import java.util.Map;
 @Description("Find and replace object materials")
 @Data
 public class IrisObjectReplace {
-    private final transient AtomicCache<CNG> replaceGen = new AtomicCache<>();
     private final transient AtomicCache<KList<NativeBlockState>> findData = new AtomicCache<>();
     private final transient AtomicCache<KList<NativeBlockState>> replaceData = new AtomicCache<>();
     @ArrayType(min = 1, type = IrisBlockData.class)
@@ -83,8 +83,8 @@ public class IrisObjectReplace {
         });
     }
 
-    public NativeBlockState getReplace(RNG seed, double x, double y, double z, IrisData rdata) {
-        return getReplace().get(seed, x, y, z, rdata);
+    public NativeBlockState getReplace(RNG seed, double x, double y, double z, PackRuntime runtime) {
+        return getReplace().get(seed, x, y, z, runtime);
     }
 
     /**

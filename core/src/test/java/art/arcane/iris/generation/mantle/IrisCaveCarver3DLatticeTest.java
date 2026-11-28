@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.cave.IrisCaveFieldModule;
 import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
@@ -162,6 +163,7 @@ public class IrisCaveCarver3DLatticeTest {
         IrisDimension dimension = mock(IrisDimension.class, withSettings().stubOnly());
         SeedManager seedManager = mock(SeedManager.class, withSettings().stubOnly());
         doReturn(data).when(engine).getData();
+        doReturn(PackRuntime.forEngine(engine, data)).when(engine).getPackRuntime();
         doReturn(dimension).when(engine).getDimension();
         doReturn(seedManager).when(engine).getSeedManager();
         doReturn(CARVE_SEED).when(seedManager).getCarve();

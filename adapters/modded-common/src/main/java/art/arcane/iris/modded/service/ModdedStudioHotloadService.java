@@ -28,6 +28,7 @@ import art.arcane.iris.modded.ModdedSavedTerrainCapture;
 
 import java.util.concurrent.CompletableFuture;
 import art.arcane.iris.generation.runtime.EnginePlatformHooks;
+import art.arcane.iris.generation.runtime.StudioRestartRequirement;
 import art.arcane.iris.generation.mantle.CustomBlockOwnership;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
@@ -388,11 +389,16 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
                 throw new IllegalStateException("The Studio world is closing or closed.");
             }
             engine.hotloadSilently();
-            ModdedIrisLog.info("Iris studio hotload {} pack={} {}ms", dimensionId, engine.getDimension().getLoadKey(), System.currentTimeMillis() - start);
+            ModdedIrisLog.info("Iris studio hotload {} pack={} {}ms{}", dimensionId, engine.getDimension().getLoadKey(),
+                    System.currentTimeMillis() - start, restartSuffix(engine.getStudioRestartRequirement()));
         } catch (Throwable e) {
             ModdedIrisLog.error("Iris studio hotload failed for {}", dimensionId, e);
             throw new IllegalStateException("Iris studio hotload failed for " + dimensionId, e);
         }
+    }
+
+    private static String restartSuffix(StudioRestartRequirement requirement) {
+        return requirement.isPending() ? " restart needed: " + requirement.biomeSummary() : "";
     }
 
     static boolean hasDatapackImports(Iterable<IrisDimension> dimensions) {

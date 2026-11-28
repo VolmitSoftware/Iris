@@ -11,6 +11,7 @@ import art.arcane.iris.world.history.GenerationPackFingerprint;
 import art.arcane.iris.world.history.GenerationPackRepository;
 import art.arcane.iris.world.history.GenerationRegistryContract;
 import art.arcane.iris.world.history.GenerationRegistryContractFactory;
+import art.arcane.iris.world.history.StudioRegistryCapture;
 import art.arcane.iris.generation.terrain.IrisDimension;
 
 import java.io.IOException;
@@ -23,7 +24,8 @@ record StudioGenerationUpdate(
         Path source,
         String fingerprint,
         GenerationEpoch.DimensionContract dimensionContract,
-        GenerationRegistryContract registryContract
+        GenerationRegistryContract registryContract,
+        List<String> pendingBiomes
 ) implements AutoCloseable {
     static StudioGenerationUpdate prepare(IrisEngine engine, GenerationHistory history) throws IOException {
         Path source = engine.getStudioGenerationSource().toRealPath();
@@ -73,9 +75,13 @@ record StudioGenerationUpdate(
             if (!active.dimensionContract().hasSameLayout(contract)) {
                 throw new IOException("Studio pack update changes the world's immutable dimension layout.");
             }
-            GenerationRegistryContract registry = GenerationRegistryContractFactory.create(data, replacement, fingerprint);
-            registry.requireDefinitionsAvailableIn(GenerationRegistryContractFactory.captureRequiredDefinitions(List.of(registry)));
-            return new StudioGenerationUpdate(stagingRoot, source, fingerprint, contract, registry);
+            StudioRegistryCapture registry = GenerationRegistryContractFactory.createRetainingLoadedBiomes(
+                    data, replacement, fingerprint, active.registryContract());
+            GenerationRegistryContract registryContract = registry.contract();
+            registryContract.requireDefinitionsAvailableIn(
+                    GenerationRegistryContractFactory.captureRequiredDefinitions(List.of(registryContract)));
+            return new StudioGenerationUpdate(stagingRoot, source, fingerprint, contract, registryContract,
+                    registry.pendingBiomes());
         } finally {
             data.close();
         }

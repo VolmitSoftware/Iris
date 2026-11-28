@@ -110,6 +110,8 @@ public class IrisEngine implements Engine {
     private final boolean studio;
     @Setter(AccessLevel.NONE)
     private volatile Path studioGenerationSource;
+    @Setter(AccessLevel.NONE)
+    volatile StudioRestartRequirement studioRestartRequirement = StudioRestartRequirement.none();
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     boolean studioGenerationTransition;

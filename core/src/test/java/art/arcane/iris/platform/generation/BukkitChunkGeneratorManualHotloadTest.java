@@ -1,6 +1,7 @@
 package art.arcane.iris.platform.generation;
 
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.StudioRestartRequirement;
 import art.arcane.iris.platform.generation.BukkitChunkGenerator.GenerationStageGate;
 import art.arcane.iris.world.task.J;
 import org.junit.Test;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class BukkitChunkGeneratorManualHotloadTest {
     @Test
@@ -89,6 +91,7 @@ public class BukkitChunkGeneratorManualHotloadTest {
         private final AtomicReference<Runnable> queued = new AtomicReference<>();
 
         private Fixture() throws Exception {
+            when(engine.getStudioRestartRequirement()).thenReturn(StudioRestartRequirement.none());
             generator.setEngine(engine);
             setField(generator, "studio", true);
             setField(generator, "loadLock", new GenerationStageGate(1, () -> false));

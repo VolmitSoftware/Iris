@@ -977,6 +977,138 @@ public class GenerationRegistryContractFactoryTest {
     }
 
     @SuppressWarnings("unchecked")
+    @Test
+    public void studioUpdateKeepsTheLoadedDefinitionOfAnEditedBiomeUntilTheServerLoadsTheEdit() throws Exception {
+        StudioPackFixture fixture = new StudioPackFixture(temporary.newFolder("studio-edit"));
+        IrisBiomeCustom loaded = new IrisBiomeCustom().setId("mist").setTemperature(0.5D);
+        GenerationRegistryContract active = fixture.capture(loaded);
+        fixture.loadIntoServer(active);
+        String loadedKey = fixture.resolve(active, loaded);
+        IrisBiomeCustom edited = new IrisBiomeCustom().setId("mist").setTemperature(0.7D);
+
+        StudioRegistryCapture deferred = fixture.captureStudioUpdate(active, edited);
+
+        assertEquals(List.of("mist"), deferred.pendingBiomes());
+        assertTrue(deferred.contract().definitions().containsKey(
+                key(GenerationRegistryContractFactory.BIOME_REGISTRY, loadedKey)));
+        assertEquals(loadedKey, fixture.resolve(deferred.contract(), edited));
+        deferred.contract().requireDefinitionsAvailableIn(GenerationRegistryContractFactory.captureRequiredDefinitions(
+                Set.of(deferred.contract()), fixture.fixer, fixture.registry));
+
+        fixture.loadIntoServer(fixture.capture(edited));
+        StudioRegistryCapture current = fixture.captureStudioUpdate(active, edited);
+
+        assertEquals(List.of(), current.pendingBiomes());
+        assertNotEquals(loadedKey, fixture.resolve(current.contract(), edited));
+    }
+
+    @Test
+    public void studioUpdateGeneratesABiomeTheServerNeverLoadedAsItsVanillaDerivative() throws Exception {
+        StudioPackFixture fixture = new StudioPackFixture(temporary.newFolder("studio-new-biome"));
+        IrisBiomeCustom mist = new IrisBiomeCustom().setId("mist").setTemperature(0.5D);
+        GenerationRegistryContract active = fixture.capture(mist);
+        fixture.loadIntoServer(active);
+        IrisBiomeCustom editedMist = new IrisBiomeCustom().setId("mist").setTemperature(0.7D);
+        IrisBiomeCustom ash = new IrisBiomeCustom().setId("ash").setTemperature(1.5D);
+        String vanillaDerivative = fixture.vanillaDerivativeKey();
+
+        StudioRegistryCapture update = fixture.captureStudioUpdate(active, editedMist, ash);
+
+        assertEquals(List.of("ash", "mist"), update.pendingBiomes());
+        assertEquals(Map.of("overworld:ash", vanillaDerivative), update.contract().customBiomeStandIns());
+        assertTrue(update.contract().definitions().containsKey(
+                key(GenerationRegistryContractFactory.BIOME_REGISTRY, vanillaDerivative)));
+        assertEquals(vanillaDerivative, fixture.resolve(update.contract(), ash));
+        assertEquals(fixture.resolve(active, mist), fixture.resolve(update.contract(), editedMist));
+    }
+
+    @Test
+    public void retainedDatapackEmitsTheCurrentDefinitionOfAStandInBiome() throws Exception {
+        StudioPackFixture fixture = new StudioPackFixture(temporary.newFolder("studio-stand-in-datapack"));
+        GenerationRegistryContract active = fixture.capture(new IrisBiomeCustom().setId("mist").setTemperature(0.5D));
+        fixture.loadIntoServer(active);
+        GenerationRegistryContract update = fixture.captureStudioUpdate(active,
+                new IrisBiomeCustom().setId("mist").setTemperature(0.5D),
+                new IrisBiomeCustom().setId("ash").setTemperature(1.5D)).contract();
+        GenerationRegistryContract.PhysicalResourceKey recorded = update.generatedSources().firstKey();
+
+        assertEquals("current", GenerationRegistryContractFactory.retainedGeneratedSource(
+                update, GenerationRegistryContractFactory.BIOME_REGISTRY, "test:biomes/ash-current", "current",
+                fixture.fixer));
+        assertEquals(GenerationRegistryContractFactory.renderGeneratedSource(update, recorded, fixture.fixer),
+                GenerationRegistryContractFactory.retainedGeneratedSource(
+                        update, recorded.registryKey(), recorded.resourceKey(), "current", fixture.fixer));
+        assertThrows(IOException.class, () -> GenerationRegistryContractFactory.retainedGeneratedSource(
+                active, GenerationRegistryContractFactory.BIOME_REGISTRY, "test:biomes/ash-current", "current",
+                fixture.fixer));
+    }
+
+    @Test
+    public void resolverWithoutAnEditedBiomeOrItsSoleRecordedDefinitionStaysStrict() throws Exception {
+        StudioPackFixture fixture = new StudioPackFixture(temporary.newFolder("studio-strict"));
+        GenerationRegistryContract active = fixture.capture(new IrisBiomeCustom().setId("mist").setTemperature(0.5D));
+
+        assertThrows(IOException.class,
+                () -> fixture.resolve(active, new IrisBiomeCustom().setId("fog").setTemperature(0.5D)));
+    }
+
+    private static final class StudioPackFixture {
+        private final File pack;
+        private final IrisData data = mock(IrisData.class);
+        private final IrisBiome biome = new IrisBiome();
+        private final IrisDimension dimension = spy(new IrisDimension());
+        private final PlatformRegistries registries = mock(PlatformRegistries.class);
+        private final FakeGenerationRegistry registry = new FakeGenerationRegistry("studio-runtime");
+        private final IDataFixer fixer = new TaggedBiomeFixer("studio");
+
+        private StudioPackFixture(File pack) {
+            this.pack = pack;
+            when(data.getDataFolder()).thenReturn(pack);
+            when(data.getContentGate()).thenReturn(new ContentGate(null, Map.of(), null));
+            dimension.setLoadKey("overworld");
+            stubDimensions(data, dimension);
+            doReturn(new KList<>(biome)).when(dimension).getAllBiomes(any());
+            doReturn(new KList<>(biome)).when(dimension).getReachableBiomes(any());
+            doReturn(new KList<>()).when(dimension).getAllRegions(any());
+            when(registries.blockTypeKeys()).thenReturn(List.of());
+            when(registries.entityKeys()).thenReturn(List.of());
+        }
+
+        private GenerationRegistryContract capture(IrisBiomeCustom... customBiomes) throws IOException {
+            biome.setCustomDerivitives(new KList<>(customBiomes));
+            return GenerationRegistryContractFactory.create(data, dimension, packFingerprint(), fixer, registries, registry);
+        }
+
+        private StudioRegistryCapture captureStudioUpdate(
+                GenerationRegistryContract active,
+                IrisBiomeCustom... customBiomes
+        ) throws IOException {
+            biome.setCustomDerivitives(new KList<>(customBiomes));
+            return GenerationRegistryContractFactory.createRetainingLoadedBiomes(
+                    data, dimension, packFingerprint(), active, fixer, registries, registry);
+        }
+
+        private void loadIntoServer(GenerationRegistryContract contract) throws IOException {
+            for (GenerationRegistryContract.PhysicalResourceKey generated : contract.generatedSources().keySet()) {
+                registry.put(generated, PlatformGenerationRegistry.Definition.exactJson(
+                        GenerationRegistryContractFactory.renderGeneratedSource(contract, generated, fixer)));
+            }
+        }
+
+        private String resolve(GenerationRegistryContract contract, IrisBiomeCustom customBiome) throws IOException {
+            return new GenerationRegistryContractFactory.CustomBiomeResourceResolver(
+                    contract, registry::customBiomeResourceKey).resolve("overworld", customBiome);
+        }
+
+        private String packFingerprint() throws IOException {
+            return GenerationPackFingerprint.compute(pack.toPath(), GenerationPackFingerprint.CURRENT_VERSION);
+        }
+
+        private String vanillaDerivativeKey() {
+            return biome.getVanillaDerivativeKey();
+        }
+    }
+
     private static ResourceLoader<IrisDimension> stubDimensions(IrisData data, IrisDimension dimension) {
         ResourceLoader<IrisDimension> loader = mock(ResourceLoader.class);
         String dimensionKey = dimension.getLoadKey();

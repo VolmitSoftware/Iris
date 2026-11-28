@@ -66,6 +66,25 @@ public class GenerationRegistryContractTest {
     }
 
     @Test
+    public void customBiomeStandInsArePersistedAndFingerprintProtectedOnlyWhenPresent() {
+        GenerationRegistryContract base = GenerationRegistryContract.fromDefinitions(
+                Map.of(key("minecraft:worldgen/biome", "minecraft:plains"), DEFINITION_A));
+        GenerationRegistryContract unchanged = base.withCustomBiomeStandIns(Map.of());
+        assertEquals(base.fingerprint(), unchanged.fingerprint());
+        assertEquals(false, unchanged.toJson().has("customBiomeStandIns"));
+
+        GenerationRegistryContract standIn = base.withCustomBiomeStandIns(Map.of("overworld:ash", "minecraft:plains"));
+        assertEquals(Map.of("overworld:ash", "minecraft:plains"), standIn.customBiomeStandIns());
+        assertNotEquals(base.fingerprint(), standIn.fingerprint());
+        assertEquals(standIn, GenerationRegistryContract.fromJson(standIn.toJson()));
+        JsonObject tampered = standIn.toJson();
+        tampered.getAsJsonObject("customBiomeStandIns").addProperty("overworld:ash", "minecraft:desert");
+        assertThrows(IllegalArgumentException.class, () -> GenerationRegistryContract.fromJson(tampered));
+        assertThrows(IllegalArgumentException.class,
+                () -> base.withCustomBiomeStandIns(Map.of("overworld:ash", "minecraft:desert")));
+    }
+
+    @Test
     public void derivesStableFingerprintIndependentOfMapIterationOrder() {
         GenerationRegistryContract.PhysicalResourceKey plains = key(
                 "minecraft:worldgen/biome",

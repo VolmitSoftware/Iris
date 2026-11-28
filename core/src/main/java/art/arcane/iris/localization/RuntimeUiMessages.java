@@ -29,6 +29,8 @@ public final class RuntimeUiMessages {
     public static final TextKey MODDED_NO_DIMENSION_MATCH = TextKey.of("iris.runtime.modded.no_dimension_match", "No Iris dimension matches '{filter}'.");
     public static final TextKey TELEPORTED_TO_WORLD = TextKey.of("iris.runtime.teleport.world", "You have been teleported to {world}.");
     public static final TextKey ENGINE_HOTLOADED = TextKey.of("iris.runtime.engine.hotloaded", "Engine Hotloaded");
+    public static final TextKey STUDIO_RESTART_NEEDED = TextKey.of("iris.runtime.studio.restart_needed", "restart needed: {value}");
+    public static final TextKey STUDIO_HOTLOADED_RESTART_NEEDED = TextKey.of("iris.runtime.studio.hotloaded_restart_needed", C.YELLOW + "Studio hotloaded · restart needed: {value}");
     public static final TextKey JOB_COMPLETED = TextKey.of("iris.runtime.job.completed", "Completed {job} in {duration}");
     public static final TextKey JOB_SCANNING_SELECTION = TextKey.of("iris.runtime.job.scanning_selection", "Scanning Selection");
     public static final TextKey JOB_SEARCHED_CHUNKS = TextKey.of("iris.runtime.job.searched_chunks", "Searched {chunks} Chunks");
@@ -149,6 +151,8 @@ public final class RuntimeUiMessages {
             MODDED_NO_DIMENSION_MATCH,
             TELEPORTED_TO_WORLD,
             ENGINE_HOTLOADED,
+            STUDIO_RESTART_NEEDED,
+            STUDIO_HOTLOADED_RESTART_NEEDED,
             JOB_COMPLETED,
             JOB_SCANNING_SELECTION,
             JOB_SEARCHED_CHUNKS,

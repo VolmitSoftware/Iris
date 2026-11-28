@@ -1583,6 +1583,8 @@ failed_fragment = "  échecs {failed}"
 
 [iris.runtime.studio]
 opening = "§6Studio §bOUVERTURE"
+restart_needed = "redémarrage nécessaire : {value}"
+hotloaded_restart_needed = "§eStudio rechargé à chaud · redémarrage nécessaire : {value}"
 opening_progress = "§6Studio §bOUVERTURE§7 {percent}%"
 failed_progress = "§6Studio §cÉCHEC§7 {percent}%"
 ready_progress = "§6Studio §aPRÊT§7 100%"

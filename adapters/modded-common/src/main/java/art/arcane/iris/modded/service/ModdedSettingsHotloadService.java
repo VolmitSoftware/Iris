@@ -18,11 +18,10 @@
 
 package art.arcane.iris.modded.service;
 
+import art.arcane.iris.configuration.IrisSettingsFile;
 import art.arcane.iris.configuration.SettingsHotloadWatch;
-import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 
-import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 public final class ModdedSettingsHotloadService implements ModdedTickableService {
@@ -31,7 +30,7 @@ public final class ModdedSettingsHotloadService implements ModdedTickableService
 
     @Override
     public void onEnable() {
-        hotloadWatch = new SettingsHotloadWatch(settingsFile());
+        hotloadWatch = new SettingsHotloadWatch(IrisSettingsFile.location());
         lastPollAtNanos = 0L;
     }
 
@@ -57,9 +56,5 @@ public final class ModdedSettingsHotloadService implements ModdedTickableService
         }
         lastPollAtNanos = now;
         active.checkConfigHotload();
-    }
-
-    private static File settingsFile() {
-        return IrisPlatforms.get().dataFile("iris.json");
     }
 }

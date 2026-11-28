@@ -48,7 +48,7 @@ public class SettingsHotloadWatchTest {
     public void setUp() throws Exception {
         previousSettings = IrisSettings.settings;
         dataFolder = temporaryFolder.newFolder("iris-hotload");
-        settingsFile = new File(dataFolder, "iris.json");
+        settingsFile = new File(dataFolder, IrisSettingsFile.FILE_NAME);
         overrideFolder = new File(dataFolder, "languages");
         Files.createDirectories(overrideFolder.toPath());
         String settings = settings("en_US");
@@ -416,7 +416,7 @@ public class SettingsHotloadWatchTest {
     }
 
     private String settings(String locale) {
-        return "{\"general\":{\"language\":\"" + locale + "\"}}";
+        return "[general]\nlanguage = \"" + locale + "\"\n";
     }
 
     private String locale(String locale, String permissionMessage) {

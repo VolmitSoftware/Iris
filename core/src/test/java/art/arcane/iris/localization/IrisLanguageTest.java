@@ -1,6 +1,7 @@
 package art.arcane.iris.localization;
 
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.configuration.IrisSettingsFile;
 import art.arcane.iris.testsupport.ProjectPaths;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.localization.LocaleOverlay;
@@ -171,7 +172,7 @@ public class IrisLanguageTest {
         IrisSettings previous = IrisSettings.settings;
         IrisSettings current = new IrisSettings();
         IrisSettings.settings = current;
-        Files.createDirectory(dataFolder.toPath().resolve("iris.json"));
+        Files.createDirectory(dataFolder.toPath().resolve(IrisSettingsFile.FILE_NAME));
         IrisLanguage.start();
         try {
             assertThrows(ExecutionException.class,
@@ -525,7 +526,7 @@ public class IrisLanguageTest {
         IrisSettings.settings = live;
         try {
             boolean applied = IrisSettings.applyHotloadSnapshot(
-                    "{\"general\":{\"language\":\"../invalid\"}}",
+                    "[general]\nlanguage = \"../invalid\"",
                     IrisLanguage::reload
             );
 

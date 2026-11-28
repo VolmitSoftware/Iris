@@ -22,16 +22,11 @@ import art.arcane.iris.world.pregen.MantleHeapPressure;
 import art.arcane.iris.world.IrisPaperLikeBackendMode;
 import art.arcane.iris.world.IrisRuntimeSchedulerMode;
 
-import com.google.gson.Gson;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.volmlib.util.io.IO;
-import art.arcane.volmlib.util.json.JSONException;
-import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
+import art.arcane.volmlib.util.config.ConfigDoc;
 import lombok.Data;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -82,47 +77,11 @@ public class IrisSettings {
                 return current;
             }
 
-            current = read();
+            current = IrisSettingsFile.load();
             settings = current;
             notifySettingsChanged(current);
             return current;
         }
-    }
-
-    private static IrisSettings read() {
-        IrisSettings loaded = new IrisSettings();
-        File s = IrisPlatforms.get().dataFile("iris.json");
-
-        if (!s.exists()) {
-            try {
-                IO.writeAll(s, new JSONObject(new Gson().toJson(loaded)).toString(4));
-            } catch (JSONException | IOException e) {
-                IrisLogging.reportError(e);
-            }
-
-            return loaded;
-        }
-
-        try {
-            String ss = IO.readAll(s);
-            IrisSettings parsed = new Gson().fromJson(ss, IrisSettings.class);
-
-            if (parsed != null) {
-                loaded = parsed;
-            }
-
-            try {
-                IO.writeAll(s, new JSONObject(new Gson().toJson(loaded)).toString(4));
-            } catch (IOException e) {
-                IrisLogging.reportError("Could not rewrite " + s.getAbsolutePath()
-                        + "; settings changes made in game will not survive a restart.", e);
-            }
-        } catch (Throwable ee) {
-            // IrisLogging.reportError(ee); causes a self-reference & stackoverflow
-            IrisLogging.error("Configuration Error in iris.json! " + ee.getClass().getSimpleName() + ": " + ee.getMessage());
-        }
-
-        return loaded;
     }
 
     public static void invalidate() {
@@ -153,23 +112,16 @@ public class IrisSettings {
         return true;
     }
 
-    public static IrisSettings parseHotloadSnapshot(String rawJson) {
-        if (rawJson == null || rawJson.isBlank()) {
+    public static IrisSettings parseHotloadSnapshot(String rawToml) {
+        if (rawToml == null || rawToml.isBlank()) {
             throw new IllegalArgumentException("Iris settings snapshot is empty");
         }
 
-        IrisSettings parsed;
         try {
-            parsed = new Gson().fromJson(rawJson, IrisSettings.class);
-            if (parsed == null) {
-                throw new IllegalArgumentException("Iris settings snapshot did not contain an object");
-            }
-        } catch (RuntimeException failure) {
+            return IrisSettingsFile.parse(rawToml);
+        } catch (IOException | RuntimeException failure) {
             throw new IllegalArgumentException("Iris settings snapshot is invalid", failure);
         }
-
-        parsed.fillMissingSections();
-        return parsed;
     }
 
     public static void addSettingsListener(Consumer<IrisSettings> listener) {
@@ -187,16 +139,14 @@ public class IrisSettings {
     }
 
     public void forceSave() {
-        File s = IrisPlatforms.get().dataFile("iris.json");
-
         try {
-            IO.writeAll(s, new JSONObject(new Gson().toJson(this)).toString(4));
-        } catch (JSONException | IOException e) {
+            IrisSettingsFile.write(this, IrisSettingsFile.location());
+        } catch (IOException e) {
             IrisLogging.reportError(e);
         }
     }
 
-    private void fillMissingSections() {
+    void fillMissingSections() {
         general = general == null ? new IrisSettingsGeneral() : general;
         world = world == null ? new IrisSettingsWorld() : world;
         gui = gui == null ? new IrisSettingsGUI() : gui;
@@ -250,12 +200,20 @@ public class IrisSettings {
         private static final int REFERENCE_PLATE_MEGABYTES = 48;
         public IrisRuntimeSchedulerMode runtimeSchedulerMode = IrisRuntimeSchedulerMode.AUTO;
         public IrisPaperLikeBackendMode paperLikeBackendMode = IrisPaperLikeBackendMode.AUTO;
+        @ConfigDoc(value = "Seconds pregen waits for a chunk to load.",
+                impact = "Clamped to 5 to 120.")
         public int chunkLoadTimeoutSeconds = 15;
         public int timeoutWarnIntervalMs = 500;
+        @ConfigDoc(value = "Milliseconds between saves during pregen.",
+                impact = "Clamped to 5000 to 900000.")
         public int saveIntervalMs = 30_000;
+        @ConfigDoc(value = "Mantle regions pregen keeps in memory before it pauses to let them unload.",
+                impact = "Lowered automatically for tall worlds and small heaps; minimum 16.")
         public int maxResidentTectonicPlates = 96;
         public int mantleBackpressureWaitMs = 25;
         public int mantleBackpressureTimeoutMs = 60_000;
+        @ConfigDoc(value = "Chunks a modded pregen generates at once.",
+                impact = "0 uses two per CPU core, between 16 and 48; capped at 512.")
         public int moddedPregenInFlight = 0;
 
         public int getChunkLoadTimeoutSeconds() {
@@ -319,6 +277,8 @@ public class IrisSettings {
     public static class IrisSettingsPerformance {
         private IrisSettingsEngineSVC engineSVC = new IrisSettingsEngineSVC();
         public boolean trimMantleInStudio = false; 
+        @ConfigDoc(value = "Seconds an idle mantle region stays in memory before it unloads.",
+                impact = "Shortens automatically as the heap fills up.")
         public int mantleKeepAlive = 30;
         public int noiseCacheSize = 1_024;
         public int resourceLoaderCacheSize = 1_024;
@@ -329,6 +289,7 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsGeneral {
+        @ConfigDoc("Default locale for Iris messages, such as en_US or de_DE.")
         public String language = "en_US";
         public boolean metrics = true;
         public boolean updateNotifications = true;
@@ -340,25 +301,22 @@ public class IrisSettings {
         public boolean splashLogoStartup = true;
         public boolean useConsoleCustomColors = true;
         public boolean useCustomColorsIngame = true;
-        /**
-         * Boss bars for jobs, Studio opens, chunk jobs, and pack downloads. Ordinary
-         * world creation uses only its action-bar lifecycle meter; creation-time
-         * pregeneration retains its dedicated long-running boss bar.
-         */
+        @ConfigDoc(value = "Shows boss bars for jobs, Studio opens, chunk jobs and pack downloads.",
+                impact = "Ordinary world creation uses only its action-bar meter; creation-time pregeneration keeps its own boss bar.")
         public boolean progressBossBar = true;
         public boolean adjustVanillaHeight = false;
         public boolean autoIngestDatapacks = true;
-        /**
-         * Converting every registered datapack structure into editable Iris resources writes
-         * thousands of objects/pools/pieces into the pack folder. Native generation and
-         * nativeStructures placements never need those copies, so this stays opt-in; run
-         * /iris structure import &lt;dimension&gt; when you actually want editable copies.
-         */
+        @ConfigDoc(value = "Converts every registered datapack structure into editable Iris objects, pools and pieces in the pack folder.",
+                impact = "Writes thousands of files that native generation never needs; run /iris structure import <dimension> when you want editable copies.")
         public boolean autoImportDatapackStructures = false;
-        /** Unresolved pack content keys and bad block-state properties become blocking pack errors. -Diris.strictContent overrides. */
+        @ConfigDoc(value = "Turns unresolved pack content keys and bad block-state properties into blocking pack errors.",
+                impact = "The -Diris.strictContent system property overrides this.")
         public boolean strictContentKeys = false;
+        @ConfigDoc("Hue shift of the colour gradient on Iris chat messages.")
         public int spinh = -20;
+        @ConfigDoc("Saturation shift of the same gradient.")
         public int spins = 7;
+        @ConfigDoc("Brightness shift of the same gradient.")
         public int spinb = 8;
 
 
@@ -380,6 +338,8 @@ public class IrisSettings {
     public static class IrisSettingsGenerator {
         public String defaultWorldType = "overworld";
         public boolean preventLeafDecay = true;
+        @ConfigDoc(value = "Width in blocks over which new terrain blends into terrain generated by an older pack version.",
+                impact = "Clamped to 16 to 8192.")
         public int generationTransitionWidthBlocks = 256;
 
         public int getGenerationTransitionWidthBlocks() {
@@ -399,7 +359,10 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsStudio {
+        @ConfigDoc("Opens VS Code on the server machine when a studio opens.")
         public boolean openVSCode = true;
+        @ConfigDoc(value = "Blends hotloaded studio changes into existing terrain instead of cutting hard at chunk edges.",
+                impact = "Uses generator.generationTransitionWidthBlocks as the blend width.")
         public boolean blendChanges = true;
         public boolean disableTimeAndWeather = true;
         public boolean entitySpawning = true;
@@ -410,7 +373,10 @@ public class IrisSettings {
     public static class IrisSettingsEngineSVC {
         public boolean useVirtualThreads = true;
         public boolean forceMulticoreWrite = false;
+        @ConfigDoc("Thread priority of engine workers, 1 to 10.")
         public int priority = Thread.NORM_PRIORITY;
+        @ConfigDoc(value = "Number of engine worker threads.",
+                impact = "-1 uses the square root of the CPU count; capped at twice the CPU count.")
         public int parallelism = -1;
 
         public int getPriority() {

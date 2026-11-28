@@ -38,11 +38,11 @@ public class IrisUpdateNotifierTest {
 
                 clearInvocations(service);
                 assertFalse(IrisSettings.applyHotloadSnapshot(
-                        "{\"general\":{\"updateNotifications\":false}}", candidate -> false));
+                        "[general]\nupdateNotifications = false", candidate -> false));
                 assertTrue(options.getValue().enabled().getAsBoolean());
                 verifyNoInteractions(service);
 
-                IrisSettings.installHotloadSnapshot("{\"general\":{\"updateNotifications\":false}}");
+                IrisSettings.installHotloadSnapshot("[general]\nupdateNotifications = false");
                 assertFalse(options.getValue().enabled().getAsBoolean());
                 verify(service).reconfigure();
                 IrisSettings.settings.getGeneral().setUpdateNotifications(true);
@@ -52,7 +52,7 @@ public class IrisUpdateNotifierTest {
             }
             verify(service).close();
             clearInvocations(service);
-            IrisSettings.installHotloadSnapshot("{}");
+            IrisSettings.installHotloadSnapshot("[general]");
             verifyNoInteractions(service);
         } finally {
             IrisSettings.settings = previous;

@@ -104,12 +104,13 @@ final class PackDimensionValidator {
                     continue;
                 }
 
-                int anyBiome = countBiomeRefs(regionJson, "landBiomes", biomesFolder, regionKey, warnings)
-                        + countBiomeRefs(regionJson, "seaBiomes", biomesFolder, regionKey, warnings)
-                        + countBiomeRefs(regionJson, "shoreBiomes", biomesFolder, regionKey, warnings)
-                        + countBiomeRefs(regionJson, "caveBiomes", biomesFolder, regionKey, warnings);
-                if (anyBiome == 0) {
-                    blockingErrors.add("Region '" + regionKey + "' has no resolvable biomes.");
+                // Sea, shore and cave lists may be empty; land is what every other list falls back to.
+                int landBiomes = countBiomeRefs(regionJson, "landBiomes", biomesFolder, regionKey, warnings);
+                countBiomeRefs(regionJson, "seaBiomes", biomesFolder, regionKey, warnings);
+                countBiomeRefs(regionJson, "shoreBiomes", biomesFolder, regionKey, warnings);
+                countBiomeRefs(regionJson, "caveBiomes", biomesFolder, regionKey, warnings);
+                if (landBiomes == 0) {
+                    blockingErrors.add("Region '" + regionKey + "' has no landBiomes; every region needs at least one land biome.");
                 }
                 resolvedRegions++;
             }

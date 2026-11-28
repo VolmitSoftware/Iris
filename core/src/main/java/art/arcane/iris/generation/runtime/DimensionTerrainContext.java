@@ -269,9 +269,13 @@ public final class DimensionTerrainContext implements DataProvider {
                         Interpolated.of(value -> 0D, value -> focusBiome.getInferredType())
                 );
 
+        boolean sealessRegions = IrisComplex.lacks(preparedBiomeStreams, InferredType.SEA);
         ProceduralStream<IrisBiome> proceduralBaseBiomeStream = focusBiome == null
                 ? bridgeStream
-                        .convertAware2D((type, x, z) -> {
+                        .convertAware2D((continent, x, z) -> {
+                            InferredType type = sealessRegions
+                                    ? IrisComplex.baseType(preparedBiomeStreams, regionStream.get(x, z), continent)
+                                    : continent;
                             ProceduralStream<IrisBiome> stream = inferredStreams.get(type);
                             return stream != null
                                     ? stream.get(x, z)
@@ -536,13 +540,17 @@ public final class DimensionTerrainContext implements DataProvider {
             IrisRegion region,
             InferredType type
     ) {
+        if ((type == InferredType.SEA || type == InferredType.SHORE) && loadInferredBiomes(runtime.data(), biomeKeys(region, type), type).isEmpty()) {
+            return IrisComplex.NO_BIOMES;
+        }
         return switch (type) {
             case LAND -> dimension.getLandBiomeStyle()
                     .create(rng.nextParallelRNG(InferredType.LAND.ordinal()), runtime).stream()
                     .zoom(dimension.getBiomeZoom())
                     .zoom(dimension.getLandZoom())
                     .zoom(region.getLandBiomeZoom())
-                    .selectRarity(loadInferredBiomes(runtime.data(), region.getLandBiomes(), InferredType.LAND));
+                    .selectRarity(IrisComplex.requireLandBiomes(region,
+                            loadInferredBiomes(runtime.data(), region.getLandBiomes(), InferredType.LAND)));
             case SEA -> dimension.getSeaBiomeStyle()
                     .create(rng.nextParallelRNG(InferredType.SEA.ordinal()), runtime).stream()
                     .zoom(dimension.getBiomeZoom())
@@ -556,6 +564,10 @@ public final class DimensionTerrainContext implements DataProvider {
                     .selectRarity(loadInferredBiomes(runtime.data(), region.getShoreBiomes(), InferredType.SHORE));
             default -> throw new IllegalArgumentException("Unsupported stacked terrain biome type: " + type);
         };
+    }
+
+    private static KList<String> biomeKeys(IrisRegion region, InferredType type) {
+        return type == InferredType.SEA ? region.getSeaBiomes() : region.getShoreBiomes();
     }
 
     private static KList<IrisBiome> loadInferredBiomes(

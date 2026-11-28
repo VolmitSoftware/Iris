@@ -154,6 +154,12 @@ public class IrisComplex implements DataProvider {
             InferredType.SEA,
             InferredType.SHORE
     };
+    /**
+     * The biome stream of a sea or shore list a region leaves empty. It answers null everywhere, which tells the
+     * surface resolution to keep the column's own biome instead of converting it.
+     */
+    static final ProceduralStream<IrisBiome> NO_BIOMES = ProceduralStream.of((x, z) -> null,
+            Interpolated.of(value -> 0D, value -> null));
     @Getter(AccessLevel.NONE)
     private final transient ThreadSlots<GridBoundsCache> gridBoundsCache = new ThreadSlots<>(GridBoundsCache::new);
     @Getter(AccessLevel.NONE)
@@ -206,6 +212,8 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<Double> regionStyleStream;
     private ProceduralStream<Double> regionIdentityStream;
     private ProceduralStream<InferredType> bridgeStream;
+    @Getter(AccessLevel.NONE)
+    private ProceduralStream<InferredType> baseTypeStream;
     private ProceduralStream<IrisBiome> landBiomeStream;
     private ProceduralStream<IrisBiome> caveBiomeStream;
     private ProceduralStream<IrisBiome> seaBiomeStream;
@@ -455,9 +463,15 @@ public class IrisComplex implements DataProvider {
         bridgeStream = focusedBiomes != null ? focusedBiomes.convert(IrisBiome::getInferredType) :
                 ContinentGenerator.create(engine.getDimension(), rng, packRuntime).stream()
                         .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND);
+        // A region without sea biomes picks its continental sea from its land biomes.
+        baseTypeStream = focusedBiomes != null || !lacks(inferredBiomeStreams, InferredType.SEA) ? bridgeStream
+                : ProceduralStream.of(
+                        (x, z) -> baseType(inferredBiomeStreams, contextRegionStream.get(x, z), bridgeStream.get(x, z)),
+                        (x, y, z) -> baseType(inferredBiomeStreams, contextRegionStream.get(x, z), bridgeStream.get(x, y, z)),
+                        Interpolated.of(value -> 0D, value -> null));
         ProceduralStream<IrisBiome> proceduralBaseBiomeStream = focusedBiomes != null ? focusedBiomes
                 : ProceduralStream.of(this::proceduralBaseBiome,
-                        (x, y, z) -> implode(inferredByType.get(bridgeStream.get(x, y, z)).get(x, z), x, z),
+                        (x, y, z) -> implode(inferredByType.get(baseTypeStream.get(x, y, z)).get(x, z), x, z),
                         Interpolated.of(value -> 0D, value -> null));
         baseBiomeSource = focusedBiomes != null || !imageMapRuntime.has(IrisImageMapApplication.BIOME)
                 ? proceduralBaseBiomeStream : ProceduralStream.of((x, z) -> {
@@ -1067,7 +1081,7 @@ public class IrisComplex implements DataProvider {
     }
 
     private IrisBiome proceduralBaseBiome(double x, double z) {
-        return implode(inferredByType.get(bridgeStream.get(x, z)).get(x, z), x, z);
+        return implode(inferredByType.get(baseTypeStream.get(x, z)).get(x, z), x, z);
     }
 
     private final class BakeSource implements PlaneSource {
@@ -1168,9 +1182,53 @@ public class IrisComplex implements DataProvider {
             InferredType inferredType,
             IrisBiome emptyBiome
     ) {
-        ProceduralStream<IrisBiome> picked = new RarityStream<>(biomePickNoiseStream(engine.getDimension(), region, inferredType),
-                loadInferredBiomes(biomeKeys(region, inferredType), inferredType));
-        return inferredType == InferredType.CAVE ? picked.onNull(emptyBiome) : picked;
+        ProceduralStream<Double> noise = biomePickNoiseStream(engine.getDimension(), region, inferredType);
+        KList<IrisBiome> biomes = loadInferredBiomes(biomeKeys(region, inferredType), inferredType);
+        return switch (inferredType) {
+            case CAVE -> new RarityStream<>(noise, biomes).onNull(emptyBiome);
+            case LAND -> new RarityStream<>(noise, requireLandBiomes(region, biomes));
+            case SEA, SHORE -> biomes.isEmpty() ? NO_BIOMES : new RarityStream<>(noise, biomes);
+        };
+    }
+
+    /**
+     * Every region needs a land biome: the surface falls back to land wherever it leaves sea or shore, and a region
+     * without sea biomes picks its continental sea from land too.
+     */
+    static KList<IrisBiome> requireLandBiomes(IrisRegion region, KList<IrisBiome> landBiomes) {
+        if (!landBiomes.isEmpty()) {
+            return landBiomes;
+        }
+        String regionKey = region.getLoadKey() == null || region.getLoadKey().isBlank() ? "<unkeyed>" : region.getLoadKey();
+        throw new IllegalStateException(region.getLandBiomes().isEmpty()
+                ? "Region '" + regionKey + "' has no landBiomes; every region needs at least one land biome."
+                : "Region '" + regionKey + "' has no landBiomes this Minecraft version can generate; every listed land biome is excluded.");
+    }
+
+    /** Whether any prepared region left the given biome list empty. */
+    static boolean lacks(Map<IrisRegion, Map<InferredType, ProceduralStream<IrisBiome>>> streams, InferredType inferredType) {
+        for (Map<InferredType, ProceduralStream<IrisBiome>> regionStreams : streams.values()) {
+            if (regionStreams.get(inferredType) == NO_BIOMES) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The biome list a spot's base biome comes from: the continent's choice, or land where the region has no sea. */
+    static InferredType baseType(
+            Map<IrisRegion, Map<InferredType, ProceduralStream<IrisBiome>>> streams,
+            IrisRegion region,
+            InferredType continent
+    ) {
+        return continent == InferredType.SEA && preparedInferredBiomeStream(streams, region, InferredType.SEA) == NO_BIOMES
+                ? InferredType.LAND
+                : continent;
+    }
+
+    /** The biome list the given region picks this spot's base biome from. */
+    public InferredType baseTypeIn(IrisRegion region, double x, double z) {
+        return baseTypeStream == bridgeStream ? bridgeStream.get(x, z) : baseType(inferredBiomeStreams, region, bridgeStream.get(x, z));
     }
 
     private ProceduralStream<Double> biomePickNoiseStream(IrisDimension dimension, IrisRegion region, InferredType inferredType) {
@@ -1252,7 +1310,7 @@ public class IrisComplex implements DataProvider {
         if (focusBiome != null) {
             return new BiomePick(focusBiome, focusBiome.getInferredType());
         }
-        InferredType type = bridgeStream.get(x, z);
+        InferredType type = baseTypeIn(region, x, z);
         return new BiomePick(implode(createInferredBiomeStream(region, type).get(x, z), x, z), type);
     }
 
@@ -1924,7 +1982,7 @@ public class IrisComplex implements DataProvider {
 
         if (height >= fluidHeight - 1 && !biome.isShore()) {
             if (!aboveShoreBand(height, region, x, z, fluidHeight, shoreSlopes)) {
-                return shoreBiomes.get(x, z);
+                return convertedOrKept(shoreBiomes.get(x, z), biome);
             }
             if (!biome.isLand()) {
                 return landBiomes.get(x, z);
@@ -1934,14 +1992,19 @@ public class IrisComplex implements DataProvider {
         }
 
         if (height < fluidHeight && !biome.isAquatic()) {
-            return seaBiomes.get(x, z);
+            return convertedOrKept(seaBiomes.get(x, z), biome);
         }
 
         if (height == fluidHeight && !biome.isShore()) {
-            return shoreBiomes.get(x, z);
+            return convertedOrKept(shoreBiomes.get(x, z), biome);
         }
 
         return biome;
+    }
+
+    // A null conversion comes from NO_BIOMES: the region lists no biomes of that type, so the column keeps its own.
+    private static IrisBiome convertedOrKept(IrisBiome converted, IrisBiome biome) {
+        return converted == null ? biome : converted;
     }
 
     private double interpolateGenerators(Engine engine, IrisInterpolator interpolator, int interpolatorIndex, IrisGenerator[] generators, double x, double z, long seed) {
@@ -2536,7 +2599,7 @@ public class IrisComplex implements DataProvider {
 
     private List<IrisBiome> childLineage(IrisBiome biome, int x, int z) {
         IrisBiome[] rootFirst = new IrisBiome[IrisBiome.CHILD_HOPS + 1];
-        IrisBiome current = inferredByType.get(bridgeStream.get(x, z)).get(x, z);
+        IrisBiome current = inferredByType.get(baseTypeStream.get(x, z)).get(x, z);
         rootFirst[0] = current;
         int size = 1;
         for (int hop = 0; hop < IrisBiome.CHILD_HOPS && !current.getChildren().isEmpty(); hop++) {
@@ -2885,7 +2948,7 @@ public class IrisComplex implements DataProvider {
             if (constant != null) {
                 return constant;
             }
-            InferredType type = pick != null ? pick.type() : complex.bridgeStream.get(x, z);
+            InferredType type = pick != null ? pick.type() : complex.baseTypeIn(region, x, z);
             constant = constants == null ? null : constants.typed(type, group);
             if (constant != null) {
                 return constant;

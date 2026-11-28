@@ -211,6 +211,7 @@ public final class PackValidator {
             applyCompatFindings(minecraftVersion, dimensions.anyExcluded(), findings, blockingErrors, warnings);
             applyRequireAllContent(packFolder.getName(), dimensions.reachedByRequiringDimension(),
                     minecraftVersion, findings, blockingErrors);
+            addDistinct(blockingErrors, excludedLandErrors(data, dimensions.regionKeys(), minecraftVersion));
             return findings;
         } catch (Throwable e) {
             IrisLogging.reportError("Version-content gating failed for pack '" + packFolder.getName() + "'", e);
@@ -239,6 +240,7 @@ public final class PackValidator {
     private static GatedDimensions loadEverything(File packFolder, IrisData data, File[] dimensionFiles) {
         boolean dimensionExcluded = false;
         Map<String, Set<String>> reachedByRequiringDimension = new LinkedHashMap<>();
+        Set<String> regionKeys = new LinkedHashSet<>();
         List<String> folders = data.getLoaders().values().stream().map(ResourceLoader::getFolderName).toList();
         File dimensionsFolder = new File(packFolder, DIMENSIONS_FOLDER);
         for (File dimensionFile : dimensionFiles) {
@@ -249,6 +251,8 @@ public final class PackValidator {
             }
             if (dimension.isCompatExcluded()) {
                 dimensionExcluded = true;
+            } else {
+                regionKeys.addAll(dimension.getRegions());
             }
             if (dimension.isRequireAllContent()) {
                 reachedByRequiringDimension.put(dimension.getLoadKey(), PackContentReach.referencedFrom(
@@ -271,10 +275,31 @@ public final class PackValidator {
         for (IrisObjectPlacement placement : placements) {
             placement.evaluateCompat(data);
         }
-        return new GatedDimensions(dimensionExcluded, reachedByRequiringDimension);
+        return new GatedDimensions(dimensionExcluded, reachedByRequiringDimension, regionKeys);
     }
 
-    private record GatedDimensions(boolean anyExcluded, Map<String, Set<String>> reachedByRequiringDimension) {
+    private record GatedDimensions(boolean anyExcluded, Map<String, Set<String>> reachedByRequiringDimension,
+                                   Set<String> regionKeys) {
+    }
+
+    /**
+     * A region whose land biomes the version-content gate excluded cannot generate. Regions that list no land biome
+     * at all are already reported by {@link PackDimensionValidator}.
+     */
+    private static List<String> excludedLandErrors(IrisData data, Collection<String> regionKeys, String minecraftVersion) {
+        List<String> errors = new ArrayList<>();
+        for (String regionKey : regionKeys) {
+            IrisRegion region = data.getRegionLoader().load(regionKey, false);
+            if (region == null || region.isCompatExcluded()) {
+                continue;
+            }
+            List<IrisBiome> land = data.getBiomeLoader().loadAll(region.getLandBiomes());
+            if (!land.isEmpty() && land.stream().allMatch(IrisBiome::isCompatExcluded)) {
+                errors.add("Region '" + regionKey + "' has no landBiomes Minecraft " + versionOrUnknown(minecraftVersion)
+                        + " can generate; every listed land biome is excluded.");
+            }
+        }
+        return errors;
     }
 
     private static void collectPlacements(IrisRegistrant registrant, Set<IrisObjectPlacement> out) {

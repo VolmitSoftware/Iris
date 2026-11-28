@@ -18,6 +18,7 @@
 
 package art.arcane.iris.pack;
 
+import art.arcane.iris.pack.loading.SnippetFolder;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
@@ -34,7 +35,7 @@ import java.util.Locale;
  * 16-32 objects per chunk, and a caveProfile.densityThreshold of {} hollows the whole cave range.
  */
 final class PackStyledRangeDefaultValidator {
-    private static final String STYLE_RANGE_SNIPPET_FOLDER = "snippet/style-range/";
+    private static final String STYLE_RANGE_SNIPPET_TYPE = "style-range";
 
     record Validation(List<String> errors, List<String> warnings) {
         Validation {
@@ -114,16 +115,13 @@ final class PackStyledRangeDefaultValidator {
         if (raw instanceof JSONObject inline) {
             range = inline;
         } else if (raw instanceof String reference && reference.startsWith("snippet/")) {
-            String resolved = reference.startsWith(STYLE_RANGE_SNIPPET_FOLDER)
-                    ? reference
-                    : STYLE_RANGE_SNIPPET_FOLDER + reference.substring("snippet/".length());
-            File snippet = new File(packFolder, resolved + ".json");
-            if (!snippet.isFile()) {
+            SnippetFolder.Lookup snippet = new SnippetFolder(STYLE_RANGE_SNIPPET_TYPE).find(packFolder, reference);
+            if (!snippet.found()) {
                 return; // Missing snippets are reported by the content-key machinery.
             }
             try {
-                range = PackValidationIo.parseJson(snippet);
-                via = " (via snippet '" + resolved + "')";
+                range = PackValidationIo.parseJson(snippet.file());
+                via = " (via snippet '" + snippet.key() + "')";
             } catch (Throwable e) {
                 return;
             }

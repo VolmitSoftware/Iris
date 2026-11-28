@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.subterrain;
 
+import art.arcane.iris.generation.runtime.ThreadSlots;
 import java.util.Objects;
 
 public final class SubterrainPlan {
@@ -12,7 +13,7 @@ public final class SubterrainPlan {
     private final SubterrainBounds bounds;
     private final double shapePhase;
     private final long shapeSeed;
-    private final ThreadLocal<ColumnCache> columnCache = ThreadLocal.withInitial(ColumnCache::new);
+    private final ThreadSlots<ColumnCache> columnCache = new ThreadSlots<>(ColumnCache::new);
 
     SubterrainPlan(Options options) {
         definition = Objects.requireNonNull(options.definition());

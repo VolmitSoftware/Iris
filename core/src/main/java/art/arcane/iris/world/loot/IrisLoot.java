@@ -36,6 +36,7 @@ import art.arcane.iris.pack.schema.annotation.RegistryListItemType;
 import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
+import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -72,6 +73,7 @@ import java.util.Optional;
 @ToString(doNotUseGetters = true)
 public class IrisLoot {
     public static final int MAX_AMOUNT = 64;
+    private static final String UNKNOWN_MATERIAL_KEY_KIND = "unknown-loot-material";
 
     private final transient AtomicCache<DyeColor> dyeColorResolved = new AtomicCache<>();
     @Description("The target inventory slot types to fill this loot with. World generation only ever fills STORAGE; the other values are inert during worldgen.")
@@ -173,7 +175,7 @@ public class IrisLoot {
 
     public ItemStack get(boolean debug, RNG rng) {
         try {
-            ItemStack is = getItemStack(rng);
+            ItemStack is = getItemStack(rng, null);
             if (is == null)
                 return new ItemStack(Material.AIR);
             is.setItemMeta(applyProperties(is, rng, debug, null));
@@ -191,7 +193,7 @@ public class IrisLoot {
         }
 
         try {
-            ItemStack is = getItemStack(rng);
+            ItemStack is = getItemStack(rng, table);
             if (is == null)
                 return null;
             is.setItemMeta(applyProperties(is, rng, debug, table));
@@ -204,11 +206,12 @@ public class IrisLoot {
     }
 
     // TODO Better Third Party Item Acquisition
-    private ItemStack getItemStack(RNG rng) {
+    private ItemStack getItemStack(RNG rng, IrisLootTable table) {
         if (!type.startsWith("minecraft:") && type.contains(":")) {
             Optional<ItemStack> opt = IrisServices.get(ExternalDataSVC.class).getItemStack(Identifier.fromString(type), customNbt);
             if (opt.isEmpty()) {
-                IrisLogging.warn("Unknown Material: " + type);
+                IrisData pack = table == null ? null : table.getLoader();
+                IrisLogging.warnOnce(IrisData.onceKey(pack, UNKNOWN_MATERIAL_KEY_KIND, type), "Unknown Material: " + type);
                 return new ItemStack(Material.AIR);
             }
             ItemStack is = opt.get();

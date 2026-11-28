@@ -14,7 +14,7 @@ final class PlacementModulePreparation implements PlacementModule {
         lifecycle.add(PLACER, PlacementStage.PREPARE, (context, state, ignored) -> {
             if (state.config.getHeightmap() != null) {
                 state.placer = new HeightmapObjectPlacer(context.rng, context.x, context.yv, context.z,
-                        state.config, context.placer);
+                        state.config, context.placer, context.runtime);
             }
         });
         lifecycle.add(TRANSFORMS, PlacementStage.PREPARE, PlacementModulePreparation::prepare,

@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
 import org.junit.Test;
@@ -18,7 +19,7 @@ public class PatternNoiseStyleTest {
     public void styleIntegrationUsesTheSameScaleInEveryDimension() {
         for (NoiseStyle style : STYLES) {
             CNG direct = style.create(new RNG(7331L));
-            CNG zoomed = style.style().zoomed(2D).createNoCache(new RNG(7331L), null);
+            CNG zoomed = style.style().zoomed(2D).createNoCache(new RNG(7331L), PackRuntime.standalone(null));
             for (int index = 0; index < 128; index++) {
                 double x = index * 13.713D - 400D;
                 double y = index * 1.119D - 70D;

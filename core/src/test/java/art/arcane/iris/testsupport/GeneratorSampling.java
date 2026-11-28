@@ -1,7 +1,7 @@
 package art.arcane.iris.testsupport;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
-import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
 
@@ -13,8 +13,8 @@ public final class GeneratorSampling {
     private GeneratorSampling() {
     }
 
-    public static double[] sampleSharedGenerator(IrisGeneratorStyle style, RNG seed, IrisData packData) {
-        return sampleAtBlocks(style.create(seed, packData), SAMPLE_BLOCKS);
+    public static double[] sampleSharedGenerator(IrisGeneratorStyle style, RNG seed, PackRuntime runtime) {
+        return sampleAtBlocks(style.create(seed, runtime), SAMPLE_BLOCKS);
     }
 
     public static double[] sampleAtBlocks(CNG generator, double[][] blocks) {

@@ -785,7 +785,8 @@ public final class GenerationHistory {
                         && !selected.contains(ownership.resolve(chunkX, chunkZ, outgoing));
         WorldChunkInventory inventory;
         if (startupRecovery) {
-            inventory = SavedTerrainRecoveryScan.scan(paths.dimensionRoot(), allocated, retained);
+            inventory = SavedTerrainRecoveryScan.scan(paths.dimensionRoot(), allocated, retained,
+                    paths.irisRoot().resolve(SavedTerrainStatusCache.FILE_NAME));
         } else {
             try (SavedTerrainChunkReader.StatusReader reader = new SavedTerrainChunkReader.StatusReader(paths.dimensionRoot())) {
                 inventory = allocated.filter((chunkX, chunkZ) -> retained.test(chunkX, chunkZ)

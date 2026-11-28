@@ -141,7 +141,7 @@ final class BiomeExplorer {
 
         private void add(double x, double z) {
             count++;
-            InferredType type = complex.getBridgeStream().get(x, z);
+            InferredType type = complex.baseTypeIn(region, x, z);
             for (TypedSpread typed : spreads) {
                 if (typed.type() == type) {
                     typed.spread().add(noiseByType.computeIfAbsent(type, shown -> complex.biomePickNoiseStream(region, shown)).get(x, z));

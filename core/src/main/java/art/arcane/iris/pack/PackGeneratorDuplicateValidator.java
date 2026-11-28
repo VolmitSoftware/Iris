@@ -18,6 +18,7 @@
 
 package art.arcane.iris.pack;
 
+import art.arcane.iris.pack.loading.SnippetFolder;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
@@ -43,7 +44,7 @@ import java.util.TreeMap;
  * for a warning aimed at the copy-the-file-and-forget-the-seed mistake.
  */
 final class PackGeneratorDuplicateValidator {
-    private static final String GENERATOR_SNIPPET_FOLDER = "snippet/generator-layer/";
+    private static final String GENERATOR_SNIPPET_TYPE = "generator-layer";
 
     private PackGeneratorDuplicateValidator() {
     }
@@ -123,15 +124,12 @@ final class PackGeneratorDuplicateValidator {
         if (reference == null || !reference.startsWith("snippet/")) {
             return null;
         }
-        String resolved = reference.startsWith(GENERATOR_SNIPPET_FOLDER)
-                ? reference
-                : GENERATOR_SNIPPET_FOLDER + reference.substring("snippet/".length());
-        File snippet = new File(packFolder, resolved + ".json");
-        if (!snippet.isFile()) {
+        SnippetFolder.Lookup snippet = new SnippetFolder(GENERATOR_SNIPPET_TYPE).find(packFolder, reference);
+        if (!snippet.found()) {
             return null;
         }
         try {
-            return PackValidationIo.parseJson(snippet);
+            return PackValidationIo.parseJson(snippet.file());
         } catch (Throwable e) {
             return null;
         }

@@ -1,5 +1,6 @@
 package art.arcane.iris.pack.datapack.export.compile.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.IrisNoiseGenerator;
@@ -7,6 +8,7 @@ import art.arcane.iris.generation.noise.IrisStyledRange;
 import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.datapack.export.ir.CostClass;
 import art.arcane.iris.pack.datapack.export.ir.ExportDiagnostic;
+import art.arcane.iris.pack.datapack.export.ir.ExportLimit;
 import art.arcane.iris.pack.datapack.export.ir.Field;
 import art.arcane.iris.pack.datapack.export.ir.NoiseDef;
 import art.arcane.iris.pack.datapack.export.lower.ExportCapabilities;
@@ -22,6 +24,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
@@ -36,33 +39,47 @@ public final class NoiseStyleCompiler implements StyleCompiler {
 
     private final CellularStyleLowering cellular;
     private final StyleCompiler selectors;
+    private final List<ExportDiagnostic> diagnostics;
+    private final Set<String> reportedSeeds = ConcurrentHashMap.newKeySet();
     private final Map<LeafKey, LeafNoiseFit.FittedLeaf> leaves = new ConcurrentHashMap<>();
     private final Map<LevelKey, WarpFit.LevelFit> levels = new ConcurrentHashMap<>();
+    private final PackRuntime runtime = PackRuntime.standalone(null);
 
     public NoiseStyleCompiler(CellularStyleLowering cellular) {
         this.cellular = Objects.requireNonNull(cellular, "cellular");
         this.selectors = this;
+        this.diagnostics = null;
     }
 
-    private NoiseStyleCompiler(Function<StyleCompiler, CellularStyleLowering> cellular, StyleCompiler selectors) {
+    private NoiseStyleCompiler(Function<StyleCompiler, CellularStyleLowering> cellular, StyleCompiler selectors,
+                               List<ExportDiagnostic> diagnostics) {
         this.cellular = Objects.requireNonNull(cellular.apply(this), "cellular");
         this.selectors = selectors == null ? this : selectors;
+        this.diagnostics = diagnostics;
     }
 
     public static NoiseStyleCompiler create(List<ExportDiagnostic> diagnostics) {
         Objects.requireNonNull(diagnostics, "diagnostics");
-        NoiseStyleCompiler selectors = new NoiseStyleCompiler(nested -> new DefaultCellularStyleLowering(diagnostics, nested::compile, CellularMode.QUADRANT_2X2), null);
-        return new NoiseStyleCompiler(nested -> new DefaultCellularStyleLowering(diagnostics, nested::compile, CellularMode.GRID_3X3), selectors);
+        NoiseStyleCompiler selectors = new NoiseStyleCompiler(nested -> new DefaultCellularStyleLowering(diagnostics, nested::compile, CellularMode.QUADRANT_2X2), null, diagnostics);
+        return new NoiseStyleCompiler(nested -> new DefaultCellularStyleLowering(diagnostics, nested::compile, CellularMode.GRID_3X3), selectors, diagnostics);
     }
 
     public static CNG generator(IrisGeneratorStyle style) {
-        return build(prepared(Objects.requireNonNull(style, "style"), 1.0), 1);
+        return build(prepared(Objects.requireNonNull(style, "style"), 1.0), 1, PackRuntime.standalone(null));
     }
 
     @Override
     public Field compile(IrisGeneratorStyle style, long seedSalt, NoiseRegistry registry, ExportCapabilities capabilities) {
         Emit emit = new Emit(registry, capabilities, seedSalt);
         return style(Objects.requireNonNull(style, "style"), 1, Domain.IDENTITY, emit, "s");
+    }
+
+    private void reportSeed(IrisGeneratorStyle style) {
+        if (diagnostics == null || style == null || !style.isSeeded() || !reportedSeeds.add(String.valueOf(style.getSeed()))) {
+            return;
+        }
+        diagnostics.add(new ExportDiagnostic(ExportDiagnostic.Severity.WARNING, ExportLimit.NOISE_STYLE, "",
+                "Noise style seed " + style.getSeed() + " is not exported; the style uses its exported salt instead"));
     }
 
     @Override
@@ -143,7 +160,7 @@ public final class NoiseStyleCompiler implements StyleCompiler {
             Field center = new Field.Const(-child.getOpacity() / 2.0);
             String childPath = path + "/f" + index + "_" + child.getSeed();
             warpX = sum(warpX, binary(Field.BinaryOp.ADD, layer(child, domain, emit, childPath + "x"), center));
-            warpZ = sum(warpZ, binary(Field.BinaryOp.ADD, layer(child, domain.swapped(), emit, childPath + "z"), center));
+            warpZ = sum(warpZ, binary(Field.BinaryOp.ADD, layer(child, domain, emit, childPath + "z"), center));
         }
         Domain sampled = domain.layer(positive(layer.getZoom(), "layer zoom"), layer.getOffsetX(), layer.getOffsetZ(), warpX, warpZ);
         Field value = style(layer.getStyle(), layer.getOctaves(), sampled, emit, path);
@@ -180,9 +197,10 @@ public final class NoiseStyleCompiler implements StyleCompiler {
     }
 
     private Field style(IrisGeneratorStyle style, int octaveMultiplier, Domain domain, Emit emit, String path) {
+        reportSeed(style);
         IrisGeneratorStyle prepared = prepared(Objects.requireNonNull(style, "noise style"), domain.zoom());
         String stylePath = path + "/" + styleName(style);
-        CNG root = build(prepared, octaveMultiplier);
+        CNG root = build(prepared, octaveMultiplier, runtime);
         if (cellular(prepared, root)) {
             if (domain.warpX() != null || domain.warpZ() != null) {
                 throw new IllegalArgumentException("Cellular noise style " + styleName(style) + " cannot be exported under a layer fracture warp");
@@ -208,7 +226,7 @@ public final class NoiseStyleCompiler implements StyleCompiler {
             Displacement leafDisplacement = displacement;
             if (warped(cng)) {
                 Field warpX = displacement(node(cng.getFracture(), displacement, emit, path + "/x"), cng.getFscale());
-                Field warpZ = displacement(node(cng.getFracture(), displacement.swapped(), emit, path + "/z"), cng.getFscale());
+                Field warpZ = displacement(node(cng.getFracture(), displacement, emit, path + "/z"), cng.getFscale());
                 leafDisplacement = displacement.warped(warpX, warpZ);
             }
             value = leaf(type, cng.getOct(), cng.getEffectiveScale() * multiplier, leafDisplacement, emit, path);
@@ -393,8 +411,8 @@ public final class NoiseStyleCompiler implements StyleCompiler {
         }
     }
 
-    private static CNG build(IrisGeneratorStyle style, int octaveMultiplier) {
-        return style.createForLayer(new RNG(BUILD_SEED), null, octaveMultiplier);
+    private static CNG build(IrisGeneratorStyle style, int octaveMultiplier, PackRuntime runtime) {
+        return style.createForLayer(new RNG(BUILD_SEED), runtime, octaveMultiplier);
     }
 
     private static IrisGeneratorStyle prepared(IrisGeneratorStyle style, double zoom) {
@@ -483,18 +501,10 @@ public final class NoiseStyleCompiler implements StyleCompiler {
                     sum(warpX, layerWarpX == null ? null : scaled(layerWarpX, zoom)),
                     sum(warpZ, layerWarpZ == null ? null : scaled(layerWarpZ, zoom)));
         }
-
-        private Domain swapped() {
-            return new Domain(zoom, offsetZ, offsetX, warpZ, warpX);
-        }
     }
 
     private record Displacement(double offsetX, double offsetZ, Field warpX, Field warpZ) {
         private static final Displacement NONE = new Displacement(0.0, 0.0, null, null);
-
-        private Displacement swapped() {
-            return new Displacement(offsetZ, offsetX, warpZ, warpX);
-        }
 
         private Displacement warped(Field addedX, Field addedZ) {
             return new Displacement(offsetX, offsetZ, sum(warpX, addedX), sum(warpZ, addedZ));

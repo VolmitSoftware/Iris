@@ -25,6 +25,11 @@ import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonParser;
+import com.google.gson.Strictness;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
@@ -36,6 +41,8 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.IrisEngineStreamType;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 import art.arcane.iris.world.loot.IrisBlockDrops;
@@ -90,6 +97,8 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -102,6 +111,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
@@ -111,6 +121,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Data
 public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private static final int CUSTOM_BIOME_KEY_CACHE_LIMIT = 4096;
+    private static final String PACK_ONCE_KEY_PREFIX = "pack|";
+    private static final String PACK_ONCE_KEY_SEPARATOR = "|";
     private static final Map<File, IrisData> dataLoaders = new ConcurrentHashMap<>();
     // Loaders (cached or detached) that currently have registered engines; see hasActiveEngines.
     // Identity-keyed on purpose: Lombok's @Data hashCode over this class's mutable loader state
@@ -172,6 +184,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private transient volatile Engine soleEngine;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
+    @EqualsAndHashCode.Exclude
+    private transient volatile PackRuntime standalonePackRuntime;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
     private transient volatile Set<String> blockDropMaterials;
 
     private IrisData(File dataFolder) {
@@ -203,6 +219,23 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public static Optional<IrisData> getLoaded(File dataFolder) {
         return Optional.ofNullable(dataLoaders.get(dataFolder));
+    }
+
+    /**
+     * Closes every cached loader for a pack inside the given folder. A world's generation packs
+     * live in its own folder and get cached by metadata reads; without this, each closed studio
+     * world would leave its loader in the cache for the rest of the server's life.
+     */
+    public static void closeLoadedUnder(File root) {
+        if (root == null) {
+            return;
+        }
+        Path normalizedRoot = root.toPath().toAbsolutePath().normalize();
+        for (IrisData data : dataLoaders.values()) {
+            if (data.getDataFolder().toPath().toAbsolutePath().normalize().startsWith(normalizedRoot)) {
+                data.close();
+            }
+        }
     }
 
     public static void invalidateLoadedAuthoringResources(File source) {
@@ -678,6 +711,23 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         dataLoaders.remove(dataFolder, this);
     }
 
+    /**
+     * The runtime scope for tools that work on this pack without an engine, such as studio previews and validators.
+     * It is replaced when the pack objects are reloaded and dropped when this data closes.
+     */
+    public PackRuntime standalonePackRuntime() {
+        PackRuntime current = standalonePackRuntime;
+        if (current != null) {
+            return current;
+        }
+        synchronized (this) {
+            if (standalonePackRuntime == null) {
+                standalonePackRuntime = PackRuntime.standalone(this);
+            }
+            return standalonePackRuntime;
+        }
+    }
+
     public IrisData copy() {
         return IrisData.get(dataFolder);
     }
@@ -715,6 +765,8 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public synchronized void hotloaded() {
+        // Studio hotload reopens or rebuilds the pack through here without ever calling clearLists().
+        IrisLogging.forgetOnceKeys(onceKeyPrefix());
         blockDropMaterials = null;
         StructureGraphCatalog.invalidate(this);
         IrisObjectScale.invalidate(this);
@@ -797,6 +849,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public void dump() {
         blockDropMaterials = null;
+        standalonePackRuntime = null;
         StructureGraphCatalog.invalidate(this);
         IrisObjectScale.invalidate(this);
         for (ResourceLoader<?> i : loaders.values()) {
@@ -837,7 +890,28 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         throw failure;
     }
 
+    /**
+     * Prefix shared by every warn-once key that belongs to this pack, so {@link #clearLists()} can forget
+     * them together. The trailing separator keeps {@code /packs/a} from matching {@code /packs/ab}.
+     */
+    public String onceKeyPrefix() {
+        return PACK_ONCE_KEY_PREFIX + dataFolder.getAbsolutePath() + PACK_ONCE_KEY_SEPARATOR;
+    }
+
+    public String onceKey(String kind, String detail) {
+        return onceKeyPrefix() + kind + PACK_ONCE_KEY_SEPARATOR + detail;
+    }
+
+    /**
+     * Key for a warning whose site may not know its pack: scoped to the pack when there is one so a
+     * hotload forgets it, otherwise a plain stable key.
+     */
+    public static String onceKey(IrisData data, String kind, String detail) {
+        return data == null ? kind + PACK_ONCE_KEY_SEPARATOR + detail : data.onceKey(kind, detail);
+    }
+
     public void clearLists() {
+        IrisLogging.forgetOnceKeys(onceKeyPrefix());
         blockDropMaterials = null;
         for (ResourceLoader<?> i : loaders.values()) {
             i.clearList();
@@ -950,12 +1024,15 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     @Override
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> typeToken) {
-        if (!typeToken.getRawType().isAnnotationPresent(Snippet.class)) {
-            return null;
+        String listedSnippetType = snippetTypeListedBy(typeToken);
+        if (listedSnippetType != null) {
+            return snippetListAdapter(gson, typeToken, listedSnippetType);
         }
 
-        String snippetType = typeToken.getRawType().getDeclaredAnnotation(Snippet.class).value();
-        String snippedBase = "snippet/" + snippetType + "/";
+        String snippetType = snippetTypeOf(typeToken.getRawType());
+        if (snippetType == null) {
+            return null;
+        }
 
         return new TypeAdapter<>() {
             @Override
@@ -966,71 +1043,182 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             @Override
             public T read(JsonReader reader) throws IOException {
                 TypeAdapter<T> adapter = gson.getDelegateAdapter(IrisData.this, typeToken);
+                String path = reader.getPath();
 
-                if (reader.peek().equals(JsonToken.STRING)) {
-                    String r = reader.nextString();
-                    if (!r.startsWith("snippet/"))
-                        return null;
-                    if (!r.startsWith(snippedBase))
-                        r = snippedBase + r.substring(8);
-
-                    File f = new File(getDataFolder(), r + ".json");
-                    if (f.exists()) {
-                        try (JsonReader snippetReader = new JsonReader(new FileReader(f))){
-                            return adapter.read(snippetReader);
-                        } catch (IrisEngineStreamType.UnknownStreamException unknownStream) {
-                            throw unknownStream;
-                        } catch (Throwable e) {
-                            IrisLogging.error("Couldn't read snippet " + r + " in " + reader.getPath() + " (" + e.getMessage() + ")");
-                        }
-                    } else {
-                        IrisLogging.error("Couldn't find snippet " + r + " in " + reader.getPath());
-                    }
-
-                    return null;
+                if (reader.peek() == JsonToken.STRING) {
+                    return readSnippetReference(adapter, snippetType, reader.nextString(), path);
                 }
 
+                JsonElement value = gson.getAdapter(JsonElement.class).read(reader);
                 try {
-                    return adapter.read(reader);
+                    return adapter.fromJsonTree(value);
                 } catch (IrisEngineStreamType.UnknownStreamException unknownStream) {
                     throw unknownStream;
                 } catch (Throwable e) {
-                    IrisLogging.error("Failed to read " + typeToken.getRawType().getCanonicalName() + "... faking objects a little to load the file at least.");
+                    IrisLogging.error("Failed to read " + typeToken.getRawType().getCanonicalName() + " at " + path
+                            + " (" + e.getMessage() + "), using defaults");
                     IrisLogging.reportError(e);
-                    try {
-                        return (T) typeToken.getRawType().getConstructor().newInstance();
-                    } catch (Throwable ignored) {
-
-                    }
+                    return defaultInstance(typeToken);
                 }
-                return null;
             }
         };
     }
 
-    public KList<String> getPossibleSnippets(String f) {
-        return possibleSnippets.computeIfAbsent(f, (k) -> {
-            KList<String> l = new KList<>();
+    private <T> @Nullable T readSnippetReference(TypeAdapter<T> adapter, String snippetType, String reference, String path) {
+        JsonElement snippet = readSnippetFile(snippetType, reference, path);
+        if (snippet == null) {
+            return null;
+        }
 
-            File snippetFolder = new File(getDataFolder(), "snippet/" + f);
-            if (!snippetFolder.exists()) return l;
+        if (snippet.isJsonArray()) {
+            IrisLogging.error("Snippet " + reference + " in " + path + " holds several entries, which only a list can take");
+            return null;
+        }
 
-            String absPath = snippetFolder.getAbsolutePath();
-            try (var stream = Files.walk(snippetFolder.toPath())) {
-                stream.filter(Files::isRegularFile)
-                        .map(Path::toAbsolutePath)
-                        .map(Path::toString)
-                        .filter(s -> s.endsWith(".json"))
-                        .map(s -> s.substring(absPath.length() + 1))
-                        .map(s -> s.replace("\\", "/"))
-                        .map(s -> s.substring(0, s.length() - ".json".length()))
-                        .forEach(s -> l.add("snippet/" + s));
-            } catch (Throwable e) {
-                IrisLogging.reportError("Failed to scan Iris snippets in " + snippetFolder + ".", e);
+        try {
+            return adapter.fromJsonTree(snippet);
+        } catch (IrisEngineStreamType.UnknownStreamException unknownStream) {
+            throw unknownStream;
+        } catch (Throwable e) {
+            IrisLogging.error("Couldn't read snippet " + reference + " in " + path + " (" + e.getMessage() + ")");
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> @Nullable T defaultInstance(TypeToken<T> typeToken) {
+        try {
+            return (T) typeToken.getRawType().getConstructor().newInstance();
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static @Nullable String snippetTypeOf(Class<?> type) {
+        Snippet snippet = type.getDeclaredAnnotation(Snippet.class);
+        return snippet == null ? null : snippet.value();
+    }
+
+    private static @Nullable String snippetTypeListedBy(TypeToken<?> typeToken) {
+        if (!Collection.class.isAssignableFrom(typeToken.getRawType())
+                || !(typeToken.getType() instanceof ParameterizedType listType)) {
+            return null;
+        }
+
+        Type[] elementTypes = listType.getActualTypeArguments();
+        if (elementTypes.length != 1 || !(elementTypes[0] instanceof Class<?> elementType)) {
+            return null;
+        }
+
+        return snippetTypeOf(elementType);
+    }
+
+    /** A snippet file holding a JSON array stands for all of its entries, so inside a list it becomes that many items. */
+    private <T> TypeAdapter<T> snippetListAdapter(Gson gson, TypeToken<T> listType, String snippetType) {
+        TypeAdapter<T> listAdapter = gson.getDelegateAdapter(this, listType);
+
+        return new TypeAdapter<>() {
+            @Override
+            public void write(JsonWriter writer, T list) throws IOException {
+                listAdapter.write(writer, list);
             }
 
-            return l;
+            @Override
+            public T read(JsonReader reader) throws IOException {
+                if (reader.peek() != JsonToken.BEGIN_ARRAY) {
+                    return listAdapter.read(reader);
+                }
+
+                String path = reader.getPath();
+                JsonArray entries = gson.getAdapter(JsonArray.class).read(reader);
+                return listAdapter.fromJsonTree(withSnippetsInlined(entries, snippetType, path));
+            }
+        };
+    }
+
+    /** A snippet that can't be read keeps its slot as null, the way a single snippet reference loads. */
+    private JsonArray withSnippetsInlined(JsonArray entries, String snippetType, String path) {
+        JsonArray inlined = new JsonArray();
+        for (int index = 0; index < entries.size(); index++) {
+            JsonElement entry = entries.get(index);
+            if (!isSnippetReference(entry)) {
+                inlined.add(entry);
+                continue;
+            }
+
+            JsonElement snippet = readSnippetFile(snippetType, entry.getAsString(), path + "[" + index + "]");
+            if (snippet == null) {
+                inlined.add(JsonNull.INSTANCE);
+            } else if (snippet.isJsonArray()) {
+                entriesOfSnippet(snippet.getAsJsonArray()).forEach(inlined::add);
+            } else {
+                inlined.add(snippet);
+            }
+        }
+
+        return inlined;
+    }
+
+    /** The entries a snippet file holding a list stands for. Lenient parsing reads a trailing comma as a null entry. */
+    public static List<JsonElement> entriesOfSnippet(JsonArray snippet) {
+        return snippet.asList().stream().filter(entry -> !entry.isJsonNull()).toList();
+    }
+
+    private static boolean isSnippetReference(JsonElement entry) {
+        return entry.isJsonPrimitive()
+                && entry.getAsJsonPrimitive().isString()
+                && entry.getAsString().startsWith(SnippetFolder.PREFIX);
+    }
+
+    /** The parsed snippet file, or null when the reference isn't a snippet or the file can't be read. */
+    private @Nullable JsonElement readSnippetFile(String snippetType, String reference, String path) {
+        if (!reference.startsWith(SnippetFolder.PREFIX)) {
+            return null;
+        }
+
+        SnippetFolder.Lookup lookup = new SnippetFolder(snippetType).find(getDataFolder(), reference);
+        if (!lookup.found()) {
+            IrisLogging.error("Couldn't find snippet " + lookup.key() + " in " + path);
+            return null;
+        }
+
+        try (JsonReader snippetReader = new JsonReader(new FileReader(lookup.file()))) {
+            snippetReader.setStrictness(Strictness.LENIENT);
+            return JsonParser.parseReader(snippetReader);
+        } catch (Throwable e) {
+            IrisLogging.error("Couldn't read snippet " + lookup.key() + " in " + path + " (" + e.getMessage() + ")");
+            return null;
+        }
+    }
+
+    /** Every snippet of the type, as "snippet/&lt;path inside its folder&gt;". */
+    public KList<String> getPossibleSnippets(String snippetType) {
+        return possibleSnippets.computeIfAbsent(snippetType, (k) -> {
+            File snippetFolder = new File(getDataFolder(), new SnippetFolder(snippetType).path());
+            return new KList<>(listSnippetReferences(snippetFolder));
         });
+    }
+
+    private static List<String> listSnippetReferences(File snippetFolder) {
+        if (!snippetFolder.exists()) {
+            return List.of();
+        }
+
+        String absPath = snippetFolder.getAbsolutePath();
+        try (var stream = Files.walk(snippetFolder.toPath())) {
+            return stream.filter(Files::isRegularFile)
+                    .map(Path::toAbsolutePath)
+                    .map(Path::toString)
+                    .filter(s -> s.endsWith(".json"))
+                    .map(s -> s.substring(absPath.length() + 1))
+                    .map(s -> s.replace("\\", "/"))
+                    .map(s -> s.substring(0, s.length() - ".json".length()))
+                    .map(s -> SnippetFolder.PREFIX + s)
+                    .toList();
+        } catch (Throwable e) {
+            IrisLogging.reportError("Failed to scan Iris snippets in " + snippetFolder + ".", e);
+            return List.of();
+        }
     }
 
     public boolean isClosed() {

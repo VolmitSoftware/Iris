@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -79,7 +80,7 @@ final class IrisSugarCane {
         }
         IrisBiome biome = complex.getTrueBiomeStream().get(x, z);
         KList<NativeBlockState> layers = biome.generateSeaLayers(x, z,
-                new RNG(engine.getSeedManager().getTerrain()), fluidHeight - terrainHeight, engine.getData());
+                new RNG(engine.getSeedManager().getTerrain()), fluidHeight - terrainHeight, PackRuntime.of(engine));
         int depth = fluidHeight - y;
         return supportsAdjacent(layers.hasIndex(depth) ? layers.get(depth) : complex.resolveSeaFluid(x, z));
     }

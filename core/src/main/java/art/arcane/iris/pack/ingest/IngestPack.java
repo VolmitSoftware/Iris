@@ -18,6 +18,7 @@
 
 package art.arcane.iris.pack.ingest;
 
+import art.arcane.iris.pack.loading.SnippetFolder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -114,8 +115,7 @@ final class IngestPack {
         if (!reference.startsWith(SNIPPET_PREFIX)) {
             return null;
         }
-        String base = SNIPPET_PREFIX + snippetType + "/";
-        String key = reference.startsWith(base) ? reference : base + reference.substring(SNIPPET_PREFIX.length());
+        String key = new SnippetFolder(snippetType).keyOf(reference);
         return find(key + ".json").map(JsonObject::deepCopy).orElse(null);
     }
 

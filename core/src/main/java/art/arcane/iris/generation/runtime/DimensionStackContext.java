@@ -133,7 +133,7 @@ public final class DimensionStackContext {
                     upper.getDimension().getLoadKey()
             );
             RNG seamRng = new RNG(engine.getSeedManager().getTerrain() ^ salt);
-            CNG seamNoise = style.create(seamRng, engine.getData(), engine);
+            CNG seamNoise = style.create(seamRng, PackRuntime.of(engine, engine.getData()));
             int amplitude = blend.getAmplitude();
             samplers.add((x, z) -> clampSeamOffset(
                     seamNoise.fitDouble(-amplitude, amplitude, x, z), amplitude));

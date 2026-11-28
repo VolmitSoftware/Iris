@@ -63,6 +63,7 @@ public final class IrisDatapackCompiler {
     private static final int INPUT_FINGERPRINT_SCHEMA = 4;
     private static final int INPUT_BUFFER_BYTES = 64 * 1024;
     private static final int WORLD_PACK_SCAN_DEPTH = 8;
+    private static final String DIMENSION_TYPE_FOLDER = "data/iris/dimension_type";
     private static final Pattern REGISTRY_KEY_PATTERN = Pattern.compile("[a-z0-9_.-]+:[a-z0-9/._-]+");
     private static final List<String> INPUT_DIRECTORIES = List.of("dimensions", "biomes", "snippet");
     private static final String FLAT_VOID_LEVEL_STEM = """
@@ -210,16 +211,7 @@ public final class IrisDatapackCompiler {
                 if (aliasContext.retainedContract() != null) {
                     data.bindGenerationRegistryContract(aliasContext.retainedContract());
                 }
-                ResourceLoader<IrisDimension> loader = data.getDimensionLoader();
-                String[] possibleKeys = loader.getPossibleKeys();
-                if (possibleKeys == null || possibleKeys.length == 0) {
-                    throw new IOException("Iris pack has no dimension definitions: " + packRoot);
-                }
-                for (String possibleKey : possibleKeys) {
-                    IrisDimension dimension = loader.load(possibleKey);
-                    if (dimension == null) {
-                        throw new IOException("Unable to load Iris dimension '" + possibleKey + "' from " + packRoot);
-                    }
+                for (IrisDimension dimension : loadPack(data).dimensions()) {
                     collectRegistryRequirements(
                             requirements,
                             biomeTags,
@@ -455,6 +447,7 @@ public final class IrisDatapackCompiler {
         Map<String, KSet<String>> biomes = new LinkedHashMap<>();
         Map<String, List<DimensionCandidate>> dimensions = new LinkedHashMap<>();
         Map<Path, GenerationHistory.PackInspection> histories = new LinkedHashMap<>();
+        PackUse packUse = new PackUse(packRoots, normalizedBindings);
         int packCount = 0;
         int dimensionCount = 0;
         for (File packRoot : packRoots) {
@@ -468,18 +461,8 @@ public final class IrisDatapackCompiler {
                 if (aliasContext.retainedContract() != null) {
                     data.bindGenerationRegistryContract(aliasContext.retainedContract());
                 }
-                ResourceLoader<IrisDimension> loader = data.getDimensionLoader();
-                String[] possibleKeys = loader.getPossibleKeys();
-                if (possibleKeys == null || possibleKeys.length == 0) {
-                    throw new IOException("Iris pack has no dimension definitions: " + packRoot);
-                }
-
                 int installedDimensions = 0;
-                for (String possibleKey : possibleKeys) {
-                    IrisDimension dimension = loader.load(possibleKey);
-                    if (dimension == null) {
-                        throw new IOException("Unable to load Iris dimension '" + possibleKey + "' from " + packRoot);
-                    }
+                for (IrisDimension dimension : dimensionsOfUsedPack(packRoot, loadPack(data), packUse)) {
                     IrisLogging.debug("  Compiling Dimension " + dimension.getLoadFile().getPath());
                     height.merge(dimension);
                     dimensions.computeIfAbsent(dimension.getLoadKey(), ignored -> new ArrayList<>())
@@ -514,10 +497,71 @@ public final class IrisDatapackCompiler {
         }
 
         IrisDimension.writeShared(datapackRoots, height, adjustVanillaHeight);
+        createDimensionTypeFolders(datapackRoots);
         installRetainedRegistrySources(packRoots, datapackRoots, fixer, histories);
         installLevelStemBindings(normalizedBindings, dimensions, datapackRoots);
         validateOutputs(datapackRoots, dimensionCount, normalizedBindings.size());
         return new CompilationResult(packCount, dimensionCount, countBiomes(biomes));
+    }
+
+    /**
+     * A pack that cannot load stops the compile when a world uses it, so the server never starts that world without
+     * its dimension; a pack no world uses is left out with a warning.
+     */
+    private static List<IrisDimension> dimensionsOfUsedPack(File packRoot, LoadedPack pack, PackUse packUse)
+            throws IOException {
+        if (pack.loads()) {
+            return pack.dimensions();
+        }
+        List<String> users = packUse.worldsUsing(packRoot, pack.dimensionKeys());
+        if (!users.isEmpty()) {
+            throw new IOException("Iris pack " + packRoot + " cannot load (" + pack.refusal() + ") and world(s) "
+                    + String.join(", ", users) + " use it. Fix the pack, then start the server again.");
+        }
+        IrisLogging.warn("Iris pack %s cannot load (%s). No world uses it, so it is left out and the server starts.",
+                packRoot, pack.refusal());
+        return List.of();
+    }
+
+    /** Every dimension of the pack, or none with the reason when any of them cannot load; never part of a pack. */
+    private static LoadedPack loadPack(IrisData data) {
+        ResourceLoader<IrisDimension> loader = data.getDimensionLoader();
+        String[] possibleKeys = loader.getPossibleKeys();
+        if (possibleKeys == null || possibleKeys.length == 0) {
+            return LoadedPack.refused(List.of(), "it has no dimension definitions");
+        }
+        List<String> dimensionKeys = List.of(possibleKeys);
+        List<IrisDimension> loaded = new ArrayList<>();
+        for (String key : dimensionKeys) {
+            IrisDimension dimension;
+            try {
+                dimension = loader.load(key);
+            } catch (RuntimeException failure) {
+                return LoadedPack.refused(dimensionKeys, "its dimension '" + key + "' failed to load: " + failure.getMessage());
+            }
+            if (dimension == null) {
+                return LoadedPack.refused(dimensionKeys, "its dimension '" + key + "' failed to load; the error above says why");
+            }
+            loaded.add(dimension);
+        }
+        return new LoadedPack(dimensionKeys, List.copyOf(loaded), null);
+    }
+
+    private record LoadedPack(List<String> dimensionKeys, List<IrisDimension> dimensions, String refusal) {
+        static LoadedPack refused(List<String> dimensionKeys, String refusal) {
+            return new LoadedPack(dimensionKeys, List.of(), refusal);
+        }
+
+        boolean loads() {
+            return refusal == null;
+        }
+    }
+
+    /** The dimension type folder exists in every compiled datapack, so one built only from left-out packs reads as complete. */
+    private static void createDimensionTypeFolders(Collection<File> datapackRoots) throws IOException {
+        for (File datapackRoot : datapackRoots) {
+            Files.createDirectories(datapackRoot.toPath().resolve(DIMENSION_TYPE_FOLDER));
+        }
     }
 
     public static void installRetainedRegistrySources(List<File> packRoots, Collection<File> datapackRoots,
@@ -988,7 +1032,7 @@ public final class IrisDatapackCompiler {
             if (!Files.isRegularFile(root.resolve("pack.mcmeta"))) {
                 throw new IOException("Iris datapack metadata was not generated at " + root);
             }
-            if (dimensionCount > 0 && !Files.isDirectory(root.resolve("data/iris/dimension_type"))) {
+            if (dimensionCount > 0 && !Files.isDirectory(root.resolve(DIMENSION_TYPE_FOLDER))) {
                 throw new IOException("Iris dimension types were not generated at " + root);
             }
             if (levelStemCount > 0 && !Files.isDirectory(root.resolve("data/iris/dimension"))) {

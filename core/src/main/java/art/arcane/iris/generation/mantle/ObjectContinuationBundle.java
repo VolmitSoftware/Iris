@@ -8,11 +8,14 @@ import art.arcane.volmlib.util.io.CountingDataInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.UncheckedIOException;
+import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
+import art.arcane.iris.world.storage.matter.RetiredMatterSlices;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
@@ -147,6 +150,7 @@ public record ObjectContinuationBundle(List<Fragment> fragments) {
                 Matter matter = new IrisMatter(width, height, depth);
                 int sliceCount = input.readUnsignedByte();
                 matter.getHeader().read(input);
+                HashSet<String> skippedRetired = new HashSet<>();
                 for (int index = 0; index < sliceCount; index++) {
                     int size = input.readInt();
                     long end = input.count() + size;
@@ -154,9 +158,24 @@ public record ObjectContinuationBundle(List<Fragment> fragments) {
                         throw new IOException("Invalid object continuation slice size");
                     }
                     String identifier = input.readUTF();
+                    if (input.count() > end) {
+                        throw new IOException("Object continuation slice size mismatch: " + identifier);
+                    }
                     Class<?> type = IrisMatter.getSliceType(identifier);
-                    if (type == null || matter.hasSlice(type)) {
-                        throw new IOException("Unavailable or duplicate object continuation slice: " + identifier);
+                    if (type == null) {
+                        if (!RetiredMatterSlices.isRetired(identifier)) {
+                            throw new IOException("Unknown object continuation slice type: " + identifier);
+                        }
+                        if (!skippedRetired.add(identifier)) {
+                            throw new IOException("Duplicate object continuation slice type: " + identifier);
+                        }
+                        input.skipTo(end);
+                        IrisLogging.warnOnce("object-continuation:retired-slice:" + identifier,
+                                "Skipping retired object continuation slice %s written by an older Iris version", identifier);
+                        continue;
+                    }
+                    if (matter.hasSlice(type)) {
+                        throw new IOException("Duplicate object continuation slice type: " + identifier);
                     }
                     MatterSlice<?> slice = matter.createSlice(type, matter);
                     if (slice == null) {

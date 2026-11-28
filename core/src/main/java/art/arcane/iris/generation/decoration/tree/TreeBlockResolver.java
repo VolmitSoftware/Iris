@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.decoration.tree;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
@@ -84,7 +85,7 @@ public final class TreeBlockResolver {
 
     private static NativeBlockState resolveSecondaryLeaf(IrisProceduralTree tree, IrisData data, TreeBlockCanvas.Vec pos, RNG paletteRng) {
         if (IrisProceduralBlocks.paletteSet(tree.getSecondaryLeavesPalette())) {
-            return tree.getSecondaryLeavesPalette().get(paletteRng, pos.x(), pos.y(), pos.z(), data);
+            return tree.getSecondaryLeavesPalette().get(paletteRng, pos.x(), pos.y(), pos.z(), PackRuntime.forPack(data));
         }
         if (tree.getWeightedSecondaryLeaves() != null && !tree.getWeightedSecondaryLeaves().isEmpty()) {
             String picked = pickWeighted(tree, new RNG(tree.getSeed() ^ positionHash(pos)));
@@ -117,7 +118,7 @@ public final class TreeBlockResolver {
 
     private static NativeBlockState resolveBlock(String block, IrisMaterialPalette palette, IrisData data, TreeBlockCanvas.Vec pos, RNG paletteRng) {
         if (IrisProceduralBlocks.paletteSet(palette)) {
-            return palette.get(paletteRng, pos.x(), pos.y(), pos.z(), data);
+            return palette.get(paletteRng, pos.x(), pos.y(), pos.z(), PackRuntime.forPack(data));
         }
         if (block != null && !block.isEmpty()) {
             return B.getStateOrNull(block, false);

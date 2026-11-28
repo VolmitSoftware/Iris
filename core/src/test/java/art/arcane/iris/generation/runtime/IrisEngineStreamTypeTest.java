@@ -92,7 +92,7 @@ public class IrisEngineStreamTypeTest {
             assertUnknownStream("NOT_A_STREAM", () -> data.getExpressionLoader().load("inline"));
             assertUnknownStream("NOT_A_STREAM", () -> data.getExpressionLoader().load("snippet"));
             assertUnknownStream("water_head", () -> data.getExpressionLoader().load("lowercase"));
-            assertUnknownStream("NOT_A_STREAM", () -> new IrisGeneratorStyle().setExpression("inline").create(new RNG(7L), data));
+            assertUnknownStream("NOT_A_STREAM", () -> new IrisGeneratorStyle().setExpression("inline").create(new RNG(7L), PackRuntime.standalone(data)));
 
             IrisExpression known = data.getExpressionLoader().load("known");
             assertSame(IrisEngineStreamType.WATER_HEAD, known.getVariables().get(0).getEngineStreamValue());

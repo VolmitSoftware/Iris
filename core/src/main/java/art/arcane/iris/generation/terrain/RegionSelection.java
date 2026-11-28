@@ -60,7 +60,7 @@ public final class RegionSelection {
             }
         }
         return select(new Options(dimension, data,
-                dimension.getRegionStyle().create(new RNG(snapshot.complexSeed()).nextParallelRNG(883), data)
+                dimension.getRegionStyle().create(new RNG(snapshot.complexSeed()).nextParallelRNG(883), data.standalonePackRuntime())
                         .stream().zoom(dimension.getRegionZoom()),
                 IrisImageMapRuntime.compile(data, dimension, dimension.getMinHeight()), focused));
     }

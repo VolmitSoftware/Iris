@@ -42,7 +42,8 @@ import java.util.Set;
  * <p>The reachable set is fixed per live engine/world and is rebuilt after hotload.
  */
 public final class StructureReachability {
-    private static final Cache<Engine, Set<String>> REACHABLE_CACHE = Caffeine.newBuilder().weakKeys().build();
+    /** Reachable keys of live engines; each engine invalidates its own entry when it closes. */
+    private static final Cache<Engine, Set<String>> REACHABLE_CACHE = Caffeine.newBuilder().build();
 
     private StructureReachability() {
     }
@@ -51,6 +52,9 @@ public final class StructureReachability {
         Engine activeEngine = Objects.requireNonNull(engine, "Structure reachability requires an engine");
         if (activeEngine.getData() == null) {
             throw new IllegalStateException("Structure reachability requires a bound pack data loader");
+        }
+        if (activeEngine.isClosed()) {
+            return build(activeEngine);
         }
         return REACHABLE_CACHE.get(activeEngine, ignored -> build(activeEngine));
     }

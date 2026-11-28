@@ -22,7 +22,7 @@ import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.iris.generation.noise.IrisStyledRange;
 import art.arcane.volmlib.util.math.M;
 
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.math.RNG;
@@ -52,18 +52,18 @@ public final class IrisCaveProfileSampler {
     private final boolean hasModules;
 
     public IrisCaveProfileSampler(Engine engine, IrisCaveProfile profile) {
-        IrisData data = engine.getData();
+        PackRuntime runtime = PackRuntime.of(engine, engine.getData());
         this.profile = profile;
         List<ModuleState> moduleStates = new ArrayList<>();
         RNG baseRng = new RNG(engine.getSeedManager().getCarve());
-        this.baseDensity = profile.getBaseDensityStyle().create(baseRng.nextParallelRNG(934_447), data);
-        this.detailDensity = profile.getDetailDensityStyle().create(baseRng.nextParallelRNG(612_991), data);
-        this.warpDensity = profile.getWarpStyle().create(baseRng.nextParallelRNG(770_713), data);
+        this.baseDensity = profile.getBaseDensityStyle().create(baseRng.nextParallelRNG(934_447), runtime);
+        this.detailDensity = profile.getDetailDensityStyle().create(baseRng.nextParallelRNG(612_991), runtime);
+        this.warpDensity = profile.getWarpStyle().create(baseRng.nextParallelRNG(770_713), runtime);
         IrisStyledRange threshold = profile.getDensityThreshold();
         thresholdMin = threshold.getMin();
         thresholdMax = threshold.getMax();
         thresholdHasNoise = thresholdMin != thresholdMax && !threshold.getStyle().isFlat();
-        thresholdDensity = thresholdHasNoise ? threshold.getStyle().create(baseRng.nextParallelRNG(489_112), data) : null;
+        thresholdDensity = thresholdHasNoise ? threshold.getStyle().create(baseRng.nextParallelRNG(489_112), runtime) : null;
         constantThreshold = thresholdMin == thresholdMax ? thresholdMin : M.lerp(thresholdMin, thresholdMax, 0.5D);
         this.baseWeight = profile.getBaseWeight();
         this.detailWeight = profile.getDetailWeight();
@@ -73,7 +73,7 @@ public final class IrisCaveProfileSampler {
         double weight = Math.abs(baseWeight) + Math.abs(detailWeight);
         int index = 0;
         for (IrisCaveFieldModule module : profile.getModules()) {
-            CNG moduleDensity = module.getStyle().create(baseRng.nextParallelRNG(1_000_003L + (index * 65_537L)), data);
+            CNG moduleDensity = module.getStyle().create(baseRng.nextParallelRNG(1_000_003L + (index * 65_537L)), runtime);
             ModuleState state = new ModuleState(module, moduleDensity);
             moduleStates.add(state);
             weight += Math.abs(state.weight);

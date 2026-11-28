@@ -1,10 +1,12 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.stage.IrisCarveModifier;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomePaletteLayer;
+import art.arcane.iris.generation.biome.PaletteLayerRuntime;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.world.IrisWorld;
@@ -171,7 +173,7 @@ public class IrisCarveWallPaletteScopeTest {
         private final MantleChunk<Matter> chunk;
         private final GenerationRuntime active;
         private final GenerationRuntime detached;
-        private final IrisData assemblyData = mock(IrisData.class);
+        private final IrisData assemblyData = MockPackData.create();
         private final IrisComplex assemblyComplex = mock(IrisComplex.class);
         private final EngineRuntimeBuilder.RuntimeAssembly assembly;
         private final AtomicInteger dataLookups = new AtomicInteger();
@@ -194,8 +196,8 @@ public class IrisCarveWallPaletteScopeTest {
             doReturn(1).when(chunk).sectionCount();
             doReturn(true).when(chunk).exists(0);
             doReturn(section).when(chunk).get(0);
-            active = runtime(mock(IrisData.class), mock(IrisComplex.class), engineMantle);
-            detached = runtime(mock(IrisData.class), mock(IrisComplex.class), engineMantle);
+            active = runtime(MockPackData.create(), mock(IrisComplex.class), engineMantle);
+            detached = runtime(MockPackData.create(), mock(IrisComplex.class), engineMantle);
             field(engine, IrisEngine.class, "lifecycleLock", new Object());
             field(engine, IrisEngine.class, "threadState", new EngineThreadState());
             field(engine, IrisEngine.class, "detachedGenerationRuntimes", Collections.newSetFromMap(new IdentityHashMap<>()));
@@ -219,17 +221,17 @@ public class IrisCarveWallPaletteScopeTest {
             doReturn(engine.getWorld()).when(assemblyTarget).getWorld();
             doReturn(assemblyData).when(assemblyTarget).getData();
             doReturn(mock(IrisDimension.class)).when(assemblyTarget).getDimension();
-            assembly = new EngineRuntimeBuilder.RuntimeAssembly(19, assemblyTarget);
+            assembly = new EngineRuntimeBuilder.RuntimeAssembly(engine, 19, assemblyTarget);
             assembly.complex = assemblyComplex;
             assembly.mantle = engineMantle;
             IrisBiome biome = mock(IrisBiome.class);
             IrisBiomePaletteLayer palette = mock(IrisBiomePaletteLayer.class);
             doReturn(palette).when(biome).getWall();
             doAnswer(call -> {
-                assertSame(expectedData, call.getArgument(4));
+                assertSame(expectedData, call.<PaletteLayerRuntime>getArgument(5).packRuntime().data());
                 paletteCalls.incrementAndGet();
                 return wall;
-            }).when(palette).get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class));
+            }).when(palette).get(any(RNG.class), anyInt(), anyDouble(), anyDouble(), anyDouble(), any(PaletteLayerRuntime.class));
             for (IrisComplex complex : new IrisComplex[]{activeComplex, detachedComplex, assemblyComplex}) {
                 doReturn(ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> null)))
                         .when(complex).getTrueBiomeStream();

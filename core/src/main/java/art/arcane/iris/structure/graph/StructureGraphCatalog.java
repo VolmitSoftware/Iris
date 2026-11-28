@@ -1,24 +1,18 @@
 package art.arcane.iris.structure.graph;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.placement.StructureAssembler;
 import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.math.RNG;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public final class StructureGraphCatalog {
-    private static final Cache<IrisData, ConcurrentMap<String, StructureGraphCompilation>> CACHE =
-            Caffeine.newBuilder().weakKeys().build();
-    private static final Cache<IrisData, ConcurrentMap<String, Boolean>> RUNTIME_OUTPUT =
-            Caffeine.newBuilder().weakKeys().build();
     private static final List<Long> RUNTIME_SAMPLE_SEEDS = List.of(
             0L, 1L, 2L, 3L, 5L, 8L, 13L, 21L, 34L, 55L, 89L, 144L, 233L, 377L, 610L, 987L);
 
@@ -32,15 +26,13 @@ public final class StructureGraphCatalog {
         if (structureKey == null || structureKey.isBlank()) {
             return compileAndReport(activeData, activeStructure);
         }
-        ConcurrentMap<String, StructureGraphCompilation> catalog = CACHE.get(
-                activeData, ignored -> new ConcurrentHashMap<>());
+        ConcurrentMap<String, StructureGraphCompilation> catalog = PackRuntime.forPack(activeData).structureGraphs();
         return catalog.computeIfAbsent(structureKey, ignored -> compileAndReport(activeData, activeStructure));
     }
 
     public static void invalidate(IrisData data) {
         if (data != null) {
-            CACHE.invalidate(data);
-            RUNTIME_OUTPUT.invalidate(data);
+            PackRuntime.forPack(data).forgetStructureGraphs();
         }
     }
 
@@ -54,8 +46,7 @@ public final class StructureGraphCatalog {
         if (structureKey == null || structureKey.isBlank()) {
             return sampleRuntimeAssembly(activeData, activeStructure);
         }
-        ConcurrentMap<String, Boolean> catalog = RUNTIME_OUTPUT.get(
-                activeData, ignored -> new ConcurrentHashMap<>());
+        ConcurrentMap<String, Boolean> catalog = PackRuntime.forPack(activeData).structureRuntimeOutputs();
         return catalog.computeIfAbsent(
                 structureKey, ignored -> sampleRuntimeAssembly(activeData, activeStructure));
     }

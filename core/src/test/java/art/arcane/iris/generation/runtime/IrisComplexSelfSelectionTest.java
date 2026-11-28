@@ -107,7 +107,7 @@ public class IrisComplexSelfSelectionTest {
         }
 
         @Override
-        public CNG getChildrenGenerator(long seed, double scale) {
+        public CNG getChildrenGenerator(PackRuntime runtime, long seed, double scale) {
             return noise;
         }
     }

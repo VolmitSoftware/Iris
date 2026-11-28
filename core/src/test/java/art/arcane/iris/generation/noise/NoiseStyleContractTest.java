@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.noise.NoiseGenerator;
@@ -71,8 +72,8 @@ public final class NoiseStyleContractTest {
             if (style == NoiseStyle.STATIC) {
                 continue;
             }
-            CNG normal = style.style().createNoCache(new RNG(45231L), null);
-            CNG enlarged = style.style().zoomed(2D).createNoCache(new RNG(45231L), null);
+            CNG normal = style.style().createNoCache(new RNG(45231L), PackRuntime.standalone(null));
+            CNG enlarged = style.style().zoomed(2D).createNoCache(new RNG(45231L), PackRuntime.standalone(null));
             assertEquals(style.name(), normal.noise(13.25D, -17.75D),
                     enlarged.noise(26.5D, -35.5D), 0.000000001D);
             assertEquals(style.name(), normal.noise(13.25D), enlarged.noise(26.5D), 0.000000001D);
@@ -85,7 +86,7 @@ public final class NoiseStyleContractTest {
     public void defaultSettingsPreserveEveryPreset() {
         for (NoiseStyle style : NoiseStyle.values()) {
             CNG direct = style.create(new RNG(7253L));
-            CNG configured = style.style().createNoCache(new RNG(7253L), null);
+            CNG configured = style.style().createNoCache(new RNG(7253L), PackRuntime.standalone(null));
             for (int index = 0; index < 32; index++) {
                 double x = index * 19.713D - 400D;
                 double z = index * -31.579D + 100D;
@@ -119,16 +120,16 @@ public final class NoiseStyleContractTest {
                 NoiseStyle.IRIS.style().setCellularFrequency(0.7D).setCellularZoom(1.25D)
         };
         for (IrisGeneratorStyle style : styles) {
-            CNG normal = style.createNoCache(new RNG(217L), null);
-            CNG enlarged = style.setZoom(2D).createNoCache(new RNG(217L), null);
+            CNG normal = style.createNoCache(new RNG(217L), PackRuntime.standalone(null));
+            CNG enlarged = style.setZoom(2D).createNoCache(new RNG(217L), PackRuntime.standalone(null));
             assertEquals(normal.noise(19.25D, -71.75D), enlarged.noise(38.5D, -143.5D), 0.000000001D);
         }
     }
 
     @Test
     public void configuredExponentCompoundsThePresetCurve() {
-        CNG base = NoiseStyle.VASCULAR_THIN.style().createNoCache(new RNG(8831L), null);
-        CNG squared = NoiseStyle.VASCULAR_THIN.style().setExponent(2D).createNoCache(new RNG(8831L), null);
+        CNG base = NoiseStyle.VASCULAR_THIN.style().createNoCache(new RNG(8831L), PackRuntime.standalone(null));
+        CNG squared = NoiseStyle.VASCULAR_THIN.style().setExponent(2D).createNoCache(new RNG(8831L), PackRuntime.standalone(null));
         double value = base.noise(29.5D, -33.25D);
         assertEquals(value * value, squared.noise(29.5D, -33.25D), 0.000000000001D);
     }
@@ -158,11 +159,11 @@ public final class NoiseStyleContractTest {
     @Test
     public void layerOctavesPreserveAndMultiplyPresetDetail() {
         IrisGeneratorStyle style = NoiseStyle.QUADOCTAVE_SIMPLEX.style();
-        CNG unchanged = style.createForLayer(new RNG(71L), null, 1);
-        CNG detailed = style.createForLayer(new RNG(71L), null, 2);
+        CNG unchanged = style.createForLayer(new RNG(71L), PackRuntime.standalone(null), 1);
+        CNG detailed = style.createForLayer(new RNG(71L), PackRuntime.standalone(null), 2);
         assertEquals(4, unchanged.getOct());
         assertEquals(8, detailed.getOct());
-        assertEquals(16, style.createForLayer(new RNG(71L), null, Integer.MAX_VALUE).getOct());
+        assertEquals(16, style.createForLayer(new RNG(71L), PackRuntime.standalone(null), Integer.MAX_VALUE).getOct());
         assertNotEquals(unchanged.noise(21D, -31D), detailed.noise(21D, -31D), 0D);
     }
 
@@ -172,10 +173,10 @@ public final class NoiseStyleContractTest {
         IrisData data = mock(IrisData.class);
         when(data.getDataFolder()).thenReturn(dataFolder);
         IrisGeneratorStyle cached = NoiseStyle.BIOCTAVE_SIMPLEX.style().setCacheSize(32);
-        CNG first = cached.createForLayer(new RNG(921L), data, 3);
-        CNG reloaded = cached.createForLayer(new RNG(921L), data, 3);
-        CNG uncached = NoiseStyle.BIOCTAVE_SIMPLEX.style().createForLayer(new RNG(921L), data, 3);
-        CNG different = cached.createForLayer(new RNG(921L), data, 1);
+        CNG first = cached.createForLayer(new RNG(921L), PackRuntime.standalone(data), 3);
+        CNG reloaded = cached.createForLayer(new RNG(921L), PackRuntime.standalone(data), 3);
+        CNG uncached = NoiseStyle.BIOCTAVE_SIMPLEX.style().createForLayer(new RNG(921L), PackRuntime.standalone(data), 3);
+        CNG different = cached.createForLayer(new RNG(921L), PackRuntime.standalone(data), 1);
         assertEquals(6, first.getOct());
         assertEquals(6, reloaded.getOct());
         assertEquals(uncached.noise(4D, 7D), first.noise(4D, 7D), 0.000001D);
@@ -190,12 +191,12 @@ public final class NoiseStyleContractTest {
         double[] invalid = {0D, -1D, Double.NaN, Double.POSITIVE_INFINITY, Double.MIN_VALUE};
         for (double value : invalid) {
             assertThrows(IllegalArgumentException.class,
-                    () -> NoiseStyle.SIMPLEX.style().setZoom(value).createNoCache(new RNG(1L), null));
+                    () -> NoiseStyle.SIMPLEX.style().setZoom(value).createNoCache(new RNG(1L), PackRuntime.standalone(null)));
             assertThrows(IllegalArgumentException.class,
-                    () -> NoiseStyle.SIMPLEX.style().setExponent(value).createNoCache(new RNG(1L), null));
+                    () -> NoiseStyle.SIMPLEX.style().setExponent(value).createNoCache(new RNG(1L), PackRuntime.standalone(null)));
             assertThrows(IllegalArgumentException.class,
                     () -> NoiseStyle.SIMPLEX.style().setCellularFrequency(1D).setCellularZoom(value)
-                            .createNoCache(new RNG(1L), null));
+                            .createNoCache(new RNG(1L), PackRuntime.standalone(null)));
         }
     }
 }

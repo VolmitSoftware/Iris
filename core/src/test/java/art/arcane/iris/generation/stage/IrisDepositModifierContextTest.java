@@ -82,7 +82,7 @@ public class IrisDepositModifierContextTest {
     public void workerPreparationFailurePropagatesAfterAllScopesClose() throws Exception {
         try (Fixture fixture = new Fixture(mock(IrisEngine.class, RETURNS_DEEP_STUBS), true)) {
             GenerationClosedException failure = new GenerationClosedException("worker clump preparation failed");
-            doThrow(failure).when(fixture.dimensionDeposit).getClump(any(), any(), any());
+            doThrow(failure).when(fixture.dimensionDeposit).getClump(any(), any());
             assertSame(failure, assertThrows(GenerationClosedException.class, () ->
                     fixture.modifier.modify(32, -48, Hunk.newArrayHunk(16, 16, 16), true, fixture.context)));
             verify(fixture.chunk).release();
@@ -94,7 +94,7 @@ public class IrisDepositModifierContextTest {
     @Test
     public void contentFailureInOneClumpSkipsItAndTheChunkContinues() throws Exception {
         try (Fixture fixture = new Fixture(mock(IrisEngine.class, RETURNS_DEEP_STUBS), true)) {
-            doThrow(new IllegalArgumentException("bad clump")).when(fixture.dimensionDeposit).getClump(any(), any(), any());
+            doThrow(new IllegalArgumentException("bad clump")).when(fixture.dimensionDeposit).getClump(any(), any());
             fixture.modifier.modify(32, -48, Hunk.newArrayHunk(16, 16, 16), true, fixture.context);
             verify(fixture.chunk).release();
             assertNull(IrisContext.get());
@@ -127,7 +127,7 @@ public class IrisDepositModifierContextTest {
             RejectedExecutionException secondWorker = new RejectedExecutionException("second worker failure");
             when(fixture.dimensionDeposit.getMinPerChunk()).thenReturn(200);
             when(fixture.dimensionDeposit.getMaxPerChunk()).thenReturn(200);
-            doThrow(firstWorker, secondWorker).when(fixture.dimensionDeposit).getClump(any(), any(), any());
+            doThrow(firstWorker, secondWorker).when(fixture.dimensionDeposit).getClump(any(), any());
             assertSame(firstWorker, assertThrows(GenerationClosedException.class, () ->
                     fixture.modifier.modify(32, -48, Hunk.newArrayHunk(16, 16, 16), true, fixture.context)));
             assertEquals(1, firstWorker.getSuppressed().length);
@@ -154,7 +154,7 @@ public class IrisDepositModifierContextTest {
 
         verify(generator, times(4)).getPerClumpSpawnChance();
         verify(rng, times(1)).i(0, 5);
-        verify(generator, never()).getClump(any(), any(), any());
+        verify(generator, never()).getClump(any(), any());
     }
 
     private static final class Fixture implements AutoCloseable {
@@ -222,7 +222,7 @@ public class IrisDepositModifierContextTest {
                     assertEquals(71L, IrisContext.require().getGenerationSessionId());
                     completed.incrementAndGet();
                     return clump;
-                }).when(generator).getClump(any(), any(), any());
+                }).when(generator).getClump(any(), any());
             }
             when(dimensionDeposit.getMinPerChunk()).thenReturn(9);
             when(dimensionDeposit.getMaxPerChunk()).thenReturn(9);

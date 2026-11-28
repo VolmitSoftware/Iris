@@ -1,5 +1,6 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.generation.runtime.ThreadSlots;
 import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -15,7 +16,7 @@ public final class TransitionDisplacementField {
     private final Sources sources;
     private final LinkedHashMap<Long, ChunkField> completed = new LinkedHashMap<>(64, 0.75F, true);
     private final ConcurrentHashMap<Long, CompletableFuture<ChunkField>> pending = new ConcurrentHashMap<>();
-    private final ThreadLocal<ChunkField> local = new ThreadLocal<>();
+    private final ThreadSlots<ChunkField> local = ThreadSlots.bindings();
 
     public TransitionDisplacementField(TransitionGenerationPlan plan, Sources sources) {
         this.plan = Objects.requireNonNull(plan);

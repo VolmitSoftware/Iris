@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
@@ -191,6 +192,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Nat
         DimensionTerrainContext terrainContext = layer.terrainContext();
         IrisDimension dimension = terrainContext.getDimension();
         IrisData data = terrainContext.getData();
+        PackRuntime runtime = PackRuntime.of(getEngine(), data);
         IrisBiome biome = layer.biome();
         int bedrockDepth = dimension.isBedrock() ? 1 : 0;
         int surfaceDepth = Math.max(0, layer.normalTerrainHeight() + 1 - bedrockDepth);
@@ -204,7 +206,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Nat
                         rng,
                         surfaceDepth,
                         layer.normalTerrainHeight(),
-                        data,
+                        runtime,
                         terrainContext.getSlopeStream()
                 );
         int paletteSurfaceY = layer.normalTerrainHeight();
@@ -212,7 +214,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Nat
         int terrainSpan = layer.terrainColumn() == null ? -1 : layer.terrainColumn().spanCount() - 1;
         KList<NativeBlockState> seaBlocks = biome == null || fluidDepth == 0
                 ? null
-                : biome.generateSeaLayers(worldX, worldZ, rng, fluidDepth, data);
+                : biome.generateSeaLayers(worldX, worldZ, rng, fluidDepth, runtime);
 
         for (int y = layer.renderMaxY(); y >= layer.renderMinY(); y--) {
             int sourceY = y - layer.localBaseY();
@@ -256,7 +258,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Nat
                     if (terrainSpan > 0 && depth >= 2 && ceilingDepth < 2) {
                         if (ceilingBlocks == null && biome != null) {
                             ceilingBlocks = biome.generateCeilingLayers(dimension, worldX, worldZ, rng,
-                                    2, ceilingY, data, null);
+                                    2, ceilingY, runtime, null);
                         }
                         writeBlock(output, metadata, localX, y, localZ,
                                 ceilingBlocks != null && ceilingBlocks.hasIndex(ceilingDepth)
@@ -266,7 +268,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Nat
                 }
                 if (surfaceBlocks == null && biome != null) {
                     surfaceBlocks = biome.generateLayersWithSlope(dimension, worldX, worldZ, rng,
-                            sourceSurfaceY + 1 - bedrockDepth, sourceSurfaceY, data,
+                            sourceSurfaceY + 1 - bedrockDepth, sourceSurfaceY, runtime,
                             terrainContext.getSurfaceSlopeStream(sourceSurfaceY));
                 }
                 writeBlock(output, metadata, localX, y, localZ,

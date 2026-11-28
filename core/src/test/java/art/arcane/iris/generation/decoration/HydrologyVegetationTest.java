@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
@@ -41,7 +42,7 @@ public class HydrologyVegetationTest {
     private static final Set<String> WATER_PLANTS = Set.of("minecraft:seagrass", "minecraft:tall_seagrass", "minecraft:kelp", "minecraft:kelp_plant");
     private static final int[][] SIDES = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
-    private final IrisData data = mock(IrisData.class);
+    private final IrisData data = MockPackData.create();
     private PlantPlatform platform;
 
     @Before
@@ -591,7 +592,7 @@ public class HydrologyVegetationTest {
                 for (int lz = 0; lz < 16; lz++) {
                     int x = (chunkX << 4) + lx;
                     int z = (chunkZ << 4) + lz;
-                    vegetation.decorate(chunk, lx, lz, x, z, role(x, z), this, data);
+                    vegetation.decorate(chunk, lx, lz, x, z, role(x, z), this, data.standalonePackRuntime());
                 }
             }
             return chunk;
@@ -663,7 +664,7 @@ public class HydrologyVegetationTest {
                 for (int lz = 0; lz < 16; lz++) {
                     int x = (chunkX << 4) + lx;
                     int z = (chunkZ << 4) + lz;
-                    vegetation.decorate(chunk, lx, lz, x, z, role(x, z), this, data);
+                    vegetation.decorate(chunk, lx, lz, x, z, role(x, z), this, data.standalonePackRuntime());
                 }
             }
         }

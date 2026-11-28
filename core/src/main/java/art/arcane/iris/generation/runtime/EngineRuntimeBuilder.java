@@ -88,6 +88,7 @@ final class EngineRuntimeBuilder {
             PreparedHydrologyCacheIdentity cacheIdentity
     ) {
         RuntimeAssembly assembly = new RuntimeAssembly(
+                engine,
                 RuntimeAssembly.nextRuntimeId(),
                 runtimeTarget,
                 mantleStorageDirectory,
@@ -167,6 +168,7 @@ final class EngineRuntimeBuilder {
             TransitionGenerationPlan transitionPlan
     ) {
         RuntimeAssembly assembly = new RuntimeAssembly(
+                engine,
                 RuntimeAssembly.nextRuntimeId(),
                 runtimeTarget,
                 mantleStorageDirectory,
@@ -421,6 +423,7 @@ final class EngineRuntimeBuilder {
         final GenerationKernelRegistry.RuntimeKernel runtimeKernel;
         final SeedManager seedManager;
         final TransitionGenerationPlan transitionPlan;
+        final PackRuntime packRuntime;
 
         static int nextRuntimeId() {
             return RUNTIME_IDS.incrementAndGet();
@@ -435,8 +438,9 @@ final class EngineRuntimeBuilder {
         CompletableFuture<Long> hash32;
         boolean ownsMantle;
 
-        RuntimeAssembly(int cacheId, EngineTarget target) {
+        RuntimeAssembly(Engine engine, int cacheId, EngineTarget target) {
             this(
+                    engine,
                     cacheId,
                     target,
                     null,
@@ -444,8 +448,9 @@ final class EngineRuntimeBuilder {
                     null);
         }
 
-        RuntimeAssembly(int cacheId, EngineTarget target, Path mantleStorageDirectory) {
+        RuntimeAssembly(Engine engine, int cacheId, EngineTarget target, Path mantleStorageDirectory) {
             this(
+                    engine,
                     cacheId,
                     target,
                     mantleStorageDirectory,
@@ -454,6 +459,7 @@ final class EngineRuntimeBuilder {
         }
 
         RuntimeAssembly(
+                Engine engine,
                 int cacheId,
                 EngineTarget target,
                 Path mantleStorageDirectory,
@@ -469,6 +475,7 @@ final class EngineRuntimeBuilder {
             this.seedManager = this.runtimeKernel.createSeedManager(target.getWorld().getRawWorldSeed());
             this.kernelVersion = this.runtimeKernel.version();
             this.transitionPlan = transitionPlan;
+            this.packRuntime = PackRuntime.forEngine(engine, target.getData());
         }
 
         GenerationRuntime freezeGeneration(BiomeMaxes biomeMaxes) {
@@ -485,6 +492,7 @@ final class EngineRuntimeBuilder {
                     seedManager,
                     transitionPlan,
                     complex,
+                    packRuntime,
                     upperContext,
                     dimensionStackContext,
                     mode,

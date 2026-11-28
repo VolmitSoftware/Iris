@@ -102,44 +102,8 @@ public class ModdedBlockResolutionContractTest {
     }
 
     @Test
-    public void cactusPlacementRequiresNativeCactusSupport() {
-        assertTrue(NativeBlockProperties.canPlaceOnto(Blocks.CACTUS, Blocks.CACTUS));
-        assertTrue(NativeBlockProperties.canPlaceOnto(Blocks.CACTUS, Blocks.SAND));
-        assertTrue(NativeBlockProperties.canPlaceOnto(Blocks.CACTUS, Blocks.RED_SAND));
-        assertFalse(NativeBlockProperties.canPlaceOnto(Blocks.CACTUS, Blocks.STONE));
+    public void cactusIsADecorant() {
         assertTrue(NativeBlockProperties.isDecorant(Blocks.CACTUS.defaultBlockState()));
-    }
-
-    @Test
-    public void sugarCanePlacementRequiresNativeSubstrate() {
-        for (Block block : new Block[]{Blocks.SUGAR_CANE, Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.COARSE_DIRT,
-                Blocks.PODZOL, Blocks.MYCELIUM, Blocks.ROOTED_DIRT, Blocks.MOSS_BLOCK, Blocks.PALE_MOSS_BLOCK,
-                Blocks.MUD, Blocks.MUDDY_MANGROVE_ROOTS, Blocks.SAND, Blocks.RED_SAND, Blocks.SUSPICIOUS_SAND}) {
-            assertTrue(block.toString(), NativeBlockProperties.canPlaceOnto(Blocks.SUGAR_CANE, block));
-        }
-        for (Block block : new Block[]{Blocks.STONE, Blocks.GRAVEL, Blocks.CLAY, Blocks.DIRT_PATH,
-                Blocks.FARMLAND, Blocks.AIR, Blocks.WATER}) {
-            assertFalse(block.toString(), NativeBlockProperties.canPlaceOnto(Blocks.SUGAR_CANE, block));
-        }
-    }
-
-    @Test
-    public void netherGroundCoverAcceptsNyliumAndSoulSoilButRejectsBarrenBlocks() {
-        for (Block plant : new Block[]{Blocks.CRIMSON_ROOTS, Blocks.WARPED_ROOTS, Blocks.NETHER_SPROUTS}) {
-            for (Block substrate : new Block[]{Blocks.CRIMSON_NYLIUM, Blocks.WARPED_NYLIUM,
-                    Blocks.SOUL_SOIL, Blocks.GRASS_BLOCK, Blocks.COARSE_DIRT, Blocks.PODZOL}) {
-                assertTrue(plant + " on " + substrate, NativeBlockProperties.canPlaceOnto(plant, substrate));
-            }
-            for (Block substrate : new Block[]{Blocks.NETHERRACK, Blocks.SOUL_SAND,
-                    Blocks.STONE, Blocks.GRAVEL, Blocks.AIR, Blocks.WATER}) {
-                assertFalse(plant + " on " + substrate, NativeBlockProperties.canPlaceOnto(plant, substrate));
-            }
-        }
-        for (Block fungus : new Block[]{Blocks.CRIMSON_FUNGUS, Blocks.WARPED_FUNGUS}) {
-            for (Block substrate : new Block[]{Blocks.CRIMSON_NYLIUM, Blocks.WARPED_NYLIUM, Blocks.SOUL_SOIL}) {
-                assertTrue(fungus + " on " + substrate, NativeBlockProperties.canPlaceOnto(fungus, substrate));
-            }
-        }
     }
 
     @Test

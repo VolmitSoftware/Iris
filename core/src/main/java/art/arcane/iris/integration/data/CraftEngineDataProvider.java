@@ -8,6 +8,7 @@ import art.arcane.iris.integration.ExternalDataSVC;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
+import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.generation.block.IrisCustomData;
@@ -83,12 +84,20 @@ public class CraftEngineDataProvider extends ExternalDataProvider implements Lis
 
     @EventHandler
     public void onReload(CraftEngineReloadEvent event) {
+        forgetServerBlockRules();
         if (!updateContent()) {
             return;
         }
         ExternalDataSVC service = IrisServices.getOrNull(ExternalDataSVC.class);
         if (service != null) {
             service.notifyContentChanged();
+        }
+    }
+
+    // Custom blocks carry their own placement rules, so answers about them can change with a reload.
+    private static void forgetServerBlockRules() {
+        if (INMS.isBound()) {
+            INMS.get().forgetBlockRules();
         }
     }
 

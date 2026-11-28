@@ -300,14 +300,6 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
                 setPostBlock(x, h + 1, z, result, originX, originZ, currentData);
             }
         }
-
-        if (B.isFoliage(b) || IrisProceduralBlocks.materialKey(b).equals("minecraft:dead_bush")) {
-            NativeBlockState onto = getPostBlock(x, h, z, originX, originZ, currentData);
-
-            if (!B.canPlaceOnto(b, onto) && !B.isDecorant(b)) {
-                setPostBlock(x, h + 1, z, AIR.get(), originX, originZ, currentData);
-            }
-        }
     }
 
     public boolean isAir(int x, int y, int z, int originX, int originZ, Hunk<NativeBlockState> currentData) {

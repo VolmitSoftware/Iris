@@ -1,10 +1,12 @@
 package art.arcane.iris.generation.noise;
 
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import com.dfsek.paralithic.Expression;
 import com.dfsek.paralithic.functions.dynamic.Context;
+import com.dfsek.paralithic.functions.dynamic.DynamicFunction;
+import com.dfsek.paralithic.node.Statefulness;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -15,6 +17,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
@@ -27,9 +30,8 @@ import static org.mockito.Mockito.mock;
 public class IrisExpressionScratchTest {
     @Test
     public void sequentialPlanarAndVolumetricSamplesReuseTheArgumentArrayAndKeepRngState() {
-        IrisExpression expression = new IrisExpression();
         Expression compiled = mock(Expression.class);
-        expression.getExpressionCache().aquire(() -> compiled);
+        ExpressionRuntime expression = runtimeOf(parsedAs(new IrisExpression(), compiled));
         AtomicReference<double[]> first = new AtomicReference<>();
         doAnswer(invocation -> {
             double[] arguments = (double[]) invocation.getRawArguments()[1];
@@ -51,21 +53,16 @@ public class IrisExpressionScratchTest {
     }
 
     @Test
-    public void recursiveVariableEvaluationKeepsOuterArgumentsBeyondTheRetainedDepth() {
-        AtomicReference<IrisExpression> expression = new AtomicReference<>();
-        IrisExpressionLoad recursive = new IrisExpressionLoad() {
-            @Override
-            public double getValue(RNG rng, IrisData data, double x, double z) {
-                return x <= 0D ? 7D : expression.get().evaluate(rng, x - 1D, z);
-            }
-        }.setName("prior");
-        expression.set(new IrisExpression().setExpression("prior + 17 * x + 31 * y + z")
-                .setVariables(new KList<>(recursive)));
+    public void recursiveEvaluationWithVariablesKeepsOuterArgumentsBeyondTheRetainedDepth() {
+        AtomicReference<ExpressionRuntime> expression = new AtomicReference<>();
+        IrisExpression config = recursive(new IrisExpression().setExpression("prior(x, y) + value + 17 * x + 31 * y + z")
+                .setVariables(new KList<>(new IrisExpressionLoad().setName("value").setStaticValue(-1D))), expression);
+        expression.set(runtimeOf(config));
         RNG rng = new RNG(78264193L);
         RNG control = new RNG(78264193L);
         double expected = 7D;
         for (int x = 0; x <= 31; x++) {
-            expected = expected + 17D * x + 31D * 3.75D - 1D;
+            expected = expected + 17D * x + 31D * 3.75D - 2D;
         }
 
         assertEquals(expected, expression.get().evaluate(rng, 31D, 3.75D), 0D);
@@ -75,22 +72,9 @@ public class IrisExpressionScratchTest {
 
     @Test
     public void recursiveFunctionEvaluationDoesNotOverwriteTheOuterCoordinates() {
-        AtomicReference<IrisExpression> expression = new AtomicReference<>();
-        IrisExpressionFunction recursive = new IrisExpressionFunction() {
-            @Override
-            public boolean isValid() {
-                return true;
-            }
-
-            @Override
-            public double eval(Context context, double... coordinates) {
-                RNG rng = ((FunctionContext) context).rng();
-                return coordinates[0] <= 0D ? 7D
-                        : expression.get().evaluate(rng, coordinates[0] - 1D, coordinates[1]);
-            }
-        }.setName("prior");
-        expression.set(new IrisExpression().setExpression("prior(x, y) + 17 * x + 31 * y + z")
-                .setFunctions(new KList<>(recursive)));
+        AtomicReference<ExpressionRuntime> expression = new AtomicReference<>();
+        expression.set(runtimeOf(recursive(new IrisExpression().setExpression("prior(x, y) + 17 * x + 31 * y + z"),
+                expression)));
         double expected = 7D;
         for (int x = 0; x <= 31; x++) {
             expected = expected + 17D * x + 31D * 3.75D - 1D;
@@ -102,9 +86,8 @@ public class IrisExpressionScratchTest {
 
     @Test
     public void failedEvaluationUnwindsTheRetainedFrame() {
-        IrisExpression expression = new IrisExpression();
         Expression compiled = mock(Expression.class);
-        expression.getExpressionCache().aquire(() -> compiled);
+        ExpressionRuntime expression = runtimeOf(parsedAs(new IrisExpression(), compiled));
         AtomicBoolean fail = new AtomicBoolean(true);
         AtomicReference<double[]> failedArguments = new AtomicReference<>();
         doAnswer(invocation -> {
@@ -124,14 +107,12 @@ public class IrisExpressionScratchTest {
 
     @Test
     public void largeArgumentListsRemainSupportedWithoutRetainingTheirArrays() {
-        IrisExpression expression = new IrisExpression();
         KList<IrisExpressionLoad> variables = new KList<>();
         for (int i = 0; i < 300; i++) {
             variables.add(new IrisExpressionLoad().setName("value" + i).setStaticValue(i));
         }
-        expression.setVariables(variables);
         Expression compiled = mock(Expression.class);
-        expression.getExpressionCache().aquire(() -> compiled);
+        ExpressionRuntime expression = runtimeOf(parsedAs(new IrisExpression().setVariables(variables), compiled));
         AtomicReference<double[]> first = new AtomicReference<>();
         doAnswer(invocation -> {
             double[] arguments = (double[]) invocation.getRawArguments()[1];
@@ -152,7 +133,7 @@ public class IrisExpressionScratchTest {
 
     @Test(timeout = 15000)
     public void sharedExpressionKeepsExactSamplesAcrossThreadsAndDimensions() throws Exception {
-        IrisExpression expression = new IrisExpression().setExpression("sin(x) + cos(y) + z / 7");
+        ExpressionRuntime expression = runtimeOf(new IrisExpression().setExpression("sin(x) + cos(y) + z / 7"));
         RNG control = new RNG(17L);
         long[] expected = new long[128];
         for (int i = 0; i < expected.length; i++) {
@@ -180,6 +161,56 @@ public class IrisExpressionScratchTest {
         } finally {
             executor.shutdownNow();
             executor.awaitTermination(5, TimeUnit.SECONDS);
+        }
+    }
+
+    private static ExpressionRuntime runtimeOf(IrisExpression expression) {
+        return PackRuntime.standalone(null).expression(expression);
+    }
+
+    private static IrisExpression parsedAs(IrisExpression template, Expression compiled) {
+        return new IrisExpression() {
+            @Override
+            public Expression parse(Function<IrisExpressionFunction, DynamicFunction> functionRuntime) {
+                return compiled;
+            }
+        }.setVariables(template.getVariables());
+    }
+
+    private static IrisExpression recursive(IrisExpression template, AtomicReference<ExpressionRuntime> expression) {
+        IrisExpression config = new IrisExpression() {
+            @Override
+            public Expression parse(Function<IrisExpressionFunction, DynamicFunction> functionRuntime) {
+                return super.parse(function -> new PriorFunction(expression));
+            }
+        };
+        config.setExpression(template.getExpression());
+        config.setVariables(template.getVariables());
+        config.setFunctions(new KList<>(new IrisExpressionFunction().setName("prior")
+                .setStyleValue(new IrisGeneratorStyle())));
+        return config;
+    }
+
+    private record PriorFunction(AtomicReference<ExpressionRuntime> expression) implements DynamicFunction {
+        @Override
+        public int getArgNumber() {
+            return 2;
+        }
+
+        @Override
+        public Statefulness statefulness() {
+            return Statefulness.STATEFUL;
+        }
+
+        @Override
+        public double eval(double... coordinates) {
+            return 0D;
+        }
+
+        @Override
+        public double eval(Context context, double... coordinates) {
+            RNG rng = ((ExpressionRuntime.FunctionContext) context).rng();
+            return coordinates[0] <= 0D ? 7D : expression.get().evaluate(rng, coordinates[0] - 1D, coordinates[1]);
         }
     }
 }

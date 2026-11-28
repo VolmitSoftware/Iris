@@ -18,7 +18,7 @@
 
 package art.arcane.iris.generation.noise;
 
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
@@ -63,16 +63,16 @@ public class IrisShapedGeneratorStyle {
         this.generator = new IrisGeneratorStyle(style);
     }
 
-    public double get(RNG rng, IrisData data, double... dim) {
-        return generator.create(rng, data).fitDouble(min, max, dim);
+    public double get(RNG rng, PackRuntime runtime, double... dim) {
+        return generator.create(rng, runtime).fitDouble(min, max, dim);
     }
 
-    public double get(RNG rng, IrisData data, double x, double z) {
-        return generator.create(rng, data).fitDouble(min, max, x, z);
+    public double get(RNG rng, PackRuntime runtime, double x, double z) {
+        return generator.create(rng, runtime).fitDouble(min, max, x, z);
     }
 
-    public double get(RNG rng, IrisData data, double x, double y, double z) {
-        return generator.create(rng, data).fitDouble(min, max, x, y, z);
+    public double get(RNG rng, PackRuntime runtime, double x, double y, double z) {
+        return generator.create(rng, runtime).fitDouble(min, max, x, y, z);
     }
 
     public boolean isFlat() {

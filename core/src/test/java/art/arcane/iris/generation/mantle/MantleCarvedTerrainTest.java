@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.terrain.transform.IrisTerrainTransform;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
@@ -366,6 +367,7 @@ public class MantleCarvedTerrainTest {
                         case "getWorld" -> world;
                         case "getPlatformHooks" -> hooks;
                         case "getData" -> null;
+                        case "getPackRuntime" -> null;
                         default -> InvocationHandler.invokeDefault(proxy, method, arguments);
                     });
         }

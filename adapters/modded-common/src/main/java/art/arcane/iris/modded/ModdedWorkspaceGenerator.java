@@ -20,18 +20,18 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
+import art.arcane.iris.pack.loading.SnippetFolder;
 import art.arcane.iris.pack.schema.SchemaBuilder;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.task.J;
-import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 public final class ModdedWorkspaceGenerator {
     private ModdedWorkspaceGenerator() {
@@ -100,11 +100,7 @@ public final class ModdedWorkspaceGenerator {
             try {
                 String snipType = snippetClass.getDeclaredAnnotation(Snippet.class).value();
                 JSONObject entry = new JSONObject();
-                KList<String> fileMatch = new KList<>();
-
-                for (int depth = 1; depth < 8; depth++) {
-                    fileMatch.add("/snippet/" + snipType + Form.repeat("/*", depth) + ".json");
-                }
+                List<String> fileMatch = new SnippetFolder(snipType).workspaceFileMatches();
 
                 entry.put("fileMatch", new JSONArray(fileMatch.toArray()));
                 entry.put("url", "./.iris/schema/snippet/" + snipType + "-schema.json");

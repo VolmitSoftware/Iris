@@ -1,5 +1,6 @@
 package art.arcane.iris.pack;
 
+import art.arcane.iris.pack.loading.SnippetFolder;
 import art.arcane.iris.structure.object.IrisObjectPlacementScaleInterpolator;
 import art.arcane.iris.structure.object.IrisStaticObject;
 import art.arcane.volmlib.util.json.JSONArray;
@@ -165,16 +166,13 @@ final class PackStaticObjectValidator {
             return object;
         }
         if (value instanceof String reference && reference.startsWith("snippet/")) {
-            String base = "snippet/" + snippetType + "/";
-            String key = reference.startsWith(base) ? reference : base + reference.substring("snippet/".length());
-            Path root = packFolder.toPath().toAbsolutePath().normalize();
-            Path snippet = resolveContained(root, key + ".json");
-            if (snippet == null || !snippet.startsWith(root.resolve(base)) || !Files.isRegularFile(snippet)) {
+            SnippetFolder.Lookup snippet = new SnippetFolder(snippetType).find(packFolder, reference);
+            if (!snippet.found()) {
                 errors.add(path + " references missing " + snippetType + " snippet '" + reference + "'.");
                 return null;
             }
             try {
-                return new JSONObject(Files.readString(snippet, StandardCharsets.UTF_8));
+                return new JSONObject(Files.readString(snippet.file().toPath(), StandardCharsets.UTF_8));
             } catch (IOException | RuntimeException e) {
                 errors.add(path + " could not read snippet '" + reference + "': " + e.getMessage());
                 return null;

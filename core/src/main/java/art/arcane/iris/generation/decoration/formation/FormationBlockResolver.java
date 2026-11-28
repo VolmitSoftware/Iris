@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.decoration.formation;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
@@ -59,7 +60,7 @@ public final class FormationBlockResolver {
                 strataRng = new RNG(formation.getSeed() + band * 31L);
                 strataRngs.put(band, strataRng);
             }
-            NativeBlockState strataState = strata.get(strataRng, x, band, z, data);
+            NativeBlockState strataState = strata.get(strataRng, x, band, z, PackRuntime.forPack(data));
             if (strataState != null) {
                 return strataState;
             }

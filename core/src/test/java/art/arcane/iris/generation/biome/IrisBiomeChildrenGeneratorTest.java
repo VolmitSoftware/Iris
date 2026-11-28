@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.pack.loading.IrisData;
@@ -30,7 +31,7 @@ public class IrisBiomeChildrenGeneratorTest {
     }
 
     private void buildChildrenGenerator() {
-        biome.getChildrenGenerator(new RNG(WORLD_SEED), CHILDREN_SIGNATURE, CHILD_SHRINK_FACTOR);
+        biome.getChildrenGenerator(PackRuntime.standalone(biome.getLoader()), new RNG(WORLD_SEED), CHILDREN_SIGNATURE, CHILD_SHRINK_FACTOR);
     }
 
     private double[] sampleUntouchedSharedChildStyleGenerator() {
@@ -38,7 +39,7 @@ public class IrisBiomeChildrenGeneratorTest {
     }
 
     private double[] sampleSharedChildStyleGenerator(IrisGeneratorStyle childStyle) {
-        return sampleSharedGenerator(childStyle, deriveSharedChildStyleSeed(), packData);
+        return sampleSharedGenerator(childStyle, deriveSharedChildStyleSeed(), PackRuntime.of(packData.getEngine(), packData));
     }
 
     private static RNG deriveSharedChildStyleSeed() {

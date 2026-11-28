@@ -1,16 +1,15 @@
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.IrisEngineStreamType;
 import art.arcane.iris.generation.runtime.IrisEngineValueType;
-
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.runtime.IrisComplex;
-import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.junit.Test;
-
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -18,51 +17,44 @@ import static org.mockito.Mockito.when;
 
 public class IrisExpressionLoadEngineCacheTest {
     @Test
-    public void engineValuesAreCachedPerEngineIdentity() {
+    public void engineValuesBelongToTheEngineRuntime() {
         Engine first = mock(Engine.class);
         Engine second = mock(Engine.class);
         when(first.getHeight()).thenReturn(128);
         when(second.getHeight()).thenReturn(320);
-        AtomicReference<Engine> active = new AtomicReference<>(first);
-        IrisData data = data(active);
-        IrisExpressionLoad load = new IrisExpressionLoad()
+        IrisExpression expression = expression(new IrisExpressionLoad()
                 .setName("height")
-                .setEngineValue(IrisEngineValueType.ENGINE_HEIGHT);
+                .setEngineValue(IrisEngineValueType.ENGINE_HEIGHT));
+        IrisData data = mock(IrisData.class);
 
-        assertEquals(128D, load.getValue(new RNG(1L), data, 0D, 0D), 0D);
-        active.set(second);
-        assertEquals(320D, load.getValue(new RNG(1L), data, 0D, 0D), 0D);
+        assertEquals(128D, PackRuntime.forEngine(first, data).expression(expression).evaluate(new RNG(1L), 0D, 0D), 0D);
+        assertEquals(320D, PackRuntime.forEngine(second, data).expression(expression).evaluate(new RNG(1L), 0D, 0D), 0D);
     }
 
     @Test
-    public void engineStreamsAreCachedPerEngineIdentity() {
-        Engine first = streamEngine(12D);
-        Engine second = streamEngine(27D);
-        AtomicReference<Engine> active = new AtomicReference<>(first);
-        IrisData data = data(active);
-        IrisExpressionLoad load = new IrisExpressionLoad()
+    public void engineStreamsBelongToTheEngineRuntime() {
+        IrisExpression expression = expression(new IrisExpressionLoad()
                 .setName("height")
-                .setEngineStreamValue(IrisEngineStreamType.HEIGHT);
+                .setEngineStreamValue(IrisEngineStreamType.HEIGHT));
+        IrisData data = mock(IrisData.class);
 
-        assertEquals(12D, load.getValue(new RNG(1L), data, 4D, 8D), 0D);
-        active.set(second);
-        assertEquals(27D, load.getValue(new RNG(1L), data, 4D, 8D), 0D);
+        assertEquals(12D, PackRuntime.forEngine(streamEngine(12D), data).expression(expression)
+                .evaluate(new RNG(1L), 4D, 8D), 0D);
+        assertEquals(27D, PackRuntime.forEngine(streamEngine(27D), data).expression(expression)
+                .evaluate(new RNG(1L), 4D, 8D), 0D);
     }
 
     @Test(expected = IllegalStateException.class)
-    public void engineBackedValueFailsWithoutUnambiguousEngine() {
-        IrisData data = mock(IrisData.class);
-        IrisExpressionLoad load = new IrisExpressionLoad()
+    public void engineBackedValueFailsWithoutAnEngine() {
+        IrisExpression expression = expression(new IrisExpressionLoad()
                 .setName("height")
-                .setEngineValue(IrisEngineValueType.ENGINE_HEIGHT);
+                .setEngineValue(IrisEngineValueType.ENGINE_HEIGHT));
 
-        load.getValue(new RNG(1L), data, 0D, 0D);
+        PackRuntime.standalone(mock(IrisData.class)).expression(expression).evaluate(new RNG(1L), 0D, 0D);
     }
 
-    private IrisData data(AtomicReference<Engine> active) {
-        IrisData data = mock(IrisData.class);
-        when(data.getEngine()).thenAnswer(ignored -> active.get());
-        return data;
+    private static IrisExpression expression(IrisExpressionLoad variable) {
+        return new IrisExpression().setExpression("height").setVariables(new KList<>(variable));
     }
 
     private Engine streamEngine(double value) {

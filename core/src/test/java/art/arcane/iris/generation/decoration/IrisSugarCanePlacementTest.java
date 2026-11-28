@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
@@ -122,13 +123,13 @@ public class IrisSugarCanePlacementTest {
             int world = -16 + local;
             switch (placement) {
                 case FLOATING_SINGLE -> DecoratorCore.placeFloatingSimple(decorator, local, local, world, world,
-                        3, 4, output, new RNG(1L), null, mantle);
+                        3, 4, output, new RNG(1L), PackRuntime.standalone(null), mantle);
                 case FLOATING_STACK -> DecoratorCore.placeFloatingStacked(decorator, local, local, world, world,
-                        3, 4, output, new RNG(1L), null, mantle);
+                        3, 4, output, new RNG(1L), PackRuntime.standalone(null), mantle);
                 case CEILING_SINGLE -> DecoratorCore.placeSingleAt(decorator, local, local, world, 4, world,
-                        output, new RNG(1L), null, false, mantle);
+                        output, new RNG(1L), PackRuntime.standalone(null), false, mantle);
                 case CEILING_STACK -> DecoratorCore.placeStackDown(decorator, local, local, world, world,
-                        4, 0, output, new RNG(1L), null, 2, new DecoratorCore.PlaceOpts(), mantle);
+                        4, 0, output, new RNG(1L), PackRuntime.standalone(null), 2, new DecoratorCore.PlaceOpts(), mantle);
             }
         }
     }

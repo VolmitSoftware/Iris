@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.decoration.HydrologyVegetation;
 import art.arcane.iris.generation.decoration.IrisCeilingDecorator;
 import art.arcane.iris.generation.decoration.IrisSeaFloorDecorator;
@@ -140,6 +141,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<NativeBlockStat
 
         PrecisionStopwatch p = PrecisionStopwatch.start();
         HydrologyVegetation.Water water = new ComplexWater(getComplex());
+        PackRuntime runtime = PackRuntime.of(getEngine(), getData());
         for (int i = 0; i < output.getWidth(); i++) {
             int height;
             int realX = Math.round(x + i);
@@ -159,7 +161,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<NativeBlockStat
                         getComplex().getWaterHeadStream().get(realX, realZ)) : transitionTerrain.fluidHeight();
 
                 if (role != WaterRole.NONE) {
-                    getHydrologyVegetation().decorate(output, i, j, realX, realZ, role, water, getData());
+                    getHydrologyVegetation().decorate(output, i, j, realX, realZ, role, water, runtime);
                 }
 
                 if (biome.getDecorators().isEmpty() && (cave == null || cave.getDecorators().isEmpty())) {

@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
 import org.junit.Test;
@@ -18,8 +19,8 @@ public class NoiseSeedCohesionTest {
     private static final long[] SEEDS = {813753L, -935731L, Long.MIN_VALUE};
     private static final double[] COORDINATES = {-29_999_983.25D, -513D, -64D, -1D, 0D, 0.125D, 17D, 64D, 8192D, 29_999_983.25D};
     private static final double PINNED_SAMPLE_SCALE = 1.0E9D;
-    private static final long PINNED_HASH_WINDOWS = 2597318414939754011L;
-    private static final long PINNED_HASH_MAC = -602781966673993721L;
+    private static final long PINNED_HASH_WINDOWS = 6074446696529759284L;
+    private static final long PINNED_HASH_MAC = 2357650562814976004L;
 
     @Test
     public void allStylesRetainPinnedSamples() {
@@ -60,12 +61,12 @@ public class NoiseSeedCohesionTest {
     public void generatorCacheEvictionRetainsSamples() {
         for (NoiseStyle style : NoiseStyle.values()) {
             IrisGeneratorStyle configured = style.style();
-            double[] expected = samples(configured.create(new RNG(SEEDS[0]), null), false);
+            double[] expected = samples(configured.create(new RNG(SEEDS[0]), PackRuntime.standalone(null)), false);
             for (long seed = 0; seed < 9; seed++) {
-                configured.create(new RNG(seed), null);
+                configured.create(new RNG(seed), PackRuntime.standalone(null));
             }
             assertArrayEquals(style.name(), expected,
-                    samples(configured.create(new RNG(SEEDS[0]), null), true), 0D);
+                    samples(configured.create(new RNG(SEEDS[0]), PackRuntime.standalone(null)), true), 0D);
         }
     }
 

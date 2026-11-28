@@ -1,5 +1,8 @@
 package art.arcane.iris.structure.nativegen;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import java.lang.reflect.Field;
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 
 import art.arcane.iris.generation.runtime.IrisEngine;
@@ -219,6 +222,23 @@ public class NativeStructureOwnershipStoreTest {
         state.close();
         assertThrows(IllegalStateException.class, () -> state.findPersisted(
                 record.structureKey(), record.originChunkX(), record.originChunkZ()));
+    }
+
+    @Test
+    public void releasedStoreOfAClosedEngineCannotReopen() throws Exception {
+        Engine engine = engine();
+        NativeStructureOwnershipStore.close(engine);
+        when(engine.isClosed()).thenReturn(true);
+
+        NativeStructureOwnershipStore.release(engine);
+
+        Field states = NativeStructureOwnershipStore.class.getDeclaredField("STATES");
+        states.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Cache<Engine, ?> stores = (Cache<Engine, ?>) states.get(null);
+        assertNull(stores.getIfPresent(engine));
+        assertThrows(IllegalStateException.class, () ->
+                NativeStructureOwnershipStore.findPersisted(engine, "test:after_release", 0, 0));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.biome.FloatingIslandBoundarySampler;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
@@ -201,7 +202,7 @@ public class MantleFloatingObjectComponentEmptyTest {
         private Fixture(IrisBiome biome) {
             biomes = mock(ResourceLoader.class);
             ResourceLoader<IrisObject> objects = mock(ResourceLoader.class);
-            IrisData data = mock(IrisData.class);
+            IrisData data = MockPackData.create();
             when(data.getBiomeLoader()).thenReturn(biomes);
             when(data.getObjectLoader()).thenReturn(objects);
             when(dimension.isUseMantle()).thenReturn(true);

@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -21,8 +22,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Snippet("dimension-carving-entry")
 @Accessors(chain = true)
@@ -34,7 +33,6 @@ public class IrisDimensionCarvingEntry {
     private static final int CHILDREN_SEED_SALT = 2137;
     private static final double MINIMUM_CHILD_SHRINK_FACTOR = 0.0001D;
     private final transient AtomicCache<IrisBiome> realBiome = new AtomicCache<>(true);
-    private final transient Map<Long, CNG> childGenerators = new ConcurrentHashMap<>();
 
     @Description("Stable id for this carving entry")
     private String id = "";
@@ -82,12 +80,12 @@ public class IrisDimensionCarvingEntry {
         });
     }
 
-    public CNG getChildrenGenerator(long seed, IrisData data) {
-        return childGenerators.computeIfAbsent(deriveChildrenGeneratorSeed(seed), key -> createChildrenGenerator(key, data));
+    public CNG getChildrenGenerator(long seed, PackRuntime runtime) {
+        return runtime.carvingChildGenerator(this, deriveChildrenGeneratorSeed(seed));
     }
 
-    private CNG createChildrenGenerator(long childrenGeneratorSeed, IrisData data) {
-        return getChildStyle().createScaledGenerator(deriveChildStyleSeed(childrenGeneratorSeed), data, childShrinkFactor());
+    public CNG createChildrenGenerator(long childrenGeneratorSeed, PackRuntime runtime) {
+        return getChildStyle().createScaledGenerator(deriveChildStyleSeed(childrenGeneratorSeed), runtime, childScale());
     }
 
     long deriveChildrenGeneratorSeed(long worldSeed) {
@@ -98,7 +96,11 @@ public class IrisDimensionCarvingEntry {
         return new RNG(childrenGeneratorSeed).nextParallelRNG(CHILDREN_SEED_SALT);
     }
 
-    private double childShrinkFactor() {
+    private double childScale() {
+        if (getChildStyle().isSeeded()) {
+            return 1;
+        }
+
         return Math.max(MINIMUM_CHILD_SHRINK_FACTOR, getChildShrinkFactor());
     }
 

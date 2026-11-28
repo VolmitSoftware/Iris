@@ -1,5 +1,6 @@
 package art.arcane.iris.pack.datapack.export.compile.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.IrisNoiseGenerator;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -60,7 +61,7 @@ public final class SmoothNoiseFidelityTest {
         IrisGeneratorStyle style = new IrisGeneratorStyle(NoiseStyle.SIMPLEX);
         NoiseRegistry registry = new NoiseRegistry(NAMESPACE);
         Field field = COMPILER.compile(style, SALT, registry, CAPABILITIES);
-        CNG iris = style.createNoCache(new RNG(IRIS_SEED), null);
+        CNG iris = style.createNoCache(new RNG(IRIS_SEED), PackRuntime.standalone(null));
         double[] irisValues = grid((x, z) -> iris.noise(x, z), 0, 0, SIZE, STRIDE);
         double[] lowered = new double[0];
         for (int window = 0; window < 4; window++) {
@@ -76,7 +77,7 @@ public final class SmoothNoiseFidelityTest {
         IrisGeneratorStyle style = new IrisGeneratorStyle(NoiseStyle.QUADOCTAVE_FRACTAL_FBM_SIMPLEX).zoomed(0.5);
         NoiseRegistry registry = new NoiseRegistry(NAMESPACE);
         Field field = COMPILER.compile(style, SALT, registry, CAPABILITIES);
-        CNG iris = style.createNoCache(new RNG(IRIS_SEED), null);
+        CNG iris = style.createNoCache(new RNG(IRIS_SEED), PackRuntime.standalone(null));
         double[] irisSpectrum = new double[SIZE / 2];
         double[] loweredSpectrum = new double[SIZE / 2];
         for (int window = 0; window < WINDOWS.length; window++) {
@@ -115,7 +116,7 @@ public final class SmoothNoiseFidelityTest {
         IrisGeneratorStyle style = new IrisGeneratorStyle(NoiseStyle.NOWHERE).zoomed(0.5);
         NoiseRegistry registry = new NoiseRegistry(NAMESPACE);
         Field field = COMPILER.compile(style, SALT, registry, CAPABILITIES);
-        CNG iris = style.createNoCache(new RNG(IRIS_SEED), null);
+        CNG iris = style.createNoCache(new RNG(IRIS_SEED), PackRuntime.standalone(null));
         long irisFragments = 0L;
         long loweredFragments = 0L;
         for (int window = 0; window < WINDOWS.length; window++) {

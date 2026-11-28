@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.terrain.IrisDimension;
 
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -15,6 +16,8 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class IrisBiomeCeilingLayerTest {
+    private static final PackRuntime RUNTIME = PackRuntime.standalone(null);
+
     @Test
     public void emitsEveryCeilingLayerWithoutSurfaceLayers() {
         NativeBlockState first = mock(NativeBlockState.class);
@@ -24,7 +27,7 @@ public class IrisBiomeCeilingLayerTest {
                 new KList<>(layer(first, 2), layer(second, 1), layer(third, 2)));
 
         KList<NativeBlockState> result = biome.generateCeilingLayers(
-                new IrisDimension(), 13, -27, new RNG(1), 8, 64, null, null);
+                new IrisDimension(), 13, -27, new RNG(1), 8, 64, RUNTIME, null);
 
         assertEquals(List.of(first, first, second, third, third), result);
     }
@@ -34,17 +37,17 @@ public class IrisBiomeCeilingLayerTest {
         IrisBiome first = variableBiome(1, 1);
         IrisBiome second = variableBiome(7, 31);
         RNG rng = new RNG(37);
-        second.getLayerHeightGenerators(rng, null);
+        second.getLayerHeightGenerators(rng, RUNTIME);
         for (int x = -200; x <= 200; x += 7) {
             KList<NativeBlockState> firstCeiling = first.generateCeilingLayers(
-                    new IrisDimension(), x, -x, rng, 100, 120, null, null);
+                    new IrisDimension(), x, -x, rng, 100, 120, RUNTIME, null);
             KList<NativeBlockState> secondCeiling = second.generateCeilingLayers(
-                    new IrisDimension(), x, -x, rng, 100, 120, null, null);
+                    new IrisDimension(), x, -x, rng, 100, 120, RUNTIME, null);
             assertEquals(firstCeiling.size(), secondCeiling.size());
         }
-        first.getLayerHeightGenerators(rng, null);
-        assertNotSame(first.getLayerHeightGenerators(rng, null).get(0),
-                first.getLayerCeilingHeightGenerators().get(first.getCaveCeilingLayers(), 7235, rng, null).get(0));
+        first.getLayerHeightGenerators(rng, RUNTIME);
+        assertNotSame(first.getLayerHeightGenerators(rng, RUNTIME).get(0),
+                first.getCaveCeilingLayerHeightGenerators(rng, RUNTIME).get(0));
     }
 
     @Test
@@ -53,9 +56,9 @@ public class IrisBiomeCeilingLayerTest {
         NativeBlockState second = mock(NativeBlockState.class);
         IrisBiome biome = new IrisBiome().setCaveCeilingLayers(new KList<>(layer(first, 2), layer(second, 3)));
         assertEquals(List.of(first, first, second), biome.generateCeilingLayers(
-                new IrisDimension(), 0, 0, new RNG(1), 3, 64, null, null));
+                new IrisDimension(), 0, 0, new RNG(1), 3, 64, RUNTIME, null));
         assertTrue(biome.generateCeilingLayers(
-                new IrisDimension(), 0, 0, new RNG(1), 0, 64, null, null).isEmpty());
+                new IrisDimension(), 0, 0, new RNG(1), 0, 64, RUNTIME, null).isEmpty());
     }
 
     @Test

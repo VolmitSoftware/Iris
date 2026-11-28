@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.biome;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
@@ -20,6 +21,7 @@ import java.util.Arrays;
 
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -41,6 +43,8 @@ public class FloatingIslandLockedLayersTest {
                 .setFloatingChildBiomes(new KList<>(entry));
         Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
         when(engine.getDimension()).thenReturn(new IrisDimension());
+        PackRuntime engineRuntime = PackRuntime.forEngine(engine, engine.getData());
+        when(engine.getPackRuntime()).thenReturn(engineRuntime);
         when(engine.getSubterrainCell(anyInt(), anyInt(), anyInt())).thenReturn(null);
         when(engine.getComplex().allowsNewDiscreteContentAt(anyInt(), anyInt())).thenReturn(false);
         when(engine.getComplex().getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) -> WaterRole.NONE,
@@ -71,19 +75,19 @@ public class FloatingIslandLockedLayersTest {
              MockedStatic<B> blocks = mockStatic(B.class)) {
             blocks.when(() -> B.getState("minecraft:stone")).thenReturn(first);
             samples.when(() -> FloatingIslandSample.sampleMemoized(eq(parent), eq(-16), eq(-16),
-                    anyInt(), anyLong(), any(), eq(engine), eq(boundary))).thenReturn(thin);
+                    anyInt(), anyLong(), argThat((PackRuntime runtime) -> runtime.engine() == engine), eq(boundary))).thenReturn(thin);
             samples.when(() -> FloatingIslandSample.sampleMemoized(eq(parent), eq(-15), eq(-16),
-                    anyInt(), anyLong(), any(), eq(engine), eq(boundary))).thenReturn(thick);
+                    anyInt(), anyLong(), argThat((PackRuntime runtime) -> runtime.engine() == engine), eq(boundary))).thenReturn(thick);
             samples.when(() -> FloatingIslandSample.sampleMemoized(eq(parent), eq(-14), eq(-16),
-                    anyInt(), anyLong(), any(), eq(engine), eq(boundary))).thenReturn(raised);
+                    anyInt(), anyLong(), argThat((PackRuntime runtime) -> runtime.engine() == engine), eq(boundary))).thenReturn(raised);
             samples.when(() -> FloatingIslandSample.sampleMemoized(eq(parent), eq(-13), eq(-16),
-                    anyInt(), anyLong(), any(), eq(engine), eq(boundary))).thenReturn(gapped);
+                    anyInt(), anyLong(), argThat((PackRuntime runtime) -> runtime.engine() == engine), eq(boundary))).thenReturn(gapped);
             samples.when(() -> FloatingIslandSample.sampleMemoized(eq(parent), eq(-12), eq(-16),
-                    anyInt(), anyLong(), any(), eq(engine), eq(boundary))).thenReturn(mirrored);
+                    anyInt(), anyLong(), argThat((PackRuntime runtime) -> runtime.engine() == engine), eq(boundary))).thenReturn(mirrored);
             samples.when(() -> FloatingIslandSample.sampleMemoized(eq(parent), eq(-11), eq(-16),
-                    anyInt(), anyLong(), any(), eq(engine), eq(boundary))).thenReturn(custom);
+                    anyInt(), anyLong(), argThat((PackRuntime runtime) -> runtime.engine() == engine), eq(boundary))).thenReturn(custom);
             samples.when(() -> FloatingIslandSample.sampleMemoized(eq(ordinaryParent), eq(-10), eq(-16),
-                    anyInt(), anyLong(), any(), eq(engine), eq(boundary))).thenReturn(ordinary);
+                    anyInt(), anyLong(), argThat((PackRuntime runtime) -> runtime.engine() == engine), eq(boundary))).thenReturn(ordinary);
             new IrisFloatingChildBiomeModifier(engine).onModify(-16, -16, output, false, context);
         }
         assertSame(first, output.get(0, 20, 0));
@@ -121,7 +125,7 @@ public class FloatingIslandLockedLayersTest {
         when(layer.getSlopeCondition()).thenReturn(new IrisSlopeClip());
         when(layer.getHeightGenerator(any(), any())).thenReturn(height);
         when(height.fit(anyInt(), anyInt(), anyDouble(), anyDouble())).thenReturn(1);
-        when(layer.get(any(), anyInt(), anyDouble(), anyDouble(), anyDouble(), any())).thenReturn(block);
+        when(layer.get(any(), anyInt(), anyDouble(), anyDouble(), anyDouble(), any(PaletteLayerRuntime.class))).thenReturn(block);
         when(layer.get(any(), anyDouble(), anyDouble(), anyDouble(), any())).thenReturn(block);
         return layer;
     }

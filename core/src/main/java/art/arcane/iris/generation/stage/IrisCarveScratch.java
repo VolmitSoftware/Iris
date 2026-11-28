@@ -67,6 +67,12 @@ final class IrisCarveScratch {
         caveBiomeCache.clear();
         customCaveBiomePresent = false;
     }
+
+    /** Drops every biome, block and cavern reference so the thread's scratch pins no pack once a chunk is carved. */
+    void releaseReferences() {
+        reset();
+        layers.reset();
+    }
 }
 
 final class CaveLayerMemo {
@@ -78,6 +84,8 @@ final class CaveLayerMemo {
     private int ceilingCount;
 
     void reset() {
+        Arrays.fill(floor, 0, floorCount, null);
+        Arrays.fill(ceiling, 0, ceilingCount, null);
         floorCount = 0;
         ceilingCount = 0;
     }

@@ -1,5 +1,6 @@
 package art.arcane.iris.modded;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureStagePolicy;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.mantle.DeferredPlacementRecords;
@@ -151,7 +152,7 @@ final class ModdedNativeStructurePolicy implements NativeModdedStructureStage.Po
 
     @Override
     public NativeBlockState paletteBlock(StructurePalette source, RNG rng, int x, int y, int z) {
-        return ((IrisMaterialPalette) source).get(rng, x, y, z, generator.engine().getData());
+        return ((IrisMaterialPalette) source).get(rng, x, y, z, PackRuntime.of(generator.engine()));
     }
 
     @Override

@@ -24,9 +24,9 @@ import art.arcane.volmlib.util.math.RNG;
 
 public class ExpressionNoise implements NoiseGenerator {
     private final RNG rng;
-    private final IrisExpression expression;
+    private final ExpressionRuntime expression;
 
-    public ExpressionNoise(RNG rng, IrisExpression expression) {
+    public ExpressionNoise(RNG rng, ExpressionRuntime expression) {
         this.rng = rng;
         this.expression = expression;
     }

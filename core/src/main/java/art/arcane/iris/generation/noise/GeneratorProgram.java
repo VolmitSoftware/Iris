@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.volmlib.util.interpolation.IrisInterpolation;
 
 import java.util.Arrays;
@@ -14,6 +15,7 @@ public final class GeneratorProgram {
     private final NoiseLayerProgram cliffs;
     private final boolean multiplicitive;
     private final double opacity;
+    private final double exponent;
     private final double offsetX;
     private final double offsetZ;
     private final double zoom;
@@ -21,15 +23,21 @@ public final class GeneratorProgram {
     private final double cliffHeightMin;
     private final double cliffHeightMax;
     private final boolean cellCracks;
+    private final PackRuntime runtime;
+    private final IrisGenerator.SurfaceCacheStripe[] surfaceStripes;
 
-    GeneratorProgram(IrisGenerator generator, long superSeed, NoiseLayerProgram[] layers, double totalOpacity, NoiseLayerProgram cliffs) {
+    GeneratorProgram(IrisGenerator generator, long superSeed, NoiseLayerProgram[] layers, double totalOpacity,
+                     NoiseLayerProgram cliffs, PackRuntime runtime) {
         this.generator = generator;
+        this.runtime = runtime;
+        this.surfaceStripes = runtime.generator(generator).surfaceStripes();
         this.superSeed = superSeed;
         this.layers = layers;
         this.totalOpacity = totalOpacity;
         this.cliffs = cliffs;
         this.multiplicitive = generator.isMultiplicitive();
         this.opacity = generator.getOpacity();
+        this.exponent = generator.getExponent();
         this.offsetX = generator.getOffsetX();
         this.offsetZ = generator.getOffsetZ();
         this.zoom = generator.getZoom();
@@ -69,7 +77,7 @@ public final class GeneratorProgram {
         double lowerZ = Math.floor(z / SURFACE_GRID) * SURFACE_GRID;
         double dx = (x - lowerX) / SURFACE_GRID;
         double dz = (z - lowerZ) / SURFACE_GRID;
-        IrisGenerator.SurfaceCacheStripe[] stripes = generator.surfaceStripes();
+        IrisGenerator.SurfaceCacheStripe[] stripes = surfaceStripes;
         double northWest = lattice(scratch, stripes, lowerX, lowerZ);
         if (dx == 0D && dz == 0D) {
             return northWest;
@@ -116,7 +124,8 @@ public final class GeneratorProgram {
             double noise = layer.sample(scratch, sampleX, sampleZ);
             value = multiplicitive ? value * noise : value + noise;
         }
-        value = multiplicitive ? value * opacity : (value / totalOpacity) * opacity;
+        double combined = multiplicitive ? value : value / totalOpacity;
+        value = IrisGenerator.applyExponent(combined, exponent) * opacity;
         if (Double.isNaN(value)) {
             value = 0D;
         }
@@ -124,7 +133,7 @@ public final class GeneratorProgram {
             double height = IrisInterpolation.lerp(cliffHeightMin, cliffHeightMax, cliffs.sample(scratch, sampleX, sampleZ));
             value = (Math.round((value * 255D) / height) * height) / 255D;
         }
-        return cellCracks ? generator.cell(x, z, value, 0D) : value;
+        return cellCracks ? generator.cell(runtime, x, z, value, 0D) : value;
     }
 
     private void surfaceHeights(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] out) {
@@ -226,7 +235,7 @@ public final class GeneratorProgram {
     }
 
     private void resolveLattice(TerrainBatchScratch scratch, int nodes, double[] lattice) {
-        IrisGenerator.SurfaceCacheStripe[] stripes = generator.surfaceStripes();
+        IrisGenerator.SurfaceCacheStripe[] stripes = surfaceStripes;
         int indexMark = scratch.indexMark();
         int mark = scratch.mark();
         try {
@@ -296,7 +305,8 @@ public final class GeneratorProgram {
             }
         }
         for (int index = 0; index < count; index++) {
-            double value = multiplicitive ? out[index] * opacity : (out[index] / totalOpacity) * opacity;
+            double combined = multiplicitive ? out[index] : out[index] / totalOpacity;
+            double value = IrisGenerator.applyExponent(combined, exponent) * opacity;
             out[index] = Double.isNaN(value) ? 0D : value;
         }
         if (cliffs != null) {
@@ -308,7 +318,7 @@ public final class GeneratorProgram {
         }
         if (cellCracks) {
             for (int index = 0; index < count; index++) {
-                out[index] = generator.cell(xs[index], zs[index], out[index], 0D);
+                out[index] = generator.cell(runtime, xs[index], zs[index], out[index], 0D);
             }
         }
     }

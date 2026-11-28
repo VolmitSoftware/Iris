@@ -18,9 +18,11 @@
 
 package art.arcane.iris.spi;
 
+import java.util.Collections;
 import java.util.IllegalFormatException;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
@@ -35,8 +37,14 @@ import java.util.regex.Pattern;
  * Internal to Iris; not a published integration surface.
  */
 public final class IrisLogging {
-    private static final int MAX_ONCE_KEYS = 512;
-    private static final Set<String> ONCE_KEYS = ConcurrentHashMap.newKeySet();
+    static final int MAX_ONCE_KEYS = 512;
+    private static final Map<String, Boolean> ONCE_KEYS = Collections.synchronizedMap(
+            new LinkedHashMap<>(64, 0.75F, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+                    return size() > MAX_ONCE_KEYS;
+                }
+            });
     private static final Pattern LEGACY_COLOR = Pattern.compile("(?i)\\u00a7[0-9A-FK-ORX]");
     private static final Pattern MINI_MESSAGE_TAG = Pattern.compile("(?i)</?(?:reset|bold|b|italic|i|underlined?|u|strikethrough|st|obfuscated?|obf|black|dark_blue|dark_green|dark_aqua|dark_red|dark_purple|gold|gray|dark_gray|blue|green|aqua|red|light_purple|yellow|white|gradient|font|hover|click|rainbow)(?::[^>\\n]{0,96})?>|<#[0-9a-f]{6}>");
 
@@ -88,12 +96,26 @@ public final class IrisLogging {
      * Logs at {@link LogLevel#WARN} the first time {@code key} is seen and at {@link LogLevel#DEBUG} every
      * time after, for a condition that is worth stating once but is reached per block, per sample or per
      * chunk. Returns true when the warning was the one that got stated, so a caller can attach a stack trace
-     * or other one-off detail to it.
+     * or other one-off detail to it. At most {@link #MAX_ONCE_KEYS} keys are held; past that the least recently
+     * seen key is dropped and warns again the next time it comes up.
      *
      * @see #resetOnceKeys()
      */
     public static boolean warnOnce(String key, String format, Object... args) {
         return once(LogLevel.WARN, key, format, args);
+    }
+
+    /**
+     * {@link #warnOnce(String, String, Object...)} for a message that is costly to build: {@code message} is
+     * only called when the warning is stated, and a repeat logs nothing.
+     */
+    public static boolean warnOnce(String key, Supplier<String> message) {
+        if (isRepeat(key)) {
+            return false;
+        }
+
+        emit(LogLevel.WARN, message == null ? "null" : String.valueOf(message.get()));
+        return true;
     }
 
     /**
@@ -199,9 +221,24 @@ public final class IrisLogging {
         ONCE_KEYS.clear();
     }
 
+    /**
+     * Forgets only the once-keys that start with {@code prefix}, so one scope (a pack that was just
+     * hotloaded) can warn again while every other scope stays claimed. A null or empty prefix is ignored
+     * rather than clearing everything; {@link #resetOnceKeys()} is the global reset.
+     */
+    public static void forgetOnceKeys(String prefix) {
+        if (prefix == null || prefix.isEmpty()) {
+            return;
+        }
+
+        synchronized (ONCE_KEYS) {
+            ONCE_KEYS.keySet().removeIf(key -> key.startsWith(prefix));
+        }
+    }
+
     private static boolean once(LogLevel level, String key, String format, Object... args) {
         String message = format(format, args);
-        if (!claim(key)) {
+        if (isRepeat(key)) {
             emit(LogLevel.DEBUG, message);
             return false;
         }
@@ -212,14 +249,11 @@ public final class IrisLogging {
 
     /**
      * The cap is what keeps a key space nobody bounded - a block name, a biome name, a mod id - from becoming
-     * a leak. Past it nothing new is claimed, which drops later conditions to debug rather than growing.
+     * a leak. Eviction is least recently seen, so a condition that keeps recurring stays claimed while one
+     * that stopped makes room for new ones.
      */
-    private static boolean claim(String key) {
-        if (ONCE_KEYS.size() >= MAX_ONCE_KEYS) {
-            return false;
-        }
-
-        return ONCE_KEYS.add(key == null ? "null" : key);
+    private static boolean isRepeat(String key) {
+        return ONCE_KEYS.put(key == null ? "null" : key, Boolean.TRUE) != null;
     }
 
     /**

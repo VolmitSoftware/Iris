@@ -1,5 +1,9 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex;
+import art.arcane.iris.structure.placement.StructureReachability;
+import art.arcane.iris.structure.placement.StructurePlacementScope;
+import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.EngineRuntimeBuilder.RuntimeAssembly;
 import art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore;
@@ -132,6 +136,25 @@ public class EngineShutdownDrainTest {
             verify(fixture.complex).close();
             verify(fixture.mantle).close();
             assertTrue(fixture.engine.closed);
+        }
+    }
+
+    @Test
+    public void closedEngineRemovesItselfFromEveryStructureRegistry() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class);
+             MockedStatic<IrisStructureLocator> locator = mockStatic(IrisStructureLocator.class);
+             MockedStatic<StructureReachability> reachability = mockStatic(StructureReachability.class);
+             MockedStatic<StructurePlacementScope> scopes = mockStatic(StructurePlacementScope.class);
+             MockedStatic<NativeStructureVolumeIndex> volumes = mockStatic(NativeStructureVolumeIndex.class)) {
+            fixture.shutdown.close();
+
+            assertTrue(fixture.engine.closed);
+            ownership.verify(() -> NativeStructureOwnershipStore.release(fixture.engine));
+            locator.verify(() -> IrisStructureLocator.invalidate(fixture.engine));
+            reachability.verify(() -> StructureReachability.invalidate(fixture.engine));
+            scopes.verify(() -> StructurePlacementScope.invalidate(fixture.engine));
+            volumes.verify(() -> NativeStructureVolumeIndex.uninstall(fixture.engine));
         }
     }
 
@@ -887,7 +910,7 @@ public class EngineShutdownDrainTest {
             when(generation.runtimeKernel()).thenReturn(kernel);
             GenerationRuntime nextGeneration = generation(target, mantle);
             when(nextGeneration.complex()).thenReturn(replacement);
-            when(generation.withComplex(anyInt(), same(replacement), isNull(), isNull(), any()))
+            when(generation.withComplex(anyInt(), same(replacement), any(), isNull(), isNull(), any()))
                     .thenReturn(nextGeneration);
             EngineRuntimeBuilder builder = spy(new EngineRuntimeBuilder(engine));
             doReturn(new GenerationRuntime.BiomeMaxes(0D, 0D, 0D)).when(builder).computeBiomeMaxes();

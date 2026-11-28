@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.noise;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -13,7 +14,7 @@ public class IrisNoiseGeneratorRemapTest {
                     .setStyle(NoiseStyle.FLAT.style())
                     .setOpacity(sample[0])
                     .setParametric(true);
-            assertEquals(sample[1], layer.getNoise(75L, 13D, -21D, null), 0.000000000001D);
+            assertEquals(sample[1], layer.getNoise(75L, 13D, -21D, PackRuntime.standalone(null)), 0.000000000001D);
         }
     }
 }

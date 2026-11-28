@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.B;
 
 import art.arcane.iris.generation.runtime.Engine;
@@ -38,7 +39,7 @@ final class PlacementModuleNativeStructureProtection implements PlacementModule 
         int z = context.z;
         var bounds = state.bounds;
         var projection = state.paintProjection;
-        var surfaceWarp = config.getWarp().isFlat() ? null : config.getSurfaceWarp(context.rng, self.getLoader());
+        var surfaceWarp = config.getWarp().isFlat() ? null : config.getSurfaceWarp(context.rng, context.runtime.scopeFor(self.getLoader()));
         double warpHalf = config.getWarp().isFlat() ? 0 : config.getWarp().getMultiplier() / 2D;
         int randomY = state.yrand;
         Engine engine = placer.getEngine();

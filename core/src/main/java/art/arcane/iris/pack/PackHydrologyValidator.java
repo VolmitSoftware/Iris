@@ -17,6 +17,7 @@ import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.ShoreBiomeLineages;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.IrisRegistrant;
+import art.arcane.iris.pack.loading.SnippetFolder;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -172,13 +173,13 @@ final class PackHydrologyValidator {
     }
 
     private static void warnUnknownSnippetKeys(String field, String reference, Class<?> type, KeyScan scan) {
-        String base = SNIPPET_ROOT + type.getDeclaredAnnotation(Snippet.class).value() + "/";
-        String snippet = reference.startsWith(base) ? reference : base + reference.substring(SNIPPET_ROOT.length());
+        SnippetFolder.Lookup lookup = new SnippetFolder(type.getDeclaredAnnotation(Snippet.class).value())
+                .find(scan.packFolder(), reference);
+        String snippet = lookup.key();
         if (!scan.activeSnippets().add(snippet)) {
             return;
         }
-        File file = new File(scan.packFolder(), snippet + ".json");
-        JSONObject object = file.isFile() ? PackValidationIo.readJson(file) : null;
+        JSONObject object = lookup.found() ? PackValidationIo.readJson(lookup.file()) : null;
         if (object != null) {
             warnUnknownFields(field + " (" + snippet + ")", object, type, scan);
         }

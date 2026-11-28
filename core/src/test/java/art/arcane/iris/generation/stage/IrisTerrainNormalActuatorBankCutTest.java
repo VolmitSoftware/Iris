@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
+import art.arcane.iris.testsupport.MockPackData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.ChunkedDataCache;
@@ -25,6 +27,7 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.same;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
@@ -92,7 +95,7 @@ public class IrisTerrainNormalActuatorBankCutTest {
         private final IrisComplex complex = mock(IrisComplex.class);
 
         private Fixture(WaterRole role) {
-            IrisData data = mock(IrisData.class);
+            IrisData data = MockPackData.create();
             IrisBiome biome = mock(IrisBiome.class);
             IrisRegion region = new IrisRegion();
             IrisDimension dimension = new IrisDimension()
@@ -129,9 +132,9 @@ public class IrisTerrainNormalActuatorBankCutTest {
             when(context.getFluid()).thenReturn(new ChunkedDataCache<>(
                     ProceduralStream.of((x, z) -> null, Interpolated.of(value -> 0D, value -> null)), 11, -4, false));
             when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
-                    anyInt(), anyInt(), eq(data), eq(complex))).thenReturn(new KList<>(List.of(grass, dirt)));
+                    anyInt(), anyInt(), MockPackData.runtimeOf(data), eq(complex))).thenReturn(new KList<>(List.of(grass, dirt)));
             when(biome.generateCeilingLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
-                    anyInt(), anyInt(), eq(data), eq(complex))).thenReturn(new KList<>());
+                    anyInt(), anyInt(), MockPackData.runtimeOf(data), eq(complex))).thenReturn(new KList<>());
         }
 
         private Hunk<NativeBlockState> actuate() {

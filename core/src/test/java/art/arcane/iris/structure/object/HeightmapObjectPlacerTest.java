@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
@@ -15,11 +16,11 @@ public class HeightmapObjectPlacerTest {
         Engine engine = mock(Engine.class);
         IObjectPlacer ownedDelegate = mock(IObjectPlacer.class);
         when(ownedDelegate.getEngine()).thenReturn(engine);
-        HeightmapObjectPlacer owned = new HeightmapObjectPlacer(mock(RNG.class), 1, 2, 3, new IrisObjectPlacement(), ownedDelegate);
+        HeightmapObjectPlacer owned = new HeightmapObjectPlacer(mock(RNG.class), 1, 2, 3, new IrisObjectPlacement(), ownedDelegate, PackRuntime.standalone(null));
         assertSame(engine, owned.getEngine());
 
         IObjectPlacer unownedDelegate = mock(IObjectPlacer.class);
-        HeightmapObjectPlacer unowned = new HeightmapObjectPlacer(mock(RNG.class), 1, 2, 3, new IrisObjectPlacement(), unownedDelegate);
+        HeightmapObjectPlacer unowned = new HeightmapObjectPlacer(mock(RNG.class), 1, 2, 3, new IrisObjectPlacement(), unownedDelegate, PackRuntime.standalone(null));
         assertNull(unowned.getEngine());
     }
 }

@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.testsupport.KeyedBlockState;
 
 import art.arcane.iris.pack.loading.IrisData;
@@ -277,6 +278,8 @@ public class IrisDepositModifierParityTest {
             when(engine.getData()).thenReturn(data);
             when(engine.getDimensionStackContext()).thenReturn(null);
         }
+        PackRuntime runtime = PackRuntime.forEngine(engine, engine.getData());
+        when(engine.getPackRuntime()).thenReturn(runtime);
         when(engine.getCaveBiome(anyInt(), anyInt(), anyInt(), any())).thenAnswer(invocation -> {
             caveBiomeLookups.incrementAndGet();
             int x = invocation.getArgument(0);
@@ -564,9 +567,9 @@ public class IrisDepositModifierParityTest {
         }
 
         @Override
-        public IrisObject getClump(Engine engine, RNG rng, IrisData data) {
+        public IrisObject getClump(PackRuntime runtime, RNG rng) {
             clumps.incrementAndGet();
-            return super.getClump(engine, rng, data);
+            return super.getClump(runtime, rng);
         }
 
         @Override

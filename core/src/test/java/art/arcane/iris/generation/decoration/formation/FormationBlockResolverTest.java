@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration.formation;
 
+import art.arcane.iris.generation.runtime.PackRuntime;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -51,7 +52,7 @@ public class FormationBlockResolverTest {
                         long sampleSeed = formation.getSeed() + (expectedPalette == strata ? sampleY * 31L : 0L);
                         RNG fresh = new RNG(sampleSeed);
                         NativeBlockState expected = expectedPalette.get(fresh,
-                                position.getBlockX(), sampleY, position.getBlockZ(), null);
+                                position.getBlockX(), sampleY, position.getBlockZ(), PackRuntime.forPack(null));
                         assertSame(expected, resolver.resolve(role, position));
                         assertEquals(new RNG(sampleSeed).nextLong(), fresh.nextLong());
                         materials.add(expected.key());

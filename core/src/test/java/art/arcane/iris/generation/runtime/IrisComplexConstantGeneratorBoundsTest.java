@@ -32,7 +32,7 @@ public class IrisComplexConstantGeneratorBoundsTest {
                             expected += M.lerp(low, high, noise);
                         }
                         expected /= size;
-                        assertBits(expected, IrisComplex.averageGeneratorHeights(generators, low, high, 12D, -9D, 7331L));
+                        assertBits(expected, IrisComplex.averageGeneratorHeights(PackRuntime.standalone(null), generators, low, high, 12D, -9D, 7331L));
                         assertEquals(0, generator.calls);
                     }
                 }
@@ -44,8 +44,8 @@ public class IrisComplexConstantGeneratorBoundsTest {
     public void inactiveInvalidNoiseMatchesExistingConstantFitContract() {
         for (double noise : new double[]{Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY}) {
             CountingGenerator generator = new CountingGenerator(noise);
-            assertBits(generator.fitDouble(0D, 0D, 7331L, 12D, -9D),
-                    IrisComplex.averageGeneratorHeights(new IrisGenerator[]{generator}, 0D, 0D, 12D, -9D, 7331L));
+            assertBits(generator.fitDouble(PackRuntime.standalone(null), 0D, 0D, 7331L, 12D, -9D),
+                    IrisComplex.averageGeneratorHeights(PackRuntime.standalone(null), new IrisGenerator[]{generator}, 0D, 0D, 12D, -9D, 7331L));
             assertEquals(0, generator.calls);
             assertTrue(Double.isNaN(M.lerp(0D, 0D, noise)));
         }
@@ -58,7 +58,7 @@ public class IrisComplexConstantGeneratorBoundsTest {
             for (double noise : new double[]{0.3D, -2D, 3D}) {
                 CountingGenerator generator = new CountingGenerator(noise);
                 double expected = (0D + M.lerp(pair[0], pair[1], noise)) / 1;
-                assertBits(expected, IrisComplex.averageGeneratorHeights(new IrisGenerator[]{generator},
+                assertBits(expected, IrisComplex.averageGeneratorHeights(PackRuntime.standalone(null), new IrisGenerator[]{generator},
                         pair[0], pair[1], 12D, -9D, 7331L));
                 assertEquals(1, generator.calls);
             }
@@ -72,7 +72,7 @@ public class IrisComplexConstantGeneratorBoundsTest {
                 CountingGenerator generator = new CountingGenerator(0.3D);
                 generator.setLoadKey("diagnostic/terrain");
                 IllegalStateException failure = assertThrows(IllegalStateException.class,
-                        () -> IrisComplex.averageGeneratorHeights(new IrisGenerator[]{generator},
+                        () -> IrisComplex.averageGeneratorHeights(PackRuntime.standalone(null), new IrisGenerator[]{generator},
                                 bounds[0], bounds[1], 671D, 2437D, 7331L));
                 assertTrue(failure.getMessage().contains("671.0,2437.0"));
                 assertTrue(failure.getMessage().contains("generator=diagnostic/terrain"));
@@ -90,7 +90,7 @@ public class IrisComplexConstantGeneratorBoundsTest {
             invalidGenerator.setLoadKey("diagnostic/cliffs");
             CountingGenerator unsampled = new CountingGenerator(0.5D);
             IllegalStateException failure = assertThrows(IllegalStateException.class,
-                    () -> IrisComplex.averageGeneratorHeights(new IrisGenerator[]{valid, invalidGenerator, unsampled},
+                    () -> IrisComplex.averageGeneratorHeights(PackRuntime.standalone(null), new IrisGenerator[]{valid, invalidGenerator, unsampled},
                             0D, 44D, 671D, 2437D, 7331L));
             assertTrue(failure.getMessage().contains("671.0,2437.0"));
             assertTrue(failure.getMessage().contains("generator=diagnostic/cliffs"));
@@ -115,7 +115,7 @@ public class IrisComplexConstantGeneratorBoundsTest {
         }
 
         @Override
-        public double getHeight(double x, double z, long seed) {
+        public double getHeight(PackRuntime runtime, double x, double z, long seed) {
             calls++;
             return value;
         }
